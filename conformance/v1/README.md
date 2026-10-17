@@ -26,6 +26,10 @@ conformance remains required; passing the portable row tests is not sufficient.
   `lifecycle/adverse-capacity-three-family-v1.json`.
 - `qualification.py` maps each advertised interaction record to revisioned
   evidence obligations in `qualification/capability-obligations-v1.json`.
+- `evidence_index.py` revalidates registered qualification results, retains
+  failures and provenance, and checks the generated per-driver documentation.
+- `evidence/index-v1.json` is the published driver/capability matrix. Its source
+  registry pins every input report by SHA-256.
 - `manifest.json` records the exact source revision, deterministic settings,
   toolchain/device provenance, and GLB hashes used for the reviewed goldens.
 
@@ -158,6 +162,19 @@ evidence must be `passed`, from the same clean source revision, and retain
 driver binary, device and toolchain provenance. Known gaps are explicit
 `missing_contract` failures. Timing is reported separately and does not make a
 functional capability pass.
+
+Regenerate the checked-in per-driver matrix and its documentation block with:
+
+```text
+python3 conformance/v1/evidence_index.py
+```
+
+CI and release review use `--check`. Raw qualification results are evaluated
+again against the pinned obligations rather than trusted as summaries. Failed,
+unsupported, incomplete or stale evidence stays in `known_failures` and yields
+no qualified capability row. Older reports may be registered as supplemental
+evidence; their source, binary, device and toolchain tuple remains visible, but
+they cannot certify a current capability.
 
 Completed trajectory results explicitly say `quality_status: not_evaluated`.
 The comparator reports reference-regression `passed`, `failed`, and

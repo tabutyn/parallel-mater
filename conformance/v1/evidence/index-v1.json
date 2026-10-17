@@ -1,0 +1,358 @@
+{
+  "capabilities": [],
+  "capability_count": 0,
+  "driver_count": 5,
+  "drivers": [
+    {
+      "id": "slang-cpu",
+      "label": "Slang CPU",
+      "qualification_result_ids": [],
+      "qualified_capability_count": 0,
+      "report_ids": [],
+      "status": "missing",
+      "unqualified_capability_count": 0
+    },
+    {
+      "id": "slang-cuda",
+      "label": "CUDA",
+      "qualification_result_ids": [],
+      "qualified_capability_count": 0,
+      "report_ids": [
+        "windows-gtx1080-physics-2026-10-16"
+      ],
+      "status": "supplemental_only",
+      "unqualified_capability_count": 0
+    },
+    {
+      "id": "slang-d3d12",
+      "label": "D3D12",
+      "qualification_result_ids": [],
+      "qualified_capability_count": 0,
+      "report_ids": [
+        "windows-gtx1080-physics-2026-10-16"
+      ],
+      "status": "supplemental_only",
+      "unqualified_capability_count": 0
+    },
+    {
+      "id": "slang-vulkan",
+      "label": "Vulkan",
+      "qualification_result_ids": [],
+      "qualified_capability_count": 0,
+      "report_ids": [],
+      "status": "missing",
+      "unqualified_capability_count": 0
+    },
+    {
+      "id": "slang-metal",
+      "label": "Metal",
+      "qualification_result_ids": [],
+      "qualified_capability_count": 0,
+      "report_ids": [],
+      "status": "missing",
+      "unqualified_capability_count": 0
+    }
+  ],
+  "known_failures": [
+    {
+      "driver": "slang-cpu",
+      "kind": "missing_qualification_result",
+      "message": "No current capability-qualification result is registered.",
+      "report": null
+    },
+    {
+      "case": "cloth-tear",
+      "driver": "slang-cuda",
+      "kind": "historical_baseline_failure",
+      "message": "no one-to-one contact match within existing tolerances",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "constraint-fixed",
+      "driver": "slang-cuda",
+      "kind": "historical_baseline_failure",
+      "message": "no one-to-one contact match within existing tolerances",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "constraint-generic",
+      "driver": "slang-cuda",
+      "kind": "historical_baseline_failure",
+      "message": "no one-to-one contact match within existing tolerances",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "constraint-generic-spring",
+      "driver": "slang-cuda",
+      "kind": "historical_baseline_failure",
+      "message": "no one-to-one contact match within existing tolerances",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "constraint-hinge",
+      "driver": "slang-cuda",
+      "kind": "historical_baseline_failure",
+      "message": "exact value mismatch",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "constraint-motor",
+      "driver": "slang-cuda",
+      "kind": "historical_baseline_failure",
+      "message": "no one-to-one contact match within existing tolerances",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "constraint-point",
+      "driver": "slang-cuda",
+      "kind": "historical_baseline_failure",
+      "message": "no one-to-one contact match within existing tolerances",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "fluid-rigid",
+      "driver": "slang-cuda",
+      "kind": "historical_baseline_failure",
+      "message": "absolute error 11.0 > 9.15",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "passive-active",
+      "driver": "slang-cuda",
+      "kind": "historical_baseline_failure",
+      "message": "absolute error 1.5408096313476562 > 0.5785515594482422",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "rigid-direct",
+      "driver": "slang-cuda",
+      "kind": "historical_baseline_failure",
+      "message": "absolute error 1.115984923671931e-05 > 1.0002479550021236e-05",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "limitation",
+      "message": "No Metal/Vulkan device qualification, engine-handoff approval, or 30/60 FPS claim.",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "limitation",
+      "message": "Only the listed 17 cases are compared; remaining corpus cases are not qualified.",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "limitation",
+      "message": "Reference agreement is not itself physical correctness; independent brick/contact checks are recorded separately.",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "missing_qualification_result",
+      "message": "No current capability-qualification result is registered.",
+      "report": null
+    },
+    {
+      "case": "cloth-tear",
+      "driver": "slang-d3d12",
+      "kind": "historical_baseline_failure",
+      "message": "no one-to-one contact match within existing tolerances",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "constraint-fixed",
+      "driver": "slang-d3d12",
+      "kind": "historical_baseline_failure",
+      "message": "no one-to-one contact match within existing tolerances",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "constraint-generic",
+      "driver": "slang-d3d12",
+      "kind": "historical_baseline_failure",
+      "message": "no one-to-one contact match within existing tolerances",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "constraint-generic-spring",
+      "driver": "slang-d3d12",
+      "kind": "historical_baseline_failure",
+      "message": "no one-to-one contact match within existing tolerances",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "constraint-hinge",
+      "driver": "slang-d3d12",
+      "kind": "historical_baseline_failure",
+      "message": "exact value mismatch",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "constraint-motor",
+      "driver": "slang-d3d12",
+      "kind": "historical_baseline_failure",
+      "message": "no one-to-one contact match within existing tolerances",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "constraint-point",
+      "driver": "slang-d3d12",
+      "kind": "historical_baseline_failure",
+      "message": "no one-to-one contact match within existing tolerances",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "fluid-rigid",
+      "driver": "slang-d3d12",
+      "kind": "historical_baseline_failure",
+      "message": "absolute error 11.0 > 9.15",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "passive-active",
+      "driver": "slang-d3d12",
+      "kind": "historical_baseline_failure",
+      "message": "absolute error 1.5408096313476562 > 0.5785515594482422",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "rigid-direct",
+      "driver": "slang-d3d12",
+      "kind": "historical_baseline_failure",
+      "message": "absolute error 1.115984923671931e-05 > 1.0002479550021236e-05",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "limitation",
+      "message": "No Metal/Vulkan device qualification, engine-handoff approval, or 30/60 FPS claim.",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "limitation",
+      "message": "Only the listed 17 cases are compared; remaining corpus cases are not qualified.",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "limitation",
+      "message": "Reference agreement is not itself physical correctness; independent brick/contact checks are recorded separately.",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "missing_qualification_result",
+      "message": "No current capability-qualification result is registered.",
+      "report": null
+    },
+    {
+      "case": "parallel-mater-d3d12-coupling-lifecycle-tests",
+      "driver": "slang-d3d12",
+      "kind": "unsupported",
+      "message": "Requires liquid-rope coupling; D3D12 does not advertise rope.",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "case": "parallel-mater-d3d12-domain-lifecycle-tests",
+      "driver": "slang-d3d12",
+      "kind": "unsupported",
+      "message": "Requires cloth, rope, soft bodies and smoke; D3D12 does not advertise rope, soft bodies or smoke.",
+      "report": "windows-gtx1080-physics-2026-10-16"
+    },
+    {
+      "driver": "slang-metal",
+      "kind": "missing_qualification_result",
+      "message": "No current capability-qualification result is registered.",
+      "report": null
+    },
+    {
+      "driver": "slang-vulkan",
+      "kind": "missing_qualification_result",
+      "message": "No current capability-qualification result is registered.",
+      "report": null
+    }
+  ],
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
+  "qualification_complete": false,
+  "qualified_capability_count": 0,
+  "report_count": 2,
+  "reports": [
+    {
+      "capability_count": 0,
+      "case_coverage_count": 17,
+      "device": {
+        "device_id": null,
+        "driver_version": "582.66",
+        "name": "NVIDIA GeForce GTX 1080",
+        "vendor_id": null
+      },
+      "driver": {
+        "binary_sha256": "b01e4d9eff90365291c9e2839f75094368ae2cededb1f8839c9aec2f8a8ef187",
+        "name": "slang-cuda",
+        "version": null
+      },
+      "failure_count": 5,
+      "id": "windows-gtx1080-physics-2026-10-16:slang-cuda",
+      "kind": "legacy-physics",
+      "path": "conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json",
+      "qualified_count": 0,
+      "scope": "Selected 17 same-build CUDA/D3D12 reference regressions and independent rigid-contact quality; not all domains or performance.",
+      "sha256": "97d8e12814902ef8b7ccbfdf876f2c9efd781b08535c7c8d10f066e1fca2166b",
+      "source": {
+        "commit": "2a6819f14c0cd48dced13d5c1c80d6695326d6bf",
+        "dirty": null
+      },
+      "toolchain": {
+        "compiler": "MSVC",
+        "cuda": "12.9.86",
+        "dxc": "1.9.0.5399 (a107ba613)",
+        "slang": "2026.18",
+        "version": "19.44.35228.0"
+      },
+      "validated": true
+    },
+    {
+      "capability_count": 0,
+      "case_coverage_count": 17,
+      "device": {
+        "device_id": null,
+        "driver_version": "582.66",
+        "name": "NVIDIA GeForce GTX 1080",
+        "vendor_id": null
+      },
+      "driver": {
+        "binary_sha256": "bb50a6a4103efa18249ecf39e3a5fcd87d05c15b93f5e0f2eab9775a6646a0cf",
+        "name": "slang-d3d12",
+        "version": null
+      },
+      "failure_count": 5,
+      "id": "windows-gtx1080-physics-2026-10-16:slang-d3d12",
+      "kind": "legacy-physics",
+      "path": "conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json",
+      "qualified_count": 0,
+      "scope": "Selected 17 same-build CUDA/D3D12 reference regressions and independent rigid-contact quality; not all domains or performance.",
+      "sha256": "97d8e12814902ef8b7ccbfdf876f2c9efd781b08535c7c8d10f066e1fca2166b",
+      "source": {
+        "commit": "2a6819f14c0cd48dced13d5c1c80d6695326d6bf",
+        "dirty": null
+      },
+      "toolchain": {
+        "compiler": "MSVC",
+        "cuda": "12.9.86",
+        "dxc": "1.9.0.5399 (a107ba613)",
+        "slang": "2026.18",
+        "version": "19.44.35228.0"
+      },
+      "validated": true
+    }
+  ],
+  "schema": "parallel-mater-driver-evidence-index/v1",
+  "sources_id": "driver-evidence-sources-v1",
+  "sources_sha256": "14582711f75a0e205c77ed8974709b244243a93429c7457abf056310cebab744",
+  "valid": true,
+  "validation_failures": []
+}

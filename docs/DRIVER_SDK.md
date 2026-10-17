@@ -134,6 +134,11 @@ interaction record with `conformance/v1/qualification.py`. The hashed
 hashes, unsupported execution and attempts to substitute compilation,
 reference agreement or timing for analytic physical quality.
 
+Register the raw result in `conformance/v1/evidence/evidence-sources-v1.json`
+and regenerate `evidence/index-v1.json`. Release review runs
+`evidence_index.py --check`, so a documentation claim cannot outlive or exceed
+the revisioned result that supports it.
+
 The build target `parallel-mater-driver-abi-tests` verifies negotiation,
 function lookup, and the absence of ordinary `pm*` exports from a driver. The
 architecture test rejects CUDA types or physics details in the loader and native

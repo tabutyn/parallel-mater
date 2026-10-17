@@ -131,3 +131,20 @@ record, per-scope status, provenance, unused evidence and structured failures.
 Unknown records, stale hashes, dirty or mismatched revisions, missing contracts,
 absent evidence and non-passing required evidence leave the capability
 unqualified. Optional timing remains visible without certifying correctness.
+
+## Evidence sources: `parallel-mater-evidence-sources/v1`
+
+The source registry lists expected production drivers, the exact qualification
+profile, raw qualification results and supplemental historical reports. Every
+input path carries a SHA-256. Changing or replacing any result requires an
+explicit registry and generated-index update.
+
+## Driver evidence index: `parallel-mater-driver-evidence-index/v1`
+
+The generated index preserves each result's source, driver binary, device and
+toolchain tuple; exact capability key and per-scope status; known failures; and
+input hashes. Only a raw result that passes the current qualification evaluator
+contributes qualified capability records. Missing results, stale inputs,
+failed/unsupported evidence and supplemental reports remain visible without
+certifying support. The generated block in `docs/QUALIFICATION.md` is checked
+byte-for-byte against this index.

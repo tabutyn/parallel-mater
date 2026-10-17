@@ -26,7 +26,7 @@ elseif(UNIX)
 endif()
 set(corpus_install_root "${CMAKE_INSTALL_DATADIR}/parallel-mater")
 install(DIRECTORY conformance/v1/cases conformance/v1/lifecycle
-    conformance/v1/quality conformance/v1/qualification
+    conformance/v1/quality conformance/v1/qualification conformance/v1/evidence
     DESTINATION "${corpus_install_root}/conformance/v1")
 install(FILES conformance/v1/manifest.json conformance/v1/compare.py
     conformance/v1/lifecycle.py conformance/v1/quality.py
