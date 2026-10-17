@@ -56,6 +56,26 @@ NSString *file_sha256(NSString *path) {
     return text(parallel_mater::conformance::sha256_file(
         std::filesystem::path(path.fileSystemRepresentation)));
 }
+NSString *metal_version(id<MTLDevice> device) {
+    if (@available(iOS 26.0, *)) {
+        if ([device supportsFamily:MTLGPUFamilyMetal4]) return @"Metal 4";
+    }
+    if (@available(iOS 16.0, *)) {
+        if ([device supportsFamily:MTLGPUFamilyMetal3]) return @"Metal 3";
+    }
+    return @"pre-Metal 3";
+}
+NSString *metal_gpu_family(id<MTLDevice> device) {
+    const struct { MTLGPUFamily family; __unsafe_unretained NSString *name; } families[] = {
+        {MTLGPUFamilyApple10, @"Apple10"}, {MTLGPUFamilyApple9, @"Apple9"},
+        {MTLGPUFamilyApple8, @"Apple8"}, {MTLGPUFamilyApple7, @"Apple7"},
+        {MTLGPUFamilyApple6, @"Apple6"}, {MTLGPUFamilyApple5, @"Apple5"},
+        {MTLGPUFamilyApple4, @"Apple4"}, {MTLGPUFamilyApple3, @"Apple3"},
+        {MTLGPUFamilyApple2, @"Apple2"}, {MTLGPUFamilyApple1, @"Apple1"}};
+    for (const auto &family : families)
+        if ([device supportsFamily:family.family]) return family.name;
+    return @"unknown";
+}
 #endif
 UIImage *frame_image(const GallerySession &session) {
     // Shared renderer pixels are bottom-up RGBA. UIKit images are top-down.
@@ -462,7 +482,9 @@ UIImage *frame_image(const GallerySession &session) {
         @"operating_system_version":[NSString stringWithFormat:@"%ld.%ld.%ld",
             (long)version.majorVersion, (long)version.minorVersion,
             (long)version.patchVersion],
-        @"metal_api":@"Metal"};
+        @"metal_api":@"Metal",
+        @"metal_version":metal_version(metal),
+        @"metal_gpu_family":metal_gpu_family(metal)};
     summary[@"toolchain"] = @{
         @"compiler":@PM_IPAD_TOOLCHAIN_COMPILER,
         @"compiler_version":@PM_IPAD_TOOLCHAIN_VERSION,

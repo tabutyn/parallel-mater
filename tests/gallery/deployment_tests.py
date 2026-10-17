@@ -39,7 +39,8 @@ class DeploymentTests(unittest.TestCase):
                                                      "driver_sha256": "2" * 64},
             "trajectory": {"case_count": 30, "completed": 30, "unsupported": 0, "failed": 0},
             "device": {"model": "iPad13,8", "gpu": "Apple M1", "operating_system": "iPadOS",
-                       "operating_system_version": "26.5", "metal_api": "Metal"},
+                       "operating_system_version": "26.5", "metal_api": "Metal",
+                       "metal_version": "Metal 4", "metal_gpu_family": "Apple7"},
             "toolchain": {"compiler": "AppleClang", "compiler_version": "21", "slang_version": "2026.18"},
             "artifacts": artifacts,
         }
@@ -72,6 +73,14 @@ class DeploymentTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "private device"):
             deploy.validate_physics_qualification(
                 report, "fresh", "revision", report["binary_identity"])
+
+    def test_physics_qualification_requires_runtime_metal_version(self):
+        for field in ("metal_version", "metal_gpu_family"):
+            report = self.physics_report()
+            del report["device"][field]
+            with self.assertRaisesRegex(RuntimeError, "iPadOS/Metal"):
+                deploy.validate_physics_qualification(
+                    report, "fresh", "revision", report["binary_identity"])
 
     def test_dead_process_stops_wait_and_preserves_partial_report(self):
         with tempfile.TemporaryDirectory() as tmp:
