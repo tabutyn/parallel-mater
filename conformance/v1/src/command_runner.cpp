@@ -980,6 +980,23 @@ void copy_particle_state(const std::vector<State> &states,
     return normalized == expected;
 }
 
+[[nodiscard]] std::string contract_sha256(const std::filesystem::path &path) {
+    std::string data = read_file(path);
+    const auto extension = path.extension();
+    if (extension == ".json" || extension == ".xml") {
+        std::string normalized;
+        normalized.reserve(data.size());
+        for (std::size_t index = 0U; index < data.size(); ++index) {
+            if (data[index] == '\r' && index + 1U < data.size() &&
+                data[index + 1U] == '\n')
+                continue;
+            normalized.push_back(data[index]);
+        }
+        data = std::move(normalized);
+    }
+    return sha256(data);
+}
+
 [[nodiscard]] std::string compact_json_whitespace(std::string_view source) {
     std::string result;
     bool quoted = false;
@@ -1061,7 +1078,7 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
             continue;
         }
-        const std::string hash = sha256_file(path);
+        const std::string hash = contract_sha256(path);
         const std::string entry = "\"" + relative.generic_string() +
                                   "\":\"" + hash + "\"";
         if (manifest.find(entry) == std::string::npos) {

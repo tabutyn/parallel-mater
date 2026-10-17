@@ -537,6 +537,7 @@ int main(int argc, char **argv) {
         if (entry.has_fluid) scene.fluid_options.capacity = 100U;
         std::vector<rigid_mesh_checks::MeshSamples> brick_geometry;
         float maximum_brick_penetration{};
+        std::uint32_t maximum_brick_penetration_frame{};
         if (entry.context == GalleryContext::rigid_body)
             for (std::size_t body = 0U; body < scene.rigid_bodies.size(); ++body)
                 brick_geometry.emplace_back(scene, body);
@@ -620,7 +621,10 @@ int main(int argc, char **argv) {
                         const float depth = std::max(
                             brick_geometry[a].penetration(state(a), brick_geometry[b], state(b)),
                             brick_geometry[b].penetration(state(b), brick_geometry[a], state(a)));
-                        maximum_brick_penetration = std::max(maximum_brick_penetration, depth);
+                        if (depth > maximum_brick_penetration) {
+                            maximum_brick_penetration = depth;
+                            maximum_brick_penetration_frame = frame_index;
+                        }
                         if (depth > 0.002F) {
                             std::cerr << "Brick separation failed at frame " << frame_index
                                       << " bodies=" << a << ',' << b << " penetration=" << depth << '\n';
@@ -725,6 +729,9 @@ int main(int argc, char **argv) {
         ++passed;
         if (!brick_geometry.empty())
             std::cout << "Independent brick penetration=" << maximum_brick_penetration << " m\n";
+        if (!brick_geometry.empty())
+            std::cout << "Independent brick penetration frame="
+                      << maximum_brick_penetration_frame << '\n';
         if (!brick_geometry.empty() && !validate_torque_free_rotation(
                 scene.meshes.at(scene.rigid_bodies.back().mesh_indices.front()), backend, error)) {
             std::cerr << error << '\n';

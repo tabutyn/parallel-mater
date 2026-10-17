@@ -12,12 +12,12 @@ new build.
 | Driver | Current capability result | Qualified records | Open evidence |
 |---|---|---:|---|
 | Slang CPU | None | 0 | 1 missing qualification result |
-| CUDA | [`linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17`](../conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17.json) | 3 | Supplemental: [`windows-gtx1080-physics-2026-10-16`](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json); 10 historical baseline failure, 3 limitation |
-| D3D12 | None | 0 | Supplemental: [`windows-gtx1080-physics-2026-10-16`](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json); 10 historical baseline failure, 3 limitation, 1 missing qualification result, 2 unsupported |
+| CUDA | [`linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17`](../conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17.json), [`windows-gtx1080-slang-cuda-2b04e55`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-2b04e55-qualification.json) | 3 | Supplemental: [`windows-gtx1080-physics-2026-10-16`](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json); 10 historical baseline failure, 3 limitation, 123 qualification failure |
+| D3D12 | [`windows-gtx1080-slang-d3d12-2b04e55`](../conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-qualification.json) | 0 | Supplemental: [`windows-gtx1080-physics-2026-10-16`](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json); 10 historical baseline failure, 3 limitation, 22 qualification failure, 2 unsupported |
 | Vulkan | None | 0 | 1 missing qualification result |
 | Metal | None | 0 | 1 missing qualification result |
 
-Index status: **3 qualified capability records from 3 revisioned report records**. Supplemental and historical evidence remains visible but never certifies a capability.
+Index status: **3 qualified capability records from 5 revisioned report records**. Supplemental and historical evidence remains visible but never certifies a capability.
 <!-- END GENERATED DRIVER EVIDENCE -->
 
 Only the generated block states current per-driver capability qualification.
@@ -26,13 +26,13 @@ promoting those results to capability certification.
 
 | Scope | Evidence and host scope | Unqualified or failed scope |
 |---|---|---|
-| Resource lifetime and capacity (F1) | Reference-lifecycle foundation closed by F1-01–F1-07: exact-query fluid churn/recovery; CUDA mixed-domain churn; geometry, paint and borrowed-endpoint replacement; failure/pending lifetime; fixed host owner metadata. F5-03 adds the immutable adverse-capacity lifecycle profile and evaluator. | No driver is newly qualified by the profile alone; each advertising driver must emit a complete passing result. Numerical physics, remaining driver/domain pairs and host/OS budget accuracy remain separate; see F2-04, F4-05 and P1-01. |
+| Resource lifetime and capacity (F1) | Reference-lifecycle foundation closed by F1-01–F1-07: exact-query fluid churn/recovery; CUDA mixed-domain churn; geometry, paint and borrowed-endpoint replacement; failure/pending lifetime; fixed host owner metadata. Current Windows CUDA/D3D12 console tests pass 4,096 fluid replacements and exact-capacity recovery. | The Windows tests do not emit F5-03 checkpoint state hashes/write ordinals, so both current results retain explicit `missing` profile evidence. Numerical physics and remaining driver/domain pairs remain separate; see F2-04, F4-05 and P1-01. |
 | SDK/loader/host contracts | 34 shader-free `sdk-ci` CTests; relocated C/C++ consumers and separately built mock driver; standalone conformance checks all 30 inputs; Linux and Apple Silicon macOS CI preserve revisioned compiler/architecture reports | Windows installed packages are not run here; physics is not evaluated by this gate |
-| Interaction graph lifecycle (F2-04) | Linux RTX 3050 Ti CUDA executes all 12 implemented pairs through pipeline and explicit create/update/clear, six-family endpoint replacement, three-family mutation and partial-create rollback. F5-03 makes the adverse sequence a hashed two-case lifecycle contract with exact preservation checks. | Existing runtime evidence predates the F5-03 result schema. Production CPU and Vulkan report the complete-domain case unsupported; D3D12 and Metal were not run. Unsupported never passes the lifecycle evaluator; lifecycle execution does not qualify numerical accuracy. |
-| Vendor-neutral physical quality (F5-02, F5-05) | Hashed `core-conservation-stability-v1` and `rigid-brick-penetration-v1` profiles independently evaluate fluid conservation/stability and rigid surface separation. The fluid profile covers 18 timestep/mass-ratio samples; Linux RTX 3050 Ti CUDA passes all 18. The rigid profile fixes eight bricks, 300 frames, four substeps and the unchanged 2 mm closed-mesh gate. Negative tests cover both evaluators. | Other drivers advertising equal-fluid modes must produce their own public-API results. Current-build rigid submissions remain F5-11 work; remaining interaction modes still need their own fixtures. |
-| Capability evidence obligations (F5-01) | Hashed `capability-obligations-v1` rules cover all 49 API 0.2 interaction records exactly once and keep compilation, execution, regression, lifecycle, analytic and timing evidence separate. Revision, contract, binary, device and toolchain provenance are mandatory. | This defines validation, not new driver evidence. Known missing lifecycle/analytic contracts fail explicitly; F2-10 and later qualification leaves must supply complete per-driver results. |
+| Interaction graph lifecycle (F2-04) | Linux RTX 3050 Ti and current Windows GTX 1080 CUDA execute all 12 implemented pairs through create/update/clear, endpoint replacement, three-family mutation and partial-create rollback. | Current CUDA console evidence lacks required F5-03 checkpoint fingerprints; D3D12 reports the complete three-family case unsupported because it does not advertise rope, soft-body or smoke. Unsupported/missing never passes the lifecycle evaluator. |
+| Vendor-neutral physical quality (F5-02, F5-05) | Hashed `core-conservation-stability-v1` and `rigid-brick-penetration-v1` profiles independently evaluate fluid conservation/stability and rigid surface separation. Current Windows CUDA passes all 18 equal-fluid samples; CUDA and D3D12 both pass the fixed eight-brick gate at 0.205278 mm on frame 196 against 2 mm. | D3D12 retains equal-fluid quality as unsupported. Brick quality does not override failed reference regression or missing lifecycle/interaction-specific analytic evidence; remaining modes still need fixtures. |
+| Capability evidence obligations (F5-01) | Hashed `capability-obligations-v1` rules cover all 49 API 0.2 interaction records exactly once and keep compilation, execution, regression, lifecycle, analytic and timing evidence separate. Current F5-11 results register all 49 CUDA and 10 D3D12 records from the same GTX 1080. | Windows qualification remains 0/49 CUDA and 0/10 D3D12. Reference failures, process crashes, unsupported domains, missing exact lifecycle captures and rule-level analytic gaps stay explicit. |
 | Quality-gated performance (F5-07) | Independent headless gate computes throughput, median/p95 timing and public memory peaks from raw samples; every metric carries the fixed quality-profile hash and exact source/binary/device/toolchain tuple | This defines score admission but publishes no production benchmark. Missing, failed, unsupported, stale or mismatched physical-quality evidence leaves measurements unqualified. |
-| Distinct fluid–fluid systems | F2-05–F2-10 specify, schedule and qualify equal-material contact/pressure/viscosity with bounded pair storage, combined-population tolerances, balanced momentum, stable-ID ownership and lifecycle recovery. Linux RTX 3050 Ti CUDA advertises all three records after 18/18 physical samples and 3/3 lifecycle tests passed. F2-11 specifies miscible, immiscible-interface and optional conservative thermal contracts and splits their deferred API/operator/schedule/qualification work into P1-04–P1-18. | Vulkan ran the same equal-fluid public tests and reported both unsupported; CPU, D3D12 and Metal have no current equal-fluid qualification. Different-material enums remain reservations only; their typed state, shared operators and per-driver evidence remain P1-04–P1-18, and phase transfer remains undefined. |
+| Distinct fluid–fluid systems | F2-05–F2-10 specify, schedule and qualify equal-material contact/pressure/viscosity with bounded pair storage, combined-population tolerances, balanced momentum, stable-ID ownership and lifecycle recovery. Linux RTX 3050 Ti CUDA qualifies all three records. Current Windows GTX 1080 CUDA independently passes the same 18/18 physical samples and fluid-pair graph lifecycle console test. | Windows CUDA lacks the exact F5-03 checkpoint artifact, so its three records remain unqualified; D3D12 reports equal-fluid quality and graph lifecycle unsupported. Different-material modes remain P1-04–P1-18, and phase transfer remains undefined. |
 | Cloth self and cloth–cloth systems | F2-12 specifies separate intrinsic self-contact and graph-owned inter-system contact identities, swept double-sided vertex-triangle/edge-edge behavior, topology exclusions, thickness, friction, conservation, tunnelling and overflow criteria. | API 0.2 exposes neither capability; typed controls, bounded contact generation, self/inter operators, scheduling and per-driver qualification remain P1-19–P1-24. |
 | Soft-body self and soft-body systems | F2-13 specifies separate intrinsic and graph-owned surface-contact identities, bound closed-surface sampling, swept primitive contact, topology exclusions, node-radius separation, friction, conservation and bounded failure behavior. | API 0.2 exposes neither capability; typed controls, bounded surface contacts, self/inter operators, scheduling and per-driver qualification remain P1-25–P1-30. Open/non-manifold skins, volume inversion and merging remain unsupported. |
 | Rope self and rope–rope systems | F2-14 narrows the API 0.2 self-contact record to sampled-node exclusion and specifies a separate future `rope-capsule` profile for continuous self/inter segment contact plus an independent endpoint attachment mode. | The advertised node-only record still needs the P1-31 physical audit. Capsule contact, pair edges and rope-rope attachment remain unsupported pending P1-32–P1-38; knots, splices, sliding and interior attachments are outside that profile. |
@@ -117,6 +117,32 @@ records tested source/binary/case hashes, original first divergences, comparison
 results, independent physical metrics and reproduction commands. See also the
 [shared correction and regression scope](slang-unification-validation.md#current-cross-driver-qualification-2026-10-16).
 
+### F5-11 current Windows driver evidence
+
+Clean source `2b04e55ef580c305e960c98134b3c5d4b651a179` was rebuilt with
+MSVC 19.44.35228 and Slang 2026.18 on a GTX 1080 with NVIDIA driver
+582.66; CUDA additionally used toolkit 12.9.86. Public capability queries
+returned 49 CUDA and 10 D3D12 records. Revisioned
+[CUDA](../conformance/v1/evidence/windows-gtx1080-slang-cuda-2b04e55-evidence.json)
+and [D3D12](../conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-evidence.json)
+bundles retain capability keys, binary hashes, all comparison differences,
+quality results, lifecycle attempts and raw CTest output.
+
+CUDA reference regression records 11 passed and 19 failed cases. Five failures
+(`rope-cloth`, `rope-fluid`, `rope-soft-body`, `smoke-water`,
+`soft-body-fluid`) repeatably terminate with Windows status `0xc0000006` and
+emit no case result. D3D12 records 5 passed, 12 failed and 13 unsupported
+cases. Neither tolerance nor golden changed. CUDA passes the 18-sample
+equal-fluid profile; D3D12 reports it unsupported. Both drivers pass
+`rigid-brick-penetration-v1` at 0.205278 mm on frame 196.
+
+Capacity console tests pass both drivers. CUDA's complete interaction graph and
+fluid-pair graph console tests pass; D3D12 reports both unsupported. Those
+tests do not emit the immutable F5-03 checkpoint fingerprints, so exact adverse
+lifecycle evidence remains missing instead of being promoted to a pass.
+Qualification therefore reports 0/49 CUDA and 0/10 D3D12 records for this
+Windows revision while retaining Linux's independent 3-record CUDA result.
+
 ### F5-05 brick penetration classification
 
 The retained eight-brick reproduction failed before F5-10 on both adapters at
@@ -135,8 +161,9 @@ The corrected run measures 0.205278 mm on both adapters. The immutable
 `rigid-brick-penetration-v1` profile now fixes the scene, body count, frame and
 substep counts, timestep, independent oracle and 2 mm limit. Its evaluator
 rejects altered fixtures, incomplete execution, invalid frames, nonfinite or
-negative depths and excessive penetration. This closes the F5-05 investigation;
-current-build per-driver submissions remain separate F5-11 work.
+negative depths and excessive penetration. This closes the F5-05 investigation.
+F5-11 now registers current-build CUDA and D3D12 measurements without changing
+the profile, tolerance, fixture or shared solver.
 
 ### F5-06 CUDA/D3D12 divergence classification
 
@@ -154,8 +181,8 @@ These groups identify the earliest independent reproduction, not mutually
 exclusive later symptoms: small pose or arithmetic drift can change a later
 contact branch. The report records this qualification explicitly and preserves
 unchanged inputs, tolerances and historical goldens. JSON/XML contract hashes
-now normalize only Git's CRLF checkout conversion to canonical LF; binary
-hashes and every other byte remain exact.
+now normalize only Git's CRLF checkout conversion to canonical LF in both the
+Python and native C++ checkers; binary hashes and every other byte remain exact.
 
 Reports must distinguish compilation, execution, reference regression, analytic
 or invariant physical quality, and performance. An unsupported case counts as
