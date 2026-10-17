@@ -9,12 +9,13 @@ new build.
 | Scope | Evidence and host scope | Unqualified or failed scope |
 |---|---|---|
 | Resource lifetime and capacity (F1) | Reference-lifecycle foundation closed by F1-01–F1-07: exact-query fluid churn/recovery; CUDA mixed-domain churn; geometry, paint and borrowed-endpoint replacement; failure/pending lifetime; fixed host owner metadata | Does not qualify numerical physics, every driver/domain pair, all implemented coupling pairs, host/OS budget accuracy or the adverse three-family corpus; see F2-04, F4-05, F5-03 and P1-01 |
-| SDK/loader/host contracts | 30 shader-free `sdk-ci` CTests; relocated C/C++ consumers and separately built mock driver; standalone conformance checks all 30 inputs | New remote workflow not yet verified; Windows/macOS installed packages not run here; physics not evaluated by this gate |
-| Slang CPU | Current foundation suite: 45/45 passed with three expected unsupported-domain skips; exact queried fluid lifecycle/recovery; private host fixtures cover paint, endpoint and injected-failure paths without advertising solver support | Mixed particle domains unsupported; fixture execution is lifecycle evidence only; `rigid-direct` final angular velocity fails historical CUDA comparison |
+| SDK/loader/host contracts | 33 shader-free `sdk-ci` CTests; relocated C/C++ consumers and separately built mock driver; standalone conformance checks all 30 inputs | New remote workflow not yet verified; Windows/macOS installed packages not run here; physics not evaluated by this gate |
+| Slang CPU | Current foundation suite: 48/48 passed as configured with four expected unsupported-domain skips; exact queried fluid lifecycle/recovery; private host fixtures cover paint, endpoint and injected-failure paths without advertising solver support | Mixed particle domains unsupported; fixture execution is lifecycle evidence only; `rigid-direct` final angular velocity fails historical CUDA comparison |
 | CUDA | Linux public rigid/fluid/cloth command API after scene SDK extraction and earlier exact-query lifecycle checks; Windows GTX 1080 passes 17/17 same-build CUDA/D3D12 comparisons and independent brick/contact checks | Full current 30-case physical qualification and performance targets incomplete |
 | Vulkan | Six reflected modules and SPIR-V checks; public API and async tests with native validation; fluid lifecycle with PM validation | Fluid lifecycle crashes inside installed native Vulkan validation layer; reproduced with previous binding generator too |
 | D3D12 | Windows GTX 1080: 17/17 selected CUDA comparisons, zero unsupported; independent eight-brick/300-frame penetration 0.205278 mm against the unchanged 2 mm limit, matching CUDA | Remaining domains, devices and performance targets unqualified; comparison agreement alone is not physical quality |
 | Metal | Existing preview/compiler evidence documented separately | Not runnable on this host; see Metal qualification document |
+| Interaction graph lifecycle (F2-04) | Linux RTX 3050 Ti CUDA executes all 12 implemented pairs through pipeline and explicit create/update/clear, six-family endpoint replacement, three-family mutation and partial-create rollback | Production CPU and Vulkan report the complete-domain case unsupported; D3D12 and Metal not run; lifecycle execution does not qualify numerical physics |
 | Distinct fluid–fluid systems | Unsupported explicitly | Material semantics, per-pair capabilities and physical/lifecycle qualification still required |
 | Engine-owned devices/queues | Public contract and import declarations exist | Common dependency/completion handoff and imported-device tests still required before engine adoption claims |
 
@@ -51,11 +52,42 @@ current CUDA and Vulkan desktop targets. Local GPU lifecycle cases skipped in
 this review because no eligible physical device was exposed to the test loader;
 that is not a new execution pass.
 
-The review found no uncovered F1 leaf. Broader coupling rebinding is F2-04,
-memory-budget confidence is F4-05, adverse capacity and three-family corpus
-coverage is F5-03, and the remaining driver/domain matrix is P1-01. The native
-Vulkan validation failure and production CPU domain limits remain open in the
-table above. Closing F1 does not qualify physical accuracy or release readiness.
+The review found no uncovered F1 leaf. F2-04 now records the separate coupling
+rebinding lifecycle evidence below. Memory-budget confidence is F4-05, adverse
+capacity and three-family corpus coverage is F5-03, and the remaining
+driver/domain matrix is P1-01. The native Vulkan validation failure and
+production CPU domain limits remain open in the table above. Closing F1 does
+not qualify physical accuracy or release readiness.
+
+## F2 interaction graph lifecycle
+
+The public SDK-only
+[interaction graph lifecycle suite](../tests/api/interaction_graph_lifecycle_tests.cpp)
+constructs one endpoint from every implemented family and installs all 12
+implemented non-fluid-fluid pair types. It exercises pipeline and explicit
+graph create, parameter update, clear and recreation. It then replaces fluid,
+rigid, cloth, rope, soft-body and smoke endpoints while the complete graph is
+requested, forcing all incident edges to bind the new private generations.
+
+The same suite mutates a fluid/rope/soft-body graph while retaining an unrelated
+smoke-cloth edge. A descriptor with an invalid runtime parameter fails after
+the first new edge is installed, exercising partial-create cleanup and prior
+graph restoration; a valid replacement and smoke endpoint rebind then succeed.
+On this Linux laptop, the CUDA case passed on an NVIDIA GeForce RTX 3050 Ti
+Laptop GPU with driver 590.44.01, CUDA compiler 13.1, Slang 2026.18 and GCC
+12.2. Production CPU and Vulkan retained exit 77 as unsupported for the full
+six-family feature request. These are lifecycle results; they do not establish
+physical accuracy, cross-driver agreement or performance.
+
+Reproduction commands:
+
+```text
+cmake --build build-desktop-switch --target parallel-mater-interaction-graph-lifecycle-tests -j2
+ctest --test-dir build-desktop-switch -R '(cuda|vulkan)-interaction-graph-lifecycle' --output-on-failure
+cmake --build build-foundations -j2
+ctest --test-dir build-foundations -j2 --output-on-failure
+python3 tools/check_sdk_install.py --build-dir build-sdk-ci --output out/sdk-evidence/f2-04
+```
 
 Detailed results: [lifetime](RESOURCE-LIFETIME.md), [API rules](API-CONTRACT.md),
 [common resources](COMMON-RESOURCE-BOUNDARY.md), [conformance](../conformance/v1/README.md),
