@@ -442,6 +442,15 @@ Route route(PmPhysicalDevice value) noexcept {
             value->layers};
 }
 
+Route route(PmInstance value) noexcept {
+    if (value == nullptr || value->dispatch != &loader_dispatch ||
+        value->children.empty())
+        return {};
+    const auto &child = value->children.front();
+    return {child.driver, child.native, child.native, Scope::instance,
+            value->layers};
+}
+
 Route route(PmDevice value) noexcept {
     if (value == nullptr || value->dispatch != &loader_dispatch) return {};
     return {value->driver, value->native, value->native, Scope::device,

@@ -141,11 +141,11 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [F3-00](roadmap/tasks/F3-00.json) | Version and typed validation baseline | done | — | — |
-| [F3-01](roadmap/tasks/F3-01.json) | Finish manual command interception | leased | — | codex-windows-validation / windows-gtx1080 / 2026-10-18T22:38:55Z |
-| [F3-02](roadmap/tasks/F3-02.json) | Validate command recording state | waiting on dependencies | F3-01 | — |
-| [F3-03](roadmap/tasks/F3-03.json) | Validate object dependencies and query state | waiting on dependencies | F3-01, F1-03, F1-04 | — |
+| [F3-01](roadmap/tasks/F3-01.json) | Finish manual command interception | done | — | — |
+| [F3-02](roadmap/tasks/F3-02.json) | Validate command recording state | ready | F3-01 | — |
+| [F3-03](roadmap/tasks/F3-03.json) | Validate object dependencies and query state | ready | F3-01, F1-03, F1-04 | — |
 | [F3-04](roadmap/tasks/F3-04.json) | Validate synchronization state | waiting on dependencies | F3-02 | — |
-| [F3-05](roadmap/tasks/F3-05.json) | Expose structured validation diagnostics | waiting on dependencies | F3-01 | — |
+| [F3-05](roadmap/tasks/F3-05.json) | Expose structured validation diagnostics | ready | F3-01 | — |
 | [F3-06](roadmap/tasks/F3-06.json) | Close threading and deferred-error contract gaps | waiting on dependencies | F1-06, F3-04 | — |
 | [F3-07](roadmap/tasks/F3-07.json) | Test independent compatibility combinations | waiting on dependencies | F3-05 | — |
 | [F3-99](roadmap/tasks/F3-99.json) | Review F3 exit evidence | waiting on dependencies | F3-01, F3-02, F3-03, F3-04, F3-05, F3-06, F3-07 | — |

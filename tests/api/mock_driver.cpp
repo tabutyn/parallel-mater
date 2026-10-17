@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater/pm_driver.h>
+#if defined(PARALLEL_MATER_HAS_VULKAN_INTEROP)
+#include <parallel_mater/interop_vulkan.h>
+#endif
 
 #include <algorithm>
 #include <cstdint>
@@ -132,6 +135,34 @@ PmResult mock_create_device(PmPhysicalDevice, const PmDeviceCreateInfo *, PmDevi
     return PM_SUCCESS;
 }
 void mock_destroy_device(PmDevice device) { delete reinterpret_cast<char *>(device); }
+void mock_get_queue(PmDevice device, std::uint32_t, std::uint32_t, PmQueue *out) {
+    *out = reinterpret_cast<PmQueue>(device);
+}
+PmResult mock_allocate_commands(PmDevice, PmCommandPool, std::uint32_t count,
+                                PmCommandBuffer *out) {
+    for (std::uint32_t index = 0U; index < count; ++index)
+        out[index] = reinterpret_cast<PmCommandBuffer>(new char);
+    return PM_SUCCESS;
+}
+void mock_free_commands(PmDevice, PmCommandPool, std::uint32_t count,
+                        const PmCommandBuffer *buffers) {
+    for (std::uint32_t index = 0U; index < count; ++index)
+        delete reinterpret_cast<char *>(buffers[index]);
+}
+PmResult mock_queue_submit(PmQueue, const PmSubmitInfo *, PmFence) {
+    return PM_SUCCESS;
+}
+PmResult mock_import_native_device(PmInstance, const PmNativeDeviceImportInfo *,
+                                   PmDevice *out) {
+    return mock_create_device(nullptr, nullptr, out);
+}
+#if defined(PARALLEL_MATER_HAS_VULKAN_INTEROP)
+PmResult mock_import_vulkan_device(PmInstance,
+                                   const PmVulkanDeviceImportInfo *,
+                                   PmDevice *out) {
+    return mock_create_device(nullptr, nullptr, out);
+}
+#endif
 PmResult mock_allocate(PmDevice, const PmMemoryAllocateInfo *info, PmDeviceMemory *out) {
     *out = nullptr;
     if (info->allocationSize == 13) return PM_ERROR_OUT_OF_DEVICE_MEMORY;
@@ -165,6 +196,12 @@ PFN_pmVoidFunction lookup_instance(const char *name) {
     if (std::strcmp(name, "pmEnumeratePhysicalDevices") == 0)
         return reinterpret_cast<PFN_pmVoidFunction>(
             &mock_enumerate_physical_devices);
+    if (std::strcmp(name, "pmImportNativeDevice") == 0)
+        return reinterpret_cast<PFN_pmVoidFunction>(&mock_import_native_device);
+#if defined(PARALLEL_MATER_HAS_VULKAN_INTEROP)
+    if (std::strcmp(name, "pmImportVulkanDeviceEXT") == 0)
+        return reinterpret_cast<PFN_pmVoidFunction>(&mock_import_vulkan_device);
+#endif
     return nullptr;
 }
 
@@ -194,6 +231,10 @@ PM_MOCK_EXPORT PFN_pmVoidFunction PMAPI_CALL pm_driverGetDeviceProcAddr(
     if (std::strcmp(name, #command) == 0) \
         return reinterpret_cast<PFN_pmVoidFunction>(&implementation)
     MOCK(pmDestroyDevice, mock_destroy_device);
+    MOCK(pmGetDeviceQueue, mock_get_queue);
+    MOCK(pmAllocateCommandBuffers, mock_allocate_commands);
+    MOCK(pmFreeCommandBuffers, mock_free_commands);
+    MOCK(pmQueueSubmit, mock_queue_submit);
     MOCK(pmAllocateMemory, mock_allocate);
     MOCK(pmFreeMemory, mock_free);
     MOCK(pmCreateBuffer, mock_create_buffer);
