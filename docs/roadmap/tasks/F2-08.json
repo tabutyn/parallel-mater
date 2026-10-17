@@ -1,7 +1,7 @@
 {
   "id": "F2-08",
   "title": "Exchange fluid viscosity forces",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F2-07"
   ],
@@ -17,6 +17,14 @@
     "Isolated and coupled limits have analytic or invariant tests."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "262247f8-12d1-496f-8765-f7421bae3572",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F2-08/thomas-laptop",
+    "claimed_at": "2026-10-17T04:20:24Z",
+    "heartbeat_at": "2026-10-17T04:20:24Z",
+    "expires_at": "2026-10-18T04:20:24Z"
+  },
   "history": []
 }
