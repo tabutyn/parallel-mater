@@ -1,7 +1,7 @@
 {
   "id": "F2-11",
   "title": "Specify different-material and interface modes",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F2-05"
   ],
@@ -16,15 +16,37 @@
     "Each material/interface mode has units, invariants and unsupported behavior.",
     "Create separate implementation/qualification leaf tasks before enabling any new mode."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "6618f030-8628-4eef-94de-44e8cf8ff45d",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F2-11/thomas-laptop",
-    "claimed_at": "2026-10-17T04:57:20Z",
-    "heartbeat_at": "2026-10-17T04:57:20Z",
-    "expires_at": "2026-10-18T04:57:20Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/INTERACTION-MODES.md defines units, symmetric pair/mass rules, miscible and immiscible invariants, capillarity, sensible-energy conservation and explicit unsupported behavior.",
+    "PASS: P1-04 through P1-18 separate typed API state, heterogeneous sampling, each operator, portable scheduling and per-driver qualification/advertisement.",
+    "PASS: python3 tools/reference/build.py --check-generated; public headers and generated specification remain consistent.",
+    "PASS: python3 -m unittest discover -s tests/roadmap -p 'test_*.py'; 19 roadmap/lease tests passed.",
+    "PASS: ctest --test-dir build-foundations -R '(generated-api-check|interaction-capability|graph-validation|fluid-pair-graph-lifecycle)' --output-on-failure; 5/5 passed or expected production capability skip.",
+    "REVIEW: API 0.2 continues to omit and reject miscible, immiscible-interface and thermal separate-fluid capabilities; phase transfer remains undefined."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "6618f030-8628-4eef-94de-44e8cf8ff45d",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F2-11/thomas-laptop",
+        "claimed_at": "2026-10-17T04:57:20Z",
+        "heartbeat_at": "2026-10-17T04:57:20Z",
+        "expires_at": "2026-10-18T04:57:20Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T05:07:09Z",
+      "reason": "Specified heterogeneous miscible, immiscible-interface and conservative thermal fluid contracts and split deferred API, operator, scheduling and qualification work into bounded leases.",
+      "evidence": [
+        "PASS: docs/INTERACTION-MODES.md defines units, symmetric pair/mass rules, miscible and immiscible invariants, capillarity, sensible-energy conservation and explicit unsupported behavior.",
+        "PASS: P1-04 through P1-18 separate typed API state, heterogeneous sampling, each operator, portable scheduling and per-driver qualification/advertisement.",
+        "PASS: python3 tools/reference/build.py --check-generated; public headers and generated specification remain consistent.",
+        "PASS: python3 -m unittest discover -s tests/roadmap -p 'test_*.py'; 19 roadmap/lease tests passed.",
+        "PASS: ctest --test-dir build-foundations -R '(generated-api-check|interaction-capability|graph-validation|fluid-pair-graph-lifecycle)' --output-on-failure; 5/5 passed or expected production capability skip.",
+        "REVIEW: API 0.2 continues to omit and reject miscible, immiscible-interface and thermal separate-fluid capabilities; phase transfer remains undefined."
+      ]
+    }
+  ]
 }
