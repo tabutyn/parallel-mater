@@ -18,6 +18,9 @@ conformance remains required; passing the portable row tests is not sufficient.
   but matching is tolerance-based rather than bit-identical.
 - `compare.py` compares a driver's result directory against a reference and
   writes an optional machine-readable report.
+- `quality.py` evaluates analytic momentum, angular-momentum, dissipative-energy
+  and split-population invariants without a reference backend. The immutable
+  profile is in `quality/core-conservation-v1.json`.
 - `manifest.json` records the exact source revision, deterministic settings,
   toolchain/device provenance, and GLB hashes used for the reviewed goldens.
 
@@ -89,8 +92,30 @@ run with completed cases and no failures, 2 for execution/setup failure, 77
 when every selected case is unsupported. Mixed completed/unsupported runs must
 still go through the comparator; execution exit zero is not qualification.
 
-Completed results explicitly say `quality_status: not_evaluated`. The comparator
-reports reference-regression `passed`, `failed`, and `unsupported` separately.
+The reference-independent quality gate consumes aggregate endpoint state and
+split/combined particle state produced through the public API. The evaluator
+can account for profile-permitted external impulse, angular impulse and work;
+the core closed-system fixtures require all three to be zero. Run it with:
+
+```text
+python3 conformance/v1/quality.py \
+  --actual /path/to/core-conservation-stability-v1.json \
+  --report /path/to/quality-report.json
+```
+
+The profile requires pressure/contact and viscosity fixtures at timesteps
+0.001, 0.01 and 0.05 seconds and endpoint mass ratios 1:1, 1:2 and 1:4. A
+nonzero exchange floor prevents an inactive operator from passing conservation.
+Momentum and split/combined limits come from `docs/INTERACTION-MODES.md`; the
+fixed sweep is the reviewed F2-08 matrix. The quality report embeds the exact
+profile SHA-256. Missing, duplicate, unsupported, malformed or nonfinite
+samples fail. This gate never reads CUDA goldens and never treats better
+reference agreement as proof of conservation or stability.
+
+Completed trajectory results explicitly say `quality_status: not_evaluated`.
+The comparator reports reference-regression `passed`, `failed`, and
+`unsupported` separately. A separate successful `quality.py` report is needed
+to establish analytic physical quality.
 Historical captures without execution metadata remain readable. Comparator exit
 codes are 0 for all passed, 1 for any failure, 77 for incomplete unsupported
 coverage without failures. Unsupported results never count as passes; malformed

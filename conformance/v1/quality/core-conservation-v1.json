@@ -1,0 +1,76 @@
+{
+  "schema": "parallel-mater-conformance-quality-profile/v1",
+  "id": "core-conservation-stability-v1",
+  "title": "Core pair conservation and stability",
+  "sources": {
+    "linear_and_angular_momentum": "docs/INTERACTION-MODES.md: equal-material fluid and smoke shared-invariant residuals",
+    "dissipative_energy": "docs/INTERACTION-MODES.md: smoke shared-invariant relative integration tolerance and absolute energy floor",
+    "split_combined": "docs/INTERACTION-MODES.md: equal-material separate fluid numerical acceptance",
+    "sweep": "docs/roadmap/tasks/F2-08.json: accepted timestep and population-mass-ratio matrix"
+  },
+  "tolerances": {
+    "exchange_activity_minimum": 0.0001,
+    "linear_momentum": {
+      "absolute": 1e-07,
+      "relative": 5e-05,
+      "unit": "kg*m/s"
+    },
+    "angular_momentum": {
+      "absolute": 1e-07,
+      "relative": 5e-05,
+      "unit": "kg*m^2/s"
+    },
+    "dissipative_energy": {
+      "absolute": 1e-06,
+      "relative": 5e-05,
+      "unit": "J"
+    },
+    "split_combined": {
+      "position_normalized": 0.0005,
+      "velocity_normalized": 0.0005,
+      "acceleration_normalized": 0.0005,
+      "foam_absolute": 0.0005,
+      "temperature": "exact"
+    }
+  },
+  "sweep": {
+    "timesteps_seconds": [
+      0.001,
+      0.01,
+      0.05
+    ],
+    "endpoint_mass_ratios": [
+      1,
+      2,
+      4
+    ]
+  },
+  "fixtures": [
+    {
+      "id": "equal-material-pressure-contact",
+      "modes": [
+        "contact",
+        "pressure"
+      ],
+      "external_terms": "zero",
+      "checks": [
+        "linear_momentum",
+        "angular_momentum",
+        "split_combined"
+      ]
+    },
+    {
+      "id": "equal-material-viscosity",
+      "modes": [
+        "viscosity"
+      ],
+      "external_terms": "zero",
+      "checks": [
+        "linear_momentum",
+        "angular_momentum",
+        "dissipative_energy",
+        "split_combined"
+      ]
+    }
+  ]
+}
