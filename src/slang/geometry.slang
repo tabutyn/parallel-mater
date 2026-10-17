@@ -1593,7 +1593,7 @@ void rigid_collide_meshes(
     TriangleMeshResource colliderMesh, HingeContactFrame colliderHinge,
     float timestep, out ContactManifold manifold)
 {
-    ContactManifold result = {};
+    manifold = {};
     float margin = body.collision_margin + collider.collision_margin;
     bool swept = rigid_guided_pair(bodyHinge, colliderHinge) ||
         rigid_requires_swept_pair_contact(previousBodyState, bodyState,
@@ -1616,11 +1616,7 @@ void rigid_collide_meshes(
         previousColliderTransform, colliderTransform, swept, 0.0f,
         colliderMinimum, colliderMaximum);
     if (!bounds_overlap(bodyMinimum, bodyMaximum,
-        colliderMinimum, colliderMaximum))
-    {
-        manifold = result;
-        return;
-    }
+        colliderMinimum, colliderMaximum)) return;
 
     uint stackBody[256] = {};
     uint stackCollider[256] = {};
@@ -1652,7 +1648,7 @@ void rigid_collide_meshes(
                 bodyNode.first_triangle, bodyNode.triangle_count,
                 colliderMesh, previousColliderState, colliderState,
                 colliderHinge, colliderNode.first_triangle,
-                colliderNode.triangle_count, margin, timestep, result);
+                colliderNode.triangle_count, margin, timestep, manifold);
             if (swept)
                 rigid_collide_triangle_ranges_swept(previousBodyState,
                     bodyState, previousBodyReference, bodyReference,
@@ -1661,7 +1657,7 @@ void rigid_collide_meshes(
                     colliderState, colliderMesh,
                     colliderNode.first_triangle,
                     colliderNode.triangle_count, colliderHinge,
-                    margin, timestep, result);
+                    margin, timestep, manifold);
             continue;
         }
         uint required = bodyLeaf || colliderLeaf ? 2u : 4u;
@@ -1698,21 +1694,20 @@ void rigid_collide_meshes(
     }
     if (overflow)
     {
-        result = {};
+        manifold = {};
         rigid_collide_triangle_ranges(bodyMesh, previousBodyState,
             bodyState, bodyReference, bodyHinge, 0u,
             bodyMesh.index_count / 3u, colliderMesh,
             previousColliderState, colliderState, colliderHinge, 0u,
-            colliderMesh.index_count / 3u, margin, timestep, result);
+            colliderMesh.index_count / 3u, margin, timestep, manifold);
         if (swept)
             rigid_collide_triangle_ranges_swept(previousBodyState,
                 bodyState, previousBodyReference, bodyReference,
                 bodyHinge, bodyMesh, 0u, bodyMesh.index_count / 3u,
                 previousColliderState, colliderState, colliderMesh, 0u,
                 colliderMesh.index_count / 3u, colliderHinge,
-                margin, timestep, result);
+                margin, timestep, manifold);
     }
-    manifold = result;
 }
 
 // Keep the native candidate traversal width. Candidate order determines
