@@ -128,6 +128,12 @@ Before advertising a capability, run:
 5. all gallery scenes through the loader and public API;
 6. device-specific performance qualification.
 
+Record these as separate evidence scopes and validate every advertised
+interaction record with `conformance/v1/qualification.py`. The hashed
+`capability-obligations-v1` profile rejects missing contracts, stale case/profile
+hashes, unsupported execution and attempts to substitute compilation,
+reference agreement or timing for analytic physical quality.
+
 The build target `parallel-mater-driver-abi-tests` verifies negotiation,
 function lookup, and the absence of ordinary `pm*` exports from a driver. The
 architecture test rejects CUDA types or physics details in the loader and native

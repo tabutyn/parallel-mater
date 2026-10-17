@@ -24,6 +24,8 @@ conformance remains required; passing the portable row tests is not sufficient.
 - `lifecycle.py` evaluates adverse capacity recovery and mixed-family graph
   rollback without a reference backend. The immutable profile is in
   `lifecycle/adverse-capacity-three-family-v1.json`.
+- `qualification.py` maps each advertised interaction record to revisioned
+  evidence obligations in `qualification/capability-obligations-v1.json`.
 - `manifest.json` records the exact source revision, deterministic settings,
   toolchain/device provenance, and GLB hashes used for the reviewed goldens.
 
@@ -139,6 +141,23 @@ partial update must restore the prior complete graph and preserve every
 endpoint. Expected command errors are observations inside a completed case.
 Suite or case `failed` and `unsupported` outcomes fail this lifecycle gate and
 never count as physical passes.
+
+Validate a driver's advertised interaction records with:
+
+```text
+python3 conformance/v1/qualification.py \
+  --actual /path/to/driver-qualification.json \
+  --report /path/to/qualification-report.json
+```
+
+The obligation profile covers all 49 API 0.2 interaction records. Evidence is
+keyed by both scope and immutable contract hash: compilation, execution,
+reference regression, lifecycle invariants, analytic invariants and timing are
+never interchangeable. Every record must match exactly one rule. Required
+evidence must be `passed`, from the same clean source revision, and retain
+driver binary, device and toolchain provenance. Known gaps are explicit
+`missing_contract` failures. Timing is reported separately and does not make a
+functional capability pass.
 
 Completed trajectory results explicitly say `quality_status: not_evaluated`.
 The comparator reports reference-regression `passed`, `failed`, and

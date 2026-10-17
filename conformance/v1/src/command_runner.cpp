@@ -1076,6 +1076,22 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
+    const std::filesystem::path qualification_relative =
+        "conformance/v1/qualification/capability-obligations-v1.json";
+    const auto qualification_path = root / qualification_relative;
+    if (!std::filesystem::is_regular_file(qualification_path)) {
+        std::cerr << "missing qualification profile: " << qualification_path << '\n';
+        valid = false;
+    } else {
+        const std::string qualification_hash = sha256_file(qualification_path);
+        const std::string entry = "\"" + qualification_relative.generic_string() +
+                                  "\":\"" + qualification_hash + "\"";
+        if (manifest.find(entry) == std::string::npos) {
+            std::cerr << "manifest qualification-profile checksum mismatch: "
+                      << qualification_path << '\n';
+            valid = false;
+        }
+    }
     return valid;
 }
 
