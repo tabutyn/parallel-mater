@@ -1,0 +1,26 @@
+{
+  "id": "P1-37",
+  "title": "Schedule rope pair modes",
+  "status": "deferred",
+  "dependencies": [
+    "P1-34",
+    "P1-35",
+    "P1-36"
+  ],
+  "locks": [
+    "runtime-graph",
+    "runtime-memory",
+    "runtime-schedule"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Integrate capsule self/contact and endpoint attachment into bounded portable scheduling and lifecycle; keep reporting gated.",
+  "acceptance": [
+    "Self profile and graph add/remove/rebind/reset/break/overflow/recovery pass through the public API.",
+    "Reference adapters compile the shared schedule or explicitly reject each mode/profile."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

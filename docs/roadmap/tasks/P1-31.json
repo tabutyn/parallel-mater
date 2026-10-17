@@ -1,0 +1,24 @@
+{
+  "id": "P1-31",
+  "title": "Audit sampled-node rope self-contact",
+  "status": "deferred",
+  "dependencies": [
+    "P1-02",
+    "F5-02"
+  ],
+  "locks": [
+    "conformance-corpus",
+    "runtime-capabilities"
+  ],
+  "requires": [
+    "Each driver that advertises the API 0.2 rope self-contact record"
+  ],
+  "scope": "Qualify the narrow sampled-node self-exclusion claim or withdraw it from drivers that fail; do not infer capsule support.",
+  "acceptance": [
+    "Nonadjacent-node separation, exclusions, fixed endpoints, momentum, capacity and long-run cases run through the public API.",
+    "Evidence labels the record node-only and removes advertisement from every failing driver."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

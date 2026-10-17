@@ -1,0 +1,23 @@
+{
+  "id": "P1-33",
+  "title": "Build bounded rope segment contacts",
+  "status": "deferred",
+  "dependencies": [
+    "P1-32"
+  ],
+  "locks": [
+    "rope-kernels",
+    "runtime-memory"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Generate continuous swept capsule contacts for self and distinct ropes with exact adjacency exclusions.",
+  "acceptance": [
+    "Fixtures cover interior segment crossings, high speed, unequal radii, identical local indices, exclusions and empty ropes.",
+    "Memory queries bound candidates, contacts and diagnostics; overflow is explicit and retryable."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,22 @@
+{
+  "id": "P1-36",
+  "title": "Solve rope endpoint attachments",
+  "status": "deferred",
+  "dependencies": [
+    "P1-32"
+  ],
+  "locks": [
+    "rope-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement two-way rope-endpoint point constraints with compliance, damping and optional break impulse; advertise nothing.",
+  "acceptance": [
+    "All endpoint-selector combinations meet gap, reciprocal impulse and fixed/owned-end reaction criteria.",
+    "Removal, single break event, unbreakable zero threshold and capture-distance rejection pass."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

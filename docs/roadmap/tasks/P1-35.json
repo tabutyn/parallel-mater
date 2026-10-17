@@ -1,0 +1,22 @@
+{
+  "id": "P1-35",
+  "title": "Solve contact between rope systems",
+  "status": "deferred",
+  "dependencies": [
+    "P1-33"
+  ],
+  "locks": [
+    "rope-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement balanced capsule contact and geometric-mean friction between distinct rope resources; advertise nothing.",
+  "acceptance": [
+    "Unequal mass/radius/friction fixtures meet separation, conservation, dissipation, stretch and endpoint-order limits.",
+    "Fixed/owned endpoints, high-speed crossing and matching numeric node-index cases pass."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

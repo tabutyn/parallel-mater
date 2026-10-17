@@ -1,7 +1,7 @@
 {
   "id": "F2-14",
   "title": "Specify rope–rope system modes",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F2-01"
   ],
@@ -16,15 +16,37 @@
     "Separate self and inter-system behavior with measurable physical criteria.",
     "Split missing operators and their public-API qualification into new leaf tasks."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "77b704f9-a3b7-460c-8043-3d1fb53ac28a",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F2-14/thomas-laptop",
-    "claimed_at": "2026-10-17T05:23:14Z",
-    "heartbeat_at": "2026-10-17T05:23:14Z",
-    "expires_at": "2026-10-18T05:23:14Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/INTERACTION-MODES.md defines the API 0.2 node-only self-contact limit, future rope-capsule swept segment contact, friction, conservation, stretch and endpoint-attachment behavior.",
+    "PASS: P1-31 audits the existing advertised record; P1-32 through P1-38 separate typed API state, candidate generation, self/pair solves, attachment, scheduling and qualification.",
+    "PASS: python3 tools/reference/build.py --check-generated; public headers and generated specification remain consistent.",
+    "PASS: python3 -m unittest discover -s tests/roadmap -p 'test_*.py'; 19 roadmap/lease tests passed.",
+    "PASS: ctest --test-dir build-foundations -R '(generated-api-check|interaction-capability|graph-validation)' --output-on-failure; 3/3 passed and new rope-capsule/pair records remain unadvertised.",
+    "REVIEW: the existing endpoint-native self record claims sampled-node exclusion only; continuous segments, self friction, rope-pair contact and rope-rope attachment remain unsupported."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "77b704f9-a3b7-460c-8043-3d1fb53ac28a",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F2-14/thomas-laptop",
+        "claimed_at": "2026-10-17T05:23:14Z",
+        "heartbeat_at": "2026-10-17T05:23:14Z",
+        "expires_at": "2026-10-18T05:23:14Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T05:27:18Z",
+      "reason": "Separated the legacy sampled-node rope self-exclusion claim from future continuous capsule self/pair contact and endpoint attachment, specified measurable contracts, and split missing work into bounded leases.",
+      "evidence": [
+        "PASS: docs/INTERACTION-MODES.md defines the API 0.2 node-only self-contact limit, future rope-capsule swept segment contact, friction, conservation, stretch and endpoint-attachment behavior.",
+        "PASS: P1-31 audits the existing advertised record; P1-32 through P1-38 separate typed API state, candidate generation, self/pair solves, attachment, scheduling and qualification.",
+        "PASS: python3 tools/reference/build.py --check-generated; public headers and generated specification remain consistent.",
+        "PASS: python3 -m unittest discover -s tests/roadmap -p 'test_*.py'; 19 roadmap/lease tests passed.",
+        "PASS: ctest --test-dir build-foundations -R '(generated-api-check|interaction-capability|graph-validation)' --output-on-failure; 3/3 passed and new rope-capsule/pair records remain unadvertised.",
+        "REVIEW: the existing endpoint-native self record claims sampled-node exclusion only; continuous segments, self friction, rope-pair contact and rope-rope attachment remain unsupported."
+      ]
+    }
+  ]
 }
