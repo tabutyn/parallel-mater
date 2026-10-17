@@ -1,16 +1,30 @@
 {
   "id": "F7-05",
   "title": "Unify Gallery clock and workload policy",
-  "status": "open",
-  "dependencies": ["F7-03"],
-  "locks": ["gallery-frame-policy"],
-  "requires": ["Any development host"],
+  "status": "leased",
+  "dependencies": [
+    "F7-03"
+  ],
+  "locks": [
+    "gallery-frame-policy"
+  ],
+  "requires": [
+    "Any development host"
+  ],
   "scope": "Use one fixed-step, catch-up, pause, background and device-profile admission policy across desktop and mobile shells.",
   "acceptance": [
     "Equal action/time traces produce equal physics submissions across platform adapters within explicit catch-up limits.",
     "Slow frames, pause, backgrounding and changing workload limits have deterministic tested behavior."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "dffed067-6bbd-4086-bfeb-e3803ba45fd5",
+    "owner": "codex-macos-gallery",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F7-05/thomass-macbook-air",
+    "claimed_at": "2026-10-17T23:52:03Z",
+    "heartbeat_at": "2026-10-17T23:52:03Z",
+    "expires_at": "2026-10-18T23:52:03Z"
+  },
   "history": []
 }
