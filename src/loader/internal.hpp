@@ -113,6 +113,7 @@ T unsupported() noexcept {
 }
 
 Route route(PmPhysicalDevice value) noexcept;
+Route route(PmInstance value) noexcept;
 Route route(PmDevice value) noexcept;
 Route route(PmQueue value) noexcept;
 Route route(PmCommandBuffer value) noexcept;
