@@ -36,6 +36,7 @@ promoting those results to capability certification.
 | Cloth self and cloth–cloth systems | F2-12 specifies separate intrinsic self-contact and graph-owned inter-system contact identities, swept double-sided vertex-triangle/edge-edge behavior, topology exclusions, thickness, friction, conservation, tunnelling and overflow criteria. | API 0.2 exposes neither capability; typed controls, bounded contact generation, self/inter operators, scheduling and per-driver qualification remain P1-19–P1-24. |
 | Soft-body self and soft-body systems | F2-13 specifies separate intrinsic and graph-owned surface-contact identities, bound closed-surface sampling, swept primitive contact, topology exclusions, node-radius separation, friction, conservation and bounded failure behavior. | API 0.2 exposes neither capability; typed controls, bounded surface contacts, self/inter operators, scheduling and per-driver qualification remain P1-25–P1-30. Open/non-manifold skins, volume inversion and merging remain unsupported. |
 | Rope self and rope–rope systems | F2-14 narrows the API 0.2 self-contact record to sampled-node exclusion and specifies a separate future `rope-capsule` profile for continuous self/inter segment contact plus an independent endpoint attachment mode. | The advertised node-only record still needs the P1-31 physical audit. Capsule contact, pair edges and rope-rope attachment remain unsupported pending P1-32–P1-38; knots, splices, sliding and interior attachments are outside that profile. |
+| Smoke self and smoke–smoke systems | F2-15 specifies particle-particle, grid-grid and particle-grid profiles with separate mechanical, thermal and projection behavior; bounded overlap/neighborhood construction; fixed-point and conservation criteria; and graph lifecycle rules. | API 0.2 exposes no smoke–smoke record. Typed profiles/material state, bounded maps, shared Slang operators, scheduling and per-driver qualification remain P1-39–P1-55; combustion, chemistry, phase transfer and topology-changing guarantees remain unsupported. |
 | Engine-owned devices/queues | Public contract and import declarations exist | Common dependency/completion handoff and imported-device tests still required before engine adoption claims |
 
 ## F1 resource-lifetime exit review
@@ -111,6 +112,51 @@ python3 tools/check_sdk_install.py --build-dir build-sdk-ci --output out/sdk-evi
 Detailed results: [lifetime](RESOURCE-LIFETIME.md), [API rules](API-CONTRACT.md),
 [common resources](COMMON-RESOURCE-BOUNDARY.md), [conformance](../conformance/v1/README.md),
 [Metal](METAL-QUALIFICATION.md), [Android](ANDROID-QUALIFICATION.md).
+
+### F2-99 interaction and coupling exit review
+
+The original F2 exit required pipeline changes and endpoint replacement to
+avoid stale edges, exact discovery of supported pair/mode/material behavior,
+and lifecycle plus physics cases for the scope a driver declares. Task cards
+F2-01 through F2-15 are merged `done` with reviewable evidence. Together they
+close this foundation scope as follows:
+
+- The normative interaction matrix enumerates all 15 unordered
+  distinct-family pairs and the six same-family rows. Capability records name
+  scope, mode, direction and material profile; reference inventory, proposed
+  behavior and unsupported behavior remain separate.
+- Public graph replacement validates the complete requested bundle before it
+  becomes live. Negative tests cover malformed and unsupported records,
+  duplicates, capacity, partial creation and restoration of the prior graph.
+  The all-domain lifecycle suite covers create, update, clear, pipeline
+  changes and endpoint generations for all 12 implemented non-fluid-fluid pair
+  types, including a three-family mutation that preserves an unrelated edge.
+- Equal-material separate fluid systems have bounded cross-population neighbor
+  storage and shared Slang contact, pressure and viscosity operators. Public
+  lifecycle and split-versus-combined quality tests sweep two fixtures, three
+  timesteps and three population mass ratios. The revisioned Linux RTX 3050 Ti
+  CUDA result qualifies exactly those three records; no other driver or
+  material profile is inferred from it.
+- Different-material fluid behavior and cloth, soft-body, rope and smoke
+  same-family behavior are specified but remain unadvertised. Their typed API,
+  bounded generation, operators, scheduling and qualification work is already
+  split into P1-04 through P1-55. P1-31 separately audits the narrower
+  advertised rope sampled-node self-contact record.
+
+The exit review reran the current Windows CUDA/D3D12 F2 slice on a GTX 1080:
+five applicable tests passed and three D3D12 tests reported their defined
+unsupported result. CUDA passed complete interaction-graph lifecycle, graph
+validation, fluid-pair lifecycle and all 18 equal-fluid quality samples; D3D12
+passed graph validation and did not advertise the unsupported six-family or
+fluid-pair scopes. Roadmap tests (19), conformance tests (67), and the generated
+public-header/specification check also passed.
+
+This closes the shared F2 graph/coupling foundation, not blanket physics or
+driver qualification. Current per-driver failures, crashes, missing immutable
+F5-03 lifecycle captures and analytic gaps remain visible in the generated
+index. F5-12 through F5-16 own current hardware evidence, while P1-01 must split
+every remaining driver/domain implementation and evidence slice after the six
+foundation reviews. No uncovered F2 implementation leaf was found.
 
 The [Windows physics report](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json)
 records tested source/binary/case hashes, original first divergences, comparison
