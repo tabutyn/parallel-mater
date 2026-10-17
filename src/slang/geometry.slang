@@ -1618,8 +1618,13 @@ void rigid_collide_meshes(
     if (!bounds_overlap(bodyMinimum, bodyMaximum,
         colliderMinimum, colliderMaximum)) return;
 
-    uint stackBody[256] = {};
-    uint stackCollider[256] = {};
+#ifndef PM_RIGID_BVH_STACK_CAPACITY
+#define PM_RIGID_BVH_STACK_CAPACITY 64
+#endif
+    // Deep traversals fall back to the complete triangle pass below. Keep the
+    // private stack bounded so each GPU thread fits on mobile Apple GPUs.
+    uint stackBody[PM_RIGID_BVH_STACK_CAPACITY] = {};
+    uint stackCollider[PM_RIGID_BVH_STACK_CAPACITY] = {};
     uint stackSize = 1u;
     bool overflow = bodyMesh.bvh_node_count == 0u ||
                     colliderMesh.bvh_node_count == 0u;
@@ -1661,7 +1666,7 @@ void rigid_collide_meshes(
             continue;
         }
         uint required = bodyLeaf || colliderLeaf ? 2u : 4u;
-        if (stackSize + required > 256u)
+        if (stackSize + required > PM_RIGID_BVH_STACK_CAPACITY)
         {
             overflow = true;
             break;
