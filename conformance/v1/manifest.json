@@ -48,6 +48,9 @@
   "quality_profile_sha256": {
     "conformance/v1/quality/core-conservation-v1.json": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"
   },
+  "qualification_profile_sha256": {
+    "conformance/v1/qualification/capability-obligations-v1.json": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e"
+  },
   "quality_result_schema": "parallel-mater-conformance-quality-result/v1",
   "result_schema": "parallel-mater-conformance-result/v1",
   "schema": "parallel-mater-conformance-manifest/v1",

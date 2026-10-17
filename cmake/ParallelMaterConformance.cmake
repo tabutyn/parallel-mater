@@ -25,10 +25,12 @@ elseif(UNIX)
         INSTALL_RPATH "$ORIGIN/../${CMAKE_INSTALL_LIBDIR}")
 endif()
 set(corpus_install_root "${CMAKE_INSTALL_DATADIR}/parallel-mater")
-install(DIRECTORY conformance/v1/cases conformance/v1/lifecycle conformance/v1/quality
+install(DIRECTORY conformance/v1/cases conformance/v1/lifecycle
+    conformance/v1/quality conformance/v1/qualification
     DESTINATION "${corpus_install_root}/conformance/v1")
 install(FILES conformance/v1/manifest.json conformance/v1/compare.py
     conformance/v1/lifecycle.py conformance/v1/quality.py
+    conformance/v1/qualification.py
     conformance/v1/README.md conformance/v1/SCHEMA.md
     DESTINATION "${corpus_install_root}/conformance/v1")
 # Install only the immutable assets named by this corpus manifest.

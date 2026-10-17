@@ -1,0 +1,226 @@
+{
+  "schema": "parallel-mater-conformance-obligations/v1",
+  "id": "capability-obligations-v1",
+  "api_version": "0.2",
+  "title": "Interaction capability qualification obligations",
+  "sources": {
+    "capability_identity": "registry/pm.xml and docs/INTERACTION-MODES.md",
+    "qualification_policy": "docs/DRIVER_SDK.md and docs/QUALIFICATION.md",
+    "scope_separation": "docs/ROADMAP.md F5 conformance and performance requirements"
+  },
+  "scopes": [
+    "compilation",
+    "execution",
+    "reference_regression",
+    "lifecycle_invariants",
+    "analytic_invariants",
+    "timing"
+  ],
+  "optional_scopes": [
+    "timing"
+  ],
+  "default_required": {
+    "compilation": [
+      "registry:interaction-capabilities"
+    ]
+  },
+  "contracts": [
+    {"id": "registry:interaction-capabilities", "path": "registry/pm.xml", "sha256": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372"},
+    {"id": "case:fluid-lifecycle", "path": "conformance/v1/cases/fluid-lifecycle.json", "sha256": "43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b"},
+    {"id": "case:rope-core", "path": "conformance/v1/cases/rope-core.json", "sha256": "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41"},
+    {"id": "case:smoke-grid", "path": "conformance/v1/cases/smoke-grid.json", "sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3"},
+    {"id": "case:rigid-direct", "path": "conformance/v1/cases/rigid-direct.json", "sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c"},
+    {"id": "case:compound-weld-lifecycle", "path": "conformance/v1/cases/compound-weld-lifecycle.json", "sha256": "3c78c1301851c4f5a91e779ea40bf09f0a0e20923a02c73d65c299c54b27ca26"},
+    {"id": "case:cloth-water", "path": "conformance/v1/cases/cloth-water.json", "sha256": "b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5"},
+    {"id": "case:soft-body-fluid", "path": "conformance/v1/cases/soft-body-fluid.json", "sha256": "935838337761fc3a0fb6bbe4cc787953b27e8cfa7dcb4cb7adb17eb85a3fd653"},
+    {"id": "case:rope-fluid", "path": "conformance/v1/cases/rope-fluid.json", "sha256": "368a65ec45f88baebc53e252dcbf8b95e3775b205714deed1006210dd5d13d27"},
+    {"id": "case:smoke-water", "path": "conformance/v1/cases/smoke-water.json", "sha256": "cbe349e888648ef1fe6f0adb507be33888be83b988d72b4bcc5c4a23a604964c"},
+    {"id": "case:fluid-rigid", "path": "conformance/v1/cases/fluid-rigid.json", "sha256": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9"},
+    {"id": "case:soft-body-cloth", "path": "conformance/v1/cases/soft-body-cloth.json", "sha256": "779b5f55f4db0b9f0952d0d8607c1221ca2c50a52bc2dca2b95dff70ea5e6f4a"},
+    {"id": "case:rope-cloth", "path": "conformance/v1/cases/rope-cloth.json", "sha256": "28280bb786efb6a69ead8bfed2f76ef1ac145672de29fbd2d625f69e89eda792"},
+    {"id": "case:smoke-cloth", "path": "conformance/v1/cases/smoke-cloth.json", "sha256": "8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc"},
+    {"id": "case:cloth-core", "path": "conformance/v1/cases/cloth-core.json", "sha256": "f01de9dd068a989a60510fcbe167f80230b6606ef6892691a62786d5d7eda6e5"},
+    {"id": "case:rope-soft-body", "path": "conformance/v1/cases/rope-soft-body.json", "sha256": "8d774dd377086780d1b4d52735290a73ccaa7fd4cc9334dfa5ad4fb0763b3549"},
+    {"id": "case:smoke-soft-body", "path": "conformance/v1/cases/smoke-soft-body.json", "sha256": "a3566fe480be274b850d10f10b88ee4f3ea22e59d5cae5ccf9a652fa7d6b9cb8"},
+    {"id": "case:soft-body-rigid", "path": "conformance/v1/cases/soft-body-rigid.json", "sha256": "ab0e5f813b9953fd80f278842cab75e8e53d54f6f790e31e7572eb9e2e043505"},
+    {"id": "case:smoke-rope", "path": "conformance/v1/cases/smoke-rope.json", "sha256": "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7"},
+    {"id": "quality:core-conservation-stability-v1#equal-material-pressure-contact", "path": "conformance/v1/quality/core-conservation-v1.json", "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"},
+    {"id": "quality:core-conservation-stability-v1#equal-material-viscosity", "path": "conformance/v1/quality/core-conservation-v1.json", "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"},
+    {"id": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery", "path": "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json", "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"},
+    {"id": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback", "path": "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json", "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"}
+  ],
+  "rules": [
+    {
+      "id": "fluid-self",
+      "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SELF"], "mode": ["CONTACT", "PRESSURE", "VISCOSITY"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:fluid-lifecycle",
+      "required": {"lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"]},
+      "missing": {"analytic_invariants": "No vendor-neutral fluid self-interaction quality case is registered."}
+    },
+    {
+      "id": "fluid-pair-equal-pressure-contact",
+      "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SEPARATE_SYSTEM"], "mode": ["CONTACT", "PRESSURE"], "direction": ["BIDIRECTIONAL"], "material_profile": ["EQUAL"]},
+      "required": {
+        "execution": ["quality:core-conservation-stability-v1#equal-material-pressure-contact"],
+        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery", "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
+        "analytic_invariants": ["quality:core-conservation-stability-v1#equal-material-pressure-contact"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "fluid-pair-equal-viscosity",
+      "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SEPARATE_SYSTEM"], "mode": ["VISCOSITY"], "direction": ["BIDIRECTIONAL"], "material_profile": ["EQUAL"]},
+      "required": {
+        "execution": ["quality:core-conservation-stability-v1#equal-material-viscosity"],
+        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery", "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
+        "analytic_invariants": ["quality:core-conservation-stability-v1#equal-material-viscosity"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "rope-self",
+      "match": {"first_family": ["ROPE"], "second_family": ["ROPE"], "scope": ["SELF"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:rope-core",
+      "required": {"lifecycle_invariants": ["case:rope-core"]},
+      "missing": {"analytic_invariants": "No vendor-neutral rope self-contact quality case is registered."}
+    },
+    {
+      "id": "smoke-self",
+      "match": {"first_family": ["SMOKE"], "second_family": ["SMOKE"], "scope": ["SELF"], "mode": ["PRESSURE", "VISCOSITY"], "direction": ["BIDIRECTIONAL"], "material_profile": ["SMOKE_PARTICLE", "SMOKE_GRID"]},
+      "trajectory_contract": "case:smoke-grid",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact smoke self-system replacement/capacity case is registered.", "analytic_invariants": "No vendor-neutral smoke self-system quality case is registered."}
+    },
+    {
+      "id": "rigid-contact",
+      "match": {"first_family": ["RIGID_BODY"], "second_family": ["RIGID_BODY"], "scope": ["SAME_DOMAIN"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:rigid-direct",
+      "required": {"lifecycle_invariants": ["case:rigid-direct"]},
+      "missing": {"analytic_invariants": "The rigid penetration fixture is not yet a versioned vendor-neutral profile."}
+    },
+    {
+      "id": "rigid-attachment",
+      "match": {"first_family": ["RIGID_BODY"], "second_family": ["RIGID_BODY"], "scope": ["SAME_DOMAIN"], "mode": ["ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:compound-weld-lifecycle",
+      "required": {"lifecycle_invariants": ["case:compound-weld-lifecycle"]},
+      "missing": {"analytic_invariants": "No vendor-neutral rigid attachment quality case is registered."}
+    },
+    {
+      "id": "fluid-cloth",
+      "match": {"first_family": ["FLUID"], "second_family": ["CLOTH"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "CONTAINMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:cloth-water",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact fluid-cloth adverse graph case is registered.", "analytic_invariants": "No vendor-neutral fluid-cloth quality case is registered."}
+    },
+    {
+      "id": "fluid-soft-body",
+      "match": {"first_family": ["FLUID"], "second_family": ["SOFT_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:soft-body-fluid",
+      "required": {"lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"]},
+      "missing": {"analytic_invariants": "No vendor-neutral fluid-soft-body quality case is registered."}
+    },
+    {
+      "id": "fluid-rope",
+      "match": {"first_family": ["FLUID"], "second_family": ["ROPE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:rope-fluid",
+      "required": {"lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"]},
+      "missing": {"analytic_invariants": "No vendor-neutral fluid-rope quality case is registered."}
+    },
+    {
+      "id": "fluid-smoke",
+      "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG", "THERMAL", "PHASE"], "direction": ["SECOND_TO_FIRST", "EXTERNAL_TO_FIRST", "FIRST_TO_SECOND_TRANSFER"], "material_profile": ["SMOKE_PARTICLE", "SMOKE_GRID"]},
+      "mode_directions": [["DRAG", "SECOND_TO_FIRST"], ["THERMAL", "EXTERNAL_TO_FIRST"], ["PHASE", "FIRST_TO_SECOND_TRANSFER"]],
+      "trajectory_contract": "case:smoke-water",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact fluid-smoke adverse graph case is registered.", "analytic_invariants": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered."}
+    },
+    {
+      "id": "fluid-rigid",
+      "match": {"first_family": ["FLUID"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "CONTAINMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:fluid-rigid",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact fluid-rigid adverse graph case is registered.", "analytic_invariants": "No vendor-neutral fluid-rigid quality case is registered."}
+    },
+    {
+      "id": "cloth-soft-body",
+      "match": {"first_family": ["CLOTH"], "second_family": ["SOFT_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:soft-body-cloth",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact cloth-soft-body adverse graph case is registered.", "analytic_invariants": "No vendor-neutral cloth-soft-body quality case is registered."}
+    },
+    {
+      "id": "cloth-rope",
+      "match": {"first_family": ["CLOTH"], "second_family": ["ROPE"], "scope": ["DISTINCT_FAMILY"], "mode": ["ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:rope-cloth",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact cloth-rope adverse graph case is registered.", "analytic_invariants": "No vendor-neutral cloth-rope attachment quality case is registered."}
+    },
+    {
+      "id": "cloth-smoke-particle",
+      "match": {"first_family": ["CLOTH"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "DRAG"], "direction": ["FIRST_TO_SECOND", "SECOND_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE"]},
+      "mode_directions": [["CONTACT", "FIRST_TO_SECOND"], ["DRAG", "SECOND_TO_FIRST"]],
+      "trajectory_contract": "case:smoke-cloth",
+      "required": {"lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"]},
+      "missing": {"analytic_invariants": "No vendor-neutral cloth-smoke quality case is registered."}
+    },
+    {
+      "id": "cloth-smoke-grid",
+      "match": {"first_family": ["CLOTH"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "DRAG"], "direction": ["FIRST_TO_SECOND", "SECOND_TO_FIRST"], "material_profile": ["SMOKE_GRID"]},
+      "mode_directions": [["CONTACT", "FIRST_TO_SECOND"], ["DRAG", "SECOND_TO_FIRST"]],
+      "trajectory_contract": "case:smoke-cloth",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact cloth-smoke-grid adverse graph case is registered.", "analytic_invariants": "No vendor-neutral cloth-smoke-grid quality case is registered."}
+    },
+    {
+      "id": "cloth-rigid",
+      "match": {"first_family": ["CLOTH"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:cloth-core",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact cloth-rigid adverse lifecycle case is registered.", "analytic_invariants": "No vendor-neutral cloth-rigid quality case is registered."}
+    },
+    {
+      "id": "soft-body-rope",
+      "match": {"first_family": ["SOFT_BODY"], "second_family": ["ROPE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:rope-soft-body",
+      "required": {"lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"]},
+      "missing": {"analytic_invariants": "No vendor-neutral soft-body-rope quality case is registered."}
+    },
+    {
+      "id": "soft-body-smoke",
+      "match": {"first_family": ["SOFT_BODY"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "DRAG"], "direction": ["FIRST_TO_SECOND", "SECOND_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE", "SMOKE_GRID"]},
+      "mode_directions": [["CONTACT", "FIRST_TO_SECOND"], ["DRAG", "SECOND_TO_FIRST"]],
+      "trajectory_contract": "case:smoke-soft-body",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact soft-body-smoke adverse graph case is registered.", "analytic_invariants": "No vendor-neutral soft-body-smoke quality case is registered."}
+    },
+    {
+      "id": "soft-body-rigid",
+      "match": {"first_family": ["SOFT_BODY"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:soft-body-rigid",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact soft-body-rigid adverse lifecycle case is registered.", "analytic_invariants": "No vendor-neutral soft-body-rigid quality case is registered."}
+    },
+    {
+      "id": "rope-smoke",
+      "match": {"first_family": ["ROPE"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "DRAG"], "direction": ["FIRST_TO_SECOND", "SECOND_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE", "SMOKE_GRID"]},
+      "mode_directions": [["CONTACT", "FIRST_TO_SECOND"], ["DRAG", "SECOND_TO_FIRST"]],
+      "trajectory_contract": "case:smoke-rope",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact rope-smoke adverse graph case is registered.", "analytic_invariants": "No vendor-neutral rope-smoke quality case is registered."}
+    },
+    {
+      "id": "rope-rigid",
+      "match": {"first_family": ["ROPE"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:rope-core",
+      "required": {"lifecycle_invariants": ["case:rope-core"]},
+      "missing": {"analytic_invariants": "No vendor-neutral rope-rigid quality case is registered."}
+    },
+    {
+      "id": "smoke-rigid",
+      "match": {"first_family": ["SMOKE"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "DRAG"], "direction": ["BIDIRECTIONAL"], "material_profile": ["SMOKE_PARTICLE", "SMOKE_GRID"]},
+      "trajectory_contract": "case:smoke-grid",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact smoke-rigid adverse graph case is registered.", "analytic_invariants": "No vendor-neutral smoke-rigid quality case is registered."}
+    }
+  ]
+}

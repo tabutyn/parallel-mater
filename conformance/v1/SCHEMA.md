@@ -105,3 +105,29 @@ The report has `scope: "lifecycle_invariants"`, case/checkpoint totals and
 structured failures. Missing, extra, malformed, failed or unsupported cases
 fail the report. The report is independent of trajectory regression and
 analytic numerical quality.
+
+## Capability obligations: `parallel-mater-conformance-obligations/v1`
+
+The hashed profile maps exact interaction capability keys to scoped evidence
+contracts. Rules may name a trajectory contract, which creates separate
+execution and reference-regression obligations, plus explicit lifecycle and
+analytic-invariant contracts. A `missing` scope is an intentional failing gap,
+not a waiver. Canonical registry tests require every API 0.2 interaction record
+to match exactly one rule.
+
+## Qualification result: `parallel-mater-conformance-qualification-result/v1`
+
+A revisioned result records a clean source commit, driver name/version/binary
+SHA-256, device identity and driver version, compiler identity, exact advertised
+capability keys and scoped evidence. Every evidence record names its scope,
+contract ID/hash, source commit, artifact SHA-256 and one of `passed`, `failed`,
+`unsupported` or `missing`. The same artifact may support distinct scopes only
+through separate records; one scope never substitutes for another.
+
+## Qualification report: `parallel-mater-conformance-qualification-report/v1`
+
+The report has `scope: "capability_qualification"`, one result per advertised
+record, per-scope status, provenance, unused evidence and structured failures.
+Unknown records, stale hashes, dirty or mismatched revisions, missing contracts,
+absent evidence and non-passing required evidence leave the capability
+unqualified. Optional timing remains visible without certifying correctness.
