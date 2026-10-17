@@ -139,6 +139,32 @@ nested pointer records; multi-group rigid integration; soft-body scalar/SIMD
 projection and damping; and staged AVBD contacts/joints. These are focused
 kernel/runtime-service tests, not all-domain public-API physics conformance.
 
+## Current physical driver evidence (2026-10-17)
+
+F5-12 publishes the first registered current-build Metal qualification input
+from a physical 16 GB MacBook Air `Mac16,12` with Apple M4 and macOS 26.5.2.
+Clean source `aac6d595e4821bace3ed77cbbf47f1cad794e548` used Apple Clang
+21.0.0, Apple Metal 32023.883 and Slang 2026.18. The public capability query
+returns 46 exact interaction records; separate-system fluid-fluid remains
+unadvertised and its tests skip without CPU fallback.
+
+All 30 public-API trajectories execute. Fourteen match the unchanged CUDA v1
+reference and sixteen fail it; no tolerance or golden changed. The fixed
+eight-brick physical profile passes at 0.146627 mm on frame 5 against the 2 mm
+limit. Capacity and complete interaction-graph console tests pass, but they do
+not yet emit the immutable F5-03 checkpoint hashes and write ordinals. Along
+with interaction-specific analytic gaps and seven applicable reference
+failures, that leaves 0/46 capabilities qualified. See the revisioned
+[evidence bundle](../conformance/v1/evidence/macos-m4-slang-metal-aac6d59-evidence.json)
+for every difference and the exact source, binary, hardware and contract tuple.
+
+The same 80-test configuration has five supplemental Gallery launch failures:
+the app bundle contains the full-version loader dylib but omits its
+`libparallel-mater.0.2.dylib` soname link. Native Metal API, kernel,
+async-submission and lifecycle tests pass. The packaging defect is not counted
+as physics evidence and must be fixed before using this build as the installed
+Gallery.
+
 ## Local evidence (2026-10-15)
 
 Apple M4, Slang 2026.18, native Metal 3.0 libraries:
