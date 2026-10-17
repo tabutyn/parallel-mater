@@ -1,7 +1,7 @@
 {
   "id": "F2-08",
   "title": "Exchange fluid viscosity forces",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F2-07"
   ],
@@ -16,15 +16,31 @@
     "Dissipation and momentum satisfy the profile across timestep/mass-ratio sweeps.",
     "Isolated and coupled limits have analytic or invariant tests."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "262247f8-12d1-496f-8765-f7421bae3572",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F2-08/thomas-laptop",
-    "claimed_at": "2026-10-17T04:20:24Z",
-    "heartbeat_at": "2026-10-17T04:20:24Z",
-    "expires_at": "2026-10-18T04:20:24Z"
-  },
-  "history": []
+  "evidence": [
+    "CPU Slang split-versus-combined fixture matches viscosity acceleration and one-step position and velocity.",
+    "Analytic isolated and coupled limits pass; momentum conservation and energy dissipation pass at timesteps 0.001, 0.01 and 0.05 across 1:1, 1:2 and 1:4 population-mass ratios.",
+    "All 49 foundation tests pass or report their existing capability skips; Slang CPU, CUDA and Vulkan driver targets build."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "262247f8-12d1-496f-8765-f7421bae3572",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F2-08/thomas-laptop",
+        "claimed_at": "2026-10-17T04:20:24Z",
+        "heartbeat_at": "2026-10-17T04:20:24Z",
+        "expires_at": "2026-10-18T04:20:24Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T04:25:26Z",
+      "reason": "Cross-population viscosity now matches the existing shared Slang fluid law while preserving equal-material momentum and dissipation invariants.",
+      "evidence": [
+        "CPU Slang split-versus-combined fixture matches viscosity acceleration and one-step position and velocity.",
+        "Analytic isolated and coupled limits pass; momentum conservation and energy dissipation pass at timesteps 0.001, 0.01 and 0.05 across 1:1, 1:2 and 1:4 population-mass ratios.",
+        "All 49 foundation tests pass or report their existing capability skips; Slang CPU, CUDA and Vulkan driver targets build."
+      ]
+    }
+  ]
 }
