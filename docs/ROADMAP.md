@@ -122,7 +122,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F2-01](roadmap/tasks/F2-01.json) | Specify the pair and mode matrix | done | — | — |
 | [F2-02](roadmap/tasks/F2-02.json) | Expose pair and material capability queries | done | F2-01 | — |
 | [F2-03](roadmap/tasks/F2-03.json) | Validate graph modes against capabilities | done | F2-02 | — |
-| [F2-04](roadmap/tasks/F2-04.json) | Qualify graph rebinding across implemented pairs | ready | F1-05, F2-03 | — |
+| [F2-04](roadmap/tasks/F2-04.json) | Qualify graph rebinding across implemented pairs | leased | F1-05, F2-03 | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T03:07:15Z |
 | [F2-05](roadmap/tasks/F2-05.json) | Specify equal-material fluid–fluid behavior | ready | F2-01 | — |
 | [F2-06](roadmap/tasks/F2-06.json) | Build cross-population neighbor indexing | waiting on dependencies | F2-05, F1-00 | — |
 | [F2-07](roadmap/tasks/F2-07.json) | Exchange fluid pressure and contact forces | waiting on dependencies | F2-06 | — |
