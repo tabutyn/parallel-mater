@@ -1,0 +1,24 @@
+{
+  "id": "P1-08",
+  "title": "Schedule miscible fluid pair graphs",
+  "status": "deferred",
+  "dependencies": [
+    "P1-07"
+  ],
+  "locks": [
+    "runtime-graph",
+    "runtime-memory",
+    "runtime-schedule"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Wire the miscible operator bundle into bounded graph storage, portable scheduling and lifecycle recovery; keep reporting gated.",
+  "acceptance": [
+    "Creation, removal, replacement, reset, overflow and failed-update rollback pass through the public API.",
+    "Reference adapters compile the shared schedule or explicitly reject the profile."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

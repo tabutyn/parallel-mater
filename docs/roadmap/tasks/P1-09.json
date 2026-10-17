@@ -1,0 +1,25 @@
+{
+  "id": "P1-09",
+  "title": "Qualify and advertise miscible fluids",
+  "status": "deferred",
+  "dependencies": [
+    "P1-08",
+    "F5-02",
+    "F5-03"
+  ],
+  "locks": [
+    "conformance-corpus",
+    "runtime-capabilities"
+  ],
+  "requires": [
+    "Each driver that will advertise this profile"
+  ],
+  "scope": "Run public-API physical and lifecycle gates before exposing miscible contact, pressure or viscosity records.",
+  "acceptance": [
+    "Density/radius/viscosity ratios, endpoint reversal, momentum, dissipation, timestep and long-run cases pass per advertising driver.",
+    "Capability evidence identifies exact supported modes, parameter ranges, driver and device."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

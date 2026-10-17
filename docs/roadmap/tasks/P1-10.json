@@ -1,0 +1,23 @@
+{
+  "id": "P1-10",
+  "title": "Reconstruct immiscible fluid interfaces",
+  "status": "deferred",
+  "dependencies": [
+    "P1-05"
+  ],
+  "locks": [
+    "fluid-kernels",
+    "runtime-memory"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Build bounded shared-Slang phase labeling, normals and curvature inputs for a two-material interface; advertise nothing.",
+  "acceptance": [
+    "Planar and spherical fixtures have orientation-consistent normals and convergent curvature across resolution sweeps.",
+    "Degenerate, empty and under-resolved neighborhoods remain finite and report bounded diagnostics."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

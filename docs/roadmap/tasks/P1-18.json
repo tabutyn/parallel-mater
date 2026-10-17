@@ -1,0 +1,25 @@
+{
+  "id": "P1-18",
+  "title": "Qualify and advertise fluid heat exchange",
+  "status": "deferred",
+  "dependencies": [
+    "P1-17",
+    "F5-02",
+    "F5-03"
+  ],
+  "locks": [
+    "conformance-corpus",
+    "runtime-capabilities"
+  ],
+  "requires": [
+    "Each driver that will advertise this mode"
+  ],
+  "scope": "Run public-API energy, monotonicity, lifecycle and long-run gates before exposing thermal records.",
+  "acceptance": [
+    "Miscible and immiscible analytic, insulated, timestep, capacity and long-run cases pass per advertising driver.",
+    "Capability evidence names the mechanical profile and thermal limits and does not imply phase support."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

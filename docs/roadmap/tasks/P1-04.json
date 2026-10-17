@@ -1,0 +1,23 @@
+{
+  "id": "P1-04",
+  "title": "Expose multi-material fluid pair state",
+  "status": "deferred",
+  "dependencies": [
+    "P1-03"
+  ],
+  "locks": [
+    "api-spec",
+    "interaction-spec"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Add versioned pair-combination, interface and caloric state plus exact capability identities; advertise nothing.",
+  "acceptance": [
+    "Registry, generated C API and specification expose units, validation and extension-chain compatibility.",
+    "Negative tests reject missing, invalid and unsupported profile state without mutating the graph."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,26 @@
+{
+  "id": "P1-17",
+  "title": "Schedule fluid thermal pair graphs",
+  "status": "deferred",
+  "dependencies": [
+    "P1-08",
+    "P1-13",
+    "P1-16"
+  ],
+  "locks": [
+    "runtime-graph",
+    "runtime-memory",
+    "runtime-schedule"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Integrate optional thermal passes and caloric resources into portable graph scheduling; keep reporting gated.",
+  "acceptance": [
+    "Thermal add/remove/rebind, empty endpoints, overflow and failed-update recovery pass through the public API.",
+    "Memory queries cover temperature scratch and reference adapters compile or reject the mode explicitly."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

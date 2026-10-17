@@ -1,0 +1,23 @@
+{
+  "id": "P1-16",
+  "title": "Exchange conservative fluid heat",
+  "status": "deferred",
+  "dependencies": [
+    "P1-05",
+    "P1-15"
+  ],
+  "locks": [
+    "fluid-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement sensible-heat exchange for miscible and immiscible pairs in shared Slang without phase transfer or advertisement.",
+  "acceptance": [
+    "Two-lump analytic cases conserve energy, remain within temperature extrema and are invariant to endpoint order.",
+    "Conductivity, heat-capacity and insulated-interface limits pass timestep and unequal-mass sweeps."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

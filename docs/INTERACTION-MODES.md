@@ -23,6 +23,7 @@ order.
 | `viscosity` | Exchange dissipative shear forces across a system boundary. Contact friction is not a viscosity capability. |
 | `thermal` | Exchange heat while retaining both endpoint families and account for supplied, removed and transferred energy. |
 | `phase` | Transfer mass or membership between families or material phases while defining identity, capacity, momentum and energy handling. |
+| `interface` | Preserve a material boundary and exchange capillary traction. This future mode is independent from contact, pressure and thermal exchange. |
 
 `contact` parameters may include friction. Pressure and viscosity remain
 separate modes because a vendor can implement collision without a continuum
@@ -127,9 +128,9 @@ The initial profiles are:
 | `smoke-particle` | Smoke is the particle tracer model. | Reference profile for implemented smoke pairs. |
 | `smoke-grid` | Smoke is the projected Eulerian grid model. | Reference profile for implemented smoke pairs; support is independent from `smoke-particle`. |
 | `equal-material` | Distinct fluid systems use numerically equal material state and a symmetric cross-population operator. | Proposed by F2-05 through F2-10. |
-| `miscible` | Different fluid materials mix under a specified combination law. | Proposed specification in F2-11; unsupported in API 0.2. |
-| `immiscible-interface` | Different fluids retain an interface with defined density, viscosity and surface behavior. | Proposed specification in F2-11; unsupported in API 0.2. |
-| `thermal-phase` | The material combination itself defines heat and/or phase transfer, including external sources and capacity behavior. | Reserved for broader combinations proposed in F2-11. |
+| `miscible` | Different Newtonian fluid materials share a mechanical neighborhood without a material interface. | Specified by F2-11; reserved and unsupported in API 0.2. |
+| `immiscible-interface` | Different Newtonian fluids retain a material boundary with defined pressure, shear and capillary behavior. | Specified by F2-11; reserved and unsupported in API 0.2. |
+| `thermal-phase` | Reserved for a future material-changing thermal or phase law. Thermal exchange that retains both materials uses the mechanical material profile plus the `thermal` mode. | Unsupported; F2-11 does not define phase transfer. |
 
 A driver must expose the supported smoke representation and fluid material
 profile. Reporting only `domainCouplings`, or only a pair, is insufficient.
@@ -263,6 +264,143 @@ owned per system: coupling A to a rigid, cloth or world boundary does not make
 B inherit that interaction. A split-versus-combined comparison is valid only
 when corresponding external boundary behavior is applied to both split
 systems.
+
+## Different-material separate fluid systems
+
+The `miscible` and `immiscible-interface` profiles describe two live fluid
+systems whose `PmLiquidMaterialState` values differ. They are future contracts,
+not API 0.2 capabilities. The existing enum values reserve names only: every
+API 0.2 driver must omit their capability records and reject graph edges that
+request them with `PM_ERROR_FEATURE_NOT_PRESENT`. It must not fall back to the
+`equal-material` operator, average the endpoint materials silently, or mutate
+the live graph after rejecting a replacement.
+
+Both profiles are bidirectional. The edge keeps independent endpoint storage,
+counts, capacities, stable-ID namespaces, temperature and foam fields. It
+never changes a particle's owner or material. Particle mass for endpoint `i`
+is
+
+```text
+m_i = restDensity_i * restParticleVolume_i
+```
+
+when `restParticleVolume_i > 0`; otherwise it is
+`restDensity_i * (2 * particleRadius_i)^3`. A cross pair uses the symmetric
+support `h_ij = max(supportRadius_i, supportRadius_j)` and contact separation
+`d_ij = particleRadius_i + particleRadius_j`. The same pair support and kernel
+sample must be used from both endpoints. A pair force is accumulated once as
+`F_ij`, then applied as `F_ij / m_i` and `-F_ij / m_j`; acceleration caps limit
+the common force before those divisions. Thus unequal masses do not permit
+unequal-and-opposite acceleration to masquerade as momentum conservation.
+
+Every cross-neighbor counts against the receiving endpoint's declared
+`neighborCapacityPerParticle`. Pair storage and scratch remain bounded by the
+simulation plan. Empty endpoints, removal, replacement, graph rollback after
+failure, and external-boundary ownership follow the equal-material rules.
+
+### Miscible mechanical profile
+
+A miscible mechanical edge requests bidirectional `contact`, `pressure` and
+`viscosity` with material profile `miscible`. The populations may interpenetrate
+and intermingle without an ownership seam. `contact` supplies the same
+short-range particle exclusion used within each endpoint; it does not create a
+membrane. Cross neighbors contribute their own mass to density. Each particle
+uses its endpoint rest density and pressure stiffness for its equation of
+state, while the pressure-gradient pair operator is symmetric in both endpoint
+pressures and densities.
+
+Let `nu_i` be kinematic viscosity and `mu_i = restDensity_i * nu_i` be dynamic
+viscosity. The cross-pair viscosity is the harmonic combination
+
+```text
+mu_ij = 2 * mu_i * mu_j / (mu_i + mu_j)
+```
+
+with `mu_ij = 0` when both inputs are zero. The discrete shear force must be
+equal and opposite and, without external work, must not increase kinetic
+energy. Pressure/contact must also conserve linear and angular momentum within
+the qualification tolerances. Endpoint order cannot affect any result.
+
+This profile is a mechanical mixture, not a species solver. Particles retain
+their material and stable identity as they mingle. It does not claim Fickian
+diffusion, concentration fields, reactions, temperature-dependent properties,
+mass transfer, phase change, or a homogeneous effective material. A driver
+must report those behaviors unsupported rather than infer them from
+`miscible`.
+
+### Immiscible interface profile
+
+An immiscible edge retains two material regions. Its core bundle is
+bidirectional `contact`, `pressure` and the future `interface` mode; interfacial
+`viscosity` and `thermal` are independent optional records. Contact prevents
+particles crossing the represented boundary, pressure transfers normal
+traction, and interface force represents capillarity. No one of these records
+implies another.
+
+The future edge state owns a nonnegative surface-tension coefficient `sigma`
+in N/m. At resolved curvature its equilibrium pressure jump obeys the
+Young-Laplace relation
+
+```text
+pressure_first - pressure_second = sigma * (1 / R1 + 1 / R2)
+```
+
+for principal radii `R1` and `R2` using the edge's declared first-to-second
+normal. A planar interface therefore has zero capillary pressure jump. The
+discrete interface force is internal: absent external work it has zero net
+linear force and torque within tolerance. It may exchange kinetic and surface
+energy but must not create unbounded energy in the long-run stability corpus.
+`sigma = 0` removes capillary traction while retaining the no-mixing boundary.
+
+When viscosity is requested, the tangential traction uses the same harmonic
+dynamic-viscosity rule as the miscible profile and is dissipative. Surface
+tension gradients, surfactants, Marangoni stress, wetting/contact angles,
+triple-line behavior, species diffusion, reactions, breakup guarantees and
+phase transfer are unsupported by this initial profile. Fluid-solid wetting
+requires a separate three-material contract and cannot be inferred from a
+fluid-fluid edge.
+
+### Optional heat exchange without phase transfer
+
+`thermal` may be advertised independently for either the `miscible` or
+`immiscible-interface` profile after the API exposes endpoint caloric data.
+Each endpoint material then owns positive specific heat capacity `c_p` in
+J/(kg*K) and nonnegative thermal conductivity `k` in W/(m*K). Miscible
+conduction uses the harmonic pair conductivity
+
+```text
+k_ij = 2 * k_i * k_j / (k_i + k_j)
+```
+
+with zero when both inputs are zero. An immiscible edge additionally owns a
+nonnegative interfacial conductance in W/(m^2*K); zero means an insulating
+interface. Conductive pair work transfers equal energy in opposite directions.
+With no external source, the total sensible energy
+
+```text
+E = sum_i m_i * c_p_i * (temperatureCelsius_i - T_reference)
+```
+
+is conserved independently of the arbitrary reference temperature. A stable
+step with nonnegative coefficients keeps particle temperatures within the
+pre-step extrema. Endpoint order cannot change heat flow, and graph removal
+stops it on the next step.
+
+Thermal expansion, buoyancy, radiation, temperature-dependent coefficients,
+latent heat, boiling, freezing, evaporation, condensation and particle
+transfer are unsupported here. Those need explicit phase identities, energy
+and capacity accounting, so the `thermal-phase` profile remains reserved.
+
+### Required future API separation
+
+Before any different-material capability is enabled, the public registry must
+add typed, versioned state for the combination rules above. It must add the
+`interface` mode instead of hiding capillary behavior under `contact`, and add
+caloric fields without reusing the API 0.2 heater rate. Mechanical, interface,
+thermal and phase records remain separately queryable. Implementation leaves
+then add shared Slang operators and backend-neutral scheduling; qualification
+leaves advertise one exact `(scope, mode, direction, material profile)` record
+at a time on each tested driver.
 
 ## Capability query contract
 

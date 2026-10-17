@@ -1,0 +1,25 @@
+{
+  "id": "P1-14",
+  "title": "Qualify and advertise immiscible fluids",
+  "status": "deferred",
+  "dependencies": [
+    "P1-13",
+    "F5-02",
+    "F5-03"
+  ],
+  "locks": [
+    "conformance-corpus",
+    "runtime-capabilities"
+  ],
+  "requires": [
+    "Each driver that will advertise this profile"
+  ],
+  "scope": "Run public-API interface, conservation, lifecycle and stability gates before exposing immiscible records.",
+  "acceptance": [
+    "Planar, droplet, shear, high-density-ratio, timestep, breakup-stress and long-run cases pass per advertising driver.",
+    "Capability evidence separates contact, pressure, interface and optional viscosity support and states parameter limits."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

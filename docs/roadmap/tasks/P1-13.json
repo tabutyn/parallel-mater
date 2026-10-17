@@ -1,0 +1,24 @@
+{
+  "id": "P1-13",
+  "title": "Schedule immiscible fluid pair graphs",
+  "status": "deferred",
+  "dependencies": [
+    "P1-12"
+  ],
+  "locks": [
+    "runtime-graph",
+    "runtime-memory",
+    "runtime-schedule"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Wire interface reconstruction and mechanical passes into bounded portable scheduling and graph lifecycle; keep reporting gated.",
+  "acceptance": [
+    "Creation, removal, replacement, reset, overflow and failure recovery preserve independent endpoint ownership.",
+    "Interface scratch is planned once and reference adapters compile or reject the profile explicitly."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
