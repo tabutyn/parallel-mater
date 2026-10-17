@@ -1,0 +1,25 @@
+{
+  "id": "P1-29",
+  "title": "Schedule soft-body contact scopes",
+  "status": "deferred",
+  "dependencies": [
+    "P1-27",
+    "P1-28"
+  ],
+  "locks": [
+    "runtime-graph",
+    "runtime-memory",
+    "runtime-schedule"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Integrate self/inter soft-body contact with internal constraints, bounded scheduling and generation-safe lifecycle; keep reporting gated.",
+  "acceptance": [
+    "Self opt-in and graph add/remove/rebind/reset/overflow/recovery pass through the public API.",
+    "Final cleanup survives spring/shape passes and reference adapters compile or reject each scope explicitly."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

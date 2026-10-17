@@ -1,7 +1,7 @@
 {
   "id": "F2-13",
   "title": "Specify soft-body/soft-body system modes",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F2-01"
   ],
@@ -16,15 +16,37 @@
     "Separate self and inter-system behavior with measurable physical criteria.",
     "Split missing operators and their public-API qualification into new leaf tasks."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "7d077101-d987-497d-9ac5-f93b7a3d7bf7",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F2-13/thomas-laptop",
-    "claimed_at": "2026-10-17T05:17:09Z",
-    "heartbeat_at": "2026-10-17T05:17:09Z",
-    "expires_at": "2026-10-18T05:17:09Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/INTERACTION-MODES.md distinguishes self and separate-system soft-body contact and defines closed bound surfaces, swept vertex-triangle/edge-edge contact, topology exclusions, separation and conservation limits.",
+    "PASS: P1-25 through P1-30 separate typed API scopes, bounded surface contact generation, self solve, inter-system solve, portable scheduling and per-driver qualification.",
+    "PASS: python3 tools/reference/build.py --check-generated; public headers and generated specification remain consistent.",
+    "PASS: python3 -m unittest discover -s tests/roadmap -p 'test_*.py'; 19 roadmap/lease tests passed.",
+    "PASS: ctest --test-dir build-foundations -R '(generated-api-check|interaction-capability|graph-validation)' --output-on-failure; 3/3 passed and soft-body self/inter capabilities remain unadvertised.",
+    "REVIEW: API 0.2 has no soft-body pair edge or self-contact control; open/non-manifold skins, inversion prevention, merging and both exact capability scopes remain unsupported."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "7d077101-d987-497d-9ac5-f93b7a3d7bf7",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F2-13/thomas-laptop",
+        "claimed_at": "2026-10-17T05:17:09Z",
+        "heartbeat_at": "2026-10-17T05:17:09Z",
+        "expires_at": "2026-10-18T05:17:09Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T05:19:59Z",
+      "reason": "Specified intrinsic and inter-system soft-body surface contact with binding, swept primitive, topology, separation, friction, conservation and bounded-failure contracts, then split later work into narrow leases.",
+      "evidence": [
+        "PASS: docs/INTERACTION-MODES.md distinguishes self and separate-system soft-body contact and defines closed bound surfaces, swept vertex-triangle/edge-edge contact, topology exclusions, separation and conservation limits.",
+        "PASS: P1-25 through P1-30 separate typed API scopes, bounded surface contact generation, self solve, inter-system solve, portable scheduling and per-driver qualification.",
+        "PASS: python3 tools/reference/build.py --check-generated; public headers and generated specification remain consistent.",
+        "PASS: python3 -m unittest discover -s tests/roadmap -p 'test_*.py'; 19 roadmap/lease tests passed.",
+        "PASS: ctest --test-dir build-foundations -R '(generated-api-check|interaction-capability|graph-validation)' --output-on-failure; 3/3 passed and soft-body self/inter capabilities remain unadvertised.",
+        "REVIEW: API 0.2 has no soft-body pair edge or self-contact control; open/non-manifold skins, inversion prevention, merging and both exact capability scopes remain unsupported."
+      ]
+    }
+  ]
 }

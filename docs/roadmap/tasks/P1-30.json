@@ -1,0 +1,25 @@
+{
+  "id": "P1-30",
+  "title": "Qualify and advertise soft-body contact",
+  "status": "deferred",
+  "dependencies": [
+    "P1-29",
+    "F5-02",
+    "F5-03"
+  ],
+  "locks": [
+    "conformance-corpus",
+    "runtime-capabilities"
+  ],
+  "requires": [
+    "Each driver that will advertise either soft-body scope"
+  ],
+  "scope": "Run public-API surface, binding, conservation, capacity and lifecycle gates before exposing self or pair contact.",
+  "acceptance": [
+    "Folded-self, two-volume, high-speed, friction, binding-resolution and long-run cases pass per advertising driver.",
+    "Capability evidence reports self/pair limits independently and does not imply inversion prevention, attachment or merging."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

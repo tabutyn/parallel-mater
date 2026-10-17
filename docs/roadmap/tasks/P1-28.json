@@ -1,0 +1,22 @@
+{
+  "id": "P1-28",
+  "title": "Solve contact between soft bodies",
+  "status": "deferred",
+  "dependencies": [
+    "P1-26"
+  ],
+  "locks": [
+    "soft-body-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement balanced contact and geometric-mean friction between distinct bound soft-body surfaces; advertise nothing.",
+  "acceptance": [
+    "Unequal mass/radius/friction and binding-resolution fixtures meet separation, conservation, dissipation and endpoint-order limits.",
+    "Pinned reaction, nested-volume entry and high-speed crossing cases pass."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
