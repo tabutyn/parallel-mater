@@ -282,8 +282,16 @@ void test_pressure_contact_matches_combined_and_balances_momentum() {
     }
     const float residual_length = std::sqrt(residual.x * residual.x +
         residual.y * residual.y + residual.z * residual.z);
-    CHECK(exchanged > 1.0e-3F);
-    CHECK(residual_length <= std::max(1.0e-7F, 5.0e-5F * exchanged));
+    const float diameter = 2.0F * constants.particle_radius;
+    const float particle_mass = constants.rest_density *
+        diameter * diameter * diameter;
+    const float exchanged_impulse =
+        particle_mass * constants.timestep * exchanged;
+    const float residual_impulse =
+        particle_mass * constants.timestep * residual_length;
+    CHECK(exchanged_impulse >= 1.0e-4F);
+    CHECK(residual_impulse <=
+        std::max(1.0e-7F, 5.0e-5F * exchanged_impulse));
 
     integrate(first, constants);
     integrate(second, constants);
