@@ -1,7 +1,7 @@
 {
   "id": "F2-12",
   "title": "Specify cloth–cloth system modes",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F2-01"
   ],
@@ -16,15 +16,37 @@
     "Separate self and inter-system behavior with measurable physical criteria.",
     "Split missing operators and their public-API qualification into new leaf tasks."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "002b54b5-eae2-402a-bbb0-f68d10a88cad",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F2-12/thomas-laptop",
-    "claimed_at": "2026-10-17T05:12:11Z",
-    "heartbeat_at": "2026-10-17T05:12:11Z",
-    "expires_at": "2026-10-18T05:12:11Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/INTERACTION-MODES.md distinguishes intrinsic self contact from graph-owned cloth-cloth contact and defines swept vertex-triangle/edge-edge behavior, topology exclusions, separation and conservation tolerances.",
+    "PASS: P1-19 through P1-24 separate typed API controls, bounded contact generation, self solve, inter-system solve, portable scheduling and per-driver qualification.",
+    "PASS: python3 tools/reference/build.py --check-generated; public headers and generated specification remain consistent.",
+    "PASS: python3 -m unittest discover -s tests/roadmap -p 'test_*.py'; 19 roadmap/lease tests passed.",
+    "PASS: ctest --test-dir build-foundations -R '(generated-api-check|interaction-capability|graph-validation)' --output-on-failure; 3/3 passed and cloth self/inter capabilities remain unadvertised.",
+    "REVIEW: API 0.2 has no cloth-cloth edge or cloth self-contact control; both exact capability scopes remain unsupported until P1-19 through P1-24 close."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "002b54b5-eae2-402a-bbb0-f68d10a88cad",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F2-12/thomas-laptop",
+        "claimed_at": "2026-10-17T05:12:11Z",
+        "heartbeat_at": "2026-10-17T05:12:11Z",
+        "expires_at": "2026-10-18T05:12:11Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T05:14:51Z",
+      "reason": "Specified separate cloth self-contact and inter-system contact scopes with swept primitive, topology, thickness, friction, conservation and capacity contracts, then split implementation and qualification into bounded leases.",
+      "evidence": [
+        "PASS: docs/INTERACTION-MODES.md distinguishes intrinsic self contact from graph-owned cloth-cloth contact and defines swept vertex-triangle/edge-edge behavior, topology exclusions, separation and conservation tolerances.",
+        "PASS: P1-19 through P1-24 separate typed API controls, bounded contact generation, self solve, inter-system solve, portable scheduling and per-driver qualification.",
+        "PASS: python3 tools/reference/build.py --check-generated; public headers and generated specification remain consistent.",
+        "PASS: python3 -m unittest discover -s tests/roadmap -p 'test_*.py'; 19 roadmap/lease tests passed.",
+        "PASS: ctest --test-dir build-foundations -R '(generated-api-check|interaction-capability|graph-validation)' --output-on-failure; 3/3 passed and cloth self/inter capabilities remain unadvertised.",
+        "REVIEW: API 0.2 has no cloth-cloth edge or cloth self-contact control; both exact capability scopes remain unsupported until P1-19 through P1-24 close."
+      ]
+    }
+  ]
 }
