@@ -112,7 +112,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F1-05](roadmap/tasks/F1-05.json) | Rebind emitters and destroy planes | done | — | — |
 | [F1-06](roadmap/tasks/F1-06.json) | Qualify allocation failure and pending lifetime | done | F1-03, F1-04, F1-05 | — |
 | [F1-07](roadmap/tasks/F1-07.json) | Bound host auxiliary metadata | done | — | — |
-| [F1-99](roadmap/tasks/F1-99.json) | Review F1 exit evidence | leased | F1-01, F1-02, F1-03, F1-04, F1-05, F1-06, F1-07 | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T01:56:23Z |
+| [F1-99](roadmap/tasks/F1-99.json) | Review F1 exit evidence | done | F1-01, F1-02, F1-03, F1-04, F1-05, F1-06, F1-07 | — |
 
 ### F2. Interaction graph and system coupling
 

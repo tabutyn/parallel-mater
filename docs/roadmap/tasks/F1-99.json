@@ -1,7 +1,7 @@
 {
   "id": "F1-99",
   "title": "Review F1 exit evidence",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F1-01",
     "F1-02",
@@ -22,15 +22,33 @@
     "All dependency tasks are merged done with reviewable evidence.",
     "Update the qualification index with exact scope and unresolved limitations; an implementation/demo alone cannot close the gate."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "21993ee6-5876-481c-978f-5344115da311",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F1-99/thomas-laptop",
-    "claimed_at": "2026-10-17T01:56:23Z",
-    "heartbeat_at": "2026-10-17T01:56:23Z",
-    "expires_at": "2026-10-18T01:56:23Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: F1-01 through F1-07 are done with nonempty reviewable evidence at origin/main cdbc95c.",
+    "PASS: cmake --build build-foundations -j2 and ctest --test-dir build-foundations -j2 --output-on-failure; ThomasLaptop GCC 12 with Slang CPU; 45/45 configured tests passed with three expected unsupported production-domain skips.",
+    "PASS: current shared runtime compiles in build-desktop-switch for parallel-mater-command-api-tests and parallel-mater-vulkan-command-api-tests; local physical GPU lifecycle execution remains unqualified because no eligible device was exposed.",
+    "REVIEW: docs/QUALIFICATION.md maps exact F1 scope and unresolved limits to F2-04, F4-05, F5-03 and P1-01; no uncovered F1 leaf found."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "21993ee6-5876-481c-978f-5344115da311",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F1-99/thomas-laptop",
+        "claimed_at": "2026-10-17T01:56:23Z",
+        "heartbeat_at": "2026-10-17T01:56:23Z",
+        "expires_at": "2026-10-18T01:56:23Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T01:59:35Z",
+      "reason": "F1 reference-lifecycle exit reviewed; all dependency cards are merged done and broader unresolved qualification work is already split into existing leaf tasks.",
+      "evidence": [
+        "PASS: F1-01 through F1-07 are done with nonempty reviewable evidence at origin/main cdbc95c.",
+        "PASS: cmake --build build-foundations -j2 and ctest --test-dir build-foundations -j2 --output-on-failure; ThomasLaptop GCC 12 with Slang CPU; 45/45 configured tests passed with three expected unsupported production-domain skips.",
+        "PASS: current shared runtime compiles in build-desktop-switch for parallel-mater-command-api-tests and parallel-mater-vulkan-command-api-tests; local physical GPU lifecycle execution remains unqualified because no eligible device was exposed.",
+        "REVIEW: docs/QUALIFICATION.md maps exact F1 scope and unresolved limits to F2-04, F4-05, F5-03 and P1-01; no uncovered F1 leaf found."
+      ]
+    }
+  ]
 }
