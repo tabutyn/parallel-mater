@@ -33,15 +33,39 @@ remain valid and a later replacement can recover. See
 ## Remaining qualification
 
 Layer ABI 2 supplies registry-generated typed arguments to generated forwarding
-commands and device destruction. Memory/buffer validation tracks allocation,
+commands and the handwritten loader paths listed below. The canonical
+classification in `tools/registry/generate.py` emits
+`manual_layer_inventory.inc`, which makes additions to the handwritten set an
+explicit generated/tested decision.
+
+| Manual entrypoint | Layer interception | Reason |
+|---|---|---|
+| `pmEnumerateDeviceExtensionProperties` | pre/post | physical-device extension dispatch |
+| `pmDestroyInstance` | pre/post | aggregate instance teardown |
+| `pmEnumeratePhysicalDevices` | pre/post | aggregate physical-device enumeration |
+| `pmCreateDevice` | pre/post | device wrapper creation |
+| `pmDestroyDevice` | pre/post | device wrapper teardown |
+| `pmGetDeviceQueue` | pre/post | queue wrapper lookup and creation |
+| `pmAllocateCommandBuffers` | pre/post | command-buffer wrapper creation |
+| `pmFreeCommandBuffers` | pre/post | command-buffer translation and teardown |
+| `pmQueueSubmit` | pre/post | command-buffer translation before submission |
+| `pmImportNativeDevice` | pre/post | native-device wrapper creation |
+| `pmImportVulkanDeviceEXT` | pre/post when built | Vulkan-device wrapper creation |
+| `pmGetInstanceProcAddr` | excluded | loader symbol discovery, not command execution |
+| `pmGetDeviceProcAddr` | excluded | loader symbol discovery, not command execution |
+| `pmEnumerateInstanceVersion` | excluded | global call with no enabled layer chain |
+| `pmEnumerateInstanceLayerProperties` | excluded | global call with no enabled layer chain |
+| `pmEnumerateInstanceExtensionProperties` | excluded | global call with no enabled layer chain |
+| `pmCreateInstance` | excluded | selects the layer chain that later calls use |
+
+Memory/buffer validation tracks allocation,
 queried requirements, binding, mapping, ownership and retirement. It includes
 native buffer import tracking. Old v1 layers receive their unchanged prefix;
 this v2 layer rejects old loaders that cannot supply arguments.
 
 Coverage is intentionally explicit: command-buffer transitions, submit/fence
 state, geometry/simulation memory dependencies, query state and interop handoff
-are not yet validated by this layer. Most hand-written loader entrypoints do
-not yet invoke layer callbacks. Driver validation remains required. Invalid
+are not yet validated by this layer. Driver validation remains required. Invalid
 void calls are suppressed; the layer has no structured diagnostic callback yet.
 Host bookkeeping exhaustion reports a diagnostic on stderr and disables state
 tracking, preserving already-created driver objects and stateless checks. The table above maps implemented tests, not comprehensive proof of
