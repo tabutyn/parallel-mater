@@ -1,7 +1,7 @@
 {
   "id": "F2-10",
   "title": "Qualify and advertise equal-material fluid–fluid",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F2-04",
     "F2-09",
@@ -20,6 +20,14 @@
     "Per-mode capability reporting and evidence list unsupported adapters/materials."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "f8564cd8-83b7-49a6-b3b3-cb769271d27d",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F2-10/thomas-laptop",
+    "claimed_at": "2026-10-17T12:11:04Z",
+    "heartbeat_at": "2026-10-17T12:11:04Z",
+    "expires_at": "2026-10-18T12:11:04Z"
+  },
   "history": []
 }
