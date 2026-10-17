@@ -124,7 +124,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F2-03](roadmap/tasks/F2-03.json) | Validate graph modes against capabilities | done | F2-02 | — |
 | [F2-04](roadmap/tasks/F2-04.json) | Qualify graph rebinding across implemented pairs | done | F1-05, F2-03 | — |
 | [F2-05](roadmap/tasks/F2-05.json) | Specify equal-material fluid–fluid behavior | done | F2-01 | — |
-| [F2-06](roadmap/tasks/F2-06.json) | Build cross-population neighbor indexing | ready | F2-05, F1-00 | — |
+| [F2-06](roadmap/tasks/F2-06.json) | Build cross-population neighbor indexing | leased | F2-05, F1-00 | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T03:45:01Z |
 | [F2-07](roadmap/tasks/F2-07.json) | Exchange fluid pressure and contact forces | waiting on dependencies | F2-06 | — |
 | [F2-08](roadmap/tasks/F2-08.json) | Exchange fluid viscosity forces | waiting on dependencies | F2-07 | — |
 | [F2-09](roadmap/tasks/F2-09.json) | Integrate fluid–fluid graph storage and scheduling | waiting on dependencies | F2-03, F2-08 | — |

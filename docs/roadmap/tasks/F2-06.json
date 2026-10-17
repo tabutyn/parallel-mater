@@ -1,7 +1,7 @@
 {
   "id": "F2-06",
   "title": "Build cross-population neighbor indexing",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F2-05",
     "F1-00"
@@ -20,6 +20,14 @@
     "Capacity/neighbor-overflow and zero-population tests cover both endpoints."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "cd128328-883b-4cd6-9ba3-c6b13da33721",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F2-06/thomas-laptop",
+    "claimed_at": "2026-10-17T03:45:01Z",
+    "heartbeat_at": "2026-10-17T03:45:01Z",
+    "expires_at": "2026-10-18T03:45:01Z"
+  },
   "history": []
 }
