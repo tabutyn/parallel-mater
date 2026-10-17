@@ -119,21 +119,21 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [F2-00](roadmap/tasks/F2-00.json) | Simulation-owned graph baseline | done | — | — |
-| [F2-01](roadmap/tasks/F2-01.json) | Specify the pair and mode matrix | leased | — | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T02:08:08Z |
-| [F2-02](roadmap/tasks/F2-02.json) | Expose pair and material capability queries | waiting on dependencies | F2-01 | — |
+| [F2-01](roadmap/tasks/F2-01.json) | Specify the pair and mode matrix | done | — | — |
+| [F2-02](roadmap/tasks/F2-02.json) | Expose pair and material capability queries | ready | F2-01 | — |
 | [F2-03](roadmap/tasks/F2-03.json) | Validate graph modes against capabilities | waiting on dependencies | F2-02 | — |
 | [F2-04](roadmap/tasks/F2-04.json) | Qualify graph rebinding across implemented pairs | waiting on dependencies | F1-05, F2-03 | — |
-| [F2-05](roadmap/tasks/F2-05.json) | Specify equal-material fluid–fluid behavior | waiting on dependencies | F2-01 | — |
+| [F2-05](roadmap/tasks/F2-05.json) | Specify equal-material fluid–fluid behavior | ready | F2-01 | — |
 | [F2-06](roadmap/tasks/F2-06.json) | Build cross-population neighbor indexing | waiting on dependencies | F2-05, F1-00 | — |
 | [F2-07](roadmap/tasks/F2-07.json) | Exchange fluid pressure and contact forces | waiting on dependencies | F2-06 | — |
 | [F2-08](roadmap/tasks/F2-08.json) | Exchange fluid viscosity forces | waiting on dependencies | F2-07 | — |
 | [F2-09](roadmap/tasks/F2-09.json) | Integrate fluid–fluid graph storage and scheduling | waiting on dependencies | F2-03, F2-08 | — |
 | [F2-10](roadmap/tasks/F2-10.json) | Qualify and advertise equal-material fluid–fluid | waiting on dependencies | F2-04, F2-09, F5-02 | — |
 | [F2-11](roadmap/tasks/F2-11.json) | Specify different-material and interface modes | waiting on dependencies | F2-05 | — |
-| [F2-12](roadmap/tasks/F2-12.json) | Specify cloth–cloth system modes | waiting on dependencies | F2-01 | — |
-| [F2-13](roadmap/tasks/F2-13.json) | Specify soft-body/soft-body system modes | waiting on dependencies | F2-01 | — |
-| [F2-14](roadmap/tasks/F2-14.json) | Specify rope–rope system modes | waiting on dependencies | F2-01 | — |
-| [F2-15](roadmap/tasks/F2-15.json) | Specify smoke–smoke system modes | waiting on dependencies | F2-01 | — |
+| [F2-12](roadmap/tasks/F2-12.json) | Specify cloth–cloth system modes | ready | F2-01 | — |
+| [F2-13](roadmap/tasks/F2-13.json) | Specify soft-body/soft-body system modes | ready | F2-01 | — |
+| [F2-14](roadmap/tasks/F2-14.json) | Specify rope–rope system modes | ready | F2-01 | — |
+| [F2-15](roadmap/tasks/F2-15.json) | Specify smoke–smoke system modes | ready | F2-01 | — |
 | [F2-99](roadmap/tasks/F2-99.json) | Review F2 exit evidence | waiting on dependencies | F2-01, F2-02, F2-03, F2-04, F2-05, F2-06, F2-07, F2-08, F2-09, F2-10, F2-11, F2-12, F2-13, F2-14, F2-15 | — |
 
 ### F3. Specification, ABI and validation

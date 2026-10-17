@@ -1,7 +1,7 @@
 {
   "id": "F2-01",
   "title": "Specify the pair and mode matrix",
-  "status": "leased",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "interaction-spec"
@@ -14,15 +14,33 @@
     "Matrix distinguishes collision, attachment, drag, containment, thermal and phase modes.",
     "Unsupported and proposed modes remain explicit; no broad capability claim substitutes for a mode."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "4ace0243-df78-4838-b7d7-ce9df2e3a287",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F2-01/thomas-laptop",
-    "claimed_at": "2026-10-17T02:08:08Z",
-    "heartbeat_at": "2026-10-17T02:08:08Z",
-    "expires_at": "2026-10-18T02:08:08Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/INTERACTION-MODES.md contains the Cartesian set of all 15 unordered distinct-family pairs, six same-family rows and separate contact, attachment, drag, containment, pressure, viscosity, thermal and phase modes.",
+    "PASS: python3 tools/reference/build.py --check-generated; canonical content and generated public specification agree, including Celsius thermal fields and coupling parameter units.",
+    "PASS: python3 -m unittest discover -s tests/roadmap -p test_*.py and python3 tools/roadmap.py check; 19 roadmap tests pass and 77 task cards validate.",
+    "REVIEW: API 0.2 reference paths were traced through registry/pm.xml, src/api/pipeline.cpp, src/api/domains.cpp and src/simulation/reference_schedule.hpp; R is explicitly implementation inventory, while P/U modes remain unadvertised and unqualified."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "4ace0243-df78-4838-b7d7-ce9df2e3a287",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F2-01/thomas-laptop",
+        "claimed_at": "2026-10-17T02:08:08Z",
+        "heartbeat_at": "2026-10-17T02:08:08Z",
+        "expires_at": "2026-10-18T02:08:08Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T02:14:04Z",
+      "reason": "Defined the exhaustive pair/mode contract, same-family scopes, direction rules, material profiles and coupling units without expanding any driver capability claim.",
+      "evidence": [
+        "PASS: docs/INTERACTION-MODES.md contains the Cartesian set of all 15 unordered distinct-family pairs, six same-family rows and separate contact, attachment, drag, containment, pressure, viscosity, thermal and phase modes.",
+        "PASS: python3 tools/reference/build.py --check-generated; canonical content and generated public specification agree, including Celsius thermal fields and coupling parameter units.",
+        "PASS: python3 -m unittest discover -s tests/roadmap -p test_*.py and python3 tools/roadmap.py check; 19 roadmap tests pass and 77 task cards validate.",
+        "REVIEW: API 0.2 reference paths were traced through registry/pm.xml, src/api/pipeline.cpp, src/api/domains.cpp and src/simulation/reference_schedule.hpp; R is explicitly implementation inventory, while P/U modes remain unadvertised and unqualified."
+      ]
+    }
+  ]
 }
