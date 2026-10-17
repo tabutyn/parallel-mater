@@ -1,0 +1,82 @@
+{
+  "case_count": 2,
+  "checkpoint_count": 0,
+  "driver": {
+    "device": "Apple M1 GPU - Metal GPU preview (qualification incomplete)",
+    "name": "slang-metal"
+  },
+  "failure_count": 11,
+  "failures": [
+    {
+      "actual": "missing",
+      "expected": "completed",
+      "message": "lifecycle execution must be completed",
+      "path": "$.cases[capacity-replacement-recovery].execution_status"
+    },
+    {
+      "actual": "baseline",
+      "expected": null,
+      "message": "missing required checkpoint",
+      "path": "$.cases[capacity-replacement-recovery].observations"
+    },
+    {
+      "actual": "overflow",
+      "expected": null,
+      "message": "missing required checkpoint",
+      "path": "$.cases[capacity-replacement-recovery].observations"
+    },
+    {
+      "actual": "recovery",
+      "expected": null,
+      "message": "missing required checkpoint",
+      "path": "$.cases[capacity-replacement-recovery].observations"
+    },
+    {
+      "actual": "replacement",
+      "expected": null,
+      "message": "missing required checkpoint",
+      "path": "$.cases[capacity-replacement-recovery].observations"
+    },
+    {
+      "actual": "missing",
+      "expected": "completed",
+      "message": "lifecycle execution must be completed",
+      "path": "$.cases[three-family-partial-rollback].execution_status"
+    },
+    {
+      "actual": "installed",
+      "expected": null,
+      "message": "missing required checkpoint",
+      "path": "$.cases[three-family-partial-rollback].observations"
+    },
+    {
+      "actual": "partial-failure",
+      "expected": null,
+      "message": "missing required checkpoint",
+      "path": "$.cases[three-family-partial-rollback].observations"
+    },
+    {
+      "actual": "recovery",
+      "expected": null,
+      "message": "missing required checkpoint",
+      "path": "$.cases[three-family-partial-rollback].observations"
+    },
+    {
+      "actual": "replace-liquid",
+      "expected": null,
+      "message": "missing required checkpoint",
+      "path": "$.cases[three-family-partial-rollback].observations"
+    },
+    {
+      "actual": "updated",
+      "expected": null,
+      "message": "missing required checkpoint",
+      "path": "$.cases[three-family-partial-rollback].observations"
+    }
+  ],
+  "passed": false,
+  "profile_id": "adverse-capacity-three-family-v1",
+  "profile_sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
+  "schema": "parallel-mater-conformance-lifecycle-report/v1",
+  "scope": "lifecycle_invariants"
+}

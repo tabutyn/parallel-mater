@@ -1,0 +1,859 @@
+{
+  "advertised_capabilities": [
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "CONTACT",
+      "scope": "SELF",
+      "second_family": "FLUID"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "PRESSURE",
+      "scope": "SELF",
+      "second_family": "FLUID"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "VISCOSITY",
+      "scope": "SELF",
+      "second_family": "FLUID"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "ROPE",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "CONTACT",
+      "scope": "SELF",
+      "second_family": "ROPE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "PRESSURE",
+      "scope": "SELF",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "VISCOSITY",
+      "scope": "SELF",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "PRESSURE",
+      "scope": "SELF",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "VISCOSITY",
+      "scope": "SELF",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "RIGID_BODY",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "CONTACT",
+      "scope": "SAME_DOMAIN",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "RIGID_BODY",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "ATTACHMENT",
+      "scope": "SAME_DOMAIN",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "CLOTH"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTAINMENT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "CLOTH"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SOFT_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "ROPE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "FLUID",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "EXTERNAL_TO_FIRST",
+      "first_family": "FLUID",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "THERMAL",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "FIRST_TO_SECOND_TRANSFER",
+      "first_family": "FLUID",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "PHASE",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "FLUID",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "EXTERNAL_TO_FIRST",
+      "first_family": "FLUID",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "THERMAL",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "FIRST_TO_SECOND_TRANSFER",
+      "first_family": "FLUID",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "PHASE",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTAINMENT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "CLOTH",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SOFT_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "CLOTH",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "ATTACHMENT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "ROPE"
+    },
+    {
+      "direction": "FIRST_TO_SECOND",
+      "first_family": "CLOTH",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "CLOTH",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "FIRST_TO_SECOND",
+      "first_family": "CLOTH",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "CLOTH",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "CLOTH",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SOFT_BODY",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "ROPE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SOFT_BODY",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "ATTACHMENT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "ROPE"
+    },
+    {
+      "direction": "FIRST_TO_SECOND",
+      "first_family": "SOFT_BODY",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "SOFT_BODY",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "FIRST_TO_SECOND",
+      "first_family": "SOFT_BODY",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "SOFT_BODY",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SOFT_BODY",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "FIRST_TO_SECOND",
+      "first_family": "ROPE",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "ROPE",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "FIRST_TO_SECOND",
+      "first_family": "ROPE",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "ROPE",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "ROPE",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "ROPE",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "ATTACHMENT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    }
+  ],
+  "application": {
+    "bundle_identifier": "com.ballrollergames.parallelmater.gallery",
+    "executable_sha256": "d1746afd122d92d33e52d95440a4d9b5a22a6b40afee02bf9c3c471055d649f7",
+    "release_channel": "development-preview"
+  },
+  "artifacts": [
+    {
+      "kind": "ipados_physical_device_capture",
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/capture-index.json",
+      "sha256": "79ffa04b9199739965f6b7e022ebcf5bd52692afb11a688fb000e20408af1298"
+    }
+  ],
+  "device": {
+    "device_id": 0,
+    "driver_version": "202618 (Metal 4; Apple7; iPadOS 26.6.2)",
+    "name": "Apple M1 GPU - Metal GPU preview (qualification incomplete)",
+    "vendor_id": 4203
+  },
+  "driver": {
+    "binary_sha256": "d4eea65a082b84d140bf2de8c6c5bf2df06f19b6285087c68a7f1edd9092162b",
+    "name": "slang-metal",
+    "version": "0.2.0+9f7e72e"
+  },
+  "evidence": [
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/capabilities.json",
+      "artifact_sha256": "4a1e1930f58007a1c6a42af8182948ac12718dd72f1feb41ebf7c0a965d6ac80",
+      "contract": "registry:interaction-capabilities",
+      "contract_sha256": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
+      "scope": "compilation",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/cloth-core.json",
+      "artifact_sha256": "2a6a855b129730f42343aeae1d08167b0fa4b4f1549b6b56b2e1e74507d378f2",
+      "contract": "case:cloth-core",
+      "contract_sha256": "f01de9dd068a989a60510fcbe167f80230b6606ef6892691a62786d5d7eda6e5",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/cloth-water.json",
+      "artifact_sha256": "2935473b8d677d845a26bc0308b0215ad4ae828e1301caf191d2936a622011d2",
+      "contract": "case:cloth-water",
+      "contract_sha256": "b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/compound-weld-lifecycle.json",
+      "artifact_sha256": "580d149936197c6f3f44b4a8800dfa0ec3d23ce86cbf75feeb275b7da250f0fe",
+      "contract": "case:compound-weld-lifecycle",
+      "contract_sha256": "3c78c1301851c4f5a91e779ea40bf09f0a0e20923a02c73d65c299c54b27ca26",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/fluid-lifecycle.json",
+      "artifact_sha256": "73085e74d37e08266d1fd7340154fdb51f87195aa52c3b4b306cadea8c195015",
+      "contract": "case:fluid-lifecycle",
+      "contract_sha256": "43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/fluid-rigid.json",
+      "artifact_sha256": "dd60d86a0b15e99c3ef0fd28e0fd01a6a6291787b87c0dbf5c5b0007c6a492b2",
+      "contract": "case:fluid-rigid",
+      "contract_sha256": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/rigid-direct.json",
+      "artifact_sha256": "26a1f0f1946af14aee3a6e25b4195b1b200de60a03a707bc22f0b662da127d38",
+      "contract": "case:rigid-direct",
+      "contract_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/rope-cloth.json",
+      "artifact_sha256": "fc8e1a5ee9f18369b5ee07508e3f36a05d0e181e705fe4d37736fdb0e7332ca6",
+      "contract": "case:rope-cloth",
+      "contract_sha256": "28280bb786efb6a69ead8bfed2f76ef1ac145672de29fbd2d625f69e89eda792",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/rope-core.json",
+      "artifact_sha256": "2588a60f882e62f9a2043f8c4b5ab361126b2e45f44851f3aa36b03288c8bb53",
+      "contract": "case:rope-core",
+      "contract_sha256": "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/rope-fluid.json",
+      "artifact_sha256": "bf3398ec48a5b5888f92636a3ba22b87eb82fea46cbf721f9f08403fca922621",
+      "contract": "case:rope-fluid",
+      "contract_sha256": "368a65ec45f88baebc53e252dcbf8b95e3775b205714deed1006210dd5d13d27",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/rope-soft-body.json",
+      "artifact_sha256": "df25ce34033eb5a2d1906b4f284bc802f7f2338cd5fb1bc5f0803c0fc7b70a38",
+      "contract": "case:rope-soft-body",
+      "contract_sha256": "8d774dd377086780d1b4d52735290a73ccaa7fd4cc9334dfa5ad4fb0763b3549",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/smoke-cloth.json",
+      "artifact_sha256": "5bc2277f097461ae1ce2c45840a3359a3d40be3febc548e46839568ed1d9bd51",
+      "contract": "case:smoke-cloth",
+      "contract_sha256": "8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/smoke-grid.json",
+      "artifact_sha256": "b6f21b370314f4c683cd702e7c901eee170fd61227d0f97422a381b65d93a416",
+      "contract": "case:smoke-grid",
+      "contract_sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/smoke-rope.json",
+      "artifact_sha256": "2a4177ed9ae60e6eaa55696f4bdf3a78840165e99a6cfb058bd5ee49de93d98d",
+      "contract": "case:smoke-rope",
+      "contract_sha256": "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/smoke-soft-body.json",
+      "artifact_sha256": "1e77f3a0d29e3e162d235659d90c2a06896c3f8b915522452a62ebbd09246c3a",
+      "contract": "case:smoke-soft-body",
+      "contract_sha256": "a3566fe480be274b850d10f10b88ee4f3ea22e59d5cae5ccf9a652fa7d6b9cb8",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/smoke-water.json",
+      "artifact_sha256": "8c427b548ccc32aab0b29771f4a122a4f0fdd21aa62bdda1aeb11c1e16b88a1d",
+      "contract": "case:smoke-water",
+      "contract_sha256": "cbe349e888648ef1fe6f0adb507be33888be83b988d72b4bcc5c4a23a604964c",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/soft-body-cloth.json",
+      "artifact_sha256": "eae9f587c80833e72d044800a9794e8743a5f58af76d96be64a714dd2dc7dd07",
+      "contract": "case:soft-body-cloth",
+      "contract_sha256": "779b5f55f4db0b9f0952d0d8607c1221ca2c50a52bc2dca2b95dff70ea5e6f4a",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/soft-body-fluid.json",
+      "artifact_sha256": "008a591ae7621ca693523f051a0a744a547993e7f07befd30554fcad02b89bad",
+      "contract": "case:soft-body-fluid",
+      "contract_sha256": "935838337761fc3a0fb6bbe4cc787953b27e8cfa7dcb4cb7adb17eb85a3fd653",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/soft-body-rigid.json",
+      "artifact_sha256": "2d68603f2e40f4cc4a490415ad4126d4d5051a2ffc7c1ef732c34b72480883be",
+      "contract": "case:soft-body-rigid",
+      "contract_sha256": "ab0e5f813b9953fd80f278842cab75e8e53d54f6f790e31e7572eb9e2e043505",
+      "scope": "execution",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/compound-weld-lifecycle.json",
+      "artifact_sha256": "580d149936197c6f3f44b4a8800dfa0ec3d23ce86cbf75feeb275b7da250f0fe",
+      "contract": "case:compound-weld-lifecycle",
+      "contract_sha256": "3c78c1301851c4f5a91e779ea40bf09f0a0e20923a02c73d65c299c54b27ca26",
+      "scope": "lifecycle_invariants",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/rigid-direct.json",
+      "artifact_sha256": "26a1f0f1946af14aee3a6e25b4195b1b200de60a03a707bc22f0b662da127d38",
+      "contract": "case:rigid-direct",
+      "contract_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
+      "scope": "lifecycle_invariants",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/physics-qualification/cases/rope-core.json",
+      "artifact_sha256": "2588a60f882e62f9a2043f8c4b5ab361126b2e45f44851f3aa36b03288c8bb53",
+      "contract": "case:rope-core",
+      "contract_sha256": "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41",
+      "scope": "lifecycle_invariants",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/lifecycle-report.json",
+      "artifact_sha256": "6d3ef41c97b990cbe0088c05554bd31cdf4fa4cf1f611388580c097fdf6a94ec",
+      "contract": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery",
+      "contract_sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
+      "scope": "lifecycle_invariants",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "missing"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/lifecycle-report.json",
+      "artifact_sha256": "6d3ef41c97b990cbe0088c05554bd31cdf4fa4cf1f611388580c097fdf6a94ec",
+      "contract": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback",
+      "contract_sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
+      "scope": "lifecycle_invariants",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "missing"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:cloth-core",
+      "contract_sha256": "f01de9dd068a989a60510fcbe167f80230b6606ef6892691a62786d5d7eda6e5",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "failed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:cloth-water",
+      "contract_sha256": "b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:compound-weld-lifecycle",
+      "contract_sha256": "3c78c1301851c4f5a91e779ea40bf09f0a0e20923a02c73d65c299c54b27ca26",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:fluid-lifecycle",
+      "contract_sha256": "43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:fluid-rigid",
+      "contract_sha256": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "failed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:rigid-direct",
+      "contract_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "failed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:rope-cloth",
+      "contract_sha256": "28280bb786efb6a69ead8bfed2f76ef1ac145672de29fbd2d625f69e89eda792",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:rope-core",
+      "contract_sha256": "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "failed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:rope-fluid",
+      "contract_sha256": "368a65ec45f88baebc53e252dcbf8b95e3775b205714deed1006210dd5d13d27",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:rope-soft-body",
+      "contract_sha256": "8d774dd377086780d1b4d52735290a73ccaa7fd4cc9334dfa5ad4fb0763b3549",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "failed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:smoke-cloth",
+      "contract_sha256": "8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:smoke-grid",
+      "contract_sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:smoke-rope",
+      "contract_sha256": "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:smoke-soft-body",
+      "contract_sha256": "a3566fe480be274b850d10f10b88ee4f3ea22e59d5cae5ccf9a652fa7d6b9cb8",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:smoke-water",
+      "contract_sha256": "cbe349e888648ef1fe6f0adb507be33888be83b988d72b4bcc5c4a23a604964c",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:soft-body-cloth",
+      "contract_sha256": "779b5f55f4db0b9f0952d0d8607c1221ca2c50a52bc2dca2b95dff70ea5e6f4a",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:soft-body-fluid",
+      "contract_sha256": "935838337761fc3a0fb6bbe4cc787953b27e8cfa7dcb4cb7adb17eb85a3fd653",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/reference-report.json",
+      "artifact_sha256": "b832672cad90dc7d425df1176ffa61f7170c7c59050c98d54af7ab7c1fa4be28",
+      "contract": "case:soft-body-rigid",
+      "contract_sha256": "ab0e5f813b9953fd80f278842cab75e8e53d54f6f790e31e7572eb9e2e043505",
+      "scope": "reference_regression",
+      "source_commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+      "status": "failed"
+    }
+  ],
+  "execution_status": "completed",
+  "host": {
+    "architecture": "arm64",
+    "chip": "Apple M1",
+    "machine": "iPad",
+    "machine_model": "iPad13,8",
+    "operating_system": "iPadOS 26.6.2"
+  },
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
+  "reproduction": [
+    "git checkout 9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+    "PM_APPLE_TEAM=<development-team> ./scripts/Build-IPadGallery.sh",
+    "python3 scripts/Deploy-Gallery.py ipad --device <paired-device> --physics-qualification --timeout 3600 --output out/f5-14-ipad-9f7e72e",
+    "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual out/f5-14-ipad-9f7e72e/physics-qualification/cases --report out/f5-14-ipad-9f7e72e/reference-report.json",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/rigid-brick-penetration-v1.json --actual out/f5-14-ipad-9f7e72e/physics-qualification/quality/rigid-brick-penetration-v1.json --report out/f5-14-ipad-9f7e72e/rigid-quality-report.json",
+    "python3 conformance/v1/quality.py --actual out/f5-14-ipad-9f7e72e/physics-qualification/quality/core-conservation-stability-v1.json --report out/f5-14-ipad-9f7e72e/fluid-quality-report.json",
+    "python3 conformance/v1/lifecycle.py --actual out/f5-14-ipad-9f7e72e/physics-qualification/lifecycle/adverse-capacity-three-family-v1.json --report out/f5-14-ipad-9f7e72e/lifecycle-report.json"
+  ],
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "separate_claims": {
+    "gallery_controls": "not evaluated by this record",
+    "rendering": "not evaluated by this record",
+    "rigid_penetration": {
+      "report": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/rigid-quality-report.json",
+      "status": "passed"
+    },
+    "thermal": "not evaluated by this record",
+    "timing": "not evaluated by this record"
+  },
+  "source": {
+    "commit": "9f7e72e7f9d4f44f10527dea7d3f1f7bc7d8d148",
+    "dirty": false
+  },
+  "toolchain": {
+    "compiler": "AppleClang, Slang Metal",
+    "version": "AppleClang 21.0.0.21000101; Xcode 26.6 (17F113); iPhoneOS SDK 26.5; Slang 2026.18"
+  }
+}
