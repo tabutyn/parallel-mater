@@ -170,7 +170,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [F5-00](roadmap/tasks/F5-00.json) | Independent headless conformance baseline | done | — | — |
-| [F5-01](roadmap/tasks/F5-01.json) | Map advertised modes to conformance cases | ready | F2-02 | — |
+| [F5-01](roadmap/tasks/F5-01.json) | Map advertised modes to conformance cases | leased | F2-02 | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T05:55:52Z |
 | [F5-02](roadmap/tasks/F5-02.json) | Add vendor-neutral conservation and stability cases | done | — | — |
 | [F5-03](roadmap/tasks/F5-03.json) | Add capacity and three-family corpus cases | done | F1-06, F2-04 | — |
 | [F5-04](roadmap/tasks/F5-04.json) | Isolate CPU rigid-direct divergence | ready | — | — |

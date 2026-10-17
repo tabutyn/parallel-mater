@@ -1,7 +1,7 @@
 {
   "id": "F5-01",
   "title": "Map advertised modes to conformance cases",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F2-02"
   ],
@@ -17,6 +17,14 @@
     "Compilation, execution, regression, physical quality and timing remain distinct scopes."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "1b8769ae-4af2-418e-b005-16c6f10a140a",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F5-01/thomas-laptop",
+    "claimed_at": "2026-10-17T05:55:52Z",
+    "heartbeat_at": "2026-10-17T05:55:52Z",
+    "expires_at": "2026-10-18T05:55:52Z"
+  },
   "history": []
 }
