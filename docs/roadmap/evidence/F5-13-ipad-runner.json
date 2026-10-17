@@ -1,0 +1,93 @@
+{
+  "schema": "parallel-mater-roadmap-runner-evidence/v1",
+  "task": "F5-13",
+  "scope": "Development-only iPadOS public-API qualification runner integration; not capability certification",
+  "source": {
+    "commit": "77ae4fdccaf328d18f5b6ca22612411e239e187d",
+    "dirty": false
+  },
+  "device": {
+    "model": "iPad13,8",
+    "gpu": "Apple M1 GPU",
+    "operating_system": "iPadOS 26.6.2",
+    "graphics_api": "Metal"
+  },
+  "toolchain": {
+    "compiler": "AppleClang 21.0.0.21000101",
+    "slang": "2026.18"
+  },
+  "binary_identity": {
+    "app_executable_sha256": "a8573d7701964a25f1ca6828cb90a26d236ae2d02b2a0208d944afc51690e385",
+    "embedded_driver_sha256": "2935074c309dce84d8945d63d1c95745ef0c5d99bd1f19f4358afdee10148642"
+  },
+  "collection": {
+    "command": "python3 scripts/Deploy-Gallery.py ipad --device <paired-device> --physics-qualification --timeout 3600",
+    "backend": "slang-metal",
+    "report_kind": "public-api-conformance",
+    "gallery_scene_sweep": false,
+    "fresh_nonce_verified": true,
+    "artifact_count": 35,
+    "artifact_hashes_verified": true,
+    "trajectory_attempts": {
+      "completed": 30,
+      "unsupported": 0,
+      "failed": 0
+    }
+  },
+  "shared_evaluators": {
+    "reference_regression": {
+      "passed": 15,
+      "failed": 15,
+      "unsupported": 0
+    },
+    "rigid_brick_penetration": {
+      "passed": true,
+      "maximum_penetration_m": 0.00014662742614746094,
+      "maximum_allowed_m": 0.002
+    },
+    "equal_fluid_quality": {
+      "passed": false,
+      "status": "unsupported-not-advertised",
+      "failure_count": 4
+    },
+    "adverse_lifecycle": {
+      "passed": false,
+      "case_count": 2,
+      "checkpoint_count": 0,
+      "failure_count": 11,
+      "status": "executed-missing-checkpoints"
+    }
+  },
+  "verification": [
+    {
+      "check": "ctest --test-dir build-gallery-portable-verify --output-on-failure",
+      "result": "34/34 passed"
+    },
+    {
+      "check": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+      "result": "67/67 passed"
+    },
+    {
+      "check": "python3 -m unittest tests/gallery/deployment_tests.py",
+      "result": "7/7 passed"
+    },
+    {
+      "check": "Actual-device manifest supplied with stale nonce, mismatched revision and mismatched app hash",
+      "result": "all rejected"
+    },
+    {
+      "check": "Unsigned ordinary iOS build with PARALLEL_MATER_ENABLE_IOS_QUALIFICATION=OFF",
+      "result": "built successfully; binary excludes qualification argument, schema and report-kind markers"
+    }
+  ],
+  "limitations": [
+    "This record verifies the runner and collector, not any advertised capability.",
+    "Reference failures remain failures and are not hidden by successful execution.",
+    "Equal-fluid quality is unsupported because Metal does not advertise separate-system equal-fluid coupling.",
+    "Lifecycle operations execute, but missing F5-03 checkpoint fingerprints prevent a lifecycle pass.",
+    "Raw artifacts remain untracked until F5-14 reviews and registers physical iPad capability evidence."
+  ],
+  "privacy": {
+    "private_device_identifiers_recorded": false
+  }
+}
