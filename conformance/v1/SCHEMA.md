@@ -79,3 +79,29 @@ device identity, fixture and sample counts, a pass flag, and structured
 failures with path, message, actual value and limit. Unsupported/incomplete
 execution is a failure. This report is separate from
 `parallel-mater-conformance-report/v1` reference regression.
+
+## Lifecycle profile: `parallel-mater-conformance-lifecycle-profile/v1`
+
+The immutable profile declares exact checkpoint sequences for destructive
+capacity recovery and a three-family interaction graph with an unrelated edge.
+Each checkpoint names its expected `PmResult`, tracked resources, active state,
+generation/state relations to earlier checkpoints, and graph-fingerprint
+relations. Expected command errors belong inside a completed lifecycle case.
+
+## Lifecycle result: `parallel-mater-conformance-lifecycle-result/v1`
+
+A result pins the profile ID/hash and driver/device identity. Each completed
+case lists its participating families, unrelated resources and observations.
+Every observation contains a symbolic public command outcome and every tracked
+resource's harness write ordinal, active state and canonical public-state
+SHA-256. The ordinal records accepted public writes; it is not a private driver
+generation or handle. Commands complete and state is observed before stepping.
+Graph cases also contain the active public graph descriptor SHA-256. Hashes
+exclude private handles, timings and diagnostic state.
+
+## Lifecycle report: `parallel-mater-conformance-lifecycle-report/v1`
+
+The report has `scope: "lifecycle_invariants"`, case/checkpoint totals and
+structured failures. Missing, extra, malformed, failed or unsupported cases
+fail the report. The report is independent of trajectory regression and
+analytic numerical quality.

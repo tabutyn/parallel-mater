@@ -1,0 +1,170 @@
+{
+  "schema": "parallel-mater-conformance-lifecycle-profile/v1",
+  "id": "adverse-capacity-three-family-v1",
+  "title": "Adverse capacity and three-family lifecycle",
+  "sources": {
+    "capacity": "docs/RESOURCE-LIFETIME.md: failed endpoint replacement and exact-capacity recovery",
+    "interaction_graph": "docs/API-CONTRACT.md: PM-GRAPH-001",
+    "qualification": "docs/ROADMAP.md: coupling lifecycle and three-or-more-family qualification"
+  },
+  "state_fingerprint": "SHA-256 of canonical public identity and observable state for one resource; exclude handles, timings and diagnostics",
+  "observation_boundary": "Complete each command and read public state before any physics step; generation is the harness ordinal of an accepted resource write, never a private driver handle",
+  "cases": [
+    {
+      "id": "capacity-replacement-recovery",
+      "families": [
+        "liquid"
+      ],
+      "unrelated_resources": [
+        "unrelated-fluid"
+      ],
+      "tracked_resources": [
+        "target-fluid",
+        "unrelated-fluid"
+      ],
+      "track_graph": false,
+      "checkpoints": [
+        {
+          "id": "baseline",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "target-fluid": {
+              "active": true
+            },
+            "unrelated-fluid": {
+              "active": true
+            }
+          }
+        },
+        {
+          "id": "replacement",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "target-fluid": {
+              "active": true,
+              "generation_different_from": "baseline",
+              "state_different_from": "baseline"
+            },
+            "unrelated-fluid": {
+              "active": true,
+              "generation_same_as": "baseline",
+              "state_same_as": "baseline"
+            }
+          }
+        },
+        {
+          "id": "overflow",
+          "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED",
+          "resources": {
+            "target-fluid": {
+              "active": false,
+              "generation_different_from": "replacement"
+            },
+            "unrelated-fluid": {
+              "active": true,
+              "generation_same_as": "baseline",
+              "state_same_as": "baseline"
+            }
+          }
+        },
+        {
+          "id": "recovery",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "target-fluid": {
+              "active": true,
+              "generation_different_from": "overflow",
+              "state_different_from": "overflow"
+            },
+            "unrelated-fluid": {
+              "active": true,
+              "generation_same_as": "baseline",
+              "state_same_as": "baseline"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "three-family-partial-rollback",
+      "families": [
+        "liquid",
+        "rope",
+        "soft-body"
+      ],
+      "unrelated_resources": [
+        "smoke",
+        "cloth"
+      ],
+      "tracked_resources": [
+        "liquid",
+        "rope",
+        "soft-body",
+        "smoke",
+        "cloth"
+      ],
+      "track_graph": true,
+      "checkpoints": [
+        {
+          "id": "installed",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "liquid": {"active": true},
+            "rope": {"active": true},
+            "soft-body": {"active": true},
+            "smoke": {"active": true},
+            "cloth": {"active": true}
+          }
+        },
+        {
+          "id": "updated",
+          "expected_outcome": "PM_SUCCESS",
+          "graph_different_from": "installed",
+          "resources": {
+            "liquid": {"active": true, "generation_same_as": "installed", "state_same_as": "installed"},
+            "rope": {"active": true, "generation_same_as": "installed", "state_same_as": "installed"},
+            "soft-body": {"active": true, "generation_same_as": "installed", "state_same_as": "installed"},
+            "smoke": {"active": true, "generation_same_as": "installed", "state_same_as": "installed"},
+            "cloth": {"active": true, "generation_same_as": "installed", "state_same_as": "installed"}
+          }
+        },
+        {
+          "id": "partial-failure",
+          "expected_outcome": "PM_ERROR_INVALID_ARGUMENT",
+          "graph_same_as": "updated",
+          "resources": {
+            "liquid": {"active": true, "generation_same_as": "updated", "state_same_as": "updated"},
+            "rope": {"active": true, "generation_same_as": "updated", "state_same_as": "updated"},
+            "soft-body": {"active": true, "generation_same_as": "updated", "state_same_as": "updated"},
+            "smoke": {"active": true, "generation_same_as": "updated", "state_same_as": "updated"},
+            "cloth": {"active": true, "generation_same_as": "updated", "state_same_as": "updated"}
+          }
+        },
+        {
+          "id": "recovery",
+          "expected_outcome": "PM_SUCCESS",
+          "graph_same_as": "installed",
+          "resources": {
+            "liquid": {"active": true, "generation_same_as": "installed", "state_same_as": "installed"},
+            "rope": {"active": true, "generation_same_as": "installed", "state_same_as": "installed"},
+            "soft-body": {"active": true, "generation_same_as": "installed", "state_same_as": "installed"},
+            "smoke": {"active": true, "generation_same_as": "installed", "state_same_as": "installed"},
+            "cloth": {"active": true, "generation_same_as": "installed", "state_same_as": "installed"}
+          }
+        },
+        {
+          "id": "replace-liquid",
+          "expected_outcome": "PM_SUCCESS",
+          "graph_same_as": "recovery",
+          "resources": {
+            "liquid": {"active": true, "generation_different_from": "recovery", "state_different_from": "recovery"},
+            "rope": {"active": true, "generation_same_as": "recovery", "state_same_as": "recovery"},
+            "soft-body": {"active": true, "generation_same_as": "recovery", "state_same_as": "recovery"},
+            "smoke": {"active": true, "generation_same_as": "recovery", "state_same_as": "recovery"},
+            "cloth": {"active": true, "generation_same_as": "recovery", "state_same_as": "recovery"}
+          }
+        }
+      ]
+    }
+  ]
+}
