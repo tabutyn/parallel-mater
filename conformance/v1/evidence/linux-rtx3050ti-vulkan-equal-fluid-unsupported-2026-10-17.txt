@@ -32,7 +32,7 @@ test 76
 76: Test timeout computed to be: 120
 [HANDLER_OUTPUT]
 1/2 Test #76: parallel-mater-vulkan-fluid-pair-graph-lifecycle-tests ...
-***Skipped   1.57 sec
+***Skipped   0.72 sec
 [HANDLER_VERBOSE_OUTPUT]
 test 78
 
@@ -49,7 +49,7 @@ test 78
 78: Test timeout computed to be: 180
 [HANDLER_OUTPUT]
 2/2 Test #78: parallel-mater-vulkan-fluid-pair-quality-tests ...........
-***Skipped   0.12 sec
+***Skipped   0.19 sec
 [HANDLER_VERBOSE_OUTPUT]
 
 The following tests passed:
@@ -62,12 +62,12 @@ The following tests passed:
 
 
 Label Time Summary:
-api          =   1.69 sec*proc (2 tests)
-lifecycle    =   1.57 sec*proc (1 test)
-quality      =   0.12 sec*proc (1 test)
-vulkan       =   1.69 sec*proc (2 tests)
+api          =   0.90 sec*proc (2 tests)
+lifecycle    =   0.72 sec*proc (1 test)
+quality      =   0.19 sec*proc (1 test)
+vulkan       =   0.90 sec*proc (2 tests)
 
-Total Test time (real) =   1.69 sec
+Total Test time (real) =   0.91 sec
 
 The following tests did not run:
 	 76 - parallel-mater-vulkan-fluid-pair-graph-lifecycle-tests (Skipped)

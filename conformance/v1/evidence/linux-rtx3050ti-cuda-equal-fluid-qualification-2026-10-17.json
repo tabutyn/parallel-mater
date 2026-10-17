@@ -42,12 +42,12 @@
     {
       "kind": "lifecycle_test_log",
       "path": "conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-lifecycle-2026-10-17.txt",
-      "sha256": "4e07a66f152a3103bbe2b6e87692cbb4f1e5adf76beaad8c6f782ece1c906bab"
+      "sha256": "67e874b3401c4f93dc045198466d731a0bf1c9bc7528558374ba2d4bca79197e"
     },
     {
       "kind": "unsupported_boundary_log",
       "path": "conformance/v1/evidence/linux-rtx3050ti-vulkan-equal-fluid-unsupported-2026-10-17.txt",
-      "sha256": "e490104e92727b87f5161a3f31135daf221c11061da49b0f4d9011998fa95573"
+      "sha256": "7be162ae6a70a69e003ade71380c5218e07621ac5b763109d298d27b10eb6f73"
     }
   ],
   "device": {
@@ -67,7 +67,7 @@
       "contract": "registry:interaction-capabilities",
       "contract_sha256": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "scope": "compilation",
-      "source_commit": "bc0d2b2a314d223fe4a46b71e6b97c8138bb116e",
+      "source_commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
       "status": "passed"
     },
     {
@@ -75,7 +75,7 @@
       "contract": "quality:core-conservation-stability-v1#equal-material-pressure-contact",
       "contract_sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
       "scope": "execution",
-      "source_commit": "bc0d2b2a314d223fe4a46b71e6b97c8138bb116e",
+      "source_commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
       "status": "passed"
     },
     {
@@ -83,23 +83,23 @@
       "contract": "quality:core-conservation-stability-v1#equal-material-viscosity",
       "contract_sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
       "scope": "execution",
-      "source_commit": "bc0d2b2a314d223fe4a46b71e6b97c8138bb116e",
+      "source_commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
       "status": "passed"
     },
     {
-      "artifact_sha256": "4e07a66f152a3103bbe2b6e87692cbb4f1e5adf76beaad8c6f782ece1c906bab",
+      "artifact_sha256": "67e874b3401c4f93dc045198466d731a0bf1c9bc7528558374ba2d4bca79197e",
       "contract": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery",
       "contract_sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
       "scope": "lifecycle_invariants",
-      "source_commit": "bc0d2b2a314d223fe4a46b71e6b97c8138bb116e",
+      "source_commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
       "status": "passed"
     },
     {
-      "artifact_sha256": "4e07a66f152a3103bbe2b6e87692cbb4f1e5adf76beaad8c6f782ece1c906bab",
+      "artifact_sha256": "67e874b3401c4f93dc045198466d731a0bf1c9bc7528558374ba2d4bca79197e",
       "contract": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback",
       "contract_sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
       "scope": "lifecycle_invariants",
-      "source_commit": "bc0d2b2a314d223fe4a46b71e6b97c8138bb116e",
+      "source_commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
       "status": "passed"
     },
     {
@@ -107,7 +107,7 @@
       "contract": "quality:core-conservation-stability-v1#equal-material-pressure-contact",
       "contract_sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
       "scope": "analytic_invariants",
-      "source_commit": "bc0d2b2a314d223fe4a46b71e6b97c8138bb116e",
+      "source_commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
       "status": "passed"
     },
     {
@@ -115,7 +115,7 @@
       "contract": "quality:core-conservation-stability-v1#equal-material-viscosity",
       "contract_sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
       "scope": "analytic_invariants",
-      "source_commit": "bc0d2b2a314d223fe4a46b71e6b97c8138bb116e",
+      "source_commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
       "status": "passed"
     }
   ],
@@ -138,7 +138,7 @@
   ],
   "schema": "parallel-mater-conformance-qualification-result/v1",
   "source": {
-    "commit": "bc0d2b2a314d223fe4a46b71e6b97c8138bb116e",
+    "commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
     "dirty": false
   },
   "toolchain": {
