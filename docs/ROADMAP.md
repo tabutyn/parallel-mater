@@ -120,7 +120,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 |---|---|---|---|---|
 | [F2-00](roadmap/tasks/F2-00.json) | Simulation-owned graph baseline | done | — | — |
 | [F2-01](roadmap/tasks/F2-01.json) | Specify the pair and mode matrix | done | — | — |
-| [F2-02](roadmap/tasks/F2-02.json) | Expose pair and material capability queries | ready | F2-01 | — |
+| [F2-02](roadmap/tasks/F2-02.json) | Expose pair and material capability queries | leased | F2-01 | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T02:24:31Z |
 | [F2-03](roadmap/tasks/F2-03.json) | Validate graph modes against capabilities | waiting on dependencies | F2-02 | — |
 | [F2-04](roadmap/tasks/F2-04.json) | Qualify graph rebinding across implemented pairs | waiting on dependencies | F1-05, F2-03 | — |
 | [F2-05](roadmap/tasks/F2-05.json) | Specify equal-material fluid–fluid behavior | ready | F2-01 | — |
@@ -159,7 +159,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F4-02](roadmap/tasks/F4-02.json) | Retain resources through completion | waiting on dependencies | F4-01 | — |
 | [F4-03](roadmap/tasks/F4-03.json) | Schedule common resource dependencies | waiting on dependencies | F4-01, F4-02 | — |
 | [F4-04](roadmap/tasks/F4-04.json) | Remove generated-source ABI parsing | waiting on dependencies | F4-01 | — |
-| [F4-05](roadmap/tasks/F4-05.json) | Specify memory-budget confidence | ready | — | — |
+| [F4-05](roadmap/tasks/F4-05.json) | Specify memory-budget confidence | waiting on lock | — | — |
 | [F4-06](roadmap/tasks/F4-06.json) | Apply conservative workload admission | waiting on dependencies | F4-05 | — |
 | [F4-07](roadmap/tasks/F4-07.json) | Specify borrowed device and queue handoff | waiting on dependencies | F4-02, F3-04 | — |
 | [F4-08](roadmap/tasks/F4-08.json) | Qualify engine handoff with a mock adapter | waiting on dependencies | F4-03, F4-07 | — |
