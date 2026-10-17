@@ -46,7 +46,8 @@
     "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"
   },
   "quality_profile_sha256": {
-    "conformance/v1/quality/core-conservation-v1.json": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"
+    "conformance/v1/quality/core-conservation-v1.json": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
+    "conformance/v1/quality/rigid-brick-penetration-v1.json": "59f42d2fc20434552f053aaea3df08c9a12165763e9c0d33d7bcfc693d462659"
   },
   "qualification_profile_sha256": {
     "conformance/v1/qualification/capability-obligations-v1.json": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e"
