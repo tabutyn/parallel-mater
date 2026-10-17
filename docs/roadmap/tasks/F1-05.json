@@ -1,7 +1,7 @@
 {
   "id": "F1-05",
   "title": "Rebind emitters and destroy planes",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "runtime-memory",
@@ -16,6 +16,14 @@
     "Repeated endpoint churn neither leaks memory nor targets an old generation."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "9061aa49-c2c6-49f4-93e5-fabe75af8477",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F1-05/thomas-laptop",
+    "claimed_at": "2026-10-17T01:01:09Z",
+    "heartbeat_at": "2026-10-17T01:01:09Z",
+    "expires_at": "2026-10-18T01:01:09Z"
+  },
   "history": []
 }
