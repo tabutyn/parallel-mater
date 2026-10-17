@@ -56,6 +56,17 @@ and comparator with:
 ctest --test-dir <build> -R parallel-mater-conformance
 ```
 
+Record the selected driver's public identity and exact advertised interaction
+keys with `--provenance` and `--capabilities`. The capability output uses the
+same canonical names and graph-limit representation as qualification results.
+
+```text
+PM_DRIVER_FILES=<build>/manifests/slang-metal.json \
+  <build>/parallel-mater-conformance --provenance
+PM_DRIVER_FILES=<build>/manifests/slang-metal.json \
+  <build>/parallel-mater-conformance --capabilities
+```
+
 Run one case or the complete corpus and compare its
 `parallel-mater-conformance-result/v1` output with:
 
