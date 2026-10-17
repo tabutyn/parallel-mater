@@ -144,7 +144,12 @@ struct PmSimulation_T {
     std::vector<std::optional<parallel_mater::SoftBodyId>> soft_bodies;
     std::vector<std::optional<parallel_mater::SmokeId>> smokes;
     std::vector<std::optional<parallel_mater::ParticleSourceId>> emitters;
+    // Endpoint resources borrow a public fluid slot. Track that slot beside
+    // the private generation so fluid replacement can invalidate only its
+    // dependants after the runtime retires them.
+    std::vector<std::uint32_t> emitter_fluid_indices;
     std::vector<std::optional<parallel_mater::ParticleDestroyPlaneId>> destroyers;
+    std::vector<std::uint32_t> destroyer_fluid_indices;
     std::vector<std::optional<parallel_mater::PaintFieldId>> paint_fields;
     // Rigid paint targets borrow public geometry just like bodies do. Keeping
     // the public handle per slot lets replacement retire the private mesh only

@@ -51,8 +51,18 @@ Generation changes invalidate private runtime handles when a slot is retired;
 public commands continue to address their declared slot indices. Active coupling
 handles are retired before endpoint writes. Graph descriptors retain slot indices
 and are resolved against current generations on the next step. A failed graph
-creation removes its partial edges; recovery can install a valid graph. Emitter
-references still need lifecycle coverage.
+creation removes its partial edges; recovery can install a valid graph.
+
+Emitter and destroy-plane slots borrow a public fluid slot and its current
+private generation. Fluid replacement retires only the endpoints aimed at that
+slot and clears their public bindings. Later commands can bind fresh endpoint
+generations to the replacement fluid. Endpoint replacement retires its prior
+generation before constructing the new one; a failed construction leaves that
+endpoint inactive, reclaims partial storage and preserves unrelated populations.
+Moving an endpoint to another fluid updates this ownership before later fluid
+replacement. Simulation reset clears both endpoint generations and ownership.
+Smoke emission is inline state owned by its smoke slot, so smoke replacement
+replaces its emitter as part of the same generation.
 
 Each rigid slot and rigid-target paint slot records the public geometry used to
 create its private mesh handle. Executing a body or field replacement/removal
@@ -95,11 +105,14 @@ queried bindings. `tests/api/paint_lifecycle_tests.cpp` holds 16 body meshes and
 two paint meshes simultaneously, then covers successful and failed field
 replacement, stale endpoint rejection, rule removal order, unrelated-field
 preservation and repeated reset using exact queried bindings. A non-installed
-Slang CPU fixture advertises cloth and paint solely for this host-side resource
-lifecycle test, so the API/runtime path runs on development hosts with that
-fixture without overstating production CPU solver support. Paint execution remains a qualification
-result only on production drivers that advertise the paint feature. Emitter
-lifecycle remains a qualification obligation; these tests do not establish
+Slang CPU fixture advertises selected domains solely for host-side resource
+lifecycle tests, so the API/runtime path runs on development hosts without
+overstating production CPU solver support. Paint execution remains a
+qualification result only on production drivers that advertise the paint
+feature. `tests/api/endpoint_lifecycle_tests.cpp` performs 256 fluid
+replacements with emitter and destroy-plane rebinding, moves endpoints between
+fluid slots, recovers from failed construction, preserves the other fluid and
+reuses the same exact queried binding after reset. These tests do not establish
 numerical solver quality.
 
 `tests/solver/memory_arena_tests.cpp` additionally verifies coalescing, live-data

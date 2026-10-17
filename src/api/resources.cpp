@@ -538,7 +538,11 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
         created->soft_bodies.resize(info->softBodyCount);
         created->smokes.resize(info->smokeCount);
         created->emitters.resize(info->emitterCapacity);
+        created->emitter_fluid_indices.resize(info->emitterCapacity,
+                                              PM_INVALID_INDEX);
         created->destroyers.resize(info->destroyerCapacity);
+        created->destroyer_fluid_indices.resize(info->destroyerCapacity,
+                                                PM_INVALID_INDEX);
         created->paint_fields.resize(info->paintFieldCount);
         created->paint_field_geometries.resize(info->paintFieldCount);
         created->paint_rules.resize(info->paintRuleCapacity);
@@ -989,7 +993,13 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetSimulation(
             for (auto &slot : simulation->soft_bodies) slot.reset();
             for (auto &slot : simulation->smokes) slot.reset();
             for (auto &slot : simulation->emitters) slot.reset();
+            std::fill(simulation->emitter_fluid_indices.begin(),
+                      simulation->emitter_fluid_indices.end(),
+                      PM_INVALID_INDEX);
             for (auto &slot : simulation->destroyers) slot.reset();
+            std::fill(simulation->destroyer_fluid_indices.begin(),
+                      simulation->destroyer_fluid_indices.end(),
+                      PM_INVALID_INDEX);
             for (auto &slot : simulation->paint_fields) slot.reset();
             std::fill(simulation->paint_field_geometries.begin(),
                       simulation->paint_field_geometries.end(), nullptr);
@@ -1049,6 +1059,22 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetFluidParticles(
                     simulation->runtime->remove_fluid(*slot, queue));
                 if (result != PM_SUCCESS) return result;
                 slot.reset();
+                for (std::size_t endpoint = 0U;
+                     endpoint < simulation->emitters.size(); ++endpoint) {
+                    if (simulation->emitter_fluid_indices[endpoint] != fluid)
+                        continue;
+                    simulation->emitters[endpoint].reset();
+                    simulation->emitter_fluid_indices[endpoint] =
+                        PM_INVALID_INDEX;
+                }
+                for (std::size_t endpoint = 0U;
+                     endpoint < simulation->destroyers.size(); ++endpoint) {
+                    if (simulation->destroyer_fluid_indices[endpoint] != fluid)
+                        continue;
+                    simulation->destroyers[endpoint].reset();
+                    simulation->destroyer_fluid_indices[endpoint] =
+                        PM_INVALID_INDEX;
+                }
             }
             parallel_mater::FluidOptions options{};
             options.capacity = simulation->fluids[fluid].particleCapacity;
