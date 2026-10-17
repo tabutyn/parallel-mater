@@ -1,7 +1,7 @@
 {
   "id": "F2-05",
   "title": "Specify equal-material fluid–fluid behavior",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F2-01"
   ],
@@ -16,15 +16,35 @@
     "Combined-population equivalence and balanced momentum expectations are numerical acceptance criteria.",
     "Capacity, stable IDs, boundaries and per-system ownership are specified."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "ac342bb3-175a-49fc-be4a-3dca9f7e45de",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F2-05/thomas-laptop",
-    "claimed_at": "2026-10-17T03:29:33Z",
-    "heartbeat_at": "2026-10-17T03:29:33Z",
-    "expires_at": "2026-10-18T03:29:33Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/INTERACTION-MODES.md defines the exact equal-material edge bundle, all PmLiquidMaterialState equality fields, combined-population error metrics and balanced-momentum residual.",
+    "PASS: python3 tools/reference/build.py --check-generated; public headers and generated API specification remain consistent.",
+    "PASS: python3 -m unittest discover -s tests/roadmap -p 'test_*.py'; 19 lease/roadmap tests passed.",
+    "PASS: ctest --test-dir build-foundations -R '(generated-api-check|interaction-capability|graph-validation)' --output-on-failure; 3/3 passed and liquid-liquid remains unadvertised/rejected.",
+    "REVIEW: implementation, lifecycle, multi-timestep physical qualification and different-material interfaces remain F2-06 through F2-11; this specification task adds no driver capability claim."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "ac342bb3-175a-49fc-be4a-3dca9f7e45de",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F2-05/thomas-laptop",
+        "claimed_at": "2026-10-17T03:29:33Z",
+        "heartbeat_at": "2026-10-17T03:29:33Z",
+        "expires_at": "2026-10-18T03:29:33Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T03:34:45Z",
+      "reason": "Specified equal-material separate-fluid edge validity, seamless pressure/contact/viscosity exchange, numerical equivalence and conservation thresholds, and per-system identity/capacity boundaries without advertising support.",
+      "evidence": [
+        "PASS: docs/INTERACTION-MODES.md defines the exact equal-material edge bundle, all PmLiquidMaterialState equality fields, combined-population error metrics and balanced-momentum residual.",
+        "PASS: python3 tools/reference/build.py --check-generated; public headers and generated API specification remain consistent.",
+        "PASS: python3 -m unittest discover -s tests/roadmap -p 'test_*.py'; 19 lease/roadmap tests passed.",
+        "PASS: ctest --test-dir build-foundations -R '(generated-api-check|interaction-capability|graph-validation)' --output-on-failure; 3/3 passed and liquid-liquid remains unadvertised/rejected.",
+        "REVIEW: implementation, lifecycle, multi-timestep physical qualification and different-material interfaces remain F2-06 through F2-11; this specification task adds no driver capability claim."
+      ]
+    }
+  ]
 }
