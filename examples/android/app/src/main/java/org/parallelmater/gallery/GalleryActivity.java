@@ -49,14 +49,27 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     private static native String nativeDetails(long handle);
     private static native void nativeCommand(long handle, int command, float x, float y);
     private static native int nativeTargetFps(long handle);
-    private static native String[] nativeSceneNames();
+    private static native String[] nativeSceneCatalog(long handle);
     private static native double[] nativeQualifyScene(long handle, int scene, int frames);
     private static native String nativeRuntimeInfo(long handle);
 
-    private static final String[] NAMES = nativeSceneNames();
-    private static final String[] DESCRIPTIONS = {"Rigid-body collisions", "Fixed joints",
-        "Point constraints", "Rotating and sliding joints", "Linear motion",
-        "Translation and rotation limits", "Liquid particles", "Liquid–rigid interaction"};
+    private static final class SceneInfo {
+        final String id, name, description, requirements, unavailableReason;
+        final boolean available;
+        SceneInfo(String[] fields, int offset) {
+            id = fields[offset]; name = fields[offset + 1];
+            description = fields[offset + 2]; requirements = fields[offset + 3];
+            available = "1".equals(fields[offset + 4]);
+            unavailableReason = fields[offset + 5];
+        }
+    }
+    private static SceneInfo[] parseCatalog(String[] fields) {
+        if (fields == null || fields.length == 0 || fields.length % 6 != 0)
+            throw new IllegalStateException("Invalid shared Gallery catalog");
+        SceneInfo[] result = new SceneInfo[fields.length / 6];
+        for (int i = 0; i < result.length; ++i) result[i] = new SceneInfo(fields, i * 6);
+        return result;
+    }
     private static final int INK = Color.rgb(233, 243, 249);
     private static final int MUTED = Color.rgb(163, 184, 201);
     private static final int ACCENT = Color.rgb(102, 211, 246);
@@ -74,6 +87,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     // UI state is only accessed on the main thread.
     private boolean paused, released;
     private int selected;
+    private volatile SceneInfo[] catalog = new SceneInfo[0];
     private float lastX, lastY;
     private ScaleGestureDetector scale;
 
@@ -130,7 +144,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         // Keep essential controls available on narrower landscape displays.
         if (getResources().getConfiguration().screenWidthDp >= 720)
             toolbar.addView(brand, new LinearLayout.LayoutParams(-2, dp(48)));
-        scenes = button(NAMES[0] + "  ▾", this::chooseScene, false);
+        scenes = button("Loading scenes…", this::chooseScene, false);
         scenes.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
         scenes.setTextSize(16);
         toolbar.addView(scenes, new LinearLayout.LayoutParams(dp(
@@ -237,9 +251,12 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                 handle = nativeCreate(new File(files, "scenes").getPath(), manifestFile.getPath(),
                     new File(files, "config/device-profiles.json").getPath(), Build.MODEL,
                     new File(getCacheDir(), "vulkan").getPath());
+                catalog = parseCatalog(nativeSceneCatalog(handle));
                 frameInterval = Math.max(1, 1000 / nativeTargetFps(handle));
                 runOnUiThread(() -> {
                     status.setText("Ready");
+                    scenes.setText(catalog[0].name + "  ▾");
+                    scenes.setContentDescription("Choose scene: " + catalog[0].name);
                     applyDebugRequest(getIntent());
                 });
                 restartFrames();
@@ -267,6 +284,8 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         if (focused) immersive();
     }
     private void chooseScene() {
+        SceneInfo[] items = catalog;
+        if (items.length == 0) return;
         command(3, 0, 0);
         ScrollView scroll = new ScrollView(this);
         LinearLayout grid = column();
@@ -274,22 +293,31 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         scroll.addView(grid);
         AlertDialog dialog = new AlertDialog.Builder(this).setTitle("Choose a scene")
             .setView(scroll).setNegativeButton("Close", null).create();
-        for (int rowIndex = 0; rowIndex < 4; ++rowIndex) {
+        for (int rowIndex = 0; rowIndex < (items.length + 1) / 2; ++rowIndex) {
             LinearLayout row = row();
             for (int columnIndex = 0; columnIndex < 2; ++columnIndex) {
                 int index = rowIndex * 2 + columnIndex;
+                if (index >= items.length) {
+                    row.addView(new View(this), new LinearLayout.LayoutParams(0, dp(72), 1));
+                    continue;
+                }
+                SceneInfo item = items[index];
                 LinearLayout card = column();
                 card.setPadding(dp(12), dp(8), dp(12), dp(8));
                 card.setBackground(panel(index == selected));
-                card.addView(label(NAMES[index], 15, index == selected ? Color.rgb(10, 29, 40) : INK));
-                card.addView(label(DESCRIPTIONS[index], 11, index == selected ? Color.rgb(27, 63, 79) : MUTED));
-                card.setContentDescription(NAMES[index] + ", " + DESCRIPTIONS[index]);
-                card.setFocusable(true);
-                card.setOnClickListener(view -> {
-                    selectScene(index);
-                    dialog.dismiss();
+                int titleColor = index == selected ? Color.rgb(10, 29, 40) : INK;
+                int detailColor = index == selected ? Color.rgb(27, 63, 79) : MUTED;
+                String detail = item.available ? item.description : item.unavailableReason;
+                card.addView(label(item.name, 15, titleColor));
+                card.addView(label(detail, 11, detailColor));
+                card.setContentDescription(item.name + ", " + detail);
+                card.setFocusable(item.available);
+                card.setEnabled(item.available);
+                card.setAlpha(item.available ? 1.0F : 0.55F);
+                if (item.available) card.setOnClickListener(view -> {
+                    selectScene(index); dialog.dismiss();
                 });
-                LinearLayout.LayoutParams layout = new LinearLayout.LayoutParams(0, dp(58), 1);
+                LinearLayout.LayoutParams layout = new LinearLayout.LayoutParams(0, dp(72), 1);
                 layout.setMargins(dp(4), dp(4), dp(4), dp(4));
                 row.addView(card, layout);
             }
@@ -301,10 +329,15 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
             Math.min(dp(420), getWindow().getDecorView().getHeight() - dp(24)));
     }
     private void selectScene(int index) {
-        if (index < 0 || index >= NAMES.length) return;
+        SceneInfo[] items = catalog;
+        if (index < 0 || index >= items.length) return;
+        if (!items[index].available) {
+            status.setText(items[index].unavailableReason);
+            return;
+        }
         selected = index;
-        scenes.setText(NAMES[index] + "  ▾");
-        scenes.setContentDescription("Choose scene: " + NAMES[index]);
+        scenes.setText(items[index].name + "  ▾");
+        scenes.setContentDescription("Choose scene: " + items[index].name);
         released = false;
         release.setText("Release");
         release.setVisibility(index == 2 ? View.VISIBLE : View.GONE);
@@ -358,20 +391,30 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
             JSONArray results = new JSONArray();
             JSONObject report = new JSONObject(nativeRuntimeInfo(handle));
             report.put("nonce", nonce).put("frames_per_scene", count).put("scenes", results);
-            for (int i = 0; i < NAMES.length; ++i) {
-                JSONObject result = new JSONObject().put("scene", NAMES[i]).put("steps", count);
+            SceneInfo[] items = catalog;
+            for (int i = 0; i < items.length; ++i) {
+                JSONObject result = new JSONObject().put("id", items[i].id)
+                    .put("scene", items[i].name).put("requirements", items[i].requirements)
+                    .put("available", items[i].available).put("steps", count);
+                if (!items[i].available) {
+                    result.put("skipped", true).put("reason", items[i].unavailableReason);
+                    results.put(result);
+                    report.put("completed", i + 1 == items.length);
+                    writeReport("qualification.json", report);
+                    continue;
+                }
                 try {
                     double[] stats = nativeQualifyScene(handle, i, count);
                     result.put("passed", true).put("mean_ms", stats[0]).put("p95_ms", stats[1])
                         .put("timing_window_frames", stats[2]).put("session_controls", true);
                 } catch (RuntimeException error) { result.put("passed", false).put("error", error.toString()); }
                 results.put(result);
-                report.put("completed", i + 1 == NAMES.length);
+                report.put("completed", i + 1 == items.length);
                 writeReport("qualification.json", report);
             }
             nativeCommand(handle, 0, 0, 0);
             writeRuntimeInfo();
-            runOnUiThread(() -> { selected = 0; scenes.setText(NAMES[0] + "  ▾"); });
+            runOnUiThread(() -> { selected = 0; scenes.setText(items[0].name + "  ▾"); });
             restartFrames();
         } catch (Exception error) { showFailure(error); }
     }
@@ -388,14 +431,15 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     private void showInfo() {
         command(3, 0, 0);
         int sceneIndex = selected;
+        SceneInfo item = catalog[sceneIndex];
         worker.post(() -> {
             if (handle == 0) return;
             try {
                 String details = nativeDetails(handle);
                 runOnUiThread(() -> {
                     if (isFinishing() || isDestroyed()) return;
-                    AlertDialog dialog = new AlertDialog.Builder(this).setTitle(NAMES[sceneIndex])
-                        .setMessage(DESCRIPTIONS[sceneIndex] + "\n\n" + details +
+                    AlertDialog dialog = new AlertDialog.Builder(this).setTitle(item.name)
+                        .setMessage(item.description + "\nRequires: " + item.requirements + "\n\n" + details +
                             "\n\nDrag to orbit · Pinch to zoom\nFocus reframes the current action.\nHold arrows to " +
                             steering.getText().toString().toLowerCase(java.util.Locale.ROOT) + ".")
                         .setPositiveButton("Done", null).show();

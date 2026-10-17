@@ -63,39 +63,14 @@
                                  GalleryRuntime &output,
                                  std::string &error) {
     const GalleryEntry &entry = gallery_entry(context);
-    const std::array scene_paths{
-        options.scene,
-        std::filesystem::path(PARALLEL_MATER_CONSTRAINT_FIXED_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_CONSTRAINT_POINT_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_CONSTRAINT_PISTON_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_CONSTRAINT_GENERIC_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_CONSTRAINT_MOTOR_SPRING_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_FLUID_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_FLUID_RIGID_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_PEGS_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_CLOTH_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_CLOTH_TEAR_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_CLOTH_PAINT_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_CLOTH_WATER_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_SOFT_BODY_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_SOFT_BODY_RIGID_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_SOFT_BODY_CLOTH_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_SOFT_BODY_FLUID_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_ROPE_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_ROPE_FLUID_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_ROPE_SOFT_BODY_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_ROPE_CLOTH_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_SMOKE_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_SMOKE_WATER_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_SMOKE_SOFT_BODY_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_SMOKE_CLOTH_SCENE_PATH),
-        std::filesystem::path(PARALLEL_MATER_SMOKE_ROPE_SCENE_PATH)};
+    const std::filesystem::path scene_path =
+        context == GalleryContext::rigid_body
+        ? options.scene
+        : std::filesystem::path(PARALLEL_MATER_GALLERY_ASSET_DIRECTORY) /
+              gallery_scene_asset(entry.source);
     GalleryRuntimeCreateInfo request;
     request.context = context;
-    request.asset = gallery_resource_path(
-        options, scene_paths[static_cast<std::size_t>(entry.source)]);
+    request.asset = gallery_resource_path(options, scene_path);
     request.backend = options.backend;
     request.debug_frame_capacity =
         context == GalleryContext::constraint_fixed ? 300U : 30U;

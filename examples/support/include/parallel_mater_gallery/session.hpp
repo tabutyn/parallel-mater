@@ -2,7 +2,7 @@
 #pragma once
 #include <parallel_mater_gallery/device_profiles.hpp>
 #include <parallel_mater_gallery/frame_timing.hpp>
-#include <parallel_mater_gallery/gallery_context.hpp>
+#include <parallel_mater_gallery/gallery_catalog.hpp>
 #include <parallel_mater_gallery/gallery_runtime.hpp>
 #include <parallel_mater/parallel_mater.h>
 #include <filesystem>
@@ -13,13 +13,10 @@
 #include <vector>
 
 namespace parallel_mater::gallery {
-// Curated qualification scopes, not different simulation implementations.
-enum class GallerySceneSet { all_existing, rigid_liquid };
 struct GallerySessionConfig {
     std::filesystem::path assets, profiles;
     std::string platform, model, backend;
     std::optional<PmNativeBackend> native_backend;
-    GallerySceneSet scenes{GallerySceneSet::all_existing};
     bool gpu_rendering{};
 };
 
@@ -48,7 +45,9 @@ public:
     FrameTimingStatistics qualify(unsigned frame_count);
     std::string details() const;
     std::string status() const;
-    static std::vector<std::string> scene_names(GallerySceneSet scenes = GallerySceneSet::all_existing);
+    [[nodiscard]] const GalleryCatalog &catalog() const noexcept {
+        return catalog_;
+    }
     std::string scene_file() const;
     std::string device_name() const { return device_; }
     static std::string build_revision();
@@ -73,6 +72,7 @@ public:
 private:
     GalleryRuntime runtime_;
     GallerySessionConfig config_;
+    GalleryCatalog catalog_{make_gallery_catalog()};
     unsigned selected_{};
     unsigned bricks_{};
     bool paused_{}, active_{true};
@@ -81,7 +81,10 @@ private:
     std::string device_;
     void *presentation_layer_{};
     bool diagnostics_{};
-    const GalleryEntry &entry(unsigned index) const;
+    const GalleryCatalogItem &catalog_item(unsigned index) const;
+    const GalleryEntry &entry(unsigned index) const {
+        return catalog_item(index).scene;
+    }
     void require_scene() const;
 };
 }

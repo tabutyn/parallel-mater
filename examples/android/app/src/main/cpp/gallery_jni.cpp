@@ -5,6 +5,7 @@
 #include <android/log.h>
 #include <jni.h>
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
@@ -63,16 +64,29 @@ void exception(JNIEnv *env, const char *message) {
 }
 
 extern "C" JNIEXPORT jobjectArray JNICALL
-Java_org_parallelmater_gallery_GalleryActivity_nativeSceneNames(JNIEnv *env, jclass) {
+Java_org_parallelmater_gallery_GalleryActivity_nativeSceneCatalog(
+    JNIEnv *env, jclass, jlong handle) {
     try {
-        const auto names = GallerySession::scene_names(GallerySceneSet::rigid_liquid);
-        auto result = env->NewObjectArray(static_cast<jsize>(names.size()), env->FindClass("java/lang/String"), nullptr);
+        const auto &catalog = session(handle).gallery->catalog();
+        constexpr std::size_t fields = 6U;
+        auto result = env->NewObjectArray(
+            static_cast<jsize>(catalog.size() * fields),
+            env->FindClass("java/lang/String"), nullptr);
         if (!result) return nullptr;
-        for (std::size_t i = 0; i < names.size(); ++i) {
-            auto name = env->NewStringUTF(names[i].c_str());
-            if (!name) return nullptr;
-            env->SetObjectArrayElement(result, static_cast<jsize>(i), name); env->DeleteLocalRef(name);
-            if (env->ExceptionCheck()) return nullptr;
+        for (std::size_t i = 0; i < catalog.size(); ++i) {
+            const auto &item = catalog[i];
+            const std::array<std::string, fields> values{
+                std::string(item.id), std::string(item.scene.name),
+                std::string(item.scene.help), item.required_feature_names,
+                item.available ? "1" : "0", item.unavailable_reason};
+            for (std::size_t field = 0; field < fields; ++field) {
+                auto value = env->NewStringUTF(values[field].c_str());
+                if (!value) return nullptr;
+                env->SetObjectArrayElement(
+                    result, static_cast<jsize>(i * fields + field), value);
+                env->DeleteLocalRef(value);
+                if (env->ExceptionCheck()) return nullptr;
+            }
         }
         return result;
     } catch (const std::exception &error) { exception(env, error.what()); return nullptr; }
@@ -115,7 +129,7 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeCreate(JNIEnv *env, jclass,
         auto result = std::make_unique<Session>();
         GallerySessionConfig config{.assets = string(env, assets), .profiles = string(env, profiles),
             .platform = "Android", .model = string(env, model), .backend = backend_name,
-            .scenes = GallerySceneSet::rigid_liquid};
+            .native_backend = std::nullopt};
         if (PM_ANDROID_VULKAN) config.native_backend = PM_NATIVE_BACKEND_VULKAN;
         result->gallery = std::make_unique<GallerySession>(std::move(config));
         const auto &limits = result->gallery->limits;
@@ -181,7 +195,7 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeCommand(JNIEnv *env, jclass
         if (!std::isfinite(x) || !std::isfinite(y)) throw std::runtime_error("Non-finite Gallery input");
         switch (command) {
         case 0:
-            if (x < 0 || x >= GallerySession::scene_names(GallerySceneSet::rigid_liquid).size())
+            if (x < 0 || x >= g.catalog().size())
                 throw std::runtime_error("Unknown Gallery scene");
             g.select(static_cast<unsigned>(x)); s.log_scene(); break;
         case 1: g.reset(); s.log_scene(); break;

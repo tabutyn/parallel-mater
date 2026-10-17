@@ -1,7 +1,7 @@
 {
   "id": "F7-02",
   "title": "Unify Gallery catalog and availability",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-01"
   ],
@@ -16,15 +16,31 @@
     "Desktop, Android and iPad consume the same ordered scene identities, names, descriptions and required feature records.",
     "Unsupported scenes remain visible with a precise reason and cannot silently fall back to another backend."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "c8c4501d-c677-4dbb-b522-b32ade325a8f",
-    "owner": "codex-macos-gallery",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F7-02/thomass-macbook-air",
-    "claimed_at": "2026-10-17T23:05:56Z",
-    "heartbeat_at": "2026-10-17T23:05:56Z",
-    "expires_at": "2026-10-18T23:05:56Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: cmake --build build-macos-metal-preview --target parallel-mater-gallery parallel-mater-gallery-session-contract-tests parallel-mater-ipad-session-tests parallel-mater-gallery-registry-tests parallel-mater-gallery-input-tests -j6; ctest matching those four contract suites; Metal; 4/4 passed.",
+    "PASS: JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=/Users/thomasbutyn/Android/Sdk ./scripts/Build-AndroidGallery.sh; SDK 36, CMake 4.1.2, NDK 29 ARM64 Vulkan debug APK; BUILD SUCCESSFUL.",
+    "PASS: physical iPad13,8 Apple M1 GPU Metal preview; shared catalog reported 28/28 scenes available and 28/28 three-frame render/control smoke passes; OS background/foreground recovery preserved frame count."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "c8c4501d-c677-4dbb-b522-b32ade325a8f",
+        "owner": "codex-macos-gallery",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F7-02/thomass-macbook-air",
+        "claimed_at": "2026-10-17T23:05:56Z",
+        "heartbeat_at": "2026-10-17T23:05:56Z",
+        "expires_at": "2026-10-18T23:05:56Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T23:35:26Z",
+      "reason": "Unified desktop, Android and iPad scene metadata and backend availability under one capability-driven Gallery catalog.",
+      "evidence": [
+        "PASS: cmake --build build-macos-metal-preview --target parallel-mater-gallery parallel-mater-gallery-session-contract-tests parallel-mater-ipad-session-tests parallel-mater-gallery-registry-tests parallel-mater-gallery-input-tests -j6; ctest matching those four contract suites; Metal; 4/4 passed.",
+        "PASS: JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=/Users/thomasbutyn/Android/Sdk ./scripts/Build-AndroidGallery.sh; SDK 36, CMake 4.1.2, NDK 29 ARM64 Vulkan debug APK; BUILD SUCCESSFUL.",
+        "PASS: physical iPad13,8 Apple M1 GPU Metal preview; shared catalog reported 28/28 scenes available and 28/28 three-frame render/control smoke passes; OS background/foreground recovery preserved frame count."
+      ]
+    }
+  ]
 }

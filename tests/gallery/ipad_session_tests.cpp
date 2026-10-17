@@ -9,10 +9,11 @@ int main() {
         const auto root = std::filesystem::path(PM_IPAD_TEST_RESOURCES);
         GallerySession session({.assets = root / "assets", .profiles = root / "config/device-profiles.json",
             .platform = "iPadOS", .model = "iPad13,8", .backend = "metal", .native_backend = PM_NATIVE_BACKEND_METAL});
-        const auto names = GallerySession::scene_names();
-        if (names.size() != 27) throw std::runtime_error("Scene catalog mismatch");
+        const auto &catalog = session.catalog();
+        if (catalog.size() != 28) throw std::runtime_error("Scene catalog mismatch");
         session.resize(480, 360);
-        for (unsigned i = 0; i < names.size(); ++i) {
+        for (unsigned i = 0; i < catalog.size(); ++i) {
+            if (!catalog[i].available) continue;
             session.select(i);
             for (unsigned step = 0; step < 3; ++step) session.frame();
             session.validate_snapshot();
@@ -40,7 +41,8 @@ int main() {
             session.reset();
             if (session.frames != 0 || session.timing.latest())
                 throw std::runtime_error("Reset retained stale timing");
-            std::printf("PASS iPad session: %s\n", names[i].c_str());
+            std::printf("PASS iPad session: %s\n",
+                        std::string(catalog[i].scene.name).c_str());
         }
         bool rejected = false;
         const auto old_selection = session.selection();
@@ -50,15 +52,15 @@ int main() {
         session.select(2); (void)session.primary_action(); session.frame();
         (void)session.primary_action();
         if (session.frames != 0) throw std::runtime_error("Point restore did not reset");
-        // Exercise the Android catalog and budgets through the same session on
-        // the available host GPU; this is not Android hardware qualification.
+        // Exercise Android budgets through the same catalog/session on the
+        // available host GPU; this is not Android hardware qualification.
         GallerySession android({.assets = root / "assets", .profiles = root / "config/device-profiles.json",
-            .platform = "Android", .model = "Pixel 7", .backend = "metal", .native_backend = PM_NATIVE_BACKEND_METAL,
-            .scenes = parallel_mater::gallery::GallerySceneSet::rigid_liquid});
-        const auto android_names = GallerySession::scene_names(parallel_mater::gallery::GallerySceneSet::rigid_liquid);
-        if (android_names.size() != 8 || android.limits.fluid_particles != 128)
+            .platform = "Android", .model = "Pixel 7", .backend = "metal", .native_backend = PM_NATIVE_BACKEND_METAL});
+        if (android.catalog().size() != catalog.size() ||
+            android.limits.fluid_particles != 128)
             throw std::runtime_error("Android session profile/catalog changed");
-        for (unsigned i = 0; i < android_names.size(); ++i) {
+        for (unsigned i = 0; i < android.catalog().size(); ++i) {
+            if (!android.catalog()[i].available) continue;
             android.select(i); android.frame(); android.validate_snapshot();
         }
         GallerySession gpu({.assets = root / "assets", .profiles = root / "config/device-profiles.json",
@@ -67,12 +69,14 @@ int main() {
         gpu.resize(480, 360);
         const auto *requested = std::getenv("PM_GALLERY_QUALIFY_FRAMES");
         const unsigned qualification_frames = requested ? static_cast<unsigned>(std::stoul(requested)) : 3;
-        for (unsigned i = 0; i < names.size(); ++i) {
+        for (unsigned i = 0; i < catalog.size(); ++i) {
+            if (!catalog[i].available) continue;
             gpu.select(i); (void)gpu.qualify(qualification_frames);
             gpu.validate_snapshot();
             gpu.frame();
             if (!gpu.pixels.empty()) throw std::runtime_error("Interactive GPU frame performed image readback");
-            std::printf("PASS direct GPU rendering: %s\n", names[i].c_str());
+            std::printf("PASS direct GPU rendering: %s\n",
+                        std::string(catalog[i].scene.name).c_str());
         }
         return 0;
     } catch (const std::exception &error) { std::fprintf(stderr, "%s\n", error.what()); return 1; }

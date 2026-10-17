@@ -31,16 +31,14 @@ int main() {
 #ifdef PM_GALLERY_SESSION_TEST_NATIVE_BACKEND
                 .native_backend = PM_GALLERY_SESSION_TEST_NATIVE_BACKEND,
 #endif
-                .scenes = gallery::GallerySceneSet::rigid_liquid,
             };
             gallery::GallerySession session(std::move(config));
             session.resize(96U, 72U);
             require(gallery::GalleryRuntime::live_runtime_count() == 1U,
                     "Session did not own exactly one live runtime");
 
-            const auto names = gallery::GallerySession::scene_names(
-                gallery::GallerySceneSet::rigid_liquid);
-            require(names.size() == 8U, "Rigid/liquid catalog changed");
+            require(session.catalog().size() == gallery::gallery_entries.size(),
+                    "Shared catalog changed");
             require(session.ready() && session.selection() == 0U,
                     "Session did not select its initial scene");
 

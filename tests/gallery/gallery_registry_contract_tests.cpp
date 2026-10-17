@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: MIT
-#include <parallel_mater_gallery/gallery_context.hpp>
+#include <parallel_mater_gallery/gallery_catalog.hpp>
+
+#include <stdexcept>
+#include <string_view>
 
 using namespace parallel_mater::gallery;
 
@@ -33,4 +36,42 @@ static_assert(gallery_entry(GalleryContext::constraint_generic).controls ==
               GalleryControlPolicy::authored_force);
 static_assert(gallery_entry(GalleryContext::rigid_body).moves_kinematic);
 
-int main() { return 0; }
+int main() {
+    const GalleryCatalog catalog = make_gallery_catalog();
+    if (catalog.size() != gallery_entries.size())
+        throw std::runtime_error("Catalog size changed");
+    for (std::size_t index = 0; index < catalog.size(); ++index) {
+        const auto &item = catalog[index];
+        if (item.scene.context != gallery_entries[index].context ||
+            item.id.empty() || item.scene.name.empty() ||
+            item.scene.help.empty() || item.asset_file.empty() ||
+            item.required_features == 0U ||
+            item.required_feature_names.empty())
+            throw std::runtime_error("Catalog metadata is incomplete");
+        for (std::size_t previous = 0; previous < index; ++previous)
+            if (catalog[previous].id == item.id)
+                throw std::runtime_error("Catalog scene ID is not unique");
+    }
+
+    PmPhysicalDeviceFeatures rigid{};
+    rigid.rigidBodies = PM_TRUE;
+    rigid.rigidConstraints = PM_TRUE;
+    const GalleryCatalog limited = make_gallery_catalog(&rigid);
+    if (!limited[gallery_context_index(GalleryContext::rigid_body)].available ||
+        !limited[gallery_context_index(GalleryContext::constraint_point)].available)
+        throw std::runtime_error("Supported rigid scenes are unavailable");
+    const auto &fluid = limited[gallery_context_index(GalleryContext::fluid)];
+    if (fluid.available ||
+        fluid.unavailable_reason.find("particleLiquids") == std::string::npos)
+        throw std::runtime_error("Fluid availability reason is imprecise");
+
+    PmPhysicalDeviceFeatures full{};
+    full.rigidBodies = full.rigidConstraints = full.particleLiquids =
+        full.liquidRigidCoupling = full.cloth = full.rope = full.softBodies =
+        full.smoke = full.domainCouplings = full.paint = PM_TRUE;
+    const GalleryCatalog complete = make_gallery_catalog(&full);
+    for (const auto &item : complete)
+        if (!item.available || !item.unavailable_reason.empty())
+            throw std::runtime_error("Fully capable backend lost a scene");
+    return 0;
+}
