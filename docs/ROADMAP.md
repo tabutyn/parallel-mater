@@ -128,13 +128,13 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F2-07](roadmap/tasks/F2-07.json) | Exchange fluid pressure and contact forces | done | F2-06 | — |
 | [F2-08](roadmap/tasks/F2-08.json) | Exchange fluid viscosity forces | done | F2-07 | — |
 | [F2-09](roadmap/tasks/F2-09.json) | Integrate fluid–fluid graph storage and scheduling | done | F2-03, F2-08 | — |
-| [F2-10](roadmap/tasks/F2-10.json) | Qualify and advertise equal-material fluid–fluid | leased | F2-04, F2-09, F5-02 | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T12:11:04Z |
+| [F2-10](roadmap/tasks/F2-10.json) | Qualify and advertise equal-material fluid–fluid | done | F2-04, F2-09, F5-02 | — |
 | [F2-11](roadmap/tasks/F2-11.json) | Specify different-material and interface modes | done | F2-05 | — |
 | [F2-12](roadmap/tasks/F2-12.json) | Specify cloth–cloth system modes | done | F2-01 | — |
 | [F2-13](roadmap/tasks/F2-13.json) | Specify soft-body/soft-body system modes | done | F2-01 | — |
 | [F2-14](roadmap/tasks/F2-14.json) | Specify rope–rope system modes | done | F2-01 | — |
 | [F2-15](roadmap/tasks/F2-15.json) | Specify smoke–smoke system modes | done | F2-01 | — |
-| [F2-99](roadmap/tasks/F2-99.json) | Review F2 exit evidence | waiting on dependencies | F2-01, F2-02, F2-03, F2-04, F2-05, F2-06, F2-07, F2-08, F2-09, F2-10, F2-11, F2-12, F2-13, F2-14, F2-15 | — |
+| [F2-99](roadmap/tasks/F2-99.json) | Review F2 exit evidence | ready | F2-01, F2-02, F2-03, F2-04, F2-05, F2-06, F2-07, F2-08, F2-09, F2-10, F2-11, F2-12, F2-13, F2-14, F2-15 | — |
 
 ### F3. Specification, ABI and validation
 
@@ -181,7 +181,12 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-09](roadmap/tasks/F5-09.json) | Isolate native Vulkan validation crash | ready | — | — |
 | [F5-10](roadmap/tasks/F5-10.json) | Correct shared contacts and CUDA/D3D12 drift | done | — | — |
 | [F5-11](roadmap/tasks/F5-11.json) | Publish current Windows driver evidence | leased | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-10 | codex-windows-physics / windows-gtx1080 / 2026-10-18T12:37:36Z |
-| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11 | — |
+| [F5-12](roadmap/tasks/F5-12.json) | Publish current macOS Metal driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-10, F5-11 | — |
+| [F5-13](roadmap/tasks/F5-13.json) | Expose capability qualification on iPadOS | ready | F5-01, F5-08 | — |
+| [F5-14](roadmap/tasks/F5-14.json) | Publish current iPadOS Metal driver evidence | waiting on dependencies | F5-02, F5-03, F5-05, F5-06, F5-10, F5-11, F5-13 | — |
+| [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
+| [F5-16](roadmap/tasks/F5-16.json) | Publish current Linux driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
+| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16 | — |
 
 ### F6. SDK releases and repository ownership
 

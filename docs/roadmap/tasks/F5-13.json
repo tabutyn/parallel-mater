@@ -1,0 +1,24 @@
+{
+  "id": "F5-13",
+  "title": "Expose capability qualification on iPadOS",
+  "status": "open",
+  "dependencies": [
+    "F5-01",
+    "F5-08"
+  ],
+  "locks": [
+    "ios-qualification-runtime"
+  ],
+  "requires": [
+    "Development-signed iPadOS 26+ device with Developer Mode and native Metal"
+  ],
+  "scope": "Make the existing public-API conformance contracts and raw capability-qualification result available through a bounded development-only iPadOS runner, reusing shared cases and evaluators rather than converting Gallery scene checks into qualification.",
+  "acceptance": [
+    "The development runner executes shared public-API trajectory, physical-quality and adverse-lifecycle inputs on the iPad Metal driver and exports raw artifacts tied to a fresh nonce and source revision.",
+    "Host collection verifies exact app/driver hashes, device model, iPadOS and Metal versions and toolchain while excluding serial numbers, pairing identifiers and other private device identifiers.",
+    "Unit and connected-device negative checks reject stale, partial, mismatched-revision and Gallery-only reports; release builds do not expose the diagnostic channel."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

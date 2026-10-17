@@ -134,6 +134,9 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     features.cloth = PM_TRUE;
     features.paint = PM_TRUE;
 #endif
+#if defined(PARALLEL_MATER_QUALIFIED_EQUAL_FLUID)
+    features.liquidLiquidCoupling = PM_TRUE;
+#endif
     features.statisticsQueries = PM_TRUE;
     features.memoryBudget = PM_TRUE;
 #if defined(PARALLEL_MATER_D3D12_DRIVER)
@@ -146,7 +149,11 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
 #else
     features.particleLiquids = PM_TRUE;
     features.liquidRigidCoupling = PM_TRUE;
+#if defined(PARALLEL_MATER_QUALIFIED_EQUAL_FLUID)
+    features.liquidLiquidCoupling = PM_TRUE;
+#else
     features.liquidLiquidCoupling = PM_FALSE;
+#endif
     features.cloth = PM_TRUE;
     features.rope = PM_TRUE;
     features.softBodies = PM_TRUE;

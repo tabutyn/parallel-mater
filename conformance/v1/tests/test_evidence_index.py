@@ -161,9 +161,11 @@ class EvidenceIndexTests(unittest.TestCase):
 
     def test_legacy_report_retains_tuple_failures_and_no_certification(self):
         index = evidence_index.build_index(REPOSITORY, SOURCES_PATH)
-        self.assertEqual(index["qualified_capability_count"], 0)
         cuda = next(report for report in index["reports"]
-                    if report["driver"]["name"] == "slang-cuda")
+                    if report["driver"]["name"] == "slang-cuda" and
+                    report["kind"] == "legacy-physics")
+        self.assertEqual(cuda["qualified_count"], 0)
+        self.assertEqual(cuda["capability_count"], 0)
         self.assertEqual(cuda["source"]["commit"],
                          "2a6819f14c0cd48dced13d5c1c80d6695326d6bf")
         self.assertEqual(cuda["device"]["name"], "NVIDIA GeForce GTX 1080")
@@ -181,7 +183,10 @@ class EvidenceIndexTests(unittest.TestCase):
             path.write_text(json.dumps(sources), encoding="utf-8")
             index = evidence_index.build_index(REPOSITORY, path)
         self.assertFalse(index["valid"])
-        self.assertEqual(index["report_count"], 0)
+        self.assertEqual(index["report_count"],
+                         len(sources["qualification_results"]))
+        self.assertFalse(any(report["kind"] == "legacy-physics"
+                             for report in index["reports"]))
         self.assertTrue(any(failure["message"] == "source SHA-256 mismatch"
                             for failure in index["validation_failures"]))
 

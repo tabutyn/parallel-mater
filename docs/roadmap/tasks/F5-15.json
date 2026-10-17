@@ -1,0 +1,32 @@
+{
+  "id": "F5-15",
+  "title": "Publish current Android Vulkan driver evidence",
+  "status": "open",
+  "dependencies": [
+    "F5-01",
+    "F5-02",
+    "F5-03",
+    "F5-05",
+    "F5-06",
+    "F5-08",
+    "F5-09",
+    "F5-10",
+    "F5-11"
+  ],
+  "locks": [
+    "driver-evidence-registry",
+    "driver-evidence-vulkan-android"
+  ],
+  "requires": [
+    "Physical Android device with the production Vulkan driver and adb access"
+  ],
+  "scope": "Rebuild the current Android Slang Vulkan driver, execute applicable public-API reference, physical-quality and adverse-lifecycle contracts on physical hardware, and publish revisioned evidence independently of Gallery performance and lifecycle sweeps.",
+  "acceptance": [
+    "The result pins clean source, exact APK and driver hashes, public device model and GPU, Android and Vulkan driver versions, NDK/compiler and Slang toolchain plus immutable contract hashes.",
+    "Every advertised Vulkan capability records all applicable execution, reference, analytic-quality and adverse-lifecycle outcomes; failures, unsupported modes, validation limitations and missing contracts remain explicit.",
+    "Register and regenerate the per-driver evidence index from a fresh checkout; retain native validation, Gallery, thermal and timing reports only as clearly separated supplemental evidence."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
