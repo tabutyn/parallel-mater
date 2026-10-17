@@ -1502,6 +1502,14 @@ PmResult pmCmdCopyPaintField(PmCommandBuffer commandBuffer,
     const PmBufferRange* pDestination);
 ```
 
+Paint field descriptions and UV values are copied during recording; rigid-target geometry handles remain borrowed. Writing replaces stable field and rule slots, and an inactive entry removes its slot. An active field target must be a live body or cloth at execution. A rigid field additionally requires built geometry whose vertex count matches vertexCount. Width, height and vertexCount must fit the capacities declared when the simulation was created.
+
+A live field pins its target generation, and a live rule pins its source and target-field generations. Disable dependent rules before replacing their target field, and disable fields before replacing their body or cloth. Rejection of an attempted dependency removal preserves that live object. If an old field was removed but later validation or allocation of its replacement fails, that field slot remains inactive; unrelated fields remain valid.
+
+A rigid-target field retains its geometry reference until that field is replaced, removed, or the simulation is reset. Body and other paint references to the same geometry remain valid. Reset retires all paint fields and rules. Keep every borrowed geometry and its dependencies alive through recorded and pending commands and while a live field refers to it.
+
+Related sections: [6.4](#spec-geometry), [11.3](#spec-lifecycle), [11.4](#spec-simulation_init).
+
 <a id="spec-event_outputs"></a>
 
 ### 10.8 Constraint, contact & debug output

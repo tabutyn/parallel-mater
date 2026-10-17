@@ -720,27 +720,43 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWritePaintFields(
                 simulation->arena.get());
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
                 auto &slot = simulation->paint_fields[first + offset];
+                auto &geometry_slot =
+                    simulation->paint_field_geometries[first + offset];
+                const PmGeometry retired_geometry = geometry_slot;
                 if (slot.has_value()) {
                     PmResult result = parallel_mater::api::from_status(
                         simulation->runtime->remove_paint_field(*slot));
                     if (result != PM_SUCCESS) return result;
                     slot.reset();
                 }
+                geometry_slot = nullptr;
+                const auto retire_previous =
+                    [simulation, retired_geometry](PmResult primary) noexcept {
+                        const PmResult cleanup =
+                            parallel_mater::api::retire_geometry_if_unused(
+                                simulation, retired_geometry);
+                        return cleanup == PM_SUCCESS ? primary : cleanup;
+                    };
                 const RecordedPaintField &source = copied[offset];
-                if (source.info.active == PM_FALSE) continue;
+                if (source.info.active == PM_FALSE) {
+                    const PmResult result = retire_previous(PM_SUCCESS);
+                    if (result != PM_SUCCESS) return result;
+                    continue;
+                }
                 void *uv_allocation = nullptr;
                 const PmDeviceSize uv_bytes =
                     static_cast<PmDeviceSize>(source.uvs.size()) * sizeof(Vec2);
                 PmResult allocation_result =
                     services.allocate(uv_bytes, false, &uv_allocation);
-                if (allocation_result != PM_SUCCESS) return allocation_result;
+                if (allocation_result != PM_SUCCESS)
+                    return retire_previous(allocation_result);
                 auto *device_uvs = static_cast<Vec2 *>(uv_allocation);
                 PmResult copy_result = services.copy_and_wait(
                     device_uvs, source.uvs.data(), uv_bytes,
                     parallel_mater::device::CopyDirection::host_to_device);
                 if (copy_result != PM_SUCCESS) {
                     services.free(device_uvs);
-                    return copy_result;
+                    return retire_previous(copy_result);
                 }
                 parallel_mater::PaintFieldOptions options{};
                 if (source.info.targetType == PM_PAINT_TARGET_RIGID) {
@@ -748,7 +764,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWritePaintFields(
                         source.info.targetIndex, options.body);
                     if (result != PM_SUCCESS) {
                         services.free(device_uvs);
-                        return result;
+                        return retire_previous(result);
                     }
                     PmResult geometry_result =
                         parallel_mater::api::register_geometry(
@@ -756,14 +772,14 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWritePaintFields(
                             options.mesh);
                     if (geometry_result != PM_SUCCESS) {
                         services.free(device_uvs);
-                        return geometry_result;
+                        return retire_previous(geometry_result);
                     }
                 } else {
                     PmResult result = require_slot(simulation->cloths,
                         source.info.targetIndex, options.cloth);
                     if (result != PM_SUCCESS) {
                         services.free(device_uvs);
-                        return result;
+                        return retire_previous(result);
                     }
                 }
                 options.vertex_uvs = {device_uvs, source.uvs.size()};
@@ -773,8 +789,21 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWritePaintFields(
                 const PmResult result = parallel_mater::api::from_status(
                     simulation->runtime->add_paint_field(options, created, queue));
                 services.free(device_uvs);
-                if (result != PM_SUCCESS) return result;
+                if (result != PM_SUCCESS) {
+                    PmResult cleanup = PM_SUCCESS;
+                    if (source.info.targetType == PM_PAINT_TARGET_RIGID)
+                        cleanup = parallel_mater::api::retire_geometry_if_unused(
+                            simulation, source.info.geometry);
+                    if (cleanup == PM_SUCCESS)
+                        cleanup = parallel_mater::api::retire_geometry_if_unused(
+                            simulation, retired_geometry);
+                    return cleanup == PM_SUCCESS ? result : cleanup;
+                }
                 slot = created;
+                if (source.info.targetType == PM_PAINT_TARGET_RIGID)
+                    geometry_slot = source.info.geometry;
+                const PmResult cleanup = retire_previous(PM_SUCCESS);
+                if (cleanup != PM_SUCCESS) return cleanup;
             }
             return PM_SUCCESS;
         });

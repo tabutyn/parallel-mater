@@ -112,7 +112,8 @@ using parallel_mater::Vec3;
     parallel_mater::SimulationOptions options{};
     options.rigid_body_capacity = std::max(1U, info.rigidBodyCapacity);
     options.rigid_constraint_capacity = std::max(1U, info.constraintCapacity);
-    options.triangle_mesh_capacity = std::max(16U, info.rigidBodyCapacity);
+    options.triangle_mesh_capacity = std::max(
+        16U, info.rigidBodyCapacity + info.paintFieldCount);
     options.contact_capacity = std::max(1U, info.contactCapacity);
     options.fluid_capacity = std::max(1U, info.fluidCount);
     options.cloth_capacity = std::max(1U, info.clothCount);
@@ -268,21 +269,20 @@ using parallel_mater::Vec3;
     return PM_SUCCESS;
 }
 
-[[nodiscard]] PmResult retire_geometry_if_unused(
+[[nodiscard]] PmResult retire_geometry_if_unused_impl(
     PmSimulation simulation, PmGeometry geometry) noexcept {
     if (geometry == nullptr ||
         std::find(simulation->rigid_body_geometries.begin(),
                   simulation->rigid_body_geometries.end(), geometry) !=
-            simulation->rigid_body_geometries.end())
+            simulation->rigid_body_geometries.end() ||
+        std::find(simulation->paint_field_geometries.begin(),
+                  simulation->paint_field_geometries.end(), geometry) !=
+            simulation->paint_field_geometries.end())
         return PM_SUCCESS;
     const auto found = simulation->geometries.find(geometry);
     if (found == simulation->geometries.end()) return PM_SUCCESS;
     const parallel_mater::Status retired =
         simulation->runtime->remove_triangle_mesh(found->second);
-    // A paint field may still own this mesh. F1-04 extends the same reference
-    // registry to paint; until then the runtime remains the authoritative guard.
-    if (retired.code == parallel_mater::StatusCode::invalid_argument)
-        return PM_SUCCESS;
     if (!retired) return parallel_mater::api::from_status(retired);
     simulation->geometries.erase(found);
     return PM_SUCCESS;
@@ -339,6 +339,11 @@ PmResult register_geometry(PmSimulation simulation, PmGeometry geometry,
                            TriangleMeshId &output) noexcept {
     return register_geometry_impl(
         simulation, geometry, parallel_mater::device::execution_queue(services), output);
+}
+
+PmResult retire_geometry_if_unused(PmSimulation simulation,
+                                   PmGeometry geometry) noexcept {
+    return retire_geometry_if_unused_impl(simulation, geometry);
 }
 
 } // namespace parallel_mater::api
@@ -441,6 +446,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
         (info->smokeCount != 0U && info->pSmokeCapacities == nullptr) ||
         (info->paintFieldCount != 0U &&
          info->pPaintFieldCapacities == nullptr) ||
+        static_cast<std::uint64_t>(info->rigidBodyCapacity) +
+                info->paintFieldCount >
+            std::numeric_limits<std::uint32_t>::max() ||
         (info->rigidBodyCapacity != 0U && device->enabled.rigidBodies == PM_FALSE) ||
         (info->constraintCapacity != 0U &&
          device->enabled.rigidConstraints == PM_FALSE) ||
@@ -532,6 +540,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
         created->emitters.resize(info->emitterCapacity);
         created->destroyers.resize(info->destroyerCapacity);
         created->paint_fields.resize(info->paintFieldCount);
+        created->paint_field_geometries.resize(info->paintFieldCount);
         created->paint_rules.resize(info->paintRuleCapacity);
         created->runtime = std::make_unique<parallel_mater::SimulationRuntime>();
         created->info.pFluidCapacities = created->fluids.data();
@@ -736,8 +745,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRigidBodies(
                 geometry_slot = nullptr;
                 const PmRigidBodyInfo &source = copied[offset];
                 if (source.active == PM_FALSE) {
-                    result = retire_geometry_if_unused(simulation,
-                                                       retired_geometry);
+                    result = parallel_mater::api::retire_geometry_if_unused(
+                        simulation, retired_geometry);
                     if (result != PM_SUCCESS) return result;
                     continue;
                 }
@@ -745,8 +754,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRigidBodies(
                 result = parallel_mater::api::register_geometry(
                     simulation, source.geometry, services, mesh);
                 if (result != PM_SUCCESS) {
-                    const PmResult cleanup = retire_geometry_if_unused(
-                        simulation, retired_geometry);
+                    const PmResult cleanup =
+                        parallel_mater::api::retire_geometry_if_unused(
+                            simulation, retired_geometry);
                     return cleanup == PM_SUCCESS ? result : cleanup;
                 }
                 RigidBodyOptions options{};
@@ -767,17 +777,18 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRigidBodies(
                 result = parallel_mater::api::from_status(
                     simulation->runtime->add_rigid_body(options, created));
                 if (result != PM_SUCCESS) {
-                    PmResult cleanup = retire_geometry_if_unused(
-                        simulation, source.geometry);
+                    PmResult cleanup =
+                        parallel_mater::api::retire_geometry_if_unused(
+                            simulation, source.geometry);
                     if (cleanup == PM_SUCCESS)
-                        cleanup = retire_geometry_if_unused(
+                        cleanup = parallel_mater::api::retire_geometry_if_unused(
                             simulation, retired_geometry);
                     return cleanup == PM_SUCCESS ? result : cleanup;
                 }
                 slot = created;
                 geometry_slot = source.geometry;
-                result = retire_geometry_if_unused(simulation,
-                                                   retired_geometry);
+                result = parallel_mater::api::retire_geometry_if_unused(
+                    simulation, retired_geometry);
                 if (result != PM_SUCCESS) return result;
             }
             simulation->rigid_dense_mapping_dirty = true;
@@ -993,6 +1004,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetSimulation(
             for (auto &slot : simulation->emitters) slot.reset();
             for (auto &slot : simulation->destroyers) slot.reset();
             for (auto &slot : simulation->paint_fields) slot.reset();
+            std::fill(simulation->paint_field_geometries.begin(),
+                      simulation->paint_field_geometries.end(), nullptr);
             for (auto &slot : simulation->paint_rules) slot.reset();
             simulation->requested_couplings.clear();
             simulation->explicit_couplings = false;
