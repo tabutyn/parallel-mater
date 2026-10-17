@@ -171,8 +171,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 |---|---|---|---|---|
 | [F5-00](roadmap/tasks/F5-00.json) | Independent headless conformance baseline | done | — | — |
 | [F5-01](roadmap/tasks/F5-01.json) | Map advertised modes to conformance cases | ready | F2-02 | — |
-| [F5-02](roadmap/tasks/F5-02.json) | Add vendor-neutral conservation and stability cases | ready | — | — |
-| [F5-03](roadmap/tasks/F5-03.json) | Add capacity and three-family corpus cases | ready | F1-06, F2-04 | — |
+| [F5-02](roadmap/tasks/F5-02.json) | Add vendor-neutral conservation and stability cases | leased | — | codex-linux-thomas-laptop / ThomasLaptop / 2026-10-18T05:37:12Z |
+| [F5-03](roadmap/tasks/F5-03.json) | Add capacity and three-family corpus cases | waiting on lock | F1-06, F2-04 | — |
 | [F5-04](roadmap/tasks/F5-04.json) | Isolate CPU rigid-direct divergence | ready | — | — |
 | [F5-05](roadmap/tasks/F5-05.json) | Isolate shared brick penetration failure | ready | — | — |
 | [F5-06](roadmap/tasks/F5-06.json) | Classify CUDA/D3D12 comparison failures | ready | — | — |
