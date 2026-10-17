@@ -8,6 +8,7 @@ import itertools
 import json
 import pathlib
 import sys
+import tempfile
 import unittest
 
 
@@ -178,8 +179,18 @@ class QualificationTests(unittest.TestCase):
             path = REPOSITORY / contract["path"]
             with self.subTest(contract=contract["id"]):
                 self.assertTrue(path.is_file())
-                self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),
+                self.assertEqual(qualification.profile_sha256(path),
                                  contract["sha256"])
+
+    def test_contract_hash_is_checkout_line_ending_stable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            lf = root / "lf.xml"
+            crlf = root / "crlf.xml"
+            lf.write_bytes(b"<registry>\n</registry>\n")
+            crlf.write_bytes(b"<registry>\r\n</registry>\r\n")
+            self.assertEqual(qualification.profile_sha256(lf),
+                             qualification.profile_sha256(crlf))
 
     def test_fully_evidenced_equal_fluid_mode_passes(self):
         report = self.evaluate(valid_equal_fluid_result(self.profile))

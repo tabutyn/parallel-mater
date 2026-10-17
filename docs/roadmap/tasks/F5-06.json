@@ -1,7 +1,7 @@
 {
   "id": "F5-06",
   "title": "Classify CUDA/D3D12 comparison failures",
-  "status": "leased",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "quality-cross-driver"
@@ -14,15 +14,29 @@
     "Exact build/case hashes and first divergence are retained.",
     "Create separate corrective tasks per cause; do not rewrite goldens to hide failures."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "b38b665f-c3aa-4489-b039-49b274e87a65",
-    "owner": "codex-windows-physics",
-    "machine": "windows-gtx1080",
-    "branch": "work/F5-06/windows-gtx1080",
-    "claimed_at": "2026-10-17T12:28:19Z",
-    "heartbeat_at": "2026-10-17T12:28:19Z",
-    "expires_at": "2026-10-18T12:28:19Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: revisioned Windows report SHA-256 c77dc237b572e7e35614993f90c66902b70ee081480ebd64f3a623b7b50c3620 retains all ten original first differences, 17 case hashes, qualified driver hashes, unchanged inputs/tolerances/goldens, and maps each failed case to relative-pose/solver, contact-feature/manifold or cross-target arithmetic causes resolved by F5-10.",
+    "PASS: python -m unittest discover -s conformance/v1/tests -p test_*.py; 67 tests on Windows. JSON/XML hashes normalize only CRLF to LF; binary negative control remains byte-exact. python conformance/v1/evidence_index.py --check reports 0/0 capabilities and 2 visible reports; all 6 canonical manifest hashes match."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "b38b665f-c3aa-4489-b039-49b274e87a65",
+        "owner": "codex-windows-physics",
+        "machine": "windows-gtx1080",
+        "branch": "work/F5-06/windows-gtx1080",
+        "claimed_at": "2026-10-17T12:28:19Z",
+        "heartbeat_at": "2026-10-17T12:28:19Z",
+        "expires_at": "2026-10-18T12:28:19Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T12:33:09Z",
+      "reason": "Classified all ten retained CUDA/D3D12 divergences and made pinned text-contract verification checkout-stable on Windows without weakening binary identity.",
+      "evidence": [
+        "PASS: revisioned Windows report SHA-256 c77dc237b572e7e35614993f90c66902b70ee081480ebd64f3a623b7b50c3620 retains all ten original first differences, 17 case hashes, qualified driver hashes, unchanged inputs/tolerances/goldens, and maps each failed case to relative-pose/solver, contact-feature/manifold or cross-target arithmetic causes resolved by F5-10.",
+        "PASS: python -m unittest discover -s conformance/v1/tests -p test_*.py; 67 tests on Windows. JSON/XML hashes normalize only CRLF to LF; binary negative control remains byte-exact. python conformance/v1/evidence_index.py --check reports 0/0 capabilities and 2 visible reports; all 6 canonical manifest hashes match."
+      ]
+    }
+  ]
 }

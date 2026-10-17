@@ -558,6 +558,49 @@
       }
     ]
   },
+  "failure_classification": {
+    "baseline_failure_count": 10,
+    "corrective_task": "F5-10",
+    "categories": [
+      {
+        "id": "relative-pose-and-solver-response",
+        "primary_cases": [
+          "constraint-fixed",
+          "constraint-generic-spring",
+          "constraint-generic",
+          "constraint-hinge",
+          "constraint-motor",
+          "constraint-point",
+          "passive-active"
+        ],
+        "reproduction": "Torque-free arbitrary-orientation spin plus constraint/contact checkpoints isolate cancellation in nearly equal world-space orientations and anchors before contact sets diverge.",
+        "correction": "Identity-relative orientation deltas, stable quaternion logarithms and relative tangent motion preserve small updates without a backend-specific solver."
+      },
+      {
+        "id": "contact-feature-and-manifold-classification",
+        "primary_cases": [
+          "cloth-tear",
+          "fluid-rigid"
+        ],
+        "reproduction": "Closed/open concave seams, two-sided sheets, boundary-edge impacts and centered convex sweeps distinguish missing support contacts from false lateral or co-facing contacts.",
+        "correction": "Shared convex face clipping, certified exterior separation and open/concave feature metadata restore support while rejecting false seams."
+      },
+      {
+        "id": "cross-target-floating-point-contract",
+        "primary_cases": [
+          "rigid-direct"
+        ],
+        "reproduction": "The direct integration case first diverges only in final combined momentum, before a contact-list topology mismatch.",
+        "correction": "CUDA uses explicit multiply/add, division and square-root behavior matching the precise graphics target; common radial projection arithmetic is shared."
+      }
+    ],
+    "cross_cutting_effects": "Relative-pose drift and floating-point ordering also changed later contact branches in the constraint, passive-active and coupled cases; categories name the earliest independently reduced cause, not mutually exclusive symptoms.",
+    "case_hashes_retained": true,
+    "first_divergences_retained": true,
+    "canonical_inputs_changed": false,
+    "tolerances_changed": false,
+    "historical_goldens_changed": false
+  },
   "physical_quality": {
     "brick_separation": {
       "bodies": 8,

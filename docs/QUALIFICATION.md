@@ -138,6 +138,25 @@ rejects altered fixtures, incomplete execution, invalid frames, nonfinite or
 negative depths and excessive penetration. This closes the F5-05 investigation;
 current-build per-driver submissions remain separate F5-11 work.
 
+### F5-06 CUDA/D3D12 divergence classification
+
+The revisioned Windows report retains every original first difference, all 17
+case hashes and both qualified driver hashes. The ten baseline failures reduce
+to these primary causes:
+
+| Primary reduced cause | Cases |
+|---|---|
+| Relative pose/anchor cancellation and solver response | `constraint-fixed`, `constraint-generic-spring`, `constraint-generic`, `constraint-hinge`, `constraint-motor`, `constraint-point`, `passive-active` |
+| Contact feature and manifold classification | `cloth-tear`, `fluid-rigid` |
+| Cross-target floating-point compilation contract | `rigid-direct` |
+
+These groups identify the earliest independent reproduction, not mutually
+exclusive later symptoms: small pose or arithmetic drift can change a later
+contact branch. The report records this qualification explicitly and preserves
+unchanged inputs, tolerances and historical goldens. JSON/XML contract hashes
+now normalize only Git's CRLF checkout conversion to canonical LF; binary
+hashes and every other byte remain exact.
+
 Reports must distinguish compilation, execution, reference regression, analytic
 or invariant physical quality, and performance. An unsupported case counts as
 neither a pass nor a numerical failure, and leaves its qualification scope open.
