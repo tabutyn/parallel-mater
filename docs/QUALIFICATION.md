@@ -6,15 +6,28 @@ the exact source, driver, toolchain, device, case hashes and settings. Repeat th
 affected scope after changes; historical passes do not automatically qualify a
 new build.
 
+## Per-driver evidence index
+
+<!-- BEGIN GENERATED DRIVER EVIDENCE -->
+| Driver | Current capability result | Qualified records | Open evidence |
+|---|---|---:|---|
+| Slang CPU | None | 0 | 1 missing qualification result |
+| CUDA | None | 0 | Supplemental: [`windows-gtx1080-physics-2026-10-16`](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json); 10 historical baseline failure, 3 limitation, 1 missing qualification result |
+| D3D12 | None | 0 | Supplemental: [`windows-gtx1080-physics-2026-10-16`](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json); 10 historical baseline failure, 3 limitation, 1 missing qualification result, 2 unsupported |
+| Vulkan | None | 0 | 1 missing qualification result |
+| Metal | None | 0 | 1 missing qualification result |
+
+Index status: **0 qualified capability records from 2 revisioned report records**. Supplemental and historical evidence remains visible but never certifies a capability.
+<!-- END GENERATED DRIVER EVIDENCE -->
+
+Only the generated block states current per-driver capability qualification.
+The scope table below records project-wide contracts and other evidence without
+promoting those results to capability certification.
+
 | Scope | Evidence and host scope | Unqualified or failed scope |
 |---|---|---|
 | Resource lifetime and capacity (F1) | Reference-lifecycle foundation closed by F1-01–F1-07: exact-query fluid churn/recovery; CUDA mixed-domain churn; geometry, paint and borrowed-endpoint replacement; failure/pending lifetime; fixed host owner metadata. F5-03 adds the immutable adverse-capacity lifecycle profile and evaluator. | No driver is newly qualified by the profile alone; each advertising driver must emit a complete passing result. Numerical physics, remaining driver/domain pairs and host/OS budget accuracy remain separate; see F2-04, F4-05 and P1-01. |
 | SDK/loader/host contracts | 33 shader-free `sdk-ci` CTests; relocated C/C++ consumers and separately built mock driver; standalone conformance checks all 30 inputs | New remote workflow not yet verified; Windows/macOS installed packages not run here; physics not evaluated by this gate |
-| Slang CPU | Current foundation suite: 49/49 passed as configured with four expected unsupported-domain skips; exact queried fluid lifecycle/recovery; private host fixtures cover paint, endpoint and injected-failure paths without advertising solver support | Mixed particle domains unsupported; fixture execution is lifecycle evidence only; `rigid-direct` final angular velocity fails historical CUDA comparison |
-| CUDA | Linux public rigid/fluid/cloth command API after scene SDK extraction and earlier exact-query lifecycle checks; Windows GTX 1080 passes 17/17 same-build CUDA/D3D12 comparisons and independent brick/contact checks | Full current 30-case physical qualification and performance targets incomplete |
-| Vulkan | Six reflected modules and SPIR-V checks; public API and async tests with native validation; fluid lifecycle with PM validation | Fluid lifecycle crashes inside installed native Vulkan validation layer; reproduced with previous binding generator too |
-| D3D12 | Windows GTX 1080: 17/17 selected CUDA comparisons, zero unsupported; independent eight-brick/300-frame penetration 0.205278 mm against the unchanged 2 mm limit, matching CUDA | Remaining domains, devices and performance targets unqualified; comparison agreement alone is not physical quality |
-| Metal | Existing preview/compiler evidence documented separately | Not runnable on this host; see Metal qualification document |
 | Interaction graph lifecycle (F2-04) | Linux RTX 3050 Ti CUDA executes all 12 implemented pairs through pipeline and explicit create/update/clear, six-family endpoint replacement, three-family mutation and partial-create rollback. F5-03 makes the adverse sequence a hashed two-case lifecycle contract with exact preservation checks. | Existing runtime evidence predates the F5-03 result schema. Production CPU and Vulkan report the complete-domain case unsupported; D3D12 and Metal were not run. Unsupported never passes the lifecycle evaluator; lifecycle execution does not qualify numerical accuracy. |
 | Vendor-neutral physical quality (F5-02) | Hashed `core-conservation-stability-v1` profile and independent evaluator cover pressure/contact and viscosity across 18 timestep/mass-ratio samples; negative tests reject momentum, angular-momentum, energy, split/combined, sweep, provenance and inactive-exchange faults | This defines the gate but does not qualify a driver; F2-10 must produce public-API results for each advertising driver, and later profiles still need their own fixtures |
 | Capability evidence obligations (F5-01) | Hashed `capability-obligations-v1` rules cover all 49 API 0.2 interaction records exactly once and keep compilation, execution, regression, lifecycle, analytic and timing evidence separate. Revision, contract, binary, device and toolchain provenance are mandatory. | This defines validation, not new driver evidence. Known missing lifecycle/analytic contracts fail explicitly; F2-10 and later qualification leaves must supply complete per-driver results. |

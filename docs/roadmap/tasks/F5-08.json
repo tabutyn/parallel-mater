@@ -1,7 +1,7 @@
 {
   "id": "F5-08",
   "title": "Publish per-driver evidence indexes",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-01"
   ],
@@ -16,15 +16,35 @@
     "Stale source/case hashes, absent cases and unsupported results cannot certify a mode.",
     "Known failures remain visible and source/toolchain/device tuples are preserved."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "a406c8d0-34cc-4d3a-95e0-16560c438e24",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F5-08/thomas-laptop",
-    "claimed_at": "2026-10-17T06:06:57Z",
-    "heartbeat_at": "2026-10-17T06:06:57Z",
-    "expires_at": "2026-10-18T06:06:57Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: evidence-index negative tests reject stale contract/source hashes, absent evidence and unsupported results; none can produce a qualified capability row.",
+    "PASS: published index preserves source commit, driver binary, device/driver and compiler/Slang/CUDA/DXC provenance from the revisioned Windows report.",
+    "PASS: 59 conformance tests, including byte-exact checked index/documentation generation; known historical failures, limitations, unsupported scopes and missing current results remain visible.",
+    "PASS: compiled conformance input/registry/comparator gates (3/3) and relocatable SDK install/input checks; installed evidence index hash matches the manifest.",
+    "LIMITATION: no current production-driver F5-01 result is registered, so the honest published matrix qualifies 0 capability records; supplemental reports cannot certify modes."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "a406c8d0-34cc-4d3a-95e0-16560c438e24",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F5-08/thomas-laptop",
+        "claimed_at": "2026-10-17T06:06:57Z",
+        "heartbeat_at": "2026-10-17T06:06:57Z",
+        "expires_at": "2026-10-18T06:06:57Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T06:14:32Z",
+      "reason": "Published a deterministic per-driver capability matrix and generated documentation claims from revisioned evidence.",
+      "evidence": [
+        "PASS: evidence-index negative tests reject stale contract/source hashes, absent evidence and unsupported results; none can produce a qualified capability row.",
+        "PASS: published index preserves source commit, driver binary, device/driver and compiler/Slang/CUDA/DXC provenance from the revisioned Windows report.",
+        "PASS: 59 conformance tests, including byte-exact checked index/documentation generation; known historical failures, limitations, unsupported scopes and missing current results remain visible.",
+        "PASS: compiled conformance input/registry/comparator gates (3/3) and relocatable SDK install/input checks; installed evidence index hash matches the manifest.",
+        "LIMITATION: no current production-driver F5-01 result is registered, so the honest published matrix qualifies 0 capability records; supplemental reports cannot certify modes."
+      ]
+    }
+  ]
 }

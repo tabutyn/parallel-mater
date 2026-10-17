@@ -1044,51 +1044,29 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
-    const std::filesystem::path quality_relative =
-        "conformance/v1/quality/core-conservation-v1.json";
-    const auto quality_path = root / quality_relative;
-    if (!std::filesystem::is_regular_file(quality_path)) {
-        std::cerr << "missing quality profile: " << quality_path << '\n';
-        valid = false;
-    } else {
-        const std::string quality_hash = sha256_file(quality_path);
-        const std::string entry = "\"" + quality_relative.generic_string() +
-                                  "\":\"" + quality_hash + "\"";
-        if (manifest.find(entry) == std::string::npos) {
-            std::cerr << "manifest quality-profile checksum mismatch: "
-                      << quality_path << '\n';
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 5U>
+        pinned_inputs{{
+            {"quality profile", "conformance/v1/quality/core-conservation-v1.json"},
+            {"lifecycle profile", "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json"},
+            {"qualification profile",
+             "conformance/v1/qualification/capability-obligations-v1.json"},
+            {"evidence sources", "conformance/v1/evidence/evidence-sources-v1.json"},
+            {"evidence index", "conformance/v1/evidence/index-v1.json"},
+        }};
+    for (const auto &[label, relative_text] : pinned_inputs) {
+        const std::filesystem::path relative{std::string(relative_text)};
+        const auto path = root / relative;
+        if (!std::filesystem::is_regular_file(path)) {
+            std::cerr << "missing " << label << ": " << path << '\n';
             valid = false;
+            continue;
         }
-    }
-    const std::filesystem::path lifecycle_relative =
-        "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json";
-    const auto lifecycle_path = root / lifecycle_relative;
-    if (!std::filesystem::is_regular_file(lifecycle_path)) {
-        std::cerr << "missing lifecycle profile: " << lifecycle_path << '\n';
-        valid = false;
-    } else {
-        const std::string lifecycle_hash = sha256_file(lifecycle_path);
-        const std::string entry = "\"" + lifecycle_relative.generic_string() +
-                                  "\":\"" + lifecycle_hash + "\"";
+        const std::string hash = sha256_file(path);
+        const std::string entry = "\"" + relative.generic_string() +
+                                  "\":\"" + hash + "\"";
         if (manifest.find(entry) == std::string::npos) {
-            std::cerr << "manifest lifecycle-profile checksum mismatch: "
-                      << lifecycle_path << '\n';
-            valid = false;
-        }
-    }
-    const std::filesystem::path qualification_relative =
-        "conformance/v1/qualification/capability-obligations-v1.json";
-    const auto qualification_path = root / qualification_relative;
-    if (!std::filesystem::is_regular_file(qualification_path)) {
-        std::cerr << "missing qualification profile: " << qualification_path << '\n';
-        valid = false;
-    } else {
-        const std::string qualification_hash = sha256_file(qualification_path);
-        const std::string entry = "\"" + qualification_relative.generic_string() +
-                                  "\":\"" + qualification_hash + "\"";
-        if (manifest.find(entry) == std::string::npos) {
-            std::cerr << "manifest qualification-profile checksum mismatch: "
-                      << qualification_path << '\n';
+            std::cerr << "manifest " << label << " checksum mismatch: "
+                      << path << '\n';
             valid = false;
         }
     }

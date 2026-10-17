@@ -90,6 +90,18 @@ release; routine text-only generation is not that artifact step. Reproducible
 configuration and pinned inputs are required; bit-identical binaries have not
 yet been established across hosts/toolchains.
 
+Register each raw capability result in
+`conformance/v1/evidence/evidence-sources-v1.json`, regenerate the published
+index, and require this release check:
+
+```text
+python3 conformance/v1/evidence_index.py --check
+```
+
+The check re-evaluates raw results against the pinned obligations and verifies
+the per-driver block in `docs/QUALIFICATION.md`. Supplemental historical
+reports remain visible but contribute no qualified capability records.
+
 No release may label a backend or the whole library "conformant" from compiler
 success, a demo, or agreement with a single historical capture. See
 [qualification scope](QUALIFICATION.md) and [contribution rules](../CONTRIBUTING.md).
