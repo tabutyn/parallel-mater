@@ -1,7 +1,7 @@
 {
   "id": "F2-07",
   "title": "Exchange fluid pressure and contact forces",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F2-06"
   ],
@@ -17,6 +17,14 @@
     "Split versus combined populations pass pressure/contact fixtures."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "c377a24a-d573-469a-ac4f-8e18c4e7ee97",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F2-07/thomas-laptop",
+    "claimed_at": "2026-10-17T04:04:32Z",
+    "heartbeat_at": "2026-10-17T04:04:32Z",
+    "expires_at": "2026-10-18T04:04:32Z"
+  },
   "history": []
 }
