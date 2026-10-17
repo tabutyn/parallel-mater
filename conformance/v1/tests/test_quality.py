@@ -17,6 +17,7 @@ quality = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = quality
 SPEC.loader.exec_module(quality)
 PROFILE_PATH = ROOT / "quality" / "core-conservation-v1.json"
+BRICK_PROFILE_PATH = ROOT / "quality" / "rigid-brick-penetration-v1.json"
 
 
 def particle(identity: int) -> dict:
@@ -203,6 +204,75 @@ class QualityTests(unittest.TestCase):
         result = valid_result(self.profile)
         result.pop("driver")
         self.assert_rejected(result, "driver name and device are required")
+
+
+class RigidPenetrationQualityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.profile = json.loads(BRICK_PROFILE_PATH.read_text(encoding="utf-8"))
+        cls.digest = quality.profile_sha256(BRICK_PROFILE_PATH)
+
+    def valid_result(self) -> dict:
+        fixture = copy.deepcopy(self.profile["fixture"])
+        fixture.update({
+            "maximum_penetration_m": 0.000205278,
+            "maximum_penetration_frame": 187,
+        })
+        return {
+            "schema": quality.RESULT_SCHEMA,
+            "profile_id": self.profile["id"],
+            "profile_sha256": self.digest,
+            "execution_status": "completed",
+            "driver": {"name": "test-driver", "device": "test-device"},
+            "fixture": fixture,
+        }
+
+    def evaluate(self, result: dict) -> dict:
+        return quality.evaluate(self.profile, result, self.digest)
+
+    def assert_rejected(self, result: dict, message: str) -> None:
+        report = self.evaluate(result)
+        self.assertFalse(report["passed"])
+        self.assertTrue(any(message in failure["message"]
+                            for failure in report["failures"]), report)
+
+    def test_independent_brick_measurement_passes(self):
+        report = self.evaluate(self.valid_result())
+        self.assertTrue(report["passed"], report)
+        self.assertEqual(report["fixture_count"], 1)
+        self.assertEqual(report["sample_count"], 1)
+
+    def test_excessive_or_negative_penetration_fails(self):
+        result = self.valid_result()
+        result["fixture"]["maximum_penetration_m"] = 0.0020001
+        self.assert_rejected(result, "maximum penetration exceeds profile")
+
+        result = self.valid_result()
+        result["fixture"]["maximum_penetration_m"] = -0.001
+        self.assert_rejected(result, "penetration cannot be negative")
+
+    def test_fixture_configuration_and_frame_are_exact(self):
+        for field, value in (("body_count", 7), ("frames", 299),
+                             ("substeps", 1), ("scene", "Other.glb"),
+                             ("oracle", "driver-contacts")):
+            with self.subTest(field=field):
+                result = self.valid_result()
+                result["fixture"][field] = value
+                self.assert_rejected(result,
+                                     "fixture setting does not match profile")
+
+        result = self.valid_result()
+        result["fixture"]["maximum_penetration_frame"] = 300
+        self.assert_rejected(result, "outside the run")
+
+    def test_failed_or_nonfinite_measurement_cannot_pass(self):
+        result = self.valid_result()
+        result["execution_status"] = "failed"
+        self.assert_rejected(result, "must be completed")
+
+        result = self.valid_result()
+        result["fixture"]["maximum_penetration_m"] = float("nan")
+        self.assert_rejected(result, "expected a finite number")
 
 
 if __name__ == "__main__":

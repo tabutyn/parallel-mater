@@ -1,0 +1,23 @@
+{
+  "schema": "parallel-mater-conformance-quality-profile/v1",
+  "id": "rigid-brick-penetration-v1",
+  "title": "Rigid brick stack surface separation",
+  "evaluation": "maximum_pairwise_penetration",
+  "sources": {
+    "fixture": "tests/gallery/command_gallery_tests.cpp: generated RigidBody.glb brick scene",
+    "oracle": "tests/gallery/rigid_mesh_checks.hpp: independent closed-mesh surface sampling",
+    "limit": "docs/roadmap/tasks/F5-05.json: retained pre-correction 2 mm gate"
+  },
+  "fixture": {
+    "id": "eight-brick-stack",
+    "scene": "RigidBody.glb",
+    "body_count": 8,
+    "frames": 300,
+    "substeps": 4,
+    "timestep_seconds": 0.016666666666666666,
+    "oracle": "independent-closed-mesh-surface-sampling"
+  },
+  "tolerances": {
+    "maximum_penetration_m": 0.002
+  }
+}
