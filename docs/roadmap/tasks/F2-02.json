@@ -1,7 +1,7 @@
 {
   "id": "F2-02",
   "title": "Expose pair and material capability queries",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F2-01"
   ],
@@ -17,15 +17,33 @@
     "An external SDK consumer enumerates exact modes and limits.",
     "Unknown pairs/modes and unsupported material combinations return documented results."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "0bf893e2-1b53-4468-8aa7-908857bc4e05",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F2-02/thomas-laptop",
-    "claimed_at": "2026-10-17T02:24:31Z",
-    "heartbeat_at": "2026-10-17T02:24:31Z",
-    "expires_at": "2026-10-18T02:24:31Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: python3 tools/check_sdk_install.py --build-dir build-foundations --output /tmp/pm-f2-sdk-final-20261017; a separately built vendor driver and installed C/C++ SDK consumers enumerate an exact finite limit and verify malformed pair/mode plus unsupported mode/material results.",
+    "PASS: cmake --build build-foundations -j2 and ctest --test-dir build-foundations -j2 --output-on-failure; all 46 configured tests passed, with only the three documented unsupported CPU domain/coupling/paint suites skipped.",
+    "PASS: python3 tools/reference/build.py --check-generated and cc -std=c11 -Wall -Wextra -Wpedantic -pedantic-errors -Iinclude -fsyntax-only examples/sdk/devices.c; generated headers/specification match the registry and the public C ABI is strict-C11 clean.",
+    "REVIEW: registry/pm.xml is the reference capability inventory; tools/registry/generate.py emits per-driver records filtered by exact feature requirements, including independent smoke representations and graph limits."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "0bf893e2-1b53-4468-8aa7-908857bc4e05",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F2-02/thomas-laptop",
+        "claimed_at": "2026-10-17T02:24:31Z",
+        "heartbeat_at": "2026-10-17T02:24:31Z",
+        "expires_at": "2026-10-18T02:24:31Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T02:36:05Z",
+      "reason": "Added registry-generated exact interaction capability enumeration and keyed lookup across the public ABI, reference driver, loader, independent vendor mock and installed SDK.",
+      "evidence": [
+        "PASS: python3 tools/check_sdk_install.py --build-dir build-foundations --output /tmp/pm-f2-sdk-final-20261017; a separately built vendor driver and installed C/C++ SDK consumers enumerate an exact finite limit and verify malformed pair/mode plus unsupported mode/material results.",
+        "PASS: cmake --build build-foundations -j2 and ctest --test-dir build-foundations -j2 --output-on-failure; all 46 configured tests passed, with only the three documented unsupported CPU domain/coupling/paint suites skipped.",
+        "PASS: python3 tools/reference/build.py --check-generated and cc -std=c11 -Wall -Wextra -Wpedantic -pedantic-errors -Iinclude -fsyntax-only examples/sdk/devices.c; generated headers/specification match the registry and the public C ABI is strict-C11 clean.",
+        "REVIEW: registry/pm.xml is the reference capability inventory; tools/registry/generate.py emits per-driver records filtered by exact feature requirements, including independent smoke representations and graph limits."
+      ]
+    }
+  ]
 }
