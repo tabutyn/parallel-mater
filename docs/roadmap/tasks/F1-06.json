@@ -1,7 +1,7 @@
 {
   "id": "F1-06",
   "title": "Qualify allocation failure and pending lifetime",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F1-03",
     "F1-04",
@@ -18,15 +18,35 @@
     "Every failure stage has a recovery case and an unchanged unrelated resource.",
     "Evidence distinguishes recording errors from deferred completion errors."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "bb152642-4dca-41ab-96be-0d7d05914ded",
-    "owner": "codex-linux-thomas-laptop",
-    "machine": "ThomasLaptop",
-    "branch": "work/F1-06/thomas-laptop",
-    "claimed_at": "2026-10-17T01:19:29Z",
-    "heartbeat_at": "2026-10-17T01:19:29Z",
-    "expires_at": "2026-10-18T01:19:29Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: public API failure lifecycle test injects allocation, recording, pre-acceptance submission and deferred upload failures; every stage recovers and preserves an unrelated mapped buffer",
+    "PASS: advertised Slang CPU async test holds a recorded simulation reset behind a timeline wait, rejects command/fence reset while pending, then completes and reuses both after the producer signal",
+    "PASS: build-foundations ctest 44/44, with three expected unsupported production CPU domain skips",
+    "PASS: PARALLEL_MATER_SLANG_CPU_LIQUIDS=OFF private fixture build and failure lifecycle test in /tmp/parallel-mater-f106-cpu-off",
+    "Docs: RESOURCE-LIFETIME and generated specification distinguish recording, acceptance and deferred completion errors"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "bb152642-4dca-41ab-96be-0d7d05914ded",
+        "owner": "codex-linux-thomas-laptop",
+        "machine": "ThomasLaptop",
+        "branch": "work/F1-06/thomas-laptop",
+        "claimed_at": "2026-10-17T01:19:29Z",
+        "heartbeat_at": "2026-10-17T01:19:29Z",
+        "expires_at": "2026-10-18T01:19:29Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T01:29:35Z",
+      "reason": "Public API qualification now covers failure recovery at allocation, recording, submission acceptance and deferred execution boundaries, plus pending reset lifetime on the advertised Slang CPU driver.",
+      "evidence": [
+        "PASS: public API failure lifecycle test injects allocation, recording, pre-acceptance submission and deferred upload failures; every stage recovers and preserves an unrelated mapped buffer",
+        "PASS: advertised Slang CPU async test holds a recorded simulation reset behind a timeline wait, rejects command/fence reset while pending, then completes and reuses both after the producer signal",
+        "PASS: build-foundations ctest 44/44, with three expected unsupported production CPU domain skips",
+        "PASS: PARALLEL_MATER_SLANG_CPU_LIQUIDS=OFF private fixture build and failure lifecycle test in /tmp/parallel-mater-f106-cpu-off",
+        "Docs: RESOURCE-LIFETIME and generated specification distinguish recording, acceptance and deferred completion errors"
+      ]
+    }
+  ]
 }

@@ -4,6 +4,7 @@
 #include <new>
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 
 namespace parallel_mater::device {
 
@@ -41,6 +42,10 @@ PmResult SubmissionQueue::enqueue(
         std::lock_guard lock(mutex_);
         if (stopping_ || !completion || completion->status() != PM_NOT_READY)
             return PM_ERROR_INVALID_STATE;
+#if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
+        if (std::getenv("PM_TEST_FAIL_SUBMISSION") != nullptr)
+            return PM_ERROR_OUT_OF_HOST_MEMORY;
+#endif
         work_.push_back({std::move(work), std::move(ready), completion});
         // All allocations and validation precede this no-fail publication.
         // The worker cannot observe the work until its handles are pending.

@@ -17,6 +17,7 @@
 #include <condition_variable>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <map>
 #include <memory>
@@ -331,6 +332,12 @@ inline PmResult record(PmCommandBuffer buffer,
                            parallel_mater::device::Services &)> command) noexcept {
     const PmResult state = require_recording(buffer);
     if (state != PM_SUCCESS) return state;
+#if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
+    if (std::getenv("PM_TEST_FAIL_RECORDING") != nullptr) {
+        buffer->latched_error = PM_ERROR_OUT_OF_HOST_MEMORY;
+        return buffer->latched_error;
+    }
+#endif
     try {
         buffer->commands.push_back(std::move(command));
         return PM_SUCCESS;

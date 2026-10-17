@@ -37,6 +37,17 @@ a command-buffer error. Nonempty fluid input needs PARTICLE_INPUT usage and a
 view whose declared range covers every element. A zero particle count ignores
 buffer, offset, range, format and stride and creates a valid empty population.
 
+Failure timing determines recovery. An allocation failure publishes no resource
+handle. A recording allocation failure is returned by the recording command,
+latched by `pmEndCommandBuffer`, and cleared by command-buffer reset. A submit
+failure before acceptance leaves the command buffer executable, the fence
+unsignaled and all referenced simulations non-pending, so the same submission
+may be retried. Failures after acceptance are deferred: `pmQueueSubmit` succeeds
+and the fence, timeline, query or simulation status reports the execution error
+after native work drains. Command buffers, fences, referenced resources and
+their memory remain pending until that completion, including a recorded
+simulation reset waiting on a timeline dependency.
+
 The reference driver retires the target population before validating device
 particle contents. If execution fails, the target may be empty. The submission
 stops at the first failure, drains already issued native work, then reports the
@@ -114,6 +125,14 @@ replacements with emitter and destroy-plane rebinding, moves endpoints between
 fluid slots, recovers from failed construction, preserves the other fluid and
 reuses the same exact queried binding after reset. These tests do not establish
 numerical solver quality.
+
+`tests/api/failure_lifecycle_tests.cpp` uses the public API against a private,
+non-installed host fixture to inject allocation, recording, submit-acceptance
+and deferred upload failures. Every stage retries successfully while a separate
+mapped buffer remains unchanged. `tests/api/async_submission_tests.cpp` supplies
+native-driver evidence: a timeline-blocked reset keeps its command buffer,
+fence and simulation pending, then completes and becomes reusable after the
+producer signal.
 
 `tests/solver/memory_arena_tests.cpp` additionally verifies coalescing, live-data
 isolation, exact-capacity allocation, alignment, rejected oversized allocations,

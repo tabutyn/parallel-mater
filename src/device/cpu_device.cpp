@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <new>
@@ -115,6 +116,12 @@ class CpuServices final : public Services {
                                     void **output) noexcept override {
         if (output == nullptr || size == 0U || size > SIZE_MAX)
             return PM_ERROR_INVALID_ARGUMENT;
+#if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
+        if (std::getenv("PM_TEST_FAIL_ALLOCATION") != nullptr) {
+            *output = nullptr;
+            return PM_ERROR_OUT_OF_DEVICE_MEMORY;
+        }
+#endif
         return from_driver_error(cudaMalloc(
             output, static_cast<std::size_t>(size)));
     }
@@ -141,6 +148,10 @@ class CpuServices final : public Services {
         void *destination, std::unique_ptr<std::byte[]> source,
         PmDeviceSize size) noexcept override {
         if (!source) return PM_ERROR_INVALID_ARGUMENT;
+#if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
+        if (std::getenv("PM_TEST_FAIL_UPLOAD") != nullptr)
+            return PM_ERROR_OUT_OF_DEVICE_MEMORY;
+#endif
         return copy(destination, source.get(), size,
                     CopyDirection::host_to_device);
     }

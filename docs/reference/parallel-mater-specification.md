@@ -1643,7 +1643,7 @@ Primary buffers only. Begin discards prior recording and starts from Initial, Ex
 | Completion | Reusable → Executable; one-time → Invalid |
 | Invalid | Begin → Recording; reset → Initial, or free |
 
-Rejected argument/state validation does not enqueue a command and recording may continue. A latched recording allocation failure makes End fail. Destruction drains pending work in the reference drivers, but does not rewrite recorded references. After destroying a referenced resource, reset or free every dependent command buffer before reuse. Application code must preserve pipeline, geometry, buffers, query pools and memory until completion. Pipeline bindings do not carry across buffers.
+Rejected argument/state validation does not enqueue a command and recording may continue. A latched recording allocation failure makes End fail until command-buffer reset. A submit failure before acceptance leaves the command buffer executable and its fence unsignaled, so the submission may be retried. Destruction drains pending work in the reference drivers, but does not rewrite recorded references. After destroying a referenced resource, reset or free every dependent command buffer before reuse. Application code must preserve pipeline, geometry, buffers, query pools and memory until completion. Pipeline bindings do not carry across buffers.
 
 Related sections: [13.4](#spec-submission), [13.5](#spec-fences).
 
@@ -1916,7 +1916,7 @@ PmResult pmQueueWaitIdle(PmQueue queue);
 PmResult pmDeviceWaitIdle(PmDevice device);
 ```
 
-Submit accepts Executable buffers from the queue's family. A successful call means accepted, not complete. Wait scopes name the first consuming device stages; signal scopes must be ALL_COMMANDS. Signals publish prior writes; waits make them visible in the chosen stages. Ownership transfers may still be necessary. fence may be NULL. WaitIdle is useful for shutdown, not required between frames.
+Submit accepts Executable buffers from the queue's family. A successful call means accepted, not complete. Execution failures are deferred until fence, timeline, query or simulation completion; referenced objects remain pending until native work drains. A rejected submit leaves its command buffers and fence reusable. Wait scopes name the first consuming device stages; signal scopes must be ALL_COMMANDS. Signals publish prior writes; waits make them visible in the chosen stages. Ownership transfers may still be necessary. fence may be NULL. WaitIdle is useful for shutdown, not required between frames.
 
 <a id="spec-fences"></a>
 

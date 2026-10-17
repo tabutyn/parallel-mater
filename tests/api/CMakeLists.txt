@@ -45,6 +45,22 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle geometry-li
     endif()
 endforeach()
 
+if(TARGET parallel-mater-test-driver-slang-cpu-resources)
+    add_executable(parallel-mater-failure-lifecycle-tests
+        failure_lifecycle_tests.cpp)
+    target_compile_features(parallel-mater-failure-lifecycle-tests PRIVATE
+        cxx_std_20)
+    target_link_libraries(parallel-mater-failure-lifecycle-tests PRIVATE
+        ParallelMater::parallel_mater)
+    add_dependencies(parallel-mater-failure-lifecycle-tests
+        parallel-mater-test-driver-slang-cpu-resources)
+    add_test(NAME parallel-mater-host-failure-lifecycle-tests
+        COMMAND parallel-mater-failure-lifecycle-tests)
+    set_tests_properties(parallel-mater-host-failure-lifecycle-tests PROPERTIES
+        LABELS "api;lifecycle;failure;host-fixture" TIMEOUT 120
+        ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-slang-cpu-resources.json")
+endif()
+
 if(WIN32)
     # SDK-only executables live in this subdirectory, separate from the loader
     # DLL. Windows has no build-tree RPATH; use the selected SDK's DLL directory

@@ -262,7 +262,8 @@ if(BUILD_TESTING)
         parallel_mater_test_driver_slang_cpu_resources)
     target_compile_definitions(
         parallel-mater-test-driver-slang-cpu-resources PRIVATE
-        PARALLEL_MATER_TEST_RESOURCE_DRIVER=1)
+        PARALLEL_MATER_TEST_RESOURCE_DRIVER=1
+        PARALLEL_MATER_TEST_FAILURE_DRIVER=1)
     file(GENERATE
         OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-slang-cpu-resources.json"
         CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-test-driver-slang-cpu-resources>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
