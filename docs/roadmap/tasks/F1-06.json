@@ -1,7 +1,7 @@
 {
   "id": "F1-06",
   "title": "Qualify allocation failure and pending lifetime",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F1-03",
     "F1-04",
@@ -19,6 +19,14 @@
     "Evidence distinguishes recording errors from deferred completion errors."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "bb152642-4dca-41ab-96be-0d7d05914ded",
+    "owner": "codex-linux-thomas-laptop",
+    "machine": "ThomasLaptop",
+    "branch": "work/F1-06/thomas-laptop",
+    "claimed_at": "2026-10-17T01:19:29Z",
+    "heartbeat_at": "2026-10-17T01:19:29Z",
+    "expires_at": "2026-10-18T01:19:29Z"
+  },
   "history": []
 }
