@@ -508,3 +508,85 @@ void fluid_count_pair_neighbors(
             pmAtomicAdd(first_neighbor_overflow, 1u);
     }
 }
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_apply_pair_pressure_contact(
+    uniform PMBuffer<Vec3> first_positions,
+    uniform PMBuffer<Vec3> first_velocities,
+    uniform PMBuffer<uint> first_count, uniform uint first_capacity,
+    uniform PMBuffer<Vec3> first_forces,
+    uniform PMBuffer<Vec3> second_positions,
+    uniform PMBuffer<Vec3> second_velocities,
+    uniform PMBuffer<uint> second_count, uniform uint second_capacity,
+    uniform PMBuffer<Vec3> second_forces,
+    uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> identities,
+    uniform uint total_capacity, uniform FluidOptions options
+    PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint item = pmThreadIndex();
+    if (item >= total_capacity || item >= first_capacity + second_capacity)
+        return;
+    bool second = item >= first_capacity;
+    uint local = second ? item - first_capacity : item;
+    uint count = second ? *second_count : *first_count;
+    if (local >= count) return;
+
+    Vec3 position = second ? second_positions[local] : first_positions[local];
+    Vec3 velocity = second ? second_velocities[local] : first_velocities[local];
+    uint selfIdentity = local | (second ? kFluidSecondPopulation : 0u);
+    float inverseRadius = 1.0f / options.support_radius;
+    int cx = int(floor(position.x * inverseRadius));
+    int cy = int(floor(position.y * inverseRadius));
+    int cz = int(floor(position.z * inverseRadius));
+    float supportSquared = options.support_radius * options.support_radius;
+    Vec3 acceleration = {};
+    for (int dz = -1; dz <= 1; ++dz)
+    {
+        for (int dy = -1; dy <= 1; ++dy)
+        {
+            for (int dx = -1; dx <= 1; ++dx)
+            {
+                if (cx + dx < -kFluidCellBias || cx + dx >= kFluidCellBias ||
+                    cy + dy < -kFluidCellBias || cy + dy >= kFluidCellBias ||
+                    cz + dz < -kFluidCellBias || cz + dz >= kFluidCellBias)
+                    continue;
+                uint64_t key = fluid_cell_key(cx + dx, cy + dy, cz + dz);
+                for (uint sorted = fluid_lower_bound(keys, total_capacity, key);
+                     sorted < total_capacity && keys[sorted] == key; ++sorted)
+                {
+                    uint otherIdentity = identities[sorted];
+                    bool otherSecond =
+                        (otherIdentity & kFluidSecondPopulation) != 0u;
+                    if (otherSecond == second) continue;
+                    uint other = otherIdentity & kFluidLocalIndexMask;
+                    Vec3 otherPosition = otherSecond
+                        ? second_positions[other] : first_positions[other];
+                    Vec3 delta = subtract(position, otherPosition);
+                    float squared = length_squared(delta);
+                    if (squared >= supportSquared) continue;
+                    float distance = sqrt(max(squared, 1.0e-12f));
+                    Vec3 negativeX = {-1.0f, 0.0f, 0.0f};
+                    Vec3 positiveX = {1.0f, 0.0f, 0.0f};
+                    Vec3 direction = squared > 1.0e-12f
+                        ? multiply(delta, 1.0f / distance)
+                        : (selfIdentity < otherIdentity ? negativeX : positiveX);
+                    Vec3 otherVelocity = otherSecond
+                        ? second_velocities[other] : first_velocities[other];
+                    Vec3 relativeVelocity = subtract(otherVelocity, velocity);
+                    float radialSpeed = dot(relativeVelocity, direction);
+                    float q = 1.0f - distance * inverseRadius;
+                    acceleration = add(acceleration,
+                        multiply(direction, options.repulsion *
+                            (1000.0f / options.rest_density) * q * q +
+                            options.normal_damping * radialSpeed));
+                }
+            }
+        }
+    }
+    if (second)
+        second_forces[local] = add(second_forces[local], acceleration);
+    else
+        first_forces[local] = add(first_forces[local], acceleration);
+}
