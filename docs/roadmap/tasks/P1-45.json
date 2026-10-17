@@ -1,0 +1,25 @@
+{
+  "id": "P1-45",
+  "title": "Qualify particle-smoke pair modes",
+  "status": "deferred",
+  "dependencies": [
+    "P1-44",
+    "F5-02",
+    "F5-03"
+  ],
+  "locks": [
+    "conformance-corpus",
+    "runtime-capabilities"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Run public-API particle smoke equivalence, conservation, stability, capacity and lifecycle gates before advertising.",
+  "acceptance": [
+    "Per-driver evidence covers pressure, viscosity and thermal independently, including timestep and long-run cases.",
+    "Only exact modes that pass are exposed under the smoke-particle separate-system profile."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

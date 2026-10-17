@@ -1,0 +1,25 @@
+{
+  "id": "P1-51",
+  "title": "Qualify smoke-grid pair modes",
+  "status": "deferred",
+  "dependencies": [
+    "P1-50",
+    "F5-02",
+    "F5-03"
+  ],
+  "locks": [
+    "conformance-corpus",
+    "runtime-capabilities"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Run public-API grid overlap conservation, projection, stability, capacity and lifecycle gates before advertising.",
+  "acceptance": [
+    "Per-driver evidence covers aligned/misaligned grids, unequal resolutions, partial/no overlap and timestep/long-run cases.",
+    "Only exact passing modes are exposed under the smoke-grid separate-system profile."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

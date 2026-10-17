@@ -1,0 +1,22 @@
+{
+  "id": "P1-40",
+  "title": "Expose conserved smoke material state",
+  "status": "deferred",
+  "dependencies": [
+    "P1-39"
+  ],
+  "locks": [
+    "api-spec"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Add versioned smoke mass, particle-volume and caloric fields needed for portable momentum and sensible-energy accounting.",
+  "acceptance": [
+    "Validation requires positive mass density, particle rest volume and heat capacity where used, plus nonnegative conductivity.",
+    "Legacy material state remains source-compatible and cannot be used to advertise conservative separate-system exchange."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

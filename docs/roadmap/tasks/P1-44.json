@@ -1,0 +1,25 @@
+{
+  "id": "P1-44",
+  "title": "Schedule particle-smoke pair modes",
+  "status": "deferred",
+  "dependencies": [
+    "P1-42",
+    "P1-43"
+  ],
+  "locks": [
+    "runtime-graph",
+    "runtime-memory",
+    "runtime-schedule"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Integrate particle pressure, viscosity and thermal edges into the bounded portable graph lifecycle; keep reporting gated.",
+  "acceptance": [
+    "Public graph add/remove/rebind/reset/overflow/recovery paths pass with canonical endpoints and live generations.",
+    "Reference adapters compile the shared schedule or explicitly reject each exact mode/profile."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

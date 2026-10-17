@@ -1,0 +1,23 @@
+{
+  "id": "P1-46",
+  "title": "Build conservative smoke-grid overlap maps",
+  "status": "deferred",
+  "dependencies": [
+    "P1-40"
+  ],
+  "locks": [
+    "runtime-memory",
+    "smoke-grid-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Map aligned and misaligned grid intersections with bounded conservative cell and face weights.",
+  "acceptance": [
+    "Uniform scalar/vector fields remain fixed points for equal and unequal resolution, shifted origins and partial overlap.",
+    "Weights are nonnegative, normalized to tolerance and capacity overflow is explicit and retryable."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

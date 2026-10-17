@@ -1,0 +1,22 @@
+{
+  "id": "P1-49",
+  "title": "Solve smoke-grid thermal exchange",
+  "status": "deferred",
+  "dependencies": [
+    "P1-46"
+  ],
+  "locks": [
+    "smoke-grid-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement conservative sensible-energy exchange across grid overlaps using harmonic conductivity.",
+  "acceptance": [
+    "Unequal cell volume and heat-capacity fixtures conserve energy and preserve temperature bounds.",
+    "Uniform temperature, zero conductivity, partial/no overlap and endpoint-order fixtures pass."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

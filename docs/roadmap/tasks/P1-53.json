@@ -1,0 +1,23 @@
+{
+  "id": "P1-53",
+  "title": "Solve mixed smoke thermal exchange",
+  "status": "deferred",
+  "dependencies": [
+    "P1-40"
+  ],
+  "locks": [
+    "runtime-memory",
+    "smoke-coupling-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement shared Slang particle-grid heat sampling and reciprocal conservative cell deposition.",
+  "acceptance": [
+    "Unequal particle/cell mass and heat capacity conserve sensible energy and preserve temperature bounds.",
+    "Outside, zero-conductivity, endpoint-order and capacity cases pass without mass or phase transfer."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
