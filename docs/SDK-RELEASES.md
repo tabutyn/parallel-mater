@@ -74,12 +74,13 @@ conformance against the installed SDK and installed corpus. It also distinguishe
 an unsupported capability from a missing-driver setup failure. No reference
 physics implementation is linked into the mock or application.
 
-`report.json` records source revision/dirty state, host, checks, exit codes and
-SDK file SHA-256 values. Scope is `packaging_and_public_abi`; physical quality is
-explicitly `not_evaluated`. The installed-SDK CI workflow enforces these checks
-on Linux. Other platform packaging remains unqualified until its own run is
-recorded. Successful local checks do not imply that a newly added remote job has
-already run.
+`report.json` records source revision/dirty state, host architecture, the exact
+CMake C++ compiler identity, checks, exit codes and SDK file SHA-256 values.
+Scope is `packaging_and_public_abi`; physical quality is explicitly
+`not_evaluated`. The installed-SDK CI workflow enforces these checks on Linux
+and Apple Silicon macOS. Windows packaging remains unqualified until its own run
+is recorded. Successful local checks do not imply that a newly added remote job
+has already run.
 
 A release requires a clean source revision, exact compiler/SDK/dependency
 versions, generated contract checks, retained install/consumer/driver evidence,
