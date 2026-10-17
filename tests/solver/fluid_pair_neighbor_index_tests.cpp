@@ -5,6 +5,7 @@
 #include "simulation/types.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -31,6 +32,62 @@ struct Result {
     std::uint32_t first_maximum{};
     std::uint32_t second_maximum{};
 };
+
+struct FluidState {
+    std::vector<Vec3> positions;
+    std::vector<Vec3> velocities;
+    std::vector<Vec3> previous;
+    std::vector<Vec3> forces;
+    std::vector<float> foam;
+    std::vector<float> foam_source;
+};
+
+void compute_self_forces(FluidState &state,
+    FluidDispatchConstants constants) {
+    const auto count = static_cast<std::uint32_t>(state.positions.size());
+    constants.count = count;
+    std::vector<std::uint64_t> keys[2];
+    std::vector<std::uint32_t> indices[2];
+    for (unsigned slot = 0U; slot < 2U; ++slot) {
+        keys[slot].resize(count);
+        indices[slot].resize(count);
+    }
+    std::vector<std::byte> workspace(radix_sort_scratch_bytes(count));
+    std::uint32_t live = count;
+    fluid_cell_keys((count + 127U) / 128U, 128U, {},
+        state.positions.data(), &live, count,
+        1.0F / constants.support_radius, keys[0].data(), indices[0].data());
+    CHECK(radix_sort_pairs_u64_u32({}, keys[0].data(), keys[1].data(),
+        indices[0].data(), indices[1].data(), count,
+        workspace.data(), workspace.size()) == PM_SUCCESS);
+    state.previous.resize(count);
+    state.forces.resize(count);
+    state.foam.assign(count, 0.0F);
+    state.foam_source.resize(count);
+    std::uint32_t overflow{};
+    std::uint32_t maximum{};
+    const float up[3]{0.0F, 1.0F, 0.0F};
+    fluid_forces((count + 127U) / 128U, 128U, {},
+        state.positions.data(), state.velocities.data(), state.forces.data(),
+        state.foam.data(), &live, constants, up, state.foam_source.data(),
+        keys[1].data(), indices[1].data(), &overflow, &maximum);
+    CHECK(overflow == 0U);
+}
+
+void integrate(FluidState &state, FluidDispatchConstants constants) {
+    auto count = static_cast<std::uint32_t>(state.positions.size());
+    constants.count = count;
+    integrate_fluid((count + 127U) / 128U, 128U, {},
+        state.positions.data(), state.velocities.data(), state.forces.data(),
+        state.foam.data(), &count, constants, state.previous.data(),
+        state.foam_source.data());
+}
+
+void check_close(Vec3 left, Vec3 right, float tolerance) {
+    CHECK(std::fabs(left.x - right.x) <= tolerance);
+    CHECK(std::fabs(left.y - right.y) <= tolerance);
+    CHECK(std::fabs(left.z - right.z) <= tolerance);
+}
 
 Result count_neighbors(const std::vector<Vec3> &first,
     std::uint32_t first_count, std::uint32_t first_limit,
@@ -139,6 +196,120 @@ void test_bounded_storage_plan() {
     CHECK(!fluid_pair_neighbor_index_storage_requirements(
         std::numeric_limits<std::uint32_t>::max(), 1U, requirements));
 }
+
+void test_pressure_contact_matches_combined_and_balances_momentum() {
+    FluidDispatchConstants constants{};
+    constants.timestep = 0.01F;
+    constants.count = 4U;
+    constants.particle_radius = 0.1F;
+    constants.support_radius = 1.0F;
+    constants.repulsion = 40.0F;
+    constants.viscosity = 0.0F;
+    constants.normal_damping = 2.0F;
+    constants.velocity_damping = 0.0F;
+    constants.maximum_speed = 100.0F;
+    constants.rest_density = 1'000.0F;
+    constants.maximum_neighbors = 16U;
+
+    FluidState first{{{-0.55F, 0.0F, 0.0F},
+                          {-0.15F, 0.0F, 0.0F}},
+        {{0.02F, 0.0F, 0.0F}, {-0.01F, 0.0F, 0.0F}}};
+    FluidState second{{{-0.15F, 0.0F, 0.0F},
+                           {0.65F, 0.0F, 0.0F}},
+        {{-0.02F, 0.0F, 0.0F}, {0.01F, 0.0F, 0.0F}}};
+    FluidState combined;
+    combined.positions = first.positions;
+    combined.positions.insert(combined.positions.end(),
+        second.positions.begin(), second.positions.end());
+    combined.velocities = first.velocities;
+    combined.velocities.insert(combined.velocities.end(),
+        second.velocities.begin(), second.velocities.end());
+
+    compute_self_forces(first, constants);
+    compute_self_forces(second, constants);
+    compute_self_forces(combined, constants);
+    const auto first_self = first.forces;
+    const auto second_self = second.forces;
+
+    const auto first_count = static_cast<std::uint32_t>(first.positions.size());
+    const auto second_count = static_cast<std::uint32_t>(second.positions.size());
+    const auto total = first_count + second_count;
+    std::vector<std::uint64_t> keys[2];
+    std::vector<std::uint32_t> identities[2];
+    for (unsigned slot = 0U; slot < 2U; ++slot) {
+        keys[slot].resize(total);
+        identities[slot].resize(total);
+    }
+    fluid_pair_cell_keys((total + 127U) / 128U, 128U, {},
+        first.positions.data(), &first_count, first_count,
+        second.positions.data(), &second_count, second_count,
+        1.0F / constants.support_radius, keys[0].data(), identities[0].data());
+    std::vector<std::byte> workspace(radix_sort_scratch_bytes(total));
+    CHECK(radix_sort_pairs_u64_u32({}, keys[0].data(), keys[1].data(),
+        identities[0].data(), identities[1].data(), total,
+        workspace.data(), workspace.size()) == PM_SUCCESS);
+    fluid_pair_pressure_contact((total + 127U) / 128U, 128U, {},
+        first.positions.data(), first.velocities.data(), &first_count,
+        first_count, first.forces.data(), second.positions.data(),
+        second.velocities.data(), &second_count, second_count,
+        second.forces.data(), keys[1].data(), identities[1].data(), total,
+        constants);
+
+    Vec3 residual{};
+    float exchanged = 0.0F;
+    for (std::uint32_t index = 0U; index < first_count; ++index) {
+        const Vec3 cross{first.forces[index].x - first_self[index].x,
+            first.forces[index].y - first_self[index].y,
+            first.forces[index].z - first_self[index].z};
+        residual.x += cross.x;
+        residual.y += cross.y;
+        residual.z += cross.z;
+        exchanged += std::sqrt(cross.x * cross.x + cross.y * cross.y +
+            cross.z * cross.z);
+        check_close(first.forces[index], combined.forces[index], 1.0e-4F);
+    }
+    for (std::uint32_t index = 0U; index < second_count; ++index) {
+        const Vec3 cross{second.forces[index].x - second_self[index].x,
+            second.forces[index].y - second_self[index].y,
+            second.forces[index].z - second_self[index].z};
+        residual.x += cross.x;
+        residual.y += cross.y;
+        residual.z += cross.z;
+        exchanged += std::sqrt(cross.x * cross.x + cross.y * cross.y +
+            cross.z * cross.z);
+        check_close(second.forces[index],
+            combined.forces[first_count + index], 1.0e-4F);
+    }
+    const float residual_length = std::sqrt(residual.x * residual.x +
+        residual.y * residual.y + residual.z * residual.z);
+    const float diameter = 2.0F * constants.particle_radius;
+    const float particle_mass = constants.rest_density *
+        diameter * diameter * diameter;
+    const float exchanged_impulse =
+        particle_mass * constants.timestep * exchanged;
+    const float residual_impulse =
+        particle_mass * constants.timestep * residual_length;
+    CHECK(exchanged_impulse >= 1.0e-4F);
+    CHECK(residual_impulse <=
+        std::max(1.0e-7F, 5.0e-5F * exchanged_impulse));
+
+    integrate(first, constants);
+    integrate(second, constants);
+    integrate(combined, constants);
+    for (std::uint32_t index = 0U; index < first_count; ++index) {
+        check_close(first.positions[index], combined.positions[index], 1.0e-6F);
+        check_close(first.velocities[index], combined.velocities[index], 1.0e-5F);
+        CHECK(std::fabs(first.foam[index] - combined.foam[index]) <= 1.0e-6F);
+    }
+    for (std::uint32_t index = 0U; index < second_count; ++index) {
+        check_close(second.positions[index],
+            combined.positions[first_count + index], 1.0e-6F);
+        check_close(second.velocities[index],
+            combined.velocities[first_count + index], 1.0e-5F);
+        CHECK(std::fabs(second.foam[index] - combined.foam[first_count + index]) <=
+            1.0e-6F);
+    }
+}
 } // namespace
 
 int main() {
@@ -146,5 +317,6 @@ int main() {
     test_cell_and_support_boundaries();
     test_empty_live_populations();
     test_bounded_storage_plan();
-    std::puts("PASS: shared two-fluid neighbor index and bounded endpoint accounting");
+    test_pressure_contact_matches_combined_and_balances_momentum();
+    std::puts("PASS: two-fluid neighbor index and balanced pressure/contact exchange");
 }
