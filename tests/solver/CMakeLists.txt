@@ -16,6 +16,11 @@ target_compile_features(parallel-mater-memory-arena-tests PRIVATE cxx_std_20)
 target_include_directories(parallel-mater-memory-arena-tests PRIVATE ../../src ../../include)
 add_test(NAME parallel-mater-memory-arena-tests COMMAND parallel-mater-memory-arena-tests)
 
+add_executable(parallel-mater-owner-slot-tests owner_slot_tests.cpp)
+target_compile_features(parallel-mater-owner-slot-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-owner-slot-tests PRIVATE ../../src)
+add_test(NAME parallel-mater-owner-slot-tests COMMAND parallel-mater-owner-slot-tests)
+
 add_executable(parallel-mater-geometry-resource-plan-tests
     geometry_resource_plan_tests.cpp ../../src/simulation/memory_arena.cpp)
 target_compile_features(parallel-mater-geometry-resource-plan-tests PRIVATE cxx_std_20)

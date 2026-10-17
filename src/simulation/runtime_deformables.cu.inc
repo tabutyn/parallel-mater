@@ -726,7 +726,7 @@ Status SimulationRuntime::add_cloth(ClothOptions options, ClothId &output,
     std::unique_ptr<ClothStorage> cloth;
     try { cloth = std::make_unique<ClothStorage>(); }
     catch (...) { return failure(StatusCode::out_of_memory, "failed to allocate cloth"); }
-    cloth->generation = impl_->cloths[slot] ? impl_->cloths[slot]->generation : 1U;
+    cloth->generation = impl_->cloths[slot].generation();
     cloth->vertex_count = count;
     cloth->vertex_capacity = capacity;
     cloth->stretch_compliance = options.stretch_compliance;
@@ -861,7 +861,6 @@ Status SimulationRuntime::remove_cloth(ClothId id) noexcept {
         if (coupling.alive && coupling.options.cloth == id)
             return failure(StatusCode::invalid_argument,
                 "cloth is still referenced by a rope coupling");
-    ClothStorage &cloth = *impl_->cloths[id.index];
     for (const auto &coupling : impl_->soft_cloth_couplings)
         if (coupling && coupling->alive && coupling->options.cloth == id)
             return failure(StatusCode::invalid_argument,
@@ -870,10 +869,7 @@ Status SimulationRuntime::remove_cloth(ClothId id) noexcept {
         if (coupling && coupling->alive && coupling->options.cloth == id)
             return failure(StatusCode::invalid_argument,
                            "cloth is still referenced by a smoke coupling");
-    cloth.alive = false;
-    cloth.release();
-    ++cloth.generation;
-    if (cloth.generation == 0U) cloth.generation = 1U;
+    impl_->cloths[id.index].retire();
     ++impl_->revision;
     return success();
 }
@@ -1180,8 +1176,7 @@ Status SimulationRuntime::add_soft_body(SoftBodyOptions options, SoftBodyId &out
         return failure(StatusCode::out_of_memory,
                        "failed to allocate soft-body storage");
     }
-    body->generation = impl_->soft_bodies[slot]
-        ? impl_->soft_bodies[slot]->generation : 1U;
+    body->generation = impl_->soft_bodies[slot].generation();
     body->node_count = node_count;
     body->bond_count = static_cast<std::uint32_t>(options.bonds.size);
     body->neighbor_count = static_cast<std::uint32_t>(neighbors.size());
@@ -1306,7 +1301,7 @@ Status SimulationRuntime::add_rope(RopeOptions options, RopeId &output) noexcept
     }
     std::unique_ptr<RopeStorage> owner(new(std::nothrow)RopeStorage());
     if(!owner)return failure(StatusCode::out_of_memory,"rope allocation failed");
-    owner->generation=impl_->ropes[slot]?impl_->ropes[slot]->generation:1;
+    owner->generation = impl_->ropes[slot].generation();
     auto &r=owner->data;
     r.options=options;r.options.centerline={};r.count=static_cast<unsigned>(nodes.size());
     r.first_attachment_contact_skip=first_skip;
@@ -1348,8 +1343,7 @@ Status SimulationRuntime::remove_rope(RopeId id) noexcept {
         if (coupling.alive && coupling.options.rope == id)
             return failure(StatusCode::invalid_argument,
                            "rope is still referenced by a cloth coupling");
-    auto &rope=*impl_->ropes[id.index];rope.alive=false;rope.release();++rope.generation;
-    if(rope.generation==0)rope.generation=1;
+    impl_->ropes[id.index].retire();
     ++impl_->revision;return success();
 }
 
@@ -1408,8 +1402,7 @@ Status SimulationRuntime::add_fluid_rope_coupling(
     *owner->contact_count = 0U;
     *owner->maximum_penetration = 0.0F;
     owner->options = options;
-    owner->generation = impl_->fluid_rope_couplings[slot]
-        ? impl_->fluid_rope_couplings[slot]->generation : 1U;
+    owner->generation = impl_->fluid_rope_couplings[slot].generation();
     owner->alive = true;
     output = {slot, owner->generation};
     impl_->fluid_rope_couplings[slot] = std::move(owner);
@@ -1445,10 +1438,7 @@ Status SimulationRuntime::remove_fluid_rope_coupling(FluidRopeCouplingId id) noe
         !impl_->fluid_rope_couplings[id.index]->alive ||
         impl_->fluid_rope_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle, "fluid rope coupling is stale");
-    auto &item = *impl_->fluid_rope_couplings[id.index];
-    item.release();
-    item.alive = false;
-    if (++item.generation == 0U) item.generation = 1U;
+    impl_->fluid_rope_couplings[id.index].retire();
     ++impl_->revision;
     return success();
 }
@@ -1617,8 +1607,7 @@ Status SimulationRuntime::add_rope_soft_body_coupling(RopeSoftBodyCouplingOption
         owner->previous_surface);
     *owner->contact_count=0U;*owner->maximum_penetration=0.0F;
     owner->options=options;
-    owner->generation=impl_->rope_soft_body_couplings[slot]
-        ? impl_->rope_soft_body_couplings[slot]->generation:1U;
+    owner->generation = impl_->rope_soft_body_couplings[slot].generation();
     owner->alive=true;
     if(options.enabled) {
         rope.soft_first|=options.attach_first;
@@ -1672,8 +1661,7 @@ Status SimulationRuntime::remove_rope_soft_body_coupling(RopeSoftBodyCouplingId 
         return failure(StatusCode::invalid_handle,"rope soft-body coupling is stale");
     auto &item=*impl_->rope_soft_body_couplings[id.index];
     const auto rope_id=item.options.rope;
-    item.release();item.alive=false;
-    if(++item.generation==0U)item.generation=1U;
+    impl_->rope_soft_body_couplings[id.index].retire();
     auto &rope=impl_->ropes[rope_id.index]->data;
     rope.soft_first=rope.soft_last=false;
     for(const auto &coupling:impl_->rope_soft_body_couplings)
@@ -1831,7 +1819,6 @@ Status SimulationRuntime::remove_soft_body(SoftBodyId id) noexcept {
         !impl_->soft_bodies[id.index]->alive ||
         impl_->soft_bodies[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle, "soft-body handle is stale");
-    SoftBodyStorage &body = *impl_->soft_bodies[id.index];
     for (const auto &coupling : impl_->fluid_soft_couplings)
         if (coupling && coupling->alive && coupling->options.soft_body == id)
             return failure(StatusCode::invalid_argument,
@@ -1848,10 +1835,7 @@ Status SimulationRuntime::remove_soft_body(SoftBodyId id) noexcept {
         if (coupling && coupling->alive && coupling->options.soft_body == id)
             return failure(StatusCode::invalid_argument,
                            "soft body is still referenced by a rope coupling");
-    body.alive = false;
-    body.release();
-    ++body.generation;
-    if (body.generation == 0U) body.generation = 1U;
+    impl_->soft_bodies[id.index].retire();
     ++impl_->revision;
     return success();
 }
@@ -2002,8 +1986,7 @@ Status SimulationRuntime::add_fluid_soft_body_coupling(
     *coupling->contact_count = 0;
     *coupling->maximum_penetration = 0;
     coupling->orientation = volume < 0 ? -1.0F : 1.0F;
-    if (impl_->fluid_soft_couplings[slot])
-        coupling->generation = impl_->fluid_soft_couplings[slot]->generation;
+    coupling->generation = impl_->fluid_soft_couplings[slot].generation();
     coupling->options = options;
     coupling->alive = true;
     output = {slot, coupling->generation};
@@ -2038,10 +2021,7 @@ Status SimulationRuntime::remove_fluid_soft_body_coupling(FluidSoftBodyCouplingI
         !impl_->fluid_soft_couplings[id.index]->alive ||
         impl_->fluid_soft_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle, "fluid soft-body coupling is stale");
-    auto &coupling = *impl_->fluid_soft_couplings[id.index];
-    coupling.release();
-    coupling.alive = false;
-    if (++coupling.generation == 0) coupling.generation = 1;
+    impl_->fluid_soft_couplings[id.index].retire();
     ++impl_->revision;
     return success();
 }
@@ -2086,8 +2066,7 @@ Status SimulationRuntime::add_soft_body_cloth_coupling(
     status = simulation::visit_soft_cloth_storage(*coupling, soft_view.node_count,
         impl_->cloths[options.cloth.index]->vertex_capacity, allocator);
     if (!status) return status;
-    if (impl_->soft_cloth_couplings[slot])
-        coupling->generation = impl_->soft_cloth_couplings[slot]->generation;
+    coupling->generation = impl_->soft_cloth_couplings[slot].generation();
     coupling->options = options;
     coupling->alive = true;
     output = {slot, coupling->generation};
@@ -2128,10 +2107,7 @@ Status SimulationRuntime::remove_soft_body_cloth_coupling(SoftBodyClothCouplingI
         !impl_->soft_cloth_couplings[id.index]->alive ||
         impl_->soft_cloth_couplings[id.index]->generation != id.generation)
         return failure(StatusCode::invalid_handle, "soft-body cloth coupling is stale");
-    auto &coupling = *impl_->soft_cloth_couplings[id.index];
-    coupling.alive = false;
-    coupling.release();
-    if (++coupling.generation == 0U) coupling.generation = 1U;
+    impl_->soft_cloth_couplings[id.index].retire();
     ++impl_->revision;
     return success();
 }
