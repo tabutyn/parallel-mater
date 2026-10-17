@@ -344,6 +344,27 @@ int main() {
     CHECK(pmQueueWaitIdle(queue) == PM_SUCCESS);
     CHECK(pmResetCommandBuffer(commands[3]) == PM_SUCCESS);
     CHECK(pmResetFences(device, 1U, &fences[3]) == PM_SUCCESS);
+    // A reset is ordered work too. Its simulation and submission objects stay
+    // pending until the declared timeline dependency completes.
+    CHECK(pmBeginCommandBuffer(commands[3], &begin) == PM_SUCCESS);
+    CHECK(pmCmdResetSimulation(commands[3], simulation) == PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands[3]) == PM_SUCCESS);
+    wait.value = 3U;
+    submit.waitCount = 1U;
+    submit.pWaits = &wait;
+    submit.pCommandBuffers = &commands[3];
+    CHECK(pmQueueSubmit(queue, &submit, fences[3]) == PM_SUCCESS);
+    CHECK(pmResetCommandBuffer(commands[3]) == PM_ERROR_INVALID_STATE);
+    CHECK(pmResetFences(device, 1U, &fences[3]) == PM_ERROR_INVALID_STATE);
+    CHECK(pmGetSimulationStatus(device, simulation, &execution) == PM_NOT_READY);
+    signal.value = 3U;
+    CHECK(pmQueueSubmit(queue, &producer, nullptr) == PM_SUCCESS);
+    CHECK(pmWaitForFences(device, 1U, &fences[3], PM_TRUE,
+                          PM_TIMEOUT_INFINITE) == PM_SUCCESS);
+    CHECK(pmGetSimulationStatus(device, simulation, &execution) == PM_SUCCESS);
+    CHECK(execution == PM_SUCCESS);
+    CHECK(pmResetCommandBuffer(commands[3]) == PM_SUCCESS);
+    CHECK(pmResetFences(device, 1U, &fences[3]) == PM_SUCCESS);
     pmDestroyQueryPool(device, query);
     for (auto fence : fences) pmDestroyFence(device, fence);
     pmDestroySemaphore(device, timeline);
