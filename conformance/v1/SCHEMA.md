@@ -148,3 +148,20 @@ contributes qualified capability records. Missing results, stale inputs,
 failed/unsupported evidence and supplemental reports remain visible without
 certifying support. The generated block in `docs/QUALIFICATION.md` is checked
 byte-for-byte against this index.
+
+## Benchmark measurement: `parallel-mater-benchmark-measurement/v1`
+
+The headless measurement records clean source, driver binary, device, toolchain
+and workload identity; an exact quality profile/result hash; and raw timing and
+public memory samples. At least 20 samples are required. Submitted percentile
+or throughput summaries are not accepted.
+
+## Benchmark report: `parallel-mater-benchmark-qualification-report/v1`
+
+The report contains computed operations/second, nearest-rank median/p95 time per
+operation and peak memory fields. Each metric repeats the quality-profile hash.
+Only a passing raw quality result from the exact benchmark tuple makes the
+report qualified; stale, missing, failed or unsupported quality results leave
+the report unqualified. Benchmark-bound quality results must include matching
+clean `source`, `toolchain`, and driver version/binary provenance in addition to
+the quality result's base driver name and device fields.

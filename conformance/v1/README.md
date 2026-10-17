@@ -176,6 +176,18 @@ no qualified capability row. Older reports may be registered as supplemental
 evidence; their source, binary, device and toolchain tuple remains visible, but
 they cannot certify a current capability.
 
+Performance publication has a separate headless gate:
+
+```text
+python3 benchmarks/qualification.py \
+  --measurement /path/to/benchmark-measurement.json \
+  --quality-result /path/to/core-quality-result.json
+```
+
+It re-evaluates the raw quality result and rejects qualified scores unless the
+profile hash and complete source/driver/device/toolchain tuple match. See
+`docs/PERFORMANCE.md` for the measurement and report schemas.
+
 Completed trajectory results explicitly say `quality_status: not_evaluated`.
 The comparator reports reference-regression `passed`, `failed`, and
 `unsupported` separately. A separate successful `quality.py` report is needed
