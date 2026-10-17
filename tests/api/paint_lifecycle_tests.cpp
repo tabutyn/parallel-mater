@@ -13,7 +13,7 @@ namespace {
 
 constexpr std::array<float, 24> cube_vertices{
     -0.5F, -0.5F, -0.5F,  0.5F, -0.5F, -0.5F,
-     0.5F,  0.5F, -0.5F,  0.5F, -0.5F,
+     0.5F,  0.5F, -0.5F, -0.5F,  0.5F, -0.5F,
     -0.5F, -0.5F,  0.5F,  0.5F, -0.5F,  0.5F,
      0.5F,  0.5F,  0.5F, -0.5F,  0.5F,  0.5F};
 constexpr std::array<std::uint32_t, 36> cube_indices{
@@ -23,6 +23,10 @@ constexpr std::array<std::uint32_t, 36> cube_indices{
 constexpr std::array<PmFloat2, 8> paint_uvs{{
     {0.0F, 0.0F}, {1.0F, 0.0F}, {1.0F, 1.0F}, {0.0F, 1.0F},
     {0.0F, 0.0F}, {1.0F, 0.0F}, {1.0F, 1.0F}, {0.0F, 1.0F}}};
+constexpr std::array<PmFloat3, 3> cloth_vertices{{
+    {-0.5F, 1.0F, 0.0F}, {0.5F, 1.0F, 0.0F}, {0.0F, 2.0F, 0.0F}}};
+constexpr std::array<std::uint32_t, 3> cloth_indices{{0U, 2U, 1U}};
+constexpr std::array<float, 3> cloth_inverse_masses{{1.0F, 1.0F, 1.0F}};
 
 PmRigidBodyInfo body(PmGeometry geometry, float x) {
     PmRigidBodyInfo result{};
@@ -51,12 +55,25 @@ PmPaintFieldInfo field(std::uint32_t body_index, PmGeometry geometry) {
     return result;
 }
 
+PmPaintFieldInfo cloth_field(std::uint32_t cloth_index) {
+    PmPaintFieldInfo result{};
+    result.active = PM_TRUE;
+    result.targetType = PM_PAINT_TARGET_CLOTH;
+    result.targetIndex = cloth_index;
+    result.vertexCount = static_cast<std::uint32_t>(cloth_vertices.size());
+    result.pVertexUvs = paint_uvs.data();
+    result.width = 2U;
+    result.height = 2U;
+    return result;
+}
+
 } // namespace
 
 int main() {
     Context context;
     PmPhysicalDeviceFeatures needed{};
     needed.rigidBodies = PM_TRUE;
+    needed.cloth = PM_TRUE;
     needed.paint = PM_TRUE;
     if (!context.open(needed)) return 77;
 
@@ -95,12 +112,15 @@ int main() {
     PM_CHECK(context.submit() == PM_SUCCESS);
 
     constexpr std::uint32_t rigid_capacity = 16U;
+    const PmClothCapacity cloth_capacity{3U, 3U, 3U};
     const std::array<PmPaintFieldCapacity, 2> paint_capacities{{
         {8U, 2U, 2U}, {8U, 2U, 2U}}};
     PmSimulationCreateInfo simulation_info{};
     simulation_info.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
     simulation_info.rigidBodyCapacity = rigid_capacity;
     simulation_info.contactCapacity = 4U;
+    simulation_info.clothCount = 1U;
+    simulation_info.pClothCapacities = &cloth_capacity;
     simulation_info.paintFieldCount =
         static_cast<std::uint32_t>(paint_capacities.size());
     simulation_info.pPaintFieldCapacities = paint_capacities.data();
@@ -114,6 +134,19 @@ int main() {
         context.allocate(requirements.persistent), 0U,
         context.allocate(requirements.scratch), 0U};
     PM_CHECK(pmBindSimulationMemory(context.device, simulation, &binding) ==
+             PM_SUCCESS);
+
+    PmClothMaterialState cloth_material{};
+    cloth_material.vertexMass = 1.0F;
+    cloth_material.thickness = 0.01F;
+    cloth_material.solverIterations = 4U;
+    cloth_material.fracturePersistenceSubsteps = 1U;
+    PmPhysicsPipelineCreateInfo pipeline_info{};
+    pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
+    pipeline_info.clothMaterialCount = 1U;
+    pipeline_info.pClothMaterials = &cloth_material;
+    PmPhysicsPipeline pipeline{};
+    PM_CHECK(pmCreatePhysicsPipeline(context.device, &pipeline_info, &pipeline) ==
              PM_SUCCESS);
 
     std::array<PmRigidBodyInfo, rigid_capacity> bodies{};
@@ -194,8 +227,24 @@ int main() {
                           static_cast<const std::byte *>(output.mapped) +
                           rigid_output.offset)->position[0] - 1.0F) < 1.0e-6F);
 
-    // A rule pins its target field generation. Remove the rule first, then the
-    // field; the formerly pinned body can then be replaced normally.
+    // A valid rigid-to-cloth rule pins its target field generation. Convert the
+    // unrelated field to a cloth target, then remove the rule before the field.
+    const PmPaintFieldInfo inactive_field{};
+    const PmClothInfo cloth{PM_TRUE, 0U,
+        static_cast<std::uint32_t>(cloth_vertices.size()), cloth_vertices.data(),
+        static_cast<std::uint32_t>(cloth_indices.size()), cloth_indices.data(),
+        cloth_inverse_masses.data()};
+    const PmPaintFieldInfo cloth_paint = cloth_field(0U);
+    context.begin();
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, pipeline) == PM_SUCCESS);
+    PM_CHECK(pmCmdWritePaintFields(context.commands, simulation, 1U, 1U,
+                                   &inactive_field) == PM_SUCCESS);
+    PM_CHECK(pmCmdWriteCloths(context.commands, simulation, 0U, 1U, &cloth) ==
+             PM_SUCCESS);
+    PM_CHECK(pmCmdWritePaintFields(context.commands, simulation, 1U, 1U,
+                                   &cloth_paint) == PM_SUCCESS);
+    PM_CHECK(context.submit() == PM_SUCCESS);
+
     PmPaintRuleInfo rule{};
     rule.active = PM_TRUE;
     rule.sourceType = PM_PAINT_SOURCE_RIGID;
@@ -207,7 +256,6 @@ int main() {
     PM_CHECK(pmCmdWritePaintRules(context.commands, simulation, 0U, 1U,
                                   &rule) == PM_SUCCESS);
     PM_CHECK(context.submit() == PM_SUCCESS);
-    const PmPaintFieldInfo inactive_field{};
     context.begin();
     PM_CHECK(pmCmdWritePaintFields(context.commands, simulation, 1U, 1U,
                                    &inactive_field) == PM_SUCCESS);
@@ -247,6 +295,7 @@ int main() {
     }
 
     pmDestroySimulation(context.device, simulation);
+    pmDestroyPhysicsPipeline(context.device, pipeline);
     for (const auto geometry : geometries)
         pmDestroyGeometry(context.device, geometry);
     std::puts("PASS: paint mesh capacity, replacement cleanup, endpoint guards and reset");

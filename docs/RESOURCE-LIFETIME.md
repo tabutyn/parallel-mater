@@ -94,8 +94,11 @@ removal, shared-body preservation, stale-generation reuse and reset using exact
 queried bindings. `tests/api/paint_lifecycle_tests.cpp` holds 16 body meshes and
 two paint meshes simultaneously, then covers successful and failed field
 replacement, stale endpoint rejection, rule removal order, unrelated-field
-preservation and repeated reset using exact queried bindings. Paint execution is
-only a qualification result on drivers that advertise the paint feature. Emitter
+preservation and repeated reset using exact queried bindings. A non-installed
+Slang CPU fixture advertises cloth and paint solely for this host-side resource
+lifecycle test, so the API/runtime path runs on every development host without
+overstating production CPU solver support. Paint execution remains a qualification
+result only on production drivers that advertise the paint feature. Emitter
 lifecycle remains a qualification obligation; these tests do not establish
 numerical solver quality.
 

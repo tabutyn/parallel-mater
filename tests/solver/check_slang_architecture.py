@@ -44,7 +44,8 @@ if not cpu_driver_cmake_path.exists():
 else:
     cpu_driver_cmake = cpu_driver_cmake_path.read_text(encoding="utf-8")
     for required in (
-        "parallel-mater-driver-slang-cpu SHARED",
+        "add_library(${target} SHARED",
+        "parallel-mater-driver-slang-cpu parallel_mater_driver_slang_cpu",
         "-target cpp",
         "parallel_mater_geometry_runtime.cpp",
         "parallel_mater_geometry_constraints_runtime.cpp",

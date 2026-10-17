@@ -37,6 +37,12 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     features.smoke = PM_TRUE;
     features.paint = PM_TRUE;
 #endif
+#if defined(PARALLEL_MATER_TEST_PAINT_RESOURCE_DRIVER)
+    // Private host fixture: exercise cloth/paint resource lifetime without
+    // claiming production Slang CPU simulation support for either domain.
+    features.cloth = PM_TRUE;
+    features.paint = PM_TRUE;
+#endif
     features.statisticsQueries = PM_TRUE;
     features.memoryBudget = PM_TRUE;
 #if defined(PARALLEL_MATER_D3D12_DRIVER)

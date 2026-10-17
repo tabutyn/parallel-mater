@@ -182,7 +182,7 @@ set_source_files_properties(
     src/simulation/cpu_exports.cpp
     PROPERTIES COMPILE_OPTIONS "-Wno-unused-parameter;-Wno-unused-variable")
 
-add_library(parallel-mater-driver-slang-cpu SHARED
+set(PARALLEL_MATER_SLANG_CPU_DRIVER_SOURCES
     src/api/instance.cpp
     src/api/device.cpp
     src/api/memory.cpp
@@ -204,37 +204,44 @@ add_library(parallel-mater-driver-slang-cpu SHARED
     src/simulation/memory_arena.cpp
     "${PARALLEL_MATER_GEOMETRY_CPU_SOURCE}"
     "${PARALLEL_MATER_GEOMETRY_CONSTRAINTS_CPU_SOURCE}"
-    "${PARALLEL_MATER_QUERIES_CPU_SOURCE}")
-target_sources(parallel-mater-driver-slang-cpu PRIVATE
-    "${PARALLEL_MATER_CPU_STUB_SOURCE}" ${cpu_liquid_sources})
-if(PARALLEL_MATER_SLANG_CPU_LIQUIDS)
-    target_compile_definitions(parallel-mater-driver-slang-cpu PRIVATE
-        PARALLEL_MATER_SLANG_CPU_LIQUIDS=1)
-endif()
+    "${PARALLEL_MATER_QUERIES_CPU_SOURCE}"
+    "${PARALLEL_MATER_CPU_STUB_SOURCE}"
+    ${cpu_liquid_sources})
 
-target_compile_features(parallel-mater-driver-slang-cpu PRIVATE cxx_std_20)
-target_compile_definitions(parallel-mater-driver-slang-cpu PRIVATE
-    PARALLEL_MATER_DRIVER_IMPLEMENTATION=1
-    PARALLEL_MATER_SLANG_CPU_DRIVER=1)
-target_include_directories(parallel-mater-driver-slang-cpu
-    PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/device/cpu_compat
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
-        ${PARALLEL_MATER_SLANG_CPU_GENERATED_DIR}
-        ${PARALLEL_MATER_SLANG_CPP_INCLUDE_DIR}
-        ${PARALLEL_MATER_API_GENERATED_DIR})
-target_link_libraries(parallel-mater-driver-slang-cpu PRIVATE
-    parallel-mater-host-preparation Threads::Threads)
-parallel_mater_enable_warnings(parallel-mater-driver-slang-cpu)
+function(parallel_mater_add_slang_cpu_driver target output_name)
+    add_library(${target} SHARED ${PARALLEL_MATER_SLANG_CPU_DRIVER_SOURCES})
+    if(PARALLEL_MATER_SLANG_CPU_LIQUIDS)
+        target_compile_definitions(${target} PRIVATE
+            PARALLEL_MATER_SLANG_CPU_LIQUIDS=1)
+    endif()
+    target_compile_features(${target} PRIVATE cxx_std_20)
+    target_compile_definitions(${target} PRIVATE
+        PARALLEL_MATER_DRIVER_IMPLEMENTATION=1
+        PARALLEL_MATER_SLANG_CPU_DRIVER=1)
+    target_include_directories(${target}
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/device/cpu_compat
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${PARALLEL_MATER_SLANG_CPU_GENERATED_DIR}
+            ${PARALLEL_MATER_SLANG_CPP_INCLUDE_DIR}
+            ${PARALLEL_MATER_API_GENERATED_DIR})
+    target_link_libraries(${target} PRIVATE
+        parallel-mater-host-preparation Threads::Threads)
+    parallel_mater_enable_warnings(${target})
+    set_target_properties(${target} PROPERTIES
+        OUTPUT_NAME ${output_name}
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN YES
+        POSITION_INDEPENDENT_CODE ON)
+endfunction()
+
+parallel_mater_add_slang_cpu_driver(
+    parallel-mater-driver-slang-cpu parallel_mater_driver_slang_cpu)
 set_target_properties(parallel-mater-driver-slang-cpu PROPERTIES
-    OUTPUT_NAME parallel_mater_driver_slang_cpu
-    EXPORT_NAME slang_cpu_driver
-    CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN YES
-    POSITION_INDEPENDENT_CODE ON)
+    EXPORT_NAME slang_cpu_driver)
 add_library(ParallelMater::slang_cpu_driver ALIAS
             parallel-mater-driver-slang-cpu)
 list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-driver-slang-cpu)
@@ -247,6 +254,19 @@ file(GENERATE
     CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../../Frameworks/$<TARGET_FILE_NAME:parallel-mater-driver-slang-cpu>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 
 if(BUILD_TESTING)
+    # This non-installed fixture runs host-side paint resource lifecycle tests
+    # through the real loader/API/runtime path. It does not implement or claim
+    # production paint simulation support.
+    parallel_mater_add_slang_cpu_driver(
+        parallel-mater-test-driver-slang-cpu-paint-resources
+        parallel_mater_test_driver_slang_cpu_paint_resources)
+    target_compile_definitions(
+        parallel-mater-test-driver-slang-cpu-paint-resources PRIVATE
+        PARALLEL_MATER_TEST_PAINT_RESOURCE_DRIVER=1)
+    file(GENERATE
+        OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-slang-cpu-paint-resources.json"
+        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-test-driver-slang-cpu-paint-resources>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+
     add_executable(parallel-mater-async-submission-tests tests/api/async_submission_tests.cpp)
     target_compile_features(parallel-mater-async-submission-tests PRIVATE cxx_std_20)
     target_link_libraries(parallel-mater-async-submission-tests PRIVATE parallel-mater)
