@@ -29,6 +29,11 @@
   ],
   "qualification_results": [
     {
+      "id": "ipados-m1-slang-metal-9f7e72e",
+      "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e-qualification.json",
+      "sha256": "0ed70296f7c5b89cecec9808b1c33fbdf4b8439ef956fb6dbc4e654db8a095f3"
+    },
+    {
       "id": "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
       "path": "conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17.json",
       "sha256": "9e4249918ada6243353ef2f5885772672dc1741d552f58b01d7edeb9518637ea"
