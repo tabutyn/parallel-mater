@@ -1,0 +1,31 @@
+{
+  "id": "F5-12",
+  "title": "Publish current macOS Metal driver evidence",
+  "status": "open",
+  "dependencies": [
+    "F5-01",
+    "F5-02",
+    "F5-03",
+    "F5-05",
+    "F5-06",
+    "F5-08",
+    "F5-10",
+    "F5-11"
+  ],
+  "locks": [
+    "driver-evidence-registry",
+    "driver-evidence-metal-macos"
+  ],
+  "requires": [
+    "Physical Apple Silicon Mac with native Metal execution"
+  ],
+  "scope": "Build a clean current revision for the native Slang Metal driver, execute applicable public-API reference, physical-quality and adverse-lifecycle contracts on identified macOS hardware, and publish a revisioned qualification input without treating Gallery rendering or scene sweeps as physics proof.",
+  "acceptance": [
+    "The result pins the clean source revision, exact driver binary, Apple GPU and Mac model, macOS and Metal versions, compiler and Slang toolchain plus immutable contract hashes without recording private device identifiers.",
+    "Every advertised capability executes all currently applicable trajectory, analytic-quality and adverse-lifecycle obligations; failed, missing and unsupported scopes remain explicit and cannot certify a capability.",
+    "Register and regenerate the per-driver evidence index from a fresh checkout; Metal API/shader-validation and Gallery results may be retained as supplemental execution evidence only."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
