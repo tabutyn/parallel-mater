@@ -1,0 +1,25 @@
+{
+  "id": "P1-23",
+  "title": "Schedule cloth contact scopes",
+  "status": "deferred",
+  "dependencies": [
+    "P1-21",
+    "P1-22"
+  ],
+  "locks": [
+    "runtime-graph",
+    "runtime-memory",
+    "runtime-schedule"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Integrate self/inter cloth contact into bounded portable scheduling and generation-safe lifecycle; keep reporting gated.",
+  "acceptance": [
+    "Self opt-in and graph add/remove/rebind/reset/overflow/recovery pass through the public API.",
+    "Reference adapters compile the shared schedule or explicitly reject each scope."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

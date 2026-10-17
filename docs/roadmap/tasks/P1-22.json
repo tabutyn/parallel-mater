@@ -1,0 +1,22 @@
+{
+  "id": "P1-22",
+  "title": "Solve contact between cloth systems",
+  "status": "deferred",
+  "dependencies": [
+    "P1-20"
+  ],
+  "locks": [
+    "cloth-kernels"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Implement balanced contact and geometric-mean friction between distinct cloth resources in shared Slang; advertise nothing.",
+  "acceptance": [
+    "Unequal mass/thickness/friction fixtures meet separation, conservation, dissipation and endpoint-order limits.",
+    "Pinned reaction, high-speed crossing and matching numeric vertex-index cases pass."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
