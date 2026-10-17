@@ -207,14 +207,14 @@ merging. The workflow does not change GitHub branch-protection settings.
 
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
-| [F7-01](roadmap/tasks/F7-01.json) | Specify one common Gallery runtime | leased | — | codex-linux-gallery / thomas-laptop / 2026-10-18T22:32:37Z |
-| [F7-02](roadmap/tasks/F7-02.json) | Unify Gallery catalog and availability | waiting on dependencies | F7-01 | — |
-| [F7-03](roadmap/tasks/F7-03.json) | Extract common Gallery scene lifecycle | waiting on dependencies | F7-01 | — |
+| [F7-01](roadmap/tasks/F7-01.json) | Specify one common Gallery runtime | done | — | — |
+| [F7-02](roadmap/tasks/F7-02.json) | Unify Gallery catalog and availability | ready | F7-01 | — |
+| [F7-03](roadmap/tasks/F7-03.json) | Extract common Gallery scene lifecycle | ready | F7-01 | — |
 | [F7-04](roadmap/tasks/F7-04.json) | Move Gallery controllers into common runtime | waiting on dependencies | F7-03 | — |
 | [F7-05](roadmap/tasks/F7-05.json) | Unify Gallery clock and workload policy | waiting on dependencies | F7-03 | — |
 | [F7-06](roadmap/tasks/F7-06.json) | Adopt common runtime in desktop Gallery | waiting on dependencies | F7-02, F7-03, F7-04, F7-05 | — |
 | [F7-07](roadmap/tasks/F7-07.json) | Make mobile Gallery shells thin adapters | waiting on dependencies | F7-02, F7-03, F7-04, F7-05 | — |
-| [F7-08](roadmap/tasks/F7-08.json) | Define common Gallery GPU renderer contract | waiting on dependencies | F7-01 | — |
+| [F7-08](roadmap/tasks/F7-08.json) | Define common Gallery GPU renderer contract | ready | F7-01 | — |
 | [F7-09](roadmap/tasks/F7-09.json) | Implement native Vulkan Gallery rendering | waiting on dependencies | F7-08 | — |
 | [F7-10](roadmap/tasks/F7-10.json) | Enable Vulkan cloth Gallery domains | waiting on dependencies | F7-03 | — |
 | [F7-11](roadmap/tasks/F7-11.json) | Enable Vulkan soft-body Gallery domains | waiting on dependencies | F7-03 | — |
