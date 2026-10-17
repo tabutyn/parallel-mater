@@ -1,16 +1,30 @@
 {
   "id": "F7-02",
   "title": "Unify Gallery catalog and availability",
-  "status": "open",
-  "dependencies": ["F7-01"],
-  "locks": ["gallery-catalog"],
-  "requires": ["Any development host"],
+  "status": "leased",
+  "dependencies": [
+    "F7-01"
+  ],
+  "locks": [
+    "gallery-catalog"
+  ],
+  "requires": [
+    "Any development host"
+  ],
   "scope": "Replace platform-specific scene arrays and index remapping with one catalog that combines shared metadata with queried backend capabilities.",
   "acceptance": [
     "Desktop, Android and iPad consume the same ordered scene identities, names, descriptions and required feature records.",
     "Unsupported scenes remain visible with a precise reason and cannot silently fall back to another backend."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "8d9a5c69-fbe7-42f2-ac71-826a810f9682",
+    "owner": "codex-linux-gallery",
+    "machine": "thomas-laptop",
+    "branch": "work/F7-02/thomas-laptop",
+    "claimed_at": "2026-10-17T23:09:28Z",
+    "heartbeat_at": "2026-10-17T23:09:28Z",
+    "expires_at": "2026-10-18T23:09:28Z"
+  },
   "history": []
 }

@@ -208,7 +208,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [F7-01](roadmap/tasks/F7-01.json) | Specify one common Gallery runtime | done | — | — |
-| [F7-02](roadmap/tasks/F7-02.json) | Unify Gallery catalog and availability | ready | F7-01 | — |
+| [F7-02](roadmap/tasks/F7-02.json) | Unify Gallery catalog and availability | leased | F7-01 | codex-linux-gallery / thomas-laptop / 2026-10-18T23:09:28Z |
 | [F7-03](roadmap/tasks/F7-03.json) | Extract common Gallery scene lifecycle | done | F7-01 | — |
 | [F7-04](roadmap/tasks/F7-04.json) | Move Gallery controllers into common runtime | ready | F7-03 | — |
 | [F7-05](roadmap/tasks/F7-05.json) | Unify Gallery clock and workload policy | ready | F7-03 | — |
