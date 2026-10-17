@@ -1,7 +1,7 @@
 {
   "id": "F5-06",
   "title": "Classify CUDA/D3D12 comparison failures",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "quality-cross-driver"
@@ -15,6 +15,14 @@
     "Create separate corrective tasks per cause; do not rewrite goldens to hide failures."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "b38b665f-c3aa-4489-b039-49b274e87a65",
+    "owner": "codex-windows-physics",
+    "machine": "windows-gtx1080",
+    "branch": "work/F5-06/windows-gtx1080",
+    "claimed_at": "2026-10-17T12:28:19Z",
+    "heartbeat_at": "2026-10-17T12:28:19Z",
+    "expires_at": "2026-10-18T12:28:19Z"
+  },
   "history": []
 }
