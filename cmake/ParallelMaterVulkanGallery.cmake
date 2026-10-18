@@ -83,10 +83,11 @@ if(BUILD_TESTING)
     add_test(NAME parallel-mater-vulkan-gallery-renderer-tests
         COMMAND parallel-mater-vulkan-gallery-renderer-tests)
     set_tests_properties(parallel-mater-vulkan-gallery-renderer-tests PROPERTIES
+        LABELS "gallery;renderer;vulkan"
         SKIP_RETURN_CODE 77 TIMEOUT 240
         FAIL_REGULAR_EXPRESSION "Validation Error;VUID-"
         ENVIRONMENT
-            "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR};PM_VULKAN_VALIDATION=1")
+            "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json;PM_VULKAN_VALIDATION=1")
 
     if(TARGET parallel-mater-gallery-window)
         add_executable(parallel-mater-vulkan-gallery-surface-tests
@@ -102,9 +103,10 @@ if(BUILD_TESTING)
         add_test(NAME parallel-mater-vulkan-gallery-surface-tests
             COMMAND parallel-mater-vulkan-gallery-surface-tests)
         set_tests_properties(parallel-mater-vulkan-gallery-surface-tests PROPERTIES
+            LABELS "gallery;renderer;surface;vulkan"
             SKIP_RETURN_CODE 77 TIMEOUT 240
             FAIL_REGULAR_EXPRESSION "Validation Error;VUID-"
             ENVIRONMENT
-                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR};PM_VULKAN_VALIDATION=1")
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json;PM_VULKAN_VALIDATION=1")
     endif()
 endif()
