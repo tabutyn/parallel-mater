@@ -25,6 +25,10 @@ if(BUILD_TESTING)
     add_test(NAME parallel-mater-reflected-abi-tests
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/solver/test_slang_abi.py")
     set_tests_properties(parallel-mater-reflected-abi-tests PROPERTIES LABELS "slang;abi")
+    add_test(NAME parallel-mater-dxil-binding-generator-tests
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/solver/test_dxil_bindings.py")
+    set_tests_properties(parallel-mater-dxil-binding-generator-tests
+        PROPERTIES LABELS "slang;abi;d3d12")
     add_test(NAME parallel-mater-release-reproducibility-tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tests/release/test_release_reproducibility.py")
@@ -1048,14 +1052,15 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
         OUTPUT "${PARALLEL_MATER_D3D12_DXIL_LIBRARY}"
         COMMAND ${CMAKE_COMMAND} -E make_directory
                 "${PARALLEL_MATER_D3D12_GENERATED_DIR}"
-        COMMAND ${CMAKE_COMMAND}
-                "-DMANIFEST_FILE=${PARALLEL_MATER_D3D12_DXIL_MANIFEST}"
-                "-DOUTPUT_FILE=${PARALLEL_MATER_D3D12_DXIL_LIBRARY}"
-                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDxilLibrary.cmake"
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/embed_dxil_library.py"
+                --manifest "${PARALLEL_MATER_D3D12_DXIL_MANIFEST}"
+                --output "${PARALLEL_MATER_D3D12_DXIL_LIBRARY}"
         DEPENDS
             ${PARALLEL_MATER_SLANG_DXIL_SCHEDULES_DXIL}
             "${PARALLEL_MATER_D3D12_DXIL_MANIFEST}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDxilLibrary.cmake"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/embed_dxil_library.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/slang_abi.py"
         COMMENT "Embedding common Slang DXIL schedules in the D3D12 driver"
         VERBATIM)
     set(PARALLEL_MATER_D3D12_STUB_SOURCE
@@ -1089,7 +1094,7 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
             --reflection "${PARALLEL_MATER_SLANG_GENERATED_DIR}/dxil"
             --output "${PARALLEL_MATER_D3D12_DOMAIN_DISPATCH}"
             ${PARALLEL_MATER_D3D12_DOMAIN_SOURCES}
-        DEPENDS tools/generate_dxil_dispatch.py
+        DEPENDS tools/generate_dxil_dispatch.py tools/slang_abi.py
             ${PARALLEL_MATER_D3D12_DOMAIN_SOURCES}
             ${PARALLEL_MATER_SLANG_DXIL_SCHEDULES_DXIL}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
