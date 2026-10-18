@@ -1,0 +1,24 @@
+{
+  "id": "F5-19",
+  "title": "Emit capacity recovery lifecycle checkpoints",
+  "status": "open",
+  "dependencies": [
+    "F5-03",
+    "F5-16"
+  ],
+  "locks": [
+    "conformance-lifecycle-reporting"
+  ],
+  "requires": [
+    "Any development host plus one production driver implementing liquid resources"
+  ],
+  "scope": "Make the existing public-API resource-lifecycle fixture emit the four formal capacity-replacement-recovery observations required by adverse-capacity-three-family-v1. Fingerprint only canonical public identity and observable state; use harness ordinals for generations and never expose private handles, timings or diagnostics.",
+  "acceptance": [
+    "Standalone and embedded conformance paths execute one shared capacity/replacement/overflow/recovery operation sequence and retain the existing exact-capacity stress coverage.",
+    "The result contains baseline, replacement, overflow and recovery observations with exact outcomes, active state, deterministic generation ordinals and canonical state SHA-256 values for both target-fluid and unrelated-fluid.",
+    "conformance/v1/lifecycle.py passes the capacity-replacement-recovery case on CUDA and Vulkan from one clean Linux revision; unsupported drivers remain explicitly unsupported and no lifecycle profile rule is weakened."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

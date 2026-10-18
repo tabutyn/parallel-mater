@@ -1,0 +1,25 @@
+{
+  "id": "F5-23",
+  "title": "Split advertised qualification gaps",
+  "status": "open",
+  "dependencies": [
+    "F5-19",
+    "F5-20",
+    "F5-22"
+  ],
+  "locks": [
+    "qualification-gap-planning"
+  ],
+  "requires": [
+    "Current per-driver evidence index and capability-obligation review"
+  ],
+  "scope": "Reconcile every capability that production drivers currently advertise without a bound analytic or lifecycle contract. Bind an existing valid contract, stop advertising an unimplemented mode, or create a small family/mode-specific implementation card; do not hide gaps behind one aggregate qualification task.",
+  "acceptance": [
+    "Publish a machine-readable matrix keyed by the complete capability tuple and classify every qualification-contract-is-missing result in the current evidence index.",
+    "For each gap, record the existing contract binding, the exact capability advertisement correction, or a new leaseable leaf task with one physical behavior and bounded acceptance checks.",
+    "Add every new leaf as an F5-99 dependency and regenerate the roadmap; this planning task does not itself qualify a capability or weaken an obligation."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
