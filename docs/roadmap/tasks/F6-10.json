@@ -1,7 +1,7 @@
 {
   "id": "F6-10",
   "title": "Productize physics capture and substep replay",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F6-07"
   ],
@@ -17,6 +17,14 @@
     "Round-trip the archived over-top rigid state and reproduce its 1/240-second check on current CUDA with focused negative and compatibility tests."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "778a2598-b878-412f-b13d-08799b09fba7",
+    "owner": "codex-linux-replay",
+    "machine": "thomas-laptop",
+    "branch": "work/F6-10/thomas-laptop",
+    "claimed_at": "2026-10-18T17:58:22Z",
+    "heartbeat_at": "2026-10-18T17:58:22Z",
+    "expires_at": "2026-10-19T17:58:22Z"
+  },
   "history": []
 }
