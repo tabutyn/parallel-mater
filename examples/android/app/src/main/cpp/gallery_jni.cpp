@@ -117,12 +117,14 @@ struct Session {
     VkInstance vulkan_instance{};
     VkSurfaceKHR vulkan_surface{};
 #endif
+    unsigned surface_width{};
+    unsigned surface_height{};
     unsigned logged_frames{};
     std::uint64_t software_presentations{};
     ~Session() { release_surface(); }
     GallerySession &gallery() { return mobile->gallery(); }
     const GallerySession &gallery() const { return mobile->gallery(); }
-    void release_surface() noexcept {
+    void detach_render_target() noexcept {
         if (window && mobile) mobile->detach_surface();
 #if PM_ANDROID_VULKAN
         if (vulkan_surface && vulkan_instance)
@@ -130,8 +132,13 @@ struct Session {
         vulkan_surface = {};
         vulkan_instance = {};
 #endif
+    }
+    void release_surface() noexcept {
+        detach_render_target();
         if (window) ANativeWindow_release(window);
         window = nullptr;
+        surface_width = 0U;
+        surface_height = 0U;
     }
 #if PM_ANDROID_VULKAN
     GpuRenderTarget create_render_target(unsigned width, unsigned height) {
@@ -163,6 +170,36 @@ struct Session {
         };
     }
 #endif
+    void attach_render_target() {
+        if (!window) return;
+        GpuRenderTarget target{};
+#if PM_ANDROID_VULKAN
+        target = create_render_target(surface_width, surface_height);
+#endif
+        if (!mobile->attach_surface(surface_width, surface_height, target))
+            throw std::runtime_error(mobile->state().failure);
+#if !PM_ANDROID_VULKAN
+        if (ANativeWindow_setBuffersGeometry(window, gallery().width,
+                gallery().height, WINDOW_FORMAT_RGBA_8888) != 0) {
+            mobile->report_failure("Cannot configure display surface");
+            throw std::runtime_error("Cannot configure display surface");
+        }
+#endif
+    }
+    bool execute(MobileGalleryCommand command, float x = 0.0F,
+                 float y = 0.0F, bool may_replace_runtime = false) {
+#if PM_ANDROID_VULKAN
+        // VkSurfaceKHR belongs to its creating VkInstance. Gallery runtime
+        // replacement creates a fresh instance/device, so retire presentation
+        // before the old runtime and bind it again only after replacement.
+        if (may_replace_runtime && window) detach_render_target();
+#endif
+        const bool ok = mobile->execute(command, x, y);
+#if PM_ANDROID_VULKAN
+        if (may_replace_runtime && ok && window) attach_render_target();
+#endif
+        return ok;
+    }
 #if !PM_ANDROID_VULKAN
     void present(const GallerySession &frame) {
         if (!window) return;
@@ -246,10 +283,16 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeQualifyScene(JNIEnv *env, j
         auto &s = session(handle);
         auto &g = s.gallery();
         if (index < 0 || count < 1 || count > 100000) throw std::runtime_error("Invalid qualification arguments");
+#if PM_ANDROID_VULKAN
+        if (s.window) s.detach_render_target();
+#endif
         if (!s.mobile->execute(MobileGalleryCommand::select_scene,
                                static_cast<float>(index)))
             throw std::runtime_error(s.mobile->state().failure);
         const auto stats = g.qualify(static_cast<unsigned>(count));
+#if PM_ANDROID_VULKAN
+        if (s.window) s.attach_render_target();
+#endif
         const jdouble values[]{stats.mean_ms, stats.p95_ms, static_cast<double>(stats.count)};
         auto result = env->NewDoubleArray(3);
         if (result) env->SetDoubleArrayRegion(result, 0, 3, values);
@@ -331,22 +374,10 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeSurface(JNIEnv *env, jclass
         s.window = surface ? ANativeWindow_fromSurface(env, surface) : nullptr;
         s.logged_frames = 0;
         if (!s.window) return;
-        const unsigned width = static_cast<unsigned>(std::max(w, 1));
-        const unsigned height = static_cast<unsigned>(std::max(h, 1));
+        s.surface_width = static_cast<unsigned>(std::max(w, 1));
+        s.surface_height = static_cast<unsigned>(std::max(h, 1));
         try {
-            GpuRenderTarget target{};
-#if PM_ANDROID_VULKAN
-            target = s.create_render_target(width, height);
-#endif
-            if (!s.mobile->attach_surface(width, height, target))
-                throw std::runtime_error(s.mobile->state().failure);
-#if !PM_ANDROID_VULKAN
-            if (ANativeWindow_setBuffersGeometry(s.window, s.gallery().width,
-                    s.gallery().height, WINDOW_FORMAT_RGBA_8888) != 0) {
-                s.mobile->report_failure("Cannot configure display surface");
-                throw std::runtime_error("Cannot configure display surface");
-            }
-#endif
+            s.attach_render_target();
         } catch (...) {
             s.release_surface();
             throw;
@@ -400,14 +431,14 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeCommand(JNIEnv *env, jclass
         auto &s = session(handle);
         bool ok = false;
         switch (command) {
-        case 0: ok = s.mobile->execute(MobileGalleryCommand::select_scene, x); break;
-        case 1: ok = s.mobile->execute(MobileGalleryCommand::reset_scene); break;
+        case 0: ok = s.execute(MobileGalleryCommand::select_scene, x, y, true); break;
+        case 1: ok = s.execute(MobileGalleryCommand::reset_scene, x, y, true); break;
         case 2: ok = s.mobile->execute(MobileGalleryCommand::set_paused, x); break;
         case 3: ok = s.mobile->execute(MobileGalleryCommand::steer, x, y); break;
         case 4: ok = s.mobile->execute(MobileGalleryCommand::orbit, x, y); break;
         case 5: ok = s.mobile->execute(MobileGalleryCommand::zoom, x); break;
-        case 6: ok = s.mobile->execute(MobileGalleryCommand::primary_action); break;
-        case 7: ok = s.mobile->execute(MobileGalleryCommand::set_count, x); break;
+        case 6: ok = s.execute(MobileGalleryCommand::primary_action, x, y, true); break;
+        case 7: ok = s.execute(MobileGalleryCommand::set_count, x, y, true); break;
         case 8: ok = s.mobile->execute(MobileGalleryCommand::focus); break;
         case 9: s.mobile->set_foreground(x != 0); ok = true; break;
         case 10: ok = s.mobile->execute(MobileGalleryCommand::toggle_paused); break;

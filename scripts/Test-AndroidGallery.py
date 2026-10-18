@@ -44,12 +44,6 @@ def main():
                  report.get("ordinary_readback_pixels") == 0 and
                  report.get("software_presentations") == 0))
 
-    def restore_setting(namespace, name, value):
-        if value == "null":
-            adb("shell", "settings", "delete", namespace, name)
-        else:
-            adb("shell", "settings", "put", namespace, name, value)
-
     activity = package + "/.GalleryActivity"
     adb("logcat", "-c")
     adb("shell", "am", "force-stop", package)
@@ -117,24 +111,27 @@ def main():
                            r.get("surface_generation", 0) >
                            resized.get("surface_generation", 0))
 
-    auto_rotation = adb("shell", "settings", "get", "system",
-                        "accelerometer_rotation").strip()
-    user_rotation = adb("shell", "settings", "get", "system",
-                        "user_rotation").strip()
-    current_rotation = int(user_rotation) if user_rotation.isdigit() else 1
+    rotation_state = adb("shell", "wm", "user-rotation").strip()
+    window_state = adb("shell", "dumpsys", "window", "displays")
+    displayed_rotation = re.search(r"^\s*mRotation=(\d+)\b",
+                                   window_state, re.MULTILINE)
+    if not displayed_rotation:
+        raise RuntimeError("Could not determine the current Android display rotation")
+    current_rotation = int(displayed_rotation.group(1))
     test_rotation = 3 if current_rotation == 1 else 1
     rotated = None
     try:
-        adb("shell", "settings", "put", "system", "accelerometer_rotation", "0")
-        adb("shell", "settings", "put", "system", "user_rotation",
-            str(test_rotation))
+        adb("shell", "wm", "user-rotation", "lock", str(test_rotation))
         rotated = wait("runtime-info.json", lambda r:
                        r.get("surface_ready") and direct(r) and
                        r.get("surface_generation", 0) >
                        resize_restored.get("surface_generation", 0))
     finally:
-        restore_setting("system", "user_rotation", user_rotation)
-        restore_setting("system", "accelerometer_rotation", auto_rotation)
+        prior_lock = re.fullmatch(r"lock\s+(\d+)", rotation_state)
+        if prior_lock:
+            adb("shell", "wm", "user-rotation", "lock", prior_lock.group(1))
+        else:
+            adb("shell", "wm", "user-rotation", "free")
     rotation_restored = wait("runtime-info.json", lambda r:
                              r.get("surface_ready") and direct(r) and
                              rotated is not None and
@@ -146,8 +143,8 @@ def main():
         "resized": resized,
         "resize_restored": resize_restored,
         "rotation_before": {
-            "accelerometer_rotation": auto_rotation,
-            "user_rotation": user_rotation,
+            "wm_user_rotation": rotation_state,
+            "display_rotation": current_rotation,
         },
         "test_rotation": test_rotation,
         "rotated": rotated,

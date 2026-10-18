@@ -100,7 +100,14 @@ int main() {
                         session.pixels[71U * 96U] != overlay_color,
                     "Vulkan diagnostic readback is vertically inverted");
 
+            // A platform surface can still describe the device retired by a
+            // scene reset. Qualification is offscreen and must resolve the
+            // current public device instead of consuming that stale target.
+            session.set_render_target({
+                PM_NATIVE_BACKEND_VULKAN, public_device.device ^ 1U, 1U,
+                96U, 72U});
             (void)session.qualify(2U);
+            session.set_render_target({});
             require(session.pixels.size() == 96U * 72U,
                     "offscreen Vulkan readback has wrong dimensions");
             require(std::any_of(session.pixels.begin(), session.pixels.end(),
