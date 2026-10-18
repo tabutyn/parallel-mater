@@ -1,7 +1,7 @@
 {
   "id": "F3-07",
   "title": "Test independent compatibility combinations",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F3-05"
   ],
@@ -17,6 +17,14 @@
     "No C++ implementation types cross any negotiated ABI."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "ebe6c335-1285-4968-8b5a-4fca772c156e",
+    "owner": "codex-windows-validation",
+    "machine": "windows-gtx1080",
+    "branch": "work/F3-07/windows-gtx1080",
+    "claimed_at": "2026-10-18T02:28:30Z",
+    "heartbeat_at": "2026-10-18T02:28:30Z",
+    "expires_at": "2026-10-19T02:28:30Z"
+  },
   "history": []
 }
