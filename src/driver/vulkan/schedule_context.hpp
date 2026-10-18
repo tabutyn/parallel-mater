@@ -37,7 +37,8 @@ class ScheduleContext {
                                           std::uint32_t capacity) noexcept;
     void dispatch(std::string_view module, std::string_view entry,
                   std::span<const std::uint32_t> shader, dim3 grid, dim3 block,
-                  dim3 shader_block, std::span<const std::byte> constants) noexcept;
+                  dim3 shader_block, std::span<const std::byte> constants,
+                  bool parameter_buffer) noexcept;
     cudaError_t copy(void *destination, const void *source, std::size_t size,
                      cudaMemcpyKind kind) noexcept;
     cudaError_t clear(void *destination, int value, std::size_t size) noexcept;

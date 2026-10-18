@@ -127,7 +127,9 @@ std::vector<Adapter> adapters(VkInstance instance) {
                                            &f12};
         vkGetPhysicalDeviceFeatures2(physical, &features);
         if (!f13.maintenance4 || !f12.bufferDeviceAddress || !f12.scalarBlockLayout ||
-            !f12.storageBuffer8BitAccess || !f12.storagePushConstant8 || !f12.shaderInt8 ||
+            !f12.storageBuffer8BitAccess ||
+            !f12.uniformAndStorageBuffer8BitAccess || !f12.storagePushConstant8 ||
+            !f12.shaderInt8 ||
             !f12.shaderBufferInt64Atomics || !features.features.shaderInt64)
             continue;
         // Some installations expose the same adapter through multiple ICDs.
@@ -177,10 +179,10 @@ struct ScheduleContext::Impl {
     VkCommandPool pool{};
     VkCommandBuffer commands{};
     VkFence fence{};
-    VkDescriptorSetLayout descriptors{};
+    VkDescriptorSetLayout descriptors[2]{};
     VkDescriptorPool descriptor_pool{};
-    VkDescriptorSet descriptor_set{};
-    VkPipelineLayout layout{};
+    VkDescriptorSet descriptor_sets[2]{};
+    VkPipelineLayout layouts[2]{};
     VkPipelineCache pipeline_cache{};
     std::filesystem::path cache_file;
     std::map<std::string, Pipeline> pipelines;
@@ -194,6 +196,8 @@ struct ScheduleContext::Impl {
     std::uint32_t global_offset{};
     std::uint32_t argument_offset{};
     std::uint32_t global_stride{256};
+    std::uint32_t parameter_stride{256};
+    static constexpr std::uint32_t parameter_range = 4096;
     bool open{}, pending{};
     std::uint64_t submitted{}, completed{};
     cudaError_t last_error{cudaSuccess};
@@ -285,12 +289,14 @@ struct ScheduleContext::Impl {
             destroy(b);
         destroy(globals);
         destroy(arguments);
-        if (layout)
-            vkDestroyPipelineLayout(device, layout, nullptr);
+        for (auto layout : layouts)
+            if (layout)
+                vkDestroyPipelineLayout(device, layout, nullptr);
         if (descriptor_pool)
             vkDestroyDescriptorPool(device, descriptor_pool, nullptr);
-        if (descriptors)
-            vkDestroyDescriptorSetLayout(device, descriptors, nullptr);
+        for (auto descriptor_layout : descriptors)
+            if (descriptor_layout)
+                vkDestroyDescriptorSetLayout(device, descriptor_layout, nullptr);
         if (pool)
             vkDestroyCommandPool(device, pool, nullptr);
         if (fence)
@@ -451,6 +457,7 @@ PmResult ScheduleContext::initialize(int ordinal) noexcept {
         f12.bufferDeviceAddress = VK_TRUE;
         f12.scalarBlockLayout = VK_TRUE;
         f12.storageBuffer8BitAccess = VK_TRUE;
+        f12.uniformAndStorageBuffer8BitAccess = VK_TRUE;
         f12.storagePushConstant8 = VK_TRUE;
         f12.shaderInt8 = VK_TRUE;
         f12.shaderBufferInt64Atomics = VK_TRUE;
@@ -485,48 +492,71 @@ PmResult ScheduleContext::initialize(int ordinal) noexcept {
               "allocate command buffer");
         VkFenceCreateInfo fence{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
         check(vkCreateFence(i.device, &fence, nullptr, &i.fence), "create fence");
-        VkDescriptorSetLayoutBinding binding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-                                             1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr};
-        VkDescriptorSetLayoutCreateInfo descriptors{
+        const VkDescriptorSetLayoutBinding global_binding{
+            0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1,
+            VK_SHADER_STAGE_COMPUTE_BIT, nullptr};
+        VkDescriptorSetLayoutCreateInfo descriptor_layout{
             VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
-        descriptors.bindingCount = 1;
-        descriptors.pBindings = &binding;
-        check(
-            vkCreateDescriptorSetLayout(i.device, &descriptors, nullptr, &i.descriptors),
-            "create descriptor layout");
-        VkDescriptorPoolSize pool_size{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1};
+        descriptor_layout.bindingCount = 1;
+        descriptor_layout.pBindings = &global_binding;
+        check(vkCreateDescriptorSetLayout(i.device, &descriptor_layout, nullptr,
+                                          &i.descriptors[0]),
+              "create push descriptor layout");
+        const VkDescriptorSetLayoutBinding parameter_bindings[]{
+            global_binding,
+            {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1,
+             VK_SHADER_STAGE_COMPUTE_BIT, nullptr}};
+        descriptor_layout.bindingCount = std::size(parameter_bindings);
+        descriptor_layout.pBindings = parameter_bindings;
+        check(vkCreateDescriptorSetLayout(i.device, &descriptor_layout, nullptr,
+                                          &i.descriptors[1]),
+              "create parameter descriptor layout");
+        VkDescriptorPoolSize pool_size{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 3};
         VkDescriptorPoolCreateInfo dp{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO};
-        dp.maxSets = 1;
+        dp.maxSets = 2;
         dp.poolSizeCount = 1;
         dp.pPoolSizes = &pool_size;
         check(vkCreateDescriptorPool(i.device, &dp, nullptr, &i.descriptor_pool),
               "create descriptor pool");
         VkDescriptorSetAllocateInfo set{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO};
         set.descriptorPool = i.descriptor_pool;
-        set.descriptorSetCount = 1;
-        set.pSetLayouts = &i.descriptors;
-        check(vkAllocateDescriptorSets(i.device, &set, &i.descriptor_set),
+        set.descriptorSetCount = std::size(i.descriptors);
+        set.pSetLayouts = i.descriptors;
+        check(vkAllocateDescriptorSets(i.device, &set, i.descriptor_sets),
               "allocate descriptors");
         VkPushConstantRange range{VK_SHADER_STAGE_COMPUTE_BIT, 0, 256};
-        VkPipelineLayoutCreateInfo layout{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
-        layout.setLayoutCount = 1;
-        layout.pSetLayouts = &i.descriptors;
-        layout.pushConstantRangeCount = 1;
-        layout.pPushConstantRanges = &range;
-        check(vkCreatePipelineLayout(i.device, &layout, nullptr, &i.layout),
-              "create pipeline layout");
+        for (std::uint32_t n = 0; n < std::size(i.layouts); ++n) {
+            VkPipelineLayoutCreateInfo layout{
+                VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
+            layout.setLayoutCount = 1;
+            layout.pSetLayouts = &i.descriptors[n];
+            if (n == 0) {
+                layout.pushConstantRangeCount = 1;
+                layout.pPushConstantRanges = &range;
+            }
+            check(vkCreatePipelineLayout(i.device, &layout, nullptr, &i.layouts[n]),
+                  "create pipeline layout");
+        }
         i.global_stride = std::max(
             16U,
             std::uint32_t(i.adapter.properties.limits.minUniformBufferOffsetAlignment));
+        i.parameter_stride = i.global_stride;
         i.globals = i.make_buffer(i.global_stride * 65536ULL);
         i.arguments = i.make_buffer(1024U * 1024U);
-        VkDescriptorBufferInfo buffer{i.globals.buffer, 0, 16};
-        VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
-        write.dstSet = i.descriptor_set;
-        write.descriptorCount = 1;
-        write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-        write.pBufferInfo = &buffer;
-        vkUpdateDescriptorSets(i.device, 1, &write, 0, nullptr);
+        const VkDescriptorBufferInfo buffers[]{
+            {i.globals.buffer, 0, 16},
+            {i.globals.buffer, 0, 16},
+            {i.arguments.buffer, 0, Impl::parameter_range}};
+        VkWriteDescriptorSet writes[3]{};
+        for (std::uint32_t n = 0; n < std::size(writes); ++n) {
+            writes[n].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writes[n].dstSet = i.descriptor_sets[n == 0 ? 0 : 1];
+            writes[n].dstBinding = n == 2 ? 1 : 0;
+            writes[n].descriptorCount = 1;
+            writes[n].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+            writes[n].pBufferInfo = &buffers[n];
+        }
+        vkUpdateDescriptorSets(i.device, std::size(writes), writes, 0, nullptr);
         activate();
         return PM_SUCCESS;
     } catch (...) {
@@ -718,20 +748,23 @@ std::uint64_t ScheduleContext::translated_paint_fields(
 void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
                                std::span<const std::uint32_t> shader, dim3 grid,
                                dim3 block, dim3 shader_block,
-                               std::span<const std::byte> constants) noexcept {
+                               std::span<const std::byte> constants,
+                               bool parameter_buffer) noexcept {
     activate();
     std::lock_guard lock(impl_->mutex);
     auto &i = *impl_;
     if (i.last_error != cudaSuccess)
         return;
     try {
-        if (constants.size() > 256 ||
+        if (constants.size() > (parameter_buffer ? Impl::parameter_range : 256U) ||
             (shader_block.x != 0 && block.x != shader_block.x) ||
             block.y != shader_block.y || block.z != shader_block.z)
-            throw std::runtime_error("dispatch shape or push constant mismatch");
+            throw std::runtime_error("dispatch shape or parameter-buffer mismatch");
         i.begin();
         const std::string key = std::string(module) + '/' + std::string(entry) + '/' +
-                                std::to_string(block.x);
+                                std::to_string(block.x) +
+                                (parameter_buffer ? "/buffer" : "/push");
+        const std::uint32_t layout_index = parameter_buffer ? 1U : 0U;
         auto p = i.pipelines.find(key);
         if (p == i.pipelines.end()) {
             if (std::getenv("PM_VULKAN_TRACE"))
@@ -750,7 +783,7 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
             create.stage.module = handle;
             std::string name(entry);
             create.stage.pName = name.c_str();
-            create.layout = i.layout;
+            create.layout = i.layouts[layout_index];
             VkSpecializationMapEntry specialization_entry{0, 0, sizeof(block.x)};
             VkSpecializationInfo specialization{1, &specialization_entry, sizeof(block.x),
                                                 &block.x};
@@ -767,14 +800,33 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
                 throw;
             }
         }
+        std::uint32_t parameter_offset{};
+        if (parameter_buffer) {
+            i.argument_offset = (i.argument_offset + i.parameter_stride - 1U) &
+                                ~(i.parameter_stride - 1U);
+            if (i.argument_offset + Impl::parameter_range > i.arguments.size) {
+                i.submit();
+                i.begin();
+            }
+            parameter_offset = i.argument_offset;
+            std::memcpy(static_cast<std::byte *>(i.arguments.host) + parameter_offset,
+                        constants.data(), constants.size());
+            i.argument_offset += static_cast<std::uint32_t>(constants.size());
+        }
         const std::uint32_t globals[]{grid.x, grid.y, grid.z, block.x};
         std::memcpy(static_cast<std::byte *>(i.globals.host) + i.global_offset, globals,
                     sizeof globals);
         vkCmdBindPipeline(i.commands, VK_PIPELINE_BIND_POINT_COMPUTE, p->second.pipeline);
-        vkCmdBindDescriptorSets(i.commands, VK_PIPELINE_BIND_POINT_COMPUTE, i.layout, 0,
-                                1, &i.descriptor_set, 1, &i.global_offset);
-        vkCmdPushConstants(i.commands, i.layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
-                           std::uint32_t(constants.size()), constants.data());
+        const std::uint32_t offsets[]{i.global_offset, parameter_offset};
+        const auto dynamic_offset_count = parameter_buffer ? 2U : 1U;
+        vkCmdBindDescriptorSets(i.commands, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                i.layouts[layout_index], 0, 1,
+                                &i.descriptor_sets[layout_index],
+                                dynamic_offset_count, offsets);
+        if (!parameter_buffer)
+            vkCmdPushConstants(i.commands, i.layouts[layout_index],
+                               VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                               std::uint32_t(constants.size()), constants.data());
         vkCmdDispatch(i.commands, grid.x, grid.y, grid.z);
         i.barrier();
         i.global_offset += i.global_stride;

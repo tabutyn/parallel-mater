@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Regression tests for the Pixel 7 forward-pointer compiler workaround."""
+"""Regression tests for Vulkan SPIR-V transport normalization."""
 from collections import Counter
 from pathlib import Path
 import struct
@@ -8,7 +8,8 @@ import sys
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
-from normalize_vulkan_spirv import instructions, normalize
+from normalize_vulkan_spirv import (
+    bind_entry_parameters, instructions, needs_parameter_buffer, normalize)
 
 
 def op(opcode, *operands):
@@ -65,6 +66,31 @@ class NormalizeTests(unittest.TestCase):
                        module(op(39, 2, 5349), op(30, 1), op(32, 2, 7, 1))):
             with self.subTest(source=source), self.assertRaises(ValueError):
                 normalize(source)
+
+    def test_entry_parameters_use_dynamic_uniform_binding(self):
+        source = module(
+            op(71, 2, 2),  # Block
+            op(30, 2, 1),
+            op(32, 3, 9, 2),  # pointer PushConstant
+            op(59, 3, 4, 9))  # variable PushConstant
+        result = bind_entry_parameters(source)
+        code = decode(result)
+        self.assertIn(op(32, 3, 2, 2), code)
+        self.assertIn(op(59, 3, 4, 2), code)
+        self.assertIn(op(71, 4, 34, 0), code)
+        self.assertIn(op(71, 4, 33, 1), code)
+        self.assertEqual(bind_entry_parameters(result), result)
+
+    def test_parameter_binding_rejects_incomplete_module(self):
+        with self.assertRaisesRegex(ValueError, "no variable"):
+            bind_entry_parameters(module(op(30, 2, 1), op(32, 3, 9, 2)))
+
+    def test_large_reflected_entry_selects_parameter_buffer(self):
+        def reflection(size):
+            return {"entryPoints": [{"parameters": [{
+                "binding": {"kind": "uniform", "offset": 0, "size": size}}]}]}
+        self.assertFalse(needs_parameter_buffer(reflection(256)))
+        self.assertTrue(needs_parameter_buffer(reflection(260)))
 
 
 if __name__ == "__main__":

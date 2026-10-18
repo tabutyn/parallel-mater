@@ -10,7 +10,8 @@ file(GLOB_RECURSE vulkan_shader_dependencies CONFIGURE_DEPENDS
 set(vulkan_sources)
 foreach(module geometry geometry_constraints primitives queries fluid geometry_fluid
                cloth geometry_cloth fluid_cloth soft_body geometry_soft_body
-               fluid_soft_body rope fluid_rope)
+               fluid_soft_body rope fluid_rope geometry_smoke smoke_grid
+               fluid_smoke)
     parallel_mater_slang_entry_arguments(${module} CUDA entries)
     parallel_mater_slang_definition_arguments(${module} CUDA definitions)
     set(wrapper "src/simulation/${module}_dispatch.cu")
@@ -29,6 +30,7 @@ foreach(module geometry geometry_constraints primitives queries fluid geometry_f
             -reflection-json "${base}.json" -o "${base}.raw.spv"
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/normalize_vulkan_spirv.py"
             --input "${base}.raw.spv" --output "${base}.spv"
+            --reflection "${base}.json"
         DEPENDS ${vulkan_shader_dependencies} "${PARALLEL_MATER_SLANGC_EXECUTABLE}"
             tools/normalize_vulkan_spirv.py
         COMMENT "Compiling shared Slang ${module} for Vulkan" COMMAND_EXPAND_LISTS VERBATIM)
@@ -46,10 +48,8 @@ foreach(module geometry geometry_constraints primitives queries fluid geometry_f
     endif()
 endforeach()
 set(vulkan_stub_headers
-    src/simulation/fluid_smoke_dispatch.hpp
-    src/simulation/geometry_smoke_dispatch.hpp
     src/simulation/rope_coupling_dispatch.hpp
-    src/simulation/smoke_coupling_dispatch.hpp src/simulation/smoke_grid_dispatch.hpp
+    src/simulation/smoke_coupling_dispatch.hpp
     src/simulation/soft_body_cloth_dispatch.hpp)
 add_custom_command(OUTPUT "${vulkan_generated}/unadvertised.cpp"
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_cpu_dispatch_stubs.py"
@@ -123,6 +123,18 @@ if(BUILD_TESTING)
     add_test(NAME parallel-mater-vulkan-rope-capability-tests
         COMMAND parallel-mater-vulkan-rope-capability-tests)
     set_tests_properties(parallel-mater-vulkan-rope-capability-tests PROPERTIES
+        TIMEOUT 180
+        ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json")
+    add_executable(parallel-mater-vulkan-smoke-capability-tests
+        tests/api/vulkan_smoke_capability_tests.cpp)
+    target_compile_features(parallel-mater-vulkan-smoke-capability-tests PRIVATE cxx_std_20)
+    target_link_libraries(parallel-mater-vulkan-smoke-capability-tests PRIVATE
+        ParallelMater::parallel_mater)
+    add_dependencies(parallel-mater-vulkan-smoke-capability-tests
+        parallel-mater-driver-slang-vulkan)
+    add_test(NAME parallel-mater-vulkan-smoke-capability-tests
+        COMMAND parallel-mater-vulkan-smoke-capability-tests)
+    set_tests_properties(parallel-mater-vulkan-smoke-capability-tests PROPERTIES
         TIMEOUT 180
         ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json")
     if(PARALLEL_MATER_BUILD_GALLERY)

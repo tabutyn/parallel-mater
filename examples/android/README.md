@@ -16,12 +16,12 @@ An explicit `-PphysicsBackend=cpu` build retains the experimental Slang CPU
 preview. There is no silent CPU fallback when the Vulkan driver is unavailable.
 
 The picker always shows the common 28-scene catalog and annotates unsupported
-records with the exact missing backend feature. The current Vulkan driver
-advertises the first 15 records: rigid bodies and constraints, Dump, Fluid,
-Fluid + Rigid, Peg Paint, Cloth, Cloth Tear, Cloth Paint, and Water Cloth. Rope,
-soft bodies, smoke, and their couplings remain unavailable. The new cloth set
-has desktop Vulkan evidence; Pixel qualification remains a separate roadmap
-gate.
+records with the exact missing backend interaction. The current Vulkan driver
+qualifies 22 records: rigid bodies and constraints, Dump, Fluid, Fluid + Rigid,
+Peg Paint, all four cloth scenes, three soft-body scenes, Rope, RopeFluid,
+Smoke, and SmokeWater. Six cross-deformable scenes remain unavailable until
+F7-14: Soft Body Cloth, Rope Soft Body, Rope Cloth, Smoke Soft Body, Smoke Cloth,
+and Smoke Rope.
 
 ## Device workload resource
 
@@ -29,13 +29,14 @@ The APK bundles `config/device-profiles.json`. Native startup selects a
 `startup_limits` record by platform, Android `Build.MODEL`, and physics backend.
 Exact device matches beat the platform fallback; an exact backend breaks ties.
 
-The Pixel 7 preview selects four bricks, 128 fluid particles, four moving bodies
-in the liquid scene, at most 640×360 pixels, and a 30 FPS target. Unknown Android
-devices use 64 fluid particles and two moving bodies in liquid scenes.
+The Pixel 7 preview selects four bricks, 128 fluid particles, 128 smoke
+particles, four moving bodies in the liquid scene, at most 640×360 pixels, and
+a 30 FPS target. Unknown Android devices use 64 fluid particles, 128 smoke
+particles, and two moving bodies in liquid scenes.
 Both are conservative, unmeasured starting budgets, separate from
 `measurements` and `verified_profiles`. They are not sustained performance
-claims. Smoke and dump limits are reserved for backends/scenes that support
-them; they do not enable those scenes here.
+claims. Capability records, rather than workload limits, decide whether a scene
+is selectable.
 
 Fluid and coupled-body budgets are applied before simulation allocation. Static
 and kinematic scenery is retained; a deterministic subset of independent dynamic
@@ -170,13 +171,14 @@ scene and actual backend. These are measurements at the declared small workload,
 not quality-equivalent desktop benchmarks. Vulkan pipeline cache files live in
 the app's private cache directory and are checked against the device identity.
 
-## Vulkan status (2026-10-16)
+## Vulkan status (2026-10-18)
 
 ARM64 packaging builds successfully with the same public loader and shared Slang
 Vulkan driver. APK inspection confirms Vulkan is the only bundled physics driver,
 with no CUDA runtime dependency. Pixel 7/Mali-G710 reports Vulkan 1.4.343 and the
-required features, including 256-byte push constants, `storagePushConstant8`,
-`maintenance4`, physical buffer addresses and 64-bit buffer atomics.
+required features, including 256-byte push constants, 8-bit uniform/storage and
+push-constant access, `maintenance4`, physical buffer addresses and 64-bit
+buffer atomics.
 
 The initial command/API test crashed inside Mali's SPIR-V compiler
 (`SPIR_MBS2Helper::apply_decorations`). A minimal 1496-byte shader reproduced
@@ -184,15 +186,21 @@ the failure. Ordering acyclic pointer types before use resolves it without
 changing physics instructions or memory layouts; see the
 [Vulkan workaround](../../docs/VULKAN.md#mali-pointer-declaration-workaround).
 
-With normalized shaders, Pixel 7 passes the earlier three native suites:
-command/API, asynchronous submission, and analytic liquid free fall plus bounded
-Fluid and FluidRigid scenes/reset. That run covered six modules and eight scenes.
-The driver now builds nine modules and advertises cloth, paint, and liquid–cloth
-coupling after desktop qualification. The expanded set still needs the F7-18
-Pixel run. Scene replacement releases the old GPU simulation first to avoid
-overlapping memory footprints. Performance remains below target; see the
-[qualification record](../../docs/ANDROID-QUALIFICATION.md) for prior scene
-timings, memory observations and remaining gates.
+The driver packages seventeen shared Slang modules. Smoke kernels whose
+reflected entry blocks exceed 256 bytes use a dynamic uniform parameter buffer;
+existing modules retain their push-constant pipeline layout. All seventeen
+normalized modules pass SDK 1.4.341.0 static validation on Linux.
+
+A revision-pinned Pixel 7 run passed the common 28-scene sweep with 22 supported
+scenes. Smoke and SmokeWater both passed visible-output and reset checks. The
+same run verified direct Vulkan presentation without ordinary-frame readback,
+pause/reset, background recovery, resize, rotation, and native teardown. The
+remaining six scenes were skipped with the exact unadvertised cross-deformable
+interactions. This three-frame-per-scene run is correctness and lifecycle
+evidence; F7-18 still owns sustained runtime, thermal and performance evidence.
+Scene replacement releases the old GPU simulation first to avoid overlapping
+memory footprints. See the [qualification record](../../docs/ANDROID-QUALIFICATION.md)
+for earlier native-suite evidence and remaining gates.
 
 ## Earlier CPU validation
 
@@ -207,6 +215,8 @@ and reset. These require `BUILD_TESTING`, `PARALLEL_MATER_BUILD_GALLERY`,
 APK compilation and host tests do not establish phone stability or GPU
 performance. Record phone runtime evidence separately before promoting budgets
 to measured or verified profiles.
+
+## Earlier Android bring-up
 
 Pixel 7 smoke test (Android 17, 2026-10-16): installed and launched the ARM64
 APK; startup selected `pixel-7-preview`. Rigid Body, Fluid, and Fluid + Rigid

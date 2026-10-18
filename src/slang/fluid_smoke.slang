@@ -1,4 +1,5 @@
 #include "dispatch_entry.slang"
+#include "dispatch_shape.slangh"
 // SPDX-License-Identifier: MIT
 // Shared fluid-smoke coupling kernels.
 
@@ -10,7 +11,7 @@ import smoke_grid;
 import graphics_resources;
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_smoke_drag(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<uint> water_count, uniform FluidSmokeCouplingOptions coupling,
@@ -34,7 +35,7 @@ void fluid_smoke_drag(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_smoke_grid_drag(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<uint> water_count, uniform FluidSmokeCouplingOptions coupling,
@@ -57,7 +58,7 @@ void fluid_smoke_grid_drag(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_smoke_exchange(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> temperatures, uniform PMBuffer<uint> water_count,
@@ -103,7 +104,7 @@ void fluid_smoke_exchange(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void fluid_clear_inactive_keep(
     uniform PMByteBuffer keep, uniform PMBuffer<uint> count, uniform uint capacity PM_D3D12_DISPATCH_PARAMETER)
 {
