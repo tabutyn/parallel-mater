@@ -4,9 +4,10 @@
   "scope": "Existing shared Slang cross-deformable schedules executed through the public Vulkan driver and common Gallery session",
   "source": {
     "implementation_commit": "105a10172ad8ba24d0daf7d5923302043d48f3dc",
+    "tested_commit": "5c76164609a2cc1e5d481a77b19a697f683c825a",
     "base_main_commit": "c2870002d120c1b9eff5a81496e9942691fd0ecb",
     "branch": "work/F7-14/thomas-laptop",
-    "tested_at": "2026-10-18"
+    "tested_at": "2026-10-18T15:14:37Z"
   },
   "contract": {
     "shared_slang_modules": [
@@ -72,8 +73,8 @@
   "android_artifact": {
     "path": "examples/android/app/build/outputs/apk/debug/app-debug.apk",
     "abi": "arm64-v8a",
-    "sha256": "30008d8ce0447aa1318aedbb0e66c4a18dbaabd7d9caf3bb35fb9c7555b85252",
-    "embedded_revision": "105a10172ad8ba24d0daf7d5923302043d48f3dc",
+    "sha256": "e36baf22de748cee551aa474384375004efddd08d6badd93b92e411a422e1b38",
+    "embedded_revision": "5c76164609a2cc1e5d481a77b19a697f683c825a",
     "packaged_spirv_modules": 23,
     "build_result": "passed"
   },
