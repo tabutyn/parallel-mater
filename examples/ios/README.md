@@ -56,23 +56,24 @@ workflow for Android's pinned Gradle/SDK/NDK configuration.
 
 ## Scenes and controls
 
-The picker exposes 27 scenes: rigid bodies and constraints; fluid, cloth,
+The picker exposes all 28 catalog scenes: rigid bodies and constraints; fluid, cloth,
 soft-body, rope, smoke, paint, and the currently implemented mixed-domain scenes.
-Dump Truck is omitted until touch vehicle controls are implemented. Existing
-scene availability does not establish complete physics qualification or add
-missing roadmap interactions.
+Existing scene availability does not establish complete physics qualification
+or add missing roadmap interactions.
 
 - Tap the scene name to switch; Pause/Resume controls simulation.
 - Drag to orbit; pinch to zoom; Focus restores the initial view.
 - Hold an arrow to push authored objects or tilt gravity.
-- Release / Restore acts on the Point scene; Reset reloads the scene.
+- The shared primary-action button releases/restores Point constraints and
+  raises/lowers the Dump bed; Reset reloads the scene.
 - Info reports the actual device, profile, revision, and shared frame timings.
 
 Only one worker frame can be pending. Backgrounding stops scheduling and clears
 held input. A completed worker frame can still finish during the transition.
-Android and iPad use one C++ `GallerySession`, including controls, scene/reset
-logic, workload selection and `FrameTimingCollector`. Native adapters own only
-input, lifecycle and presentation. Metal drawable acquisition/presentation is
+Android and iPad use one C++ `MobileGallerySession`, including controls,
+scene/reset logic, surface admission, failure recovery, workload selection and
+`FrameTimingCollector`. Native adapters own only lifecycle, semantic input
+translation, presentation and reporting. Metal drawable acquisition/presentation is
 recorded under presentation; GPU command completion is render work. These are
 host wall-clock measurements, neither GPU-kernel durations nor scan-out FPS.
 Physics and graphics are explicitly fenced before the shared output buffer is
@@ -112,8 +113,8 @@ python3 scripts/Deploy-Gallery.py ipad --device DEVICE_ID --qualify 120
 
 The app records all 28 catalog entries, runs 120 frames for each available
 scene, records exact capability reasons for unavailable scenes, validates
-output/images, and checks shared
-pause, inactive/resume and reset behavior. The host then backgrounds Gallery
+output/images, and checks shared surface replacement, pause, inactive/resume,
+presentation-failure recovery and reset behavior. The host then backgrounds Gallery
 using Settings and returns to Gallery, checking actual OS lifecycle counters and
 that simulation did not advance while inactive. Reports are nonce-bound and
 saved under `out/gallery-deployment/`. `--smoke-test` remains a short three-frame

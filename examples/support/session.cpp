@@ -4,6 +4,7 @@
 #include "scene_builder.hpp"
 #include "render/render_scene.hpp"
 #include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/runtime_platform.hpp>
 #ifdef PM_GALLERY_METAL_RENDERER
 #include <parallel_mater_gallery/gpu_renderer.hpp>
 #endif
@@ -17,6 +18,13 @@ namespace parallel_mater::gallery {
 namespace {
 void require(bool ok, const std::string &error) {
     if (!ok) throw std::runtime_error(error.empty() ? "Gallery operation failed" : error);
+}
+
+std::optional<PmNativeBackend> required_backend(std::string_view name) {
+    const auto backend = gallery_backend_from_name(name);
+    if (!backend && name != "slang-cpu")
+        throw std::runtime_error("Unknown Gallery backend: " + std::string(name));
+    return backend;
 }
 }
 const GalleryCatalogItem &GallerySession::catalog_item(unsigned index) const {
@@ -54,7 +62,7 @@ void GallerySession::select(unsigned index) {
     GalleryRuntimeCreateInfo request;
     request.context = selected.context;
     request.asset = config_.assets / item.asset_file;
-    request.backend = config_.native_backend;
+    request.backend = required_backend(config_.backend);
     request.width = width;
     request.height = height;
     request.create_host_renderer = !config_.gpu_rendering;
@@ -88,7 +96,7 @@ void GallerySession::select(unsigned index) {
         return true;
     };
     const bool gpu_rendering = config_.gpu_rendering;
-    const auto native_backend = config_.native_backend;
+    const auto native_backend = request.backend;
     request.prepare_runtime =
         [pending_device, gpu_rendering, native_backend]
         (GalleryRuntime &next, std::string &failure) {
@@ -363,8 +371,6 @@ std::string GallerySession::status() const {
     if (config_.gpu_rendering) text << " · GPU graphics";
     else if (!runtime_.frame.fluid_particles.empty())
         text << " · " << runtime_.frame.fluid_particles.size() << " particles";
-    text << "\n" << (runtime_.controller_state().authored_force
-        ? "Push objects" : "Tilt gravity");
     return text.str();
 }
 void GallerySession::validate_snapshot() const {
@@ -429,7 +435,7 @@ std::string GallerySession::details() const {
     text << (timing.latest() && timing.latest()->present_ms
         ? "\nPresentation callback included; display scan-out excluded."
         : "\nUI handoff/display time excluded.")
-         << "\n\nDrag to orbit. Pinch to zoom. Hold arrows to push objects or tilt gravity."
+         << "\n\nDrag to orbit. Pinch to zoom. Hold arrows for the scene's directional action."
          << "\n\nPreview only: workloads are provisional. Slow updates slow simulation. Missing roadmap interactions and full qualification remain pending."
          << "\n\nBuild " PM_GALLERY_BUILD_REVISION;
     return text.str();

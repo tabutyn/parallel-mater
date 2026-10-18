@@ -310,7 +310,8 @@ main; it does not waive the production gates above. Engine integration is
 explicitly deferred. Use `CMakePresets.json` for backend-specific builds and
 `scripts/Deploy-Gallery.py` for revision/backend-verified Apple deployment.
 The iPad app now packages the approved logo; Android and iPad consume one shared
-session and timer, including the same bounded qualification routine.
+mobile-session coordinator and timer, including the same bounded qualification
+routine, surface/lifecycle admission, controller view model and failure recovery.
 
 `CommandSceneInstance::render_buffers` uses the same `GpuSceneBuffers` contract
 as D3D12. It describes public output-buffer regions, consumed after the physics

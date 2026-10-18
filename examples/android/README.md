@@ -2,8 +2,9 @@
 
 This native APK uses the shared gallery scene builder, public command API,
 loader, validation layer, and software renderer. Android and iPad share one C++
-GallerySession for controls, scene/reset logic, budgets and frame timing. The
-JNI layer contains only Android surface/lifecycle/input adaptation. The default build bundles the
+`MobileGallerySession` for controls, scene/reset logic, surface admission,
+failure recovery, budgets and frame timing. Java/JNI retain only Android
+lifecycle, semantic input translation, surface presentation and reporting. The default build bundles the
 same loadable Vulkan driver and common Slang physics as the desktop preview.
 Vulkan physics runs on the phone; rendering currently copies results into the
 software renderer. This is not yet native GPU-renderer interoperability.
@@ -46,7 +47,9 @@ The common Gallery clock advances fixed 1/target_fps steps with approximately
 240 solver substeps/second. Slow display frames may catch up by at most four
 steps and only within the shared 8 ms physics-work budget; excess whole steps
 are discarded so rendering and input cannot accumulate an unbounded queue.
-Pause, backgrounding, surface loss, and profile changes reset elapsed time.
+Pause, backgrounding, surface loss, and profile changes reset elapsed time. The
+UI schedules one worker frame from display callbacks; it does not implement a
+second target-FPS clock.
 
 ## Build and install
 

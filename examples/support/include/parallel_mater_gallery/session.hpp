@@ -17,7 +17,6 @@ namespace parallel_mater::gallery {
 struct GallerySessionConfig {
     std::filesystem::path assets, profiles;
     std::string platform, model, backend;
-    std::optional<PmNativeBackend> native_backend;
     bool gpu_rendering{};
 };
 
