@@ -218,6 +218,38 @@ void apply_pair_viscosity(FluidState &first, FluidState &second,
         constants);
 }
 
+void apply_miscible_viscosity(FluidState &first, FluidState &second,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants) {
+    const auto first_count = static_cast<std::uint32_t>(first.positions.size());
+    const auto second_count = static_cast<std::uint32_t>(second.positions.size());
+    const auto total = first_count + second_count;
+    std::vector<std::uint64_t> keys[2];
+    std::vector<std::uint32_t> identities[2];
+    for (unsigned slot = 0U; slot < 2U; ++slot) {
+        keys[slot].resize(total);
+        identities[slot].resize(total);
+    }
+    const float pair_support = std::max(first_constants.support_radius,
+        second_constants.support_radius);
+    fluid_pair_cell_keys((total + 127U) / 128U, 128U, {},
+        first.positions.data(), &first_count, first_count,
+        second.positions.data(), &second_count, second_count,
+        1.0F / pair_support, keys[0].data(), identities[0].data());
+    std::vector<std::byte> workspace(radix_sort_scratch_bytes(total));
+    CHECK(radix_sort_pairs_u64_u32({}, keys[0].data(), keys[1].data(),
+        identities[0].data(), identities[1].data(), total,
+        workspace.data(), workspace.size()) == PM_SUCCESS);
+    first.forces.assign(first_count, {});
+    second.forces.assign(second_count, {});
+    fluid_miscible_pair_viscosity((total + 127U) / 128U, 128U, {},
+        first.positions.data(), first.velocities.data(), &first_count,
+        first_count, first.forces.data(), second.positions.data(),
+        second.velocities.data(), &second_count, second_count,
+        second.forces.data(), keys[1].data(), identities[1].data(), total,
+        first_constants, second_constants);
+}
+
 void apply_miscible_pressure_contact(FluidState &first, FluidState &second,
     const FluidDispatchConstants &first_constants,
     const FluidDispatchConstants &second_constants) {
@@ -369,6 +401,56 @@ float kinetic_energy(const FluidState &first, const FluidState &second,
     accumulate(first);
     accumulate(second);
     return result;
+}
+
+Vec3 physical_momentum(const FluidState &first, const FluidState &second,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants, float timestep) {
+    Vec3 result{};
+    const auto accumulate = [&](const FluidState &state, float mass) {
+        for (std::size_t index = 0U; index < state.velocities.size(); ++index) {
+            result = added(result, scaled(added(state.velocities[index],
+                scaled(state.forces[index], timestep)), mass));
+        }
+    };
+    accumulate(first, particle_mass(first_constants));
+    accumulate(second, particle_mass(second_constants));
+    return result;
+}
+
+float physical_kinetic_energy(const FluidState &first,
+    const FluidState &second,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants, float timestep) {
+    float result = 0.0F;
+    const auto accumulate = [&](const FluidState &state, float mass) {
+        for (std::size_t index = 0U; index < state.velocities.size(); ++index) {
+            const Vec3 velocity = added(state.velocities[index],
+                scaled(state.forces[index], timestep));
+            result += 0.5F * mass * (velocity.x * velocity.x +
+                velocity.y * velocity.y + velocity.z * velocity.z);
+        }
+    };
+    accumulate(first, particle_mass(first_constants));
+    accumulate(second, particle_mass(second_constants));
+    return result;
+}
+
+void check_miscible_viscosity_reversal(FluidState first, FluidState second,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants) {
+    apply_miscible_viscosity(
+        first, second, first_constants, second_constants);
+    FluidState reversed_first = second;
+    FluidState reversed_second = first;
+    apply_miscible_viscosity(reversed_first, reversed_second,
+        second_constants, first_constants);
+    CHECK(first.forces.size() == reversed_second.forces.size());
+    CHECK(second.forces.size() == reversed_first.forces.size());
+    for (std::size_t index = 0U; index < first.forces.size(); ++index)
+        check_close(first.forces[index], reversed_second.forces[index], 1.0e-6F);
+    for (std::size_t index = 0U; index < second.forces.size(); ++index)
+        check_close(second.forces[index], reversed_first.forces[index], 1.0e-6F);
 }
 
 void test_mixed_populations_and_limits() {
@@ -759,6 +841,123 @@ void test_pressure_contact_matches_combined_and_balances_momentum() {
     }
 }
 
+void test_miscible_viscosity_analytic_and_zero_limits() {
+    FluidDispatchConstants first_material{};
+    first_material.particle_radius = 0.04F;
+    first_material.support_radius = 0.40F;
+    first_material.viscosity = 0.20F;
+    first_material.rest_density = 800.0F;
+    first_material.rest_particle_volume = 0.002F;
+    first_material.maximum_neighbors = 8U;
+
+    FluidDispatchConstants second_material{};
+    second_material.particle_radius = 0.06F;
+    second_material.support_radius = 0.50F;
+    second_material.viscosity = 0.80F;
+    second_material.rest_density = 1'200.0F;
+    second_material.rest_particle_volume = 0.001F;
+    second_material.maximum_neighbors = 8U;
+
+    FluidState first{{{0.0F, 0.0F, 0.0F}}, {{1.0F, 0.5F, -0.25F}}};
+    FluidState second{{{0.2F, 0.0F, 0.0F}}, {{-0.5F, 0.25F, 0.75F}}};
+    apply_miscible_viscosity(
+        first, second, first_material, second_material);
+
+    const float first_mu = first_material.rest_density *
+        first_material.viscosity;
+    const float second_mu = second_material.rest_density *
+        second_material.viscosity;
+    const float pair_mu = 2.0F * first_mu * second_mu /
+        (first_mu + second_mu);
+    const float first_volume = particle_mass(first_material) /
+        first_material.rest_density;
+    const float second_volume = particle_mass(second_material) /
+        second_material.rest_density;
+    const float pair_volume = 2.0F * first_volume * second_volume /
+        (first_volume + second_volume);
+    const float coefficient = pair_mu * pair_volume * (1.0F - 0.2F / 0.5F);
+    const Vec3 relative{-1.5F, -0.25F, 1.0F};
+    const Vec3 common_force = scaled(relative, coefficient);
+    check_close(first.forces[0],
+        scaled(common_force, 1.0F / particle_mass(first_material)), 2.0e-6F);
+    check_close(second.forces[0],
+        scaled(common_force, -1.0F / particle_mass(second_material)), 2.0e-6F);
+    const Vec3 before = physical_momentum(
+        first, second, first_material, second_material, 0.0F);
+    const Vec3 after = physical_momentum(
+        first, second, first_material, second_material, 0.05F);
+    check_close(before, after, 2.0e-6F);
+    CHECK(physical_kinetic_energy(first, second,
+              first_material, second_material, 0.05F) <
+        physical_kinetic_energy(first, second,
+            first_material, second_material, 0.0F));
+    check_miscible_viscosity_reversal(
+        first, second, first_material, second_material);
+
+    FluidDispatchConstants inviscid_first = first_material;
+    inviscid_first.viscosity = 0.0F;
+    apply_miscible_viscosity(
+        first, second, inviscid_first, second_material);
+    check_close(first.forces[0], {}, 0.0F);
+    check_close(second.forces[0], {}, 0.0F);
+
+    FluidDispatchConstants inviscid_second = second_material;
+    inviscid_second.viscosity = 0.0F;
+    apply_miscible_viscosity(
+        first, second, inviscid_first, inviscid_second);
+    check_close(first.forces[0], {}, 0.0F);
+    check_close(second.forces[0], {}, 0.0F);
+}
+
+void test_miscible_viscosity_population_ratio_sweeps() {
+    FluidDispatchConstants first_material{};
+    first_material.particle_radius = 0.04F;
+    first_material.support_radius = 0.45F;
+    first_material.viscosity = 0.15F;
+    first_material.rest_density = 750.0F;
+    first_material.rest_particle_volume = 0.0015F;
+    first_material.maximum_neighbors = 8U;
+
+    FluidDispatchConstants second_material{};
+    second_material.particle_radius = 0.07F;
+    second_material.support_radius = 0.55F;
+    second_material.viscosity = 0.65F;
+    second_material.rest_density = 1'350.0F;
+    second_material.rest_particle_volume = 0.0008F;
+    second_material.maximum_neighbors = 8U;
+
+    for (const std::uint32_t second_count : {1U, 2U, 4U}) {
+        for (const float timestep : {0.001F, 0.01F, 0.05F}) {
+            FluidState first{{{-0.05F, 0.02F, 0.0F}},
+                {{0.9F, 0.3F, -0.2F}}};
+            FluidState second;
+            for (std::uint32_t index = 0U; index < second_count; ++index) {
+                second.positions.push_back({0.15F,
+                    0.04F * static_cast<float>(index), 0.02F});
+                second.velocities.push_back({-0.35F,
+                    -0.1F / static_cast<float>(second_count), 0.25F});
+            }
+            apply_miscible_viscosity(
+                first, second, first_material, second_material);
+            const Vec3 before = physical_momentum(first, second,
+                first_material, second_material, 0.0F);
+            const Vec3 after = physical_momentum(first, second,
+                first_material, second_material, timestep);
+            check_close(before, after, 2.0e-5F);
+            const float energy_before = physical_kinetic_energy(first, second,
+                first_material, second_material, 0.0F);
+            const float energy_after = physical_kinetic_energy(first, second,
+                first_material, second_material, timestep);
+            CHECK(energy_after <= energy_before + 1.0e-6F);
+            float activity = vector_length(scaled(first.forces[0],
+                particle_mass(first_material)));
+            CHECK(activity >= 1.0e-4F);
+            check_miscible_viscosity_reversal(
+                first, second, first_material, second_material);
+        }
+    }
+}
+
 void test_viscosity_matches_combined_population() {
     FluidDispatchConstants constants{};
     constants.timestep = 0.02F;
@@ -887,6 +1086,8 @@ int main() {
     test_miscible_pressure_contact_conserves_unequal_mass_pairs();
     test_miscible_contact_uses_radius_volume_and_fallback_mass();
     test_pressure_contact_matches_combined_and_balances_momentum();
+    test_miscible_viscosity_analytic_and_zero_limits();
+    test_miscible_viscosity_population_ratio_sweeps();
     test_viscosity_matches_combined_population();
     test_viscosity_analytic_and_isolated_limits();
     test_viscosity_timestep_and_population_mass_ratio_sweeps();
