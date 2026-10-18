@@ -27,17 +27,32 @@
 #ifndef PM_FLUID_SELF_PRESSURE_PROFILE_SHA256
 #error PM_FLUID_SELF_PRESSURE_PROFILE_SHA256 is required
 #endif
+#ifndef PM_FLUID_SELF_VISCOSITY_PROFILE_SHA256
+#error PM_FLUID_SELF_VISCOSITY_PROFILE_SHA256 is required
+#endif
 
 using parallel_mater::conformance::Json;
 using parallel_mater::test::Context;
 
 namespace {
 
-enum class Fixture { pressure_contact, viscosity, self_contact, self_pressure };
+enum class Fixture {
+    pressure_contact,
+    viscosity,
+    self_contact,
+    self_pressure,
+    self_viscosity,
+};
 
 [[nodiscard]] bool is_self_fixture(Fixture fixture) {
     return fixture == Fixture::self_contact ||
-        fixture == Fixture::self_pressure;
+        fixture == Fixture::self_pressure ||
+        fixture == Fixture::self_viscosity;
+}
+
+[[nodiscard]] bool is_viscosity_fixture(Fixture fixture) {
+    return fixture == Fixture::viscosity ||
+        fixture == Fixture::self_viscosity;
 }
 
 struct RunResult {
@@ -51,9 +66,8 @@ struct RunResult {
     result.particleRadius = 0.1F;
     result.supportRadius = is_self_fixture(fixture) ? 0.4F : 1.0F;
     result.restParticleVolume = 0.008F;
-    result.pressureStiffness =
-        fixture != Fixture::viscosity ? 40.0F : 0.0F;
-    result.kinematicViscosity = fixture == Fixture::viscosity ? 2.0F : 0.0F;
+    result.pressureStiffness = is_viscosity_fixture(fixture) ? 0.0F : 40.0F;
+    result.kinematicViscosity = is_viscosity_fixture(fixture) ? 2.0F : 0.0F;
     result.normalDamping = fixture == Fixture::pressure_contact ? 2.0F : 0.0F;
     result.maximumSpeed = 100.0F;
     result.maximumPairAcceleration = 1000.0F;
@@ -66,8 +80,9 @@ struct RunResult {
     std::vector<PmParticleState> result(1U + ratio);
     result[0].position[0] =
         is_self_fixture(fixture) ? -0.05F : -0.4F;
-    if (fixture == Fixture::viscosity) {
-        result[0].velocity[0] = 1.0F;
+    if (is_viscosity_fixture(fixture)) {
+        result[0].velocity[0] =
+            fixture == Fixture::self_viscosity ? -1.0F : 1.0F;
     }
     for (std::uint32_t index = 0U; index < ratio; ++index) {
         auto &particle = result[1U + index];
@@ -81,8 +96,10 @@ struct RunResult {
             fixture == Fixture::pressure_contact
                 ? 0.05F * static_cast<float>(index)
                 : 0.0F;
-        if (fixture == Fixture::viscosity) {
-            particle.velocity[0] = -1.0F / static_cast<float>(ratio);
+        if (is_viscosity_fixture(fixture)) {
+            const float direction =
+                fixture == Fixture::self_viscosity ? 1.0F : -1.0F;
+            particle.velocity[0] = direction / static_cast<float>(ratio);
         }
     }
     for (auto &particle : result) particle.temperatureCelsius = 20.0F;
@@ -316,6 +333,12 @@ template <typename Particle>
         "public-output-isotropic-packing-density-and-momentum");
 }
 
+[[nodiscard]] Json self_viscosity_fixture(Context &context) {
+    return self_fixture(context, Fixture::self_viscosity, 0.05F,
+        "symmetric-separating-pair-viscosity-damping",
+        "public-output-relative-speed-energy-and-momentum");
+}
+
 [[nodiscard]] Json state_json(const RunResult &run) {
     Json result = Json::array();
     result.push_back(particle_json(run.first[0], "first/0"));
@@ -436,6 +459,7 @@ int main(int argc, char **argv) {
     std::string driver_name = "selected-loadable-driver";
     bool self_contact = false;
     bool self_pressure = false;
+    bool self_viscosity = false;
     for (int index = 1; index < argc; ++index) {
         const std::string_view argument = argv[index];
         if (argument == "--output" && index + 1 < argc)
@@ -446,14 +470,19 @@ int main(int argc, char **argv) {
             self_contact = true;
         else if (argument == "--self-pressure")
             self_pressure = true;
+        else if (argument == "--self-viscosity")
+            self_viscosity = true;
         else {
             std::cerr << "usage: " << argv[0]
                       << " --output FILE [--driver-name NAME]"
-                         " [--self-contact|--self-pressure]\n";
+                         " [--self-contact|--self-pressure|--self-viscosity]\n";
             return 2;
         }
     }
-    if (output.empty() || (self_contact && self_pressure)) {
+    const unsigned self_fixture_count = static_cast<unsigned>(self_contact) +
+        static_cast<unsigned>(self_pressure) +
+        static_cast<unsigned>(self_viscosity);
+    if (output.empty() || self_fixture_count > 1U) {
         std::cerr << "quality output path is required\n";
         return 2;
     }
@@ -462,7 +491,7 @@ int main(int argc, char **argv) {
         Context context;
         PmPhysicalDeviceFeatures needed{};
         needed.particleLiquids = PM_TRUE;
-        const bool self_mode = self_contact || self_pressure;
+        const bool self_mode = self_fixture_count != 0U;
         needed.liquidLiquidCoupling = self_mode ? PM_FALSE : PM_TRUE;
         if (!context.open(needed)) return 77;
 
@@ -470,8 +499,10 @@ int main(int argc, char **argv) {
             const PmInteractionCapabilityKey key{
                 PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_FLUID,
                 PM_INTERACTION_SCOPE_SELF,
-                self_contact ? PM_INTERACTION_MODE_CONTACT
-                             : PM_INTERACTION_MODE_PRESSURE,
+                self_contact
+                    ? PM_INTERACTION_MODE_CONTACT
+                    : (self_pressure ? PM_INTERACTION_MODE_PRESSURE
+                                     : PM_INTERACTION_MODE_VISCOSITY),
                 PM_INTERACTION_DIRECTION_BIDIRECTIONAL,
                 PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE};
             PmInteractionCapability capability{};
@@ -545,17 +576,21 @@ int main(int argc, char **argv) {
         result["profile_id"] = self_contact
             ? "fluid-self-contact-v1"
             : (self_pressure ? "fluid-self-pressure-v1"
-                             : "core-conservation-stability-v1");
+                : (self_viscosity ? "fluid-self-viscosity-v1"
+                                  : "core-conservation-stability-v1"));
         result["profile_sha256"] = self_contact
             ? PM_FLUID_SELF_CONTACT_PROFILE_SHA256
             : (self_pressure ? PM_FLUID_SELF_PRESSURE_PROFILE_SHA256
-                             : PM_QUALITY_PROFILE_SHA256);
+                : (self_viscosity ? PM_FLUID_SELF_VISCOSITY_PROFILE_SHA256
+                                  : PM_QUALITY_PROFILE_SHA256));
         result["execution_status"] = "completed";
         result["driver"] = std::move(driver);
         if (self_contact)
             result["fixture"] = self_contact_fixture(context);
         else if (self_pressure)
             result["fixture"] = self_pressure_fixture(context);
+        else if (self_viscosity)
+            result["fixture"] = self_viscosity_fixture(context);
         else
             result["fixtures"] = std::move(fixtures);
 
@@ -569,7 +604,9 @@ int main(int argc, char **argv) {
                           ? "PASS: public-API fluid self-contact sample on "
                           : (self_pressure
                                  ? "PASS: public-API fluid self-pressure sample on "
-                                 : "PASS: 18 public-API equal-fluid quality samples on "))
+                                 : (self_viscosity
+                                        ? "PASS: public-API fluid self-viscosity sample on "
+                                        : "PASS: 18 public-API equal-fluid quality samples on ")))
                   << properties.deviceName << '\n';
         return 0;
     } catch (const std::exception &error) {

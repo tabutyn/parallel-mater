@@ -1,7 +1,7 @@
 {
   "id": "F5-27",
   "title": "Qualify fluid self viscosity",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,15 +17,27 @@
     "Retain the existing exact lifecycle binding and prove the new analytic fixture does not broaden or substitute for its capacity, replacement and rollback obligations.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "41e7d53e-8cc2-4a3e-bb48-f55fb1d8b1b6",
-    "owner": "codex-windows-qualification",
-    "machine": "windows-gtx1080",
-    "branch": "work/F5-27/windows-gtx1080",
-    "claimed_at": "2026-10-18T22:21:43Z",
-    "heartbeat_at": "2026-10-18T22:21:43Z",
-    "expires_at": "2026-10-19T22:21:43Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F5-27-fluid-self-viscosity.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "41e7d53e-8cc2-4a3e-bb48-f55fb1d8b1b6",
+        "owner": "codex-windows-qualification",
+        "machine": "windows-gtx1080",
+        "branch": "work/F5-27/windows-gtx1080",
+        "claimed_at": "2026-10-18T22:21:43Z",
+        "heartbeat_at": "2026-10-18T22:21:43Z",
+        "expires_at": "2026-10-19T22:21:43Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T22:39:11Z",
+      "reason": "physical-quality-profile-and-GTX1080-evidence-passed",
+      "evidence": [
+        "docs/roadmap/evidence/F5-27-fluid-self-viscosity.json"
+      ]
+    }
+  ]
 }
