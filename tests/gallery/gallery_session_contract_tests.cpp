@@ -198,7 +198,10 @@ int main() {
             if (session.backend_name() == "vulkan") {
                 for (const gallery::GalleryContext context : {
                          gallery::GalleryContext::rope_cloth,
-                         gallery::GalleryContext::rope_soft_body}) {
+                         gallery::GalleryContext::rope_soft_body,
+                         gallery::GalleryContext::smoke_cloth,
+                         gallery::GalleryContext::smoke_soft_body,
+                         gallery::GalleryContext::smoke_rope}) {
                     const auto item = std::find_if(
                         session.catalog().begin(), session.catalog().end(),
                         [context](const auto &candidate) {
@@ -219,7 +222,9 @@ int main() {
                          gallery::GalleryContext::soft_body_rigid,
                          gallery::GalleryContext::soft_body_fluid,
                          gallery::GalleryContext::rope,
-                         gallery::GalleryContext::rope_fluid}) {
+                         gallery::GalleryContext::rope_fluid,
+                         gallery::GalleryContext::smoke,
+                         gallery::GalleryContext::smoke_water}) {
                     const auto item = std::find_if(
                         session.catalog().begin(), session.catalog().end(),
                         [context](const auto &candidate) {

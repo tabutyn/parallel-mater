@@ -1,4 +1,5 @@
 #include "dispatch_entry.slang"
+#include "dispatch_shape.slangh"
 // SPDX-License-Identifier: MIT
 // Slang mirror of src/smoke_grid.cuh. Grid entry points follow these shared
 // sampling helpers.
@@ -198,7 +199,7 @@ public Vec3 smoke_soft_surface_velocity(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_initialize_cells(
     uniform PMBuffer<Vec3> velocity, uniform PMBuffer<float> density,
     uniform PMBuffer<float> temperature, uniform PMBuffer<float> pressure,
@@ -221,7 +222,7 @@ void smoke_grid_initialize_cells(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_initialize_faces(
     uniform PMBuffer<float> values, uniform PMBuffer<float> reverse, uniform PMBuffer<float> open,
     uniform PMBuffer<float> wall, uniform PMBuffer<Vec3> normal,
@@ -239,7 +240,7 @@ void smoke_grid_initialize_faces(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_clear_obstacles(
     uniform PMBuffer<uint> solid, uniform uint cell_count, uniform PMBuffer<float> open_x,
     uniform PMBuffer<float> open_y, uniform PMBuffer<float> open_z, uniform PMBuffer<float> wall_x,
@@ -255,7 +256,7 @@ void smoke_grid_clear_obstacles(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_resolve_particle_fields(
     uniform PMBuffer<uint64_t> density_accumulator,
     uniform PMBuffer<uint64_t> temperature_accumulator, uniform PMBuffer<float> density,
@@ -270,7 +271,7 @@ void smoke_grid_resolve_particle_fields(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_splat_particles(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<float> ages,
     uniform PMBuffer<float> thermal_lift, uniform uint count,
@@ -318,7 +319,7 @@ void smoke_grid_splat_particles(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_advect_face(
     uniform int axis, uniform SmokeGridField grid, uniform PMBuffer<float> source,
     uniform PMBuffer<float> destination, uniform float dt PM_D3D12_DISPATCH_PARAMETER)
@@ -366,7 +367,7 @@ void smoke_grid_face_minmax(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_correct_face(
     uniform int axis, uniform SmokeGridField original,
     uniform PMBuffer<float> source, uniform PMBuffer<float> predicted,
@@ -417,7 +418,7 @@ float smoke_grid_read_face(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_cell_diagnostics(
     uniform SmokeGridField grid, uniform PMBuffer<Vec3> cell_velocity,
     uniform PMBuffer<Vec3> vorticity, uniform PMBuffer<float> strain,
@@ -486,7 +487,7 @@ float smoke_grid_vorticity_magnitude(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_subgrid_force(
     uniform SmokeGridField grid, uniform PMBuffer<Vec3> vorticity,
     uniform PMBuffer<Vec3> force, uniform float strength PM_D3D12_DISPATCH_PARAMETER)
@@ -530,7 +531,7 @@ float smoke_grid_source_face(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_apply_face_forces(
     uniform int axis, uniform SmokeGridField grid, uniform PMBuffer<float> source,
     uniform PMBuffer<float> destination, uniform PMBuffer<float> open, uniform PMBuffer<float> wall,
@@ -579,7 +580,7 @@ void smoke_grid_apply_face_forces(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_apply_face_boundaries(
     uniform int axis, uniform SmokeGridField grid, uniform PMBuffer<float> values,
     uniform PMBuffer<float> open, uniform PMBuffer<float> wall, uniform SmokeOptions options PM_D3D12_DISPATCH_PARAMETER)
@@ -619,7 +620,7 @@ void smoke_grid_apply_face_boundaries(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_divergence(
     uniform SmokeGridField grid, uniform PMBuffer<float> divergence,
     uniform PMBuffer<float> rhs_max, uniform float dt PM_D3D12_DISPATCH_PARAMETER)
@@ -654,7 +655,7 @@ float smoke_pressure_open(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_pressure_smooth(
     uniform int n, uniform int h, uniform float spacing, uniform PMBuffer<float> rhs,
     uniform PMBuffer<float> pressure, uniform PMBuffer<float> next, uniform PMBuffer<float> open_x,
@@ -689,7 +690,7 @@ void smoke_grid_pressure_smooth(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_pressure_residual(
     uniform int n, uniform int h, uniform float spacing, uniform PMBuffer<float> rhs,
     uniform PMBuffer<float> pressure, uniform PMBuffer<float> residual, uniform PMBuffer<float> open_x,
@@ -726,7 +727,7 @@ void smoke_grid_pressure_residual(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_restrict_residual(
     uniform PMBuffer<float> fine, uniform int fine_n, uniform int fine_h,
     uniform PMBuffer<float> coarse, uniform int coarse_n, uniform int coarse_h PM_D3D12_DISPATCH_PARAMETER)
@@ -753,7 +754,7 @@ void smoke_grid_restrict_residual(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_clear_scalar(uniform PMBuffer<float> values, uniform uint count PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
@@ -762,7 +763,7 @@ void smoke_grid_clear_scalar(uniform PMBuffer<float> values, uniform uint count 
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_restrict_open(
     uniform int axis, uniform PMBuffer<float> fine, uniform int fine_n,
     uniform int fine_h, uniform PMBuffer<float> coarse, uniform int coarse_n,
@@ -794,7 +795,7 @@ void smoke_grid_restrict_open(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_mark_domain_boundaries(
     uniform int axis, uniform SmokeGridField grid, uniform PMBuffer<float> open,
     uniform PMBuffer<float> wall, uniform SmokeOptions options PM_D3D12_DISPATCH_PARAMETER)
@@ -821,7 +822,7 @@ void smoke_grid_mark_domain_boundaries(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_prolong_add(
     uniform PMBuffer<float> coarse, uniform int coarse_n, uniform int coarse_h,
     uniform PMBuffer<float> fine, uniform int fine_n, uniform int fine_h PM_D3D12_DISPATCH_PARAMETER)
@@ -855,7 +856,7 @@ void smoke_grid_prolong_add(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_compare_residual(
     uniform PMBuffer<float> rhs_max, uniform PMBuffer<float> residual_max,
     uniform float tolerance, uniform PMBuffer<uint> converged PM_D3D12_DISPATCH_PARAMETER)
@@ -866,7 +867,7 @@ void smoke_grid_compare_residual(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_reset_residual(
     uniform PMBuffer<float> residual_max, uniform PMBuffer<uint> converged PM_D3D12_DISPATCH_PARAMETER)
 {
@@ -875,7 +876,7 @@ void smoke_grid_reset_residual(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_project_face(
     uniform int axis, uniform SmokeGridField grid, uniform PMBuffer<float> pressure,
     uniform PMBuffer<float> velocity, uniform PMBuffer<float> open, uniform PMBuffer<float> wall,
@@ -921,7 +922,7 @@ void smoke_grid_project_face(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_trace(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous_positions,
     uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages,
@@ -955,7 +956,7 @@ void smoke_grid_trace(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_soft_body_force(
     uniform PMBuffer<Vec3> surface, uniform PMBuffer<uint> indices, uniform uint index_count,
     uniform PMBuffer<SoftBodySurfaceBinding> bindings,
@@ -1027,7 +1028,7 @@ void smoke_grid_soft_body_force(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_cloth_force(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> inverse_masses, uniform PMBuffer<uint> indices,
@@ -1088,7 +1089,7 @@ void smoke_grid_cloth_force(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_apply_cloth_force(
     uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> inverse_masses,
     uniform PMBuffer<Vec3> forces, uniform uint count,
@@ -1206,7 +1207,7 @@ void smoke_grid_raster_triangle(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_raster_rigid(
     uniform TriangleMeshResource mesh, uniform PMBuffer<RigidBodyState> states,
     uniform uint body, uniform SmokeGridField grid, uniform PMBuffer<uint> solid,
@@ -1237,7 +1238,7 @@ void smoke_grid_raster_rigid(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_raster_deformable(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<uint> indices, uniform uint index_count,
@@ -1265,7 +1266,7 @@ void smoke_grid_raster_deformable(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_grid_raster_soft(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<SoftBodySurfaceBinding> bindings,
     uniform PMBuffer<Vec3> node_velocities, uniform PMBuffer<uint> indices,
@@ -1293,7 +1294,7 @@ void smoke_grid_raster_soft(
 }
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void smoke_grid_rigid_force(
     uniform TriangleMeshResource mesh, uniform uint body,
     uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<RigidBodyState> states,

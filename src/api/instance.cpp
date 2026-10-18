@@ -66,7 +66,12 @@ bool driver_supports_interaction(
     const bool soft_rope =
         key.firstFamily == PM_INTERACTION_FAMILY_SOFT_BODY &&
         key.secondFamily == PM_INTERACTION_FAMILY_ROPE;
-    if (cloth_soft || cloth_rope || soft_rope)
+    const bool deformable_smoke =
+        (key.firstFamily == PM_INTERACTION_FAMILY_CLOTH ||
+         key.firstFamily == PM_INTERACTION_FAMILY_SOFT_BODY ||
+         key.firstFamily == PM_INTERACTION_FAMILY_ROPE) &&
+        key.secondFamily == PM_INTERACTION_FAMILY_SMOKE;
+    if (cloth_soft || cloth_rope || soft_rope || deformable_smoke)
         return false;
 #else
     (void)key;
@@ -143,6 +148,7 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     features.cloth = PM_TRUE;
     features.rope = PM_TRUE;
     features.softBodies = PM_TRUE;
+    features.smoke = PM_TRUE;
     features.domainCouplings = PM_TRUE;
     features.paint = PM_TRUE;
 #endif
