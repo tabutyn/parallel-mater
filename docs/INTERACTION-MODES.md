@@ -857,6 +857,22 @@ equal and opposite and, without external work, must not increase kinetic
 energy. Pressure/contact must also conserve linear and angular momentum within
 the qualification tolerances. Endpoint order cannot affect any result.
 
+Let `V_i = m_i / restDensity_i` be the explicit or fallback rest particle
+volume defined above. The initial miscible shear operator uses
+
+```text
+V_ij = 2 * V_i * V_j / (V_i + V_j)
+q_ij = max(1 - ||x_i - x_j|| / h_ij, 0)
+F_viscosity = mu_ij * V_ij * q_ij * (v_j - v_i)
+```
+
+`F_viscosity / m_i` and `-F_viscosity / m_j` are accumulated at the two
+endpoints. This reduces exactly to the established equal-material acceleration
+`kinematicViscosity * q_ij * (v_j - v_i)` when material and particle volume
+match. If either endpoint viscosity is zero, harmonic `mu_ij` makes the cross
+viscous force zero. Enabled endpoint acceleration limits clamp the common force
+before either mass division.
+
 This profile is a mechanical mixture, not a species solver. Particles retain
 their material and stable identity as they mingle. It does not claim Fickian
 diffusion, concentration fields, reactions, temperature-dependent properties,

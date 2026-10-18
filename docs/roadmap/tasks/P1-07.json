@@ -1,7 +1,7 @@
 {
   "id": "P1-07",
   "title": "Exchange miscible viscosity",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "P1-06"
   ],
@@ -16,7 +16,31 @@
     "Analytic pair and population-ratio sweeps conserve momentum and do not increase kinetic energy.",
     "Zero and unequal viscosity limits plus endpoint reversal pass shared Slang tests."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: docs/roadmap/evidence/P1-07-miscible-viscosity.json; generated Slang CPU tests cover the analytic law, zero and unequal viscosity, endpoint reversal, three population ratios and three timesteps.",
+    "PASS: all sweeps conserve mass-weighted momentum and do not increase mass-weighted kinetic energy; the pair law has non-positive instantaneous power.",
+    "PASS: 214/214 CUDA, PTX, Vulkan SPIR-V and Metal mirrors; CUDA/Vulkan production builds; DirectCompute binding tests 4/4; SDK CI 47/47; capability remains unadvertised."
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "485b3d0b-02f9-42d7-9107-6a2fd6cf82b2",
+        "owner": "codex-fluid-viscosity",
+        "machine": "thomas-laptop",
+        "branch": "work/P1-07/thomas-laptop",
+        "claimed_at": "2026-10-18T22:22:15Z",
+        "heartbeat_at": "2026-10-18T22:22:15Z",
+        "expires_at": "2026-10-19T22:22:15Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T22:29:22Z",
+      "reason": "Implemented harmonic dynamic-viscosity exchange as one symmetric dissipative common force with physical endpoint mass division and order-independent material ownership.",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/P1-07-miscible-viscosity.json; generated Slang CPU tests cover the analytic law, zero and unequal viscosity, endpoint reversal, three population ratios and three timesteps.",
+        "PASS: all sweeps conserve mass-weighted momentum and do not increase mass-weighted kinetic energy; the pair law has non-positive instantaneous power.",
+        "PASS: 214/214 CUDA, PTX, Vulkan SPIR-V and Metal mirrors; CUDA/Vulkan production builds; DirectCompute binding tests 4/4; SDK CI 47/47; capability remains unadvertised."
+      ]
+    }
+  ]
 }

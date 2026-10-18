@@ -1,0 +1,64 @@
+{
+  "schema": "parallel-mater-roadmap-miscible-viscosity/v1",
+  "task": "P1-07",
+  "result": "passed",
+  "source": {
+    "revision": "28f043fbed0c064a185730904c0a932c0db116a1",
+    "branch": "work/P1-07/thomas-laptop",
+    "lease_token": "485b3d0b-02f9-42d7-9107-6a2fd6cf82b2",
+    "machine": "thomas-laptop"
+  },
+  "operator": {
+    "entry_point": "fluid_apply_miscible_pair_viscosity",
+    "dynamic_viscosity": "mu_i = restDensity_i * kinematicViscosity_i; mu_ij is the harmonic combination and is zero when either endpoint viscosity is zero.",
+    "particle_volume": "V_i is explicit restParticleVolume_i when positive and cubic particle diameter otherwise; V_ij is the harmonic combination.",
+    "pair_force": "F_ij = mu_ij * V_ij * max(1 - distance / maxSupport, 0) * (v_j - v_i).",
+    "balance": "One common force is divided by endpoint physical particle mass with opposite signs; enabled acceleration limits clamp the common force before division.",
+    "equal_material_limit": "Matching materials and particle volumes reduce exactly to the established kinematicViscosity * q * relativeVelocity acceleration.",
+    "dissipation": "Pair power is -mu_ij * V_ij * q * squaredRelativeSpeed and is therefore non-positive.",
+    "advertisement": "No miscible capability is advertised and valid different-material graph requests remain unsupported."
+  },
+  "fixtures": {
+    "analytic_pair": "Unequal density, support, radius, explicit particle volume and kinematic viscosity are checked against the closed-form common force and inverse-mass endpoint accelerations.",
+    "zero_limit": "One inviscid endpoint and two inviscid endpoints both produce exactly zero cross-viscous force.",
+    "endpoint_order": "Swapping endpoint populations and material records preserves every physical particle acceleration.",
+    "population_sweeps": "Second-endpoint particle ratios 1, 2 and 4 run at timesteps 0.001, 0.01 and 0.05 seconds.",
+    "invariants": "Every active sweep produces non-vacuous exchange, conserves mass-weighted linear momentum and does not increase mass-weighted kinetic energy."
+  },
+  "validation": [
+    {
+      "command": "ctest --test-dir build-foundations -R 'parallel-mater-(fluid-pair-neighbor-index|slang-architecture)' --output-on-failure",
+      "result": "2/2 passed; generated Slang CPU execution covered the analytic law, zero and unequal viscosity, three population ratios, three timesteps, momentum, kinetic energy and endpoint reversal."
+    },
+    {
+      "command": "cmake --build build-f5-16-linux --target parallel-mater-slang-kernel-mirrors -j2",
+      "result": "214/214 build steps passed; shared kernels compiled to CUDA, PTX, Vulkan SPIR-V and Metal."
+    },
+    {
+      "command": "cmake --build build-desktop-switch --target parallel-mater-driver-slang-cuda parallel-mater-driver-slang-vulkan -j2",
+      "result": "CUDA and Vulkan shared-driver builds passed with reflected miscible viscosity bindings."
+    },
+    {
+      "command": "python3 -m unittest tests.solver.test_dxil_bindings",
+      "result": "4/4 DirectCompute DXIL binding generator tests passed."
+    },
+    {
+      "command": "cmake --build build-sdk-ci -j2 && ctest --test-dir build-sdk-ci --output-on-failure",
+      "result": "47/47 SDK, ABI, generator, resource-plan and architecture tests passed."
+    },
+    {
+      "command": "ctest --test-dir build-foundations -R parallel-mater-interaction-capability-tests --output-on-failure",
+      "result": "1/1 passed; different-material capability remains unadvertised."
+    },
+    {
+      "command": "python3 tools/reference/build.py --check-generated && python3 conformance/v1/evidence_index.py --check && python3 conformance/v1/update_manifest.py --check",
+      "result": "Public generated files, evidence index and conformance manifest remained current."
+    }
+  ],
+  "boundaries": [
+    "The operator is backend-portable but is not yet scheduled by a public heterogeneous interaction graph.",
+    "Graph scheduling, lifecycle recovery and public capability checks remain P1-08.",
+    "Physical GPU qualification and capability advertisement remain P1-09.",
+    "Immiscible interfacial viscosity remains P1-12."
+  ]
+}
