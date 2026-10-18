@@ -3,10 +3,10 @@
   "task": "F7-16",
   "scope": "Direct Vulkan presentation for the common Gallery runtime on a physical Android device",
   "source": {
-    "tested_commit": "9a88722e21efeecbaaf88cbf2f047f3dfa86a64c",
+    "tested_commit": "0f406871d6e144b274a8a0e6cc579e9b0d061a8a",
     "surface_rebinding_commit": "73c9f502eef9e2212175411e523489a436be86ac",
     "branch": "work/F7-16/thomas-laptop",
-    "tested_at": "2026-10-18T12:34:38Z"
+    "tested_at": "2026-10-18T12:45:29Z"
   },
   "device": {
     "model": "Pixel 7",
@@ -20,8 +20,8 @@
   "artifact": {
     "path": "examples/android/app/build/outputs/apk/debug/app-debug.apk",
     "abi": "arm64-v8a",
-    "sha256": "f06c643df85138c81ac58651ad46408315a9bc608f988fa9123558bcc2da38a9",
-    "embedded_revision": "9a88722e21efeecbaaf88cbf2f047f3dfa86a64c"
+    "sha256": "12eccafff58aa54aecc5bc4708f466b9671f6e81ef16dc0ce3b859f27256bd45",
+    "embedded_revision": "0f406871d6e144b274a8a0e6cc579e9b0d061a8a"
   },
   "acceptance": {
     "direct_gpu_presentation": {
@@ -31,12 +31,12 @@
       "ordering": "The common GPU renderer contract acquires the public physics output after its completed frame generation and returns ownership to physics before the next step."
     },
     "physical_lifecycle": {
-      "background_frames_before": 15,
-      "background_frames_after": 15,
+      "background_frames_before": 16,
+      "background_frames_after": 16,
       "surface_generation_initial": 45,
-      "surface_generation_resized": 51,
-      "surface_generation_resize_restored": 53,
-      "surface_generation_rotated": 55,
+      "surface_generation_resized": 49,
+      "surface_generation_resize_restored": 51,
+      "surface_generation_rotated": 53,
       "rotation_from": 1,
       "rotation_to": 3,
       "native_teardown_observed": true,
@@ -52,7 +52,7 @@
   "verification": [
     {
       "check": "python3 scripts/Test-AndroidGallery.py --adb <adb> --serial <physical-device> --frames 30",
-      "result": "PASS: 28 catalog scenes (20 supported), direct presentation, pause/reset, background, resize, rotation, and teardown; revision and backend matched 9a88722/Vulkan"
+      "result": "PASS: 28 catalog scenes (20 supported), direct presentation, pause/reset, background, resize, rotation, and teardown; revision and backend matched 0f40687/Vulkan after merging the F7-23 renderer-adapter refactor"
     },
     {
       "check": "ctest --test-dir build-linux-vulkan-preview --output-on-failure -R '^parallel-mater-(gallery-session-contract-tests|vulkan-gallery-renderer-tests|vulkan-gallery-surface-tests)$'",
@@ -68,10 +68,10 @@
     }
   ],
   "runtime_report_hashes": {
-    "qualification.json": "4e8cec87151f2f6986f68c07529705e009b2195152ca847335016737d2c35dc3",
-    "lifecycle.json": "a2723b38bd8261d1c91cb90e5958e14f4b5ccdc4e8e8c9737710e14b3bf70fd5",
-    "surface-lifecycle.json": "cea4c47e8cec4f097fafb998ac9577262513ca311085d502669ed1e2e7226952",
-    "device.log": "bd21f499e5c2684c6281e31c8352cd5f894a1a18db37565ec4b4c4835d256517"
+    "qualification.json": "605ab3f6881c84ca014cf315cdae0774a7fc9760941de3b00c18a5810c2e296d",
+    "lifecycle.json": "5ad6b489542a31d4679b44e3d2bfbed7ec4409ddd5c4e26e75e0bdbb91420a54",
+    "surface-lifecycle.json": "72cda44a7835f8650fc2197f8cb22b3aed9c0799c4534c758a70a6d9b19c536e",
+    "device.log": "4c102075b27ceea3505c28c14be55e77f5e8895f12c653183011a6ed7f590890"
   },
   "privacy": {
     "private_device_identifiers_recorded": false

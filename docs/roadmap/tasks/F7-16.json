@@ -18,7 +18,7 @@
     "Rotation, resize, background, surface recreation and teardown pass on a physical device without stale or foreign resources."
   ],
   "evidence": [
-    "PASS: Pixel 7 Android 17 physical Vulkan run at 9a88722; 28 scenes, direct presentation, zero ordinary readback, background, resize, rotation and teardown; docs/roadmap/evidence/F7-16-android-vulkan-gallery.json",
+    "PASS: Pixel 7 Android 17 physical Vulkan run at 0f40687; 28 scenes, direct presentation, zero ordinary readback, background, resize, rotation and teardown; docs/roadmap/evidence/F7-16-android-vulkan-gallery.json",
     "PASS: Linux physical Vulkan renderer/surface/session contracts 3/3 and ARM64 Android Vulkan APK build; docs/roadmap/evidence/F7-16-android-vulkan-gallery.json"
   ],
   "lease": null,
@@ -37,7 +37,7 @@
       "at": "2026-10-18T12:35:11Z",
       "reason": "Android Gallery now presents public GPU outputs directly through Vulkan and safely rebinds native surfaces across runtime replacement and lifecycle changes",
       "evidence": [
-        "PASS: Pixel 7 Android 17 physical Vulkan run at 9a88722; 28 scenes, direct presentation, zero ordinary readback, background, resize, rotation and teardown; docs/roadmap/evidence/F7-16-android-vulkan-gallery.json",
+        "PASS: Pixel 7 Android 17 physical Vulkan run at 0f40687; 28 scenes, direct presentation, zero ordinary readback, background, resize, rotation and teardown; docs/roadmap/evidence/F7-16-android-vulkan-gallery.json",
         "PASS: Linux physical Vulkan renderer/surface/session contracts 3/3 and ARM64 Android Vulkan APK build; docs/roadmap/evidence/F7-16-android-vulkan-gallery.json"
       ]
     }
