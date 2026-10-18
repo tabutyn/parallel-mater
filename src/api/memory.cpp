@@ -20,10 +20,15 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmAllocateMemory(
         parallel_mater::api::destroy_object(device, created);
         return result;
     }
+    if (!parallel_mater::api::try_add_tracked_bytes(
+            device->application_bytes, info->allocationSize)) {
+        device->services->free(created->allocation);
+        parallel_mater::api::destroy_object(device, created);
+        return PM_ERROR_OUT_OF_DEVICE_MEMORY;
+    }
     created->device = device;
     created->size = info->allocationSize;
     created->memory_type = info->memoryTypeIndex;
-    device->application_bytes.fetch_add(created->size, std::memory_order_relaxed);
     *memory = created;
     return PM_SUCCESS;
 }
@@ -133,6 +138,9 @@ extern "C" PMAPI_ATTR void PMAPI_CALL pmDestroyBuffer(
     PmDevice device, PmBuffer buffer) {
     if (device == nullptr || buffer == nullptr || buffer->device != device) return;
     (void)pmDeviceWaitIdle(device);
+    if (buffer->imported)
+        device->borrowed_buffer_bytes.fetch_sub(
+            buffer->size, std::memory_order_relaxed);
     parallel_mater::api::destroy_object(device, buffer);
 }
 

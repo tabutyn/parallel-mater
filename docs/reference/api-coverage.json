@@ -1,7 +1,7 @@
 {
   "registry": {
     "path": "registry/pm.xml",
-    "sha256": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7"
+    "sha256": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3"
   },
   "contract": "Parallel Mater command API 0.2",
   "implementation": "src/loader public entry points routed to installable drivers",
@@ -1568,6 +1568,11 @@
     },
     {
       "name": "PmMemoryBudget",
+      "section": "15.5",
+      "card": "memory_budget"
+    },
+    {
+      "name": "PmMemoryBudgetConfidence",
       "section": "15.5",
       "card": "memory_budget"
     },

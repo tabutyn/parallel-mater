@@ -276,6 +276,11 @@ int main() {
     PmNativeBufferInfo borrowed_import = native_buffer;
     borrowed_import.owningQueueFamilyIndex = PM_QUEUE_FAMILY_EXTERNAL;
     CHECK(pmImportNativeBuffer(device, &borrowed_import, &imported) == PM_SUCCESS);
+    PmMemoryBudget borrowed_budget{};
+    CHECK(pmGetDeviceMemoryBudget(device, &borrowed_budget) == PM_SUCCESS);
+    CHECK(borrowed_budget.confidence[0] ==
+          PM_MEMORY_BUDGET_CONFIDENCE_DRIVER_REPORTED);
+    CHECK(borrowed_budget.borrowedBufferBytes == borrowed_import.size);
     PmNativeBufferInfo borrowed_round_trip{};
     CHECK(pmGetNativeBuffer(device, imported, &borrowed_round_trip) == PM_SUCCESS);
     CHECK(borrowed_round_trip.buffer == borrowed_import.buffer);
@@ -313,6 +318,8 @@ int main() {
     CHECK(borrowed_round_trip.owningQueueFamilyIndex ==
           PM_QUEUE_FAMILY_EXTERNAL);
     pmDestroyBuffer(device, imported);
+    CHECK(pmGetDeviceMemoryBudget(device, &borrowed_budget) == PM_SUCCESS);
+    CHECK(borrowed_budget.borrowedBufferBytes == 0U);
     PmNativeHandle native_semaphore = 1U;
     CHECK(pmGetNativeSemaphore(device, semaphore, &native_semaphore) ==
           PM_ERROR_FEATURE_NOT_PRESENT);
@@ -323,6 +330,7 @@ int main() {
     CHECK(imported_semaphore == nullptr);
     PmMemoryBudget budget{};
     CHECK(pmGetDeviceMemoryBudget(device, &budget) == PM_SUCCESS);
+    CHECK(budget.confidence[0] == PM_MEMORY_BUDGET_CONFIDENCE_DRIVER_REPORTED);
     CHECK(budget.applicationAllocationBytes >= 512U);
 
     // Exercise the physics path through the command API, including a Slang
