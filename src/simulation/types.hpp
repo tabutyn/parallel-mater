@@ -434,9 +434,15 @@ struct FluidClothCouplingOptions {
     bool enabled{true};
 };
 
+enum class FluidPairMaterialProfile : std::uint8_t {
+    equal,
+    miscible,
+};
+
 struct FluidPairCouplingOptions {
     FluidId first{};
     FluidId second{};
+    FluidPairMaterialProfile material_profile{FluidPairMaterialProfile::equal};
     bool enabled{true};
 };
 

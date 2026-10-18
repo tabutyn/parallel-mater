@@ -5,8 +5,10 @@
 #include "primitives.hpp"
 
 #include "driver/d3d12/schedule_context.hpp"
+#include "parallel_mater_slang_dxil.hpp"
 
 #include <array>
+#include <cassert>
 #include <cstring>
 #include <type_traits>
 
@@ -17,21 +19,38 @@ template <std::size_t Size> struct Constants {
     std::array<std::byte, Size> bytes{};
 
     template <typename T>
-    void set(std::size_t offset, const T &value) noexcept {
+    void set(d3d12::generated::SlangUniformLayout uniform,
+             const T &value) noexcept {
         static_assert(std::is_trivially_copyable_v<T>);
-        if (offset + sizeof(T) <= bytes.size())
-            std::memcpy(bytes.data() + offset, &value, sizeof(T));
+        assert(uniform.size == sizeof(T));
+        if (uniform.size == sizeof(T) &&
+            uniform.offset + sizeof(T) <= bytes.size())
+            std::memcpy(bytes.data() + uniform.offset, &value, sizeof(T));
     }
 
-    void boolean(std::size_t offset, bool value) noexcept {
-        set(offset, static_cast<std::uint32_t>(value));
+    void boolean(d3d12::generated::SlangUniformLayout uniform,
+                 bool value) noexcept {
+        set(uniform, static_cast<std::uint32_t>(value));
     }
 
-    void buffer(std::size_t offset, d3d12::ScheduleContext &execution,
-                const void *pointer) noexcept {
-        set(offset, execution.address(pointer));
+    void buffer(d3d12::generated::SlangUniformLayout uniform,
+                d3d12::ScheduleContext &execution, const void *pointer) noexcept {
+        set(uniform, execution.address(pointer));
     }
 };
+
+template <typename Left, typename Right>
+consteval bool same_layout() {
+    if constexpr (Left::constant_size != Right::constant_size ||
+                  Left::uniforms.size() != Right::uniforms.size()) return false;
+    for (std::size_t index = 0U; index < Left::uniforms.size(); ++index) {
+        const auto &left = Left::uniforms[index];
+        const auto &right = Right::uniforms[index];
+        if (std::string_view(left.name) != right.name ||
+            left.offset != right.offset || left.size != right.size) return false;
+    }
+    return true;
+}
 
 template <std::size_t Size>
 PmResult launch(device::ExecutionQueue stream, std::string_view module,
@@ -53,19 +72,18 @@ PmResult integrate_rigid_bodies(
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr || gravity == nullptr)
         return PM_ERROR_INVALID_ARGUMENT;
-    Constants<104> values;
-    values.buffer(0U, *execution, parameters);
-    values.buffer(16U, *execution, accumulators);
-    values.buffer(32U, *execution, targets);
-    values.buffer(48U, *execution, input);
-    values.buffer(64U, *execution, output);
-    values.set(76U, count);
-    values.set(80U, gravity[0]);
-    values.set(84U, gravity[1]);
-    values.set(88U, gravity[2]);
-    values.set(92U, timestep);
-    values.set(96U, remaining_substeps);
-    values.boolean(100U, apply_impulses);
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_integrate_rigid_bodies;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_parameters, *execution, parameters);
+    values.buffer(Layout::arg_accumulators, *execution, accumulators);
+    values.buffer(Layout::arg_targets, *execution, targets);
+    values.buffer(Layout::arg_input, *execution, input);
+    values.buffer(Layout::arg_output, *execution, output);
+    values.set(Layout::arg_count, count);
+    values.set(Layout::arg_gravity, Vec3{gravity[0], gravity[1], gravity[2]});
+    values.set(Layout::arg_timestep, timestep);
+    values.set(Layout::arg_remaining_substeps, remaining_substeps);
+    values.boolean(Layout::arg_apply_impulses, apply_impulses);
     return launch(stream, "geometry", "pm_integrate_rigid_bodies",
                   grid, block, values);
 }
@@ -76,14 +94,15 @@ PmResult compute_rigid_world_bounds(
     void *meshes, void *world_bounds) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<80> values;
-    values.buffer(0U, *execution, parameters);
-    values.buffer(16U, *execution, previous_states);
-    values.buffer(32U, *execution, states);
-    values.set(44U, count);
-    values.set(48U, execution->translated_meshes(
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_compute_rigid_world_bounds;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_parameters, *execution, parameters);
+    values.buffer(Layout::arg_previous_states, *execution, previous_states);
+    values.buffer(Layout::arg_states, *execution, states);
+    values.set(Layout::arg_count, count);
+    values.set(Layout::arg_meshes, execution->translated_meshes(
                         meshes, parameters, count));
-    values.buffer(64U, *execution, world_bounds);
+    values.buffer(Layout::arg_world_bounds, *execution, world_bounds);
     return launch(stream, "geometry", "pm_compute_rigid_world_bounds",
                   grid, block, values);
 }
@@ -96,19 +115,20 @@ PmResult broad_phase_rigid_pairs(
     std::uint8_t *active_flags) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<144> values;
-    values.buffer(0U, *execution, parameters);
-    values.buffer(16U, *execution, world_bounds);
-    values.buffer(32U, *execution, previous_states);
-    values.buffer(48U, *execution, states);
-    values.set(64U, execution->translated_meshes(
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_broad_phase_rigid_pairs;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_parameters, *execution, parameters);
+    values.buffer(Layout::arg_world_bounds, *execution, world_bounds);
+    values.buffer(Layout::arg_previous_states, *execution, previous_states);
+    values.buffer(Layout::arg_states, *execution, states);
+    values.set(Layout::arg_meshes, execution->translated_meshes(
                         meshes, parameters, count));
-    values.buffer(80U, *execution, ids);
-    values.buffer(96U, *execution, constraints);
-    values.set(108U, constraint_capacity);
-    values.buffer(112U, *execution, fixed_groups);
-    values.set(124U, count);
-    values.buffer(128U, *execution, active_flags);
+    values.buffer(Layout::arg_ids, *execution, ids);
+    values.buffer(Layout::arg_constraints, *execution, constraints);
+    values.set(Layout::arg_constraint_capacity, constraint_capacity);
+    values.buffer(Layout::arg_fixed_groups, *execution, fixed_groups);
+    values.set(Layout::arg_count, count);
+    values.buffer(Layout::arg_active_flags, *execution, active_flags);
     return launch(stream, "geometry", "pm_broad_phase_rigid_pairs",
                   grid, block, values);
 }
@@ -124,21 +144,23 @@ PmResult generate_rigid_leaf_pairs(
     std::uint32_t shared_leaf_capacity) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<144> values;
-    values.buffer(0U, *execution, parameters);
-    values.buffer(16U, *execution, previous_states);
-    values.buffer(32U, *execution, states);
-    values.set(44U, count);
-    values.set(48U, execution->translated_meshes(
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_generate_rigid_leaf_pairs;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_parameters, *execution, parameters);
+    values.buffer(Layout::arg_previous_states, *execution, previous_states);
+    values.buffer(Layout::arg_states, *execution, states);
+    values.set(Layout::arg_count, count);
+    values.set(Layout::arg_meshes, execution->translated_meshes(
                         meshes, parameters, count, mesh_capacity));
-    values.set(60U, mesh_capacity);
-    values.buffer(64U, *execution, active_pairs);
-    values.buffer(80U, *execution, active_pair_count);
-    values.buffer(96U, *execution, leaf_pairs);
-    values.buffer(112U, *execution, leaf_pair_counts);
-    values.set(124U, leaf_pair_cache_slot_capacity);
-    values.set(128U, leaf_pairs_per_slot);
-    values.set(132U, shared_leaf_capacity);
+    values.set(Layout::arg_mesh_capacity, mesh_capacity);
+    values.buffer(Layout::arg_active_pairs, *execution, active_pairs);
+    values.buffer(Layout::arg_active_pair_count, *execution, active_pair_count);
+    values.buffer(Layout::arg_leaf_pairs, *execution, leaf_pairs);
+    values.buffer(Layout::arg_leaf_pair_counts, *execution, leaf_pair_counts);
+    values.set(Layout::arg_leaf_pair_cache_slot_capacity,
+               leaf_pair_cache_slot_capacity);
+    values.set(Layout::arg_leaf_pairs_per_slot, leaf_pairs_per_slot);
+    values.set(Layout::arg_shared_leaf_capacity, shared_leaf_capacity);
     return launch(stream, "geometry", "pm_generate_rigid_leaf_pairs",
                   grid, block, values);
 }
@@ -154,25 +176,26 @@ PmResult evaluate_rigid_leaf_pairs(
     void *manifolds) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<208> values;
-    values.buffer(0U, *execution, parameters);
-    values.buffer(16U, *execution, previous_states);
-    values.buffer(32U, *execution, states);
-    values.set(44U, count);
-    values.set(48U, execution->translated_meshes(
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_evaluate_rigid_leaf_pairs;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_parameters, *execution, parameters);
+    values.buffer(Layout::arg_previous_states, *execution, previous_states);
+    values.buffer(Layout::arg_states, *execution, states);
+    values.set(Layout::arg_count, count);
+    values.set(Layout::arg_meshes, execution->translated_meshes(
                         meshes, parameters, count));
-    values.buffer(64U, *execution, ids);
-    values.buffer(80U, *execution, constraints);
-    values.set(92U, constraint_capacity);
-    values.buffer(96U, *execution, active_pairs);
-    values.buffer(112U, *execution, active_pair_count);
-    values.buffer(128U, *execution, leaf_pairs);
-    values.buffer(144U, *execution, leaf_pair_counts);
-    values.set(156U, leaf_pairs_per_slot);
-    values.buffer(160U, *execution, leaf_manifolds);
-    values.set(172U, blocks_per_pair);
-    values.set(176U, timestep);
-    values.buffer(192U, *execution, manifolds);
+    values.buffer(Layout::arg_ids, *execution, ids);
+    values.buffer(Layout::arg_constraints, *execution, constraints);
+    values.set(Layout::arg_constraint_capacity, constraint_capacity);
+    values.buffer(Layout::arg_active_pairs, *execution, active_pairs);
+    values.buffer(Layout::arg_active_pair_count, *execution, active_pair_count);
+    values.buffer(Layout::arg_leaf_pairs, *execution, leaf_pairs);
+    values.buffer(Layout::arg_leaf_pair_counts, *execution, leaf_pair_counts);
+    values.set(Layout::arg_leaf_pairs_per_slot, leaf_pairs_per_slot);
+    values.buffer(Layout::arg_leaf_manifolds, *execution, leaf_manifolds);
+    values.set(Layout::arg_blocks_per_pair, blocks_per_pair);
+    values.set(Layout::arg_timestep, timestep);
+    values.buffer(Layout::arg_manifolds, *execution, manifolds);
     return launch(stream, "geometry", "pm_evaluate_rigid_leaf_pairs",
                   grid, block, values);
 }
@@ -185,15 +208,16 @@ PmResult reduce_rigid_leaf_manifolds(
     void *manifolds) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<96> values;
-    values.buffer(0U, *execution, parameters);
-    values.set(12U, count);
-    values.buffer(16U, *execution, active_pairs);
-    values.buffer(32U, *execution, active_pair_count);
-    values.buffer(48U, *execution, leaf_pair_counts);
-    values.set(60U, leaf_pairs_per_slot);
-    values.buffer(64U, *execution, leaf_manifolds);
-    values.buffer(80U, *execution, manifolds);
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_reduce_rigid_leaf_manifolds;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_parameters, *execution, parameters);
+    values.set(Layout::arg_count, count);
+    values.buffer(Layout::arg_active_pairs, *execution, active_pairs);
+    values.buffer(Layout::arg_active_pair_count, *execution, active_pair_count);
+    values.buffer(Layout::arg_leaf_pair_counts, *execution, leaf_pair_counts);
+    values.set(Layout::arg_leaf_pairs_per_slot, leaf_pairs_per_slot);
+    values.buffer(Layout::arg_leaf_manifolds, *execution, leaf_manifolds);
+    values.buffer(Layout::arg_manifolds, *execution, manifolds);
     return launch(stream, "geometry", "pm_reduce_rigid_leaf_manifolds",
                   grid, block, values);
 }
@@ -207,22 +231,25 @@ PmResult finalize_rigid_contact_manifolds(
     bool prepare_faces) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<160> values;
-    values.buffer(0U, *execution, parameters);
-    values.buffer(16U, *execution, previous_states);
-    values.buffer(32U, *execution, states);
-    values.set(44U, count);
-    values.set(48U, execution->translated_meshes(
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_finalize_rigid_contact_manifolds;
+    using FaceLayout = d3d12::generated::layout::geometry::Kernel_pm_prepare_rigid_face_manifolds;
+    static_assert(same_layout<Layout, FaceLayout>());
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_parameters, *execution, parameters);
+    values.buffer(Layout::arg_previous_states, *execution, previous_states);
+    values.buffer(Layout::arg_states, *execution, states);
+    values.set(Layout::arg_count, count);
+    values.set(Layout::arg_meshes, execution->translated_meshes(
                         meshes, parameters, count));
-    values.buffer(64U, *execution, ids);
-    values.buffer(80U, *execution, constraints);
-    values.set(92U, constraint_capacity);
-    values.buffer(96U, *execution, active_pairs);
-    values.buffer(112U, *execution, active_pair_count);
-    values.buffer(128U, *execution, leaf_pair_counts);
-    values.set(140U, timestep);
-    values.buffer(144U, *execution, manifolds);
-    values.boolean(156U, prepare_faces);
+    values.buffer(Layout::arg_ids, *execution, ids);
+    values.buffer(Layout::arg_constraints, *execution, constraints);
+    values.set(Layout::arg_constraint_capacity, constraint_capacity);
+    values.buffer(Layout::arg_active_pairs, *execution, active_pairs);
+    values.buffer(Layout::arg_active_pair_count, *execution, active_pair_count);
+    values.buffer(Layout::arg_leaf_pair_counts, *execution, leaf_pair_counts);
+    values.set(Layout::arg_timestep, timestep);
+    values.buffer(Layout::arg_manifolds, *execution, manifolds);
+    values.boolean(Layout::arg_prepare_faces, prepare_faces);
     const char *entry = prepare_faces ? "pm_prepare_rigid_face_manifolds"
                                       : "pm_finalize_rigid_contact_manifolds";
     return launch(stream, "geometry", entry,
@@ -234,10 +261,11 @@ PmResult clear_rigid_inputs(
     void *targets, std::uint32_t count) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<32> values;
-    values.buffer(0U, *execution, accumulators);
-    values.buffer(16U, *execution, targets);
-    values.set(28U, count);
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_clear_rigid_inputs;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_accumulators, *execution, accumulators);
+    values.buffer(Layout::arg_targets, *execution, targets);
+    values.set(Layout::arg_count, count);
     return launch(stream, "geometry", "pm_clear_rigid_inputs",
                   grid, block, values);
 }
@@ -247,11 +275,12 @@ PmResult capture_rigid_inputs(
     void *forces, void *torques, std::uint32_t count) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<48> values;
-    values.buffer(0U, *execution, accumulators);
-    values.buffer(16U, *execution, forces);
-    values.buffer(32U, *execution, torques);
-    values.set(44U, count);
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_capture_rigid_inputs;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_accumulators, *execution, accumulators);
+    values.buffer(Layout::arg_forces, *execution, forces);
+    values.buffer(Layout::arg_torques, *execution, torques);
+    values.set(Layout::arg_count, count);
     return launch(stream, "geometry", "pm_capture_rigid_inputs",
                   grid, block, values);
 }
@@ -265,18 +294,19 @@ PmResult prepare_parallel_contact_events(
     bool collect_events, bool reset_events) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<144> values;
-    values.set(0U, body_count);
-    values.buffer(16U, *execution, manifolds);
-    values.buffer(32U, *execution, active_pairs);
-    values.buffer(48U, *execution, active_pair_count);
-    values.buffer(64U, *execution, body_ids);
-    values.buffer(80U, *execution, event_offsets);
-    values.buffer(96U, *execution, events);
-    values.set(108U, event_capacity);
-    values.buffer(112U, *execution, event_count);
-    values.boolean(124U, collect_events);
-    values.boolean(128U, reset_events);
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_prepare_parallel_contact_events;
+    Constants<Layout::constant_size> values;
+    values.set(Layout::arg_count, body_count);
+    values.buffer(Layout::arg_manifolds, *execution, manifolds);
+    values.buffer(Layout::arg_active_pairs, *execution, active_pairs);
+    values.buffer(Layout::arg_active_pair_count, *execution, active_pair_count);
+    values.buffer(Layout::arg_ids, *execution, body_ids);
+    values.buffer(Layout::arg_event_offsets, *execution, event_offsets);
+    values.buffer(Layout::arg_events, *execution, events);
+    values.set(Layout::arg_event_capacity, event_capacity);
+    values.buffer(Layout::arg_event_count, *execution, event_count);
+    values.boolean(Layout::arg_collect_events, collect_events);
+    values.boolean(Layout::arg_reset_events, reset_events);
     return launch(stream, "geometry", "pm_prepare_parallel_contact_events",
                   grid, block, values);
 }
@@ -290,18 +320,19 @@ PmResult load_rigid_contact_cache(
     std::uint64_t epoch, float timestep) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<128> values;
-    values.buffer(0U, *execution, manifolds);
-    values.buffer(16U, *execution, active_pairs);
-    values.buffer(32U, *execution, active_pair_count);
-    values.buffer(48U, *execution, body_states);
-    values.buffer(64U, *execution, body_ids);
-    values.set(76U, body_count);
-    values.buffer(80U, *execution, cache);
-    values.buffer(96U, *execution, slots);
-    values.set(108U, capacity);
-    values.set(112U, epoch);
-    values.set(120U, timestep);
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_load_rigid_contact_cache;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_manifolds, *execution, manifolds);
+    values.buffer(Layout::arg_active_pairs, *execution, active_pairs);
+    values.buffer(Layout::arg_active_count, *execution, active_pair_count);
+    values.buffer(Layout::arg_states, *execution, body_states);
+    values.buffer(Layout::arg_ids, *execution, body_ids);
+    values.set(Layout::arg_body_count, body_count);
+    values.buffer(Layout::arg_cache, *execution, cache);
+    values.buffer(Layout::arg_slots, *execution, slots);
+    values.set(Layout::arg_capacity, capacity);
+    values.set(Layout::arg_epoch, epoch);
+    values.set(Layout::arg_timestep, timestep);
     return launch(stream, "geometry", "pm_load_rigid_contact_cache",
                   grid, block, values);
 }
@@ -316,21 +347,22 @@ PmResult save_rigid_contact_cache(
     std::uint32_t event_capacity) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<160> values;
-    values.buffer(0U, *execution, manifolds);
-    values.buffer(16U, *execution, active_pairs);
-    values.buffer(32U, *execution, active_pair_count);
-    values.buffer(48U, *execution, body_states);
-    values.buffer(64U, *execution, body_ids);
-    values.set(76U, body_count);
-    values.buffer(80U, *execution, cache);
-    values.buffer(96U, *execution, slots);
-    values.set(108U, capacity);
-    values.set(112U, epoch);
-    values.set(120U, timestep);
-    values.buffer(128U, *execution, event_offsets);
-    values.buffer(144U, *execution, events);
-    values.set(156U, event_capacity);
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_save_rigid_contact_cache;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_manifolds, *execution, manifolds);
+    values.buffer(Layout::arg_active_pairs, *execution, active_pairs);
+    values.buffer(Layout::arg_active_count, *execution, active_pair_count);
+    values.buffer(Layout::arg_states, *execution, body_states);
+    values.buffer(Layout::arg_ids, *execution, body_ids);
+    values.set(Layout::arg_body_count, body_count);
+    values.buffer(Layout::arg_cache, *execution, cache);
+    values.buffer(Layout::arg_slots, *execution, slots);
+    values.set(Layout::arg_capacity, capacity);
+    values.set(Layout::arg_epoch, epoch);
+    values.set(Layout::arg_timestep, timestep);
+    values.buffer(Layout::arg_event_offsets, *execution, event_offsets);
+    values.buffer(Layout::arg_events, *execution, events);
+    values.set(Layout::arg_event_capacity, event_capacity);
     return launch(stream, "geometry", "pm_save_rigid_contact_cache",
                   grid, block, values);
 }
@@ -341,13 +373,14 @@ PmResult gather_rigid_debug_samples(
     std::uint32_t count, void *samples) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<80> values;
-    values.buffer(0U, *execution, body_ids);
-    values.buffer(16U, *execution, body_states);
-    values.buffer(32U, *execution, forces);
-    values.buffer(48U, *execution, torques);
-    values.set(60U, count);
-    values.buffer(64U, *execution, samples);
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_gather_rigid_debug_samples;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_ids, *execution, body_ids);
+    values.buffer(Layout::arg_states, *execution, body_states);
+    values.buffer(Layout::arg_forces, *execution, forces);
+    values.buffer(Layout::arg_torques, *execution, torques);
+    values.set(Layout::arg_count, count);
+    values.buffer(Layout::arg_samples, *execution, samples);
     return launch(stream, "geometry", "pm_gather_rigid_debug_samples",
                   grid, block, values);
 }
@@ -357,10 +390,11 @@ PmResult clamp_rigid_speeds(
     void *body_states, std::uint32_t count) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<32> values;
-    values.buffer(0U, *execution, body_parameters);
-    values.buffer(16U, *execution, body_states);
-    values.set(28U, count);
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_clamp_rigid_speeds;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_parameters, *execution, body_parameters);
+    values.buffer(Layout::arg_states, *execution, body_states);
+    values.set(Layout::arg_count, count);
     return launch(stream, "geometry", "pm_clamp_rigid_speeds",
                   grid, block, values);
 }
@@ -371,12 +405,13 @@ PmResult build_fixed_collision_groups(
     std::uint32_t body_count, void *groups) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<48> values;
-    values.buffer(0U, *execution, constraints);
-    values.set(12U, constraint_capacity);
-    values.buffer(16U, *execution, body_ids);
-    values.set(28U, body_count);
-    values.buffer(32U, *execution, groups);
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_build_fixed_collision_groups;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_constraints, *execution, constraints);
+    values.set(Layout::arg_capacity, constraint_capacity);
+    values.buffer(Layout::arg_ids, *execution, body_ids);
+    values.set(Layout::arg_count, body_count);
+    values.buffer(Layout::arg_groups, *execution, groups);
     return launch(stream, "geometry", "pm_build_fixed_collision_groups",
                   grid, block, values);
 }
@@ -400,24 +435,25 @@ PmResult prepare_geometry_constraints(
     std::uint32_t grid_blocks) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<192> values;
-    values.buffer(0U, *execution, parameters);
-    values.buffer(16U, *execution, previous);
-    values.buffer(32U, *execution, predicted);
-    values.set(44U, body_count);
-    values.buffer(48U, *execution, manifolds);
-    values.buffer(64U, *execution, active_pairs);
-    values.buffer(80U, *execution, active_pair_count);
-    values.buffer(96U, *execution, constraints);
-    values.set(108U, constraint_capacity);
-    values.buffer(112U, *execution, ids);
-    values.buffer(128U, *execution, bodies);
-    values.buffer(144U, *execution, schedule);
-    values.set(156U, timestep);
-    values.set(160U, gravity);
-    values.set(172U, base_iterations);
-    values.set(176U, requested_iterations);
-    values.set(180U, grid_blocks);
+    using Layout = d3d12::generated::layout::geometry_constraints::Kernel_prepare_avbd_kernel;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_parameters, *execution, parameters);
+    values.buffer(Layout::arg_previous, *execution, previous);
+    values.buffer(Layout::arg_states, *execution, predicted);
+    values.set(Layout::arg_count, body_count);
+    values.buffer(Layout::arg_manifolds, *execution, manifolds);
+    values.buffer(Layout::arg_pairs, *execution, active_pairs);
+    values.buffer(Layout::arg_pair_count, *execution, active_pair_count);
+    values.buffer(Layout::arg_joints, *execution, constraints);
+    values.set(Layout::arg_joint_capacity, constraint_capacity);
+    values.buffer(Layout::arg_ids, *execution, ids);
+    values.buffer(Layout::arg_bodies, *execution, bodies);
+    values.buffer(Layout::arg_schedule, *execution, schedule);
+    values.set(Layout::arg_dt, timestep);
+    values.set(Layout::arg_gravity, gravity);
+    values.set(Layout::arg_base_iterations, base_iterations);
+    values.set(Layout::arg_requested_iterations, requested_iterations);
+    values.set(Layout::arg_grid_blocks, grid_blocks);
     return launch(stream, "geometry_constraints", "prepare_avbd_kernel",
                   device::DispatchSize(grid_blocks), device::DispatchSize(128U), values);
 }
@@ -432,19 +468,20 @@ PmResult solve_geometry_constraints(
     std::uint32_t grid_blocks) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    Constants<144> values;
-    values.buffer(0U, *execution, parameters);
-    values.buffer(16U, *execution, previous);
-    values.buffer(32U, *execution, states);
-    values.set(44U, body_count);
-    values.buffer(48U, *execution, manifolds);
-    values.buffer(64U, *execution, active_pairs);
-    values.buffer(80U, *execution, active_pair_count);
-    values.buffer(96U, *execution, constraints);
-    values.set(108U, constraint_capacity);
-    values.buffer(112U, *execution, bodies);
-    values.buffer(128U, *execution, schedule);
-    values.set(140U, timestep);
+    using Layout = d3d12::generated::layout::geometry_constraints::Kernel_solve_avbd_kernel;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_parameters, *execution, parameters);
+    values.buffer(Layout::arg_previous, *execution, previous);
+    values.buffer(Layout::arg_states, *execution, states);
+    values.set(Layout::arg_count, body_count);
+    values.buffer(Layout::arg_manifolds, *execution, manifolds);
+    values.buffer(Layout::arg_pairs, *execution, active_pairs);
+    values.buffer(Layout::arg_pair_count, *execution, active_pair_count);
+    values.buffer(Layout::arg_joints, *execution, constraints);
+    values.set(Layout::arg_joint_capacity, constraint_capacity);
+    values.buffer(Layout::arg_bodies, *execution, bodies);
+    values.buffer(Layout::arg_schedule, *execution, schedule);
+    values.set(Layout::arg_dt, timestep);
     return launch(stream, "geometry_constraints", "solve_avbd_kernel",
                   device::DispatchSize(grid_blocks), device::DispatchSize(32U), values);
 }
@@ -464,29 +501,32 @@ PmResult compact_flagged_indices(
     auto *counts = static_cast<std::uint32_t *>(scratch);
     auto *offsets = counts + blocks;
     const auto packed_flags = execution->address(flags);
-    Constants<48> count_values;
-    count_values.set(0U, packed_flags);
-    count_values.set(12U, count);
-    count_values.set(16U, primitive_tile_size);
-    count_values.buffer(32U, *execution, counts);
+    using CountLayout = d3d12::generated::layout::primitives::Kernel_pm_compact_count_blocks;
+    Constants<CountLayout::constant_size> count_values;
+    count_values.set(CountLayout::arg_flags, packed_flags);
+    count_values.set(CountLayout::arg_count, count);
+    count_values.set(CountLayout::arg_tile_size, primitive_tile_size);
+    count_values.buffer(CountLayout::arg_block_counts, *execution, counts);
     PmResult result = launch(
         stream, "primitives", "pm_compact_count_blocks",
         device::DispatchSize(blocks), device::DispatchSize(primitive_tile_size), count_values);
     if (result != PM_SUCCESS) return result;
-    Constants<48> scan_values;
-    scan_values.buffer(0U, *execution, counts);
-    scan_values.set(12U, blocks);
-    scan_values.buffer(16U, *execution, offsets);
-    scan_values.buffer(32U, *execution, output_count);
+    using ScanLayout = d3d12::generated::layout::primitives::Kernel_pm_exclusive_scan_u32;
+    Constants<ScanLayout::constant_size> scan_values;
+    scan_values.buffer(ScanLayout::arg_input, *execution, counts);
+    scan_values.set(ScanLayout::arg_count, blocks);
+    scan_values.buffer(ScanLayout::arg_output, *execution, offsets);
+    scan_values.buffer(ScanLayout::arg_total, *execution, output_count);
     result = launch(stream, "primitives", "pm_exclusive_scan_u32",
                     device::DispatchSize(1U), device::DispatchSize(1U), scan_values);
     if (result != PM_SUCCESS) return result;
-    Constants<64> scatter_values;
-    scatter_values.set(0U, packed_flags);
-    scatter_values.set(12U, count);
-    scatter_values.set(16U, primitive_tile_size);
-    scatter_values.buffer(32U, *execution, offsets);
-    scatter_values.buffer(48U, *execution, output);
+    using ScatterLayout = d3d12::generated::layout::primitives::Kernel_pm_compact_scatter_indices;
+    Constants<ScatterLayout::constant_size> scatter_values;
+    scatter_values.set(ScatterLayout::arg_flags, packed_flags);
+    scatter_values.set(ScatterLayout::arg_count, count);
+    scatter_values.set(ScatterLayout::arg_tile_size, primitive_tile_size);
+    scatter_values.buffer(ScatterLayout::arg_block_offsets, *execution, offsets);
+    scatter_values.buffer(ScatterLayout::arg_output, *execution, output);
     return launch(stream, "primitives", "pm_compact_scatter_indices",
                   device::DispatchSize(blocks), device::DispatchSize(primitive_tile_size), scatter_values);
 }
@@ -511,33 +551,36 @@ PmResult radix_sort_pairs_u64_u32(
     auto *source_values = input_values;
     auto *target_values = output_values;
     for (std::uint32_t shift = 0U; shift < 64U; shift += 4U) {
-        Constants<44> histogram;
-        histogram.buffer(0U, *execution, source_keys);
-        histogram.set(12U, count);
-        histogram.set(16U, primitive_tile_size);
-        histogram.set(20U, shift);
-        histogram.set(24U, blocks);
-        histogram.buffer(32U, *execution, histograms);
+        using HistogramLayout = d3d12::generated::layout::primitives::Kernel_pm_radix_histogram_u64;
+        Constants<HistogramLayout::constant_size> histogram;
+        histogram.buffer(HistogramLayout::arg_keys, *execution, source_keys);
+        histogram.set(HistogramLayout::arg_count, count);
+        histogram.set(HistogramLayout::arg_tile_size, primitive_tile_size);
+        histogram.set(HistogramLayout::arg_shift, shift);
+        histogram.set(HistogramLayout::arg_block_count, blocks);
+        histogram.buffer(HistogramLayout::arg_histograms, *execution, histograms);
         auto result = launch(stream, "primitives", "pm_radix_histogram_u64",
                              device::DispatchSize(blocks), device::DispatchSize(primitive_tile_size), histogram);
         if (result != PM_SUCCESS) return result;
-        Constants<28> prefix;
-        prefix.buffer(0U, *execution, histograms);
-        prefix.set(12U, blocks);
-        prefix.buffer(16U, *execution, offsets);
+        using PrefixLayout = d3d12::generated::layout::primitives::Kernel_pm_radix_prefix_u32;
+        Constants<PrefixLayout::constant_size> prefix;
+        prefix.buffer(PrefixLayout::arg_histograms, *execution, histograms);
+        prefix.set(PrefixLayout::arg_block_count, blocks);
+        prefix.buffer(PrefixLayout::arg_offsets, *execution, offsets);
         result = launch(stream, "primitives", "pm_radix_prefix_u32",
                         device::DispatchSize(1U), device::DispatchSize(1U), prefix);
         if (result != PM_SUCCESS) return result;
-        Constants<92> scatter;
-        scatter.buffer(0U, *execution, source_keys);
-        scatter.buffer(16U, *execution, source_values);
-        scatter.set(28U, count);
-        scatter.set(32U, primitive_tile_size);
-        scatter.set(36U, shift);
-        scatter.set(40U, blocks);
-        scatter.buffer(48U, *execution, offsets);
-        scatter.buffer(64U, *execution, target_keys);
-        scatter.buffer(80U, *execution, target_values);
+        using RadixScatterLayout = d3d12::generated::layout::primitives::Kernel_pm_radix_scatter_u64_u32;
+        Constants<RadixScatterLayout::constant_size> scatter;
+        scatter.buffer(RadixScatterLayout::arg_input_keys, *execution, source_keys);
+        scatter.buffer(RadixScatterLayout::arg_input_values, *execution, source_values);
+        scatter.set(RadixScatterLayout::arg_count, count);
+        scatter.set(RadixScatterLayout::arg_tile_size, primitive_tile_size);
+        scatter.set(RadixScatterLayout::arg_shift, shift);
+        scatter.set(RadixScatterLayout::arg_block_count, blocks);
+        scatter.buffer(RadixScatterLayout::arg_offsets, *execution, offsets);
+        scatter.buffer(RadixScatterLayout::arg_output_keys, *execution, target_keys);
+        scatter.buffer(RadixScatterLayout::arg_output_values, *execution, target_values);
         result = launch(stream, "primitives", "pm_radix_scatter_u64_u32",
                         device::DispatchSize(blocks), device::DispatchSize(primitive_tile_size), scatter);
         if (result != PM_SUCCESS) return result;

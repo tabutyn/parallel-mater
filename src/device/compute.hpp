@@ -1,21 +1,29 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#include "native_object.hpp"
+
 // Private reference-runtime execution boundary. No native API types and no
 // physics equations. A command list owns its encoding state; submissions own
 // all referenced resources through GPU completion.
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <list>
 #include <map>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace parallel_mater::device::compute {
@@ -31,6 +39,18 @@ struct ResourceIdentity {
     std::uint64_t device{}, allocation{};
     [[nodiscard]] bool valid() const noexcept { return device != 0 && allocation != 0; }
     friend bool operator==(const ResourceIdentity &, const ResourceIdentity &) = default;
+};
+
+// Opaque native API/device/queue identity. Cross-queue handoff is legal only
+// when both queues belong to the same API and device; adapters decide whether they can
+// encode that wait without host synchronization.
+struct QueueIdentity {
+    NativeApi api{NativeApi::none};
+    std::uintptr_t device{}, queue{};
+    [[nodiscard]] bool valid() const noexcept {
+        return api != NativeApi::none && device != 0 && queue != 0;
+    }
+    friend bool operator==(const QueueIdentity &, const QueueIdentity &) = default;
 };
 
 enum class ResourceAccess : std::uint8_t {
@@ -76,9 +96,20 @@ struct ResourceBinding {
     ResourceRange range;
 };
 
+// Exact overlapping byte slice which must be ordered before the next command.
+// Adapters translate this neutral dependency into their native barrier model;
+// it never requests a host wait or exposes a native synchronization type.
+struct ResourceDependency {
+    ResourceRange prior;
+    ResourceRange next;
+};
+
 [[nodiscard]] inline bool valid(ResourceAccess access) noexcept {
     return access == ResourceAccess::read || access == ResourceAccess::write ||
         access == ResourceAccess::read_write;
+}
+[[nodiscard]] inline bool writes(ResourceAccess access) noexcept {
+    return (static_cast<unsigned>(access) & static_cast<unsigned>(ResourceAccess::write)) != 0;
 }
 [[nodiscard]] inline bool valid(ResourceBindingKind kind) noexcept {
     return kind == ResourceBindingKind::parameter ||
@@ -379,28 +410,440 @@ public:
     virtual ~Submission() = default;
     // GPU failures are deferred exceptions from ready()/wait()/elapsed_seconds().
     // Destruction never waits or throws. Driver ABI entrypoints translate errors.
+    // ready() may throw only after native work is terminal; wait() must drain
+    // native work before returning OR throwing. Ownership relies on this rule.
     [[nodiscard]] virtual bool ready() const = 0;
     virtual void wait() const = 0;
     [[nodiscard]] virtual double elapsed_seconds() const = 0;
     [[nodiscard]] virtual void *native_handle() const noexcept = 0;
+    [[nodiscard]] virtual QueueIdentity queue_identity() const noexcept = 0;
 };
 using SubmissionPtr = std::shared_ptr<Submission>;
 
-class CommandList {
+// Native encoding only. Common CommandList owns every referenced allocation.
+// Encoding never submits work; destruction cancels unsubmitted native commands.
+class CommandEncoder {
 public:
-    virtual ~CommandList() = default;
-    // Dispatch boundaries guarantee visibility of prior writes on this queue,
-    // including indirectly addressed buffers. No implicit CPU wait/readback.
+    virtual ~CommandEncoder() = default;
+    [[nodiscard]] virtual QueueIdentity queue_identity() const noexcept = 0;
+    // Encode waits for previously submitted GPU work. Implementations must not
+    // poll/wait on the CPU or submit this encoder. Unsupported cross-queue
+    // synchronization is an explicit validation error.
+    virtual void wait(std::span<const SubmissionPtr> prior) = 0;
+    // Order only the conflicting resource slices identified by common code.
+    // This records native GPU ordering; it must never wait on the CPU or submit.
+    virtual void barrier(std::span<const ResourceDependency> dependencies) = 0;
     virtual void dispatch(const Arguments &arguments, Extent groups) = 0;
     virtual void copy(const BufferPtr &destination, std::size_t destination_offset,
                       const BufferPtr &source, std::size_t source_offset,
                       std::size_t size) = 0;
     virtual void fill(const BufferPtr &destination, std::size_t offset,
                       std::size_t size, std::uint8_t value) = 0;
-    // Snapshot caller memory during encoding, retain upload through completion.
-    virtual void upload(const BufferPtr &destination, std::size_t offset,
-                        std::span<const std::byte> bytes) = 0;
+    // Snapshot caller memory during encoding; return the owning staging buffer
+    // for common retention. nullptr is allowed only when no staging is needed.
+    virtual BufferPtr upload(const BufferPtr &destination, std::size_t offset,
+                             std::span<const std::byte> bytes) = 0;
+    // Allocate the native completion token BEFORE enqueueing. A throw/null
+    // result means nothing was enqueued. Once accepted, always return a token
+    // and report execution errors through it, never via a submit exception.
     [[nodiscard]] virtual SubmissionPtr submit() = 0;
+};
+
+namespace detail {
+struct ResourceOwners {
+    std::unordered_set<BufferPtr> buffers;
+    std::unordered_set<KernelPtr> kernels;
+    // A next completion retains every prior completion it consumes. This also
+    // retains their transitive resources when the application drops tokens.
+    std::vector<SubmissionPtr> prerequisites;
+};
+
+struct DependencyPlan {
+    std::vector<ResourceDependency> dependencies;
+    std::vector<ResourceRange> next;
+};
+
+// Tracks the most recent access for each byte interval. A new command replaces
+// history only over its own ranges, so disjoint portions retain their hazards.
+// Overlapping bindings within one command are combined before comparison and
+// therefore never create a dependency on the command itself.
+class DependencyTracker {
+public:
+    [[nodiscard]] DependencyPlan plan(std::span<const ResourceRange> accesses) const {
+        const auto current = normalize(accesses);
+        DependencyPlan result;
+        for (const auto &next : current) {
+            for (const auto &prior : history_) {
+                if (!aliases(prior, next)) continue;
+                require_consistent(prior, next);
+                if (!overlaps(prior, next) || (!writes(prior.access) && !writes(next.access)))
+                    continue;
+                const auto begin = std::max(prior.offset, next.offset);
+                const auto end = std::min(prior.offset + prior.size, next.offset + next.size);
+                result.dependencies.push_back({
+                    {prior.buffer, begin, end - begin, prior.access},
+                    {next.buffer, begin, end - begin, next.access},
+                });
+            }
+        }
+
+        result.next = history_;
+        for (const auto &next : current) overlay(result.next, next);
+        coalesce(result.next);
+        return result;
+    }
+
+    void commit(DependencyPlan &&plan) noexcept { history_.swap(plan.next); }
+    void clear() noexcept { history_.clear(); }
+
+private:
+    using IdentityKey = std::pair<std::uint64_t, std::uint64_t>;
+
+    static void require_range(const ResourceRange &range) {
+        if (!range.buffer || !range.identity().valid() || !valid(range.access) || !range.size ||
+            range.offset > range.buffer->size() ||
+            range.size > range.buffer->size() - range.offset)
+            throw std::invalid_argument("invalid compute dependency range");
+    }
+
+    static void require_consistent(const ResourceRange &left, const ResourceRange &right) {
+        if (left.buffer->size() != right.buffer->size() ||
+            left.buffer->device_address() != right.buffer->device_address())
+            throw std::invalid_argument("inconsistent aliased compute resource");
+    }
+
+    [[nodiscard]] static std::vector<ResourceRange> normalize(
+        std::span<const ResourceRange> accesses) {
+        std::map<IdentityKey, std::vector<ResourceRange>> groups;
+        for (const auto &access : accesses) {
+            require_range(access);
+            const auto identity = access.identity();
+            auto &group = groups[{identity.device, identity.allocation}];
+            if (!group.empty()) require_consistent(group.front(), access);
+            group.push_back(access);
+        }
+
+        std::vector<ResourceRange> result;
+        for (const auto &[identity, group] : groups) {
+            (void)identity;
+            std::vector<std::size_t> boundaries;
+            boundaries.reserve(group.size() * 2);
+            for (const auto &access : group) {
+                boundaries.push_back(access.offset);
+                boundaries.push_back(access.offset + access.size);
+            }
+            std::sort(boundaries.begin(), boundaries.end());
+            boundaries.erase(std::unique(boundaries.begin(), boundaries.end()), boundaries.end());
+            for (std::size_t i = 1; i < boundaries.size(); ++i) {
+                const auto begin = boundaries[i - 1], end = boundaries[i];
+                unsigned bits{};
+                for (const auto &access : group)
+                    if (access.offset < end && begin < access.offset + access.size)
+                        bits |= static_cast<unsigned>(access.access);
+                if (bits != 0)
+                    result.push_back({group.front().buffer, begin, end - begin,
+                                      static_cast<ResourceAccess>(bits)});
+            }
+        }
+        coalesce(result);
+        return result;
+    }
+
+    static void overlay(std::vector<ResourceRange> &history, const ResourceRange &next) {
+        std::vector<ResourceRange> updated;
+        updated.reserve(history.size() + 1);
+        const auto next_end = next.offset + next.size;
+        for (const auto &prior : history) {
+            if (!aliases(prior, next)) {
+                updated.push_back(prior);
+                continue;
+            }
+            require_consistent(prior, next);
+            if (!overlaps(prior, next)) {
+                updated.push_back(prior);
+                continue;
+            }
+            const auto prior_end = prior.offset + prior.size;
+            if (prior.offset < next.offset)
+                updated.push_back({prior.buffer, prior.offset, next.offset - prior.offset,
+                                   prior.access});
+            if (next_end < prior_end)
+                updated.push_back({prior.buffer, next_end, prior_end - next_end, prior.access});
+        }
+        updated.push_back(next);
+        history.swap(updated);
+    }
+
+    static void coalesce(std::vector<ResourceRange> &ranges) {
+        std::sort(ranges.begin(), ranges.end(), [](const auto &left, const auto &right) {
+            const auto l = left.identity(), r = right.identity();
+            if (l.device != r.device) return l.device < r.device;
+            if (l.allocation != r.allocation) return l.allocation < r.allocation;
+            return left.offset < right.offset;
+        });
+        std::vector<ResourceRange> result;
+        result.reserve(ranges.size());
+        for (auto range : ranges) {
+            if (!result.empty() && aliases(result.back(), range) &&
+                result.back().access == range.access &&
+                result.back().offset + result.back().size == range.offset) {
+                result.back().size += range.size;
+            } else {
+                result.push_back(std::move(range));
+            }
+        }
+        ranges.swap(result);
+    }
+
+    std::vector<ResourceRange> history_;
+};
+
+class RetainedSubmission final : public Submission {
+public:
+    RetainedSubmission(std::shared_ptr<ResourceOwners> owners, QueueIdentity identity)
+        : identity_(identity), owners_(std::move(owners)) {}
+    void attach(SubmissionPtr native) noexcept { native_ = std::move(native); }
+    bool ready() const override {
+        // Another thread may be inside explicit wait(). Polling must not turn
+        // that wait into an implicit queue-wide GPU synchronization point.
+        std::unique_lock lock(mutex_, std::try_to_lock);
+        if (!lock.owns_lock()) return false;
+        return ready_locked();
+    }
+    void wait() const override {
+        std::lock_guard lock(mutex_);
+        try { native_->wait(); }
+        catch (...) { owners_.reset(); throw; }
+        owners_.reset();
+    }
+    double elapsed_seconds() const override {
+        std::unique_lock lock(mutex_, std::try_to_lock);
+        if (!lock.owns_lock() || !ready_locked())
+            throw std::logic_error("GPU timestamps requested before completion");
+        return native_->elapsed_seconds();
+    }
+    void *native_handle() const noexcept override { return native_->native_handle(); }
+    QueueIdentity queue_identity() const noexcept override { return identity_; }
+private:
+    bool ready_locked() const {
+        try {
+            if (!native_->ready()) return false;
+        } catch (...) { owners_.reset(); throw; }
+        owners_.reset();
+        return true;
+    }
+    SubmissionPtr native_;
+    QueueIdentity identity_;
+    mutable std::mutex mutex_;
+    mutable std::shared_ptr<ResourceOwners> owners_;
+};
+
+class SubmissionState {
+public:
+    void require_open() const {
+        std::lock_guard lock(mutex_);
+        if (closed_) throw std::logic_error("compute submission queue is closed");
+    }
+    SubmissionPtr submit(CommandEncoder &encoder, const std::shared_ptr<ResourceOwners> &owners) {
+        const auto identity = encoder.queue_identity();
+        if (!identity.valid()) throw std::invalid_argument("invalid compute queue identity");
+        auto completion = std::make_shared<RetainedSubmission>(owners, identity);
+        std::lock_guard lock(mutex_);
+        if (closed_) throw std::logic_error("compute submission queue is closed");
+        collect_locked();
+        // Allocate the pending slot before native acceptance. Everything after
+        // successful enqueue is noexcept, even if the client drops its token.
+        pending_.push_back(completion);
+        try {
+            auto native = encoder.submit();
+            if (!native) throw std::runtime_error("native submit returned no completion");
+            completion->attach(std::move(native));
+        } catch (...) {
+            pending_.pop_back();
+            throw;
+        }
+        return completion;
+    }
+    void collect() {
+        std::lock_guard lock(mutex_);
+        collect_locked();
+    }
+    void close() noexcept {
+        // No queue lock while waiting. A deferred failure is terminal, but
+        // must not prevent later submissions from draining during teardown.
+        // Pop one existing slot at a time: even an empty temporary list may
+        // allocate its sentinel on some standard libraries. Teardown must not
+        // need a fresh allocation in order to retain/drain accepted work.
+        for (;;) {
+            std::shared_ptr<RetainedSubmission> completion;
+            {
+                std::lock_guard lock(mutex_);
+                closed_ = true;
+                if (pending_.empty()) return;
+                completion = std::move(pending_.front());
+                pending_.pop_front();
+            }
+            try { completion->wait(); } catch (...) {}
+        }
+    }
+private:
+    void collect_locked() {
+        for (auto it = pending_.begin(); it != pending_.end();) {
+            bool terminal;
+            try { terminal = (*it)->ready(); } catch (...) { terminal = true; }
+            if (terminal) it = pending_.erase(it);
+            else ++it;
+        }
+    }
+    mutable std::mutex mutex_;
+    bool closed_{};
+    std::list<std::shared_ptr<RetainedSubmission>> pending_;
+};
+} // namespace detail
+
+class SubmissionQueue;
+
+// Single-writer recording object. Validation errors leave prior commands
+// intact; an encoding/submit failure cancels this list. Pending work is owned
+// by the device's SubmissionQueue, not by the caller's completion token.
+class CommandList final {
+public:
+    CommandList(const CommandList &) = delete;
+    CommandList &operator=(const CommandList &) = delete;
+    // Local recording state; a closed device queue can also prevent encoding.
+    [[nodiscard]] bool is_recording() const noexcept { return bool(encoder_); }
+    void dispatch(const Arguments &arguments, Extent groups) {
+        ensure_open();
+        arguments.validate();
+        if (!groups.x || !groups.y || !groups.z)
+            throw std::invalid_argument("empty compute dispatch");
+        const auto bindings = arguments.bindings();
+        std::vector<ResourceRange> accesses;
+        accesses.reserve(bindings.size());
+        for (const auto &binding : bindings) accesses.push_back(binding.range);
+        encode(accesses, [&] {
+            owners_->kernels.insert(arguments.kernel());
+            encoder_->dispatch(arguments, groups);
+        });
+    }
+    void copy(const BufferPtr &destination, std::size_t destination_offset,
+              const BufferPtr &source, std::size_t source_offset, std::size_t size) {
+        ensure_open();
+        range(destination, destination_offset, size);
+        range(source, source_offset, size);
+        if (!size) return;
+        if (overlaps({destination, destination_offset, size}, {source, source_offset, size}))
+            throw std::invalid_argument("overlapping GPU copy ranges");
+        const std::array<ResourceRange, 2> accesses{{
+            {destination, destination_offset, size, ResourceAccess::write},
+            {source, source_offset, size, ResourceAccess::read},
+        }};
+        encode(accesses, [&] {
+            encoder_->copy(destination, destination_offset, source, source_offset, size);
+        });
+    }
+    void fill(const BufferPtr &destination, std::size_t offset, std::size_t size, std::uint8_t value) {
+        ensure_open();
+        range(destination, offset, size);
+        if (!size) return;
+        const std::array accesses{
+            ResourceRange{destination, offset, size, ResourceAccess::write}};
+        encode(accesses, [&] {
+            encoder_->fill(destination, offset, size, value);
+        });
+    }
+    void upload(const BufferPtr &destination, std::size_t offset, std::span<const std::byte> bytes) {
+        ensure_open();
+        range(destination, offset, bytes.size());
+        if (bytes.empty()) return;
+        const std::array accesses{
+            ResourceRange{destination, offset, bytes.size(), ResourceAccess::write}};
+        encode(accesses, [&] {
+            auto staging = encoder_->upload(destination, offset, bytes);
+            if (staging) owners_->buffers.insert(std::move(staging));
+        });
+    }
+    [[nodiscard]] SubmissionPtr submit() {
+        ensure_open();
+        try {
+            auto completion = state_->submit(*encoder_, owners_);
+            cancel(); // Native token and queue now own the accepted work.
+            return completion;
+        } catch (...) { cancel(); throw; }
+    }
+private:
+    friend class SubmissionQueue;
+    CommandList(std::shared_ptr<detail::SubmissionState> state, std::unique_ptr<CommandEncoder> encoder,
+                std::span<const SubmissionPtr> prior)
+        : state_(std::move(state)), owners_(std::make_shared<detail::ResourceOwners>()),
+          encoder_(std::move(encoder)) {
+        if (!encoder_) throw std::invalid_argument("null compute command encoder");
+        ensure_open();
+        const auto next = encoder_->queue_identity();
+        if (!next.valid()) throw std::invalid_argument("invalid compute queue identity");
+        owners_->prerequisites.reserve(prior.size());
+        for (const auto &completion : prior) {
+            if (!completion || !completion->queue_identity().valid())
+                throw std::invalid_argument("null or unidentified prior completion");
+            if (completion->queue_identity().api != next.api ||
+                completion->queue_identity().device != next.device)
+                throw std::invalid_argument("prior completion belongs to another device");
+            owners_->prerequisites.push_back(completion);
+        }
+        if (!owners_->prerequisites.empty()) encoder_->wait(owners_->prerequisites);
+    }
+    static void range(const BufferPtr &buffer, std::size_t offset, std::size_t size) {
+        if (!buffer || !buffer->identity().valid() || offset > buffer->size() ||
+            size > buffer->size() - offset)
+            throw std::invalid_argument("invalid compute transfer range");
+    }
+    void ensure_open() const {
+        if (!encoder_) throw std::logic_error("compute command list already submitted or cancelled");
+        state_->require_open();
+    }
+    template<class Function> void encode(std::span<const ResourceRange> accesses,
+                                         Function &&function) {
+        // Planning is side-effect free. Validation/allocation failures here do
+        // not discard commands that were already encoded successfully.
+        auto plan = dependencies_.plan(accesses);
+        try {
+            for (const auto &access : accesses) owners_->buffers.insert(access.buffer);
+            if (!plan.dependencies.empty()) encoder_->barrier(plan.dependencies);
+            function();
+            dependencies_.commit(std::move(plan));
+        } catch (...) { cancel(); throw; }
+    }
+    void cancel() noexcept {
+        encoder_.reset();
+        owners_.reset();
+        dependencies_.clear();
+    }
+    std::shared_ptr<detail::SubmissionState> state_;
+    std::shared_ptr<detail::ResourceOwners> owners_;
+    detail::DependencyTracker dependencies_;
+    // Destroy the unsubmitted native encoder before releasing its allocations.
+    std::unique_ptr<CommandEncoder> encoder_;
+};
+
+// Device-owned lifetime domain. Declare after native device/queue members so
+// destruction drains accepted work before those native objects are released.
+// Command lists may outlive it, but cannot encode/submit after shutdown.
+class SubmissionQueue final {
+public:
+    SubmissionQueue() : state_(std::make_shared<detail::SubmissionState>()) {}
+    ~SubmissionQueue() { state_->close(); }
+    SubmissionQueue(const SubmissionQueue &) = delete;
+    SubmissionQueue &operator=(const SubmissionQueue &) = delete;
+    [[nodiscard]] std::unique_ptr<CommandList> commands(std::unique_ptr<CommandEncoder> encoder,
+                                                        std::span<const SubmissionPtr> prior = {}) {
+        collect();
+        return std::unique_ptr<CommandList>(new CommandList(state_, std::move(encoder), prior));
+    }
+    // Nonblocking reclamation, also performed when recording/submitting again.
+    // Errors remain observable through a retained completion token.
+    void collect() { state_->collect(); }
+private:
+    std::shared_ptr<detail::SubmissionState> state_;
 };
 
 class Device {
@@ -410,9 +853,12 @@ public:
     [[nodiscard]] virtual BufferPtr allocate(std::size_t size, bool host_visible) = 0;
     [[nodiscard]] virtual KernelPtr load_kernel(const std::string &library,
         const std::string &reflection, const std::string &entry) = 0;
-    [[nodiscard]] virtual std::unique_ptr<CommandList> commands() = 0;
-    [[nodiscard]] virtual void *native_device() const noexcept = 0;
-    [[nodiscard]] virtual void *native_queue() const noexcept = 0;
+    [[nodiscard]] virtual std::unique_ptr<CommandList> commands(
+        std::span<const SubmissionPtr> prior = {}) = 0;
+    // Borrowed views: destroying the returned wrapper never destroys the
+    // adapter's native device or queue.
+    [[nodiscard]] virtual NativeObject native_device() const = 0;
+    [[nodiscard]] virtual NativeObject native_queue() const = 0;
 };
 
 // nullptr means no supported hardware; never substitutes serial CPU execution.

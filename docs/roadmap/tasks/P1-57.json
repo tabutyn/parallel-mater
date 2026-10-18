@@ -1,0 +1,24 @@
+{
+  "id": "P1-57",
+  "title": "Expose interface thermal conductance",
+  "status": "deferred",
+  "dependencies": [
+    "P1-15",
+    "P1-56"
+  ],
+  "locks": [
+    "api-spec",
+    "interaction-spec"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Add optional typed, versioned thermal conductance state to immiscible fluid interfaces; advertise no thermal mode.",
+  "acceptance": [
+    "Registry, generated C API and specification define conductance in W/(m^2*K), with zero meaning an insulating interface.",
+    "Negative tests atomically reject missing, negative, nonfinite, duplicate and non-immiscible interface conductance state."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

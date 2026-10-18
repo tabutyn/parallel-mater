@@ -161,7 +161,103 @@ class ReflectedABI:
         return lines
 
     def parameters(self, entry):
-        return [p for p in entry['parameters'] if p.get('binding', {}).get('kind') == 'uniform']
+        scope = entry.get('scope', entry)
+        return [p for p in scope['parameters']
+                if p.get('binding', {}).get('kind') == 'uniform']
+
+    def storage_size(self, typ):
+        typ = self.resolve(typ)
+        kind = typ['kind']
+        if kind == 'scalar':
+            scalar = typ.get('scalarType')
+            if scalar not in SCALARS:
+                raise ValueError(f'unsupported scalar: {scalar}')
+            if typ.get('sizes'):
+                return layout(typ)[0]
+            return SCALARS[scalar][1]
+        if kind == 'pointer':
+            size = layout(typ)[0] if typ.get('sizes') else 8
+            if size != 8:
+                raise ValueError(f'unsupported pointer size: {size}')
+            return size
+        if kind in ('struct', 'array'):
+            return layout(typ)[0]
+        raise ValueError(f'unsupported uniform ABI type: {kind}')
+
+    def validate_storage(self, typ, context='uniform'):
+        typ = self.resolve(typ)
+        kind = typ['kind']
+        size = self.storage_size(typ)
+        if kind == 'scalar':
+            scalar = typ['scalarType']
+            native = SCALARS[scalar][1]
+            if size != native and not (scalar == 'bool' and size == 4):
+                raise ValueError(
+                    f'{context}: unsupported {scalar} storage size {size}')
+            return
+        if kind == 'pointer':
+            # The pointee layout does not occupy constant storage, but it must
+            # still be a type the common reflection model can name.
+            self.cpp_type(typ['valueType'])
+            return
+        if kind == 'array':
+            count = typ.get('elementCount')
+            stride = typ.get('uniformStride')
+            if not isinstance(count, int) or count < 1 or \
+                    not isinstance(stride, int) or stride < 1:
+                raise ValueError(f'{context}: invalid reflected array')
+            element_size = self.storage_size(typ['elementType'])
+            if stride < element_size or size != stride * (count - 1) + element_size:
+                raise ValueError(f'{context}: inconsistent reflected array stride')
+            self.validate_storage(typ['elementType'], context + '[]')
+            return
+        if kind != 'struct':
+            raise ValueError(f'{context}: unsupported uniform ABI type: {kind}')
+        fields = typ.get('fields')
+        if not isinstance(fields, list):
+            raise ValueError(f'{context}: reflected record fields missing')
+        names, cursor = set(), 0
+        for field in fields:
+            name = identifier(field['name'])
+            if name in names:
+                raise ValueError(f'{context}: duplicate reflected field {name}')
+            names.add(name)
+            binding = field.get('binding', {})
+            if binding.get('kind') != 'uniform':
+                raise ValueError(f'{context}.{name}: non-uniform record field')
+            offset, field_size = binding.get('offset'), binding.get('size')
+            expected = self.storage_size(field['type'])
+            if not isinstance(offset, int) or not isinstance(field_size, int) or \
+                    field_size != expected or offset < cursor or offset + field_size > size:
+                raise ValueError(
+                    f'{context}.{name}: inconsistent reflected field layout')
+            self.validate_storage(field['type'], context + '.' + name)
+            cursor = offset + field_size
+
+    def validate_entry(self, entry):
+        name = identifier(entry.get('name', 'entry'))
+        names, cursor = set(), 0
+        parameters = self.parameters(entry)
+        for parameter in parameters:
+            parameter_name = identifier(parameter['name'])
+            if parameter_name in names:
+                raise ValueError(f'{name}: duplicate uniform {parameter_name}')
+            names.add(parameter_name)
+            binding = parameter.get('binding', {})
+            offset, size = binding.get('offset'), binding.get('size')
+            expected = self.storage_size(parameter['type'])
+            if not isinstance(offset, int) or not isinstance(size, int) or \
+                    size != expected or offset < cursor:
+                raise ValueError(
+                    f'{name}.{parameter_name}: inconsistent reflected parameter layout')
+            self.validate_storage(parameter['type'], name + '.' + parameter_name)
+            cursor = offset + size
+        return parameters
+
+    def constant_size(self, entry):
+        parameters = self.validate_entry(entry)
+        return max((p['binding']['offset'] + p['binding']['size']
+                    for p in parameters), default=4)
 
     def signature(self, entry):
         return ', '.join(f'{self.cpp_type(p["type"])} arg_{identifier(p["name"])}'

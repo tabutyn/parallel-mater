@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <functional>
+#include <limits>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -61,7 +62,9 @@ struct PmDevice_T {
     PmQueue_T queue{};
     std::atomic<std::uint64_t> next_pipeline_serial{1};
     std::atomic<PmDeviceSize> application_bytes{};
+    std::atomic<PmDeviceSize> library_device_bytes{};
     std::atomic<PmDeviceSize> library_host_bytes{};
+    std::atomic<PmDeviceSize> borrowed_buffer_bytes{};
 };
 
 struct PmDeviceMemory_T {
@@ -252,12 +255,28 @@ struct PmQueryPool_T {
 
 namespace parallel_mater::api {
 
+[[nodiscard]] inline bool try_add_tracked_bytes(
+    std::atomic<PmDeviceSize> &counter, PmDeviceSize bytes) noexcept {
+    PmDeviceSize current = counter.load(std::memory_order_relaxed);
+    for (;;) {
+        if (bytes > std::numeric_limits<PmDeviceSize>::max() - current)
+            return false;
+        if (counter.compare_exchange_weak(
+                current, current + bytes, std::memory_order_relaxed,
+                std::memory_order_relaxed))
+            return true;
+    }
+}
+
 template <typename T, typename... Args>
 [[nodiscard]] T *make_object(PmDevice_T *device, Args &&...args) noexcept {
     try {
         auto *value = new T(std::forward<Args>(args)...);
-        if (device != nullptr)
-            device->library_host_bytes.fetch_add(sizeof(T), std::memory_order_relaxed);
+        if (device != nullptr && !try_add_tracked_bytes(
+                device->library_host_bytes, sizeof(T))) {
+            delete value;
+            return nullptr;
+        }
         return value;
     } catch (const std::bad_alloc &) {
         return nullptr;
@@ -388,6 +407,9 @@ inline PmResult record_query(PmCommandBuffer buffer, PmQueryPool pool,
     PmInteractionCapability &capability) noexcept;
 [[nodiscard]] PFN_pmVoidFunction lookup_proc(const char *name) noexcept;
 [[nodiscard]] PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noexcept;
+[[nodiscard]] PmResult normalize_coupling_info(
+    PmDevice device, const PmCouplingStateInfo &source,
+    PmCouplingState &destination) noexcept;
 [[nodiscard]] PmResult clear_couplings(PmSimulation simulation) noexcept;
 [[nodiscard]] PmResult initialize_couplings(
     PmSimulation simulation, PmPhysicsPipeline pipeline) noexcept;

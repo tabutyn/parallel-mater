@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <limits>
 #include <utility>
-#include <unordered_set>
 
 namespace parallel_mater::device::compute {
 namespace {
@@ -159,7 +158,8 @@ Field record_layout(MTLStructType *record, bool expand_pointers) {
 
 class MetalSubmission final : public Submission {
 public:
-    explicit MetalSubmission(id<MTLCommandBuffer> command) : command_(command) {}
+    MetalSubmission(id<MTLCommandBuffer> command, QueueIdentity identity)
+        : command_(command), identity_(identity) {}
     bool ready() const override {
         check_error();
         return command_.status == MTLCommandBufferStatusCompleted;
@@ -175,23 +175,70 @@ public:
         return command_.GPUEndTime - command_.GPUStartTime;
     }
     void *native_handle() const noexcept override { return (__bridge void *)command_; }
+    QueueIdentity queue_identity() const noexcept override { return identity_; }
 private:
     void check_error() const {
-        require(command_.status != MTLCommandBufferStatusError,
-            "Metal execution failed: " + error_text(command_.error));
+        if (command_.status == MTLCommandBufferStatusError)
+            throw std::runtime_error("Metal execution failed: " + error_text(command_.error));
     }
     id<MTLCommandBuffer> command_;
+    QueueIdentity identity_;
 };
 
-class MetalCommandList final : public CommandList {
+class MetalCommandList final : public CommandEncoder {
 public:
     MetalCommandList(id<MTLDevice> device, id<MTLCommandQueue> queue)
-        : device_(device) {
+        : device_(device), queue_(queue) {
         // A caller may run thousands of physics submissions inside one outer
         // autorelease pool. Do not retain every completed command until then.
         @autoreleasepool {
             command_ = [queue commandBuffer];
             require(command_ != nil, "Metal command buffer allocation failed");
+        }
+    }
+    QueueIdentity queue_identity() const noexcept override {
+        return {NativeApi::metal,
+                reinterpret_cast<std::uintptr_t>((__bridge void *)device_),
+                reinterpret_cast<std::uintptr_t>((__bridge void *)queue_)};
+    }
+    void wait(std::span<const SubmissionPtr> prior) override {
+        @autoreleasepool {
+            ensure_open();
+            for (const auto &completion : prior) {
+                if (!completion || completion->queue_identity().api != NativeApi::metal ||
+                    completion->queue_identity().device != queue_identity().device)
+                    throw std::invalid_argument("foreign Metal prior completion");
+                if (completion->queue_identity().queue != queue_identity().queue)
+                    throw std::invalid_argument(
+                        "Metal cross-queue handoff requires shared-event adapter support");
+            }
+            // Submitted command buffers on one MTLCommandQueue execute in order.
+            // No host wait or additional native command is required here.
+        }
+    }
+    void barrier(std::span<const ResourceDependency> dependencies) override {
+        @autoreleasepool {
+            ensure_open();
+            for (const auto &dependency : dependencies) {
+                if (!aliases(dependency.prior, dependency.next) ||
+                    !overlaps(dependency.prior, dependency.next) ||
+                    (!writes(dependency.prior.access) && !writes(dependency.next.access)) ||
+                    dependency.prior.offset != dependency.next.offset ||
+                    dependency.prior.size != dependency.next.size)
+                    throw std::invalid_argument("invalid Metal resource dependency");
+                auto prior = buffer(dependency.prior.buffer);
+                auto next = buffer(dependency.next.buffer);
+                require(prior == next, "inconsistent Metal resource dependency");
+                range(dependency.prior.buffer, dependency.prior.offset,
+                      dependency.prior.size);
+                range(dependency.next.buffer, dependency.next.offset,
+                      dependency.next.size);
+            }
+            // Every operation below closes its native encoder. Metal orders
+            // those encoders within one command buffer and tracked resources
+            // make their writes visible, so this adapter needs no extra native
+            // command. The callback still proves common scheduling selected the
+            // dependency; it never turns that dependency into a CPU wait.
         }
     }
     void dispatch(const Arguments &arguments, Extent groups) override {
@@ -219,9 +266,8 @@ public:
             [encoder dispatchThreadgroups:MTLSizeMake(groups.x, groups.y, groups.z)
                 threadsPerThreadgroup:MTLSizeMake(kernel->threads.x, kernel->threads.y, kernel->threads.z)];
             [encoder endEncoding];
-            // Separate encoders + tracked resources establish GPU-wide ordering,
-            // including raw-pointer accesses declared above. Never a group barrier.
-            for (const auto &binding : bindings) retained_.insert(binding.range.buffer);
+            // Separate encoders + tracked resources implement dependencies
+            // selected by the common scheduler. Never a group or host barrier.
         }
     }
     void copy(const BufferPtr &destination, std::size_t destination_offset,
@@ -240,8 +286,6 @@ public:
             [encoder copyFromBuffer:src sourceOffset:source_offset toBuffer:dst
                 destinationOffset:destination_offset size:size];
             [encoder endEncoding];
-            retained_.insert(destination);
-            retained_.insert(source);
         }
     }
     void fill(const BufferPtr &destination, std::size_t offset,
@@ -255,30 +299,27 @@ public:
             require(encoder != nil, "Metal blit encoder allocation failed");
             [encoder fillBuffer:dst range:NSMakeRange(offset, size) value:value];
             [encoder endEncoding];
-            retained_.insert(destination);
         }
     }
-    void upload(const BufferPtr &destination, std::size_t offset,
-                std::span<const std::byte> bytes) override {
+    BufferPtr upload(const BufferPtr &destination, std::size_t offset,
+                     std::span<const std::byte> bytes) override {
         @autoreleasepool {
             ensure_open();
             (void)buffer(destination);
             range(destination, offset, bytes.size());
-            if (bytes.empty()) return;
+            if (bytes.empty()) return {};
             id<MTLBuffer> staging = [device_ newBufferWithBytes:bytes.data()
                 length:bytes.size() options:MTLResourceStorageModeShared];
             require(staging != nil, "Metal upload staging allocation failed");
-            copy(destination, offset, std::make_shared<MetalBuffer>(staging), 0, bytes.size());
+            auto owner = std::make_shared<MetalBuffer>(staging);
+            copy(destination, offset, owner, 0, bytes.size());
+            return owner;
         }
     }
     SubmissionPtr submit() override {
         @autoreleasepool {
             ensure_open();
-            auto result = std::make_shared<MetalSubmission>(command_);
-            // Retain C++ resource ownership even if both caller and completion
-            // token disappear before the GPU finishes. No blocking destructor.
-            auto retained = std::make_shared<std::unordered_set<BufferPtr>>(std::move(retained_));
-            [command_ addCompletedHandler:^(id<MTLCommandBuffer>) { (void)retained; }];
+            auto result = std::make_shared<MetalSubmission>(command_, queue_identity());
             [command_ commit];
             submitted_ = true;
             return result;
@@ -307,9 +348,9 @@ private:
             throw std::invalid_argument("compute buffer range out of bounds");
     }
     id<MTLDevice> device_;
+    id<MTLCommandQueue> queue_;
     id<MTLCommandBuffer> command_;
     bool submitted_{};
-    std::unordered_set<BufferPtr> retained_;
 };
 
 class MetalDevice final : public Device {
@@ -410,16 +451,23 @@ public:
     catch (const std::exception &error) {
         throw std::runtime_error(entry + ": " + error.what());
     }
-    std::unique_ptr<CommandList> commands() override {
+    std::unique_ptr<CommandList> commands(std::span<const SubmissionPtr> prior = {}) override {
         @autoreleasepool {
-            return std::make_unique<MetalCommandList>(device_, queue_);
+            return submissions_.commands(std::make_unique<MetalCommandList>(device_, queue_), prior);
         }
     }
-    void *native_device() const noexcept override { return (__bridge void *)device_; }
-    void *native_queue() const noexcept override { return (__bridge void *)queue_; }
+    NativeObject native_device() const override {
+        return NativeObject::borrowed(NativeApi::metal, NativeObjectKind::device,
+            reinterpret_cast<std::uintptr_t>((__bridge void *)device_));
+    }
+    NativeObject native_queue() const override {
+        return NativeObject::borrowed(NativeApi::metal, NativeObjectKind::queue,
+            reinterpret_cast<std::uintptr_t>((__bridge void *)queue_));
+    }
 private:
     id<MTLDevice> device_;
     id<MTLCommandQueue> queue_;
+    SubmissionQueue submissions_;
 };
 } // namespace
 

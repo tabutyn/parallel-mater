@@ -200,7 +200,8 @@ def _check_case(definition: dict[str, Any], actual: dict[str, Any], path: str,
 
 
 def evaluate(profile: dict[str, Any], result: dict[str, Any],
-             expected_hash: str) -> dict[str, Any]:
+             expected_hash: str,
+             selected_case_ids: set[str] | None = None) -> dict[str, Any]:
     failures: list[Failure] = []
     if profile.get("schema") != PROFILE_SCHEMA:
         failures.append(Failure("$.profile.schema", "unsupported profile schema",
@@ -225,6 +226,13 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
         failures.append(Failure("$.driver", "driver name and device are required", driver))
 
     definitions = _index(profile.get("cases"), "$.profile.cases", failures)
+    if selected_case_ids is not None:
+        for missing in sorted(selected_case_ids - set(definitions)):
+            failures.append(Failure("$.selected_cases",
+                                    "unknown lifecycle case", missing))
+        definitions = {identity: definition
+                       for identity, definition in definitions.items()
+                       if identity in selected_case_ids}
     actual_cases = _index(result.get("cases"), "$.cases", failures)
     for missing in sorted(set(definitions) - set(actual_cases)):
         failures.append(Failure("$.cases", "missing required lifecycle case", missing))
@@ -259,11 +267,16 @@ def main() -> int:
     parser.add_argument("--profile", type=Path, default=default_profile)
     parser.add_argument("--actual", type=Path, required=True)
     parser.add_argument("--report", type=Path)
+    parser.add_argument(
+        "--case", action="append", dest="cases",
+        help="Evaluate only this case (repeatable); full-suite evaluation remains the default")
     arguments = parser.parse_args()
     try:
         profile = json.loads(arguments.profile.read_text(encoding="utf-8"))
         actual = json.loads(arguments.actual.read_text(encoding="utf-8"))
-        report = evaluate(profile, actual, profile_sha256(arguments.profile))
+        selected = set(arguments.cases) if arguments.cases else None
+        report = evaluate(profile, actual, profile_sha256(arguments.profile),
+                          selected)
     except (OSError, ValueError, TypeError, KeyError) as error:
         print(f"lifecycle: {error}")
         return 2

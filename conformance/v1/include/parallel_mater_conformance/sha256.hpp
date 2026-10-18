@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -123,6 +124,26 @@ inline std::string sha256_file(const std::filesystem::path &path) {
         digest.update(reinterpret_cast<const std::uint8_t *>(buffer.data()), size);
     }
     return digest.finish();
+}
+
+inline std::string sha256_contract_file(const std::filesystem::path &path) {
+    std::ifstream input(path, std::ios::binary);
+    if (!input) throw std::runtime_error("cannot open " + path.string());
+    std::string bytes{std::istreambuf_iterator<char>(input),
+                      std::istreambuf_iterator<char>()};
+    const auto extension = path.extension();
+    if (extension == ".json" || extension == ".xml") {
+        std::string normalized;
+        normalized.reserve(bytes.size());
+        for (std::size_t index = 0U; index < bytes.size(); ++index) {
+            if (bytes[index] == '\r' && index + 1U < bytes.size() &&
+                bytes[index + 1U] == '\n')
+                continue;
+            normalized.push_back(bytes[index]);
+        }
+        bytes = std::move(normalized);
+    }
+    return sha256(bytes);
 }
 
 } // namespace parallel_mater::conformance

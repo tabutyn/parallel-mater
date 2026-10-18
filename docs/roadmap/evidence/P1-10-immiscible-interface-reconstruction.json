@@ -1,0 +1,90 @@
+{
+  "schema": "parallel-mater-roadmap-immiscible-interface-reconstruction/v1",
+  "task": "P1-10",
+  "result": "passed",
+  "source": {
+    "revision": "402ecdcf17b05c54ebbc18dbd1a8458ab91a407e",
+    "branch": "work/P1-10/thomas-laptop",
+    "lease_token": "e65bc509-6d4c-412b-b417-451402f67d3b",
+    "machine": "thomas-laptop"
+  },
+  "reconstruction_contract": {
+    "phase_labels": "Active first-endpoint particles are -1, active second-endpoint particles are +1 and inactive capacity slots are zero.",
+    "orientation": "A weighted least-squares phase gradient is normalized to point from the first endpoint to the second; reversing endpoints reverses every reconstructed normal.",
+    "curvature": "A second weighted least-squares pass reconstructs the normal Jacobian and emits its trace. A first-material sphere therefore has positive mean curvature and targets 2/R.",
+    "support": "Both passes use max(first.supportRadius, second.supportRadius) and the P1-05 combined sorted pair index.",
+    "finite_bound": "Curvature is finite and bounded to 2/min(first.particleRadius, second.particleRadius); non-invertible moments emit zero normal or curvature with a diagnostic flag.",
+    "advertisement": "No interaction capability record was added or enabled."
+  },
+  "bounded_storage": {
+    "per_endpoint_scratch": [
+      "phase label",
+      "interface normal",
+      "mean curvature",
+      "diagnostic flags"
+    ],
+    "persistent_counters": [
+      "interface samples",
+      "under-resolved samples",
+      "degenerate samples",
+      "curvature clamps"
+    ],
+    "diagnostic_bound": "Each endpoint counter is incremented at most once per live particle for its condition and cannot exceed that endpoint count."
+  },
+  "physical_fixtures": {
+    "planar": {
+      "normal_alignment": "dot(normal, +X) > 0.999 for both endpoints",
+      "mean_curvature": "absolute curvature < 1e-4 in the interior interface window",
+      "endpoint_reversal": "mapped normals have dot product < -0.999"
+    },
+    "sphere": {
+      "radius": 1.0,
+      "spacing_sweep": [
+        0.4,
+        0.25,
+        0.16
+      ],
+      "analytic_mean_curvature": 2.0,
+      "measured_mean_curvature": [
+        1.936754,
+        1.959922,
+        1.971829
+      ],
+      "normal_alignment": "mean radial alignment > 0.97 at every resolution",
+      "convergence": "absolute signed-mean error decreases at every refinement and is below 0.05 at spacing 0.16"
+    },
+    "degenerate_and_empty": "One-particle rank-deficient endpoint pairs remain finite and report under-resolved plus degenerate flags. Empty live populations clear all inactive outputs and leave counters zero."
+  },
+  "validation": [
+    {
+      "command": "ctest --test-dir build-foundations -R 'parallel-mater-(fluid-interface-reconstruction|fluid-pair-neighbor-index|slang-architecture)' --output-on-failure",
+      "result": "3/3 passed; shared Slang CPU execution covered planar orientation and endpoint reversal, a three-resolution sphere sweep, empty populations, rank-deficient neighborhoods, finite output bounds and typed storage accounting."
+    },
+    {
+      "command": "cmake --build build-f5-16-linux --target parallel-mater-slang-kernel-mirrors -j2",
+      "result": "216/216 build steps passed; both reconstruction kernels compiled to Metal, CUDA, PTX and Vulkan SPIR-V."
+    },
+    {
+      "command": "cmake --build build-desktop-switch --target parallel-mater-driver-slang-cuda parallel-mater-driver-slang-vulkan -j2",
+      "result": "CUDA and Vulkan loadable drivers rebuilt with the new shared-Slang entries and reflected bindings."
+    },
+    {
+      "command": "python3 -m unittest tests.solver.test_dxil_bindings",
+      "result": "4/4 DirectCompute DXIL binding generator tests passed."
+    },
+    {
+      "command": "cmake --build build-sdk-ci -j2 && ctest --test-dir build-sdk-ci --output-on-failure",
+      "result": "47/47 SDK, ABI, generator, resource-plan and architecture tests passed."
+    },
+    {
+      "command": "python3 tools/reference/build.py --check-generated && python3 conformance/v1/evidence_index.py --check && python3 conformance/v1/update_manifest.py --check && python3 tools/roadmap.py check",
+      "result": "Public generated files, evidence index, conformance manifest and 211 roadmap cards remained valid."
+    }
+  ],
+  "limitations": [
+    "The operator is not scheduled by a public immiscible graph; scheduling and lifecycle recovery remain P1-13.",
+    "Pressure jump and capillary force application remain P1-11; interfacial viscosity remains P1-12.",
+    "No production driver advertises the immiscible-interface capability before P1-14.",
+    "CUDA and Vulkan fluid-pair runtime tests skipped because this session exposed no runnable device; cross-backend evidence here is compile, reflection and link coverage, while physical execution used the serial shared-Slang CPU target."
+  ]
+}

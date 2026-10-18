@@ -1,0 +1,23 @@
+{
+  "id": "F5-54",
+  "title": "Qualify smoke-rigid contact",
+  "status": "open",
+  "dependencies": [
+    "F5-23"
+  ],
+  "locks": [
+    "quality-f5-54"
+  ],
+  "requires": [
+    "Any development host and one physical production driver advertising the exact capability tuple"
+  ],
+  "scope": "Publish and bind vendor-neutral qualification for exactly SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/SMOKE_GRID; SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/SMOKE_PARTICLE. The single physical behavior is: Particle and grid smoke remain separated from rigid geometry with reciprocal normal response at the declared contact distance.",
+  "acceptance": [
+    "Publish one immutable analytic profile for the listed tuple or representation variants, with canonical public-API inputs, SI units, bounded tolerances and an oracle independent of driver-private state.",
+    "Add exact bounded capacity, replacement, removal and rollback lifecycle checks; a rejected mutation preserves the last usable state and recovery is deterministic.",
+    "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

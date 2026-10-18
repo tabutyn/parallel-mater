@@ -59,6 +59,12 @@ struct Description {
     PmDeviceSize total_memory{};
 };
 
+struct MemoryBudgetSnapshot {
+    PmDeviceSize available{};
+    PmDeviceSize total{};
+    PmMemoryBudgetConfidence confidence{PM_MEMORY_BUDGET_CONFIDENCE_UNKNOWN};
+};
+
 class Services {
   public:
     virtual ~Services() = default;
@@ -121,8 +127,8 @@ class Services {
         units = 1U;
         return PM_SUCCESS;
     }
-    [[nodiscard]] virtual PmResult memory_budget(PmDeviceSize &available,
-                                                 PmDeviceSize &total) noexcept = 0;
+    [[nodiscard]] virtual PmResult memory_budget(
+        MemoryBudgetSnapshot &snapshot) noexcept = 0;
 };
 
 [[nodiscard]] inline ExecutionQueue execution_queue(

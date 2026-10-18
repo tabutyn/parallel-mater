@@ -28,13 +28,29 @@
   ],
   "evidence": [],
   "lease": {
-    "token": "55561f40-1320-4b1f-bde4-fdd5f8a97484",
+    "token": "8b7b89ff-d442-4e1d-9675-da8d33fddc2f",
     "owner": "codex-linux-gallery",
     "machine": "thomas-laptop",
     "branch": "work/F5-15/thomas-laptop",
-    "claimed_at": "2026-10-18T15:28:52Z",
-    "heartbeat_at": "2026-10-18T15:28:52Z",
-    "expires_at": "2026-10-19T15:28:52Z"
+    "claimed_at": "2026-10-18T23:43:01Z",
+    "heartbeat_at": "2026-10-18T23:43:01Z",
+    "expires_at": "2026-10-19T23:43:01Z"
   },
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "55561f40-1320-4b1f-bde4-fdd5f8a97484",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F5-15/thomas-laptop",
+        "claimed_at": "2026-10-18T15:28:52Z",
+        "heartbeat_at": "2026-10-18T15:28:52Z",
+        "expires_at": "2026-10-19T15:28:52Z"
+      },
+      "outcome": "released",
+      "at": "2026-10-18T17:05:03Z",
+      "reason": "Physical Pixel unavailable; Android qualification runner retained in draft PR #241 on work/F5-15/thomas-laptop",
+      "evidence": []
+    }
+  ]
 }

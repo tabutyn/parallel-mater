@@ -120,6 +120,26 @@ def rigid_result(profile: dict) -> dict:
         evidence(profile, "execution", "case:rigid-direct"),
         evidence(profile, "reference_regression", "case:rigid-direct"),
         evidence(profile, "lifecycle_invariants", "case:rigid-direct"),
+        evidence(profile, "analytic_invariants",
+                 "quality:rigid-brick-penetration-v1"),
+    ]
+    return result
+
+
+def rigid_attachment_result(profile: dict) -> dict:
+    result = valid_equal_fluid_result(profile)
+    result["advertised_capabilities"] = [
+        capability("RIGID_BODY", "RIGID_BODY", "SAME_DOMAIN", "ATTACHMENT",
+                   "BIDIRECTIONAL", "ENDPOINT_NATIVE", "not-applicable")
+    ]
+    result["evidence"] = [
+        evidence(profile, "compilation", "registry:interaction-capabilities"),
+        evidence(profile, "execution", "case:compound-weld-lifecycle"),
+        evidence(profile, "reference_regression",
+                 "case:compound-weld-lifecycle"),
+        evidence(profile, "lifecycle_invariants",
+                 "case:compound-weld-lifecycle"),
+        evidence(profile, "analytic_invariants", "quality:rigid-attachment-v1"),
     ]
     return result
 
@@ -222,13 +242,19 @@ class QualificationTests(unittest.TestCase):
         self.assertEqual(report["evidence_summary"]["timing"]["passed"], 1)
         self.assertEqual(report["qualified_count"], 0)
 
-    def test_unversioned_physical_gap_is_explicit(self):
-        report = self.assert_rejected(
-            rigid_result(self.profile), "qualification contract is missing")
-        capability_report = report["capabilities"][0]
-        self.assertEqual(capability_report["rule_id"], "rigid-contact")
-        self.assertEqual(capability_report["scopes"]["analytic_invariants"]["status"],
-                         "missing_contract")
+    def test_rigid_capabilities_have_independent_complete_obligations(self):
+        for result, rule_id in (
+                (rigid_result(self.profile), "rigid-contact"),
+                (rigid_attachment_result(self.profile), "rigid-attachment")):
+            with self.subTest(rule_id=rule_id):
+                report = self.evaluate(result)
+                self.assertTrue(report["passed"], report)
+                capability_report = report["capabilities"][0]
+                self.assertEqual(capability_report["rule_id"], rule_id)
+                for scope in ("execution", "reference_regression",
+                              "lifecycle_invariants", "analytic_invariants"):
+                    self.assertEqual(
+                        capability_report["scopes"][scope]["status"], "passed")
 
     def test_stale_contract_source_and_artifact_metadata_fail(self):
         result = valid_equal_fluid_result(self.profile)

@@ -1079,9 +1079,12 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
-    constexpr std::array<std::pair<std::string_view, std::string_view>, 5U>
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 8U>
         pinned_inputs{{
             {"quality profile", "conformance/v1/quality/core-conservation-v1.json"},
+            {"quality profile", "conformance/v1/quality/rigid-attachment-v1.json"},
+            {"quality profile", "conformance/v1/quality/rigid-brick-penetration-v1.json"},
+            {"quality profile", "conformance/v1/quality/rigid-kinematic-sweep-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json"},
             {"qualification profile",
              "conformance/v1/qualification/capability-obligations-v1.json"},
@@ -1158,6 +1161,7 @@ void copy_particle_state(const std::vector<State> &states,
     case PM_INTERACTION_MODE_VISCOSITY: return "VISCOSITY";
     case PM_INTERACTION_MODE_THERMAL: return "THERMAL";
     case PM_INTERACTION_MODE_PHASE: return "PHASE";
+    case PM_INTERACTION_MODE_INTERFACE: return "INTERFACE";
     }
     throw std::runtime_error("driver returned an unknown interaction mode");
 }
@@ -1232,7 +1236,8 @@ void copy_particle_state(const std::vector<State> &states,
 }
 
 void write_file(const std::filesystem::path &path, const std::string &contents) {
-    std::filesystem::create_directories(path.parent_path());
+    if (!path.parent_path().empty())
+        std::filesystem::create_directories(path.parent_path());
     std::ofstream output(path, std::ios::binary | std::ios::trunc);
     output.write(contents.data(), static_cast<std::streamsize>(contents.size()));
     if (!output) throw std::runtime_error("cannot write " + path.string());
@@ -1243,8 +1248,10 @@ struct Arguments {
     bool check{};
     bool provenance{};
     bool capabilities{};
+    bool lifecycle{};
     bool every_frame{};
     std::string case_id{};
+    std::string quality_id{};
     std::filesystem::path output{};
     std::filesystem::path root{PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT};
 };
@@ -1257,9 +1264,12 @@ struct Arguments {
         else if (argument == "--check-inputs") result.check = true;
         else if (argument == "--provenance") result.provenance = true;
         else if (argument == "--capabilities") result.capabilities = true;
+        else if (argument == "--lifecycle") result.lifecycle = true;
         else if (argument == "--every-frame") result.every_frame = true;
         else if (argument == "--case" && index + 1 < argc)
             result.case_id = argv[++index];
+        else if (argument == "--quality" && index + 1 < argc)
+            result.quality_id = argv[++index];
         else if (argument == "--root" && index + 1 < argc)
             result.root = argv[++index];
         else if (argument == "--output" && index + 1 < argc)
@@ -1270,12 +1280,19 @@ struct Arguments {
         static_cast<unsigned>(result.check) +
         static_cast<unsigned>(result.provenance) +
         static_cast<unsigned>(result.capabilities) +
-        static_cast<unsigned>(!result.case_id.empty());
+        static_cast<unsigned>(result.lifecycle) +
+        static_cast<unsigned>(!result.case_id.empty()) +
+        static_cast<unsigned>(!result.quality_id.empty());
     if (modes != 1U)
         throw std::runtime_error("choose exactly one of --list, --check-inputs, "
-                                 "--provenance, --capabilities, or --case");
+                                 "--provenance, --capabilities, --lifecycle, "
+                                 "--case, or --quality");
+    if (result.lifecycle && result.output.empty())
+        throw std::runtime_error("--lifecycle requires --output");
     if (!result.case_id.empty() && result.output.empty())
         throw std::runtime_error("--case requires --output");
+    if (!result.quality_id.empty() && result.output.empty())
+        throw std::runtime_error("--quality requires --output");
     if (result.every_frame &&
         (result.case_id.empty() || result.case_id == "all"))
         throw std::runtime_error("--every-frame requires one named --case");
@@ -1346,6 +1363,58 @@ int conformance_command_main(int argc, char **argv) {
         }
         if (arguments.capabilities) {
             std::cout << conformance_advertised_capabilities(root);
+            return 0;
+        }
+        if (arguments.lifecycle) {
+            ExecutionStatus status{};
+            write_file(arguments.output,
+                       conformance_adverse_lifecycle(root, &status));
+            return status == ExecutionStatus::failed ? 2
+                : status == ExecutionStatus::unsupported ? 77 : 0;
+        }
+        if (!arguments.quality_id.empty()) {
+            const bool brick = arguments.quality_id ==
+                "rigid-brick-penetration-v1";
+            const bool attachment = arguments.quality_id ==
+                "rigid-attachment-v1";
+            const bool rope_self_contact = arguments.quality_id ==
+                "rope-self-contact-v1";
+            if (!brick && !attachment && !rope_self_contact)
+                throw std::runtime_error(
+                    "unknown conformance quality profile: " +
+                    arguments.quality_id);
+            std::string result;
+            try {
+                if (brick) {
+                    result = conformance_rigid_brick_quality(root);
+                } else if (attachment) {
+                    result = conformance_rigid_attachment_quality(root);
+                } else {
+                    result = conformance_rope_self_contact_quality(root);
+                }
+            } catch (const std::exception &error) {
+                Json failure = Json::object();
+                failure["schema"] =
+                    "parallel-mater-conformance-quality-result/v1";
+                failure["profile_id"] = arguments.quality_id;
+                const auto profile = root / "conformance/v1/quality" /
+                    (arguments.quality_id + ".json");
+                if (std::filesystem::is_regular_file(profile))
+                    failure["profile_sha256"] = contract_sha256(profile);
+                failure["execution_status"] = "failed";
+                failure["reason"] = error.what();
+                result = failure.serialize();
+                write_file(arguments.output /
+                               (arguments.quality_id + ".json"),
+                           result);
+                std::cerr << "FAILED " << arguments.quality_id << ": "
+                          << error.what() << '\n';
+                return 2;
+            }
+            write_file(arguments.output / (arguments.quality_id + ".json"),
+                       result);
+            std::cout << "Quality execution completed: "
+                      << arguments.quality_id << '\n';
             return 0;
         }
         std::vector<const CaseDefinition *> definitions;

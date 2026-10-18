@@ -199,10 +199,18 @@ void ScheduleContext::dispatch(const compute::Arguments &arguments, dim3 groups)
 compute::SubmissionPtr ScheduleContext::submit() {
     std::erase_if(pending_, [](const auto &completion) { return completion->ready(); });
     if (!command_) command_ = device_->commands();
-    auto completion = command_->submit();
-    command_.reset();
-    pending_.push_back(completion);
-    return completion;
+    // Allocate the scheduler's tracking slot before GPU acceptance too. A
+    // post-submit vector growth failure must never lose work from wait().
+    pending_.emplace_back();
+    try {
+        auto completion = command_->submit();
+        pending_.back() = completion;
+        command_.reset();
+        return completion;
+    } catch (...) {
+        pending_.pop_back();
+        throw;
+    }
 }
 void ScheduleContext::wait() {
     std::lock_guard lock(mutex);

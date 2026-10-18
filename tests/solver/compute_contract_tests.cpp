@@ -32,8 +32,13 @@ private:
     std::size_t size_;
     std::uint64_t address_;
 };
-class RecordingCommandList final : public compute::CommandList {
+class RecordingCommandList final : public compute::CommandEncoder {
 public:
+    compute::QueueIdentity queue_identity() const noexcept override {
+        return {compute::NativeApi::mock, 1, 1};
+    }
+    void wait(std::span<const compute::SubmissionPtr>) override {}
+    void barrier(std::span<const compute::ResourceDependency>) override {}
     void dispatch(const compute::Arguments &arguments, compute::Extent) override {
         arguments.validate();
         observed = arguments.bindings();
@@ -41,7 +46,8 @@ public:
     void copy(const compute::BufferPtr &, std::size_t, const compute::BufferPtr &,
               std::size_t, std::size_t) override {}
     void fill(const compute::BufferPtr &, std::size_t, std::size_t, std::uint8_t) override {}
-    void upload(const compute::BufferPtr &, std::size_t, std::span<const std::byte>) override {}
+    compute::BufferPtr upload(const compute::BufferPtr &, std::size_t,
+                             std::span<const std::byte>) override { return {}; }
     compute::SubmissionPtr submit() override { return {}; }
     std::vector<compute::ResourceBinding> observed;
 };

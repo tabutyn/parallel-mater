@@ -6,25 +6,32 @@ if(NOT PARALLEL_MATER_BUILD_CONFORMANCE AND
 endif()
 
 add_library(parallel-mater-conformance-runner STATIC
-    conformance/v1/src/command_runner.cpp)
+    conformance/v1/src/command_runner.cpp
+    conformance/v1/src/rigid_quality.cpp
+    conformance/v1/src/rope_quality.cpp
+    conformance/v1/src/lifecycle_fixtures.cpp
+    conformance/v1/src/capacity_recovery_fixture.cpp
+    conformance/v1/src/interaction_graph_lifecycle_fixture.cpp
+    conformance/v1/src/resource_lifecycle_fixture.cpp)
 target_link_libraries(parallel-mater-conformance-runner PRIVATE
     parallel-mater-conformance-registry ParallelMater::scene)
 target_include_directories(parallel-mater-conformance-runner PUBLIC
     conformance/v1/include)
 target_compile_features(parallel-mater-conformance-runner PUBLIC cxx_std_20)
 target_compile_definitions(parallel-mater-conformance-runner PRIVATE
+    PM_CONFORMANCE_EMBEDDED=1
     PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
     PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
 if(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION OR
    PARALLEL_MATER_ENABLE_ANDROID_QUALIFICATION)
     target_sources(parallel-mater-conformance-runner PRIVATE
         conformance/v1/src/device_fixtures.cpp
-        tests/api/fluid_pair_quality_tests.cpp
-        tests/api/interaction_graph_lifecycle_tests.cpp
-        tests/api/resource_lifecycle_tests.cpp)
+        tests/api/fluid_pair_quality_tests.cpp)
     target_compile_definitions(parallel-mater-conformance-runner PRIVATE
-        PM_CONFORMANCE_EMBEDDED=1
-        PM_QUALITY_PROFILE_SHA256="a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326")
+        PM_QUALITY_PROFILE_SHA256="a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"
+        PM_FLUID_SELF_CONTACT_PROFILE_SHA256="21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2"
+        PM_FLUID_SELF_PRESSURE_PROFILE_SHA256="4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b"
+        PM_FLUID_SELF_VISCOSITY_PROFILE_SHA256="9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c")
     if(PARALLEL_MATER_ENABLE_ANDROID_QUALIFICATION)
         target_compile_definitions(parallel-mater-conformance-runner PRIVATE
             PM_CONFORMANCE_DRIVER_NAME="slang-vulkan")
@@ -32,8 +39,6 @@ if(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION OR
         target_compile_definitions(parallel-mater-conformance-runner PRIVATE
             PM_CONFORMANCE_DRIVER_NAME="slang-metal")
     endif()
-    target_include_directories(parallel-mater-conformance-runner PRIVATE
-        tests/api examples/support/include)
 endif()
 parallel_mater_enable_warnings(parallel-mater-conformance-runner)
 
@@ -48,8 +53,13 @@ parallel_mater_enable_warnings(parallel-mater-conformance)
 if(BUILD_TESTING)
     add_test(NAME parallel-mater-conformance-command-inputs
         COMMAND parallel-mater-conformance --check-inputs)
+    add_test(NAME parallel-mater-conformance-lifecycle-output-required
+        COMMAND parallel-mater-conformance --lifecycle)
     set_tests_properties(parallel-mater-conformance-command-inputs PROPERTIES
         LABELS "api;conformance")
+    set_tests_properties(
+        parallel-mater-conformance-lifecycle-output-required PROPERTIES
+        LABELS "api;conformance;lifecycle" WILL_FAIL TRUE)
 endif()
 install(TARGETS parallel-mater-conformance
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

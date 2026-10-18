@@ -1,0 +1,122 @@
+{
+  "schema": "parallel-mater-roadmap-fluid-self-contact-evidence/v1",
+  "task": "F5-25",
+  "source": {
+    "commit": "990531ccc09c82013909842750d6d83e1c5701bd",
+    "dirty": false,
+    "branch": "work/F5-25/windows-gtx1080",
+    "lease_token": "90d2b59c-2fbf-452c-a477-b87ca5365ade"
+  },
+  "canonical_hash_normalization": "UTF-8 bytes with CRLF normalized to LF, matching conformance input verification",
+  "host": {
+    "hostname": "Thomas-Desktop",
+    "operating_system": "Microsoft Windows 10.0.26200.9711",
+    "architecture": "x86_64",
+    "cpu": "AMD Ryzen 5 5500",
+    "gpu": "NVIDIA GeForce GTX 1080",
+    "pci_device_id": "0x1B8010DE",
+    "nvidia_driver": "582.66"
+  },
+  "toolchain": {
+    "host_compiler": "MSVC 19.44.35228.0",
+    "cuda": "12.9.86",
+    "cmake": "4.4.2",
+    "slang": "2026.18",
+    "python": "3.12.9"
+  },
+  "capability": {
+    "first_family": "FLUID",
+    "second_family": "FLUID",
+    "scope": "SELF",
+    "mode": "CONTACT",
+    "direction": "BIDIRECTIONAL",
+    "material_profile": "ENDPOINT_NATIVE"
+  },
+  "profile": {
+    "id": "fluid-self-contact-v1",
+    "path": "conformance/v1/quality/fluid-self-contact-v1.json",
+    "sha256": "21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2",
+    "oracle": "independent pair distance, stable-ID ordering, momentum and symmetry checks over public fluid output",
+    "units": {
+      "distance": "m",
+      "velocity": "m/s",
+      "impulse": "kg*m/s"
+    },
+    "retained_thresholds": {
+      "minimum_exclusion_fraction": 0.95,
+      "minimum_exchange_impulse_kg_m_s": 0.0001,
+      "linear_momentum_absolute_kg_m_s": 1e-07,
+      "linear_momentum_relative": 5e-05,
+      "maximum_center_of_mass_drift_m": 1e-06,
+      "maximum_transverse_position_m": 1e-06,
+      "maximum_transverse_velocity_m_s": 1e-06,
+      "minimum_outward_relative_speed_m_s": 0.0001
+    }
+  },
+  "qualification_obligations": {
+    "path": "conformance/v1/qualification/capability-obligations-v1.json",
+    "sha256": "977d9266024a9970d88da6a3b4f0d87700a1c3cecc6115201d45642ec446d73e",
+    "exact_rule": "fluid-self-contact",
+    "execution": "case:fluid-lifecycle",
+    "reference_regression": "case:fluid-lifecycle",
+    "lifecycle_invariants": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery",
+    "analytic_invariants": "quality:fluid-self-contact-v1",
+    "pressure_and_viscosity_rule": "fluid-self-pressure-viscosity",
+    "pressure_and_viscosity_analytic_status": "missing_contract"
+  },
+  "runner": {
+    "path": "build-f5-25-windows/tests/api/Release/parallel-mater-fluid-pair-quality-tests.exe",
+    "sha256": "ae77637c019728da36bf342319209ce4b2361f6888c67ba0e496d330bf8ec087"
+  },
+  "drivers": {
+    "slang-cuda": {
+      "binary_sha256": "f4632ec862cd16ec991593b05c1b5f249c36d1dbd3c6f297783c4225cdd04ca5",
+      "result": "docs/roadmap/evidence/F5-25-990531c-cuda-result.json",
+      "result_sha256": "06f03cd28d6cb8c4cecafbac26db064bc283eca15630aa6a11dc0a128f8ce5f4",
+      "report": "docs/roadmap/evidence/F5-25-990531c-cuda-report.json",
+      "report_sha256": "d6fe9ff8ffb974e610b3678caf2c3b8aac1ae580937557d2420bcc98e1569f0c",
+      "passed": true
+    },
+    "slang-d3d12": {
+      "binary_sha256": "97c51e7dc8878e5d856a85cb4345fdf0022cf5f1004e0fad35ec0f4cb9ccdaa9",
+      "result": "docs/roadmap/evidence/F5-25-990531c-d3d12-result.json",
+      "result_sha256": "9fdadd0deda1ab79f3a7abbc0b199e0322b431eec6d8fd18883cea2a0ccc5d28",
+      "report": "docs/roadmap/evidence/F5-25-990531c-d3d12-report.json",
+      "report_sha256": "c67b1178a3535d89f40421209726ffd55ca6695b86d8ce5b687bab91232501ca",
+      "passed": true
+    }
+  },
+  "observations": {
+    "both_drivers": {
+      "final_separation_m": 0.21250000596046448,
+      "minimum_separation_m": 0.19,
+      "exchange_impulse_kg_m_s": 18.0,
+      "net_internal_impulse_kg_m_s": 0.0,
+      "center_of_mass_drift_m": 0.0,
+      "maximum_transverse_position_m": 0.0,
+      "maximum_transverse_velocity_m_s": 0.0,
+      "outward_relative_speed_m_s": 2.25
+    }
+  },
+  "validation": {
+    "physical_quality": "CUDA and D3D12 each passed 1/1 public-API samples on the physical GTX 1080",
+    "existing_equal_fluid": "CUDA passed 18/18 existing separate-system samples; D3D12 retained unsupported",
+    "python_conformance_tests": "51/51 focused quality, qualification and evidence-index tests passed",
+    "evidence_index": "rebuilt with all 10 historical reports and 0/251 qualified records; failures retained",
+    "input_manifest": "passed"
+  },
+  "reproduction": [
+    "Configure a clean Windows source build with BUILD_TESTING=ON, PARALLEL_MATER_BUILD_CUDA=ON and PARALLEL_MATER_BUILD_D3D12=ON.",
+    "Build parallel-mater-fluid-pair-quality-tests in Release configuration.",
+    "Set PM_DRIVER_FILES to the selected slang-cuda or slang-d3d12 build manifest.",
+    "parallel-mater-fluid-pair-quality-tests --self-contact --driver-name <driver> --output <result>.",
+    "python conformance/v1/quality.py --profile conformance/v1/quality/fluid-self-contact-v1.json --actual <result> --report <report>.",
+    "python conformance/v1/evidence_index.py --check."
+  ],
+  "limitations": [
+    "This evidence qualifies only the analytic self-contact behavior of the captured CUDA and D3D12 binaries on the named physical device.",
+    "The unchanged capacity/replacement lifecycle contract remains independently required and is not substituted by this two-particle analytic fixture.",
+    "Historical and unrecaptured drivers remain unqualified; this capture does not promote them or erase their failures.",
+    "Fluid self pressure and viscosity retain their separate missing analytic contracts under F5-26 and F5-27."
+  ]
+}

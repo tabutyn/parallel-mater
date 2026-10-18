@@ -1,7 +1,7 @@
 {
   "id": "F4-02",
   "title": "Retain resources through completion",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F4-01"
   ],
@@ -17,15 +17,31 @@
     "Dropping a token or client handle cannot free resources used by pending work.",
     "Submit failure/device teardown drain or cancel safely with mock lifetime tests."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "e74e6bc9-e94d-447c-a85a-0d323438b8e0",
-    "owner": "codex-macos-runtime",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F4-02/thomass-macbook-air",
-    "claimed_at": "2026-10-18T13:56:38Z",
-    "heartbeat_at": "2026-10-18T13:56:38Z",
-    "expires_at": "2026-10-19T13:56:38Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: ctest --test-dir build-gallery-portable-verify -R ^parallel-mater-compute-\\(contract\\|lifetime\\)-tests$ --repeat until-fail:20 --output-on-failure; 40 executions; macOS 26.5.2 Apple Clang 21; docs/roadmap/evidence/F4-02-resource-lifetimes.md",
+    "PASS: AddressSanitizer, UndefinedBehaviorSanitizer and ThreadSanitizer lifetime tests, including nonblocking concurrent polling and failed-submit/device-teardown paths; exact commands in docs/roadmap/evidence/F4-02-resource-lifetimes.md",
+    "PASS: ctest --test-dir build-macos-metal-preview -R ^parallel-mater-slang-metal-\\(kernel\\|command\\|async\\)-tests$ --output-on-failure; 3/3 Apple M4 GPU tests; docs/roadmap/evidence/F4-02-resource-lifetimes.md"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "e74e6bc9-e94d-447c-a85a-0d323438b8e0",
+        "owner": "codex-macos-runtime",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F4-02/thomass-macbook-air",
+        "claimed_at": "2026-10-18T13:56:38Z",
+        "heartbeat_at": "2026-10-18T13:56:38Z",
+        "expires_at": "2026-10-19T13:56:38Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T14:17:58Z",
+      "reason": "Shared command and completion ownership retains all referenced resources independently of client tokens; Metal uses the common lifetime layer and device teardown drains accepted work.",
+      "evidence": [
+        "PASS: ctest --test-dir build-gallery-portable-verify -R ^parallel-mater-compute-\\(contract\\|lifetime\\)-tests$ --repeat until-fail:20 --output-on-failure; 40 executions; macOS 26.5.2 Apple Clang 21; docs/roadmap/evidence/F4-02-resource-lifetimes.md",
+        "PASS: AddressSanitizer, UndefinedBehaviorSanitizer and ThreadSanitizer lifetime tests, including nonblocking concurrent polling and failed-submit/device-teardown paths; exact commands in docs/roadmap/evidence/F4-02-resource-lifetimes.md",
+        "PASS: ctest --test-dir build-macos-metal-preview -R ^parallel-mater-slang-metal-\\(kernel\\|command\\|async\\)-tests$ --output-on-failure; 3/3 Apple M4 GPU tests; docs/roadmap/evidence/F4-02-resource-lifetimes.md"
+      ]
+    }
+  ]
 }

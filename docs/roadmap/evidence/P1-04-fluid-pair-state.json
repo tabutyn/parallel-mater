@@ -1,0 +1,81 @@
+{
+  "schema": "parallel-mater-roadmap-fluid-pair-state/v1",
+  "task": "P1-04",
+  "result": "passed",
+  "source": {
+    "revision": "46bd63df91d49dd03789c4d16ab95e7deecc394b",
+    "branch": "work/P1-04/thomas-laptop",
+    "lease_token": "3a7105eb-4e3f-4a4f-b26b-417ae462f879",
+    "machine": "thomas-laptop"
+  },
+  "public_contract": {
+    "extensible_descriptor": "PmCouplingStateInfo",
+    "fluid_pair_material_state": "PmFluidPairMaterialState",
+    "recorded_entrypoint": "pmCmdSetCouplings2",
+    "pipeline_extension": "PmPhysicsPipelineCouplingStateInfo",
+    "endpoint_material_rule": "firstMaterialIndex and secondMaterialIndex equal the first and second fluid slots and select those endpoints' PmLiquidMaterialState records",
+    "profiles": [
+      {
+        "profile": "PM_INTERACTION_MATERIAL_MISCIBLE",
+        "mode_bundle": [
+          "PM_INTERACTION_MODE_CONTACT",
+          "PM_INTERACTION_MODE_PRESSURE",
+          "PM_INTERACTION_MODE_VISCOSITY"
+        ]
+      },
+      {
+        "profile": "PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE",
+        "mode_bundle": [
+          "PM_INTERACTION_MODE_CONTACT",
+          "PM_INTERACTION_MODE_PRESSURE"
+        ],
+        "remaining_contract": "P1-56 adds the separately queryable interface mode and capillary state before this profile can be advertised"
+      }
+    ],
+    "compatibility": [
+      "PmCouplingState and pmCmdSetCouplings remain available for API 0.2 callers",
+      "Equal-material fluid pairs may use the extensible path",
+      "Pipeline creation deep-copies normalized descriptors and rejects a simultaneous legacy coupling array",
+      "Unknown, nested, mismatched and missing required extension state returns PM_ERROR_INVALID_ARGUMENT"
+    ]
+  },
+  "advertisement": {
+    "new_capabilities": 0,
+    "miscible": "PM_ERROR_FEATURE_NOT_PRESENT",
+    "immiscible_interface": "PM_ERROR_FEATURE_NOT_PRESENT",
+    "evidence_index": "0/251 capabilities from 10 historical reports after the registry contract revision; historical evidence was retained without rewriting"
+  },
+  "validation": [
+    {
+      "command": "cmake --preset sdk-ci && cmake --build --preset sdk-ci && ctest --preset sdk-ci --output-on-failure",
+      "result": "47/47 tests passed"
+    },
+    {
+      "command": "ctest --test-dir build-sdk-cpu -R parallel-mater-interaction-capability-tests",
+      "result": "passed; miscible and immiscible contact, pressure and viscosity identities remain unadvertised"
+    },
+    {
+      "command": "ctest --test-dir build-sdk-cpu -R parallel-mater-host-fluid-pair-graph-lifecycle-tests",
+      "result": "passed; extensible equal-material command and pipeline paths preserve lifecycle and deep-copy behavior"
+    },
+    {
+      "command": "ctest --test-dir build-desktop-switch -R parallel-mater-(cuda|vulkan)-graph-validation-tests",
+      "result": "CUDA and Vulkan passed; missing, unknown, nested, mismatched and structurally valid unsupported state left the active graph usable"
+    },
+    {
+      "command": "ctest --test-dir build-desktop-switch -R parallel-mater-cuda-fluid-pair-graph-lifecycle-tests",
+      "result": "passed on NVIDIA GeForce RTX 3050 Ti Laptop GPU"
+    },
+    {
+      "command": "python3 tools/reference/build.py --check-generated && python3 conformance/v1/evidence_index.py --check && python3 conformance/v1/update_manifest.py --check && python3 tools/roadmap.py check",
+      "result": "generated API/spec, evidence index, conformance manifest and 211 roadmap cards passed"
+    }
+  ],
+  "boundaries": [
+    "No miscible or immiscible physics operator was added",
+    "No driver advertises a new capability",
+    "Capillary interface state remains P1-56",
+    "Caloric and interface thermal state remain P1-15 and P1-57",
+    "Backend-neutral scheduling, physical qualification and advertisement remain later leased leaves"
+  ]
+}

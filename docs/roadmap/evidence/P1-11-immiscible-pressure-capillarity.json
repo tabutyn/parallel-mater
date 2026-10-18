@@ -1,0 +1,81 @@
+{
+  "schema": "parallel-mater-roadmap-immiscible-pressure-capillarity/v1",
+  "task": "P1-11",
+  "result": "passed",
+  "source": {
+    "revision": "2437084acfe4b5f4158cb1e5997e77f2009a8023",
+    "branch": "work/P1-11/thomas-laptop",
+    "lease_token": "85bb24fe-a817-4729-a744-a626cc2d9a2c",
+    "machine": "thomas-laptop"
+  },
+  "operator": {
+    "entry_point": "fluid_apply_immiscible_pair_pressure_capillarity",
+    "pressure": "Each endpoint uses the P1-05 heterogeneous density sample, its own equation-of-state stiffness and the symmetric pressure force established by P1-06.",
+    "contact": "The P1-06 symmetric radius-sum contact and normal damping law remains active for the immiscible profile and prevents represented phases from crossing.",
+    "pressure_jump": "The signed resolved jump is sigma times the mean of the two endpoint mean-curvature samples. Because P1-10 reconstructs the same oriented interface from both sides, a sphere produces sigma*2/R and endpoint reversal negates the jump.",
+    "capillary_force": "Each valid cross-interface pair applies the jump magnitude through endpoint rest volumes, the shared pressure gradient and normal alignment. The resulting common force is central, equal and opposite after particle-mass division.",
+    "finite_policy": "Capillary traction is disabled for zero surface tension, planar zero curvature, coincident particles, non-interface samples, degenerate reconstruction and non-finite pressure jumps.",
+    "advertisement": "No interaction capability record was added or enabled."
+  },
+  "physical_fixtures": {
+    "conservation": "Unequal densities, volumes, radii, stiffness and damping with simultaneous contact, pressure and capillary traction preserve mass-weighted linear force and world-origin torque within 5e-5 of exchanged-force activity.",
+    "endpoint_reversal": "Swapping endpoint populations and materials while negating oriented normals and curvatures maps every acceleration back to the same physical particle.",
+    "non_mixing_contact": "A pair inside the radius sum accelerates apart with density pressure and capillarity disabled.",
+    "normal_pressure": "The same pair outside the radius sum transfers repulsive normal pressure when either endpoint density exceeds rest density.",
+    "planar_and_zero_limits": "Zero curvature adds exactly zero capillary contribution while pressure remains active; zero surface tension and degenerate interface flags also remove capillary traction.",
+    "young_laplace": {
+      "principal_radii": "Spherical fixtures use R1=R2=R and oriented endpoint curvature 2/R.",
+      "radius_sweep": [
+        0.5,
+        1.0,
+        2.0
+      ],
+      "surface_tension_sweep": [
+        0.02,
+        0.07
+      ],
+      "expected_pressure_jumps": [
+        0.08,
+        0.28,
+        0.04,
+        0.14,
+        0.02,
+        0.07
+      ],
+      "measurement": "The pressure jump recovered from the discrete common force divided by V_first*V_second*gradient matches sigma*2/R within 2e-5 relative error for all six cases."
+    }
+  },
+  "validation": [
+    {
+      "command": "ctest --test-dir build-foundations -R 'parallel-mater-(fluid-immiscible-pressure-capillarity|fluid-interface-reconstruction|fluid-pair-neighbor-index|slang-architecture)' --output-on-failure",
+      "result": "4/4 passed; shared Slang CPU execution covered non-mixing contact, normal pressure, planar and degenerate limits, unequal-material force/torque balance, endpoint reversal and Young-Laplace radius/tension sweeps."
+    },
+    {
+      "command": "cmake --build build-f5-16-linux --target parallel-mater-slang-kernel-mirrors -j2",
+      "result": "217/217 build steps passed; the new kernel compiled to Metal, CUDA, PTX and Vulkan SPIR-V."
+    },
+    {
+      "command": "cmake --build build-desktop-switch --target parallel-mater-driver-slang-cuda parallel-mater-driver-slang-vulkan -j2",
+      "result": "CUDA and Vulkan loadable drivers rebuilt with the new shared-Slang entry and reflected bindings."
+    },
+    {
+      "command": "python3 -m unittest tests.solver.test_dxil_bindings",
+      "result": "4/4 DirectCompute DXIL binding generator tests passed."
+    },
+    {
+      "command": "cmake --build build-sdk-ci -j2 && ctest --test-dir build-sdk-ci --output-on-failure",
+      "result": "47/47 SDK, ABI, generator, resource-plan and architecture tests passed."
+    },
+    {
+      "command": "ctest --test-dir build-foundations -R parallel-mater-interaction-capability-tests --output-on-failure",
+      "result": "1/1 passed; the incomplete immiscible graph remains unadvertised."
+    }
+  ],
+  "limitations": [
+    "The operator is not scheduled by the public interaction graph; ordering, lifecycle recovery and transactional execution remain P1-13.",
+    "Interfacial viscosity remains P1-12.",
+    "No production driver may advertise the immiscible-interface bundle before P1-14 physical qualification.",
+    "Surface-tension gradients, surfactants, wetting, triple-line behavior, phase transfer and breakup guarantees remain outside the initial immiscible profile.",
+    "CUDA and Vulkan fluid-pair runtime tests were not claimed here; cross-backend evidence is compile, reflection and link coverage, while physical execution used the serial shared-Slang CPU target."
+  ]
+}

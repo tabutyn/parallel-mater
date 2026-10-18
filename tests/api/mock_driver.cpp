@@ -91,7 +91,7 @@ bool valid_key(const PmInteractionCapabilityKey &key) {
         key.scope < PM_INTERACTION_SCOPE_SELF ||
         key.scope > PM_INTERACTION_SCOPE_DISTINCT_FAMILY ||
         key.mode < PM_INTERACTION_MODE_CONTACT ||
-        key.mode > PM_INTERACTION_MODE_PHASE ||
+        key.mode > PM_INTERACTION_MODE_INTERFACE ||
         key.direction < PM_INTERACTION_DIRECTION_BIDIRECTIONAL ||
         key.direction > PM_INTERACTION_DIRECTION_EXTERNAL_TO_SECOND ||
         key.materialProfile < PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE ||
@@ -224,6 +224,45 @@ PmResult mock_get_semaphore_value(PmDevice, PmSemaphore semaphore,
 PmResult mock_wait_semaphore(PmDevice, PmSemaphore, std::uint64_t,
                              std::uint64_t) {
     return mock_completion_result();
+}
+PmResult mock_get_memory_budget(PmDevice, PmMemoryBudget *budget) {
+    if (budget == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+    *budget = {};
+    const char *mode = std::getenv("PM_TEST_MOCK_MEMORY_BUDGET");
+    if (mode != nullptr && std::strcmp(mode, "failure") == 0)
+        return PM_ERROR_DEVICE_LOST;
+
+    PmDeviceSize total = 0U;
+    PmDeviceSize available = 0U;
+    PmMemoryBudgetConfidence confidence =
+        PM_MEMORY_BUDGET_CONFIDENCE_UNKNOWN;
+    if (mode != nullptr && std::strcmp(mode, "estimated") == 0) {
+        total = 1024U;
+        available = 768U;
+        confidence = PM_MEMORY_BUDGET_CONFIDENCE_IMPLEMENTATION_ESTIMATE;
+    } else if (mode != nullptr && std::strcmp(mode, "overflow") == 0) {
+        total = 1U;
+        available = 2U;
+        confidence = PM_MEMORY_BUDGET_CONFIDENCE_IMPLEMENTATION_ESTIMATE;
+    }
+    if (confidence == PM_MEMORY_BUDGET_CONFIDENCE_UNKNOWN) {
+        total = 0U;
+        available = 0U;
+    } else if (available > total) {
+        return PM_ERROR_INVALID_STATE;
+    }
+
+    budget->heapCount = 1U;
+    budget->budget[0] = total;
+    budget->usage[0] = total - available;
+    budget->confidence[0] = confidence;
+    if (confidence != PM_MEMORY_BUDGET_CONFIDENCE_UNKNOWN) {
+        budget->applicationAllocationBytes = 64U;
+        budget->libraryDeviceBytes = 32U;
+        budget->libraryHostBytes = 16U;
+        budget->borrowedBufferBytes = 128U;
+    }
+    return PM_SUCCESS;
 }
 PmResult mock_import_native_device(PmInstance, const PmNativeDeviceImportInfo *,
                                    PmDevice *out) {
@@ -426,6 +465,7 @@ PM_MOCK_EXPORT PFN_pmVoidFunction PMAPI_CALL pm_driverGetDeviceProcAddr(
     MOCK(pmDestroySemaphore, mock_destroy_semaphore);
     MOCK(pmGetSemaphoreCounterValue, mock_get_semaphore_value);
     MOCK(pmWaitSemaphore, mock_wait_semaphore);
+    MOCK(pmGetDeviceMemoryBudget, mock_get_memory_budget);
     MOCK(pmAllocateMemory, mock_allocate);
     MOCK(pmFreeMemory, mock_free);
     MOCK(pmCreateBuffer, mock_create_buffer);

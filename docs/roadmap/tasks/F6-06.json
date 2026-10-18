@@ -1,7 +1,7 @@
 {
   "id": "F6-06",
   "title": "Reconcile legacy launcher and branding patches",
-  "status": "open",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "legacy-patch-review"
@@ -14,7 +14,29 @@
     "Every preserved file has a recorded port/superseded/preserve disposition.",
     "Do not restore retired World/compiler shims; verify the active launcher identity."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: docs/roadmap/evidence/F6-06-legacy-launcher-reconciliation.json accounts for 10/10 preserved files with matching snapshot hashes and explicit ported/superseded dispositions.",
+    "PASS: focused CTest 3/3; installed command selected Vulkan on NVIDIA GeForce RTX 3050 Ti Laptop GPU and rendered a 6220817-byte frame; one canonical desktop entry remains."
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "2bb95bd8-8a2f-448e-8fbf-479ff1c4bda2",
+        "owner": "codex-linux-cleanup",
+        "machine": "thomas-laptop",
+        "branch": "work/F6-06/thomas-laptop",
+        "claimed_at": "2026-10-18T17:06:16Z",
+        "heartbeat_at": "2026-10-18T17:06:16Z",
+        "expires_at": "2026-10-19T17:06:16Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T17:14:48Z",
+      "reason": "Reconciled the preserved Linux launcher patch; migrated marker-owned launcher identity and retained the public command API/shared-Slang architecture",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/F6-06-legacy-launcher-reconciliation.json accounts for 10/10 preserved files with matching snapshot hashes and explicit ported/superseded dispositions.",
+        "PASS: focused CTest 3/3; installed command selected Vulkan on NVIDIA GeForce RTX 3050 Ti Laptop GPU and rendered a 6220817-byte frame; one canonical desktop entry remains."
+      ]
+    }
+  ]
 }

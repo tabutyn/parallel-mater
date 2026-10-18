@@ -237,16 +237,17 @@ class CudaServices final : public Services {
         return from_cuda(result);
     }
 
-    [[nodiscard]] PmResult memory_budget(PmDeviceSize &available,
-                                         PmDeviceSize &total) noexcept override {
+    [[nodiscard]] PmResult memory_budget(
+        MemoryBudgetSnapshot &snapshot) noexcept override {
         const PmResult current = activate();
         if (current != PM_SUCCESS) return current;
         std::size_t free_bytes = 0U;
         std::size_t total_bytes = 0U;
         const cudaError_t error = cudaMemGetInfo(&free_bytes, &total_bytes);
         if (error != cudaSuccess) return from_cuda(error);
-        available = free_bytes;
-        total = total_bytes;
+        snapshot.available = free_bytes;
+        snapshot.total = total_bytes;
+        snapshot.confidence = PM_MEMORY_BUDGET_CONFIDENCE_DRIVER_REPORTED;
         return PM_SUCCESS;
     }
 

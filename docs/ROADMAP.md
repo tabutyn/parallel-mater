@@ -91,6 +91,9 @@ F1 has the highest priority. Independent ready tasks in F2–F7 may proceed in
 parallel when dependencies and locks permit. Platform expansion, engine plugins
 and shader performance work remain deferred until the seven `*-99` foundation
 review gates close and a planning PR activates the selected follow-up task.
+Platform-neutral planning may start when its own API, interaction, resource and
+package prerequisites have closed; each resulting implementation and
+qualification leaf still requires separate activation and lease review.
 
 The lease check must be required with up-to-date branches for race-safe
 automated merges. Each merge candidate permits one lease operation. Until configured, serialize claim/renew/reclaim/
@@ -161,14 +164,14 @@ merging. The workflow does not change GitHub branch-protection settings.
 |---|---|---|---|---|
 | [F4-00](roadmap/tasks/F4-00.json) | Portable schedule and neutral reflection baseline | done | — | — |
 | [F4-01](roadmap/tasks/F4-01.json) | Describe resources and access ranges | done | — | — |
-| [F4-02](roadmap/tasks/F4-02.json) | Retain resources through completion | leased | F4-01 | codex-macos-runtime / Thomass-MacBook-Air / 2026-10-19T13:56:38Z |
-| [F4-03](roadmap/tasks/F4-03.json) | Schedule common resource dependencies | waiting on dependencies | F4-01, F4-02 | — |
-| [F4-04](roadmap/tasks/F4-04.json) | Remove generated-source ABI parsing | ready | F4-01 | — |
-| [F4-05](roadmap/tasks/F4-05.json) | Specify memory-budget confidence | waiting on lock | — | — |
-| [F4-06](roadmap/tasks/F4-06.json) | Apply conservative workload admission | waiting on dependencies | F4-05 | — |
-| [F4-07](roadmap/tasks/F4-07.json) | Specify borrowed device and queue handoff | waiting on dependencies | F4-02, F3-04 | — |
-| [F4-08](roadmap/tasks/F4-08.json) | Qualify engine handoff with a mock adapter | waiting on dependencies | F4-03, F4-07 | — |
-| [F4-99](roadmap/tasks/F4-99.json) | Review F4 exit evidence | waiting on dependencies | F4-01, F4-02, F4-03, F4-04, F4-05, F4-06, F4-07, F4-08 | — |
+| [F4-02](roadmap/tasks/F4-02.json) | Retain resources through completion | done | F4-01 | — |
+| [F4-03](roadmap/tasks/F4-03.json) | Schedule common resource dependencies | done | F4-01, F4-02 | — |
+| [F4-04](roadmap/tasks/F4-04.json) | Remove generated-source ABI parsing | done | F4-01 | — |
+| [F4-05](roadmap/tasks/F4-05.json) | Specify memory-budget confidence | done | — | — |
+| [F4-06](roadmap/tasks/F4-06.json) | Apply conservative workload admission | done | F4-05 | — |
+| [F4-07](roadmap/tasks/F4-07.json) | Specify borrowed device and queue handoff | done | F4-02, F3-04 | — |
+| [F4-08](roadmap/tasks/F4-08.json) | Qualify engine handoff with a mock adapter | done | F4-03, F4-07 | — |
+| [F4-99](roadmap/tasks/F4-99.json) | Review F4 exit evidence | done | F4-01, F4-02, F4-03, F4-04, F4-05, F4-06, F4-07, F4-08 | — |
 
 ### F5. Independent conformance and quality
 
@@ -189,11 +192,48 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-12](roadmap/tasks/F5-12.json) | Publish current macOS Metal driver evidence | done | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-10, F5-11 | — |
 | [F5-13](roadmap/tasks/F5-13.json) | Expose capability qualification on iPadOS | done | F5-01, F5-08 | — |
 | [F5-14](roadmap/tasks/F5-14.json) | Publish current iPadOS Metal driver evidence | done | F5-02, F5-03, F5-05, F5-06, F5-10, F5-11, F5-13 | — |
-| [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | leased | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | codex-linux-gallery / thomas-laptop / 2026-10-19T15:28:52Z |
-| [F5-16](roadmap/tasks/F5-16.json) | Publish current Linux driver evidence | waiting on lock | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
+| [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | leased | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | codex-linux-gallery / thomas-laptop / 2026-10-19T23:43:01Z |
+| [F5-16](roadmap/tasks/F5-16.json) | Publish current Linux driver evidence | done | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
 | [F5-17](roadmap/tasks/F5-17.json) | Adjudicate rigid-direct reference drift | done | F5-04, F5-10 | — |
 | [F5-18](roadmap/tasks/F5-18.json) | Stabilize rigid-direct planar symmetry | done | F5-17 | — |
-| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17, F5-18 | — |
+| [F5-19](roadmap/tasks/F5-19.json) | Emit capacity recovery lifecycle checkpoints | done | F5-03, F5-16 | — |
+| [F5-20](roadmap/tasks/F5-20.json) | Emit graph rollback lifecycle checkpoints | done | F5-03, F5-19 | — |
+| [F5-21](roadmap/tasks/F5-21.json) | Make Gallery validation discovery hermetic | done | F6-11 | — |
+| [F5-22](roadmap/tasks/F5-22.json) | Version rigid contact quality profiles | done | F5-18, F6-11 | — |
+| [F5-23](roadmap/tasks/F5-23.json) | Split advertised qualification gaps | done | F5-19, F5-20, F5-22 | — |
+| [F5-24](roadmap/tasks/F5-24.json) | Expose lifecycle qualification through the installed CLI | done | F5-19, F5-20 | — |
+| [F5-25](roadmap/tasks/F5-25.json) | Qualify fluid self contact | done | F5-23 | — |
+| [F5-26](roadmap/tasks/F5-26.json) | Qualify fluid self pressure | done | F5-23 | — |
+| [F5-27](roadmap/tasks/F5-27.json) | Qualify fluid self viscosity | done | F5-23 | — |
+| [F5-28](roadmap/tasks/F5-28.json) | Qualify sampled rope self contact | done | F5-23 | — |
+| [F5-29](roadmap/tasks/F5-29.json) | Qualify smoke self pressure | leased | F5-23 | codex-windows-qualification / windows-gtx1080 / 2026-10-19T23:21:16Z |
+| [F5-30](roadmap/tasks/F5-30.json) | Qualify smoke self viscosity | ready | F5-23 | — |
+| [F5-31](roadmap/tasks/F5-31.json) | Qualify fluid-cloth contact | ready | F5-23 | — |
+| [F5-32](roadmap/tasks/F5-32.json) | Qualify cloth fluid containment | ready | F5-23 | — |
+| [F5-33](roadmap/tasks/F5-33.json) | Qualify fluid-soft contact | ready | F5-23 | — |
+| [F5-34](roadmap/tasks/F5-34.json) | Qualify fluid-rope contact | ready | F5-23 | — |
+| [F5-35](roadmap/tasks/F5-35.json) | Qualify smoke-to-fluid drag | ready | F5-23 | — |
+| [F5-36](roadmap/tasks/F5-36.json) | Qualify externally heated fluid | ready | F5-23 | — |
+| [F5-37](roadmap/tasks/F5-37.json) | Qualify fluid-to-smoke phase transfer | ready | F5-23 | — |
+| [F5-38](roadmap/tasks/F5-38.json) | Qualify fluid-rigid contact | ready | F5-23 | — |
+| [F5-39](roadmap/tasks/F5-39.json) | Qualify rigid fluid containment | ready | F5-23 | — |
+| [F5-40](roadmap/tasks/F5-40.json) | Qualify cloth-soft contact | ready | F5-23 | — |
+| [F5-41](roadmap/tasks/F5-41.json) | Qualify cloth-rope attachment | ready | F5-23 | — |
+| [F5-42](roadmap/tasks/F5-42.json) | Qualify cloth-to-smoke contact | ready | F5-23 | — |
+| [F5-43](roadmap/tasks/F5-43.json) | Qualify smoke-to-cloth drag | ready | F5-23 | — |
+| [F5-44](roadmap/tasks/F5-44.json) | Qualify cloth-rigid contact | ready | F5-23 | — |
+| [F5-45](roadmap/tasks/F5-45.json) | Qualify soft-rope contact | ready | F5-23 | — |
+| [F5-46](roadmap/tasks/F5-46.json) | Qualify soft-rope attachment | ready | F5-23 | — |
+| [F5-47](roadmap/tasks/F5-47.json) | Qualify soft-to-smoke contact | ready | F5-23 | — |
+| [F5-48](roadmap/tasks/F5-48.json) | Qualify smoke-to-soft drag | ready | F5-23 | — |
+| [F5-49](roadmap/tasks/F5-49.json) | Qualify soft-rigid contact | ready | F5-23 | — |
+| [F5-50](roadmap/tasks/F5-50.json) | Qualify rope-to-smoke contact | ready | F5-23 | — |
+| [F5-51](roadmap/tasks/F5-51.json) | Qualify smoke-to-rope drag | ready | F5-23 | — |
+| [F5-52](roadmap/tasks/F5-52.json) | Qualify rope-rigid contact | ready | F5-23 | — |
+| [F5-53](roadmap/tasks/F5-53.json) | Qualify rope-rigid attachment | ready | F5-23 | — |
+| [F5-54](roadmap/tasks/F5-54.json) | Qualify smoke-rigid contact | ready | F5-23 | — |
+| [F5-55](roadmap/tasks/F5-55.json) | Qualify smoke-rigid drag | ready | F5-23 | — |
+| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17, F5-18, F5-19, F5-20, F5-21, F5-22, F5-23, F5-24, F5-25, F5-26, F5-27, F5-28, F5-29, F5-30, F5-31, F5-32, F5-33, F5-34, F5-35, F5-36, F5-37, F5-38, F5-39, F5-40, F5-41, F5-42, F5-43, F5-44, F5-45, F5-46, F5-47, F5-48, F5-49, F5-50, F5-51, F5-52, F5-53, F5-54, F5-55 | — |
 
 ### F6. SDK releases and repository ownership
 
@@ -205,10 +245,16 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F6-03](roadmap/tasks/F6-03.json) | Separate optional package exports | done | F5-07 | — |
 | [F6-04](roadmap/tasks/F6-04.json) | Record reproducible release inputs | done | — | — |
 | [F6-05](roadmap/tasks/F6-05.json) | Regenerate and verify release reference artifacts | done | F3-06 | — |
-| [F6-06](roadmap/tasks/F6-06.json) | Reconcile legacy launcher and branding patches | ready | — | — |
-| [F6-07](roadmap/tasks/F6-07.json) | Reconcile legacy hinge and contact patches | ready | — | — |
-| [F6-08](roadmap/tasks/F6-08.json) | Retire reconciled old worktrees | waiting on dependencies | F6-06, F6-07 | — |
-| [F6-99](roadmap/tasks/F6-99.json) | Review F6 exit evidence | waiting on dependencies | F6-01, F6-02, F6-03, F6-04, F6-05, F6-06, F6-07, F6-08 | — |
+| [F6-06](roadmap/tasks/F6-06.json) | Reconcile legacy launcher and branding patches | done | — | — |
+| [F6-07](roadmap/tasks/F6-07.json) | Reconcile legacy hinge and contact patches | done | — | — |
+| [F6-08](roadmap/tasks/F6-08.json) | Retire reconciled old worktrees | done | F6-06, F6-07, F6-09, F6-10, F6-11 | — |
+| [F6-09](roadmap/tasks/F6-09.json) | Qualify the retained hinge fixture candidate | done | F6-07 | — |
+| [F6-10](roadmap/tasks/F6-10.json) | Productize physics capture and substep replay | done | F6-07 | — |
+| [F6-11](roadmap/tasks/F6-11.json) | Adjudicate the retained rigid contact patch | done | F6-09, F6-10 | — |
+| [F6-12](roadmap/tasks/F6-12.json) | Keep installed corpus manifest synchronized | done | F5-24, F6-04 | — |
+| [F6-13](roadmap/tasks/F6-13.json) | Package the conformance runner source closure | done | F6-12 | — |
+| [F6-14](roadmap/tasks/F6-14.json) | Remove workstation paths from installed evidence | done | F6-04, F6-12 | — |
+| [F6-99](roadmap/tasks/F6-99.json) | Review F6 exit evidence | done | F6-01, F6-02, F6-03, F6-04, F6-05, F6-06, F6-07, F6-08, F6-09, F6-10, F6-11, F6-12, F6-13, F6-14 | — |
 
 ### F7. Shared Gallery application
 
@@ -245,21 +291,21 @@ merging. The workflow does not change GitHub branch-protection settings.
 |---|---|---|---|---|
 | [P1-01](roadmap/tasks/P1-01.json) | Plan remaining driver/domain qualification | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
 | [P1-02](roadmap/tasks/P1-02.json) | Plan remaining same-family operators | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
-| [P1-03](roadmap/tasks/P1-03.json) | Plan multi-material fluid operators | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
-| [P1-04](roadmap/tasks/P1-04.json) | Expose multi-material fluid pair state | deferred | P1-03 | — |
-| [P1-05](roadmap/tasks/P1-05.json) | Build heterogeneous fluid pair sampling | deferred | P1-04 | — |
-| [P1-06](roadmap/tasks/P1-06.json) | Exchange miscible pressure and contact | deferred | P1-05 | — |
-| [P1-07](roadmap/tasks/P1-07.json) | Exchange miscible viscosity | deferred | P1-06 | — |
-| [P1-08](roadmap/tasks/P1-08.json) | Schedule miscible fluid pair graphs | deferred | P1-07 | — |
+| [P1-03](roadmap/tasks/P1-03.json) | Plan multi-material fluid operators | done | F1-99, F2-99, F3-99, F4-99, F6-99 | — |
+| [P1-04](roadmap/tasks/P1-04.json) | Expose multi-material fluid pair state | done | P1-03 | — |
+| [P1-05](roadmap/tasks/P1-05.json) | Build heterogeneous fluid pair sampling | done | P1-04 | — |
+| [P1-06](roadmap/tasks/P1-06.json) | Exchange miscible pressure and contact | done | P1-05 | — |
+| [P1-07](roadmap/tasks/P1-07.json) | Exchange miscible viscosity | done | P1-06 | — |
+| [P1-08](roadmap/tasks/P1-08.json) | Schedule miscible fluid pair graphs | done | P1-07 | — |
 | [P1-09](roadmap/tasks/P1-09.json) | Qualify and advertise miscible fluids | deferred | P1-08, F5-02, F5-03 | — |
-| [P1-10](roadmap/tasks/P1-10.json) | Reconstruct immiscible fluid interfaces | deferred | P1-05 | — |
-| [P1-11](roadmap/tasks/P1-11.json) | Apply immiscible pressure and capillarity | deferred | P1-10 | — |
-| [P1-12](roadmap/tasks/P1-12.json) | Apply immiscible interfacial viscosity | deferred | P1-11 | — |
+| [P1-10](roadmap/tasks/P1-10.json) | Reconstruct immiscible fluid interfaces | done | P1-05, P1-56 | — |
+| [P1-11](roadmap/tasks/P1-11.json) | Apply immiscible pressure and capillarity | done | P1-10 | — |
+| [P1-12](roadmap/tasks/P1-12.json) | Apply immiscible interfacial viscosity | leased | P1-11 | codex-immiscible-viscosity / thomas-laptop / 2026-10-19T23:40:06Z |
 | [P1-13](roadmap/tasks/P1-13.json) | Schedule immiscible fluid pair graphs | deferred | P1-12 | — |
 | [P1-14](roadmap/tasks/P1-14.json) | Qualify and advertise immiscible fluids | deferred | P1-13, F5-02, F5-03 | — |
 | [P1-15](roadmap/tasks/P1-15.json) | Add fluid caloric material state | deferred | P1-04 | — |
 | [P1-16](roadmap/tasks/P1-16.json) | Exchange conservative fluid heat | deferred | P1-05, P1-15 | — |
-| [P1-17](roadmap/tasks/P1-17.json) | Schedule fluid thermal pair graphs | deferred | P1-08, P1-13, P1-16 | — |
+| [P1-17](roadmap/tasks/P1-17.json) | Schedule fluid thermal pair graphs | deferred | P1-08, P1-13, P1-16, P1-57 | — |
 | [P1-18](roadmap/tasks/P1-18.json) | Qualify and advertise fluid heat exchange | deferred | P1-17, F5-02, F5-03 | — |
 | [P1-19](roadmap/tasks/P1-19.json) | Expose cloth contact scopes and controls | deferred | P1-02 | — |
 | [P1-20](roadmap/tasks/P1-20.json) | Build bounded cloth contact generation | deferred | P1-19 | — |
@@ -298,6 +344,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-53](roadmap/tasks/P1-53.json) | Solve mixed smoke thermal exchange | deferred | P1-40 | — |
 | [P1-54](roadmap/tasks/P1-54.json) | Schedule mixed smoke pair modes | deferred | P1-52, P1-53 | — |
 | [P1-55](roadmap/tasks/P1-55.json) | Qualify mixed smoke pair modes | deferred | P1-54, F5-02, F5-03 | — |
+| [P1-56](roadmap/tasks/P1-56.json) | Expose immiscible interface state | done | P1-04 | — |
+| [P1-57](roadmap/tasks/P1-57.json) | Expose interface thermal conductance | deferred | P1-15, P1-56 | — |
 
 ### P2. Deferred engine integration
 

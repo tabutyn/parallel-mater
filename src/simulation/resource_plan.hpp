@@ -268,8 +268,20 @@ struct FluidPairNeighborIndexPlan {
     std::uint32_t *identities[2]{};
     std::uint32_t *total_neighbors[2]{};
     std::uint32_t *cross_neighbors[2]{};
+    float *density_samples[2]{};
+    // Immiscible reconstruction is pair-private and consumed by later pair
+    // operators in the same step. Labels use -1 for the first endpoint and
+    // +1 for the second; zero therefore remains an inactive-slot sentinel.
+    float *phase_labels[2]{};
+    Vec3 *interface_normals[2]{};
+    float *interface_curvatures[2]{};
+    std::uint32_t *interface_flags[2]{};
     std::uint32_t *neighbor_overflow[2]{};
     std::uint32_t *maximum_neighbor_count[2]{};
+    std::uint32_t *interface_sample_count[2]{};
+    std::uint32_t *under_resolved_interface_count[2]{};
+    std::uint32_t *degenerate_interface_count[2]{};
+    std::uint32_t *curvature_clamp_count[2]{};
     std::uint8_t *sort_workspace{};
     std::uint32_t total_capacity{};
     std::size_t sort_workspace_size{};
@@ -303,10 +315,29 @@ Status visit_fluid_pair_neighbor_index_storage(
     PM_STORAGE(total_neighbors[1], second_capacity, persistent);
     PM_STORAGE(cross_neighbors[0], first_capacity, persistent);
     PM_STORAGE(cross_neighbors[1], second_capacity, persistent);
+    // Density is an intermediate consumed by pair operators in the same step.
+    PM_STORAGE(density_samples[0], first_capacity, scratch);
+    PM_STORAGE(density_samples[1], second_capacity, scratch);
+    PM_STORAGE(phase_labels[0], first_capacity, scratch);
+    PM_STORAGE(phase_labels[1], second_capacity, scratch);
+    PM_STORAGE(interface_normals[0], first_capacity, scratch);
+    PM_STORAGE(interface_normals[1], second_capacity, scratch);
+    PM_STORAGE(interface_curvatures[0], first_capacity, scratch);
+    PM_STORAGE(interface_curvatures[1], second_capacity, scratch);
+    PM_STORAGE(interface_flags[0], first_capacity, scratch);
+    PM_STORAGE(interface_flags[1], second_capacity, scratch);
     PM_STORAGE(neighbor_overflow[0], 1U, persistent);
     PM_STORAGE(neighbor_overflow[1], 1U, persistent);
     PM_STORAGE(maximum_neighbor_count[0], 1U, persistent);
     PM_STORAGE(maximum_neighbor_count[1], 1U, persistent);
+    PM_STORAGE(interface_sample_count[0], 1U, persistent);
+    PM_STORAGE(interface_sample_count[1], 1U, persistent);
+    PM_STORAGE(under_resolved_interface_count[0], 1U, persistent);
+    PM_STORAGE(under_resolved_interface_count[1], 1U, persistent);
+    PM_STORAGE(degenerate_interface_count[0], 1U, persistent);
+    PM_STORAGE(degenerate_interface_count[1], 1U, persistent);
+    PM_STORAGE(curvature_clamp_count[0], 1U, persistent);
+    PM_STORAGE(curvature_clamp_count[1], 1U, persistent);
     state.sort_workspace_size = radix_sort_scratch_bytes(state.total_capacity);
     PM_STORAGE(sort_workspace, state.sort_workspace_size, scratch);
 #undef PM_STORAGE

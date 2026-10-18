@@ -140,9 +140,10 @@ This path does not reuse Gallery scene results. It executes the canonical
 independent penetration oracle, the equal-fluid quality fixture, and both
 adverse lifecycle fixtures. Metal currently does not advertise separate-system
 equal-fluid coupling, so that fixture records `unsupported`. The adverse
-lifecycle operations execute, but remain `missing-checkpoints` until they emit
-the exact F5-03 state fingerprints and write ordinals; a console pass is not
-promoted to lifecycle qualification.
+lifecycle artifact now contains both cases and all exact checkpoint
+fingerprints. Collection records it as captured pending host evaluation; only a
+passing `conformance/v1/lifecycle.py` report promotes it to lifecycle
+qualification.
 
 The app writes 35 raw artifacts under
 `Documents/physics-qualification/` and updates a nonce-bound manifest only

@@ -79,6 +79,10 @@ typedef struct PmQueryPool_T* PmQueryPool;
     <type name="PmNativeDeviceImportInfo" value="12" />
     <type name="PmQueryPoolCreateInfo" value="13" />
     <type name="PmValidationDiagnosticsCreateInfo" value="14" />
+    <type name="PmCouplingStateInfo" value="15" />
+    <type name="PmFluidPairMaterialState" value="16" />
+    <type name="PmPhysicsPipelineCouplingStateInfo" value="17" />
+    <type name="PmFluidInterfaceState" value="18" />
   </structure-types>
   <interaction-capabilities>
     <!-- This is the reference-driver inventory.  Public records are emitted
@@ -787,7 +791,8 @@ typedef enum PmInteractionMode {
     PM_INTERACTION_MODE_PRESSURE = 4,
     PM_INTERACTION_MODE_VISCOSITY = 5,
     PM_INTERACTION_MODE_THERMAL = 6,
-    PM_INTERACTION_MODE_PHASE = 7
+    PM_INTERACTION_MODE_PHASE = 7,
+    PM_INTERACTION_MODE_INTERFACE = 8
 } PmInteractionMode;
 typedef PmFlags PmInteractionModeFlags;
 enum {
@@ -798,7 +803,8 @@ enum {
     PM_INTERACTION_MODE_PRESSURE_BIT = 0x10,
     PM_INTERACTION_MODE_VISCOSITY_BIT = 0x20,
     PM_INTERACTION_MODE_THERMAL_BIT = 0x40,
-    PM_INTERACTION_MODE_PHASE_BIT = 0x80
+    PM_INTERACTION_MODE_PHASE_BIT = 0x80,
+    PM_INTERACTION_MODE_INTERFACE_BIT = 0x100
 };
 typedef enum PmInteractionDirection {
     PM_INTERACTION_DIRECTION_BIDIRECTIONAL = 0,
@@ -884,10 +890,34 @@ typedef struct PmCouplingState {
     PmInteractionModeFlags modeFlags;
     PmInteractionMaterialProfile materialProfile;
     PmCouplingParameters parameters;
-} PmCouplingState;</types>
+} PmCouplingState;
+typedef struct PmCouplingStateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    PmCouplingType type;
+    uint32_t first;
+    uint32_t second;
+    PmInteractionModeFlags modeFlags;
+    PmInteractionMaterialProfile materialProfile;
+    PmCouplingParameters parameters;
+} PmCouplingStateInfo;
+typedef struct PmFluidPairMaterialState {
+    PmStructureType sType;
+    const void* pNext;
+    uint32_t firstMaterialIndex;
+    uint32_t secondMaterialIndex;
+} PmFluidPairMaterialState;
+typedef struct PmFluidInterfaceState {
+    PmStructureType sType;
+    const void* pNext;
+    float surfaceTension;
+} PmFluidInterfaceState;</types>
       <commands>PmResult pmCmdSetCouplings(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t couplingCount,
-    const PmCouplingState *pCouplings);</commands>
+    const PmCouplingState *pCouplings);
+PmResult pmCmdSetCouplings2(PmCommandBuffer commandBuffer,
+    PmSimulation simulation, uint32_t couplingCount,
+    const PmCouplingStateInfo *pCouplings);</commands>
     </card>
     <card key="domain_materials" section="pipelines" extension="false" emit-header="true">
       <types>typedef struct PmClothMaterialState {
@@ -949,7 +979,13 @@ typedef struct PmSmokeMaterialState {
       <commands />
     </card>
     <card key="pipeline_create" section="pipelines" extension="false" emit-header="true">
-      <types>typedef struct PmPhysicsPipelineCreateInfo {
+      <types>typedef struct PmPhysicsPipelineCouplingStateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    uint32_t couplingCount;
+    const PmCouplingStateInfo* pCouplings;
+} PmPhysicsPipelineCouplingStateInfo;
+typedef struct PmPhysicsPipelineCreateInfo {
     PmStructureType sType;
     const void* pNext;
     const PmRigidSolverState* pRigidState;
@@ -1652,10 +1688,17 @@ PmResult pmGetSimulationStatus(
     PmFlags flags);</commands>
     </card>
     <card key="memory_budget" section="queries" extension="false" emit-header="true">
-      <types>typedef struct PmMemoryBudget {
+      <types>typedef enum PmMemoryBudgetConfidence {
+    PM_MEMORY_BUDGET_CONFIDENCE_UNKNOWN = 0,
+    PM_MEMORY_BUDGET_CONFIDENCE_IMPLEMENTATION_ESTIMATE = 1,
+    PM_MEMORY_BUDGET_CONFIDENCE_DRIVER_REPORTED = 2,
+    PM_MEMORY_BUDGET_CONFIDENCE_OS_REPORTED = 3
+} PmMemoryBudgetConfidence;
+typedef struct PmMemoryBudget {
     uint32_t heapCount;
     PmDeviceSize budget[16];
     PmDeviceSize usage[16];
+    PmMemoryBudgetConfidence confidence[16];
     PmDeviceSize applicationAllocationBytes;
     PmDeviceSize libraryDeviceBytes;
     PmDeviceSize libraryHostBytes;

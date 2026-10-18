@@ -1,7 +1,7 @@
 {
   "id": "F4-04",
   "title": "Remove generated-source ABI parsing",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F4-01"
   ],
@@ -16,7 +16,31 @@
     "Layout/offset/signature tests cover every migrated adapter.",
     "Physics source remains shared Slang; unsupported reflection shapes fail generation."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: pinned Slang 2026.18 generated and validated all 141 DXIL entries, 52 D3D12 domain functions, and 14 available Vulkan adapters (84 entries); docs/roadmap/evidence/F4-04-reflected-bindings.md.",
+    "PASS: Visual Studio 2022 Release built parallel-mater-driver-slang-d3d12 and parallel-mater-d3d12-command-api-tests on Windows GTX 1080 driver 582.66; focused CTest suite passed 4/4.",
+    "PASS: negative ABI/generator tests reject duplicate or mismatched entries, wrapper signature count changes, overlapping layouts, padded-stride inconsistencies, and unsupported uniform shapes."
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "ee39bcfe-5cb6-4c6f-9572-7811ecc8153c",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F4-04/windows-gtx1080",
+        "claimed_at": "2026-10-18T15:11:11Z",
+        "heartbeat_at": "2026-10-18T15:11:11Z",
+        "expires_at": "2026-10-19T15:11:11Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T16:13:23Z",
+      "reason": "Unified DXIL layout generation on the common Slang reflection model and removed literal D3D12 offsets plus the legacy CMake JSON parser.",
+      "evidence": [
+        "PASS: pinned Slang 2026.18 generated and validated all 141 DXIL entries, 52 D3D12 domain functions, and 14 available Vulkan adapters (84 entries); docs/roadmap/evidence/F4-04-reflected-bindings.md.",
+        "PASS: Visual Studio 2022 Release built parallel-mater-driver-slang-d3d12 and parallel-mater-d3d12-command-api-tests on Windows GTX 1080 driver 582.66; focused CTest suite passed 4/4.",
+        "PASS: negative ABI/generator tests reject duplicate or mismatched entries, wrapper signature count changes, overlapping layouts, padded-stride inconsistencies, and unsupported uniform shapes."
+      ]
+    }
+  ]
 }

@@ -1,0 +1,126 @@
+{
+  "schema": "parallel-mater-roadmap-legacy-patch-reconciliation/v1",
+  "task": "F6-06",
+  "scope": "Preserved Linux launcher and branding patch reconciled with the current common Gallery and loadable-driver architecture",
+  "source": {
+    "snapshot_date": "2026-10-16",
+    "snapshot_head": "3143a5323b9cd07df14a57d673e766389685f110",
+    "snapshot_branch": "codex/linux-desktop-install-20261009",
+    "snapshot_metadata_sha256": "2419e8c8337a71765e910e3d7c5eaeaedbb2f912260b47f8686d466ac5ba88b7",
+    "snapshot_patch_sha256": "b14ec7096a2fb4a3d46f969147f1de020052c7beb5ba4cfc5f0283917d27263b",
+    "snapshot_archive_sha256": "38ff115fcf8f012ae9335371189559b1e29f02cd62231581daf2f949e5ffb623",
+    "base_main_commit": "08b0a2908f97bb9cc0bf0bafab444b07c303aafa",
+    "branch": "work/F6-06/thomas-laptop",
+    "lease_token": "2bb95bd8-8a2f-448e-8fbf-479ff1c4bda2",
+    "claim_pr": "https://github.com/tabutyn/parallel-mater/pull/246",
+    "reconciled_at": "2026-10-18T17:13:28Z"
+  },
+  "inventory": {
+    "preserved_files": 10,
+    "staged_patch_bytes": 0,
+    "dispositions": [
+      {
+        "path": "CMakeLists.txt",
+        "snapshot_sha256": "5c7b859eca527c041bea6e78e3b1ef95e2732f1f620067fd206c82a7b4bc599e",
+        "disposition": "ported",
+        "result": "The copied-gallery CMake target remains retired. The current prepared-build installer has an isolated CTest contract registered on Linux."
+      },
+      {
+        "path": "README.md",
+        "snapshot_sha256": "f40d062b50d7facf988efe90e24640226b7a91485c6cdca1e3bc1f2952b67902",
+        "disposition": "superseded",
+        "result": "Current README architecture and docs/GALLERY.md describe the common Gallery, loadable CUDA/Vulkan drivers, and prepared-build launcher; the obsolete OptiX-only copied package text was not restored."
+      },
+      {
+        "path": "cmake/DefineSlangCudaGlobals.cmake",
+        "snapshot_sha256": "c8bc0ada35cbf391ea4982d4698ee8da47313e0ff2684b6cba9fd430066b7ef2",
+        "disposition": "superseded",
+        "result": "The generated-CUDA global-definition shim is obsolete under the reflected shared-Slang driver build and was not restored."
+      },
+      {
+        "path": "cmake/DeployLinuxGallery.cmake",
+        "snapshot_sha256": "76e683fbb18976a55e35e5d836d5bcf918cdd3dc72ffee44e8895bc661856e37",
+        "disposition": "ported",
+        "result": "Its useful canonical command and owned-install migration behavior now lives in scripts/Install-DesktopGallery.sh; copied executables and rebuild-at-launch behavior remain retired."
+      },
+      {
+        "path": "docs/GALLERY.md",
+        "snapshot_sha256": "765481550c67f8dedaed5d7a8671fb153ae099a4cd609203faa6a249b88c85bc",
+        "disposition": "ported",
+        "result": "Linux documentation now records the single desktop identity, canonical command, marker-gated migration, and prepared-build behavior."
+      },
+      {
+        "path": "examples/assets/branding/README.md",
+        "snapshot_sha256": "4b81c70d6dca9cfff7e6bda2e09929b8a81bd9e96a7cb672e7a4b785ebe7dc28",
+        "disposition": "ported",
+        "result": "The current branding contract records the Linux logo source and its matching parallel-mater window class."
+      },
+      {
+        "path": "examples/gallery/main.cpp",
+        "snapshot_sha256": "9c7856a858b7011c63325e20e0f2e439ff9db256e245799e116fe02182f571ea",
+        "disposition": "ported",
+        "result": "Executable-relative resource lookup already moved to the common Gallery application; the useful Linux X11 class is restored at the platform window boundary in examples/support/opengl_window.cpp."
+      },
+      {
+        "path": "examples/support/parallel-mater.desktop.in",
+        "snapshot_sha256": "f035faac9e19a28a493edc8dec78c9399c4989a171c80024b3bb22ea47de24f5",
+        "disposition": "ported",
+        "result": "The current installer atomically generates the one managed desktop entry and now includes StartupWMClass=parallel-mater; the old template was not restored."
+      },
+      {
+        "path": "include/parallel_mater/solver/avbd.hpp",
+        "snapshot_sha256": "954bd5d4a8280a50877f7612ae0ab2428f6fbf6b257f1e46ea6670e5db05882f",
+        "disposition": "superseded",
+        "result": "The legacy generated-layout workaround belongs to the retired in-process solver interface; current reflected ABI tests own this contract."
+      },
+      {
+        "path": "src/world.cu",
+        "snapshot_sha256": "ccdda57566b1cf96905740d9a1df4b1fe2bcf6c4622a35d100661ed2acde005b",
+        "disposition": "superseded",
+        "result": "The World runtime and its direct generated-kernel launches are retired. Physics remains behind the public command API and loadable shared-Slang drivers."
+      }
+    ]
+  },
+  "active_launcher": {
+    "desktop_entries_found": 1,
+    "desktop_name": "Parallel Mater",
+    "desktop_marker": "X-ParallelMater-Launcher=prepared-build",
+    "desktop_window_class": "parallel-mater",
+    "command": "~/.local/bin/parallel-mater",
+    "command_target": "scripts/Run-DesktopGallery.sh in the active worktree",
+    "legacy_managed_install_present": false,
+    "unmanaged_entries_overwritten": false
+  },
+  "verification": [
+    {
+      "check": "cmake --build build-desktop-switch --target parallel-mater-gallery -j2",
+      "result": "passed; rebuilt the common Gallery and Vulkan driver after the window identity change"
+    },
+    {
+      "check": "ctest --test-dir build-desktop-switch --output-on-failure -R 'parallel-mater-(linux-gallery-launcher-tests|gallery-deployment-tests|slang-architecture)$'",
+      "result": "3/3 passed"
+    },
+    {
+      "check": "python3 -m unittest tests/gallery/linux_launcher_tests.py -v",
+      "result": "3/3 passed, covering clean install, owned legacy migration, idempotence, command execution, and unmanaged-entry refusal"
+    },
+    {
+      "check": "desktop-file-validate ~/.local/share/applications/parallel-mater.desktop",
+      "result": "passed"
+    },
+    {
+      "check": "~/.local/bin/parallel-mater --backend vulkan --constraint-point --frames 2 --headless /tmp/f6-06-launcher.ppm",
+      "result": "passed on NVIDIA GeForce RTX 3050 Ti Laptop GPU; Vulkan selected; output 6220817 bytes; sha256 2a02ee98055403a49244133d7918fce91c9235ec77e68e384ff2b4d12225d5d9"
+    },
+    {
+      "check": "Search user, /usr/local, and /usr application directories for Parallel Mater names or ownership markers",
+      "result": "exactly one entry: ~/.local/share/applications/parallel-mater.desktop"
+    }
+  ],
+  "architecture_guards": {
+    "retired_world_restored": false,
+    "compiler_shim_restored": false,
+    "native_physics_kernel_restored": false,
+    "direct_physics_launch_restored": false
+  }
+}

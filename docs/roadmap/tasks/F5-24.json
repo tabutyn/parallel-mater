@@ -1,0 +1,50 @@
+{
+  "id": "F5-24",
+  "title": "Expose lifecycle qualification through the installed CLI",
+  "status": "done",
+  "dependencies": [
+    "F5-19",
+    "F5-20"
+  ],
+  "locks": [
+    "conformance-lifecycle-reporting"
+  ],
+  "requires": [
+    "Any development host plus one production driver implementing both adverse lifecycle fixtures"
+  ],
+  "scope": "Make the adverse-capacity-three-family-v1 producer a first-class mode of the installed parallel-mater-conformance executable, using the same fixture and serialization path as embedded platform qualification.",
+  "acceptance": [
+    "Add an explicit lifecycle CLI mode that writes the complete profile result, reports malformed arguments clearly and preserves explicit unsupported or failed fixture outcomes.",
+    "Build the capacity, graph and resource lifecycle producers for desktop conformance without copying their checkpoint assembly or coupling the command to iOS-only quality fixtures.",
+    "Prove the build-tree and installed CLI outputs pass conformance/v1/lifecycle.py on every production driver available on the host, and document the installed invocation."
+  ],
+  "evidence": [
+    "PASS: clean ac18a59 build-tree and installed CUDA/Vulkan CLIs each passed 2 cases, 9 checkpoints and 0 failures with validation enabled; installed and build outputs were byte-identical.",
+    "PASS: installed SDK corpus evaluator reproduced both reports; standalone conformance project built against the installed SDK and its lifecycle argument test passed.",
+    "PASS: 75/75 conformance Python, 8/8 Gallery deployment and 25/25 roadmap tests passed; malformed lifecycle invocation returns 2 with an explicit missing-output diagnostic.",
+    "docs/roadmap/evidence/F5-24-installed-lifecycle-cli.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "c25d20da-22f8-41b6-95f2-0c2825b71fc7",
+        "owner": "codex-linux-evidence",
+        "machine": "thomas-laptop",
+        "branch": "work/F5-24/thomas-laptop",
+        "claimed_at": "2026-10-18T19:48:13Z",
+        "heartbeat_at": "2026-10-18T19:48:13Z",
+        "expires_at": "2026-10-19T19:48:13Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T20:00:02Z",
+      "reason": "Exposed the shared adverse lifecycle producer through the build-tree and installed conformance CLI with explicit completion status.",
+      "evidence": [
+        "PASS: clean ac18a59 build-tree and installed CUDA/Vulkan CLIs each passed 2 cases, 9 checkpoints and 0 failures with validation enabled; installed and build outputs were byte-identical.",
+        "PASS: installed SDK corpus evaluator reproduced both reports; standalone conformance project built against the installed SDK and its lifecycle argument test passed.",
+        "PASS: 75/75 conformance Python, 8/8 Gallery deployment and 25/25 roadmap tests passed; malformed lifecycle invocation returns 2 with an explicit missing-output diagnostic.",
+        "docs/roadmap/evidence/F5-24-installed-lifecycle-cli.json"
+      ]
+    }
+  ]
+}

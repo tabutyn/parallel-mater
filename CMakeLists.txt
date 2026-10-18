@@ -25,6 +25,10 @@ if(BUILD_TESTING)
     add_test(NAME parallel-mater-reflected-abi-tests
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/solver/test_slang_abi.py")
     set_tests_properties(parallel-mater-reflected-abi-tests PROPERTIES LABELS "slang;abi")
+    add_test(NAME parallel-mater-dxil-binding-generator-tests
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/solver/test_dxil_bindings.py")
+    set_tests_properties(parallel-mater-dxil-binding-generator-tests
+        PROPERTIES LABELS "slang;abi;d3d12")
     add_test(NAME parallel-mater-release-reproducibility-tests
         COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_CURRENT_SOURCE_DIR}/tests/release/test_release_reproducibility.py")
@@ -570,7 +574,8 @@ if(PARALLEL_MATER_BUILD_GALLERY)
                               PRIVATE parallel-mater-gallery-scene)
         target_compile_definitions(
             parallel-mater-rigid-constraint-command-tests PRIVATE
-            PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintHinge.glb")
+            PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintHinge.glb"
+            PARALLEL_MATER_HINGE_CAPTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/assets/hinge_over_top_v5.pmcapture")
         parallel_mater_enable_warnings(
             parallel-mater-rigid-constraint-command-tests)
 
@@ -579,7 +584,8 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     if(BUILD_TESTING AND WIN32 AND PARALLEL_MATER_BUILD_D3D12)
         foreach(test_target parallel-mater-command-gallery-tests
                 parallel-mater-rigid-constraint-command-tests)
-            add_dependencies(${test_target} parallel-mater-driver-slang-d3d12)
+            add_dependencies(${test_target} parallel-mater-driver-slang-d3d12
+                parallel-mater-layer-validation)
         endforeach()
         foreach(scene RigidBody ConstraintFixed ConstraintPoint ConstraintHinge
                 ConstraintPiston ConstraintGeneric ConstraintMotorSpring DumpTruck
@@ -590,26 +596,27 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             set_tests_properties(parallel-mater-d3d12-gallery-${scene} PROPERTIES
                 LABELS "api;gallery;d3d12;regression" SKIP_RETURN_CODE 77 TIMEOUT 1800
                 RUN_SERIAL TRUE
-                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json")
+                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
         endforeach()
         add_test(NAME parallel-mater-d3d12-rigid-constraints
             COMMAND parallel-mater-rigid-constraint-command-tests --backend d3d12)
         set_tests_properties(parallel-mater-d3d12-rigid-constraints PROPERTIES
             LABELS "api;gallery;d3d12;constraints" SKIP_RETURN_CODE 77 TIMEOUT 3600
             RUN_SERIAL TRUE
-            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json")
+            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
     endif()
 
     if(BUILD_TESTING AND PARALLEL_MATER_BUILD_CUDA)
         foreach(test_target parallel-mater-command-gallery-tests
                 parallel-mater-rigid-constraint-command-tests)
-            add_dependencies(${test_target} parallel-mater-driver-slang-cuda)
+            add_dependencies(${test_target} parallel-mater-driver-slang-cuda
+                parallel-mater-layer-validation)
         endforeach()
         add_test(NAME parallel-mater-command-gallery-tests
                  COMMAND parallel-mater-command-gallery-tests)
         set_tests_properties(parallel-mater-command-gallery-tests PROPERTIES
             LABELS "api;gallery;cuda" SKIP_RETURN_CODE 77 TIMEOUT 300
-            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json")
+            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
         add_test(NAME parallel-mater-rigid-constraint-command-tests
                  COMMAND parallel-mater-rigid-constraint-command-tests)
         set_tests_properties(
@@ -618,12 +625,14 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             SKIP_RETURN_CODE 77
             TIMEOUT 300
             ENVIRONMENT
-                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json")
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
 
         add_executable(parallel-mater-physics-debug-tests
                        tests/gallery/physics_debug_tests.cpp)
         target_link_libraries(parallel-mater-physics-debug-tests
                               PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-physics-debug-tests PRIVATE
+            PARALLEL_MATER_HINGE_CAPTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/assets/hinge_over_top_v5.pmcapture")
         parallel_mater_enable_warnings(parallel-mater-physics-debug-tests)
         add_test(NAME parallel-mater-physics-debug-tests
                  COMMAND parallel-mater-physics-debug-tests)
@@ -643,7 +652,8 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             PARALLEL_MATER_CLOTH_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Cloth.glb"
             PARALLEL_MATER_ALPHA_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/assets/material_alpha.gltf")
         add_dependencies(parallel-mater-gallery-scene-tests
-                         parallel-mater-driver-slang-cuda)
+                         parallel-mater-driver-slang-cuda
+                         parallel-mater-layer-validation)
         parallel_mater_enable_warnings(parallel-mater-gallery-scene-tests)
         add_test(NAME parallel-mater-gallery-scene-tests
                  COMMAND parallel-mater-gallery-scene-tests)
@@ -656,7 +666,8 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             PARALLEL_MATER_DEVICE_PROFILES_PATH="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json"
             PARALLEL_MATER_RIGID_BODY_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/RigidBody.glb")
         add_dependencies(parallel-mater-device-profile-tests
-                         parallel-mater-driver-slang-cuda)
+                         parallel-mater-driver-slang-cuda
+                         parallel-mater-layer-validation)
         parallel_mater_enable_warnings(parallel-mater-device-profile-tests)
         add_test(NAME parallel-mater-device-profile-tests
                  COMMAND parallel-mater-device-profile-tests)
@@ -668,7 +679,8 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         target_compile_definitions(parallel-mater-dump-truck-tests PRIVATE
             PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/DumpTruck.glb")
         add_dependencies(parallel-mater-dump-truck-tests
-                         parallel-mater-driver-slang-cuda)
+                         parallel-mater-driver-slang-cuda
+                         parallel-mater-layer-validation)
         parallel_mater_enable_warnings(parallel-mater-dump-truck-tests)
         add_test(NAME parallel-mater-dump-truck-tests
                  COMMAND parallel-mater-dump-truck-tests)
@@ -681,7 +693,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             SKIP_RETURN_CODE 77
             TIMEOUT 300
             ENVIRONMENT
-                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json")
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
 
     endif()
 
@@ -1054,14 +1066,15 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
         OUTPUT "${PARALLEL_MATER_D3D12_DXIL_LIBRARY}"
         COMMAND ${CMAKE_COMMAND} -E make_directory
                 "${PARALLEL_MATER_D3D12_GENERATED_DIR}"
-        COMMAND ${CMAKE_COMMAND}
-                "-DMANIFEST_FILE=${PARALLEL_MATER_D3D12_DXIL_MANIFEST}"
-                "-DOUTPUT_FILE=${PARALLEL_MATER_D3D12_DXIL_LIBRARY}"
-                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDxilLibrary.cmake"
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tools/embed_dxil_library.py"
+                --manifest "${PARALLEL_MATER_D3D12_DXIL_MANIFEST}"
+                --output "${PARALLEL_MATER_D3D12_DXIL_LIBRARY}"
         DEPENDS
             ${PARALLEL_MATER_SLANG_DXIL_SCHEDULES_DXIL}
             "${PARALLEL_MATER_D3D12_DXIL_MANIFEST}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedDxilLibrary.cmake"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/embed_dxil_library.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/slang_abi.py"
         COMMENT "Embedding common Slang DXIL schedules in the D3D12 driver"
         VERBATIM)
     set(PARALLEL_MATER_D3D12_STUB_SOURCE
@@ -1095,7 +1108,7 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
             --reflection "${PARALLEL_MATER_SLANG_GENERATED_DIR}/dxil"
             --output "${PARALLEL_MATER_D3D12_DOMAIN_DISPATCH}"
             ${PARALLEL_MATER_D3D12_DOMAIN_SOURCES}
-        DEPENDS tools/generate_dxil_dispatch.py
+        DEPENDS tools/generate_dxil_dispatch.py tools/slang_abi.py
             ${PARALLEL_MATER_D3D12_DOMAIN_SOURCES}
             ${PARALLEL_MATER_SLANG_DXIL_SCHEDULES_DXIL}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -1263,6 +1276,7 @@ if(BUILD_TESTING)
     target_include_directories(parallel-mater-gallery-workload-tests PRIVATE include examples/support/include)
     target_compile_definitions(parallel-mater-gallery-workload-tests PRIVATE
         PM_PROFILE_CATALOG="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json")
+    parallel_mater_enable_warnings(parallel-mater-gallery-workload-tests)
     add_test(NAME parallel-mater-gallery-workload-tests COMMAND parallel-mater-gallery-workload-tests)
     if(NOT CMAKE_CROSSCOMPILING AND TARGET parallel-mater-driver-slang-metal AND
        TARGET parallel-mater-gallery-renderer-adapters)
@@ -1281,7 +1295,8 @@ if(BUILD_TESTING)
         add_dependencies(parallel-mater-ipad-session-tests parallel-mater-driver-slang-metal parallel-mater-layer-validation)
         add_test(NAME parallel-mater-ipad-session-tests COMMAND parallel-mater-ipad-session-tests)
         set_tests_properties(parallel-mater-ipad-session-tests PROPERTIES TIMEOUT 600
-            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-metal.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+            LABELS "gallery;session;metal"
+            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-metal.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
     endif()
     if(NOT CMAKE_CROSSCOMPILING AND TARGET parallel-mater-gallery-session)
         unset(gallery_session_test_driver)
@@ -1330,7 +1345,7 @@ if(BUILD_TESTING)
             set_tests_properties(parallel-mater-gallery-session-contract-tests PROPERTIES
                 LABELS "gallery;runtime;contract" TIMEOUT 120
                 SKIP_RETURN_CODE 77
-                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/${gallery_session_test_manifest};PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/${gallery_session_test_manifest};PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
             if(gallery_session_test_backend STREQUAL "vulkan")
                 set_tests_properties(parallel-mater-gallery-session-contract-tests
                     PROPERTIES TIMEOUT 600 RUN_SERIAL TRUE)
@@ -1340,7 +1355,8 @@ if(BUILD_TESTING)
     if(TARGET parallel-mater-command-gallery-tests AND
        TARGET parallel-mater-driver-slang-vulkan)
         add_dependencies(parallel-mater-command-gallery-tests
-                         parallel-mater-driver-slang-vulkan)
+                         parallel-mater-driver-slang-vulkan
+                         parallel-mater-layer-validation)
         foreach(scene Cloth ClothTear ClothPaint ClothWater)
             add_test(NAME parallel-mater-vulkan-gallery-${scene}
                 COMMAND parallel-mater-command-gallery-tests --backend vulkan
@@ -1348,7 +1364,7 @@ if(BUILD_TESTING)
             set_tests_properties(parallel-mater-vulkan-gallery-${scene} PROPERTIES
                 LABELS "api;gallery;vulkan;cloth" SKIP_RETURN_CODE 77 TIMEOUT 300
                 RUN_SERIAL TRUE
-                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
         endforeach()
         foreach(scene Softbody SoftbodyRigidBody SoftbodyFluid)
             add_test(NAME parallel-mater-vulkan-gallery-${scene}
@@ -1357,7 +1373,7 @@ if(BUILD_TESTING)
             set_tests_properties(parallel-mater-vulkan-gallery-${scene} PROPERTIES
                 LABELS "api;gallery;vulkan;soft-body" SKIP_RETURN_CODE 77 TIMEOUT 300
                 RUN_SERIAL TRUE
-                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
         endforeach()
         foreach(scene Rope RopeFluid)
             add_test(NAME parallel-mater-vulkan-gallery-${scene}
@@ -1366,7 +1382,7 @@ if(BUILD_TESTING)
             set_tests_properties(parallel-mater-vulkan-gallery-${scene} PROPERTIES
                 LABELS "api;gallery;vulkan;rope" SKIP_RETURN_CODE 77 TIMEOUT 300
                 RUN_SERIAL TRUE
-                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
         endforeach()
         foreach(scene Smoke SmokeWater)
             add_test(NAME parallel-mater-vulkan-gallery-${scene}
@@ -1375,7 +1391,7 @@ if(BUILD_TESTING)
             set_tests_properties(parallel-mater-vulkan-gallery-${scene} PROPERTIES
                 LABELS "api;gallery;vulkan;smoke" SKIP_RETURN_CODE 77 TIMEOUT 300
                 RUN_SERIAL TRUE
-                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
         endforeach()
         foreach(scene SoftbodyCloth RopeSoftbody RopeCloth SmokeSoftbody SmokeCloth SmokeRope)
             add_test(NAME parallel-mater-vulkan-gallery-${scene}
@@ -1384,7 +1400,7 @@ if(BUILD_TESTING)
             set_tests_properties(parallel-mater-vulkan-gallery-${scene} PROPERTIES
                 LABELS "api;gallery;vulkan;cross-domain" SKIP_RETURN_CODE 77 TIMEOUT 300
                 RUN_SERIAL TRUE
-                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
         endforeach()
     endif()
     if(PARALLEL_MATER_BUILD_GALLERY AND PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER AND
@@ -1398,7 +1414,34 @@ if(BUILD_TESTING)
             parallel-mater-driver-slang-cpu parallel-mater-layer-validation)
         add_test(NAME parallel-mater-mobile-liquid-tests COMMAND parallel-mater-mobile-liquid-tests)
         set_tests_properties(parallel-mater-mobile-liquid-tests PROPERTIES TIMEOUT 120
-            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cpu.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+            LABELS "gallery;mobile;slang-cpu"
+            ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cpu.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
+    endif()
+    if(PARALLEL_MATER_BUILD_GALLERY AND NOT CMAKE_CROSSCOMPILING)
+        set(parallel_mater_has_physical_gallery_driver FALSE)
+        foreach(driver_target
+                parallel-mater-driver-slang-cuda
+                parallel-mater-driver-slang-d3d12
+                parallel-mater-driver-slang-vulkan
+                parallel-mater-driver-slang-metal
+                parallel-mater-driver-slang-cpu)
+            if(TARGET ${driver_target})
+                set(parallel_mater_has_physical_gallery_driver TRUE)
+            endif()
+        endforeach()
+        if(parallel_mater_has_physical_gallery_driver)
+            add_test(NAME parallel-mater-gallery-runtime-manifest-contract
+                COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/ctest_manifest_contract.py"
+                    --ctest "${CMAKE_CTEST_COMMAND}"
+                    --build "${CMAKE_BINARY_DIR}"
+                    --config "$<CONFIG>"
+                    --manifest "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json"
+                    --library "$<TARGET_FILE:parallel-mater-layer-validation>")
+            set_tests_properties(
+                parallel-mater-gallery-runtime-manifest-contract PROPERTIES
+                LABELS "gallery;contract;manifest")
+        endif()
     endif()
     add_executable(parallel-mater-submission-queue-tests
         tests/api/submission_queue_tests.cpp src/device/submission.cpp)
@@ -1415,6 +1458,13 @@ if(BUILD_TESTING)
         tests/gallery/frame_timing_tests.cpp)
     add_test(NAME parallel-mater-gallery-deployment-tests
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/deployment_tests.py")
+    if(UNIX AND NOT APPLE)
+        add_test(NAME parallel-mater-linux-gallery-launcher-tests
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/linux_launcher_tests.py")
+        set_tests_properties(parallel-mater-linux-gallery-launcher-tests PROPERTIES
+            LABELS "gallery;linux;install")
+    endif()
     target_link_libraries(parallel-mater-gallery-frame-timing-tests PRIVATE
         parallel-mater-gallery-frame-timing)
     parallel_mater_enable_warnings(parallel-mater-gallery-frame-timing-tests)
@@ -1485,6 +1535,12 @@ if(BUILD_TESTING)
                 -p test_mobile_qualification_report.py)
     set_tests_properties(parallel-mater-mobile-qualification-schema-tests
         PROPERTIES LABELS "gallery;mobile;qualification;contract")
+    add_test(NAME parallel-mater-android-gallery-ui-tests
+        COMMAND ${Python3_EXECUTABLE} -m unittest discover
+                -s ${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery
+                -p test_android_gallery_ui.py)
+    set_tests_properties(parallel-mater-android-gallery-ui-tests
+        PROPERTIES LABELS "gallery;mobile;android;ui")
     add_test(NAME parallel-mater-conformance-case-registry
         COMMAND parallel-mater-conformance-cases --check
                 ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/cases)

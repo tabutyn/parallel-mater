@@ -1,0 +1,23 @@
+{
+  "id": "F5-42",
+  "title": "Qualify cloth-to-smoke contact",
+  "status": "open",
+  "dependencies": [
+    "F5-23"
+  ],
+  "locks": [
+    "quality-f5-42"
+  ],
+  "requires": [
+    "Any development host and one physical production driver advertising the exact capability tuple"
+  ],
+  "scope": "Publish and bind vendor-neutral qualification for exactly CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID; CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE. The single physical behavior is: Cloth redirects particle and grid smoke at the declared surface without applying an unadvertised reverse mechanical response.",
+  "acceptance": [
+    "Publish one immutable analytic profile for the listed tuple or representation variants, with canonical public-API inputs, SI units, bounded tolerances and an oracle independent of driver-private state.",
+    "Add exact bounded capacity, replacement, removal and rollback lifecycle checks for the grid tuple; retain the particle tuple's existing lifecycle binding, and prove rejected mutations preserve the last usable state.",
+    "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

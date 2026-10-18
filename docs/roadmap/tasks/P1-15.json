@@ -12,9 +12,9 @@
   "requires": [
     "Any development host"
   ],
-  "scope": "Expose specific heat, conductivity and optional interface conductance as typed versioned state; advertise no thermal mode.",
+  "scope": "Expose endpoint specific heat and conductivity as typed versioned material state; advertise no thermal mode.",
   "acceptance": [
-    "Generated API and specification define J/(kg*K), W/(m*K), W/(m^2*K), zero limits and validation.",
+    "Generated API and specification define J/(kg*K), W/(m*K), zero limits and validation.",
     "Compatibility tests keep API 0.2 materials valid while unsupported thermal requests fail atomically."
   ],
   "evidence": [],

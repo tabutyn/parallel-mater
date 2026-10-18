@@ -15,6 +15,7 @@ PACKAGE = "org.parallelmater.gallery"
 ACTIVITY = PACKAGE + "/.GalleryActivity"
 BOUNDS = re.compile(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]")
 INTERNAL_TERMS = ("roadmap", "qualification", "f7-")
+RECOVERABLE_SYSTEM_DIALOGS = {"Quickstep isn't responding"}
 
 
 class Device:
@@ -47,6 +48,23 @@ class Device:
     def matches(node, value):
         return node.get("text") == value or node.get("content-desc") == value
 
+    def dismiss_recoverable_system_dialog(self, tree):
+        titles = [
+            node for node in tree.iter()
+            if (node.get("package") == "android" and
+                node.get("text") in RECOVERABLE_SYSTEM_DIALOGS)
+        ]
+        wait_buttons = [
+            node for node in tree.iter()
+            if node.get("package") == "android" and self.matches(node, "Wait")
+        ]
+        if not titles or not wait_buttons:
+            return False
+        title = titles[0].get("text")
+        self.tap_node(wait_buttons[0], title)
+        print(f"Dismissed transient Android system dialog: {title}", flush=True)
+        return True
+
     def wait_node(self, value, present=True):
         deadline = time.monotonic() + self.timeout
         last = None
@@ -54,6 +72,9 @@ class Device:
             try:
                 last = self.hierarchy()
             except (subprocess.CalledProcessError, ET.ParseError):
+                time.sleep(1)
+                continue
+            if self.dismiss_recoverable_system_dialog(last):
                 time.sleep(1)
                 continue
             matches = [node for node in last.iter() if self.matches(node, value)]

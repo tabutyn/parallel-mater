@@ -12,6 +12,8 @@ import json
 import pathlib
 import re
 
+from slang_abi import ReflectedABI
+
 
 def split_arguments(text):
     parts, start, depth = [], 0, 0
@@ -39,7 +41,8 @@ def unwrap(expression):
     return expression
 
 
-def pack(type_info, expression, offset):
+def pack(abi, type_info, expression, offset):
+    type_info = abi.resolve(type_info)
     name = type_info.get('name')
     kind = type_info['kind']
     if name in ('PMGraphicsBuffer', 'PMByteBuffer'):
@@ -53,14 +56,14 @@ def pack(type_info, expression, offset):
     if kind == 'struct':
         result = []
         for field in type_info['fields']:
-            result += pack(field['type'], f'{expression}.{field["name"]}',
+            result += pack(abi, field['type'], f'{expression}.{field["name"]}',
                            offset + field['binding']['offset'])
         return result
     if kind == 'array':
         result = []
         stride = type_info['uniformStride']
         for index in range(type_info['elementCount']):
-            result += pack(type_info['elementType'], f'{expression}[{index}]',
+            result += pack(abi, type_info['elementType'], f'{expression}[{index}]',
                            offset + index * stride)
         return result
     raise ValueError(f'Unsupported uniform: {type_info}')
@@ -124,6 +127,7 @@ FluidOptions constants(const FluidDispatchConstants &value) noexcept {
     result.maximum_speed = value.maximum_speed;
     result.maximum_pair_acceleration = value.maximum_pair_acceleration;
     result.rest_density = value.rest_density;
+    result.rest_particle_volume = value.rest_particle_volume;
     result.maximum_neighbors = value.maximum_neighbors;
     return result;
 }
@@ -152,8 +156,11 @@ def generate(root, reflection, sources):
         for signature, body, launch in wrappers(path.read_text()):
             entry = launch[1]
             reflected = json.loads((reflection / module / f'{entry}.json').read_text())
-            params = [p for p in reflected['entryPoints'][0]['scope']['parameters']
-                      if p.get('binding', {}).get('kind') == 'uniform']
+            abi = ReflectedABI(reflected)
+            entries = reflected.get('entryPoints', [])
+            if len(entries) != 1 or entries[0].get('name') != entry:
+                raise ValueError(f'{entry}: expected isolated matching reflection')
+            params = abi.validate_entry(entries[0])
             args = [unwrap(arg) for arg in split_arguments(launch[3])]
             if len(args) != len(params):
                 raise ValueError(f'{entry}: {len(args)} args != {len(params)} parameters')
@@ -179,7 +186,7 @@ def generate(root, reflection, sources):
             }
             if is_export:
                 local_values['converted'] = 'box'
-            size = max(p['binding']['offset'] + p['binding']['size'] for p in params)
+            size = abi.constant_size(entries[0])
             out.append(f'    std::array<std::byte, {size}> bytes{{}};')
             for index, (param, arg) in enumerate(zip(params, args)):
                 if arg == 'meshes':
@@ -193,7 +200,7 @@ def generate(root, reflection, sources):
                 if not re.fullmatch(r'[\w\s.*+<>,{}()\[\]:?/-]+', arg):
                     raise ValueError(f'Unsupported argument {entry}: {arg}')
                 out.append(f'    const auto &arg{index} = {arg};')
-                out += pack(param['type'], f'arg{index}', param['binding']['offset'])
+                out += pack(abi, param['type'], f'arg{index}', param['binding']['offset'])
             config = [c.replace('dim3(', 'device::DispatchSize(') for c in config]
             expression = (f'execution->dispatch("{module}", "{entry}", '
                           f'device::DispatchSize({config[0]}), device::DispatchSize({config[1]}), bytes)')

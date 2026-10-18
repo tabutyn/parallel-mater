@@ -1,0 +1,66 @@
+{
+  "schema": "parallel-mater-roadmap-miscible-pressure-contact/v1",
+  "task": "P1-06",
+  "result": "passed",
+  "source": {
+    "revision": "79095bd54c727b1f416215e6e99a7446a96c8d00",
+    "branch": "work/P1-06/thomas-laptop",
+    "lease_token": "a70d9e39-71ad-43a3-898b-9dbbb6ccda5a",
+    "machine": "thomas-laptop"
+  },
+  "operator": {
+    "entry_point": "fluid_apply_miscible_pair_pressure_contact",
+    "density": "Each endpoint uses the P1-05 heterogeneous density sample, its own rest density and its own pressure stiffness.",
+    "pressure": "The normalized poly6 radial gradient combines both endpoint pressures and densities into one central common force.",
+    "contact": "The radius-sum exclusion law symmetrically combines material stiffness and normal damping and uses twice the reduced mass, preserving the established equal-material per-particle response.",
+    "balance": "One common force is divided by endpoint particle mass with opposite signs; enabled acceleration limits clamp that common force before division.",
+    "coincident_particles": "Relative velocity supplies the order-independent direction; zero relative velocity produces zero direction instead of deriving physics from endpoint ownership or local indices.",
+    "advertisement": "No miscible capability is advertised and valid different-material graph requests remain unsupported."
+  },
+  "fixtures": {
+    "unequal_pressure_pair": "Different density, support, radius, explicit particle volume, stiffness and damping; pressure active outside contact distance.",
+    "dilute_pressure_limit": "The same non-contact geometry with low density produces zero pressure.",
+    "unequal_contact_pair": "Different radius, density and explicit volume; density below rest isolates radius-sum exclusion.",
+    "radius_limit": "The same positions and masses with radii below separation produce zero contact.",
+    "fallback_mass_and_caps": "Different radii and densities with zero rest volume exercise cubic-diameter mass fallback and unequal acceleration bounds.",
+    "ownership_seam": "Coincident particles with identical local indices use relative velocity and remain invariant when endpoint populations and materials are swapped.",
+    "invariants": "Every active fixture measures non-vacuous exchange, mass-weighted linear force, world-origin torque and endpoint-order equivalence."
+  },
+  "validation": [
+    {
+      "command": "ctest --test-dir build-foundations -R 'parallel-mater-(fluid-pair-neighbor-index|slang-architecture)' --output-on-failure",
+      "result": "2/2 passed; generated Slang CPU execution covered pressure, contact, density/radius/volume ratios, fallback mass, unequal caps, coincident particles, force/torque balance and endpoint reversal."
+    },
+    {
+      "command": "cmake --build build-f5-16-linux --target parallel-mater-slang-kernel-mirrors -j2",
+      "result": "213/213 build steps passed; shared kernels compiled to CUDA, PTX, Vulkan SPIR-V and Metal."
+    },
+    {
+      "command": "cmake --build build-desktop-switch --target parallel-mater-driver-slang-cuda parallel-mater-driver-slang-vulkan -j2",
+      "result": "CUDA and Vulkan shared-driver builds passed with reflected miscible pressure/contact bindings."
+    },
+    {
+      "command": "python3 -m unittest tests.solver.test_dxil_bindings",
+      "result": "4/4 DirectCompute DXIL binding generator tests passed."
+    },
+    {
+      "command": "cmake --build build-sdk-ci -j2 && ctest --test-dir build-sdk-ci --output-on-failure",
+      "result": "47/47 SDK, ABI, generator, resource-plan and architecture tests passed."
+    },
+    {
+      "command": "ctest --test-dir build-foundations -R parallel-mater-interaction-capability-tests --output-on-failure",
+      "result": "1/1 passed; different-material capability remains unadvertised."
+    },
+    {
+      "command": "python3 tools/reference/build.py --check-generated && python3 conformance/v1/evidence_index.py --check && python3 conformance/v1/update_manifest.py --check",
+      "result": "Public generated files, evidence index and conformance manifest remained current."
+    }
+  ],
+  "boundaries": [
+    "The operator is backend-portable but is not yet scheduled by a public heterogeneous interaction graph.",
+    "Harmonic dynamic-viscosity exchange remains P1-07.",
+    "Graph scheduling, lifecycle recovery and public capability checks remain P1-08.",
+    "Physical GPU qualification and capability advertisement remain P1-09.",
+    "Immiscible interface reconstruction, capillarity and interfacial viscosity remain P1-10 through P1-14."
+  ]
+}

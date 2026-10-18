@@ -1,0 +1,262 @@
+{
+  "schema": "parallel-mater-roadmap-rigid-contact-adjudication/v1",
+  "task": "F6-11",
+  "result": "passed-with-retained-historical-golden-drift",
+  "source": {
+    "base_commit": "7c81d19cbf8469027ad7504ecf30655108621f3d",
+    "candidate_patch": "docs/roadmap/evidence/F6-07/snapshot-unstaged.patch",
+    "candidate_scene_sha256": "80a5f22de8c7662397d7405eff6720232389e5163fd12dc586b39deb9f784e7b",
+    "replay": "tests/gallery/assets/hinge_over_top_v5.pmcapture",
+    "replay_canonical_lf_sha256": "7aadaaa5ec552be42d1194229114129d0982d5918b46f58e3bcac4150d8400dc",
+    "fixture_or_golden_modified": false,
+    "backend_specific_physics_added": false
+  },
+  "hardware": {
+    "device": "NVIDIA GeForce GTX 1080",
+    "driver_version": "582.66",
+    "pci_bus_id": "00000000:01:00.0",
+    "backends": ["slang-cuda", "slang-d3d12"]
+  },
+  "reproduction": {
+    "scenario": "candidate ConstraintHinge.glb plus committed v5 over-top replay",
+    "identical_on_cuda_and_d3d12": true,
+    "baseline": {
+      "hinge_anchor_error_m": 0.000000772564,
+      "hinge_axis_error": 0.00524831,
+      "slider_sideways_drift_m": 0.000571761,
+      "slider_axis_error": 0.000292363,
+      "slider_travel_m": 4.17883,
+      "slider_mesh_penetration_m": 0.0143353,
+      "gear_mesh_penetration_m": 0.127161,
+      "driver_rotation_rad": 2.19593,
+      "maximum_abrupt_speed_loss_rad_s": 7.70263,
+      "cleared_top": true,
+      "slider_contact_impulse_ns": 38.0175,
+      "result": "failed momentum and 2 mm penetration gates"
+    },
+    "minimization": [
+      {
+        "variant": "swept feature recovery only",
+        "maximum_abrupt_speed_loss_rad_s": 0.314801,
+        "gear_mesh_penetration_m": 0.0,
+        "slider_mesh_penetration_m": 0.0028398,
+        "result": "failed only the unchanged 2 mm slider limit"
+      },
+      {
+        "variant": "swept feature recovery plus retained margin replacement",
+        "maximum_abrupt_speed_loss_rad_s": 0.314801,
+        "gear_mesh_penetration_m": 0.0,
+        "slider_mesh_penetration_m": 0.0028398,
+        "result": "no measurable change; margin replacement rejected"
+      },
+      {
+        "variant": "swept feature recovery plus discrete impact-witness recovery",
+        "maximum_abrupt_speed_loss_rad_s": 0.311878,
+        "gear_mesh_penetration_m": 0.0000113148,
+        "slider_mesh_penetration_m": 0.0,
+        "result": "passed"
+      }
+    ],
+    "final": {
+      "identical_on_cuda_and_d3d12": true,
+      "hinge_anchor_error_m": 0.000000684805,
+      "hinge_axis_error": 0.00000267296,
+      "slider_sideways_drift_m": 0.0000128945,
+      "slider_axis_error": 0.00000167848,
+      "slider_travel_m": 4.98473,
+      "slider_mesh_penetration_m": 0.0,
+      "gear_mesh_penetration_m": 0.0000113148,
+      "locked_axis_contact_impulse_ns": 0.0,
+      "driver_rotation_rad": 3.81981,
+      "maximum_abrupt_speed_loss_rad_s": 0.311878,
+      "cleared_top": true,
+      "slider_contact_impulse_ns": 21.96,
+      "result": "passed"
+    }
+  },
+  "verification": [
+    {
+      "check": "parallel-mater-rigid-constraint-command-tests --backend <cuda|d3d12> --scene <candidate> --scenario replay",
+      "backends": ["slang-cuda", "slang-d3d12"],
+      "result": "passed identically"
+    },
+    {
+      "check": "parallel-mater-command-gallery-tests --backend <cuda|d3d12> --scene RigidBody.glb --frames 120",
+      "backends": ["slang-cuda", "slang-d3d12"],
+      "result": "passed scene/reset, brick penetration, torque-free rotation, three swept impacts, planar symmetry, closed/open seams, four boundary probes and two-sided sheets",
+      "metrics": {
+        "brick_penetration_m": 0.000114456,
+        "brick_penetration_frame": 1,
+        "planar_symmetry_leakage_rad_s": 0.0000066892,
+        "planar_perturbed_response_rad_s": 1.21739,
+        "planar_face_penetration_m": 0.000231959,
+        "planar_face_contacts": 303
+      }
+    },
+    {
+      "check": "parallel-mater-conformance --case <rigid-direct|constraint-hinge|constraint-slider>",
+      "backends": ["slang-cuda", "slang-d3d12"],
+      "result": "six executions completed; current CUDA versus D3D12 comparisons passed all three cases"
+    },
+    {
+      "check": "compare.py current result versus conformance/v1/golden/cuda",
+      "backends": ["slang-cuda", "slang-d3d12"],
+      "result": "rigid-direct passed; constraint-hinge and constraint-slider failed identically on both backends",
+      "disposition": "retained as historical reference drift; no golden, tolerance or fixture was changed"
+    },
+    {
+      "check": "ctest --test-dir build-f4-03-warnings -C Release --output-on-failure",
+      "result": "12/12 passed, including shared AVBD fixtures and Slang architecture"
+    },
+    {
+      "check": "python tools/roadmap.py check",
+      "result": "passed 169 task cards, dependencies, locks, history and generated roadmap"
+    },
+    {
+      "check": "python -m unittest discover -s tests/roadmap -p test_*.py -v",
+      "result": "22/25 passed; three pre-existing Windows raw-byte hash checks fail after Git CRLF conversion while LF-normalized contents match their pinned hashes",
+      "disposition": "retained as the known evidence-check portability defect; no pinned evidence was rewritten"
+    }
+  ],
+  "hunk_inventory": {
+    "source": "docs/roadmap/evidence/F6-07/hunk-dispositions.json",
+    "total": 26,
+    "action_counts": {
+      "ported-revised": 14,
+      "superseded": 9,
+      "rejected": 3
+    },
+    "items": [
+      {
+        "id": "docs/CONTACT_SOLVER.md#h1",
+        "action": "ported-revised",
+        "reason": "Published only the reproduced current behavior and removed stale candidate-specific claims."
+      },
+      {
+        "id": "src/simulation/runtime_deformables.cu.inc#h1",
+        "action": "superseded",
+        "reason": "Current common uploader already calls the newer closed_shell_normals implementation."
+      },
+      {
+        "id": "src/simulation/runtime_domains.cu.inc#h1",
+        "action": "superseded",
+        "reason": "Current closed-shell classifier preserves per-triangle exterior metadata and has stronger open-boundary handling."
+      },
+      {
+        "id": "src/simulation/runtime_domains.cu.inc#h2",
+        "action": "superseded",
+        "reason": "Current closed_shell_normals covers closed concave components and certified open support faces without the older host fork."
+      },
+      {
+        "id": "src/slang/geometry.slang#h1",
+        "action": "rejected",
+        "reason": "The replay reports zero locked-axis impulse without changing breakable-hinge classification; no failing reproduction supports this exception."
+      },
+      {
+        "id": "src/slang/geometry.slang#h2",
+        "action": "rejected",
+        "reason": "The replay reports zero locked-axis impulse without a hinge-specific contact filter; retaining physical contacts avoids an unjustified constraint special case."
+      },
+      {
+        "id": "src/slang/geometry.slang#h3",
+        "action": "ported-revised",
+        "reason": "Retained the barycentric witness transport helper required by the discrete crossing reproduction."
+      },
+      {
+        "id": "src/slang/geometry.slang#h4",
+        "action": "superseded",
+        "reason": "Current closest-triangle projection is already the stable direct implementation and has no legacy stability switch."
+      },
+      {
+        "id": "src/slang/geometry.slang#h5",
+        "action": "superseded",
+        "reason": "Current rigid_shell_outward and rigid_shell_contact_facing provide stronger certified closed/open shell handling."
+      },
+      {
+        "id": "src/slang/geometry.slang#h6",
+        "action": "superseded",
+        "reason": "Feature normals are limited to reproduced swept and recovered-crossing paths; current direct contacts retain certified face projection instead of changing every discrete pair."
+      },
+      {
+        "id": "src/slang/geometry.slang#h7",
+        "action": "ported-revised",
+        "reason": "Reimplemented only impact-time bracketing, feature recovery, witness transport and signed penetration against the current shell-facing API."
+      },
+      {
+        "id": "src/slang/geometry.slang#h8",
+        "action": "rejected",
+        "reason": "Changing the unclassified intersection fallback from margin to rest offset produced identical 2.8398 mm slider penetration and did not address the failure."
+      },
+      {
+        "id": "src/slang/geometry.slang#h9",
+        "action": "ported-revised",
+        "reason": "The 1 mm nonconvex swept threshold is required to observe crossings before broad-phase overlap."
+      },
+      {
+        "id": "src/slang/geometry.slang#h10",
+        "action": "ported-revised",
+        "reason": "The helper now names its shared guided and unguided feature-normal role."
+      },
+      {
+        "id": "src/slang/geometry.slang#h11",
+        "action": "superseded",
+        "reason": "Current closest-triangle projection is already stable and has no guided-only switch."
+      },
+      {
+        "id": "src/slang/geometry.slang#h12",
+        "action": "ported-revised",
+        "reason": "Already-near unguided pairs must remain in CCD because they can cross during the step."
+      },
+      {
+        "id": "src/slang/geometry.slang#h13",
+        "action": "ported-revised",
+        "reason": "Applied feature-normal recovery to all swept pairs; retained current rigid_shell_outward because it already evaluates the interpolated impact triangles."
+      },
+      {
+        "id": "src/slang/geometry.slang#h14",
+        "action": "ported-revised",
+        "reason": "Kept clearance inside the penetration clamp, eliminating fabricated grazing penetration."
+      },
+      {
+        "id": "src/slang/geometry.slang#h15",
+        "action": "ported-revised",
+        "reason": "Updated separating-normal recovery to the shared feature-normal helper."
+      },
+      {
+        "id": "src/slang/geometry.slang#h16",
+        "action": "ported-revised",
+        "reason": "Updated guided plane recovery to the shared feature-normal helper."
+      },
+      {
+        "id": "tests/gallery/rigid_constraint_command_tests.cpp#h5",
+        "action": "ported-revised",
+        "reason": "F6-10 already supplied replay metrics; added only the missing locked-axis observation."
+      },
+      {
+        "id": "tests/gallery/rigid_constraint_command_tests.cpp#h6",
+        "action": "superseded",
+        "reason": "Current test already contains projected bounds, mesh penetration and replay substep coverage."
+      },
+      {
+        "id": "tests/gallery/rigid_constraint_command_tests.cpp#h7",
+        "action": "ported-revised",
+        "reason": "Added the locked-axis contact-impulse measurement without importing candidate fixture logic."
+      },
+      {
+        "id": "tests/gallery/rigid_constraint_command_tests.cpp#h8",
+        "action": "ported-revised",
+        "reason": "Added the locked-axis metric to the existing current replay output."
+      },
+      {
+        "id": "tests/gallery/rigid_constraint_command_tests.cpp#h9",
+        "action": "ported-revised",
+        "reason": "Added the zero locked-axis impulse assertion; current tests already own the other physical limits."
+      },
+      {
+        "id": "tests/gallery/rigid_mesh_checks.hpp#h1",
+        "action": "superseded",
+        "reason": "projected_bounds is already present on current main from the accepted fixture/replay work."
+      }
+    ]
+  }
+}
