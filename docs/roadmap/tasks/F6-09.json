@@ -1,7 +1,7 @@
 {
   "id": "F6-09",
   "title": "Qualify the retained hinge fixture candidate",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F6-07"
   ],
@@ -16,15 +16,33 @@
     "Record reviewed .blend and exported .glb hashes, topology, material and constraint semantics; verify the export with the Blender scene tests.",
     "Run settling, steering and complete-rotation behavior on CUDA; generate a fresh same-revision golden only if the reviewed fixture remains a valid conformance case."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "437e8f67-5390-4503-93b5-67a8d4e7b28e",
-    "owner": "codex-linux-hinge",
-    "machine": "thomas-laptop",
-    "branch": "work/F6-09/thomas-laptop",
-    "claimed_at": "2026-10-18T17:38:57Z",
-    "heartbeat_at": "2026-10-18T17:38:57Z",
-    "expires_at": "2026-10-19T17:38:57Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: Blender 4.5.2 current exporter reproduced candidate GLB sha256 80a5f22de8c7662397d7405eff6720232389e5163fd12dc586b39deb9f784e7b; 33 exporter tests passed with 1 skipped; docs/roadmap/evidence/F6-09-hinge-fixture-qualification.json",
+    "PASS: CUDA settling and steering, 2400 frames each, NVIDIA GeForce RTX 3050 Ti Laptop GPU driver 590.44.01; tracked metrics in docs/roadmap/evidence/F6-09-hinge-fixture-qualification.json",
+    "RESULT: candidate rejected after 13.1578-radian full rotation produced 41.4778 mm gear overlap against a 2 mm limit; no asset or golden promoted; docs/roadmap/evidence/F6-09-hinge-fixture-qualification.json",
+    "PASS: accepted committed fixture remains byte-identical and passes its 2400-frame CUDA regression; python3 -m unittest tests/roadmap/test_f6_09_evidence.py -v passed 2/2"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "437e8f67-5390-4503-93b5-67a8d4e7b28e",
+        "owner": "codex-linux-hinge",
+        "machine": "thomas-laptop",
+        "branch": "work/F6-09/thomas-laptop",
+        "claimed_at": "2026-10-18T17:38:57Z",
+        "heartbeat_at": "2026-10-18T17:38:57Z",
+        "expires_at": "2026-10-19T17:38:57Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T17:56:43Z",
+      "reason": "Recreated the five-body fixture byte-for-byte with the current Blender exporter, qualified all requested CUDA scenarios, and rejected promotion because full rotation exceeds the mesh-overlap quality limit.",
+      "evidence": [
+        "PASS: Blender 4.5.2 current exporter reproduced candidate GLB sha256 80a5f22de8c7662397d7405eff6720232389e5163fd12dc586b39deb9f784e7b; 33 exporter tests passed with 1 skipped; docs/roadmap/evidence/F6-09-hinge-fixture-qualification.json",
+        "PASS: CUDA settling and steering, 2400 frames each, NVIDIA GeForce RTX 3050 Ti Laptop GPU driver 590.44.01; tracked metrics in docs/roadmap/evidence/F6-09-hinge-fixture-qualification.json",
+        "RESULT: candidate rejected after 13.1578-radian full rotation produced 41.4778 mm gear overlap against a 2 mm limit; no asset or golden promoted; docs/roadmap/evidence/F6-09-hinge-fixture-qualification.json",
+        "PASS: accepted committed fixture remains byte-identical and passes its 2400-frame CUDA regression; python3 -m unittest tests/roadmap/test_f6_09_evidence.py -v passed 2/2"
+      ]
+    }
+  ]
 }

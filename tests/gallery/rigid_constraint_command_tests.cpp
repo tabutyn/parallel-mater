@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/scene.hpp>
+#include <parallel_mater_gallery/camera_controller.hpp>
+#include <parallel_mater_gallery/gallery_context.hpp>
 #include <scene_builder.hpp>
 #include "rigid_mesh_checks.hpp"
 
@@ -9,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -111,8 +114,11 @@ void check(bool condition, const char *message) {
 } // namespace
 
 int main(int argc, char **argv) try {
+    enum class Scenario { settling, steering, full_rotation };
+    Scenario scenario = Scenario::settling;
     std::optional<PmNativeBackend> backend;
     unsigned frame_count = 2400U;
+    std::string scene_path = PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH;
     for (int argument = 1; argument < argc; ++argument) {
         const std::string option = argv[argument];
         if (option == "--backend" && argument + 1 < argc) {
@@ -123,16 +129,31 @@ int main(int argc, char **argv) try {
         } else if (option == "--frames" && argument + 1 < argc) {
             frame_count = std::stoul(argv[++argument]);
             check(frame_count != 0U, "frame count must be positive");
-        } else throw std::runtime_error("expected --backend d3d12|cuda or --frames N");
+        } else if (option == "--scenario" && argument + 1 < argc) {
+            const std::string value = argv[++argument];
+            if (value == "settling") scenario = Scenario::settling;
+            else if (value == "steering") scenario = Scenario::steering;
+            else if (value == "full-rotation")
+                scenario = Scenario::full_rotation;
+            else throw std::runtime_error("unknown scenario");
+        } else if (option == "--scene" && argument + 1 < argc) {
+            scene_path = argv[++argument];
+        } else throw std::runtime_error(
+            "expected --backend d3d12|cuda, --frames N, or "
+            "--scenario settling|steering|full-rotation, or --scene PATH");
     }
+    const bool steering = scenario == Scenario::steering;
+    const bool full_rotation = scenario == Scenario::full_rotation;
     SceneDefinition scene;
     std::string error;
-    check(load_glb_scene(PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH,
-                         scene, error),
+    check(load_glb_scene(scene_path, scene, error),
           error.empty() ? "load Hinge + Slider scene" : error.c_str());
-    check(scene.rigid_bodies.size() == 6U &&
+    const bool candidate_fixture = scene.rigid_bodies.size() == 5U;
+    check((candidate_fixture || scene.rigid_bodies.size() == 6U) &&
               scene.rigid_constraints.size() == 5U,
           "Hinge + Slider scene topology changed");
+    check(candidate_fixture || (!steering && !full_rotation),
+          "steering scenarios require the five-body functional fixture");
 
     const std::size_t rod_index = body_index(scene, "Ground.002");
     const std::size_t ground_index = body_index(scene, "Ground.001");
@@ -158,8 +179,26 @@ int main(int argc, char **argv) try {
     const Vec3 driver_local_anchor = driver_hinge->body_a == gear_indices[0]
         ? driver_hinge->options.local_anchor_a
         : driver_hinge->options.local_anchor_b;
-    check(length(driver_local_anchor) < 1.0e-4F,
-          "driver gear hinge must be centered on the gear");
+    check(candidate_fixture ? length(driver_local_anchor) > 1.9F
+                            : length(driver_local_anchor) < 1.0e-4F,
+          candidate_fixture
+              ? "driver paddle must offset the compound body's center from its axle"
+              : "driver gear hinge must be centered on the gear");
+    const RigidBodyState &driver_initial =
+        scene.rigid_bodies[gear_indices[0]].options.initial_state;
+    const std::uint32_t frame_index = driver_hinge->body_a == gear_indices[0]
+        ? driver_hinge->body_b : driver_hinge->body_a;
+    const Vec3 frame_local_anchor = driver_hinge->body_a == frame_index
+        ? driver_hinge->options.local_anchor_a
+        : driver_hinge->options.local_anchor_b;
+    const RigidBodyState &frame_initial =
+        scene.rigid_bodies[frame_index].options.initial_state;
+    check(length(subtract(
+              add(driver_initial.position,
+                  rotate(driver_initial.orientation, driver_local_anchor)),
+              add(frame_initial.position,
+                  rotate(frame_initial.orientation, frame_local_anchor)))) < 1.0e-4F,
+          "driver hinge must meet the gear axle");
     const auto slider = std::find_if(
         scene.rigid_constraints.begin(), scene.rigid_constraints.end(),
         [&](const RigidConstraintDefinition &constraint) {
@@ -185,15 +224,20 @@ int main(int argc, char **argv) try {
     check(return_spring != scene.rigid_constraints.end() &&
               return_spring->options.linear_springs.axes == 1U &&
               std::fabs(return_spring->options.linear_springs.stiffness.x -
-                        50.0F) < 1.0e-4F &&
+                        (candidate_fixture ? 5.0F : 50.0F)) < 1.0e-4F &&
               std::fabs(return_spring->options.linear_springs.damping.x -
-                        14.0F) < 1.0e-4F,
+                        (candidate_fixture ? 0.5F : 14.0F)) < 1.0e-4F,
           "rack return spring configuration changed");
+    check(!candidate_fixture ||
+              std::fabs(scene.rigid_bodies[rod_index].options.friction - 0.08F)
+                  < 1.0e-5F,
+          "rack tooth friction must match the gears, not the passive frame");
 
     CommandScene simulation;
     CommandSceneInstance instance;
     CommandSceneFrame frame;
-    if (!CommandScene::create(scene, 2U, simulation, instance, error, backend)) {
+    if (!CommandScene::create(
+            scene, 2U, simulation, instance, error, backend)) {
         if (error.find("physical device") != std::string::npos) {
             std::cout << "SKIP: no Parallel Mater device\n";
             return 77;
@@ -206,19 +250,57 @@ int main(int argc, char **argv) try {
     float maximum_slider_sideways_drift = 0.0F;
     float maximum_slider_axis_error = 0.0F;
     float maximum_slider_travel = 0.0F;
+    float minimum_slider_axial_overlap = 1.0e30F;
     float maximum_slider_mesh_penetration = 0.0F;
     float slider_contact_impulse = 0.0F;
+    float maximum_gear_mesh_penetration = 0.0F;
     std::array<bool, 2U> saw_gear_contact{};
     std::array<bool, 2U> saw_opposite_rotation{};
     const rigid_mesh_checks::MeshSamples slider_mesh(scene, rod_index);
     const rigid_mesh_checks::MeshSamples slider_gear_mesh(
         scene, gear_indices[2]);
-    for (std::uint32_t frame_index = 0U; frame_index < frame_count; ++frame_index) {
-        if (frame_index % 300U == 0U)
-            std::cout << "constraint regression frame " << frame_index << '\n' << std::flush;
-        check(simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F},
-                              frame, error, true),
+    const rigid_mesh_checks::MeshSamples driver_mesh(scene, gear_indices[0]);
+    const rigid_mesh_checks::MeshSamples middle_mesh(scene, gear_indices[1]);
+    CameraController camera;
+    camera.set_preset(gallery_entry(GalleryContext::constraint_hinge).camera);
+    const Vec3 driver_anchor = add(driver_initial.position,
+        rotate(driver_initial.orientation, driver_local_anchor));
+    Vec3 driver_arm = subtract(driver_initial.position, driver_anchor);
+    float driver_speed = driver_initial.angular_velocity.z;
+    float previous_driver_angle = std::atan2(driver_arm.x, -driver_arm.y);
+    float driver_rotation = 0.0F;
+    float maximum_driver_rotation = 0.0F;
+    for (std::uint32_t frame_number = 0U;
+         frame_number < frame_count; ++frame_number) {
+        if (frame_number % 300U == 0U)
+            std::cout << "constraint fixture "
+                      << (steering ? "steering" :
+                          full_rotation ? "full-rotation" : "settling")
+                      << " frame " << frame_number << '\n' << std::flush;
+        // Normal gallery arrows, reversed every 1.5 seconds, exposed tooth
+        // tunnelling that a stationary-gravity settling run did not exercise.
+        float right = steering
+            ? ((frame_number / 90U) % 2U == 0U ? 1.0F : -1.0F) : 0.0F;
+        // Pump the functional paddle with the same arrows/gravity as the
+        // gallery. No prescribed pose, motor, initial spin, or detached rack.
+        // Fixed-period rocking alone can pass even when drag prevents a turn.
+        if (full_rotation)
+            right = std::fabs(driver_speed) < 1.0e-4F ||
+                -driver_arm.y * driver_speed >= 0.0F ? 1.0F : -1.0F;
+        Vec3 gravity = screen_space_gravity(
+            camera.camera(), right, 0.0F, 9.81F, 30.0F);
+        check(simulation.step(1.0F / 60.0F, 4U, gravity, frame, error, true),
               error.empty() ? "step Hinge + Slider scene" : error.c_str());
+        const auto &driver_state = frame.rigid_states[gear_indices[0]];
+        driver_arm = subtract(position(driver_state), driver_anchor);
+        driver_speed = driver_state.angularVelocity[2];
+        const float driver_angle = std::atan2(driver_arm.x, -driver_arm.y);
+        constexpr float full_turn = 6.2831853071795864769F;
+        driver_rotation += std::remainder(
+            driver_angle - previous_driver_angle, full_turn);
+        previous_driver_angle = driver_angle;
+        maximum_driver_rotation = std::max(
+            maximum_driver_rotation, std::fabs(driver_rotation));
         for (const RigidConstraintDefinition &constraint :
              scene.rigid_constraints) {
             const PmRigidState &a = frame.rigid_states[constraint.body_a];
@@ -257,14 +339,32 @@ int main(int argc, char **argv) try {
                                         position(initial_rod));
         maximum_slider_travel = std::max(maximum_slider_travel,
                                          length(rod_delta));
-        if (frame_index % 4U == 0U) {
+        if (frame_number % 4U == 0U) {
             const RigidBodyState rod = rigid_state(frame.rigid_states[rod_index]);
             const RigidBodyState gear =
                 rigid_state(frame.rigid_states[gear_indices[2]]);
+            const auto rack_bounds = slider_mesh.projected_bounds(
+                rod, {0.0F, 1.0F, 0.0F});
+            const auto gear_bounds = slider_gear_mesh.projected_bounds(
+                gear, {0.0F, 1.0F, 0.0F});
+            minimum_slider_axial_overlap = std::min(
+                minimum_slider_axial_overlap,
+                std::min(rack_bounds[1], gear_bounds[1]) -
+                    std::max(rack_bounds[0], gear_bounds[0]));
             maximum_slider_mesh_penetration = std::max({
                 maximum_slider_mesh_penetration,
                 slider_mesh.penetration(rod, slider_gear_mesh, gear),
                 slider_gear_mesh.penetration(gear, slider_mesh, rod)});
+            if (steering || full_rotation) {
+                const auto driver = rigid_state(frame.rigid_states[gear_indices[0]]);
+                const auto middle = rigid_state(frame.rigid_states[gear_indices[1]]);
+                maximum_gear_mesh_penetration = std::max({
+                    maximum_gear_mesh_penetration,
+                    driver_mesh.penetration(driver, middle_mesh, middle),
+                    middle_mesh.penetration(middle, driver_mesh, driver),
+                    middle_mesh.penetration(middle, slider_gear_mesh, gear),
+                    slider_gear_mesh.penetration(gear, middle_mesh, middle)});
+            }
         }
         for (std::size_t pair = 0U; pair < saw_opposite_rotation.size(); ++pair)
             saw_opposite_rotation[pair] = saw_opposite_rotation[pair] ||
@@ -282,32 +382,66 @@ int main(int argc, char **argv) try {
                 saw_gear_contact[pair] = saw_gear_contact[pair] ||
                     matches(gear_indices[pair], gear_indices[pair + 1U]);
         }
-        // Stop at the first physical failure instead of spending the rest of
-        // the 2,400-frame regression evolving an already invalid trajectory.
-        check(maximum_hinge_anchor_error < 0.002F,
-              "hinge anchors drifted by more than 2 mm");
-        check(maximum_hinge_axis_error < 0.014F,
-              "hinge axes lost alignment");
-        check(maximum_slider_sideways_drift < 0.002F,
-              "slider drifted sideways by more than 2 mm");
-        check(maximum_slider_axis_error < 1.0e-3F,
-              "slider axis lost alignment");
-        check(maximum_slider_travel < 1.0F,
-              "return spring did not bound slider travel");
-        check(maximum_slider_mesh_penetration < 0.002F,
-              "slider and gear meshes interpenetrated by more than 2 mm");
+        if (!candidate_fixture) {
+            // Stop the accepted-fixture regression at its first physical
+            // failure instead of evolving an already invalid trajectory.
+            check(maximum_hinge_anchor_error < 0.002F,
+                  "hinge anchors drifted by more than 2 mm");
+            check(maximum_hinge_axis_error < 0.014F,
+                  "hinge axes lost alignment");
+            check(maximum_slider_sideways_drift < 0.002F,
+                  "slider drifted sideways by more than 2 mm");
+            check(maximum_slider_axis_error < 1.0e-3F,
+                  "slider axis lost alignment");
+            check(maximum_slider_travel < 1.0F,
+                  "return spring did not bound slider travel");
+            check(maximum_slider_mesh_penetration < 0.002F,
+                  "slider and gear meshes interpenetrated by more than 2 mm");
+        }
     }
 
-    std::cout << "frames=" << frame_count << " hinge_anchor_error=" << maximum_hinge_anchor_error
+    std::cout << "fixture=" << (candidate_fixture ? "candidate" : "current")
+              << " frames=" << frame_count
+              << " hinge_anchor_error=" << maximum_hinge_anchor_error
               << " hinge_axis_error=" << maximum_hinge_axis_error
               << " slider_sideways_drift=" << maximum_slider_sideways_drift
               << " slider_axis_error=" << maximum_slider_axis_error
               << " slider_travel=" << maximum_slider_travel
+              << " slider_axial_overlap=" << minimum_slider_axial_overlap
               << " slider_mesh_penetration="
               << maximum_slider_mesh_penetration
+              << " gear_mesh_penetration=" << maximum_gear_mesh_penetration
+              << " driver_rotation=" << maximum_driver_rotation
               << " slider_contact_impulse=" << slider_contact_impulse << '\n';
+    check(maximum_hinge_anchor_error < 0.002F,
+          "hinge anchors drifted by more than 2 mm");
+    check(maximum_hinge_axis_error < 0.014F,
+          "hinge axes lost alignment");
+    check(maximum_slider_sideways_drift < 0.002F,
+          "slider drifted sideways by more than 2 mm");
+    check(maximum_slider_axis_error < 1.0e-3F,
+          "slider axis lost alignment");
     check(maximum_slider_travel > 0.01F,
           "slider did not travel along its axis");
+    if (candidate_fixture) {
+        // A complete driver turn moves this rack about pi metres. Check that
+        // the teeth remain within reach, rather than imposing a one-metre cap.
+        check(minimum_slider_axial_overlap > 0.0F,
+              "rack travelled beyond the follower gear's reach");
+    } else {
+        check(maximum_slider_travel < 1.0F,
+              "return spring did not bound slider travel");
+    }
+    if (steering)
+        check(maximum_driver_rotation > 0.5F,
+              "alternating gallery input did not move the driver paddle");
+    if (full_rotation)
+        check(maximum_driver_rotation > 6.2831853071795864769F,
+              "normal gravity controls could not produce a complete turn");
+    check(maximum_slider_mesh_penetration < 0.002F,
+          "slider and gear meshes interpenetrated by more than 2 mm");
+    check(maximum_gear_mesh_penetration < 0.002F,
+          "gear meshes interpenetrated by more than 2 mm");
     check(slider_contact_impulse > 0.1F,
           "slider and gear did not exchange contact impulse");
     check(std::all_of(saw_gear_contact.begin(), saw_gear_contact.end(),

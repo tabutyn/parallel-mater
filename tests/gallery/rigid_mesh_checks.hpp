@@ -84,6 +84,18 @@ class MeshSamples {
         }
     }
 
+    std::array<float, 2> projected_bounds(
+        const RigidBodyState &state, Vec3 axis) const {
+        std::array<float, 2> bounds{1.0e30F, -1.0e30F};
+        for (const auto sample : samples_) {
+            const float coordinate = dot(axis,
+                add(state.position, rotate(state.orientation, sample)));
+            bounds[0] = std::min(bounds[0], coordinate);
+            bounds[1] = std::max(bounds[1], coordinate);
+        }
+        return bounds;
+    }
+
     float penetration(const RigidBodyState &state, const MeshSamples &other,
                       const RigidBodyState &other_state) const {
         const auto q = other_state.orientation;
