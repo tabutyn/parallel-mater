@@ -181,12 +181,21 @@ python3 conformance/v1/lifecycle.py \
   --report /path/to/lifecycle-report.json
 ```
 
+An individual producer can be checked while the other case is still absent by
+adding `--case capacity-replacement-recovery` or
+`--case three-family-partial-rollback`. Omitting `--case` always requires the
+complete suite. The standalone capacity fixture writes its revisioned input
+with `parallel-mater-capacity-recovery-tests --output <path> --driver-name
+<driver>`; embedded qualification uses the same operation sequence.
+
 The result records canonical public resource-state SHA-256 fingerprints and
 harness write ordinals at every required checkpoint; ordinals are never private
 driver handles. Each command completes and state is read before any physics
 step. Replacement must advance the target ordinal and change its observable
-state. A capacity failure may retire its target, but
-must preserve an unrelated fluid before recovery. The mixed graph contains a
+state. `active: false` at the capacity checkpoint means the failed step has no
+valid published target output; it does not infer destruction of driver-private
+storage or forbid retrying the prior input. The unrelated fluid must remain
+publicly readable and unchanged before recovery. The mixed graph contains a
 liquid/rope/soft-body component plus an unrelated smoke/cloth edge; a rejected
 partial update must restore the prior complete graph and preserve every
 endpoint. Expected command errors are observations inside a completed case.
