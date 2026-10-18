@@ -190,7 +190,9 @@ struct ScheduleContext::Impl {
     std::map<const void *, std::uint32_t> mesh_capacities;
     std::map<const void *, std::pair<std::uint32_t, VkDeviceAddress>> paint_fields;
     Buffer globals{};
+    Buffer arguments{};
     std::uint32_t global_offset{};
+    std::uint32_t argument_offset{};
     std::uint32_t global_stride{256};
     bool open{}, pending{};
     std::uint64_t submitted{}, completed{};
@@ -282,6 +284,7 @@ struct ScheduleContext::Impl {
         for (auto &b : allocations)
             destroy(b);
         destroy(globals);
+        destroy(arguments);
         if (layout)
             vkDestroyPipelineLayout(device, layout, nullptr);
         if (descriptor_pool)
@@ -393,6 +396,7 @@ struct ScheduleContext::Impl {
         meshes.clear();
         paint_fields.clear();
         global_offset = 0;
+        argument_offset = 0;
         VkCommandBufferBeginInfo info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
         info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         check(vkBeginCommandBuffer(commands, &info), "begin commands");
@@ -515,6 +519,7 @@ PmResult ScheduleContext::initialize(int ordinal) noexcept {
             16U,
             std::uint32_t(i.adapter.properties.limits.minUniformBufferOffsetAlignment));
         i.globals = i.make_buffer(i.global_stride * 65536ULL);
+        i.arguments = i.make_buffer(1024U * 1024U);
         VkDescriptorBufferInfo buffer{i.globals.buffer, 0, 16};
         VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
         write.dstSet = i.descriptor_set;
@@ -566,11 +571,41 @@ std::uint64_t ScheduleContext::address(const void *pointer) noexcept {
         return 0;
     auto b = impl_->find(pointer);
     if (!b) {
+        const auto value = reinterpret_cast<std::uintptr_t>(pointer);
+        const auto start = reinterpret_cast<std::uintptr_t>(impl_->arguments.host);
+        if (value >= start && value - start < impl_->arguments.size)
+            b = &impl_->arguments;
+    }
+    if (!b) {
         impl_->last_error = cudaErrorInvalidValue;
         return 0;
     }
     return b->address + (reinterpret_cast<std::uintptr_t>(pointer) -
                          reinterpret_cast<std::uintptr_t>(b->host));
+}
+void *ScheduleContext::stage(std::span<const std::byte> bytes) noexcept {
+    std::lock_guard lock(impl_->mutex);
+    if (bytes.empty() || bytes.size() > impl_->arguments.size) {
+        impl_->last_error = cudaErrorInvalidValue;
+        return nullptr;
+    }
+    try {
+        auto &i = *impl_;
+        i.begin();
+        const auto size = (bytes.size() + 15U) & ~std::size_t(15U);
+        if (i.argument_offset + size > i.arguments.size) {
+            i.submit();
+            i.begin();
+        }
+        auto *destination = static_cast<std::byte *>(i.arguments.host) +
+                            i.argument_offset;
+        std::memcpy(destination, bytes.data(), bytes.size());
+        i.argument_offset += static_cast<std::uint32_t>(size);
+        return destination;
+    } catch (...) {
+        impl_->last_error = cudaErrorLaunchFailure;
+        return nullptr;
+    }
 }
 std::uint64_t ScheduleContext::translated_meshes(const void *pointer,
                                                  const void *parameters,
