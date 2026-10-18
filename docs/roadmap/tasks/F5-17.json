@@ -1,7 +1,7 @@
 {
   "id": "F5-17",
   "title": "Adjudicate rigid-direct reference drift",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-04",
     "F5-10"
@@ -19,15 +19,27 @@
     "If the solver is wrong, correct only the shared Slang path and preserve thin adapters. If the reference is stale, retain the old raw capture and approve a versioned replacement without weakening tolerances.",
     "Publish the resulting CPU/CUDA reference-regression and physical-quality evidence and update the qualification limitation; do not claim broader driver qualification or performance."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "ffc3cc81-b3f9-4fef-9b6f-67419e6aaedd",
-    "owner": "codex-windows-sdk",
-    "machine": "windows-gtx1080",
-    "branch": "work/F5-17/windows-gtx1080",
-    "claimed_at": "2026-10-18T08:36:43Z",
-    "heartbeat_at": "2026-10-18T08:36:43Z",
-    "expires_at": "2026-10-19T08:36:43Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F5-17-rigid-direct-adjudication.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "ffc3cc81-b3f9-4fef-9b6f-67419e6aaedd",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F5-17/windows-gtx1080",
+        "claimed_at": "2026-10-18T08:36:43Z",
+        "heartbeat_at": "2026-10-18T08:36:43Z",
+        "expires_at": "2026-10-19T08:36:43Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T10:24:38Z",
+      "reason": "Corrected the rigid-direct fixture geometry, captured clean Slang CPU/CUDA trajectories, added an independent kinematic-sweep oracle, and approved the versioned CUDA reference without weakening tolerances; the remaining planar component is assigned to F5-18.",
+      "evidence": [
+        "docs/roadmap/evidence/F5-17-rigid-direct-adjudication.json"
+      ]
+    }
+  ]
 }
