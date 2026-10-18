@@ -23,7 +23,7 @@ order.
 | `viscosity` | Exchange dissipative shear forces across a system boundary. Contact friction is not a viscosity capability. |
 | `thermal` | Exchange heat while retaining both endpoint families and account for supplied, removed and transferred energy. |
 | `phase` | Transfer mass or membership between families or material phases while defining identity, capacity, momentum and energy handling. |
-| `interface` | Preserve a material boundary and exchange capillary traction. This future mode is independent from contact, pressure and thermal exchange. |
+| `interface` | Preserve a material boundary and exchange capillary traction. Support is queried independently from contact, pressure and thermal exchange. |
 
 `contact` parameters may include friction. Pressure and viscosity remain
 separate modes because a vendor can implement collision without a continuum
@@ -607,7 +607,7 @@ The initial profiles are:
 | `smoke-particle-grid` | A particle smoke endpoint exchanges with a projected-grid smoke endpoint. | Future profile specified by F2-15; only reciprocal drag and thermal exchange are defined. |
 | `equal-material` | Distinct fluid systems use numerically equal material state and a symmetric cross-population operator. | CUDA qualification complete for `contact`, `pressure` and `viscosity`; other production drivers remain unsupported. |
 | `miscible` | Different Newtonian fluid materials share a mechanical neighborhood without a material interface. | Typed mechanical request exists; all drivers remain unadvertised pending implementation and qualification. |
-| `immiscible-interface` | Different Newtonian fluids retain a material boundary with defined pressure, shear and capillary behavior. | Typed mechanical request exists; interface state, implementation and qualification remain future work. |
+| `immiscible-interface` | Different Newtonian fluids retain a material boundary with defined pressure, shear and capillary behavior. | Typed mechanical and capillary request exists; all drivers remain unadvertised pending implementation and qualification. |
 | `thermal-phase` | Reserved for a future material-changing thermal or phase law. Thermal exchange that retains both materials uses the mechanical material profile plus the `thermal` mode. | Unsupported; F2-11 does not define phase transfer. |
 | `rope-capsule` | Rope centreline segments are swept capsules; contact covers their full length rather than sampled nodes only. | Future profile specified by F2-14; unsupported in API 0.2. |
 
@@ -758,8 +758,10 @@ rejecting a replacement.
 
 `PmCouplingStateInfo` is the extensible coupling descriptor. For either
 different-material profile its `pNext` chain contains exactly one
-`PmFluidPairMaterialState`; nested, duplicate and unknown structures are
-invalid. `firstMaterialIndex` and `secondMaterialIndex` equal the edge's
+`PmFluidPairMaterialState`; duplicate and unknown structures are invalid.
+An `immiscible-interface` request also contains exactly one
+`PmFluidInterfaceState`. Recognized structures may appear in either chain
+order. `firstMaterialIndex` and `secondMaterialIndex` equal the edge's
 `first` and `second` fluid slots and select those endpoints' immutable
 `PmLiquidMaterialState` entries. This explicit mapping prevents a loader or
 driver from swapping, copying or synthesizing material ownership. Equal-
@@ -882,25 +884,29 @@ must report those behaviors unsupported rather than infer them from
 
 ### Immiscible interface profile
 
-An immiscible mechanical request has the exact current bundle bidirectional
-`contact` and `pressure` with material profile `immiscible-interface`. It
-cannot be advertised until the separately versioned interface state and
-`interface` mode are added. Interfacial `viscosity` and `thermal` remain
-independent optional records. Contact prevents
+An immiscible mechanical request has the exact bundle bidirectional `contact`,
+`pressure` and `interface` with material profile `immiscible-interface`.
+These are three independently queryable capability identities even though the
+initial graph descriptor requires their complete bundle. Interfacial
+`viscosity` and `thermal` remain independent optional records. Contact prevents
 particles crossing the represented boundary, pressure transfers normal
 traction, and interface force represents capillarity. No one of these records
 implies another.
 
-The future interface extension owns a nonnegative surface-tension coefficient `sigma`
-in N/m. At resolved curvature its equilibrium pressure jump obeys the
+`PmFluidInterfaceState` owns a finite, nonnegative surface-tension coefficient
+`surfaceTension`, written as `sigma` below, in N/m. The state appears exactly
+once in an immiscible edge's `pNext` chain and is invalid for every other
+material profile. At resolved curvature its equilibrium pressure jump obeys the
 Young-Laplace relation
 
 ```text
 pressure_first - pressure_second = sigma * (1 / R1 + 1 / R2)
 ```
 
-for principal radii `R1` and `R2` using the edge's declared first-to-second
-normal. A planar interface therefore has zero capillary pressure jump. The
+for principal radii `R1` and `R2`. The normal always points from the edge's
+first fluid endpoint to its second fluid endpoint; swapping endpoints reverses
+the normal and pressure-jump sign without changing the physical state. A
+planar interface therefore has zero capillary pressure jump. The
 discrete interface force is internal: absent external work it has zero net
 linear force and torque within tolerance. It may exchange kinetic and surface
 energy but must not create unbounded energy in the long-run stability corpus.
@@ -947,12 +953,11 @@ and capacity accounting, so the `thermal-phase` profile remains reserved.
 
 ### API separation and remaining state
 
-The public registry now has typed, versioned mechanical pair selection.
-Capillary work must still add the `interface` mode and its own typed state
-instead of hiding capillary behavior under `contact`. Thermal work must add
-caloric fields without reusing the API 0.2 heater rate. Mechanical, interface,
-thermal and phase records remain separately queryable. Implementation leaves
-add shared Slang operators and backend-neutral scheduling; qualification
+The public registry has typed, versioned mechanical pair and capillary state.
+Thermal work must add caloric fields without reusing the API 0.2 heater rate.
+Mechanical, interface, thermal and phase records remain separately queryable.
+Implementation leaves add shared Slang operators and backend-neutral
+scheduling; qualification
 leaves advertise one exact `(scope, mode, direction, material profile)` record
 at a time on each tested driver.
 

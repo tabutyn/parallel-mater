@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 #include "test_context.hpp"
 
+#include <limits>
+
 using parallel_mater::test::Context;
 
 int main() {
@@ -158,9 +160,55 @@ int main() {
 
     pair.pNext = &materials;
     reject_pair(pair, PM_ERROR_FEATURE_NOT_PRESENT);
+
+    PmFluidInterfaceState interface_state{
+        PM_STRUCTURE_TYPE_FLUID_INTERFACE_STATE, nullptr, 0.072F};
+    materials.pNext = &interface_state;
+    pair.pNext = &materials;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+
+    pair.materialProfile = PM_INTERACTION_MATERIAL_EQUAL;
+    pair.pNext = &interface_state;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+
     pair.materialProfile = PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE;
     pair.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
-        PM_INTERACTION_MODE_PRESSURE_BIT;
+        PM_INTERACTION_MODE_PRESSURE_BIT |
+        PM_INTERACTION_MODE_INTERFACE_BIT;
+
+    pair.pNext = nullptr;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+    materials.pNext = nullptr;
+    pair.pNext = &materials;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+    pair.pNext = &interface_state;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+
+    auto invalid_interface = interface_state;
+    invalid_interface.surfaceTension = -0.001F;
+    materials.pNext = &invalid_interface;
+    pair.pNext = &materials;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+    invalid_interface.surfaceTension =
+        std::numeric_limits<float>::infinity();
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+    invalid_interface.surfaceTension =
+        std::numeric_limits<float>::quiet_NaN();
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+
+    auto duplicate_interface = interface_state;
+    duplicate_interface.pNext = &interface_state;
+    materials.pNext = &duplicate_interface;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+
+    interface_state.surfaceTension = 0.0F;
+    materials.pNext = &interface_state;
+    pair.pNext = &materials;
+    reject_pair(pair, PM_ERROR_FEATURE_NOT_PRESENT);
+
+    interface_state.pNext = &materials;
+    materials.pNext = nullptr;
+    pair.pNext = &interface_state;
     reject_pair(pair, PM_ERROR_FEATURE_NOT_PRESENT);
 
     PmPhysicsPipelineCouplingStateInfo pipeline_couplings{

@@ -1,7 +1,7 @@
 {
   "registry": {
     "path": "registry/pm.xml",
-    "sha256": "d459278a52eb90299ff35c7db308d78edc25600ade1a236b3cf4d06c7d4cd17b"
+    "sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af"
   },
   "contract": "Parallel Mater command API 0.2",
   "implementation": "src/loader public entry points routed to installable drivers",
@@ -1251,6 +1251,11 @@
     },
     {
       "name": "PmCouplingType",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmFluidInterfaceState",
       "section": "9.3",
       "card": "coupling"
     },
