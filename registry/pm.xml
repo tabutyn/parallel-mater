@@ -79,6 +79,9 @@ typedef struct PmQueryPool_T* PmQueryPool;
     <type name="PmNativeDeviceImportInfo" value="12" />
     <type name="PmQueryPoolCreateInfo" value="13" />
     <type name="PmValidationDiagnosticsCreateInfo" value="14" />
+    <type name="PmCouplingStateInfo" value="15" />
+    <type name="PmFluidPairMaterialState" value="16" />
+    <type name="PmPhysicsPipelineCouplingStateInfo" value="17" />
   </structure-types>
   <interaction-capabilities>
     <!-- This is the reference-driver inventory.  Public records are emitted
@@ -884,10 +887,29 @@ typedef struct PmCouplingState {
     PmInteractionModeFlags modeFlags;
     PmInteractionMaterialProfile materialProfile;
     PmCouplingParameters parameters;
-} PmCouplingState;</types>
+} PmCouplingState;
+typedef struct PmCouplingStateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    PmCouplingType type;
+    uint32_t first;
+    uint32_t second;
+    PmInteractionModeFlags modeFlags;
+    PmInteractionMaterialProfile materialProfile;
+    PmCouplingParameters parameters;
+} PmCouplingStateInfo;
+typedef struct PmFluidPairMaterialState {
+    PmStructureType sType;
+    const void* pNext;
+    uint32_t firstMaterialIndex;
+    uint32_t secondMaterialIndex;
+} PmFluidPairMaterialState;</types>
       <commands>PmResult pmCmdSetCouplings(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t couplingCount,
-    const PmCouplingState *pCouplings);</commands>
+    const PmCouplingState *pCouplings);
+PmResult pmCmdSetCouplings2(PmCommandBuffer commandBuffer,
+    PmSimulation simulation, uint32_t couplingCount,
+    const PmCouplingStateInfo *pCouplings);</commands>
     </card>
     <card key="domain_materials" section="pipelines" extension="false" emit-header="true">
       <types>typedef struct PmClothMaterialState {
@@ -949,7 +971,13 @@ typedef struct PmSmokeMaterialState {
       <commands />
     </card>
     <card key="pipeline_create" section="pipelines" extension="false" emit-header="true">
-      <types>typedef struct PmPhysicsPipelineCreateInfo {
+      <types>typedef struct PmPhysicsPipelineCouplingStateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    uint32_t couplingCount;
+    const PmCouplingStateInfo* pCouplings;
+} PmPhysicsPipelineCouplingStateInfo;
+typedef struct PmPhysicsPipelineCreateInfo {
     PmStructureType sType;
     const void* pNext;
     const PmRigidSolverState* pRigidState;

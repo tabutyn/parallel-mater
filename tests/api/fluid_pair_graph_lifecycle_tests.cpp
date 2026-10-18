@@ -97,6 +97,22 @@ int main() {
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
     pipeline_info.fluidMaterialCount = 2U;
+    auto edge = pair_edge();
+    PmFluidPairMaterialState pipeline_materials{
+        PM_STRUCTURE_TYPE_FLUID_PAIR_MATERIAL_STATE, nullptr, 0U, 1U};
+    PmCouplingStateInfo pipeline_edge{};
+    pipeline_edge.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+    pipeline_edge.pNext = &pipeline_materials;
+    pipeline_edge.type = edge.type;
+    pipeline_edge.first = edge.first;
+    pipeline_edge.second = edge.second;
+    pipeline_edge.modeFlags = edge.modeFlags;
+    pipeline_edge.materialProfile = edge.materialProfile;
+    pipeline_edge.parameters = edge.parameters;
+    const PmPhysicsPipelineCouplingStateInfo pipeline_couplings{
+        PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_COUPLING_STATE_INFO, nullptr, 1U,
+        &pipeline_edge};
+    pipeline_info.pNext = &pipeline_couplings;
     pipeline_info.pFluidMaterials = equal_materials;
     PmPhysicsPipeline equal_pipeline{};
     PM_CHECK(pmCreatePhysicsPipeline(context.device, &pipeline_info,
@@ -105,8 +121,9 @@ int main() {
     PmPhysicsPipeline unequal_pipeline{};
     PM_CHECK(pmCreatePhysicsPipeline(context.device, &pipeline_info,
                                      &unequal_pipeline) == PM_SUCCESS);
+    // Creation owns a normalized copy of both descriptor layers.
+    pipeline_materials.secondMaterialIndex = 0U;
 
-    auto edge = pair_edge();
     auto invalid = edge;
     invalid.first = 1U;
     invalid.second = 0U;
@@ -123,9 +140,20 @@ int main() {
              PM_SUCCESS);
     PM_CHECK(context.submit() == PM_ERROR_INVALID_ARGUMENT);
 
+    const PmFluidPairMaterialState command_materials{
+        PM_STRUCTURE_TYPE_FLUID_PAIR_MATERIAL_STATE, nullptr, 0U, 1U};
+    PmCouplingStateInfo command_edge{};
+    command_edge.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+    command_edge.pNext = &command_materials;
+    command_edge.type = edge.type;
+    command_edge.first = edge.first;
+    command_edge.second = edge.second;
+    command_edge.modeFlags = edge.modeFlags;
+    command_edge.materialProfile = edge.materialProfile;
+    command_edge.parameters = edge.parameters;
     context.begin();
-    PM_CHECK(pmCmdSetCouplings(context.commands, simulation, 1U, &edge) ==
-             PM_SUCCESS);
+    PM_CHECK(pmCmdSetCouplings2(context.commands, simulation, 1U,
+                                &command_edge) == PM_SUCCESS);
     PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, equal_pipeline) ==
              PM_SUCCESS);
     PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
@@ -147,7 +175,7 @@ int main() {
     }
 
     context.begin();
-    PM_CHECK(pmCmdSetCouplings(context.commands, simulation, 0U, nullptr) ==
+    PM_CHECK(pmCmdSetCouplings2(context.commands, simulation, 0U, nullptr) ==
              PM_SUCCESS);
     PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, equal_pipeline) ==
              PM_SUCCESS);
@@ -162,8 +190,6 @@ int main() {
     for (std::uint32_t index = 0U; index < 2U; ++index)
         PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation, index,
                                        &views[index]) == PM_SUCCESS);
-    PM_CHECK(pmCmdSetCouplings(context.commands, simulation, 1U, &edge) ==
-             PM_SUCCESS);
     PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
              PM_SUCCESS);
     PM_CHECK(context.submit() == PM_SUCCESS);

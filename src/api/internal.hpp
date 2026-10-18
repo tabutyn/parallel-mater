@@ -407,6 +407,9 @@ inline PmResult record_query(PmCommandBuffer buffer, PmQueryPool pool,
     PmInteractionCapability &capability) noexcept;
 [[nodiscard]] PFN_pmVoidFunction lookup_proc(const char *name) noexcept;
 [[nodiscard]] PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noexcept;
+[[nodiscard]] PmResult normalize_coupling_info(
+    PmDevice device, const PmCouplingStateInfo &source,
+    PmCouplingState &destination) noexcept;
 [[nodiscard]] PmResult clear_couplings(PmSimulation simulation) noexcept;
 [[nodiscard]] PmResult initialize_couplings(
     PmSimulation simulation, PmPhysicsPipeline pipeline) noexcept;
