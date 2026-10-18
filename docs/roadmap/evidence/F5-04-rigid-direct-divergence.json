@@ -1,0 +1,137 @@
+{
+  "schema": "parallel-mater-roadmap-rigid-direct-divergence-evidence/v1",
+  "task": "F5-04",
+  "scope": "Public-API isolation of the historical Slang CPU rigid-direct angular-velocity mismatch",
+  "source": {
+    "lease_base_main_commit": "3acb4130ef939497d9b36d4f14c1c280f99892a3",
+    "historical_reproduction_commit": "603fee51dfc67b095f86641724f46752046b56fa",
+    "historical_cuda_golden_commit": "cc2a2e40656c2a850176d97220d7c32d6da6bf2d",
+    "branch": "work/F5-04/windows-gtx1080",
+    "lease_token": "a6468cc4-0fc2-4efd-9e0e-8b4a2ea9bfb7",
+    "historical_worktree_clean": true
+  },
+  "case": {
+    "path": "conformance/v1/cases/rigid-direct.json",
+    "byte_sha256": "46aa92423da8a22cb1d353932b8ef030f0f30d8e2f89d340cea163ecb61871e8",
+    "semantic_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
+    "frames": 60,
+    "timestep_seconds": 0.016666666666666666,
+    "substeps": 4,
+    "gravity": [0.0, -9.81, 0.0],
+    "commands": [
+      "frame 0: apply [1.5, 0, 0] impulse to dynamic-box",
+      "frame 20: move kinematic-box target to [1, 1.5, 0]",
+      "frame 40: replace dynamic-box at [0, 2, 0]"
+    ],
+    "direct_tolerance": {
+      "position": {"absolute": 0.00001, "relative": 0.00001},
+      "velocity": {"absolute": 0.00001, "relative": 0.00001}
+    },
+    "tolerance_changed": false
+  },
+  "device": {
+    "machine": "windows-gtx1080",
+    "gpu": "NVIDIA GeForce GTX 1080",
+    "compute_capability": "6.1",
+    "windows_driver": "582.66",
+    "execution_host": "Ubuntu 24.04 on WSL2, Linux 6.18.33.2-microsoft-standard-WSL2 x86_64"
+  },
+  "toolchain": {
+    "slang": "2026.18",
+    "cmake": "3.28.3",
+    "cpu_compiler": "GCC 13.3.0",
+    "cuda_compiler": "CUDA 12.9.86 with GCC 13.3.0",
+    "configuration": "Release",
+    "cuda_architecture": "61"
+  },
+  "historical_same_revision_capture": {
+    "cpu": {
+      "raw": "docs/roadmap/evidence/F5-04-rigid-direct-603fee-cpu.json",
+      "sha256": "dd3ead3871e4fcb40439da6d7c6886bccdd100a072fca19639753b17b1e50e95",
+      "bytes": 70946,
+      "driver_sha256": "efa9bd0b2f45794a4b1334549086dc61335d322b17347a9ae506849d1eb9b6ce",
+      "runner_sha256": "ec4775cd99ddcba57e0de30f08d0b85e3548c68d640779a95851806d0f6b7668"
+    },
+    "cuda": {
+      "raw": "docs/roadmap/evidence/F5-04-rigid-direct-603fee-cuda.json",
+      "sha256": "f2695ce08260ce17182a5bfb4b8a5170583d2e71a0d9d61c74fb949f863f8c69",
+      "bytes": 70993,
+      "driver_sha256": "d3979512192efcc7186cd52647185f786711f7b7d43dbcbdd5f261271f4d50ca",
+      "runner_sha256": "cece8c078e89fbd9e854abc34121b5d0433338774fa03641b1a5590a4802a595"
+    },
+    "frame_count_each": 61,
+    "frame_20": {
+      "result": "CPU and CUDA dynamic-box state is byte-for-value identical and both report zero rigid contacts",
+      "position": [0.24999983608722687, 1.4481877088546753, 0.0],
+      "linear_velocity": [0.75, -3.269998073577881, 0.0],
+      "angular_velocity": [0.0, 0.0, 0.0]
+    },
+    "first_exact_difference": {
+      "frame": 1,
+      "path": "dynamic-box.position[0]",
+      "cpu": 0.01250000111758709,
+      "cuda": 0.012500000186264515,
+      "absolute_error": 9.313225746154785e-10,
+      "classification": "below unchanged tolerance and reconverged exactly by frame 20"
+    },
+    "first_contract_failure": {
+      "frame": 21,
+      "trigger": "first submission after the frame-20 kinematic target move",
+      "contacts": "both drivers report eight dynamic-box/kinematic-box contacts, but their impulse records cannot be paired within the direct tolerance",
+      "first_rigid_body_state_path": "dynamic-box.angular_velocity[0]",
+      "cpu": -0.023081064224243164,
+      "cuda": -0.02334492653608322,
+      "absolute_error": 0.0002638623118400574,
+      "allowed_error": 0.000010233449265360833,
+      "first_aggregate_path": "combined_momentum[2]",
+      "aggregate_cpu": -0.0002284104557475075,
+      "aggregate_cuda": -0.00024795500212349,
+      "aggregate_absolute_error": 0.000019544546375982463,
+      "aggregate_allowed_error": 0.000010002479550021236
+    },
+    "frame_40_angular_velocity": {
+      "cpu": [-0.02308286726474762, -0.003914915025234222, -0.00879669189453125],
+      "cuda": [-0.023342901840806007, -0.003932504449039698, -0.008892660029232502],
+      "absolute_error": [0.00026003457605838776, 0.000017589423805475235, 0.00009596813470125198]
+    }
+  },
+  "historical_golden_classification": {
+    "golden": "conformance/v1/golden/cuda/rigid-direct.json",
+    "golden_sha256": "32fce286ae8096f9de69c87eb1e4165280cc6c5df37f3e473bb89d7c33c71e4e",
+    "cpu_result": "failed exactly the three documented frame-40 dynamic-box angular-velocity components; maximum absolute error 0.0002557467669248581",
+    "same_revision_gtx1080_cuda_result": "also failed historical RTX 3050 Ti reference regression for frame-40 combined_momentum[2] and angular_velocity[1]",
+    "conclusion": "The original report combined a real CPU/CUDA first-contact divergence with smaller historical-device/reference drift; it was not a pure final-integration error."
+  },
+  "current_main_capture": {
+    "revision": "3acb4130ef939497d9b36d4f14c1c280f99892a3",
+    "cpu": {
+      "raw": "docs/roadmap/evidence/F5-04-rigid-direct-3acb413-cpu.json",
+      "sha256": "f8aee1831dc15193d65684037c6d73c594779f2f853112f280dc63130bfa4f81",
+      "bytes": 70473
+    },
+    "cuda": {
+      "raw": "docs/roadmap/evidence/F5-04-rigid-direct-3acb413-cuda.json",
+      "sha256": "25d008ef94007b712b11e59aba8ce8d10458bf60c4ed3c6e7cec8090288c9a81",
+      "bytes": 70472
+    },
+    "same_revision_result": "PASS: all 61 frames compare within the unchanged direct tolerance",
+    "first_exact_difference": "frame 21 dynamic-box.position[1], one float ULP (1.1920928955078125e-7), within tolerance",
+    "historical_golden_result": "Both current CPU and CUDA fail the same 13 frame-40 fields against the retained golden, so remaining drift is shared rather than CPU-specific."
+  },
+  "reproduction": [
+    "Build revision 603fee51dfc67b095f86641724f46752046b56fa once with PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=ON and once with PARALLEL_MATER_BUILD_CUDA=ON, PARALLEL_MATER_BUILD_CONFORMANCE=ON, Slang 2026.18, Release and all unrelated drivers/gallery disabled.",
+    "Set PM_DRIVER_FILES and PM_LAYER_FILES to each build's generated driver and validation manifests, then run: parallel-mater-conformance --case rigid-direct --every-frame --output <backend-output>.",
+    "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected <cuda-output> --actual <cpu-output> --case rigid-direct --report <report>; expected result is failure beginning at frame 21.",
+    "Repeat the two runner commands from revision 3acb4130ef939497d9b36d4f14c1c280f99892a3; the same comparator command passes all 61 frames."
+  ],
+  "corrective_follow_up": {
+    "task": "F5-17",
+    "title": "Adjudicate rigid-direct reference drift",
+    "reason": "Current CPU/CUDA agreement removes the old CPU-only classification, but agreement cannot decide whether the shared frame-21 response or the retained historical reference is physically correct."
+  },
+  "limitations": [
+    "This evidence isolates public observable state and contact outputs; it does not identify a private kernel instruction or establish an independent physical oracle.",
+    "The historical reference came from an RTX 3050 Ti and commit cc2a2e4; the same-revision CUDA reproduction uses this GTX 1080 and commit 603fee5.",
+    "Cross-driver agreement and reference regression are not physical-quality qualification. F5-17 keeps the unresolved reference adjudication visible without changing tolerances or goldens."
+  ]
+}
