@@ -528,6 +528,8 @@ class CommandList final {
 public:
     CommandList(const CommandList &) = delete;
     CommandList &operator=(const CommandList &) = delete;
+    // Local recording state; a closed device queue can also prevent encoding.
+    [[nodiscard]] bool is_recording() const noexcept { return bool(encoder_); }
     void dispatch(const Arguments &arguments, Extent groups) {
         ensure_open();
         arguments.validate();

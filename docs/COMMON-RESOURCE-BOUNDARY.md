@@ -87,6 +87,13 @@ does not change public `pmQueueSubmit` retry/error semantics. Native upload
 encoding snapshots caller bytes and returns the staging owner to the common
 list; later host edits do not change queued data.
 
+The Metal host scheduler discards canceled lists after reporting an encoding or
+submission error, allowing the next operation to start a fresh batch. It preserves
+still-recording lists after ordinary validation errors. Its own pending-token
+slot is also allocated before native acceptance, so allocation failure cannot
+make `wait()` miss an accepted submission. The scheduler's injected-failure test
+runs without GPU hardware on macOS CI.
+
 Device teardown drains accepted work before releasing native device/queue
 members, continues draining after a deferred error, and does not throw. A
 surviving unsubmitted command list cannot enqueue after teardown. Each command

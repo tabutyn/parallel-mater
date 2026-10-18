@@ -50,6 +50,11 @@ public:
     template<class F> cudaError_t checked(F &&call, bool retain_error = true) noexcept {
         std::lock_guard lock(mutex);
         const auto report = [&](cudaError_t error) {
+            // Common encoding/submit failures cancel the private list. Never
+            // keep that terminal list as the scheduler's next recording batch.
+            // Ordinary validation errors leave it recording and must preserve
+            // previously encoded valid work.
+            if (command_ && !command_->is_recording()) command_.reset();
             return retain_error ? remember(error) : error;
         };
         try { call(); return cudaSuccess; }

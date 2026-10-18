@@ -156,9 +156,11 @@ void dropped_handles_and_tokens() {
     auto state = std::make_shared<State>();
     auto command = commands(queue, state);
     encode_all_resources(*command);
+    require(command->is_recording(), "valid command lost recording state");
     require(state->alive(), "command did not retain direct/record/indirect/kernel/staging owners");
     require(state->snapshot[0] == std::byte{37}, "upload did not snapshot caller memory");
     auto completion = command->submit();
+    require(!command->is_recording(), "submitted command still recording");
     command.reset();
     require(!completion->ready(), "unfinished submission reported ready");
     require(completion->native_handle() == state.get(), "native completion handle lost");
@@ -210,7 +212,10 @@ void cancellation_and_failures() {
         }
         require(state->expired() && state->destroyed == 1 && state->submitted == 0 &&
             state->waited == 0, "cancel/failure leaked or waited on unsubmitted resources");
-        if (command) rejects<std::logic_error>([&] { (void)command->submit(); });
+        if (command) {
+            require(!command->is_recording(), "failed command still recording");
+            rejects<std::logic_error>([&] { (void)command->submit(); });
+        }
     }
     for (bool observe_with_wait : {false, true}) {
         auto state = std::make_shared<State>();

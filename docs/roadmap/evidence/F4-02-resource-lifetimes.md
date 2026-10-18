@@ -4,6 +4,8 @@ Date: 2026-10-18. Host: Thomass-MacBook-Air, Apple M4, macOS 26.5.2
 (25F84), Apple Clang 21.0.0 (clang-2100.1.1.101), arm64.
 Claim: PR #232, token `e74e6bc9-e94d-447c-a85a-0d323438b8e0`.
 Base: `236158f` (merged claim after F4-01 completion #231).
+Revalidated after integrating main's Vulkan smoke work (`11049bc`) and the
+subsequent claim-only update (`c287000`).
 
 ## Acceptance evidence
 
@@ -30,26 +32,38 @@ Verified cases:
 - A condition-variable-gated native wait runs on another thread. Polling,
   collection, new recording and new submission all return before that wait is
   released: no incidental GPU wait enters the queue's collection path.
+- The real Metal host scheduler is also exercised with an injected-failure
+  mock device. Encoding and submit failures discard canceled lists; the next
+  operation succeeds with a fresh batch. Ordinary validation failures preserve
+  prior valid commands, and public-service errors do not poison sticky launch
+  errors. The scheduler allocates its pending-token slot before acceptance.
+
+The scheduler regression initially failed with `scheduler retained cancelled
+command after failed submit`. It passes after the scheduler checks local
+recording state and discards canceled lists. No tolerance or expected output was
+relaxed to turn this failure into a pass.
 
 ## Commands and observed results
 
 ```sh
-cmake --build build-gallery-portable-verify --target parallel-mater-compute-contract-tests parallel-mater-compute-lifetime-tests -j 8
-ctest --test-dir build-gallery-portable-verify -R '^parallel-mater-compute-(contract|lifetime)-tests$' --repeat until-fail:20 --output-on-failure
+cmake --build build-gallery-portable-verify --target parallel-mater-compute-contract-tests parallel-mater-compute-lifetime-tests parallel-mater-metal-schedule-recovery-tests -j 8
+ctest --test-dir build-gallery-portable-verify -R '^parallel-mater-(compute-(contract|lifetime)|metal-schedule-recovery)-tests$' --repeat until-fail:20 --output-on-failure
 ```
 
-PASS: both tests passed all 20 repetitions (40 executions), including the
-deterministic concurrent-wait case.
+PASS: all three tests passed 20 repetitions (60 executions), including the
+deterministic concurrent-wait case and the real scheduler's failure recovery.
 
 ```sh
-c++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsanitize=address,undefined -g -Isrc tests/solver/compute_lifetime_tests.cpp -o /private/tmp/parallel-mater-f4-02-sanitizers.ZMAjju/compute-lifetime-tests
-/private/tmp/parallel-mater-f4-02-sanitizers.ZMAjju/compute-lifetime-tests
-c++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsanitize=thread -g -O1 -pthread -Isrc tests/solver/compute_lifetime_tests.cpp -o /private/tmp/parallel-mater-f4-02-sanitizers.ZMAjju/compute-lifetime-tsan
-/private/tmp/parallel-mater-f4-02-sanitizers.ZMAjju/compute-lifetime-tsan
+cmake -S tests/solver -B /private/tmp/parallel-mater-f4-02-sanitizers.ZMAjju/build-asan -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -g -Wall -Wextra' -DCMAKE_BUILD_TYPE=Debug
+cmake --build /private/tmp/parallel-mater-f4-02-sanitizers.ZMAjju/build-asan --target parallel-mater-compute-contract-tests parallel-mater-compute-lifetime-tests parallel-mater-metal-schedule-recovery-tests -j 8
+ctest --test-dir /private/tmp/parallel-mater-f4-02-sanitizers.ZMAjju/build-asan -R '^parallel-mater-(compute-(contract|lifetime)|metal-schedule-recovery)-tests$' --output-on-failure
+cmake -S tests/solver -B /private/tmp/parallel-mater-f4-02-sanitizers.ZMAjju/build-tsan -DCMAKE_CXX_FLAGS='-fsanitize=thread -g -Wall -Wextra' -DCMAKE_BUILD_TYPE=Debug
+cmake --build /private/tmp/parallel-mater-f4-02-sanitizers.ZMAjju/build-tsan --target parallel-mater-compute-contract-tests parallel-mater-compute-lifetime-tests parallel-mater-metal-schedule-recovery-tests -j 8
+ctest --test-dir /private/tmp/parallel-mater-f4-02-sanitizers.ZMAjju/build-tsan -R '^parallel-mater-(compute-(contract|lifetime)|metal-schedule-recovery)-tests$' --output-on-failure
 ```
 
-PASS: strict-warning builds and both instrumented executions; no AddressSanitizer,
-UndefinedBehaviorSanitizer or ThreadSanitizer diagnostics. The temporary output
+PASS: warning-enabled sanitizer builds and 3/3 tests in each configuration; no
+AddressSanitizer, UndefinedBehaviorSanitizer or ThreadSanitizer diagnostics. The temporary output
 directory was created with `mktemp -d`; use a fresh temporary directory to repeat.
 
 ```sh
