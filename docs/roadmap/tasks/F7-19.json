@@ -1,7 +1,7 @@
 {
   "id": "F7-19",
   "title": "Close common Gallery runtime boundary",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F7-06",
     "F7-08"
@@ -18,6 +18,14 @@
     "Platform clients cannot mutate GalleryRuntime internals through GallerySession; typed rendering, capture, calibration and diagnostic interfaces retain current desktop behavior and pass common-session plus desktop backend tests."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "51c1d378-036c-4afd-a573-3a4098d941e3",
+    "owner": "codex-linux-gallery",
+    "machine": "thomas-laptop",
+    "branch": "work/F7-19/thomas-laptop",
+    "claimed_at": "2026-10-18T04:02:14Z",
+    "heartbeat_at": "2026-10-18T04:02:14Z",
+    "expires_at": "2026-10-19T04:02:14Z"
+  },
   "history": []
 }
