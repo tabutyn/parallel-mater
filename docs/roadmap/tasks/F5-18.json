@@ -1,7 +1,7 @@
 {
   "id": "F5-18",
   "title": "Stabilize rigid-direct planar symmetry",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-17"
   ],
@@ -20,6 +20,14 @@
     "Publish revisioned CPU/CUDA comparison and physical-quality evidence and update the qualification limitation; do not claim broader driver qualification or performance."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "c7c93279-2fa1-4013-8a8a-90b52242c8b3",
+    "owner": "codex-windows-sdk",
+    "machine": "windows-gtx1080",
+    "branch": "work/F5-18/windows-gtx1080",
+    "claimed_at": "2026-10-18T10:36:58Z",
+    "heartbeat_at": "2026-10-18T10:36:58Z",
+    "expires_at": "2026-10-19T10:36:58Z"
+  },
   "history": []
 }
