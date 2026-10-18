@@ -1,0 +1,45 @@
+{
+  "id": "F5-18",
+  "title": "Stabilize rigid-direct planar symmetry",
+  "status": "done",
+  "dependencies": [
+    "F5-17"
+  ],
+  "locks": [
+    "quality-rigid-direct",
+    "shared-rigid-contact-solver"
+  ],
+  "requires": [
+    "Slang CPU and CUDA on one GPU; shared rigid-contact solver review"
+  ],
+  "scope": "Resolve the corrected rigid-direct fixture's bounded cross-target planar-symmetry leakage. The 0.2 m kinematic collider exposes a 2.4093271349556744e-05 rad/s Slang CPU/CUDA difference in dynamic-box angular_velocity[1] after frame 21, above the unchanged direct tolerance while both trajectories pass the independent physical oracle. Stabilize only the shared Slang contact path; do not mask output, change the fixture, add a backend physics fork or relax tolerances.",
+  "acceptance": [
+    "Reproduce the frame-21 divergence from the exact F5-17 case/profile hashes and retain its unchanged-tolerance report as pre-correction evidence.",
+    "Correct the shared Slang rigid-contact path so all 61 CPU/CUDA rigid-direct frames compare within the unchanged direct tolerances and both pass the rigid-kinematic-sweep physical-quality profile.",
+    "Add focused regression coverage that preserves planar mirror symmetry without discarding legitimate small three-dimensional angular response, and rerun the existing torque-free, convex-sweep, face-normal and brick-penetration gates.",
+    "Publish revisioned CPU/CUDA comparison and physical-quality evidence and update the qualification limitation; do not claim broader driver qualification or performance."
+  ],
+  "evidence": [
+    "docs/roadmap/evidence/F5-18-rigid-direct-planar-symmetry.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "c7c93279-2fa1-4013-8a8a-90b52242c8b3",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F5-18/windows-gtx1080",
+        "claimed_at": "2026-10-18T10:36:58Z",
+        "heartbeat_at": "2026-10-18T10:36:58Z",
+        "expires_at": "2026-10-19T10:36:58Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T11:07:23Z",
+      "reason": "Removed tessellation-diagonal interior face contacts in shared Slang; 61-frame CPU/CUDA parity and both physical-quality profiles pass at unchanged tolerances.",
+      "evidence": [
+        "docs/roadmap/evidence/F5-18-rigid-direct-planar-symmetry.json"
+      ]
+    }
+  ]
+}

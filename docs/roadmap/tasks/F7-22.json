@@ -1,0 +1,16 @@
+{
+  "id": "F7-22",
+  "title": "Unify mobile Gallery qualification orchestration",
+  "status": "open",
+  "dependencies": ["F7-07", "F7-19", "F7-21"],
+  "locks": ["mobile-gallery-qualification-coordinator"],
+  "requires": ["Any development host; Android and iOS build CI"],
+  "scope": "Move scripted mobile scene, control and lifecycle qualification orchestration and its report schema into common Gallery support while platform runners provide surfaces and OS lifecycle events.",
+  "acceptance": [
+    "Android and iOS qualification runners invoke one common scenario model and emit the same versioned report fields for scenes, controls, lifecycle, renderer and failures.",
+    "Common contract tests cover attach, resize, background, recovery, control execution and scene selection without duplicating that sequence in platform shells."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

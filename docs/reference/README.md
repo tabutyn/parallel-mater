@@ -24,14 +24,40 @@ specification rather than the compact reference.
 
 ## Generate and verify
 
-From the repository root:
+The release toolchain is pinned by `tools/reference/toolchain.json`: CPython,
+Python packages, immutable font sources, extracted font hashes, and licenses.
+The font files are cached below ignored `out/reference-toolchain/`; they are not
+read from the host operating system.
+
+Install CPython 3.13.15, then regenerate and independently verify the complete
+artifact set from the repository root with one command:
 
 ```sh
-python3 -m venv /tmp/pm-reference-venv
-/tmp/pm-reference-venv/bin/pip install -r tools/reference/requirements.txt
-/tmp/pm-reference-venv/bin/python tools/reference/build.py
-/tmp/pm-reference-venv/bin/python tools/reference/check.py
+python tools/reference/bootstrap.py --build --check
 ```
+
+Verification also requires a C11/C++17 compiler. On Windows, run the command
+from a Visual Studio Developer PowerShell so `cl.exe` is available.
+
+`bootstrap.py` creates an ignored virtual environment, installs only the exact
+package versions in `requirements.txt`, downloads immutable font inputs, checks
+every hash, and runs generation/checking with that environment. Use
+`--skip-vulkan-header` only on a host without Vulkan SDK headers; this skips the
+optional header compile probe, not artifact generation or comparison.
+
+For verification without updating tracked artifacts:
+
+```sh
+python tools/reference/bootstrap.py --check --skip-vulkan-header
+```
+
+The checker generates the full set below a clean temporary root and byte
+compares both header copies, searchable text, API coverage, both PDFs, both
+layout manifests, and `release-artifacts.json`. A mismatch names every changed
+artifact. The release manifest binds those files and the locked toolchain to
+one LF-canonical SHA-256 revision of `registry/pm.xml`, independent of checkout
+line endings; `known_nondeterminism` records any accepted exception and is
+currently empty.
 
 Header and runtime coverage generation does not require the PDF dependencies:
 
@@ -48,5 +74,5 @@ runtime implementation files. Diagrams are vector drawing instructions. The
 transparent wordmark is the only raster asset.
 
 `--text-only` updates searchable specification text and coverage as well as the
-headers. CI checks that the text and headers match their sources. PDF artifacts
-are release snapshots; regenerate both PDFs with the full command for a release.
+headers. CI performs a clean full regeneration, including the PDF and layout
+artifacts, on every pull request and main-branch update.

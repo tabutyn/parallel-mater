@@ -51,6 +51,36 @@ bool requirements_supported(std::uint32_t requirements,
            (!(requirements & require_domainCouplings) || features.domainCouplings);
 }
 
+bool driver_supports_interaction(
+    const PmInteractionCapabilityKey &key) noexcept {
+#if defined(PARALLEL_MATER_VULKAN_DRIVER)
+    // Vulkan enables domain schedules incrementally. Feature bits describe
+    // available families, while this exact interaction list must not expose a
+    // pair until its dispatch module has been compiled and qualified.
+    const bool cloth_soft =
+        key.firstFamily == PM_INTERACTION_FAMILY_CLOTH &&
+        key.secondFamily == PM_INTERACTION_FAMILY_SOFT_BODY;
+    const bool cloth_rope =
+        key.firstFamily == PM_INTERACTION_FAMILY_CLOTH &&
+        key.secondFamily == PM_INTERACTION_FAMILY_ROPE;
+    const bool soft_rope =
+        key.firstFamily == PM_INTERACTION_FAMILY_SOFT_BODY &&
+        key.secondFamily == PM_INTERACTION_FAMILY_ROPE;
+    if (cloth_soft || cloth_rope || soft_rope)
+        return false;
+#else
+    (void)key;
+#endif
+    return true;
+}
+
+bool interaction_supported(
+    const InteractionCandidate &candidate,
+    const PmPhysicalDeviceFeatures &features) noexcept {
+    return requirements_supported(candidate.requirements, features) &&
+           driver_supports_interaction(candidate.capability.key);
+}
+
 bool valid_interaction_key(const PmInteractionCapabilityKey &key) noexcept {
     const auto first = static_cast<int>(key.firstFamily);
     const auto second = static_cast<int>(key.secondFamily);
@@ -90,7 +120,7 @@ PmResult find_interaction_capability(
     if (!valid_interaction_key(key)) return PM_ERROR_INVALID_ARGUMENT;
     for (const auto &candidate : interaction_candidates) {
         if (!same_interaction_key(key, candidate.capability.key)) continue;
-        if (!requirements_supported(candidate.requirements, features))
+        if (!interaction_supported(candidate, features))
             return PM_ERROR_FEATURE_NOT_PRESENT;
         capability = candidate.capability;
         return PM_SUCCESS;
@@ -111,6 +141,8 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
 #endif
 #if defined(PARALLEL_MATER_VULKAN_DRIVER)
     features.cloth = PM_TRUE;
+    features.rope = PM_TRUE;
+    features.softBodies = PM_TRUE;
     features.domainCouplings = PM_TRUE;
     features.paint = PM_TRUE;
 #endif
@@ -275,6 +307,7 @@ PFN_pmVoidFunction lookup_proc(const char *value) noexcept {
     PM_LOOKUP(pmGetPhysicalDeviceInteropProperties);
     PM_LOOKUP(pmImportNativeDevice);
     PM_LOOKUP(pmGetNativeDevice);
+    PM_LOOKUP(pmGetNativeQueue);
     PM_LOOKUP(pmImportNativeBuffer);
     PM_LOOKUP(pmGetNativeBuffer);
     PM_LOOKUP(pmImportNativeSemaphore);
@@ -475,8 +508,7 @@ pmEnumeratePhysicalDeviceInteractionCapabilities(
     const auto features = parallel_mater::api::supported_features();
     std::uint32_t available = 0U;
     for (const auto &candidate : parallel_mater::api::interaction_candidates)
-        if (parallel_mater::api::requirements_supported(
-                candidate.requirements, features))
+        if (parallel_mater::api::interaction_supported(candidate, features))
             ++available;
     if (capabilities == nullptr) {
         *count = available;
@@ -485,8 +517,7 @@ pmEnumeratePhysicalDeviceInteractionCapabilities(
     const std::uint32_t capacity = *count;
     std::uint32_t written = 0U;
     for (const auto &candidate : parallel_mater::api::interaction_candidates) {
-        if (!parallel_mater::api::requirements_supported(
-                candidate.requirements, features))
+        if (!parallel_mater::api::interaction_supported(candidate, features))
             continue;
         if (written == capacity) break;
         capabilities[written++] = candidate.capability;

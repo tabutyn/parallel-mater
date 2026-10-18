@@ -1,0 +1,64 @@
+{
+  "schema": "parallel-mater-roadmap-gallery-boundary-evidence/v1",
+  "task": "F7-19",
+  "scope": "One common GallerySession frame scheduler and a closed mutable GalleryRuntime boundary",
+  "source": {
+    "implementation_commit": "de5f0143509f2a1154424fbb583474b294d58bbe",
+    "branch": "work/F7-19/thomas-laptop",
+    "base_main_commit": "6a8adad54b32d110957cc22a6e3d08dffe14df20"
+  },
+  "device": {
+    "machine": "thomas-laptop",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "operating_system": "Linux 6.1.0-53-amd64 x86_64",
+    "compiler": "GCC 12.2.0",
+    "graphics_api": "Vulkan"
+  },
+  "contract": {
+    "desktop_frame_owner": "GallerySession::frame_at",
+    "mobile_frame_owner": "GallerySession::frame_at through MobileGallerySession",
+    "common_owned_policy": [
+      "fixed-step cadence and catch-up budget",
+      "solver step and readback admission",
+      "render and present ordering",
+      "timing publication and failure cancellation"
+    ],
+    "desktop_owned_policy": [],
+    "mutable_runtime_accessor": false,
+    "explicit_noninteractive_step": "GallerySession::diagnostic_step",
+    "typed_runtime_views": [
+      "scene",
+      "scene_instance",
+      "output",
+      "native interoperability",
+      "host and native rendering",
+      "capture and calibration diagnostics"
+    ]
+  },
+  "verification": [
+    {
+      "check": "Build Gallery, common session contracts and Vulkan renderer/surface contracts in build-f7-19",
+      "result": "passed"
+    },
+    {
+      "check": "ctest --test-dir build-f7-19 --output-on-failure -R 'parallel-mater-(gallery-session-contract-tests|vulkan-gallery-renderer-tests|vulkan-gallery-surface-tests)'",
+      "result": "3/3 passed on the physical Vulkan GPU; 98.80 seconds"
+    },
+    {
+      "check": "Gallery frame policy, timing, timing overlay, input, registry, camera and GPU renderer contract tests",
+      "result": "7/7 passed"
+    },
+    {
+      "check": "parallel-mater-gallery --backend vulkan --constraint-point --frames 3 --headless ... --frame-timings ...",
+      "result": "passed; three physics/render timing samples; valid 1920x1080 PPM; sha256 f1df10b42230091460c94ad3ab39c138ca382eaa5cac041e43749f3a0ce3f5f9"
+    },
+    {
+      "check": "Source scan for GallerySession::runtime, desktop GalleryFramePolicy instance and session.controlled_step",
+      "result": "no platform or test client matches; GallerySession retains one private frame_policy_"
+    }
+  ],
+  "limitations": [
+    "Headless and calibration tools intentionally retain explicit diagnostic stepping and their own measurement loops because they are scripted diagnostics rather than ordinary interactive frames.",
+    "Android physical Vulkan qualification remains tracked by F7-16 and F7-18."
+  ]
+}

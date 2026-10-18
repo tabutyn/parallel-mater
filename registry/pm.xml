@@ -1490,7 +1490,9 @@ typedef struct PmNativeDeviceImportInfo {
     const PmNativeDeviceImportInfo* pInfo,
     PmDevice* pDevice);
 PmResult pmGetNativeDevice(PmDevice device,
-    PmNativeDeviceInfo* pNativeDevice);</commands>
+    PmNativeDeviceInfo* pNativeDevice);
+PmResult pmGetNativeQueue(PmQueue queue,
+    PmNativeQueueInfo* pNativeQueue);</commands>
     </card>
     <card key="native_buffer" section="interop" extension="false" emit-header="true">
       <types>typedef struct PmNativeBufferInfo {

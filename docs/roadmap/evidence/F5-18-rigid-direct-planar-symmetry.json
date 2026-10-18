@@ -1,0 +1,233 @@
+{
+  "schema": "parallel-mater-roadmap-rigid-direct-planar-symmetry-evidence/v1",
+  "task": "F5-18",
+  "scope": "Shared-Slang correction of rigid-direct planar symmetry without changing the fixture or direct tolerances",
+  "source": {
+    "implementation_commit": "f33707a649399f5630b687a50eabfae7f6cef79e",
+    "lease_base_main_commit": "9dee61e485e6888c9fb0b74e72a4de5a90f49b55",
+    "branch": "work/F5-18/windows-gtx1080",
+    "lease_token": "c7c93279-2fa1-4013-8a8a-90b52242c8b3",
+    "implementation_worktree_clean_at_capture": true
+  },
+  "inputs": {
+    "case": {
+      "path": "conformance/v1/cases/rigid-direct.json",
+      "f5_17_worktree_byte_sha256": "46aa92423da8a22cb1d353932b8ef030f0f30d8e2f89d340cea163ecb61871e8",
+      "semantic_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
+      "frames": 60,
+      "captured_checkpoints": 61,
+      "substeps": 4,
+      "timestep_seconds": 0.016666666666666666
+    },
+    "quality_profile": {
+      "path": "conformance/v1/quality/rigid-kinematic-sweep-v1.json",
+      "lf_normalized_sha256": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc"
+    },
+    "direct_tolerance": {
+      "position": {"absolute": 0.00001, "relative": 0.00001},
+      "velocity": {"absolute": 0.00001, "relative": 0.00001},
+      "changed": false
+    }
+  },
+  "pre_correction": {
+    "source_commit": "d6310bf9b65d81f8c30b2d45e415c43b82396249",
+    "report": "docs/roadmap/evidence/F5-17-rigid-direct-d6310bf-cpu-vs-cuda-report.json",
+    "report_lf_normalized_sha256": "2bc265aab550b43dff81e4b7b50d9173947a49fba5da755257d1ea708d50f2a5",
+    "status": "failed",
+    "difference_count": 20,
+    "first_difference": {
+      "frame": 21,
+      "path": "$.checkpoints[21].resources[0].angular_velocity[1]",
+      "cpu_rad_s": 0.00003457767525105737,
+      "cuda_rad_s": 0.000010484403901500627,
+      "absolute_error_rad_s": 0.000024093271349556744,
+      "allowed_error_rad_s": 0.00001000034577675251
+    },
+    "manifold_observation": {
+      "contact_count": 5,
+      "face_endpoint_z_m": [-0.2, 0.2],
+      "redundant_interior_z_m": -0.0826878920197487,
+      "classification": "An incident-face triangle diagonal contributed a fifth collinear interior point to an otherwise mirrored rectangular contact patch."
+    }
+  },
+  "correction": {
+    "path": "src/slang/geometry.slang",
+    "function": "rigid_reduce_face_patch",
+    "operation": "Iteratively remove only a contact lying strictly inside the segment between two other face-patch contacts and within max(1e-6 m, collision_margin * 1e-3) of that segment.",
+    "preserved": [
+      "contact-patch corners",
+      "non-collinear face features",
+      "off-plane and tilted-contact response"
+    ],
+    "backend_physics_fork_added": false,
+    "fixture_changed": false,
+    "output_masking_added": false,
+    "tolerance_changed": false
+  },
+  "corrected_frame_21": {
+    "cpu": {
+      "contact_count": 4,
+      "contact_z_m": [-0.200000002980232, 0.200000002980232, -0.200000002980232, 0.200000002980232],
+      "angular_velocity_rad_s": [-7.289115728781326e-7, 1.1697111403918825e-6, 16.468843460083008],
+      "linear_velocity_z_m_s": 2.389891733400873e-7,
+      "position_z_m": 1.2673397886686644e-9
+    },
+    "cuda": {
+      "contact_count": 4,
+      "contact_z_m": [-0.200000002980232, 0.200000002980232, -0.200000002980232, 0.200000002980232],
+      "angular_velocity_rad_s": [4.384702947390906e-7, -6.689204838039586e-6, 16.4688777923584],
+      "linear_velocity_z_m_s": -1.1113149867014727e-6,
+      "position_z_m": -5.238256051143253e-9
+    }
+  },
+  "current_raw": {
+    "cpu": {
+      "path": "docs/roadmap/evidence/F5-18-rigid-direct-f33707a-cpu.json",
+      "bytes": 70383,
+      "lf_normalized_sha256": "80726271c42883612cb134ddd6835598de9e0fcd6e099ea645e89ef4451b902c",
+      "backend": "slang-cpu",
+      "device": "Parallel Mater Slang CPU (Slang CPU reference)",
+      "source_commit": "f33707a649399f5630b687a50eabfae7f6cef79e"
+    },
+    "cuda": {
+      "path": "docs/roadmap/evidence/F5-18-rigid-direct-f33707a-cuda.json",
+      "bytes": 70441,
+      "lf_normalized_sha256": "3810c8af474eedc6bd6c69357323dc49b60f1bb67692b23c1405d230b6f84f3a",
+      "backend": "slang-cuda",
+      "device": "NVIDIA GeForce GTX 1080",
+      "source_commit": "f33707a649399f5630b687a50eabfae7f6cef79e"
+    }
+  },
+  "cross_target_comparison": {
+    "status": "passed",
+    "frames": 61,
+    "difference_count": 0,
+    "expected": "slang-cuda",
+    "actual": "slang-cpu",
+    "report": "docs/roadmap/evidence/F5-18-rigid-direct-f33707a-cpu-vs-cuda-report.json",
+    "report_lf_normalized_sha256": "4599d4e41fb9b95c5f5a124c1fea65bbc92592736ee860bb6ff6ed7a00f0c7fe"
+  },
+  "physical_quality": {
+    "cpu": {
+      "status": "passed",
+      "sample_count": 61,
+      "failure_count": 0,
+      "report": "docs/roadmap/evidence/F5-18-rigid-kinematic-sweep-f33707a-cpu-report.json",
+      "report_lf_normalized_sha256": "48ef459690b6886446229d975fbedb3faedcc3f05c3c8061be35a144185ccb75",
+      "normal_alignment_cosine": 0.9996366524679554,
+      "angular_response_rad_s": 16.468843460083008,
+      "maximum_reported_planar_leakage": 1.1697111403918825e-6
+    },
+    "cuda": {
+      "status": "passed",
+      "sample_count": 61,
+      "failure_count": 0,
+      "report": "docs/roadmap/evidence/F5-18-rigid-kinematic-sweep-f33707a-cuda-report.json",
+      "report_lf_normalized_sha256": "89c2606fe103602442edca26c128ad4b8030c9f8cd9703f1c714004f3b2b6a53",
+      "normal_alignment_cosine": 0.9996366606137825,
+      "angular_response_rad_s": 16.4688777923584,
+      "maximum_reported_planar_leakage": 6.689204838039586e-6
+    }
+  },
+  "reference_replacement": {
+    "path": "conformance/v1/golden/cuda/rigid-direct.json",
+    "prior_bytes": 6113,
+    "prior_lf_normalized_sha256": "6ebfbcc7be7cbfb5363a4fc29029bc2ba9d1f96ce03c4ab7334af9ade45ac5ba",
+    "replacement_bytes": 6124,
+    "replacement_lf_normalized_sha256": "ab9fd6f8deef860cb415d0b43633d367678f3acb6993d1007ab4d97fce80147a",
+    "reason": "The reviewed shared-solver correction changes the real post-impact trajectory; keeping the F5-17 trajectory would encode the tessellation artifact.",
+    "prior_reference_reports": {
+      "cuda": {
+        "status": "failed",
+        "difference_count": 9,
+        "report": "docs/roadmap/evidence/F5-18-rigid-direct-f33707a-cuda-vs-prior-golden-report.json",
+        "report_lf_normalized_sha256": "2f07b4117b1faca1ae925ae5e181f671ffb70ff11fc4b8c477dd0d3991246136"
+      },
+      "cpu": {
+        "status": "failed",
+        "difference_count": 8,
+        "report": "docs/roadmap/evidence/F5-18-rigid-direct-f33707a-cpu-vs-prior-golden-report.json",
+        "report_lf_normalized_sha256": "142159e5fcdbf67a5e48b8fd4053b29c004d753b6bd00205dc5f837d91eaa2f2"
+      }
+    },
+    "replacement_reference_reports": {
+      "cuda": {
+        "status": "passed",
+        "difference_count": 0,
+        "report": "docs/roadmap/evidence/F5-18-rigid-direct-f33707a-cuda-vs-golden-report.json",
+        "report_lf_normalized_sha256": "4599d4e41fb9b95c5f5a124c1fea65bbc92592736ee860bb6ff6ed7a00f0c7fe"
+      },
+      "cpu": {
+        "status": "passed",
+        "difference_count": 0,
+        "report": "docs/roadmap/evidence/F5-18-rigid-direct-f33707a-cpu-vs-golden-report.json",
+        "report_lf_normalized_sha256": "4599d4e41fb9b95c5f5a124c1fea65bbc92592736ee860bb6ff6ed7a00f0c7fe"
+      }
+    }
+  },
+  "focused_regression": {
+    "path": "tests/gallery/command_gallery_tests.cpp",
+    "backends": ["slang-cuda", "slang-d3d12"],
+    "scene_frames_per_backend": 300,
+    "status": "passed",
+    "planar_contact_count": 4,
+    "maximum_planar_leakage": 6.6892e-6,
+    "tilted_contact_angle_rad": 0.02,
+    "tilted_angular_response_rad_s": 1.21739,
+    "maximum_brick_penetration_m": 0.000161126,
+    "maximum_brick_penetration_frame": 205,
+    "torque_free_angular_drift_rad_s": 0.0,
+    "face_normal_contact_count": 303,
+    "face_normal_maximum_penetration_m": 0.000231959,
+    "convex_sweep_cases_passed": 3,
+    "reset_passed": true,
+    "seam_and_open_surface_probes_passed": true
+  },
+  "device_and_binaries": {
+    "machine": "windows-gtx1080",
+    "gpu": "NVIDIA GeForce GTX 1080",
+    "nvidia_driver": "582.66",
+    "compute_capability": "6.1",
+    "slang": "2026.18",
+    "cpu_host": "Ubuntu 24.04 on WSL2",
+    "cpu_compiler": "GCC 13.3.0",
+    "cpu_runner_sha256": "b8f48777d6e73b8e3e27675a365540f312661ad26f3ae65defc6404bc38e6134",
+    "cpu_driver_sha256": "b2ba16071d77e222b7f5a37ed9d86ec5b481fab31cb4d06d868455b9719a8056",
+    "cuda_host": "Windows",
+    "cuda_compiler": "CUDA 12.9.86 with MSVC 19.44.35228.0",
+    "cuda_architecture": "61",
+    "cuda_flags": "--fmad=false --prec-div=false --prec-sqrt=false",
+    "cuda_runner_sha256": "3e712fa19ff5193c88af6d6d18d31bbe1e90bf2aea4d42b62d863ff7397f4581",
+    "cuda_driver_sha256": "9b72b9accaf0a78171b8ee0a6b523dc0a16ba7987fc31ea67887b6ebd7bb8c17"
+  },
+  "validation": {
+    "python_conformance_tests": {"passed": 73, "failed": 0},
+    "roadmap_unit_tests": {"passed": 19, "failed": 0},
+    "roadmap_cards": {"passed": 166, "failed": 0},
+    "slang_and_geometry_ctest": {
+      "passed": 5,
+      "failed": 0,
+      "tests": [
+        "parallel-mater-slang-architecture",
+        "parallel-mater-avbd-slang-cuda-tests",
+        "parallel-mater-avbd-slang-reflection-tests",
+        "parallel-mater-cuda-geometry-lifecycle-tests",
+        "parallel-mater-d3d12-geometry-lifecycle-tests"
+      ]
+    },
+    "cuda_rigid_gallery_300_frames": "passed",
+    "d3d12_rigid_gallery_300_frames": "passed"
+  },
+  "reproduction": [
+    "Build commit f33707a649399f5630b687a50eabfae7f6cef79e with the WSL Slang CPU and native Windows Slang CUDA configurations.",
+    "Set PM_DRIVER_FILES and PM_LAYER_FILES to each build's generated driver and validation manifests; run parallel-mater-conformance --case rigid-direct --every-frame --output <backend-output>.",
+    "Run conformance/v1/compare.py with the CUDA every-frame directory as expected and CPU as actual; retain the unchanged direct tolerances.",
+    "Run conformance/v1/quality.py with rigid-kinematic-sweep-v1.json against each every-frame result.",
+    "Run parallel-mater-command-gallery-tests --backend <cuda|d3d12> --scene RigidBody.glb --frames 300 with the matching manifest."
+  ],
+  "limitations": [
+    "This closes only the F5-17 rigid-direct planar-symmetry divergence and replaces only that CUDA trajectory.",
+    "Passing the fixture oracle and focused rigid regressions does not grant broader CPU, CUDA, D3D12, Gallery, performance or driver qualification.",
+    "Unrelated retained F5-11 and F5-17 full-suite failures remain outside this task."
+  ]
+}

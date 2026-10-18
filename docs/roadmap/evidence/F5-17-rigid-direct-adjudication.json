@@ -1,0 +1,239 @@
+{
+  "schema": "parallel-mater-roadmap-rigid-direct-adjudication-evidence/v1",
+  "task": "F5-17",
+  "scope": "Versioned adjudication of the rigid-direct frame-21 kinematic sweep without changing direct tolerances",
+  "source": {
+    "implementation_commit": "d6310bf9b65d81f8c30b2d45e415c43b82396249",
+    "lease_base_main_commit": "f97e7cc893c04a082fc54bc9ffbdfea81c4006c2",
+    "branch": "work/F5-17/windows-gtx1080",
+    "lease_token": "ffc3cc81-b3f9-4fef-9b6f-67419e6aaedd",
+    "implementation_worktree_clean_at_capture": true
+  },
+  "case": {
+    "path": "conformance/v1/cases/rigid-direct.json",
+    "byte_sha256": "46aa92423da8a22cb1d353932b8ef030f0f30d8e2f89d340cea163ecb61871e8",
+    "semantic_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
+    "frames": 60,
+    "captured_checkpoints": 61,
+    "substeps": 4,
+    "timestep_seconds": 0.016666666666666666,
+    "declared_kinematic_half_extents_m": [0.2, 0.2, 0.2],
+    "direct_tolerance": {
+      "position": {"absolute": 0.00001, "relative": 0.00001},
+      "velocity": {"absolute": 0.00001, "relative": 0.00001}
+    },
+    "tolerance_changed": false
+  },
+  "adjudication": {
+    "classification": "stale reference from incorrectly realized fixture geometry",
+    "cause": "The command runner reused the dynamic box mesh with 0.25 m half extents for the kinematic body even though the hashed case declares 0.2 m half extents.",
+    "correction": "The shared command runner now creates and selects the declared 0.2 m kinematic mesh. No solver, backend adapter, tolerance or case input changed.",
+    "historical_observation": "The retained pre-correction CPU and CUDA captures place frame-21 contact points at z approximately +/-0.25 m and outside the declared 0.2 m collider.",
+    "independent_result": "Both corrected trajectories pass the geometry, contact-direction, Coulomb-cone, response-sign and planar-symmetry oracle; both retained pre-correction trajectories fail five collider-bound checks.",
+    "decision": "Replace only the canonical CUDA rigid-direct golden with the corrected clean-revision CUDA trajectory. Preserve the historical raw captures and unchanged direct tolerance."
+  },
+  "historical_inputs": {
+    "pre_replacement_golden": {
+      "path": "conformance/v1/golden/cuda/rigid-direct.json at parent of the evidence commit",
+      "bytes": 5882,
+      "sha256": "c79c9a768c1b3f0d60d7ec5af7e1a8a69977d3e5e7c7c5558c5352c65617208d"
+    },
+    "retained_cpu_raw": {
+      "path": "docs/roadmap/evidence/F5-04-rigid-direct-3acb413-cpu.json",
+      "sha256": "f8aee1831dc15193d65684037c6d73c594779f2f853112f280dc63130bfa4f81"
+    },
+    "retained_cuda_raw": {
+      "path": "docs/roadmap/evidence/F5-04-rigid-direct-3acb413-cuda.json",
+      "sha256": "25d008ef94007b712b11e59aba8ce8d10458bf60c4ed3c6e7cec8090288c9a81"
+    },
+    "prior_review": "docs/roadmap/evidence/F5-04-rigid-direct-divergence.json"
+  },
+  "replacement": {
+    "path": "conformance/v1/golden/cuda/rigid-direct.json",
+    "bytes": 6113,
+    "sha256": "6ebfbcc7be7cbfb5363a4fc29029bc2ba9d1f96ce03c4ab7334af9ade45ac5ba",
+    "backend": "slang-cuda",
+    "device": "NVIDIA GeForce GTX 1080",
+    "source_commit": "d6310bf9b65d81f8c30b2d45e415c43b82396249",
+    "reference_regression": "PASS: one case, zero differences at the canonical five checkpoints"
+  },
+  "current_raw": {
+    "cpu": {
+      "path": "docs/roadmap/evidence/F5-17-rigid-direct-d6310bf-cpu.json",
+      "bytes": 70535,
+      "sha256": "10d3918692db9fd2f25ffdfe6f29ad767611741241338e8bcc1ac24f3e14d7a5",
+      "backend": "slang-cpu",
+      "device": "Parallel Mater Slang CPU (Slang CPU reference)"
+    },
+    "cuda": {
+      "path": "docs/roadmap/evidence/F5-17-rigid-direct-d6310bf-cuda.json",
+      "bytes": 70464,
+      "sha256": "dd55e894e32f39e5ebfc89adedb83fcbc83f8001d6ab08e28f0bd40ac960e8d7",
+      "backend": "slang-cuda",
+      "device": "NVIDIA GeForce GTX 1080"
+    }
+  },
+  "reference_regression": {
+    "cuda_vs_replacement": {
+      "status": "passed",
+      "report": "docs/roadmap/evidence/F5-17-rigid-direct-d6310bf-cuda-vs-golden-report.json",
+      "report_sha256": "4599d4e41fb9b95c5f5a124c1fea65bbc92592736ee860bb6ff6ed7a00f0c7fe"
+    },
+    "cpu_vs_replacement": {
+      "status": "failed",
+      "report": "docs/roadmap/evidence/F5-17-rigid-direct-d6310bf-cpu-vs-golden-report.json",
+      "report_sha256": "9e6f48840ed7df36d58b2e2898d41e0670d02205e81a34558e9701f251a8c540",
+      "difference_count": 1,
+      "path": "$.checkpoints[3].resources[0].angular_velocity[1]",
+      "cpu": 0.00003457767525105737,
+      "cuda": 0.000010484403901500627,
+      "absolute_error": 0.000024093271349556744,
+      "allowed_error": 0.00001000034577675251
+    },
+    "cpu_vs_cuda_all_frames": {
+      "status": "failed",
+      "report": "docs/roadmap/evidence/F5-17-rigid-direct-d6310bf-cpu-vs-cuda-report.json",
+      "report_sha256": "2bc265aab550b43dff81e4b7b50d9173947a49fba5da755257d1ea708d50f2a5",
+      "difference_count": 20,
+      "classification": "one persistent angular_velocity[1] component repeated on frames 21 through 40",
+      "follow_up": "F5-18"
+    }
+  },
+  "physical_quality": {
+    "profile": "conformance/v1/quality/rigid-kinematic-sweep-v1.json",
+    "profile_sha256": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc",
+    "cpu": {
+      "status": "passed",
+      "sample_count": 61,
+      "report": "docs/roadmap/evidence/F5-17-rigid-kinematic-sweep-d6310bf-cpu-report.json",
+      "report_sha256": "a68f3ac79c53f4f7963d3d89fa7fb39bb0588ad4e446fde8ec68db9f7d41afcf",
+      "normal_alignment_cosine": 0.9996616258422548,
+      "angular_response_rad_s": 16.526384353637695,
+      "maximum_reported_planar_leakage": 0.00003457767525105737
+    },
+    "cuda": {
+      "status": "passed",
+      "sample_count": 61,
+      "report": "docs/roadmap/evidence/F5-17-rigid-kinematic-sweep-d6310bf-cuda-report.json",
+      "report_sha256": "91134a9f2876c97e3e9a3cb1910e2e905cede102284c1d49e578013733e95e95",
+      "normal_alignment_cosine": 0.9996616333677861,
+      "angular_response_rad_s": 16.526390075683594,
+      "maximum_reported_planar_leakage": 0.00002182833122787997
+    },
+    "historical_cpu": {
+      "status": "failed",
+      "failure_count": 5,
+      "report": "docs/roadmap/evidence/F5-17-rigid-kinematic-sweep-3acb413-cpu-report.json",
+      "report_sha256": "863ab2f4a3115bfb2929aaff022e67e0e45d15a26f0bc741e48a36a79cbf2b62"
+    },
+    "historical_cuda": {
+      "status": "failed",
+      "failure_count": 5,
+      "report": "docs/roadmap/evidence/F5-17-rigid-kinematic-sweep-3acb413-cuda-report.json",
+      "report_sha256": "3e5b2ebc87c2f8336fca1f202aa6a19193f5ca61d8c55a84868555e0219cc015"
+    }
+  },
+  "device_and_binaries": {
+    "machine": "windows-gtx1080",
+    "gpu": "NVIDIA GeForce GTX 1080",
+    "nvidia_driver": "582.66",
+    "compute_capability": "6.1",
+    "slang": "2026.18",
+    "cpu_host": "Ubuntu 24.04 on WSL2",
+    "cpu_compiler": "GCC 13.3.0",
+    "cpu_runner_sha256": "824b69b4da78d02ef591307bf02c28ea2413e43b53acc42fd7be338e784fe7f6",
+    "cpu_driver_sha256": "e42329e7f5655f821724dc178afe0c30160a8faf56b00ad53eb8ead453a33286",
+    "cuda_host": "Windows",
+    "cuda_compiler": "CUDA 12.9.86 with MSVC 19.44.35228",
+    "cuda_architecture": "61",
+    "cuda_flags": "--fmad=false --prec-div=false --prec-sqrt=false",
+    "cuda_runner_sha256": "9b1512b56b039bccb6db1155a21a4219553afb01eda1f495c8a034c5d816a703",
+    "cuda_driver_sha256": "a6efbd8da3123783e4b8b9f152df29f6814015466a27226d96799d9b19fa3305"
+  },
+  "complete_registry_review": {
+    "standard_run": "The 30-case CUDA run terminated at soft-body-fluid with Windows status 0xc0000006, matching the retained F5-11 limitation.",
+    "isolated_process_run": "All 30 cases were attempted independently: 25 emitted completed results and soft-body-fluid, rope-fluid, rope-soft-body, rope-cloth and smoke-water repeated status 0xc0000006.",
+    "old_golden_summary": {"passed": 11, "failed": 19, "unsupported": 0},
+    "replacement_golden_summary": {"passed": 12, "failed": 18, "unsupported": 0},
+    "only_changed_case": "rigid-direct moved from failed to passed on CUDA; no other golden was changed",
+    "qualification_use": "diagnostic review only; the existing F5-11 broader driver limitations remain"
+  },
+  "validation": {
+    "release_build": {
+      "status": "passed",
+      "command": "cmake --build build-cuda-slang-vs2022 --config Release -j 6",
+      "note": "The complete build generated the CUDA, DXIL and Metal schedules and preserved the pinned CUDA runner and driver hashes."
+    },
+    "python_conformance_tests": {
+      "status": "passed",
+      "passed": 73,
+      "failed": 0
+    },
+    "roadmap_tests": {
+      "status": "passed",
+      "passed": 166,
+      "failed": 0
+    },
+    "windows_release_ctest": {
+      "status": "failed_with_retained_or_out_of_scope_limitations",
+      "command": "ctest --test-dir build-cuda-slang-vs2022 -C Release --output-on-failure -j 1",
+      "total": 101,
+      "passed": 90,
+      "failed": 5,
+      "skipped": 6,
+      "non_failed_including_skips": 96,
+      "elapsed_seconds": 1473.63,
+      "relevant_passes": [
+        "parallel-mater-d3d12-rigid-constraints",
+        "parallel-mater-rigid-constraint-command-tests",
+        "parallel-mater-cuda-resource-lifecycle-tests",
+        "parallel-mater-cuda-validated-lifecycle-tests",
+        "parallel-mater-d3d12-resource-lifecycle-tests",
+        "parallel-mater-d3d12-validated-lifecycle-tests",
+        "parallel-mater-cuda-graph-validation-tests",
+        "parallel-mater-d3d12-graph-validation-tests",
+        "parallel-mater-cuda-geometry-lifecycle-tests",
+        "parallel-mater-d3d12-geometry-lifecycle-tests",
+        "parallel-mater-cuda-host-concurrency-tests",
+        "parallel-mater-d3d12-host-concurrency-tests",
+        "parallel-mater-cuda-descriptor-snapshot-tests",
+        "parallel-mater-d3d12-descriptor-snapshot-tests",
+        "parallel-mater-cuda-destruction-wait-tests",
+        "parallel-mater-d3d12-destruction-wait-tests",
+        "parallel-mater-cuda-capacity-recovery-tests",
+        "parallel-mater-d3d12-capacity-recovery-tests"
+      ],
+      "failures": [
+        "parallel-mater-d3d12-gallery-ConstraintPoint: no Gallery scene matched the registered filter",
+        "parallel-mater-command-gallery-tests: retained mixed-domain crash at SOFT BODY FLUID after all preceding scenes passed",
+        "parallel-mater-device-profile-tests: generated multi-wall support is not stable at rest",
+        "parallel-mater-gallery-session-contract-tests: submit commands returned invalid state",
+        "parallel-mater-gallery-frame-timing-headless: executable rejected parallel-mater-loader as an unknown Gallery backend"
+      ],
+      "skips": [
+        "parallel-mater-d3d12-domain-lifecycle-tests",
+        "parallel-mater-d3d12-coupling-lifecycle-tests",
+        "parallel-mater-d3d12-interaction-graph-lifecycle-tests",
+        "parallel-mater-d3d12-paint-lifecycle-tests",
+        "parallel-mater-d3d12-fluid-pair-graph-lifecycle-tests",
+        "parallel-mater-d3d12-fluid-pair-quality-tests"
+      ]
+    },
+    "slang_cpu_ctest": {
+      "status": "not_registered",
+      "note": "The clean WSL Slang CPU build registers no CTest tests; CPU acceptance is covered by the clean binary capture, reference comparison and independent 61-sample physical oracle."
+    }
+  },
+  "reproduction": [
+    "Build commit d6310bf9b65d81f8c30b2d45e415c43b82396249 with the Slang CPU conformance configuration and with the native Windows Slang CUDA configuration.",
+    "Set PM_DRIVER_FILES and PM_LAYER_FILES to each build's generated driver and validation manifests, then run parallel-mater-conformance --case rigid-direct --every-frame --output <backend-output>.",
+    "Run conformance/v1/quality.py with rigid-kinematic-sweep-v1.json against each every-frame result.",
+    "Run conformance/v1/compare.py with the CUDA every-frame directory as expected and CPU as actual; retain the unchanged-tolerance failure.",
+    "Run each backend without --every-frame, replace only golden/cuda/rigid-direct.json with the reviewed CUDA result, then compare both backends against the replacement."
+  ],
+  "limitations": [
+    "CPU does not pass the replacement CUDA trajectory at the unchanged direct tolerance; F5-18 owns the single bounded planar-symmetry component.",
+    "Passing the independent sweep oracle establishes this fixture's physical response, not broad rigid, CUDA, CPU, Gallery, performance or driver qualification.",
+    "The complete CUDA registry still contains the five retained process crashes and other reference-regression failures documented by F5-11."
+  ]
+}

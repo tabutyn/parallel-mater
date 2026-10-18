@@ -1,0 +1,5 @@
+set(ParallelMater_conformance_FOUND TRUE)
+set(ParallelMater_CONFORMANCE_EXECUTABLE
+    "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_BINDIR@/parallel-mater-conformance@CMAKE_EXECUTABLE_SUFFIX@")
+set(ParallelMater_CONFORMANCE_DATA_ROOT
+    "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_DATADIR@/parallel-mater")

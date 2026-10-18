@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Mobile behavior follows Android: bounded work, shared budgets, touch camera.
+// Shared Gallery behavior: bounded work, shared budgets, semantic controls.
 #include <parallel_mater_gallery/session.hpp>
 #include "scene_builder.hpp"
 #include "render/render_scene.hpp"
@@ -12,7 +12,6 @@
 #include <parallel_mater_gallery/gallery_context.hpp>
 #include <algorithm>
 #include <cmath>
-#include <sstream>
 #include <stdexcept>
 
 namespace parallel_mater::gallery {
@@ -93,7 +92,8 @@ void GallerySession::select(unsigned index) {
     };
     const auto pending_device = std::make_shared<PendingDevice>();
     request.configure_scene =
-        [context = selected.context, has_fluid = selected.has_fluid,
+        [context = selected.context,
+         has_fluid = is_fluid_context(selected.context),
          parameters, selected_limits,
          validate = config_.validate_scene](SceneDefinition &scene,
                                             std::string &failure) {
@@ -126,10 +126,26 @@ void GallerySession::select(unsigned index) {
         [pending_device, gpu_rendering, native_backend, prime_scene]
         (GalleryRuntime &next, std::string &failure) {
         PmPhysicalDeviceProperties device{};
-        pmGetPhysicalDeviceProperties(next.simulation.physical_device(), &device);
+        const PmPhysicalDevice physical = next.simulation.physical_device();
+        pmGetPhysicalDeviceProperties(physical, &device);
         PmPhysicalDeviceFeatures features{};
-        pmGetPhysicalDeviceFeatures(next.simulation.physical_device(), &features);
-        pending_device->catalog = make_gallery_catalog(&features);
+        pmGetPhysicalDeviceFeatures(physical, &features);
+        std::uint32_t interaction_count{};
+        if (pmEnumeratePhysicalDeviceInteractionCapabilities(
+                physical, &interaction_count, nullptr) != PM_SUCCESS) {
+            failure = "Could not enumerate Gallery interaction capabilities";
+            return false;
+        }
+        std::vector<PmInteractionCapability> interactions(interaction_count);
+        if (interaction_count != 0U &&
+            pmEnumeratePhysicalDeviceInteractionCapabilities(
+                physical, &interaction_count, interactions.data()) !=
+                PM_SUCCESS) {
+            failure = "Could not read Gallery interaction capabilities";
+            return false;
+        }
+        interactions.resize(interaction_count);
+        pending_device->catalog = make_gallery_catalog(&features, interactions);
         if (native_backend) {
             PmNativeDeviceInfo native{};
             if (pmGetNativeDevice(next.simulation.device(), &native) != PM_SUCCESS ||
@@ -224,6 +240,17 @@ void GallerySession::resize(unsigned w, unsigned h) {
     width = w; height = h;
     timing.clear_history();
 }
+void GallerySession::set_render_target(GpuRenderTarget target) noexcept {
+    const bool replacing = render_target_.backend != target.backend ||
+        render_target_.device != target.device ||
+        render_target_.handle != target.handle;
+    if (replacing && runtime_.native_renderer)
+        runtime_.native_renderer->detach_target();
+    render_target_ = target;
+}
+void GallerySession::detach_render_target() noexcept {
+    set_render_target({});
+}
 void GallerySession::orbit(float x, float y) {
     require_scene();
     runtime_.camera.begin_drag(CameraDragMode::orbit, 0, 0);
@@ -311,56 +338,73 @@ bool GallerySession::controlled_step(const GalleryControlInput &input,
     ++frames;
     return true;
 }
-void GallerySession::frame(const std::function<void(const GallerySession &)> &present) {
+bool GallerySession::diagnostic_step(const GalleryControlInput &input,
+                                     GalleryStepOptions options,
+                                     std::string &error) {
+    return controlled_step(input, options, error);
+}
+void GallerySession::frame(const Presenter &present) {
     frame_at(frame_policy_.next_fixed_frame_time(), present);
 }
 void GallerySession::frame_at(
-    FrameClock::time_point timestamp,
-    const std::function<void(const GallerySession &)> &present) {
+    FrameClock::time_point timestamp, const Presenter &present) {
+    GalleryFramePlan plan;
+    plan.controls = {
+        .right = right_,
+        .forward = up_,
+        .camera = runtime_.camera.camera(),
+    };
+    plan.host_diagnostics = diagnostics_;
+    frame_at(timestamp, plan, {}, present);
+}
+void GallerySession::frame_at(
+    FrameClock::time_point timestamp, GalleryFramePlan plan,
+    const FrameRenderer &render, const Presenter &present) {
     if (!active_) return;
     require_scene();
-    frame_policy_.begin_frame(timestamp);
+    frame_policy_.begin_frame(timestamp, plan.simulation_enabled);
     timing.begin_frame();
     try {
         std::string error;
         while (frame_policy_.can_step()) {
             timing.begin_phase(FramePhase::physics);
             const auto controls = runtime_.controller_state();
-            const bool read_host = !config_.gpu_rendering || diagnostics_ ||
+            const bool native_host_renderer =
+                runtime_.renderer.native_image().handle != 0U;
+            const bool native_gpu_renderer = bool(runtime_.native_renderer);
+            const bool read_host = !native_gpu_renderer ||
+                plan.host_diagnostics ||
                 controls.directional == GalleryControlPolicy::collector_gravity;
-            require(controlled_step({
-                .right = right_,
-                .forward = up_,
-                .camera = runtime_.camera.camera(),
-            }, {
+            require(controlled_step(plan.controls, {
                 .timestep = frame_policy_.timestep(),
                 .substeps = frame_policy_.substeps(),
-                .read_deformables = read_host,
+                .collect_rigid_contacts = plan.collect_rigid_contacts,
+                .collect_fluid_contacts = plan.collect_fluid_contacts,
+                .rigid_contact_pass_limit = plan.rigid_contact_pass_limit,
+                .read_deformables =
+                    (!native_host_renderer && !native_gpu_renderer) ||
+                    plan.host_diagnostics,
                 .read_host = read_host,
             }, error), error);
             frame_policy_.record_step(timing.end_phase() / 1000.0);
         }
         frame_policy_.finish_frame();
         timing.begin_phase(FramePhase::render);
+        if (render) {
+            render(*this, frame_policy_.interpolation_alpha());
+        } else {
 #ifdef PM_GALLERY_NATIVE_GPU_RENDERER
-        if (runtime_.native_renderer) {
-            pixels.clear();
-            GpuRenderTarget target = render_target_;
-            target.width = width;
-            target.height = height;
-            if (diagnostics_) target.handle = 0U;
-            GpuRenderRequest request;
-            require(make_gpu_render_request(
-                runtime_.instance.render_buffers,
-                runtime_.gpu_frame_generation, runtime_.camera.camera(), target,
-                {diagnostics_ ? &pixels : nullptr}, &timing, {}, request, error),
-                error);
-            require(runtime_.native_renderer->render(request, error), error);
-        } else
+            if (runtime_.native_renderer) {
+                pixels.clear();
+                GpuRenderTarget target = render_target_;
+                if (diagnostics_) target.handle = 0U;
+                require(render_native(target, {},
+                    diagnostics_ ? &pixels : nullptr, error), error);
+            } else
 #endif
-            require(runtime_.renderer.render(runtime_.render_frame,
-                runtime_.camera.camera(), pixels,
-                error, nullptr, FluidRenderMode::particles), error);
+                require(render_host(pixels, error, nullptr,
+                                    FluidRenderMode::particles), error);
+        }
         timing.end_phase();
         if (present) {
             timing.begin_phase(FramePhase::present);
@@ -403,10 +447,92 @@ PmNativeDeviceInfo GallerySession::native_render_device() const {
     require_scene();
     if (runtime_.native_renderer)
         return runtime_.native_renderer->renderer_device().native;
+    return native_physics_device();
+}
+PmNativeDeviceInfo GallerySession::native_physics_device() const {
+    require_scene();
     PmNativeDeviceInfo native{};
     if (pmGetNativeDevice(runtime_.simulation.device(), &native) != PM_SUCCESS)
-        throw std::runtime_error("No native rendering device");
+        throw std::runtime_error("No native physics device");
     return native;
+}
+PmNativeQueueInfo GallerySession::native_render_queue() const {
+    require_scene();
+    PmNativeQueueInfo native{};
+    if (pmGetNativeQueue(runtime_.simulation.queue(), &native) != PM_SUCCESS)
+        throw std::runtime_error("No native rendering queue");
+    return native;
+}
+bool GallerySession::has_native_renderer() const noexcept {
+    return bool(runtime_.native_renderer);
+}
+NativeRenderImage GallerySession::native_image() const noexcept {
+    return runtime_.renderer.native_image();
+}
+bool GallerySession::render_host(
+    std::vector<std::uint32_t> &rgba, std::string &error,
+    RendererTimings *renderer_timings, FluidRenderMode fluid_mode,
+    bool show_smoke_particles, float rigid_interpolation_alpha) {
+    return runtime_.renderer.render(
+        runtime_.render_frame, runtime_.camera.camera(), rgba, error,
+        renderer_timings, fluid_mode, show_smoke_particles,
+        rigid_interpolation_alpha);
+}
+bool GallerySession::render_native(
+    GpuRenderTarget target, std::span<const std::uint32_t> overlay,
+    std::vector<std::uint32_t> *readback, std::string &error) {
+#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
+    if (!runtime_.native_renderer) {
+        error = "native Gallery renderer is not initialized";
+        return false;
+    }
+    target.width = width;
+    target.height = height;
+    GpuRenderRequest request;
+    if (!make_gpu_render_request(
+            runtime_.instance.render_buffers, runtime_.gpu_frame_generation,
+            runtime_.camera.camera(), target, {readback},
+            timing.measuring(FramePhase::render) ? &timing : nullptr, overlay,
+            request, error))
+        return false;
+    return runtime_.native_renderer->render(request, error);
+#else
+    (void)target;
+    (void)overlay;
+    (void)readback;
+    error = "native Gallery renderer is not built";
+    return false;
+#endif
+}
+bool GallerySession::read_host_image(
+    std::vector<std::uint32_t> &rgba, std::string &error) {
+    return runtime_.renderer.read_image(rgba, error);
+}
+bool GallerySession::read_host_output(std::string &error) {
+    return runtime_.simulation.read_output(runtime_.frame, error);
+}
+bool GallerySession::advance_host_visuals(std::string &error) {
+    return runtime_.renderer.advance_visuals(runtime_.render_frame, error);
+}
+bool GallerySession::paint_coverage(
+    std::uint64_t &painted_texels, std::string &error) const {
+    return runtime_.renderer.paint_coverage(painted_texels, error);
+}
+bool GallerySession::set_rigid_state(
+    std::size_t scene_body_index, const RigidBodyState &state,
+    std::string &error) {
+    if (scene_body_index >= runtime_.instance.rigid_bodies.size()) {
+        error = "Gallery rigid body index is out of range";
+        return false;
+    }
+    return runtime_.simulation.set_rigid_state(
+        runtime_.instance.rigid_bodies[scene_body_index], state, error);
+}
+std::size_t GallerySession::fixed_attached_count() const noexcept {
+    return runtime_.fixed_collector.attached_count();
+}
+std::size_t GallerySession::fixed_constraint_count() const noexcept {
+    return runtime_.fixed_collector.generated_constraint_count();
 }
 std::size_t GallerySession::particle_count() const {
     return runtime_.ready() ? runtime_.frame.fluid_particles.size() : 0;
@@ -423,14 +549,48 @@ std::uint64_t GallerySession::allocated_bytes() const {
         pmGetDeviceMemoryBudget(runtime_.simulation.device(), &budget) == PM_SUCCESS
         ? budget.applicationAllocationBytes : 0;
 }
-std::string GallerySession::status() const {
-    require_scene();
-    std::ostringstream text;
-    text << (paused_ ? "Paused · " : "") << config_.backend << " · " << frames << " steps";
-    if (config_.gpu_rendering) text << " · GPU graphics";
-    else if (!runtime_.frame.fluid_particles.empty())
-        text << " · " << runtime_.frame.fluid_particles.size() << " particles";
-    return text.str();
+GalleryPresentationState GallerySession::presentation() const {
+    const auto &selected = catalog_item(selected_);
+    GalleryControllerState controls{
+        .directional = selected.scene.controls,
+        .primary = selected.scene.primary_action,
+        .moves_kinematic = selected.scene.moves_kinematic,
+    };
+    if (runtime_.ready()) controls = runtime_.controller_state();
+    return {
+        .platform = config_.platform,
+        .backend = config_.backend,
+        .device = device_,
+        .renderer = config_.gpu_rendering
+            ? GalleryRendererKind::native_gpu
+            : GalleryRendererKind::software_image,
+        .readback = config_.gpu_rendering
+            ? GalleryReadbackMode::diagnostic_only
+            : GalleryReadbackMode::host_frame,
+        .ready = runtime_.ready(),
+        .active = active_,
+        .paused = paused_,
+        .selection = selected_,
+        .steps = frames,
+        .scene_id = selected.id,
+        .scene_name = selected.scene.name,
+        .scene_summary = selected.scene.summary,
+        .required_features = selected.required_feature_names,
+        .required_interactions = selected.required_interaction_names,
+        .controls = controls,
+        .count_kind = selected.scene.count_kind,
+        .workload_profile = limits.name,
+        .fluid_particle_limit = limits.fluid_particles,
+        .coupled_body_limit = limits.coupled_bodies,
+        .width = width,
+        .height = height,
+        .target_updates_per_second = limits.target_fps,
+        .particle_count = particle_count(),
+        .moving_body_count = moving_bodies(),
+        .host_work_frames_per_second = timing.fps(),
+        .latest_timing = timing.latest(),
+        .build_revision = PM_GALLERY_BUILD_REVISION,
+    };
 }
 void GallerySession::validate_snapshot() const {
     require_scene();
@@ -462,7 +622,8 @@ void GallerySession::validate_snapshot() const {
         vector(particle.position); vector(particle.velocity); vector(particle.vorticity);
         finite(particle.age); finite(particle.numberDensity); finite(particle.pressure);
     }
-    if ((entry(selected_).has_fluid && output.fluid_particles.empty()) ||
+    if ((is_fluid_context(entry(selected_).context) &&
+         output.fluid_particles.empty()) ||
         (runtime_.scene.has_smoke && output.smoke_particles.empty()) ||
         output.rigid_states.size() != runtime_.scene.rigid_bodies.size() ||
         output.cloth_vertices.size() != runtime_.scene.cloths.size() ||
@@ -473,30 +634,5 @@ void GallerySession::validate_snapshot() const {
         throw std::runtime_error("Invalid rendered image size");
     if (std::all_of(pixels.begin(), pixels.end(), [&](auto pixel) { return pixel == pixels.front(); }))
         throw std::runtime_error("Rendered image has no visible scene");
-}
-std::string GallerySession::details() const {
-    require_scene();
-    std::ostringstream text;
-    const auto &selected = catalog_item(selected_);
-    text << device_ << "\nScene: " << selected.id << " · available"
-         << "\nRequires: " << selected.required_feature_names
-         << (config_.gpu_rendering
-        ? "\nShared Slang physics; direct Metal GPU graphics (fenced preview).\n\nProfile: "
-        : "\nShared Slang physics; software image renderer.\n\nProfile: ") << limits.name
-         << "\n" << limits.fluid_particles << " liquid particles · " << limits.coupled_bodies
-         << " coupled bodies\n" << width << " × " << height << " · target " << limits.target_fps
-         << " updates/s\nHost work throughput: " << timing.fps() << " frames/s";
-    if (timing.latest()) {
-        const auto &sample = *timing.latest();
-        text << "\nFrame work: " << sample.total_ms << " ms\nPhysics: " << sample.physics_ms
-             << " ms · render: " << sample.render_ms << " ms";
-    }
-    text << (timing.latest() && timing.latest()->present_ms
-        ? "\nPresentation callback included; display scan-out excluded."
-        : "\nUI handoff/display time excluded.")
-         << "\n\nDrag to orbit. Pinch to zoom. Hold arrows for the scene's directional action."
-         << "\n\nPreview only: workloads are provisional. Slow updates slow simulation. Missing roadmap interactions and full qualification remain pending."
-         << "\n\nBuild " PM_GALLERY_BUILD_REVISION;
-    return text.str();
 }
 }

@@ -20,6 +20,11 @@ void require(bool condition, const char *message) {
 
 int main() {
     try {
+        require(gallery::gallery_backend_label("vulkan") == "Vulkan" &&
+                    gallery::gallery_backend_label("cuda") == "CUDA" &&
+                    gallery::gallery_backend_label("d3d12") == "Direct3D 12" &&
+                    gallery::gallery_backend_label("metal") == "Metal",
+                "Backend presentation labels changed");
         const std::filesystem::path root = PM_GALLERY_SESSION_TEST_ROOT;
         require(gallery::GalleryRuntime::live_runtime_count() == 0U,
                 "Runtime count was not initially zero");
@@ -41,6 +46,17 @@ int main() {
                     "Shared catalog changed");
             require(session.ready() && session.selection() == 0U,
                     "Session did not select its initial scene");
+            const auto startup = session.presentation();
+            require(startup.platform == "ContractTest" &&
+                        startup.backend == PM_GALLERY_SESSION_TEST_BACKEND &&
+                        !startup.device.empty() && startup.ready &&
+                        startup.scene_id == "rigid-body" &&
+                        !startup.scene_summary.empty() &&
+                        startup.renderer ==
+                            gallery::GalleryRendererKind::software_image &&
+                        startup.readback ==
+                            gallery::GalleryReadbackMode::host_frame,
+                    "Session did not expose structured presentation state");
 
             session.frame();
             require(session.frames == 1U && session.timing.latest() &&
@@ -138,26 +154,86 @@ int main() {
             require(session.frames == 2U,
                     "Resumed timestamp trace did not advance");
 
+            // Rich desktop rendering supplies callbacks, but cadence,
+            // stepping, timing, and presentation ordering remain session-owned.
+            session.reset();
+            timestamp = FrameClock::time_point{};
+            unsigned renders = 0U;
+            unsigned presents = 0U;
+            float interpolation = 0.0F;
+            gallery::GalleryFramePlan desktop_frame;
+            desktop_frame.controls.camera = session.camera().camera();
+            const auto render = [&](gallery::GallerySession &owner,
+                                    float alpha) {
+                require(&owner == &session,
+                        "Desktop renderer received a foreign session");
+                ++renders;
+                interpolation = alpha;
+            };
+            const auto present = [&](const gallery::GallerySession &owner) {
+                require(&owner == &session && renders == presents + 1U,
+                        "Desktop presentation ran out of order");
+                ++presents;
+            };
+            session.frame_at(timestamp, desktop_frame, render, present);
+            require(session.frames == 0U && renders == 1U && presents == 1U &&
+                        session.frame_timing().latest() &&
+                        session.frame_timing().latest()->physics_steps == 0U,
+                    "Desktop callback baseline bypassed common scheduling");
+            timestamp += interval;
+            session.frame_at(timestamp, desktop_frame, render, present);
+            require(session.frames == 1U && renders == 2U && presents == 2U &&
+                        session.frame_timing().latest()->physics_steps == 1U &&
+                        interpolation >= 0.0F && interpolation <= 1.0F,
+                    "Desktop callbacks did not use common frame policy");
+            desktop_frame.simulation_enabled = false;
+            timestamp += std::chrono::seconds(10);
+            session.frame_at(timestamp, desktop_frame, render, present);
+            desktop_frame.simulation_enabled = true;
+            timestamp += interval;
+            session.frame_at(timestamp, desktop_frame, render, present);
+            require(session.frames == 2U && renders == 4U && presents == 4U,
+                    "Desktop modal frame accumulated catch-up work");
+
             if (session.backend_name() == "vulkan") {
+                for (const gallery::GalleryContext context : {
+                         gallery::GalleryContext::rope_cloth,
+                         gallery::GalleryContext::rope_soft_body}) {
+                    const auto item = std::find_if(
+                        session.catalog().begin(), session.catalog().end(),
+                        [context](const auto &candidate) {
+                            return candidate.scene.context == context;
+                        });
+                    require(item != session.catalog().end() && !item->available &&
+                                item->unavailable_reason.find(
+                                    "Missing backend interactions") !=
+                                    std::string::npos,
+                            "Unqualified Vulkan rope coupling was advertised");
+                }
                 for (const gallery::GalleryContext context : {
                          gallery::GalleryContext::cloth,
                          gallery::GalleryContext::cloth_tear,
                          gallery::GalleryContext::cloth_paint,
-                         gallery::GalleryContext::water_cloth}) {
+                         gallery::GalleryContext::water_cloth,
+                         gallery::GalleryContext::soft_body,
+                         gallery::GalleryContext::soft_body_rigid,
+                         gallery::GalleryContext::soft_body_fluid,
+                         gallery::GalleryContext::rope,
+                         gallery::GalleryContext::rope_fluid}) {
                     const auto item = std::find_if(
                         session.catalog().begin(), session.catalog().end(),
                         [context](const auto &candidate) {
                             return candidate.scene.context == context;
                         });
                     require(item != session.catalog().end() && item->available,
-                            "Vulkan cloth scene was not advertised");
+                            "Qualified Vulkan scene was not advertised");
                     session.select(static_cast<unsigned>(
                         item - session.catalog().begin()));
                     (void)session.qualify(3U);
                     require(session.ready() && session.selection() ==
                                 static_cast<unsigned>(
                                     item - session.catalog().begin()),
-                            "Vulkan cloth qualification lost its scene");
+                            "Vulkan scene qualification lost its scene");
                 }
             }
 
@@ -179,7 +255,8 @@ int main() {
         };
         for (unsigned recreation = 0U; recreation < 2U; ++recreation) {
             gallery::MobileGallerySession mobile(mobile_config());
-            require(!mobile.state().active && !mobile.state().surface_ready &&
+            require(!mobile.state().presentation.active &&
+                        !mobile.state().surface_ready &&
                         !mobile.should_frame(),
                     "Mobile session ran before a surface was attached");
             require(mobile.attach_surface(96U, 72U) &&
@@ -191,17 +268,17 @@ int main() {
 
             require(mobile.execute(
                         gallery::MobileGalleryCommand::toggle_paused) &&
-                        mobile.state().paused && mobile.frame() &&
+                        mobile.state().presentation.paused && mobile.frame() &&
                         mobile.gallery().frames == 1U,
                     "Shared mobile pause advanced physics");
             require(mobile.execute(
                         gallery::MobileGalleryCommand::toggle_paused) &&
-                        !mobile.state().paused,
+                        !mobile.state().presentation.paused,
                     "Shared mobile resume did not clear pause");
 
             mobile.set_foreground(false);
             require(!mobile.should_frame() && !mobile.frame() &&
-                        !mobile.state().active,
+                        !mobile.state().presentation.active,
                     "Background mobile session admitted a frame");
             mobile.set_foreground(true);
             require(mobile.should_frame() && mobile.frame(),
@@ -239,11 +316,12 @@ int main() {
 
             require(mobile.execute(
                         gallery::MobileGalleryCommand::select_scene, 2.0F) &&
-                        mobile.state().primary_action_available &&
-                        mobile.state().primary_action_label == "Release" &&
+                        mobile.state().presentation.controls.primary ==
+                            gallery::GalleryPrimaryAction::release_restore_constraints &&
+                        !mobile.state().presentation.controls.constraints_released &&
                         mobile.execute(
                             gallery::MobileGalleryCommand::primary_action) &&
-                        mobile.state().primary_action_label == "Restore",
+                        mobile.state().presentation.controls.constraints_released,
                     "Mobile shell did not derive Point controls from shared state");
         }
         require(gallery::GalleryRuntime::live_runtime_count() == 0U,
@@ -293,8 +371,8 @@ int main() {
         {
             gallery::GallerySession desktop(std::move(desktop_config));
             require(validated_scene && desktop.ready() &&
-                        desktop.runtime().context == gallery::GalleryContext::fluid &&
-                        desktop.runtime().scene.fluid_options.capacity == 64U &&
+                        desktop.context() == gallery::GalleryContext::fluid &&
+                        desktop.scene().fluid_options.capacity == 64U &&
                         desktop.revision() == 1U,
                     "Explicit desktop session configuration was not applied");
             auto parameters = desktop.scene_parameters();
@@ -302,16 +380,16 @@ int main() {
             desktop.set_scene_parameters(parameters);
             desktop.select(static_cast<unsigned>(gallery::gallery_context_index(
                 gallery::GalleryContext::fluid)));
-            require(desktop.runtime().scene.fluid_options.capacity == 96U &&
+            require(desktop.scene().fluid_options.capacity == 96U &&
                         desktop.revision() == 2U,
                     "Desktop fluid parameter did not survive common selection");
             desktop.select(static_cast<unsigned>(gallery::gallery_context_index(
                 gallery::GalleryContext::dump)));
-            require(gallery::dump_payload_count(desktop.runtime().scene) == 13U &&
+            require(gallery::dump_payload_count(desktop.scene()) == 13U &&
                         desktop.revision() == 3U,
                     "Desktop dump parameter did not survive common selection");
             desktop.reset();
-            require(gallery::dump_payload_count(desktop.runtime().scene) == 13U &&
+            require(gallery::dump_payload_count(desktop.scene()) == 13U &&
                         desktop.revision() == 4U,
                     "Common reset lost desktop scene parameters");
         }

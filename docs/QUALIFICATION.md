@@ -1,6 +1,6 @@
 # Qualification scope and open gates
 
-Updated 2026-10-17. This is an evidence index, not blanket driver certification.
+Updated 2026-10-18. This is an evidence index, not blanket driver certification.
 Each release must attach a revisioned machine-readable evidence package with
 the exact source, driver, toolchain, device, case hashes and settings. Repeat the
 affected scope after changes; historical passes do not automatically qualify a
@@ -27,7 +27,9 @@ promoting those results to capability certification.
 | Scope | Evidence and host scope | Unqualified or failed scope |
 |---|---|---|
 | Resource lifetime and capacity (F1) | Reference-lifecycle foundation closed by F1-01–F1-07: exact-query fluid churn/recovery; CUDA mixed-domain churn; geometry, paint and borrowed-endpoint replacement; failure/pending lifetime; fixed host owner metadata. Current Windows CUDA/D3D12 and Apple M4 Metal console tests pass 4,096 fluid replacements and exact-capacity recovery. | The console tests do not emit F5-03 checkpoint state hashes/write ordinals, so current results retain explicit `missing` profile evidence. Numerical physics and remaining driver/domain pairs remain separate; see F2-04, F4-05 and P1-01. |
-| SDK/loader/host contracts | 34 shader-free `sdk-ci` CTests; relocated C/C++ consumers and separately built mock driver; standalone conformance checks all 30 inputs; Linux and Apple Silicon macOS CI preserve revisioned compiler/architecture reports | Windows installed packages are not run here; physics is not evaluated by this gate |
+| Specification, ABI and validation (F3) | F3-01–F3-12 reconcile the generated API/specification, loader and layer negotiation, typed validation diagnostics, command/object/query/synchronization state, host snapshots, deferred errors, teardown and capacity recovery. The F3-99 review passes 23 Windows D3D12/validation tests, 6 independent WSL host tests and all 18 relocated public SDK consumer/ABI cases. | This is portable contract and reference-runtime evidence, not exhaustive proof of every specification clause, physical correctness or every driver. Native interop handoff remains F4-07/F4-08; driver/domain qualification remains F5/P1. SDK installation is qualified separately by F6-01/F6-02. |
+| Runtime-generated capacity recovery (F3-12) | Public API profile fixes four colocated particles, one allowed neighbor and one isolated control population. D3D12 on the Windows GTX 1080 and the independent WSL Slang C++ host fixture each pass 20/20: acceptance succeeds; completion, status and statistics report exactly four generated overflows; invalid output is not published; selective reinitialization recovers while preserving the control. | This qualifies only the named shared-Slang neighbor-overflow profile and lifecycle contract. It is not physical-quality, performance or blanket driver-capacity evidence. |
+| SDK/loader/host contracts | Windows x64 Release passes 38/38 `sdk-ci` CTests and all 12 relocated-install stages, including 18/18 external C/C++/ABI cases and all 30 conformance inputs. F6-03 additionally passes 44/44 driver-free and 49/49 D3D12 relocated component checks across separate loader, validation, preparation, scene, driver, conformance and benchmark exports. Linux, Apple Silicon macOS and Windows CI repeat the selected-component matrix and assert each built driver target. | This gate qualifies packaging and public ABI behavior only; physics quality and a stable optional C++ ABI are not claimed. A driver export check proves package integrity, not the driver's physical correctness or capability coverage. |
 | Interaction graph lifecycle (F2-04) | Linux RTX 3050 Ti and current Windows GTX 1080 CUDA plus Apple M4 Metal execute all 12 implemented pairs through create/update/clear, endpoint replacement, three-family mutation and partial-create rollback. | Current CUDA and Metal console evidence lacks required F5-03 checkpoint fingerprints; D3D12 reports the complete three-family case unsupported because it does not advertise rope, soft-body or smoke. Unsupported/missing never passes the lifecycle evaluator. |
 | Vendor-neutral physical quality (F5-02, F5-05) | Hashed `core-conservation-stability-v1` and `rigid-brick-penetration-v1` profiles independently evaluate fluid conservation/stability and rigid surface separation. Current Windows CUDA passes all 18 equal-fluid samples; CUDA and D3D12 pass the fixed eight-brick gate at 0.205278 mm and Apple M4 Metal passes at 0.146627 mm, all against 2 mm. | D3D12 and Metal do not advertise separate-system equal-fluid modes. Brick quality does not override failed reference regression or missing lifecycle/interaction-specific analytic evidence; remaining modes still need fixtures. |
 | Capability evidence obligations (F5-01) | Hashed `capability-obligations-v1` rules cover all 49 API 0.2 interaction records exactly once and keep compilation, execution, regression, lifecycle, analytic and timing evidence separate. Current physical results register 49 CUDA and 10 D3D12 records on GTX 1080 plus 46 Metal records on Apple M4. | Qualification remains 0/49 for current Windows CUDA, 0/10 D3D12 and 0/46 Metal. Reference failures, process crashes, missing exact lifecycle captures and rule-level analytic gaps stay explicit. |
@@ -159,6 +161,114 @@ index. F5-12 through F5-16 own current hardware evidence, while P1-01 must split
 every remaining driver/domain implementation and evidence slice after the six
 foundation reviews. No uncovered F2 implementation leaf was found.
 
+### F3-99 specification, ABI and validation exit review
+
+The original F3 exit required documentation, runtime and validation to agree,
+with executable evidence beyond header generation and command routing. Task
+cards F3-01 through F3-12 are merged `done` with nonempty evidence and completed
+lease history. Together they close that foundation scope as follows:
+
+- The registry remains the canonical API source. Generated headers,
+  specification text and reflected ABI agree, while independent fixtures accept
+  API 0.2/default requests and reject incompatible driver and layer negotiation.
+  Installed public C/C++ headers compile consumers and layer ABI 1, 2 and 3
+  fixtures without importing implementation types.
+- Generated and handwritten loader calls have an explicit interception
+  inventory. The validation layer tracks memory, buffers, geometry, simulations,
+  pipelines, recorded resources, command state, fences, timelines and query
+  scopes. Stable `PM-VAL-*` diagnostics carry typed arguments and application
+  object context through a copied, concurrent and reentrant callback contract.
+- `PM-API-001` through `PM-RESET-001` separate portable API behavior,
+  validation-layer behavior, private host fixtures, reference-runtime
+  extensions and reference-solver profiles. Positive, negative and recovery
+  cases cover command snapshots, deferred failures, query reuse, independent
+  host concurrency, explicit and implicit teardown profiles, runtime-generated
+  overflow and selective recovery.
+
+The exit review rebuilt the current Visual Studio 18 D3D12 and validation
+targets and passed 23/23 focused tests on the Windows GTX 1080. An independent
+GCC 13.3 WSL Slang C++ host build passed 6/6 asynchronous submission, queue,
+descriptor snapshot, deferred-failure, destruction-wait and capacity-recovery
+tests. A relocated current SDK passed all 18 public consumer and compatibility
+cases, including application/extension modes, current and legacy layer ABIs and
+invalid negotiation controls. The generated header/specification check, all 67
+conformance metadata tests and all 19 roadmap workflow tests also passed.
+
+The review preserves these boundaries:
+
+- Same-object host races remain externally synchronized and are deliberately
+  not manufactured as negative tests. Implicit device-teardown draining is an
+  in-tree reference-runtime extension, and runtime overflow is qualified only
+  for the named shared-Slang neighbor profile on D3D12 and the host fixture.
+- Validation does not yet qualify imported native-device/queue handoff; F4-07
+  and F4-08 own that contract and mock-adapter evidence. Physical accuracy,
+  every driver/domain combination and native Vulkan validation remain F5 and
+  P1 work rather than being inferred from F3 lifecycle passes.
+- The broader Windows SDK verifier originally exposed a Debug/Release mismatch
+  in its independent conformance consumer. F6-01 now applies the requested
+  configuration consistently and separately qualifies the complete relocated
+  package; that packaging result does not broaden F3's specification claims.
+
+No uncovered F3-specific leaf was found. Closing F3 establishes the reviewed
+specification/ABI/validation foundation only; it does not certify a solver,
+driver, engine integration, package release or physical-quality profile.
+
+### F6-01 Windows SDK installation qualification
+
+Clean source `6994b6c658ca81dd62234e93b3c79df5aa8af0cc` built the Release
+`sdk-ci` profile on Windows 11 x64 with Visual Studio Build Tools 18.9.1,
+MSVC 19.51.36256.0, Windows SDK 10.0.26100.0, CMake 4.4.2 and Ninja 1.12.1.
+All 38 headless SDK CTests passed. The installed-SDK verifier then installed and
+moved 154 files, passed all 12 stages, passed all 18 external C/C++ and ABI
+cases, rejected package lines 0.1 and 0.3, rebuilt conformance against only the
+relocated public package, validated all 30 inputs and preserved the unsupported
+and missing-driver classifications.
+
+The [tracked F6-01 evidence](roadmap/evidence/F6-01-windows-sdk-install.json)
+pins the source, toolchain, binary/report hashes and reproduction commands. The
+Windows x64 job in `sdk-install.yml` repeats the same minimal build, `sdk-ci`
+build/CTest and relocated-install verifier in CI and retains its raw report and
+logs. This qualifies packaging and public ABI behavior only; no physical quality
+or native GPU-driver claim follows from it.
+
+### F6-03 optional SDK package exports
+
+Clean source `f859ef46813f45b72ce14fa590226c3b6ea4b8e9` separates the former
+combined export into loader, validation, preparation, scene, driver,
+conformance and benchmark install components. Relocated Windows `sdk-ci` passes
+44/44 supported and negative component checks. A full D3D12 build passes 49/49,
+including an explicit `ParallelMater::slang_d3d12_driver` assertion. The
+existing full-install verifier remains green at 12/12 and all 38 `sdk-ci` CTests
+pass.
+
+The [tracked F6-03 evidence](roadmap/evidence/F6-03-package-components.json)
+pins the clean reports and reproduction commands. SDK CI repeats the driver-free
+matrix on Linux, Apple Silicon macOS and Windows; shader portability repeats it
+for built CPU, D3D12 and Metal drivers and requires their exact imported target
+names. Absent components and a scene install without preparation must fail at
+configuration. These checks qualify packaging boundaries only, not physical
+quality, capability coverage or a stable C++ ABI.
+
+### F6-05 release reference artifacts
+
+The reference release uses a tracked CPython 3.13.15/package/font lock instead
+of host-installed fonts. All four generated header copies, searchable
+specification text, API coverage, two PDFs and two layout manifests identify or
+are hash-bound to registry revision
+`13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7`.
+The clean staging check reproduced all 10 files byte-for-byte with no accepted
+nondeterminism. It also passed 6 MSVC C11/C++17 ABI probes, checked all 118
+functions and 143 non-Vulkan public types, and validated 52 specification pages,
+9 reference pages, embedded fonts, links, page bounds and non-overlap.
+
+The [tracked F6-05 evidence](roadmap/evidence/F6-05-reference-artifacts.json)
+and [release artifact manifest](reference/release-artifacts.json) pin the exact
+inputs, output hashes and reproduction command. Reference-artifact CI repeats a
+clean Ubuntu regeneration. The optional Vulkan header compile probe was skipped
+locally because this host lacks Vulkan SDK headers; generation and byte
+comparison still include that header. This qualifies document release
+artifacts, not driver execution, physics quality or performance.
+
 The [Windows physics report](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json)
 records tested source/binary/case hashes, original first divergences, comparison
 results, independent physical metrics and reproduction commands. See also the
@@ -287,3 +397,64 @@ or invariant physical quality, and performance. An unsupported case counts as
 neither a pass nor a numerical failure, and leaves its qualification scope open.
 Performance comparisons require both implementations to pass the same fixed
 quality profile first. Raw case outputs and failures survive the comparison.
+
+### F5-17 rigid-direct reference adjudication
+
+Clean source `d6310bf9b65d81f8c30b2d45e415c43b82396249` exposed that the
+command runner did not execute the geometry declared by the hashed
+`rigid-direct` case: its kinematic body reused the dynamic box's 0.25 m
+half-extent mesh instead of the declared 0.2 m mesh. The retained F5-04 CPU and
+CUDA raws confirm the mismatch through frame-21 contact points at approximately
+`z = +/-0.25 m`. The runner now creates the declared kinematic mesh; the case,
+shared solver, backend adapters and `direct` tolerances are unchanged.
+
+The independent
+[`rigid-kinematic-sweep-v1`](../conformance/v1/quality/rigid-kinematic-sweep-v1.json)
+profile pins the case hash and all 61 checkpoints. It checks collider bounds,
+contact direction, the Coulomb cone, non-vacuous linear/angular response and
+planar symmetry without reading a trajectory golden. Corrected CPU and CUDA
+captures both pass with zero failures; the retained pre-correction captures
+each fail five collider-bound checks. The
+[versioned adjudication](roadmap/evidence/F5-17-rigid-direct-adjudication.json)
+therefore replaces only the stale CUDA `rigid-direct` golden, from SHA-256
+`c79c9a768c1b3f0d60d7ec5af7e1a8a69977d3e5e7c7c5558c5352c65617208d`
+to `6ebfbcc7be7cbfb5363a4fc29029bc2ba9d1f96ce03c4ab7334af9ade45ac5ba`.
+
+CUDA passes the F5-17 replacement at all five canonical checkpoints. At that
+revision CPU still failed one unchanged-tolerance field at checkpoint 40:
+`dynamic-box.angular_velocity[1]` differed by `2.4093271349556744e-05 rad/s`
+against an allowed `1.000034577675251e-05 rad/s`. The retained all-frame report
+preserves the same component on frames 21 through 40. F5-18 closes that bounded
+divergence below; the five known `0xc0000006` process failures and all other
+F5-11 limitations remain. This evidence grants no broader CPU, CUDA, Gallery,
+performance or driver qualification.
+
+### F5-18 rigid-direct planar symmetry
+
+Clean source `f33707a649399f5630b687a50eabfae7f6cef79e` reproduced the
+F5-17 failure from the same case and profile hashes. The frame-21 face manifold
+contained the four rectangular patch endpoints plus a fifth collinear interior
+point at `z = -0.082687892 m`, contributed by the incident face's internal
+triangle diagonal. That unpaired point made the AVBD block depend on face
+tessellation. The shared Slang face-manifold path now removes only points lying
+strictly inside a segment between two other patch contacts. It does not change
+the fixture, tolerance, backend adapters or output values after solving.
+
+The corrected CPU and CUDA captures each contain 61 checkpoints and a mirrored
+four-contact frame-21 patch at `z = +/-0.2 m`. They compare with zero differences
+at the unchanged `direct` tolerances, and both pass all 61 samples of the pinned
+`rigid-kinematic-sweep-v1` oracle. Maximum reported planar leakage is
+`1.1697111e-06` on CPU and `6.6892048e-06` on CUDA. A focused CUDA/D3D12
+regression additionally produces `1.21739 rad/s` from a real `0.02 rad` tilted
+contact, proving that the reduction does not discard three-dimensional angular
+response. Both backends pass 300 rigid Gallery frames, reset, torque-free,
+convex-sweep, face-normal, brick-penetration, seam and open-surface gates.
+
+Because the correction changes the physical post-impact trajectory, only the
+CUDA `rigid-direct` golden is replaced, from LF-normalized SHA-256
+`6ebfbcc7be7cbfb5363a4fc29029bc2ba9d1f96ce03c4ab7334af9ade45ac5ba`
+to `ab9fd6f8deef860cb415d0b43633d367678f3acb6993d1007ab4d97fce80147a`.
+The [versioned F5-18 evidence](roadmap/evidence/F5-18-rigid-direct-planar-symmetry.json)
+retains the pre-correction failure, current raw captures, independent quality
+reports and both reference comparisons. It closes only the bounded F5-17
+planar-symmetry limitation and grants no broader driver or performance claim.

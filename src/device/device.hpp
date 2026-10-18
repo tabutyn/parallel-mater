@@ -66,6 +66,7 @@ class Services {
     [[nodiscard]] virtual int ordinal() const noexcept = 0;
     [[nodiscard]] virtual void *native_device_handle() const noexcept = 0;
     virtual void describe_native_device(PmNativeDeviceInfo &) const noexcept {}
+    virtual void describe_native_queue(PmNativeQueueInfo &) const noexcept {}
     [[nodiscard]] virtual void *native_queue_handle() const noexcept = 0;
     [[nodiscard]] virtual void *native_allocation_handle(
         const void *allocation) const noexcept {

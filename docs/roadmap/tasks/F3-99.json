@@ -1,7 +1,7 @@
 {
   "id": "F3-99",
   "title": "Review F3 exit evidence",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F3-01",
     "F3-02",
@@ -27,7 +27,37 @@
     "All dependency tasks are merged done with reviewable evidence.",
     "Update the qualification index with exact scope and unresolved limitations; an implementation/demo alone cannot close the gate."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: F3-01 through F3-12 are merged done with nonempty evidence and completed lease history at origin/main 442782b.",
+    "PASS: Visual Studio 18 Windows GTX 1080 D3D12, loader and validation slice rebuilt and passed 23/23 focused tests.",
+    "PASS: GCC 13.3 WSL Slang C++ host fixture passed 6/6 asynchronous, snapshot, failure, teardown and capacity tests.",
+    "PASS: relocated Release SDK public consumer and ABI matrix passed 18/18 and rejected package versions 0.1 and 0.3; broader verifier exposed a Debug/Release conformance link mismatch retained under F6-01.",
+    "PASS: generated public header/specification check, 67 conformance unit tests, 19 roadmap unit tests and 160-card roadmap validation.",
+    "REVIEW: docs/QUALIFICATION.md records exact F3 scope and maps unresolved native handoff, driver/domain/physical and Windows release-tooling work to F4-07/F4-08, F5/P1 and F6-01; no uncovered F3 leaf found."
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "22a2c21c-b394-4866-99aa-74a6afdaaa21",
+        "owner": "codex-windows-review",
+        "machine": "windows-gtx1080",
+        "branch": "work/F3-99/windows-gtx1080",
+        "claimed_at": "2026-10-18T04:49:17Z",
+        "heartbeat_at": "2026-10-18T04:49:17Z",
+        "expires_at": "2026-10-19T04:49:17Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T05:03:35Z",
+      "reason": "F3 specification, ABI and validation exit reviewed; all dependencies have evidence, current Windows, host and SDK matrices pass the F3 scope, and remaining interop, driver and release limits map to F4, F5/P1 and F6-01.",
+      "evidence": [
+        "PASS: F3-01 through F3-12 are merged done with nonempty evidence and completed lease history at origin/main 442782b.",
+        "PASS: Visual Studio 18 Windows GTX 1080 D3D12, loader and validation slice rebuilt and passed 23/23 focused tests.",
+        "PASS: GCC 13.3 WSL Slang C++ host fixture passed 6/6 asynchronous, snapshot, failure, teardown and capacity tests.",
+        "PASS: relocated Release SDK public consumer and ABI matrix passed 18/18 and rejected package versions 0.1 and 0.3; broader verifier exposed a Debug/Release conformance link mismatch retained under F6-01.",
+        "PASS: generated public header/specification check, 67 conformance unit tests, 19 roadmap unit tests and 160-card roadmap validation.",
+        "REVIEW: docs/QUALIFICATION.md records exact F3 scope and maps unresolved native handoff, driver/domain/physical and Windows release-tooling work to F4-07/F4-08, F5/P1 and F6-01; no uncovered F3 leaf found."
+      ]
+    }
+  ]
 }

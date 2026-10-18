@@ -1,0 +1,75 @@
+{
+  "schema": "parallel-mater-roadmap-release-reproducibility-evidence/v1",
+  "task": "F6-04",
+  "scope": "Reproducible release inputs and classified two-build artifact comparison",
+  "source": {
+    "base_main_commit": "d4388e03ab22ef1e224ac17e71a88a77625b0940",
+    "latest_merged_main_commit": "97c203516e17606b837bed80f423fdd0f132ef7c",
+    "acceptance_commit": "6f821a55e92bc4d0fe0e3c26aa55fb14470539d0",
+    "branch": "work/F6-04/windows-gtx1080",
+    "dirty_before_evidence": false,
+    "tracked_file_count": 963,
+    "tracked_tree_sha256": "c069adeba64c319a696508b0e5d366e47f0094b2af47f15540c941f76ac4b8b3"
+  },
+  "toolchain": {
+    "operating_system": "Windows 11 x64",
+    "visual_studio": "Build Tools 18.9.1",
+    "compiler": "MSVC 19.51.36256.0 x64",
+    "windows_sdk": "10.0.26100.0",
+    "cmake": "4.4.2",
+    "python": "3.13.15",
+    "generator": "Visual Studio 18 2026",
+    "configuration": "Release"
+  },
+  "release_inputs": {
+    "profile": "sdk-ci",
+    "source_identity": "revision, clean state, tracked-file count and content digest",
+    "toolchain_identity": "compiler, linker, librarian, manifest tool and resource compiler executable SHA-256 values",
+    "dependency_identity": "cgltf revision and files, Slang version and per-platform archive hashes, GLFW tag and OptiX revision",
+    "configuration_identity": "normalized CMake preset, override arguments and selected cache options"
+  },
+  "two_clean_builds": {
+    "inputs_match": true,
+    "runtime_path_audits_pass": true,
+    "installed_artifacts": {
+      "count": 164,
+      "artifact_sets_match": true,
+      "bit_identical": false,
+      "differences": {
+        "pe_content": 3,
+        "embedded_build_path_and_archive_content": 2
+      }
+    },
+    "generated_artifacts": {
+      "count": 20,
+      "artifact_sets_match": true,
+      "bit_identical": false,
+      "differences": {
+        "embedded_build_path": 10
+      }
+    },
+    "report_sha256": "967df5c1021444cb05bbed7e808a07faca05dd1e7cd417c317a78c6d642dbdfa",
+    "manifest_a_sha256": "f991411cf1201352c06a45ce3c9ab39ba7ea0d10689e0d3bdf6be5e1c575b68c",
+    "manifest_b_sha256": "6fc39f0dce8df4a4806a694a789e7265594dc411caf92afc478c3a6cc9c40bfc",
+    "local_artifact_directory": "out/release-repro/f6-04-6f821a5"
+  },
+  "verification": [
+    {
+      "check": "python tools/check_release_reproducibility.py --preset sdk-ci --generator 'Visual Studio 18 2026' --architecture x64 --output out/release-repro/f6-04-6f821a5 --config Release --jobs 2",
+      "result": "PASS: two isolated clean configure/build/install runs, equivalent recorded inputs, matching artifact sets and zero required workstation-path hits"
+    },
+    {
+      "check": "ctest --test-dir out/release-repro/f6-04-6f821a5/build-a --output-on-failure -C Release -j 2",
+      "result": "PASS: 39/39 tests, including the release reproducibility classifier suite"
+    }
+  ],
+  "continuous_integration": {
+    "workflow": ".github/workflows/sdk-install.yml",
+    "coverage": "Linux, Apple Silicon macOS and Windows each perform two clean sdk-ci builds and retain both manifests, the comparison report and logs"
+  },
+  "limitations": [
+    "Bit-identical output is not established: three PE files and two static libraries differed between the two Windows builds.",
+    "Ten build-tree test manifests differed only by their intentionally distinct build-directory paths; installed runtime metadata had zero required workstation-path hits.",
+    "The observed classifications apply to this exact source, host, toolchain and input tuple; they do not assert cross-host or cross-toolchain reproducibility."
+  ]
+}

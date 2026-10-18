@@ -48,6 +48,9 @@ class FrameTimingCollector {
     bool finish_frame(TimePoint now = Clock::now());
     void cancel_frame();
     void clear_history();
+    [[nodiscard]] bool measuring(FramePhase phase) const noexcept {
+        return active_ && phase_ == phase;
+    }
     [[nodiscard]] const std::optional<FrameTimingSample> &latest() const { return latest_; }
     [[nodiscard]] double fps() const;
     [[nodiscard]] FrameTimingStatistics statistics() const;

@@ -128,5 +128,5 @@ from the comparison and physical-quality gates above.
 | CUDA | Accepted shared Slang runtime; command API, architecture checks, 105 AVBD fixtures, automated gallery gates, and interactive gallery review pass |
 | Metal | Unavailable; no qualified Slang device adapter |
 | DirectX 12 | Shared rigid/constraint/liquid/cloth preview and native GPU drawing; 17 targeted CUDA/D3D12 comparisons and independent brick/contact gates pass; remaining domains and performance unqualified |
-| Vulkan | Shared rigid/constraint/liquid preview; focused GPU and shader validation, not full backend qualification. See [Vulkan](VULKAN.md) |
+| Vulkan | Shared rigid/constraint/liquid/cloth/rope/soft-body preview with qualified rigid and liquid couplings; focused GPU and shader validation, not full backend qualification. See [Vulkan](VULKAN.md) |
 | WebGPU | AVBD numerical core compiles to WGSL; full schedule and driver unavailable |

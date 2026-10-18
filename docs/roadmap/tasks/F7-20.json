@@ -1,0 +1,47 @@
+{
+  "id": "F7-20",
+  "title": "Consolidate the common Gallery scene descriptor",
+  "status": "done",
+  "dependencies": [
+    "F7-12",
+    "F7-19"
+  ],
+  "locks": [
+    "gallery-scene-descriptor"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Replace parallel Gallery context, catalog, asset and capability mappings with one immutable common scene descriptor consumed by the session, CLI, desktop and mobile shells.",
+  "acceptance": [
+    "Each scene's stable ID, asset, name, help, controls, camera, workload flags, broad features and exact interaction requirements are declared once in a common descriptor.",
+    "Contract tests prove descriptor order, uniqueness and completeness and show catalog and CLI selection derive from it without platform-maintained scene mappings."
+  ],
+  "evidence": [
+    "PASS: common Gallery, registry, input, camera and command Gallery targets built with GCC 12.2.0; desktop CLI help derived all 27 non-default scene options from the descriptor; docs/roadmap/evidence/F7-20-gallery-scene-descriptor.json.",
+    "PASS: Gallery registry, input and camera contracts passed 3/3; descriptor order, uniqueness, completeness, workload-feature consistency and 33-key exact-interaction inventory are checked; docs/roadmap/evidence/F7-20-gallery-scene-descriptor.json.",
+    "PASS: Vulkan Gallery session contract passed 1/1 in 57.82 seconds on NVIDIA RTX 3050 Ti Laptop GPU driver 590.44.01; docs/roadmap/evidence/F7-20-gallery-scene-descriptor.json."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "87e4e3ed-f60c-4e0f-a774-c7d5259cb85d",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-20/thomas-laptop",
+        "claimed_at": "2026-10-18T06:45:29Z",
+        "heartbeat_at": "2026-10-18T06:45:29Z",
+        "expires_at": "2026-10-19T06:45:29Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T06:59:33Z",
+      "reason": "Unified all Gallery scene identity, asset, presentation, workload and capability metadata in one common descriptor consumed by platform-neutral catalog, session and CLI paths.",
+      "evidence": [
+        "PASS: common Gallery, registry, input, camera and command Gallery targets built with GCC 12.2.0; desktop CLI help derived all 27 non-default scene options from the descriptor; docs/roadmap/evidence/F7-20-gallery-scene-descriptor.json.",
+        "PASS: Gallery registry, input and camera contracts passed 3/3; descriptor order, uniqueness, completeness, workload-feature consistency and 33-key exact-interaction inventory are checked; docs/roadmap/evidence/F7-20-gallery-scene-descriptor.json.",
+        "PASS: Vulkan Gallery session contract passed 1/1 in 57.82 seconds on NVIDIA RTX 3050 Ti Laptop GPU driver 590.44.01; docs/roadmap/evidence/F7-20-gallery-scene-descriptor.json."
+      ]
+    }
+  ]
+}

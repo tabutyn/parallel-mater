@@ -1,7 +1,7 @@
 {
   "id": "F5-04",
   "title": "Isolate CPU rigid-direct divergence",
-  "status": "open",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "quality-rigid-direct"
@@ -14,7 +14,31 @@
     "Retain exact revisions, parameters and both raw outputs with unchanged tolerances.",
     "File a narrowly scoped corrective leaf task supported by the reproduction."
   ],
-  "evidence": [],
+  "evidence": [
+    "FAIL-PRESERVED: docs/roadmap/evidence/F5-04-rigid-direct-divergence.json and F5-04-rigid-direct-603fee-{cpu,cuda}.json retain the exact 603fee5 reproduction; unchanged comparison first fails at frame 21.",
+    "PASS: docs/roadmap/evidence/F5-04-rigid-direct-3acb413-{cpu,cuda}.json compare all 61 frames within unchanged direct tolerances on one current revision.",
+    "FOLLOW-UP: docs/roadmap/tasks/F5-17.json requires an independent physical oracle before correcting shared Slang response or approving a versioned reference replacement."
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "a6468cc4-0fc2-4efd-9e0e-8b4a2ea9bfb7",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F5-04/windows-gtx1080",
+        "claimed_at": "2026-10-18T07:51:39Z",
+        "heartbeat_at": "2026-10-18T07:51:39Z",
+        "expires_at": "2026-10-19T07:51:39Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T08:34:23Z",
+      "reason": "Isolated the historical mismatch to the first frame-21 kinematic contact submission, retained exact same-revision CPU/CUDA captures, and filed F5-17 for independent shared-response/reference adjudication.",
+      "evidence": [
+        "FAIL-PRESERVED: docs/roadmap/evidence/F5-04-rigid-direct-divergence.json and F5-04-rigid-direct-603fee-{cpu,cuda}.json retain the exact 603fee5 reproduction; unchanged comparison first fails at frame 21.",
+        "PASS: docs/roadmap/evidence/F5-04-rigid-direct-3acb413-{cpu,cuda}.json compare all 61 frames within unchanged direct tolerances on one current revision.",
+        "FOLLOW-UP: docs/roadmap/tasks/F5-17.json requires an independent physical oracle before correcting shared Slang response or approving a versioned reference replacement."
+      ]
+    }
+  ]
 }

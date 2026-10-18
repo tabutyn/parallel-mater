@@ -9,7 +9,8 @@ export LD_LIBRARY_PATH="$sdk/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation
 export PM_VULKAN_CACHE_DIR="${PM_VULKAN_CACHE_DIR:-$build/vulkan-cache}"
 for module in geometry geometry_constraints primitives queries fluid geometry_fluid \
-    cloth geometry_cloth fluid_cloth; do
+    cloth geometry_cloth fluid_cloth soft_body geometry_soft_body fluid_soft_body \
+    rope fluid_rope; do
     "$sdk/bin/spirv-val" --target-env vulkan1.3 --scalar-block-layout \
         "$build/generated/vulkan/$module.spv"
 done

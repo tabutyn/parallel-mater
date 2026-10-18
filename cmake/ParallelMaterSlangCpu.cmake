@@ -245,7 +245,8 @@ set_target_properties(parallel-mater-driver-slang-cpu PROPERTIES
     EXPORT_NAME slang_cpu_driver)
 add_library(ParallelMater::slang_cpu_driver ALIAS
             parallel-mater-driver-slang-cpu)
-list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-driver-slang-cpu)
+list(APPEND PARALLEL_MATER_DRIVER_INSTALL_TARGETS
+    parallel-mater-driver-slang-cpu)
 
 file(GENERATE
     OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cpu.json"

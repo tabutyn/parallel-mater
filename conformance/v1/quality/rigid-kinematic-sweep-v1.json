@@ -1,0 +1,49 @@
+{
+  "schema": "parallel-mater-conformance-quality-profile/v1",
+  "id": "rigid-kinematic-sweep-v1",
+  "title": "Rigid off-center kinematic sweep response",
+  "evaluation": "rigid_kinematic_sweep",
+  "sources": {
+    "fixture": "conformance/v1/cases/rigid-direct.json: hashed analytic geometry, commands, timestep and substeps",
+    "contact_direction": "The kinematic box sweeps from left/below the dynamic box, so its active reaction must align with the positive x/y sweep.",
+    "angular_response": "The sweep reaches the dynamic box below its center of mass; a positive-x reaction therefore has positive z torque.",
+    "planar_symmetry": "The geometry, initial state, gravity and command path are mirror-symmetric about z=0; out-of-plane state is numerical leakage.",
+    "bounds": "docs/roadmap/tasks/F5-17.json: independent oracle distinguishes shared physical response from trajectory history without changing direct tolerances"
+  },
+  "fixture": {
+    "case_id": "rigid-direct",
+    "case_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
+    "frames": 60,
+    "substeps": 4,
+    "timestep_seconds": 0.016666666666666666,
+    "preimpact_frame": 20,
+    "impact_frame": 21,
+    "body": "dynamic-box",
+    "collider": "kinematic-box",
+    "kinematic_previous_position": [-1.0, 1.0, 0.0],
+    "kinematic_target_position": [1.0, 1.5, 0.0],
+    "kinematic_sweep_displacement": [2.0, 0.5, 0.0],
+    "collider_half_extents": [0.2, 0.2, 0.2],
+    "angular_response_axis": [0.0, 0.0, 1.0],
+    "friction_coefficient": 0.5
+  },
+  "tolerances": {
+    "fixture_state_absolute": 0.0001,
+    "contact_point_absolute_m": 0.005,
+    "friction_cone_absolute": 0.0001,
+    "normal_impulse_activity_minimum": 0.001,
+    "normal_alignment_cosine_minimum": 0.95,
+    "sweep_response_speed_minimum_m_s": 1.0,
+    "angular_response_minimum_rad_s": 1.0,
+    "planar_position_absolute_m": 0.0001,
+    "planar_linear_velocity_absolute_m_s": 0.0001,
+    "planar_orientation_component_absolute": 0.0001,
+    "planar_angular_velocity_absolute_rad_s": 0.0001
+  },
+  "reference_adjudication": {
+    "tolerance_profile": "direct",
+    "direct_tolerances_changed": false,
+    "golden_replacement": "required",
+    "note": "The declared collider geometry was not executed by the stale golden. These analytic limits do not replace or relax the trajectory comparator."
+  }
+}

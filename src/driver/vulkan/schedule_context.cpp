@@ -23,6 +23,51 @@ void check(VkResult result, const char *operation) {
         throw std::runtime_error(operation);
     }
 }
+
+std::vector<const char *> available_instance_extensions() {
+    std::uint32_t count{};
+    check(vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr),
+          "enumerate instance extensions");
+    std::vector<VkExtensionProperties> available(count);
+    check(vkEnumerateInstanceExtensionProperties(
+              nullptr, &count, available.data()),
+          "enumerate instance extensions");
+    constexpr const char *candidates[]{
+        "VK_KHR_surface", "VK_KHR_xcb_surface", "VK_KHR_xlib_surface",
+        "VK_KHR_wayland_surface", "VK_KHR_win32_surface",
+        "VK_KHR_android_surface", "VK_EXT_metal_surface",
+        "VK_MVK_macos_surface"};
+    std::vector<const char *> enabled;
+    for (const char *candidate : candidates) {
+        if (std::any_of(available.begin(), available.end(),
+                [&](const VkExtensionProperties &extension) {
+                    return std::strcmp(extension.extensionName, candidate) == 0;
+                }))
+            enabled.push_back(candidate);
+    }
+    return enabled;
+}
+
+std::vector<const char *> available_device_extensions(
+    VkPhysicalDevice physical) {
+    std::uint32_t count{};
+    check(vkEnumerateDeviceExtensionProperties(
+              physical, nullptr, &count, nullptr),
+          "enumerate device extensions");
+    std::vector<VkExtensionProperties> available(count);
+    check(vkEnumerateDeviceExtensionProperties(
+              physical, nullptr, &count, available.data()),
+          "enumerate device extensions");
+    std::vector<const char *> enabled;
+    if (std::any_of(available.begin(), available.end(),
+            [](const VkExtensionProperties &extension) {
+                return std::strcmp(extension.extensionName,
+                                   VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0;
+            }))
+        enabled.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    return enabled;
+}
+
 struct Instance {
     VkInstance handle{};
     Instance() {
@@ -31,6 +76,9 @@ struct Instance {
         app.apiVersion = VK_API_VERSION_1_3;
         VkInstanceCreateInfo info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
         info.pApplicationInfo = &app;
+        const auto extensions = available_instance_extensions();
+        info.enabledExtensionCount = static_cast<std::uint32_t>(extensions.size());
+        info.ppEnabledExtensionNames = extensions.data();
         const char *validation = "VK_LAYER_KHRONOS_validation";
         if (const char *enabled = std::getenv("PM_VULKAN_VALIDATION");
             enabled && std::strcmp(enabled, "1") == 0) {
@@ -142,7 +190,9 @@ struct ScheduleContext::Impl {
     std::map<const void *, std::uint32_t> mesh_capacities;
     std::map<const void *, std::pair<std::uint32_t, VkDeviceAddress>> paint_fields;
     Buffer globals{};
+    Buffer arguments{};
     std::uint32_t global_offset{};
+    std::uint32_t argument_offset{};
     std::uint32_t global_stride{256};
     bool open{}, pending{};
     std::uint64_t submitted{}, completed{};
@@ -234,6 +284,7 @@ struct ScheduleContext::Impl {
         for (auto &b : allocations)
             destroy(b);
         destroy(globals);
+        destroy(arguments);
         if (layout)
             vkDestroyPipelineLayout(device, layout, nullptr);
         if (descriptor_pool)
@@ -345,6 +396,7 @@ struct ScheduleContext::Impl {
         meshes.clear();
         paint_fields.clear();
         global_offset = 0;
+        argument_offset = 0;
         VkCommandBufferBeginInfo info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
         info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         check(vkBeginCommandBuffer(commands, &info), "begin commands");
@@ -412,6 +464,10 @@ PmResult ScheduleContext::initialize(int ordinal) noexcept {
         create.queueCreateInfoCount = 1;
         create.pQueueCreateInfos = &queue;
         create.pEnabledFeatures = &features;
+        const auto extensions = available_device_extensions(i.adapter.handle);
+        create.enabledExtensionCount =
+            static_cast<std::uint32_t>(extensions.size());
+        create.ppEnabledExtensionNames = extensions.data();
         check(vkCreateDevice(i.adapter.handle, &create, nullptr, &i.device),
               "create device");
         i.initialize_cache();
@@ -463,6 +519,7 @@ PmResult ScheduleContext::initialize(int ordinal) noexcept {
             16U,
             std::uint32_t(i.adapter.properties.limits.minUniformBufferOffsetAlignment));
         i.globals = i.make_buffer(i.global_stride * 65536ULL);
+        i.arguments = i.make_buffer(1024U * 1024U);
         VkDescriptorBufferInfo buffer{i.globals.buffer, 0, 16};
         VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
         write.dstSet = i.descriptor_set;
@@ -514,11 +571,41 @@ std::uint64_t ScheduleContext::address(const void *pointer) noexcept {
         return 0;
     auto b = impl_->find(pointer);
     if (!b) {
+        const auto value = reinterpret_cast<std::uintptr_t>(pointer);
+        const auto start = reinterpret_cast<std::uintptr_t>(impl_->arguments.host);
+        if (value >= start && value - start < impl_->arguments.size)
+            b = &impl_->arguments;
+    }
+    if (!b) {
         impl_->last_error = cudaErrorInvalidValue;
         return 0;
     }
     return b->address + (reinterpret_cast<std::uintptr_t>(pointer) -
                          reinterpret_cast<std::uintptr_t>(b->host));
+}
+void *ScheduleContext::stage(std::span<const std::byte> bytes) noexcept {
+    std::lock_guard lock(impl_->mutex);
+    if (bytes.empty() || bytes.size() > impl_->arguments.size) {
+        impl_->last_error = cudaErrorInvalidValue;
+        return nullptr;
+    }
+    try {
+        auto &i = *impl_;
+        i.begin();
+        const auto size = (bytes.size() + 15U) & ~std::size_t(15U);
+        if (i.argument_offset + size > i.arguments.size) {
+            i.submit();
+            i.begin();
+        }
+        auto *destination = static_cast<std::byte *>(i.arguments.host) +
+                            i.argument_offset;
+        std::memcpy(destination, bytes.data(), bytes.size());
+        i.argument_offset += static_cast<std::uint32_t>(size);
+        return destination;
+    } catch (...) {
+        impl_->last_error = cudaErrorLaunchFailure;
+        return nullptr;
+    }
 }
 std::uint64_t ScheduleContext::translated_meshes(const void *pointer,
                                                  const void *parameters,
@@ -853,6 +940,10 @@ VkPhysicalDevice ScheduleContext::physical() const noexcept {
 }
 int ScheduleContext::ordinal() const noexcept { return impl_->ordinal; }
 VkDevice ScheduleContext::device() const noexcept { return impl_->device; }
+VkQueue ScheduleContext::queue() const noexcept { return impl_->queue; }
+std::uint32_t ScheduleContext::queue_family() const noexcept {
+    return impl_->adapter.family;
+}
 VkBuffer ScheduleContext::buffer(const void *pointer) const noexcept {
     std::lock_guard lock(impl_->mutex);
     auto b = impl_->find(pointer);

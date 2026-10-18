@@ -62,23 +62,28 @@ using parallel_mater::gallery::GalleryCountKind;
 using parallel_mater::gallery::GalleryContext;
 using parallel_mater::gallery::GalleryCatalog;
 using parallel_mater::gallery::GalleryEntry;
+using parallel_mater::gallery::GalleryPresentationState;
+using parallel_mater::gallery::GalleryPrimaryAction;
+using parallel_mater::gallery::GalleryReadbackMode;
 using parallel_mater::gallery::GalleryReplacementPolicy;
-using parallel_mater::gallery::GalleryRuntime;
+using parallel_mater::gallery::GalleryRendererKind;
 using parallel_mater::gallery::GallerySceneParameters;
 using parallel_mater::gallery::GallerySession;
 using parallel_mater::gallery::GallerySessionConfig;
 using parallel_mater::gallery::GalleryWorkloadLimits;
 using parallel_mater::gallery::GalleryStepOptions;
 using parallel_mater::gallery::GalleryDebugState;
+using parallel_mater::gallery::GalleryFramePlan;
 using parallel_mater::gallery::GalleryFramePolicy;
 using parallel_mater::gallery::GalleryInputState;
 using parallel_mater::gallery::GalleryKey;
-using parallel_mater::gallery::GallerySceneSource;
 using parallel_mater::gallery::GalleryWindow;
 using parallel_mater::gallery::gallery_entries;
 using parallel_mater::gallery::gallery_entry;
+using parallel_mater::gallery::gallery_entry_for_option;
 using parallel_mater::gallery::gallery_context_index;
 using parallel_mater::gallery::gallery_backend_name;
+using parallel_mater::gallery::gallery_backend_label;
 using parallel_mater::gallery::is_fluid_context;
 using parallel_mater::gallery::is_cloth_context;
 using parallel_mater::gallery::is_soft_body_context;
@@ -267,13 +272,50 @@ class KeyEdges {
 };
 
 [[nodiscard]] std::string backend_title(PmNativeBackend backend) {
-    switch (backend) {
-    case PM_NATIVE_BACKEND_CUDA: return "CUDA";
-    case PM_NATIVE_BACKEND_D3D12: return "DIRECT3D 12";
-    case PM_NATIVE_BACKEND_VULKAN: return "VULKAN";
-    case PM_NATIVE_BACKEND_METAL: return "METAL";
+    return std::string(gallery_backend_label(gallery_backend_name(backend)));
+}
+
+[[nodiscard]] std::string desktop_action_help(const GalleryEntry &entry) {
+    std::string result;
+    switch (entry.controls) {
+    case GalleryControlPolicy::rigid_gravity:
+    case GalleryControlPolicy::collector_gravity:
+    case GalleryControlPolicy::peg_gravity:
+    case GalleryControlPolicy::cloth_gravity: result = "ARROWS GRAVITY"; break;
+    case GalleryControlPolicy::motor_drive: result = "ARROWS DRIVE / STEER"; break;
+    case GalleryControlPolicy::authored_force: result = "ARROWS FORCE"; break;
+    case GalleryControlPolicy::none: result = "VIEW"; break;
     }
-    return "UNKNOWN";
+    switch (entry.primary_action) {
+    case GalleryPrimaryAction::release_restore_constraints:
+        result += "  SPACE RELEASE / RESTORE";
+        break;
+    case GalleryPrimaryAction::toggle_dump_bed:
+        result += "  SPACE RAISE / LOWER";
+        break;
+    case GalleryPrimaryAction::none: break;
+    }
+    switch (entry.count_kind) {
+    case GalleryCountKind::brick_scene: result += "  P WALLS"; break;
+    case GalleryCountKind::dump_spheres: result += "  P PAYLOAD"; break;
+    case GalleryCountKind::fluid_particles: result += "  P PARTICLES"; break;
+    case GalleryCountKind::none: break;
+    }
+    result += "  R RESET";
+    return result;
+}
+
+[[nodiscard]] std::string desktop_renderer_label(
+    const GalleryPresentationState &state) {
+    return state.renderer == GalleryRendererKind::native_gpu
+        ? std::string(gallery_backend_label(state.backend)) + " GPU renderer"
+        : "Software image renderer";
+}
+
+[[nodiscard]] std::string desktop_readback_label(
+    GalleryReadbackMode mode) {
+    return mode == GalleryReadbackMode::diagnostic_only
+        ? "diagnostic captures only" : "host image each frame";
 }
 
 [[nodiscard]] std::string build_revision_label() {
@@ -410,7 +452,6 @@ static int run_gallery_application(
                   << " is not available\n";
         return 1;
     }
-    GalleryWindow presentation;
     const bool interactive = options.headless_output.empty() &&
         !options.print_brick_profile;
     if (!options.backend && backends.size() == 1U)
@@ -487,94 +528,109 @@ static int run_gallery_application(
         std::cerr << error << '\n';
         return 1;
     }
-    FrameTimingCollector frame_timings;
-    GalleryFramePolicy frame_policy(
-        options.workload_limits ? &*options.workload_limits : nullptr);
-    // Backend-specific workload profiles may change the render resolution.
-    // Create the simulation presentation after those limits are selected.
+    GallerySession session(desktop_session_config(
+        options, options.initial_context));
+    const GalleryCatalog &scene_catalog = session.catalog();
+    std::vector<std::string> scene_action_help;
+    scene_action_help.reserve(scene_catalog.size());
+    for (const auto &item : scene_catalog)
+        scene_action_help.push_back(desktop_action_help(item.scene));
+    // The target-detach guard below releases swapchains before this platform
+    // surface, while the session keeps its borrowed native instance alive.
+    GalleryWindow presentation;
     if (interactive &&
         !GalleryWindow::create(1280U, 720U, options.width, options.height,
-                               window_title.c_str(), presentation, error)) {
+                               window_title.c_str(), presentation, error,
+                               options.backend)) {
         std::cerr << error << '\n';
         return 1;
     }
-    GallerySession session(desktop_session_config(
-        options, options.initial_context));
-    GalleryRuntime &runtime = session.runtime();
-    const GalleryCatalog &scene_catalog = session.catalog();
-    std::cout << "Gallery scene ready index=" << session.selection()
+    struct NativeTargetDetach {
+        GallerySession &session;
+        ~NativeTargetDetach() { session.detach_render_target(); }
+    } native_target_detach{session};
+    const GalleryPresentationState startup = session.presentation();
+    std::cout << "Gallery scene ready index=" << startup.selection
               << " revision=" << session.revision() << '\n' << std::flush;
-    PmPhysicalDeviceProperties physics_device{};
-    pmGetPhysicalDeviceProperties(runtime.simulation.physical_device(), &physics_device);
-    std::cout << "Physics device: " << physics_device.deviceName << '\n';
-    std::cout << "Build revision: " << PARALLEL_MATER_GALLERY_GIT_COMMIT << '\n';
+    std::cout << startup.platform << " · "
+              << gallery_backend_label(startup.backend) << " · "
+              << startup.device << '\n';
+    std::cout << "Renderer: " << desktop_renderer_label(startup)
+              << " · readback: " << desktop_readback_label(startup.readback)
+              << '\n';
+    std::cout << "Scene: " << startup.scene_name << " · "
+              << startup.scene_summary << '\n';
+    std::cout << "Controls: "
+              << desktop_action_help(scene_catalog[startup.selection].scene)
+              << '\n';
+    std::cout << "Build revision: " << startup.build_revision << '\n';
     std::uint32_t dump_spheres = options.dump_spheres;
     std::uint32_t fluid_particles = options.fluid_particles;
     std::optional<CalibrationResult> last_calibration;
 
-    const StepOptions step_options{.timestep = frame_policy.timestep(),
-                                   .substeps = frame_policy.substeps(),
+    const StepOptions step_options{.timestep = session.frame_timestep(),
+                                   .substeps = session.frame_substeps(),
                                    .gravity = initial_scene_gravity(
-                                       runtime.context,
-                                       runtime.scene.gravity_scale),
+                                       session.context(),
+                                       session.scene().gravity_scale),
                                    .rigid_contact_pass_limit = options.contact_pass_limit};
     std::vector<std::uint32_t> pixels;
     InputState input_state;
     input_state.camera = &session.camera();
-    input_state.shared.current = gallery_context_index(runtime.context);
+    input_state.shared.current = gallery_context_index(session.context());
     input_state.shared.selected = input_state.shared.current;
     if (!options.headless_output.empty()) {
         const bool measure_frames = !options.frame_timings_output.empty();
+        FrameTimingCollector headless_frame_timings;
         RendererTimings headless_render_timings{};
         const auto render_headless = [&] {
-            return runtime.renderer.render(
-                runtime.render_frame, session.camera().camera(),
+            return session.render_host(
                 pixels, error, &headless_render_timings,
                 options.cloth_debug ? FluidRenderMode::wireframe :
                 options.fluid_particle_view ? FluidRenderMode::particles :
                                              FluidRenderMode::surface);
         };
         StepOptions headless_step = step_options;
-        const bool fixed_collection = runtime.controller_state().directional ==
+        const bool fixed_collection = session.controller_state().directional ==
             GalleryControlPolicy::collector_gravity;
         headless_step.collect_rigid_contacts = fixed_collection;
         Vec3 fixed_headless_gravity = step_options.gravity;
-        if (gallery_entry(runtime.context).controls ==
+        if (gallery_entry(session.context()).controls ==
                 GalleryControlPolicy::cloth_gravity &&
             options.headless_cloth_tilt_degrees != 0U) {
             const float angle = static_cast<float>(
                 options.headless_cloth_tilt_degrees) * k_pi / 180.0F;
-            const float magnitude = k_gravity * runtime.scene.gravity_scale;
+            const float magnitude = k_gravity * session.scene().gravity_scale;
             headless_step.gravity = {0.0F, -magnitude * std::cos(angle),
                                     -magnitude * std::sin(angle)};
         } else if (uses_rigid_gravity(
-                       gallery_entry(runtime.context).controls) &&
+                       gallery_entry(session.context()).controls) &&
                    !fixed_collection &&
                    options.headless_cloth_tilt_degrees != 0U) {
             const float angle = static_cast<float>(
                 options.headless_cloth_tilt_degrees) * k_pi / 180.0F;
-            const float magnitude = k_gravity * runtime.scene.gravity_scale;
+            const float magnitude = k_gravity * session.scene().gravity_scale;
             headless_step.gravity = {magnitude * std::sin(angle),
                                      -magnitude * std::cos(angle), 0.0F};
         } else if (fixed_collection &&
                    options.headless_cloth_tilt_degrees != 0U) {
             const float angle = static_cast<float>(
                 options.headless_cloth_tilt_degrees) * k_pi / 180.0F;
-            const float magnitude = k_gravity * runtime.scene.gravity_scale;
+            const float magnitude = k_gravity * session.scene().gravity_scale;
             fixed_headless_gravity = {magnitude * std::sin(angle),
                                       -magnitude * std::cos(angle), 0.0F};
         }
         FluidEscapeTrace escape_trace{};
         StaticTriangleSurface floor_index{};
         if (options.trace_fluid_escapes) {
-            if (runtime.instance.fluid == PM_INVALID_INDEX ||
-                !StaticTriangleSurface::create(runtime.scene, floor_index,
+            if (session.scene_instance().fluid == PM_INVALID_INDEX ||
+                !StaticTriangleSurface::create(session.scene(), floor_index,
                                                error)) {
                 std::cerr << "Fluid escape trace needs a passive collider: "
                           << error << '\n';
                 return 1;
             }
-            for (const auto &body : runtime.scene.rigid_bodies) {
+            for (const auto &body : session.scene().rigid_bodies) {
                 if (body.options.motion != parallel_mater::gallery::MotionType::static_body)
                     continue;
                 std::cout << "Passive body " << body.name << " collision_meshes="
@@ -589,7 +645,7 @@ static int run_gallery_application(
                       << passive_maximum.z << '\n';
             std::cout << "Passive floor triangles="
                       << floor_index.triangle_count() << '\n';
-            for (const auto &spawn : runtime.scene.particle_sources) {
+            for (const auto &spawn : session.scene().particle_sources) {
                 std::cout << "Fluid source triangles=" << spawn.indices.size()/3
                           << " spacing=" << spawn.spacing << " velocity=("
                           << spawn.options.initial_velocity.x << ','
@@ -599,8 +655,8 @@ static int run_gallery_application(
         }
         for (int frame = 0; frame < options.frames; ++frame) {
             if (measure_frames) {
-                frame_timings.begin_frame();
-                frame_timings.begin_phase(FramePhase::physics);
+                headless_frame_timings.begin_frame();
+                headless_frame_timings.begin_phase(FramePhase::physics);
             }
             if (options.headless_constraint_action_after_frames != 0U &&
                 frame == static_cast<int>(
@@ -622,7 +678,7 @@ static int run_gallery_application(
             if (frame < static_cast<int>(options.headless_cloth_tilt_after_frames))
                 frame_step.gravity = step_options.gravity;
             else if (options.headless_cloth_tilt_left &&
-                     gallery_entry(runtime.context).controls ==
+                     gallery_entry(session.context()).controls ==
                          GalleryControlPolicy::cloth_gravity) {
                 controls.right = -1.0F;
             }
@@ -635,36 +691,36 @@ static int run_gallery_application(
             if (options.headless_cloth_tilt_degrees != 0U ||
                 fixed_collection)
                 controls.gravity_override = frame_step.gravity;
-            if (!session.controlled_step(controls, frame_step, error)) {
+            if (!session.diagnostic_step(controls, frame_step, error)) {
                 std::cerr << "Headless frame " << frame + 1
                           << " failed: " << error << "; peak contacts="
-                          << runtime.frame.statistics.peakContactCount << '\n';
+                          << session.output().statistics.peakContactCount << '\n';
                 return 1;
             }
             if (measure_frames) {
-                frame_timings.end_phase();
-                frame_timings.begin_phase(FramePhase::render);
+                headless_frame_timings.end_phase();
+                headless_frame_timings.begin_phase(FramePhase::render);
                 if (!render_headless()) {
                     std::cerr << "Render failed: " << error << '\n';
                     return 1;
                 }
                 const auto rendered = FrameTimingCollector::Clock::now();
-                frame_timings.end_phase(rendered);
-                frame_timings.finish_frame(rendered);
-                if (!timing_csv.write(*frame_timings.latest(),
-                                     gallery_entry(runtime.context).name,
+                headless_frame_timings.end_phase(rendered);
+                headless_frame_timings.finish_frame(rendered);
+                if (!timing_csv.write(*headless_frame_timings.latest(),
+                                     gallery_entry(session.context()).name,
                                      "headless", error)) {
                     std::cerr << error << '\n';
                     return 1;
                 }
-            } else if (runtime.instance.fluid != PM_INVALID_INDEX &&
+            } else if (session.scene_instance().fluid != PM_INVALID_INDEX &&
                 frame + 1 < options.frames &&
-                !runtime.renderer.advance_visuals(runtime.render_frame, error)) {
+                !session.advance_host_visuals(error)) {
                 std::cerr << "Visual update failed: " << error << '\n';
                 return 1;
             }
             if (options.trace_fluid_escapes &&
-                !trace_fluid_escapes(runtime.frame, floor_index, frame + 1,
+                !trace_fluid_escapes(session.output(), floor_index, frame + 1,
                                      escape_trace))
                 return 1;
         }
@@ -685,23 +741,23 @@ static int run_gallery_application(
              escape_trace.peak_below_local != 0U)) return 1;
         if (fixed_collection) {
             std::cout << "Fixed collector attached="
-                      << runtime.fixed_collector.attached_count()
+                      << session.fixed_attached_count()
                       << " generated_constraints="
-                      << runtime.fixed_collector.generated_constraint_count()
+                      << session.fixed_constraint_count()
                       << '\n';
         }
-        if (runtime.instance.fluid != PM_INVALID_INDEX) {
+        if (session.scene_instance().fluid != PM_INVALID_INDEX) {
             std::cout << "Fluid particles="
-                      << runtime.frame.fluid_particles.size()
+                      << session.output().fluid_particles.size()
                       << " peak="
-                      << runtime.frame.statistics.peakParticleCount
+                      << session.output().statistics.peakParticleCount
                       << " capacity_overflows="
-                      << runtime.frame.statistics.overflowCount << '\n';
-            if (!runtime.frame.fluid_particles.empty()) {
-                const auto first = runtime.frame.fluid_particles.front().position;
+                      << session.output().statistics.overflowCount << '\n';
+            if (!session.output().fluid_particles.empty()) {
+                const auto first = session.output().fluid_particles.front().position;
                 Vec3 low{first[0], first[1], first[2]};
                 Vec3 high = low;
-                for (const auto &particle : runtime.frame.fluid_particles) {
+                for (const auto &particle : session.output().fluid_particles) {
                     const Vec3 point{particle.position[0], particle.position[1],
                                      particle.position[2]};
                     low.x = std::min(low.x, point.x);
@@ -716,13 +772,13 @@ static int run_gallery_application(
                           << " z=" << low.z << ".." << high.z << '\n';
             }
         }
-        if (runtime.instance.smoke != PM_INVALID_INDEX) {
+        if (session.scene_instance().smoke != PM_INVALID_INDEX) {
             std::cout << "Smoke particles="
-                      << runtime.frame.smoke_particles.size() << '\n';
+                      << session.output().smoke_particles.size() << '\n';
         }
         if (!options.physics_capture_output.empty()) {
             if (!write_physics_debug_capture(
-                    runtime.frame, options.physics_capture_output, error)) {
+                    session.output(), options.physics_capture_output, error)) {
                 std::cerr << "Physics capture failed: " << error << '\n';
                 return 1;
             }
@@ -733,20 +789,20 @@ static int run_gallery_application(
             std::cerr << "Render failed: " << error << '\n';
             return 1;
         }
-        if (!runtime.renderer.read_image(pixels, error)) {
+        if (!session.read_host_image(pixels, error)) {
             std::cerr << "Render capture failed: " << error << '\n';
             return 1;
         }
         if (options.cloth_debug) {
-            if (runtime.instance.cloths.empty()) {
+            if (session.scene_instance().cloths.empty()) {
                 std::cerr << "Cloth debug overlay needs a cloth resource\n";
                 return 1;
             }
             for (std::uint32_t cloth = 0U;
-                 cloth < runtime.instance.cloths.size(); ++cloth) {
+                 cloth < session.scene_instance().cloths.size(); ++cloth) {
                 if (!draw_cloth_debug_overlay(
-                        pixels, runtime.renderer.width(), runtime.renderer.height(),
-                        runtime.scene, runtime.frame, cloth,
+                        pixels, session.width, session.height,
+                        session.scene(), session.output(), cloth,
                         session.camera().camera(),
                         {.normals = true, .rigid_contact_forces = true,
                          .fluid_contact_forces = true, .wireframe = true,
@@ -755,20 +811,20 @@ static int run_gallery_application(
                     return 1;
                 }
             }
-            std::cout << "Cloth debug surfaces=" << runtime.instance.cloths.size() << '\n';
+            std::cout << "Cloth debug surfaces=" << session.scene_instance().cloths.size() << '\n';
             draw_physics_debug_overlay(
-                pixels, runtime.renderer.width(), runtime.renderer.height(),
-                runtime.frame, session.camera().camera(),
+                pixels, session.width, session.height,
+                session.output(), session.camera().camera(),
                 {.contact_normals = true, .rigid_forces = true,
                  .fluid_forces = true, .velocities = true});
         }
-        if (runtime.context == GalleryContext::peg_paint ||
-            runtime.context == GalleryContext::cloth_paint) {
+        if (session.context() == GalleryContext::peg_paint ||
+            session.context() == GalleryContext::cloth_paint) {
             std::uint64_t painted = 0U;
             const std::uint64_t minimum =
-                runtime.context == GalleryContext::peg_paint ? 100U :
+                session.context() == GalleryContext::peg_paint ? 100U :
                 options.headless_cloth_tilt_degrees != 0U ? 1U : 0U;
-            if (!runtime.renderer.paint_coverage(painted, error) ||
+            if (!session.paint_coverage(painted, error) ||
                 painted < minimum) {
                 std::cerr << "Paint coverage failed: " << painted << " texels; need "
                           << minimum << ". " << error << '\n';
@@ -776,7 +832,7 @@ static int run_gallery_application(
             }
             std::cout << "Painted texels=" << painted << '\n';
         }
-        if (runtime.instance.fluid != PM_INVALID_INDEX &&
+        if (session.scene_instance().fluid != PM_INVALID_INDEX &&
             !options.fluid_particle_view &&
             !options.cloth_debug)
             std::cout << "Fluid surface outliers="
@@ -787,12 +843,12 @@ static int run_gallery_application(
                       << headless_render_timings.foam_patch_count
                       << " foam_cpu_ms="
                       << headless_render_timings.foam_wall_milliseconds << '\n';
-        if (!validate_render(pixels, runtime.renderer.width(),
-                             runtime.renderer.height(), error)) {
+        if (!validate_render(pixels, session.width,
+                             session.height, error)) {
             std::cerr << "Render validation failed: " << error << '\n';
             return 1;
         }
-        if (runtime.context == GalleryContext::cloth_tear) {
+        if (session.context() == GalleryContext::cloth_tear) {
             const auto *bytes = reinterpret_cast<const std::uint8_t *>(
                 pixels.data());
             std::size_t cloth_pixels = 0U;
@@ -803,20 +859,19 @@ static int run_gallery_application(
                 cloth_pixels += blue > red + 25U && blue > green + 20U;
             }
             std::cout << "Visible cloth pixels=" << cloth_pixels << '\n';
-            const auto short_edge = std::min(runtime.renderer.width(),
-                                             runtime.renderer.height());
+            const auto short_edge = std::min(session.width, session.height);
             const auto projected_area = static_cast<std::size_t>(short_edge) *
                                         static_cast<std::size_t>(short_edge);
             if (cloth_pixels < projected_area / 50U) {
                 std::cerr << "Cloth Tear render lost the sheet\n";
                 if (write_ppm(options.headless_output, pixels,
-                              runtime.renderer.width(), runtime.renderer.height()))
+                              session.width, session.height))
                     std::cerr << "Failed render saved for diagnosis: " << options.headless_output << '\n';
                 return 1;
             }
         }
-        if (!write_ppm(options.headless_output, pixels, runtime.renderer.width(),
-                       runtime.renderer.height())) {
+        if (!write_ppm(options.headless_output, pixels, session.width,
+                       session.height)) {
             std::cerr << "Failed to write " << options.headless_output << '\n';
             return 1;
         }
@@ -852,13 +907,9 @@ static int run_gallery_application(
     std::string capture_status;
     bool capture_status_failure = false;
     FrameClock::time_point capture_status_until{};
-    frame_policy.reset(FrameClock::now());
-    std::uint64_t observed_session_revision = session.revision();
-    float rigid_interpolation_alpha = 1.0F;
     unsigned displayed_frames = 0;
     while (glfwWindowShouldClose(window) == GLFW_FALSE) {
         const auto frame_time = FrameClock::now();
-        frame_timings.begin_frame(frame_time);
         glfwPollEvents();
         keys.update();
         if (!options.interactive_smoke_output.empty() && displayed_frames == 1)
@@ -898,12 +949,8 @@ static int run_gallery_application(
                     std::cerr << error << '\n';
                     break;
                 }
-                // Calibration has its own collector. Do not report its entire
-                // run as a playback frame or catch up that elapsed time.
-                frame_timings.clear_history();
-                const auto calibration_finished = FrameClock::now();
-                frame_timings.begin_frame(calibration_finished);
-                frame_policy.reset(calibration_finished);
+                // Calibration uses a separate session, so restarting this
+                // scene also resets its common frame clock and timing history.
             }
             if (input_state.brick_dialog &&
                 keys.pressed(KeyAction::primary_debug)) {
@@ -946,7 +993,7 @@ static int run_gallery_application(
             }
             if (keys.pressed(KeyAction::enter)) {
                 std::uint32_t requested = 0U;
-                const GalleryEntry &entry = gallery_entry(runtime.context);
+                const GalleryEntry &entry = gallery_entry(session.context());
                 const bool fluid_dialog =
                     entry.count_kind == GalleryCountKind::fluid_particles;
                 BrickSceneConfig requested_bricks = options.bricks;
@@ -970,7 +1017,7 @@ static int run_gallery_application(
                     const std::uint32_t requested_fluid =
                         fluid_dialog ? requested : fluid_particles;
                     if (select_desktop_scene(
-                            session, options, runtime.context,
+                            session, options, session.context(),
                             requested_dump, requested_fluid, error)) {
                         dump_spheres = requested_dump;
                         fluid_particles = requested_fluid;
@@ -1011,7 +1058,7 @@ static int run_gallery_application(
                     const GalleryContext context_selection =
                         catalog_selection.scene.context;
                     const bool context_changed =
-                        context_selection != runtime.context;
+                        context_selection != session.context();
                     if (!catalog_selection.available) {
                         // The catalog explains why this row is disabled.
                     } else if (!context_changed ||
@@ -1027,22 +1074,22 @@ static int run_gallery_application(
                         std::cerr << "Scene switch failed: " << error << '\n';
                     }
                 }
-            } else if (gallery_entry(runtime.context).count_kind !=
+            } else if (gallery_entry(session.context()).count_kind !=
                            GalleryCountKind::none &&
                        keys.pressed(KeyAction::particle_count)) {
                 session.camera().end_drag();
                 input_state.shared.key(GalleryKey::parameters);
-                input_state.brick_dialog = gallery_entry(runtime.context).count_kind ==
+                input_state.brick_dialog = gallery_entry(session.context()).count_kind ==
                     GalleryCountKind::brick_scene;
                 input_state.brick_field = 0U;
                 input_state.brick_values = {std::to_string(options.bricks.brick_count),
                     std::to_string(options.bricks.brick_scale),
                     std::to_string(options.bricks.wall_planes)};
                 input_state.count_value = std::to_string(
-                    gallery_entry(runtime.context).count_kind ==
+                    gallery_entry(session.context()).count_kind ==
                             GalleryCountKind::fluid_particles
                         ? fluid_particles
-                        : parallel_mater::gallery::dump_payload_count(runtime.scene));
+                        : parallel_mater::gallery::dump_payload_count(session.scene()));
                 input_state.replace_count_value = true;
                 input_state.count_value_invalid = false;
             }
@@ -1062,12 +1109,12 @@ static int run_gallery_application(
                     break;
                 }
             }
-            const bool smoke_debug = is_smoke_context(runtime.context);
+            const bool smoke_debug = is_smoke_context(session.context());
             if (keys.pressed(KeyAction::primary_debug)) {
                 if (smoke_debug)
                     debug.toggle_smoke(SmokeDebugMode::density_temperature);
                 else
-                    debug.toggle_primary(runtime.context);
+                    debug.toggle_primary(session.context());
             }
             if (keys.pressed(KeyAction::normals)) {
                 if (smoke_debug) debug.toggle_smoke(SmokeDebugMode::grid);
@@ -1093,273 +1140,238 @@ static int run_gallery_application(
                 capture_requested = true;
         }
 
-        if (session.revision() != observed_session_revision) {
-            observed_session_revision = session.revision();
-            frame_timings.clear_history();
-            frame_policy.reset(frame_time);
-            rigid_interpolation_alpha = 1.0F;
-        } else {
-            const bool simulation_enabled =
-                !input_state.shared.parameters_visible &&
-                !input_state.shared.catalog_visible;
-            frame_policy.begin_frame(frame_time, simulation_enabled);
-            bool step_failed = false;
-            if (simulation_enabled) {
-                const GalleryEntry &entry = gallery_entry(runtime.context);
-                auto directional = directional_input(
-                    window, entry.controls != GalleryControlPolicy::motor_drive);
-                directional.camera = session.camera().camera();
-                if (entry.controls == GalleryControlPolicy::peg_gravity) {
-                    directional.right +=
-                        static_cast<float>(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) -
-                        static_cast<float>(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS);
-                    directional.forward +=
-                        static_cast<float>(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) -
-                        static_cast<float>(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS);
-                }
-                while (frame_policy.can_step()) {
-                    frame_timings.begin_phase(FramePhase::physics);
-                    StepOptions interactive_step = step_options;
-                    interactive_step.collect_rigid_contacts =
-                        debug.rigid_contacts;
-                    interactive_step.collect_fluid_contacts =
-                        debug.rigid_contacts;
-                    const bool host_diagnostics = capture_requested || debug.structure || debug.cloth_bonds ||
-                        debug.rigid_contacts || debug.vectors_visible() || debug.smoke_mode != SmokeDebugMode::none;
-                    bool native_render = runtime.renderer.native_image().handle != 0U;
-                    bool read_host = true;
-#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
-                    native_render = native_render || bool(runtime.native_renderer);
-                    read_host = !runtime.native_renderer ||
-                        entry.controls == GalleryControlPolicy::collector_gravity ||
-                        host_diagnostics;
-#endif
-                    interactive_step.read_deformables =
-                        !native_render || host_diagnostics;
-                    interactive_step.read_host = read_host;
-                    if (!session.controlled_step(
-                            directional, interactive_step, error)) {
-                        std::cerr << "step gallery failed: " << error << '\n';
-                        step_failed = true;
-                        break;
-                    }
-                    frame_policy.record_step(
-                        frame_timings.end_phase() / 1000.0);
-                }
+        const bool simulation_enabled =
+            !input_state.shared.parameters_visible &&
+            !input_state.shared.catalog_visible;
+        const GalleryEntry &entry = gallery_entry(session.context());
+        GalleryFramePlan frame_plan;
+        frame_plan.simulation_enabled = simulation_enabled;
+        frame_plan.controls.camera = session.camera().camera();
+        if (simulation_enabled) {
+            frame_plan.controls = directional_input(
+                window, entry.controls != GalleryControlPolicy::motor_drive);
+            frame_plan.controls.camera = session.camera().camera();
+            if (entry.controls == GalleryControlPolicy::peg_gravity) {
+                frame_plan.controls.right +=
+                    static_cast<float>(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) -
+                    static_cast<float>(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS);
+                frame_plan.controls.forward +=
+                    static_cast<float>(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) -
+                    static_cast<float>(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS);
             }
-            if (step_failed) break;
-            frame_policy.finish_frame();
-            rigid_interpolation_alpha = frame_policy.interpolation_alpha();
         }
+        frame_plan.collect_rigid_contacts = debug.rigid_contacts;
+        frame_plan.collect_fluid_contacts = debug.rigid_contacts;
+        frame_plan.rigid_contact_pass_limit = options.contact_pass_limit;
+        frame_plan.host_diagnostics = capture_requested || debug.structure ||
+            debug.cloth_bonds || debug.rigid_contacts ||
+            debug.vectors_visible() ||
+            debug.smoke_mode != SmokeDebugMode::none;
 
-        // Debug toggles/capture can arrive while paused. Read the last GPU
-        // output explicitly, without advancing physics or exposing stale vectors.
-        if (!runtime.frame.full_host_output && (
-#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
-            runtime.gpu_ready ||
-#endif
-            runtime.frame.revision != 0U) &&
-            (capture_requested || debug.structure || debug.cloth_bonds ||
-             debug.rigid_contacts || debug.vectors_visible() || debug.smoke_mode != SmokeDebugMode::none)) {
-            if (!runtime.simulation.read_output(runtime.frame, error)) {
-                std::cerr << "read gallery diagnostics failed: " << error << '\n';
-                break;
-            }
-        }
-        const bool capture_frame_ready = runtime.frame.revision != 0U ||
-#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
-            runtime.gpu_ready ||
-#endif
-            !runtime.frame.rigid_states.empty() ||
-            !runtime.frame.fluid_particles.empty() ||
-            !runtime.frame.cloth_vertices.empty() ||
-            !runtime.frame.soft_body_nodes.empty() ||
-            !runtime.frame.rope_nodes.empty() ||
-            !runtime.frame.smoke_particles.empty();
-        if (capture_requested && capture_frame_ready) {
-            std::filesystem::path capture_path;
-            if (save_physics_debug_capture(runtime.frame, capture_path,
-                                           error)) {
-                capture_status = "CAPTURED " + capture_path.string();
-                capture_status_failure = false;
-                std::cout << "Physics capture " << capture_path << '\n';
-            } else {
-                capture_status = "CAPTURE FAILED: " + error;
-                capture_status_failure = true;
-                std::cerr << "Physics capture failed: " << error << '\n';
-            }
-            capture_status_until = FrameClock::now() +
-                std::chrono::seconds(4);
-            capture_requested = false;
-        }
-
-        const Camera current_camera = session.camera().camera();
-        frame_timings.begin_phase(FramePhase::render);
         bool gpu_frame = false;
-#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
-        gpu_frame = runtime.native_renderer && runtime.gpu_ready;
-#endif
-        if (gpu_frame) pixels.assign(std::size_t(options.width)*options.height, 0U);
-        else if (!runtime.renderer.render(runtime.render_frame,
-                                     current_camera, pixels, error,
-                                     nullptr,
-                                     debug.fluid_render_mode(runtime.context),
-                                     debug.smoke_mode == SmokeDebugMode::none,
-                                     rigid_interpolation_alpha)) {
-            std::cerr << "Render failed: " << error << '\n';
-            break;
-        }
-        frame_timings.end_phase();
-        if (is_smoke_context(runtime.context) &&
-            debug.smoke_mode != SmokeDebugMode::none) {
-            if (!draw_smoke_debug_overlay(
-                    pixels, runtime.renderer.width(), runtime.renderer.height(),
-                    runtime.frame, current_camera, debug.smoke_mode, error)) {
-                std::cerr << "Smoke grid debug overlay failed: " << error << '\n';
-                break;
-            }
-        }
-        if (is_cloth_context(runtime.context) &&
-            (debug.normals || debug.structure || debug.cloth_bonds)) {
-            bool cloth_debug_ok = true;
-            for (std::uint32_t cloth = 0U;
-                 cloth < runtime.instance.cloths.size(); ++cloth) {
-                if (!draw_cloth_debug_overlay(
-                        pixels, runtime.renderer.width(),
-                        runtime.renderer.height(), runtime.scene, runtime.frame,
-                        cloth, current_camera,
-                        {.normals = debug.normals,
-                         .wireframe = debug.structure,
-                         .bonds = debug.cloth_bonds}, error)) {
-                    cloth_debug_ok = false;
-                    break;
-                }
-            }
-            if (!cloth_debug_ok) {
-                std::cerr << "Cloth debug overlay failed: " << error << '\n';
-                break;
-            }
-        }
-        if (is_soft_body_context(runtime.context) &&
-            (debug.normals || debug.structure || debug.cloth_bonds)) {
-            bool soft_debug_ok = true;
-            for (std::uint32_t body = 0U;
-                 body < runtime.instance.soft_bodies.size(); ++body) {
-                if (!draw_soft_body_debug_overlay(
-                        pixels, runtime.renderer.width(),
-                        runtime.renderer.height(), runtime.scene, runtime.frame,
-                        body, current_camera,
-                        {.normals = debug.normals,
-                         .wireframe = debug.cloth_bonds,
-                         .bonds = debug.structure}, error)) {
-                    soft_debug_ok = false;
-                    break;
-                }
-            }
-            if (!soft_debug_ok) {
-                std::cerr << "Soft-body debug overlay failed: " << error << '\n';
-                break;
-            }
-        }
-        if (debug.structure || debug.cloth_bonds) {
-            for (std::uint32_t rope = 0U;
-                 rope < runtime.instance.ropes.size(); ++rope) {
-                if (!draw_rope_debug_overlay(
-                        pixels, runtime.renderer.width(),
-                        runtime.renderer.height(), runtime.frame, rope,
-                        current_camera, error)) {
-                    std::cerr << "Rope debug failed: " << error << '\n';return 1;
-                }
-            }
-        }
-        if (debug.vectors_visible()) {
-            draw_physics_debug_overlay(
-                pixels, runtime.renderer.width(), runtime.renderer.height(),
-                runtime.frame, current_camera,
-                {.contact_normals = debug.normals,
-                 .rigid_forces = debug.rigid_forces,
-                 .fluid_forces = debug.fluid_forces,
-                 .velocities = debug.velocities});
-        }
-        if (debug.rigid_contacts &&
-            !draw_rigid_contact_overlay(
-                pixels, runtime.renderer.width(), runtime.renderer.height(),
-                runtime.frame.contacts, current_camera, error)) {
-            std::cerr << "Rigid contact overlay failed: " << error << '\n';
-            break;
-        }
-        if (input_state.shared.show_fps)
-            draw_frame_timing_overlay(pixels, runtime.renderer.width(),
-                                      runtime.renderer.height(), frame_timings);
-        if (input_state.shared.catalog_visible) {
-            draw_context_overlay(pixels, runtime.renderer.width(),
-                                 runtime.renderer.height(),
-                                 scene_catalog[input_state.shared.selected].scene.context,
-                                 scene_catalog);
-        }
-        if (input_state.shared.parameters_visible) {
-            if (input_state.brick_dialog)
-                draw_brick_settings_overlay(
-                    pixels, runtime.renderer.width(), runtime.renderer.height(),
-                    input_state.brick_values, input_state.brick_field,
-                    input_state.count_value_invalid);
-            else
-                draw_count_overlay(
-                    pixels, runtime.renderer.width(), runtime.renderer.height(),
-                    runtime.context, input_state.count_value,
-                    input_state.count_value_invalid);
-        }
-        if (!capture_status.empty() && FrameClock::now() < capture_status_until)
-            draw_status_overlay(pixels, runtime.renderer.width(),
-                                runtime.renderer.height(), capture_status,
-                                capture_status_failure);
+        try {
+            session.frame_at(
+                frame_time, frame_plan,
+                [&](GallerySession &frame, float interpolation_alpha) {
+                    // A debug mode can be enabled while simulation is paused.
+                    // Materialize the latest output without submitting physics.
+                    if (!frame.output().full_host_output &&
+                        (frame.gpu_output_ready() ||
+                         frame.output().revision != 0U) &&
+                        frame_plan.host_diagnostics &&
+                        !frame.read_host_output(error)) {
+                        throw std::runtime_error(
+                            "read gallery diagnostics failed: " + error);
+                    }
 
-        bool presented_ok = false;
-#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
-        if (gpu_frame) {
-            frame_timings.begin_phase(FramePhase::render);
-            const auto native_device =
-                runtime.native_renderer->renderer_device().native;
-            const bool capture_image = !options.interactive_smoke_output.empty() &&
-                displayed_frames + 1 == static_cast<unsigned>(options.frames);
-            parallel_mater::gallery::GpuRenderRequest request;
-            if (parallel_mater::gallery::make_gpu_render_request(
-                    runtime.instance.render_buffers,
-                    runtime.gpu_frame_generation, current_camera,
-                    {native_device.backend,
-                     native_device.device,
-                     static_cast<PmNativeHandle>(reinterpret_cast<std::uintptr_t>(
-                         presentation.metal_layer(reinterpret_cast<void *>(
-                             native_device.device)))),
-                     options.width, options.height},
-                    {capture_image ? &pixels : nullptr}, &frame_timings, pixels,
-                    request, error)) {
-                presented_ok = runtime.native_renderer->render(request, error);
-            }
-        } else
-#endif
-        {
-            frame_timings.begin_phase(FramePhase::present);
-            presented_ok = presentation.present(pixels, error, runtime.renderer.native_image());
+                    const bool capture_frame_ready =
+                        frame.output().revision != 0U ||
+                        frame.gpu_output_ready() ||
+                        !frame.output().rigid_states.empty() ||
+                        !frame.output().fluid_particles.empty() ||
+                        !frame.output().cloth_vertices.empty() ||
+                        !frame.output().soft_body_nodes.empty() ||
+                        !frame.output().rope_nodes.empty() ||
+                        !frame.output().smoke_particles.empty();
+                    if (capture_requested && capture_frame_ready) {
+                        std::filesystem::path capture_path;
+                        if (save_physics_debug_capture(
+                                frame.output(), capture_path, error)) {
+                            capture_status = "CAPTURED " + capture_path.string();
+                            capture_status_failure = false;
+                            std::cout << "Physics capture " << capture_path << '\n';
+                        } else {
+                            capture_status = "CAPTURE FAILED: " + error;
+                            capture_status_failure = true;
+                            std::cerr << "Physics capture failed: " << error << '\n';
+                        }
+                        capture_status_until = FrameClock::now() +
+                            std::chrono::seconds(4);
+                        capture_requested = false;
+                    }
+
+                    const Camera current_camera = frame.camera().camera();
+                    gpu_frame = frame.has_native_renderer() &&
+                        frame.gpu_output_ready();
+                    if (gpu_frame) {
+                        pixels.assign(std::size_t(frame.width) * frame.height, 0U);
+                    } else if (!frame.render_host(
+                                   pixels, error, nullptr,
+                                   debug.fluid_render_mode(frame.context()),
+                                   debug.smoke_mode == SmokeDebugMode::none,
+                                   interpolation_alpha)) {
+                        throw std::runtime_error("Render failed: " + error);
+                    }
+
+                    if (is_smoke_context(frame.context()) &&
+                        debug.smoke_mode != SmokeDebugMode::none &&
+                        !draw_smoke_debug_overlay(
+                            pixels, frame.width, frame.height, frame.output(),
+                            current_camera, debug.smoke_mode, error)) {
+                        throw std::runtime_error(
+                            "Smoke grid debug overlay failed: " + error);
+                    }
+                    if (is_cloth_context(frame.context()) &&
+                        (debug.normals || debug.structure || debug.cloth_bonds)) {
+                        for (std::uint32_t cloth = 0U;
+                             cloth < frame.scene_instance().cloths.size(); ++cloth) {
+                            if (!draw_cloth_debug_overlay(
+                                    pixels, frame.width, frame.height,
+                                    frame.scene(), frame.output(), cloth,
+                                    current_camera,
+                                    {.normals = debug.normals,
+                                     .wireframe = debug.structure,
+                                     .bonds = debug.cloth_bonds}, error)) {
+                                throw std::runtime_error(
+                                    "Cloth debug overlay failed: " + error);
+                            }
+                        }
+                    }
+                    if (is_soft_body_context(frame.context()) &&
+                        (debug.normals || debug.structure || debug.cloth_bonds)) {
+                        for (std::uint32_t body = 0U;
+                             body < frame.scene_instance().soft_bodies.size(); ++body) {
+                            if (!draw_soft_body_debug_overlay(
+                                    pixels, frame.width, frame.height,
+                                    frame.scene(), frame.output(), body,
+                                    current_camera,
+                                    {.normals = debug.normals,
+                                     .wireframe = debug.cloth_bonds,
+                                     .bonds = debug.structure}, error)) {
+                                throw std::runtime_error(
+                                    "Soft-body debug overlay failed: " + error);
+                            }
+                        }
+                    }
+                    if (debug.structure || debug.cloth_bonds) {
+                        for (std::uint32_t rope = 0U;
+                             rope < frame.scene_instance().ropes.size(); ++rope) {
+                            if (!draw_rope_debug_overlay(
+                                    pixels, frame.width, frame.height,
+                                    frame.output(), rope, current_camera, error)) {
+                                throw std::runtime_error(
+                                    "Rope debug failed: " + error);
+                            }
+                        }
+                    }
+                    if (debug.vectors_visible()) {
+                        draw_physics_debug_overlay(
+                            pixels, frame.width, frame.height, frame.output(),
+                            current_camera,
+                            {.contact_normals = debug.normals,
+                             .rigid_forces = debug.rigid_forces,
+                             .fluid_forces = debug.fluid_forces,
+                             .velocities = debug.velocities});
+                    }
+                    if (debug.rigid_contacts &&
+                        !draw_rigid_contact_overlay(
+                            pixels, frame.width, frame.height,
+                            frame.output().contacts, current_camera, error)) {
+                        throw std::runtime_error(
+                            "Rigid contact overlay failed: " + error);
+                    }
+                    if (input_state.shared.show_fps) {
+                        draw_frame_timing_overlay(
+                            pixels, frame.width, frame.height,
+                            frame.frame_timing());
+                    }
+                    if (input_state.shared.catalog_visible) {
+                        draw_context_overlay(
+                            pixels, frame.width, frame.height,
+                            scene_catalog[input_state.shared.selected]
+                                .scene.context,
+                            scene_catalog, scene_action_help);
+                    }
+                    if (input_state.shared.parameters_visible) {
+                        if (input_state.brick_dialog) {
+                            draw_brick_settings_overlay(
+                                pixels, frame.width, frame.height,
+                                input_state.brick_values,
+                                input_state.brick_field,
+                                input_state.count_value_invalid);
+                        } else {
+                            draw_count_overlay(
+                                pixels, frame.width, frame.height,
+                                frame.context(), input_state.count_value,
+                                input_state.count_value_invalid);
+                        }
+                    }
+                    if (!capture_status.empty() &&
+                        FrameClock::now() < capture_status_until) {
+                        draw_status_overlay(
+                            pixels, frame.width, frame.height,
+                            capture_status, capture_status_failure);
+                    }
+
+                    if (gpu_frame) {
+                        const bool capture_image =
+                            !options.interactive_smoke_output.empty() &&
+                            displayed_frames + 1 ==
+                                static_cast<unsigned>(options.frames);
+                        error.clear();
+                        const auto target = presentation.native_render_target(
+                            frame.native_render_device(), frame.width,
+                            frame.height, error);
+                        if (!error.empty() || !frame.render_native(
+                                target, pixels,
+                                capture_image ? &pixels : nullptr, error)) {
+                            throw std::runtime_error(
+                                "Presentation failed: " + error);
+                        }
+                    }
+                },
+                [&](const GallerySession &frame) {
+                    if (!gpu_frame &&
+                        !presentation.present(
+                            pixels, error, frame.native_image())) {
+                        throw std::runtime_error(
+                            "Presentation failed: " + error);
+                    }
+                });
+        } catch (const std::exception &failure) {
+            std::cerr << failure.what() << '\n';
+            break;
         }
-        if (!presented_ok) {
-            std::cerr << "Presentation failed: " << error << '\n';
-            return 1;
-        }
-        const auto presented = FrameClock::now();
-        frame_timings.end_phase(presented);
-        frame_timings.finish_frame(presented);
-        if (!timing_csv.write(*frame_timings.latest(),
-                             gallery_entry(runtime.context).name,
-                             "interactive", error)) {
-            std::cerr << error << '\n';
+        if (!session.frame_timing().latest() ||
+            !timing_csv.write(*session.frame_timing().latest(),
+                              gallery_entry(session.context()).name,
+                              "interactive", error)) {
+            if (!error.empty()) std::cerr << error << '\n';
             return 1;
         }
         ++displayed_frames;
         if (!options.interactive_smoke_output.empty() && displayed_frames == static_cast<unsigned>(options.frames)) {
-            if (!write_ppm(options.interactive_smoke_output, pixels, options.width, options.height)) return 1;
-            std::cout << "Interactive smoke: " << displayed_frames << " frames, renderer="
-                      << (gpu_frame ? "metal-direct-fenced" : "software") << '\n';
+            if (!write_ppm(options.interactive_smoke_output, pixels,
+                           session.width, session.height)) return 1;
+            std::cout << "Interactive smoke: " << displayed_frames
+                      << " frames, renderer=";
+            if (gpu_frame)
+                std::cout << gallery_backend_name(
+                    session.native_render_device().backend)
+                          << "-direct-fenced";
+            else
+                std::cout << "software";
+            std::cout << '\n';
             return 0;
         }
     }

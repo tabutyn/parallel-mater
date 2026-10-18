@@ -17,19 +17,6 @@ namespace {
 using namespace parallel_mater;
 using namespace parallel_mater::gallery;
 
-constexpr std::array scene_files{
-    "RigidBody.glb", "ConstraintFixed.glb", "ConstraintPoint.glb",
-    "ConstraintHinge.glb", "ConstraintPiston.glb", "ConstraintGeneric.glb",
-    "ConstraintMotorSpring.glb", "DumpTruck.glb", "Fluid.glb",
-    "FluidRigid.glb", "Pegs.glb", "Cloth.glb", "ClothTear.glb",
-    "ClothPaint.glb", "ClothWater.glb", "Softbody.glb",
-    "SoftbodyRigidBody.glb", "SoftbodyCloth.glb", "SoftbodyFluid.glb",
-    "Rope.glb", "RopeFluid.glb", "RopeSoftbody.glb", "RopeCloth.glb",
-    "Smoke.glb", "SmokeWater.glb", "SmokeSoftbody.glb",
-    "SmokeCloth.glb", "SmokeRope.glb"};
-
-static_assert(scene_files.size() == gallery_entries.size());
-
 [[nodiscard]] bool finite(const PmRigidState &state) noexcept {
     for (float value : {state.position[0], state.position[1], state.position[2],
                         state.orientation[0], state.orientation[1],
@@ -240,6 +227,115 @@ bool validate_swept_face_impact(std::optional<PmNativeBackend> backend,
     return validate_swept_face_impact_case(backend, -1.0F, 4U, error) &&
         validate_swept_face_impact_case(backend, -1.0F, 1U, error) &&
         validate_swept_face_impact_case(backend, -0.5F, 1U, error);
+}
+
+[[nodiscard]] TriangleMesh planar_sweep_box(Vec3 half) {
+    TriangleMesh box;
+    box.vertices = {{{-half.x, -half.y, -half.z}},
+                    {{ half.x, -half.y, -half.z}},
+                    {{ half.x,  half.y, -half.z}},
+                    {{-half.x,  half.y, -half.z}},
+                    {{-half.x, -half.y,  half.z}},
+                    {{ half.x, -half.y,  half.z}},
+                    {{ half.x,  half.y,  half.z}},
+                    {{-half.x,  half.y,  half.z}}};
+    box.indices = {0,1,2,0,2,3,4,6,5,4,7,6,0,4,5,0,5,1,
+                   1,5,6,1,6,2,2,6,7,2,7,3,3,7,4,3,4,0};
+    return box;
+}
+
+bool run_planar_sweep(std::optional<PmNativeBackend> backend, float target_tilt,
+                      PmRigidState &state, std::vector<PmContactEvent> &contacts,
+                      std::string &error) {
+    SceneDefinition scene;
+    scene.meshes.push_back(planar_sweep_box({0.25F, 0.25F, 0.25F}));
+    scene.meshes.push_back(planar_sweep_box({0.2F, 0.2F, 0.2F}));
+    RigidBodyDefinition body;
+    body.name = "PlanarSweepDynamic";
+    body.mesh_indices = {0U};
+    body.options.initial_state.position = {0.0F, 2.0F, 0.0F};
+    body.options.mass = 2.0F;
+    body.options.inertia_diagonal = {1.0F / 12.0F, 1.0F / 12.0F,
+                                     1.0F / 12.0F};
+    body.options.linear_damping = 0.0F;
+    body.options.angular_damping = 0.0F;
+    scene.rigid_bodies.push_back(body);
+    body = {};
+    body.name = "PlanarSweepKinematic";
+    body.mesh_indices = {1U};
+    body.options.motion = MotionType::kinematic;
+    body.options.initial_state.position = {-1.0F, 1.0F, 0.0F};
+    scene.rigid_bodies.push_back(body);
+
+    CommandScene simulation;
+    CommandSceneInstance instance;
+    CommandSceneFrame frame;
+    if (!CommandScene::create(scene, 2U, simulation, instance, error, backend))
+        return false;
+    PmRigidInput impulse{};
+    impulse.bodyIndex = 0U;
+    impulse.linearImpulse[0] = 1.5F;
+    if (!simulation.apply_rigid_inputs({impulse}, error)) return false;
+    for (unsigned step = 0U; step < 20U; ++step)
+        if (!simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F},
+                             frame, error, true)) return false;
+    RigidBodyState target;
+    target.position = {1.0F, 1.5F, 0.0F};
+    target.orientation = {0.0F, std::sin(0.5F * target_tilt), 0.0F,
+                          std::cos(0.5F * target_tilt)};
+    if (!simulation.set_kinematic_target(1U, target, error) ||
+        !simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F},
+                         frame, error, true)) return false;
+    state = frame.rigid_states.at(0U);
+    contacts = std::move(frame.contacts);
+    return true;
+}
+
+bool validate_planar_sweep_symmetry(std::optional<PmNativeBackend> backend,
+                                    std::string &error) {
+    PmRigidState planar{};
+    std::vector<PmContactEvent> planar_contacts;
+    if (!run_planar_sweep(backend, 0.0F, planar, planar_contacts, error))
+        return false;
+    const float leakage = std::max({std::abs(planar.position[2]),
+        std::abs(planar.orientation[0]), std::abs(planar.orientation[1]),
+        std::abs(planar.linearVelocity[2]),
+        std::abs(planar.angularVelocity[0]),
+        std::abs(planar.angularVelocity[1])});
+    if (leakage > 1.0e-5F || planar_contacts.size() != 4U) {
+        error = "planar sweep retained a tessellation contact or leaked out of plane";
+        return false;
+    }
+    std::array<float, 4> contact_z{};
+    for (std::size_t index = 0U; index < planar_contacts.size(); ++index) {
+        contact_z[index] = planar_contacts[index].position.z;
+        if (std::abs(planar_contacts[index].normal.z) > 1.0e-6F) {
+            error = "planar sweep generated an out-of-plane contact normal";
+            return false;
+        }
+    }
+    std::sort(contact_z.begin(), contact_z.end());
+    if (std::abs(contact_z[0] + contact_z[3]) > 1.0e-5F ||
+        std::abs(contact_z[1] + contact_z[2]) > 1.0e-5F) {
+        error = "planar sweep contact patch lost mirror pairing";
+        return false;
+    }
+
+    PmRigidState perturbed{};
+    std::vector<PmContactEvent> perturbed_contacts;
+    if (!run_planar_sweep(backend, 2.0e-2F, perturbed,
+                          perturbed_contacts, error)) return false;
+    const float three_dimensional_response = std::max(
+        std::abs(perturbed.angularVelocity[0]),
+        std::abs(perturbed.angularVelocity[1]));
+    if (three_dimensional_response <= 1.0e-4F) {
+        error = "face-patch reduction discarded a real three-dimensional response";
+        return false;
+    }
+    std::cout << "Planar sweep symmetry leakage=" << leakage
+              << " rad/s, perturbed response="
+              << three_dimensional_response << " rad/s\n";
+    return true;
 }
 
 bool validate_face_contact_normals(const TriangleMesh &mesh,
@@ -510,11 +606,11 @@ int main(int argc, char **argv) {
     for (std::size_t index = 0U; index < gallery_entries.size(); ++index) {
         if (rigid_only && index > gallery_context_index(GalleryContext::dump))
             break;
-        if (!selected_scene.empty() && selected_scene != scene_files[index])
-            continue;
         const GalleryEntry &entry = gallery_entries[index];
+        if (!selected_scene.empty() && selected_scene != entry.asset_file)
+            continue;
         SceneDefinition authored;
-        if (!load_glb_scene(asset_root / scene_files[index], authored, error)) {
+        if (!load_glb_scene(asset_root / entry.asset_file, authored, error)) {
             std::cerr << entry.name << ": load failed: " << error << '\n';
             return 1;
         }
@@ -535,7 +631,8 @@ int main(int argc, char **argv) {
                 return 1;
             }
         }
-        if (entry.has_fluid) scene.fluid_options.capacity = 100U;
+        if (is_fluid_context(entry.context))
+            scene.fluid_options.capacity = 100U;
         std::vector<rigid_mesh_checks::MeshSamples> brick_geometry;
         float maximum_brick_penetration{};
         std::uint32_t maximum_brick_penetration_frame{};
@@ -762,6 +859,11 @@ int main(int argc, char **argv) {
             return 1;
         }
         if (!brick_geometry.empty() && !validate_swept_face_impact(backend, error)) {
+            std::cerr << error << '\n';
+            return 1;
+        }
+        if (!brick_geometry.empty() && !validate_planar_sweep_symmetry(
+                backend, error)) {
             std::cerr << error << '\n';
             return 1;
         }

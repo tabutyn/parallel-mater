@@ -1,3 +1,5 @@
+<!-- Generated from registry/pm.xml sha256:13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7 -->
+
 # Parallel Mater 0.2 — API Specification
 
 This specification defines the Parallel Mater 0.2 command API: object ownership, device discovery, explicit storage, physics pipelines, command execution, and synchronization. It is the behavioral contract for implementations and applications. The companion reference guide lists declarations and points here by section number.
@@ -2130,9 +2132,11 @@ PmResult pmImportNativeDevice(
     PmDevice* pDevice);
 PmResult pmGetNativeDevice(PmDevice device,
     PmNativeDeviceInfo* pNativeDevice);
+PmResult pmGetNativeQueue(PmQueue queue,
+    PmNativeQueueInfo* pNativeQueue);
 ```
 
-Import borrows a device/context and at least one explicit queue/stream. enabledFeatures selects PM features; enabledNativeFeatures records native capabilities already enabled by the caller, not requests to enable them. Unknown bits fail. TIMELINE_ENABLED is required for shared counter synchronization. SYNCHRONIZATION2 is required only for Vulkan 1.3 import, and must be zero for other backends. Get returns borrowed handles, including for PM-created native devices; it does not transfer ownership.
+Import borrows a device/context and at least one explicit queue/stream. enabledFeatures selects PM features; enabledNativeFeatures records native capabilities already enabled by the caller, not requests to enable them. Unknown bits fail. TIMELINE_ENABLED is required for shared counter synchronization. SYNCHRONIZATION2 is required only for Vulkan 1.3 import, and must be zero for other backends. GetNativeDevice and GetNativeQueue return borrowed handles, including for PM-created native devices and queues; they do not transfer ownership.
 
 CUDA uses instance = 0, physicalDevice = CUdevice ordinal, device = CUcontext, queue = a non-default CUstream from that context. Metal uses instance = physicalDevice = 0, device = id<MTLDevice>, queue = id<MTLCommandQueue>. DirectX 12 uses instance = physicalDevice = 0, device = ID3D12Device*, queue = ID3D12CommandQueue* of DIRECT or COMPUTE type. Vulkan uses VkInstance, VkPhysicalDevice, VkDevice and VkQueue. Verify adapter identity before combining native objects.
 
@@ -2390,7 +2394,7 @@ PmResult pmGetSimulationStatus(
     PmResult* pExecutionResult);
 ```
 
-Queries accumulate across enclosed steps: work counters sum, peak fields and high-water bytes take maxima. executionResult is the first failing PmResult, or SUCCESS. Do not nest statistics queries; Begin and End must be in one buffer. After observing completion, GetSimulationStatus exposes the last step status even when statistics are disabled. It returns NOT_READY while simulation work is pending. Overflow invalidates that step's output and requires reinitialization.
+Queries accumulate across enclosed steps: work counters sum, peak fields and high-water bytes take maxima. executionResult is the first failing PmResult, or SUCCESS. Do not nest statistics queries; Begin and End must be in one buffer. After observing completion, GetSimulationStatus exposes the last step status even when statistics are disabled. It returns NOT_READY while simulation work is pending. Overflow invalidates that step's output and requires reinitialization. When an enclosed step completes with CAPACITY_EXCEEDED, its completed statistics result remains readable and returns SUCCESS; executionResult contains CAPACITY_EXCEEDED and overflowCount contains the generated overflow count. Other failed query submissions return their completion error.
 
 <a id="spec-query_results"></a>
 
@@ -2924,6 +2928,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmGetInstanceProcAddr | [3.1](#spec-function_pointers) |
 | pmGetNativeBuffer | [14.3](#spec-native_buffer) |
 | pmGetNativeDevice | [14.2](#spec-native_device) |
+| pmGetNativeQueue | [14.2](#spec-native_device) |
 | pmGetNativeSemaphore | [14.4](#spec-native_timeline) |
 | pmGetPhysicalDeviceFeatures | [4.4](#spec-features) |
 | pmGetPhysicalDeviceFormatProperties | [16.3](#spec-formats) |

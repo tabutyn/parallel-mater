@@ -102,12 +102,22 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdBeginStatisticsQuery(
     command_buffer->statistics_pool = pool;
     command_buffer->statistics_query = query;
     command_buffer->statistics_simulation = nullptr;
+    try {
+        command_buffer->statistics_execution = std::make_shared<bool>(false);
+    } catch (const std::bad_alloc &) {
+        command_buffer->statistics_open = false;
+        command_buffer->statistics_pool = nullptr;
+        command_buffer->latched_error = PM_ERROR_OUT_OF_HOST_MEMORY;
+        return command_buffer->latched_error;
+    }
+    const auto execution = command_buffer->statistics_execution;
     return parallel_mater::api::record_query(
-        command_buffer, pool, query, 1U, [pool, query](
+        command_buffer, pool, query, 1U, [pool, query, execution](
                             parallel_mater::device::Services &) noexcept {
             std::lock_guard lock(pool->mutex);
             pool->slots[query].statistics = {};
             pool->slots[query].available = false;
+            *execution = true;
             return PM_SUCCESS;
         });
 }
@@ -124,12 +134,15 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdEndStatisticsQuery(
         command_buffer->statistics_simulation == nullptr)
         return PM_ERROR_INVALID_ARGUMENT;
     const PmSimulation simulation = command_buffer->statistics_simulation;
+    const auto execution = command_buffer->statistics_execution;
     command_buffer->statistics_open = false;
     command_buffer->statistics_pool = nullptr;
     command_buffer->statistics_simulation = nullptr;
+    command_buffer->statistics_execution.reset();
     return parallel_mater::api::record_query(
-        command_buffer, pool, query, 1U, [pool, query, simulation](
+        command_buffer, pool, query, 1U, [pool, query, simulation, execution](
                             parallel_mater::device::Services &services) noexcept {
+            if (!*execution) return PM_SUCCESS;
             std::lock_guard lock(pool->mutex);
             const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
             parallel_mater::SimulationStatistics source{};
@@ -149,13 +162,14 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdEndStatisticsQuery(
             statistics.scratchHighWaterBytes = simulation->arena != nullptr
                 ? simulation->arena->scratch_used() : 0U;
             statistics.overflowCount = source.contact_overflow_count +
-                source.rigid_contact_overflow_pairs;
+                source.rigid_contact_overflow_pairs +
+                source.fluid_neighbor_overflow_count;
             statistics.executionResult = simulation->execution_result;
             statistics.earlyExitCount =
                 source.rigid_contact_early_exit_count;
             pool->slots[query].available = true;
             return PM_SUCCESS;
-        });
+        }, true);
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetQueryPoolResults(
@@ -199,8 +213,13 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetQueryPoolResults(
             completion = std::atomic_load(&slot.completion);
         }
         const auto result = completion ? completion->status() : PM_SUCCESS;
-        if (result < PM_SUCCESS) return result;
-        bool available = result == PM_SUCCESS && slot.available;
+        const bool failed_statistics_available =
+            result == PM_ERROR_CAPACITY_EXCEEDED &&
+            pool->type == PM_QUERY_STEP_STATISTICS && slot.available &&
+            slot.statistics.executionResult == PM_ERROR_CAPACITY_EXCEEDED;
+        if (result < PM_SUCCESS && !failed_statistics_available) return result;
+        bool available = (result == PM_SUCCESS || failed_statistics_available) &&
+            slot.available;
         if (available && pool->type == PM_QUERY_TIMESTAMP) {
             if ((flags & PM_QUERY_RESULT_WAIT_BIT) != 0U) {
                 const PmResult result = device->services->wait_event(slot.event);

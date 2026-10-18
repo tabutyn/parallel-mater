@@ -1,0 +1,56 @@
+{
+  "schema": "parallel-mater-roadmap-android-catalog-evidence/v1",
+  "task": "F7-15",
+  "scope": "Capability-driven Android scene catalog sourced from the common Gallery registry",
+  "implementation": {
+    "commit": "82849df89e478aa15429b4e4f8dc6a2b3c71715c",
+    "mobile_session_commit": "41ead65db78794dd528e2143dc20695ff9bf5ca3",
+    "catalog_source": "GallerySession::catalog",
+    "catalog_entries": 28,
+    "android_scene_tables": 0,
+    "jni_fields": [
+      "id",
+      "name",
+      "help",
+      "required_features",
+      "available",
+      "unavailable_reason"
+    ]
+  },
+  "acceptance": {
+    "stable_common_order": "The JNI bridge iterates GallerySession::catalog() by index and Java creates one SceneInfo per six-field record without a platform scene list.",
+    "supported_selection": "Available cards dispatch MobileGalleryCommand::select_scene with their common catalog index.",
+    "unsupported_reason": "Unavailable cards are disabled and display the common catalog's precise unavailable_reason.",
+    "capability_growth": "The JNI result size and Java picker are derived from catalog.size(); advertising a feature changes availability without Android index or description edits."
+  },
+  "verification": [
+    {
+      "check": "cmake --build build-linux-vulkan-preview -j1 --target parallel-mater-gallery-registry-tests",
+      "result": "passed"
+    },
+    {
+      "check": "ctest --test-dir build-linux-vulkan-preview --output-on-failure -R parallel-mater-gallery-registry-tests",
+      "result": "1/1 passed; stable 28-entry order, complete metadata and precise missing-feature reasons"
+    },
+    {
+      "check": "ANDROID_HOME=/home/thomas/Android/Sdk ./scripts/Build-AndroidGallery.sh",
+      "result": "ARM64 Vulkan debug APK build passed",
+      "apk_sha256": "89ea6309f64013e30cf9db8f4ed3f414675bdf99bb02cd1e115199a6487edfdc"
+    },
+    {
+      "check": "GitHub PR 183 required checks",
+      "result": "Android, iPad, Linux, Windows and macOS checks passed"
+    },
+    {
+      "check": "docs/roadmap/evidence/F7-07-mobile-shells.json",
+      "result": "Post-catalog shared-session evidence covers all 28 entries and Android profile/catalog construction"
+    }
+  ],
+  "limitations": [
+    "No Android device was visible to ADB during this completion pass.",
+    "Physical Android Vulkan presentation, lifecycle and full scene qualification remain F7-16 and F7-18."
+  ],
+  "privacy": {
+    "private_device_identifiers_recorded": false
+  }
+}

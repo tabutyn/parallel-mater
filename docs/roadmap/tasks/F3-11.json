@@ -1,7 +1,7 @@
 {
   "id": "F3-11",
   "title": "Qualify destruction wait profiles",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F3-06"
   ],
@@ -16,7 +16,31 @@
     "Accepted work drains before reference-driver device teardown returns, without use-after-free, hang or stale ownership after handle reuse.",
     "Explicit completion avoids the implicit wait, and evidence does not generalize reference-runtime behavior to external drivers."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS Windows D3D12 NVIDIA GeForce GTX 1080 destruction-wait profile 20/20: pending work drained without hang; explicit completion verified copied bytes; replacement device submission proved no stale ownership.",
+    "PASS WSL GCC 13.3 host fixture 20/20: deterministic delayed producer remained pending at device teardown and copied output was complete before teardown returned.",
+    "PASS adjacent regressions: D3D12 lifecycle/validation/endpoint/teardown 4/4 and host queue/endpoint/failure/teardown 4/4; Visual Studio 18 and GCC 13.3 builds; generated API references and 19 roadmap unit tests passed."
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "bf314444-5a6b-43ac-b31c-4c0b5ebbb2d6",
+        "owner": "codex-windows-validation",
+        "machine": "windows-gtx1080",
+        "branch": "work/F3-11/windows-gtx1080",
+        "claimed_at": "2026-10-18T03:28:40Z",
+        "heartbeat_at": "2026-10-18T03:28:40Z",
+        "expires_at": "2026-10-18T11:28:40Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T03:44:44Z",
+      "reason": "Qualified explicit completion and reference-driver teardown draining with pending public objects.",
+      "evidence": [
+        "PASS Windows D3D12 NVIDIA GeForce GTX 1080 destruction-wait profile 20/20: pending work drained without hang; explicit completion verified copied bytes; replacement device submission proved no stale ownership.",
+        "PASS WSL GCC 13.3 host fixture 20/20: deterministic delayed producer remained pending at device teardown and copied output was complete before teardown returned.",
+        "PASS adjacent regressions: D3D12 lifecycle/validation/endpoint/teardown 4/4 and host queue/endpoint/failure/teardown 4/4; Visual Studio 18 and GCC 13.3 builds; generated API references and 19 roadmap unit tests passed."
+      ]
+    }
+  ]
 }

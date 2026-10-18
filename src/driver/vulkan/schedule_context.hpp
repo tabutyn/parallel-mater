@@ -25,6 +25,9 @@ class ScheduleContext {
     void free(void *allocation) noexcept;
     void activate() noexcept;
     std::uint64_t address(const void *pointer) noexcept;
+    // Copies one reflected record into command-lifetime mapped storage. The
+    // returned host token is accepted by address() until the command batch ends.
+    void *stage(std::span<const std::byte> bytes) noexcept;
     std::uint64_t translated_meshes(const void *meshes, const void *parameters,
                                     std::uint32_t count,
                                     std::uint32_t capacity = 0,
@@ -49,6 +52,8 @@ class ScheduleContext {
     VkDevice device() const noexcept;
     VkInstance instance() const noexcept;
     VkPhysicalDevice physical() const noexcept;
+    VkQueue queue() const noexcept;
+    std::uint32_t queue_family() const noexcept;
     VkBuffer buffer(const void *pointer) const noexcept;
 
   private:

@@ -1,0 +1,31 @@
+{
+  "driver": {
+    "device": "NVIDIA GeForce GTX 1080",
+    "name": "slang-cuda"
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 1,
+  "observations": {
+    "active_contact_count": 2,
+    "angular_response_rad_s": 16.526390075683594,
+    "normal_alignment_cosine": 0.9996616333677861,
+    "normal_impulse_vector": [
+      46.91611609476081,
+      10.440322652050668,
+      1.2725060903953644e-07
+    ],
+    "planar_leakage": {
+      "angular_velocity_xy": 1.0484403901500627e-05,
+      "linear_velocity_z": 1.673091219345224e-06,
+      "orientation_xy": 2.182833122787997e-05,
+      "position_z": 1.5760111864437931e-06
+    }
+  },
+  "passed": true,
+  "profile_id": "rigid-kinematic-sweep-v1",
+  "profile_sha256": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc",
+  "sample_count": 61,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

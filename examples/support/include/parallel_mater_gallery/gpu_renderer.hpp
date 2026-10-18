@@ -22,6 +22,7 @@ struct GpuRendererDevice {
     PmDevice api_device{};
     PmQueue physics_queue{};
     PmNativeDeviceInfo native{};
+    PmNativeQueueInfo native_queue{};
     std::uint64_t resource_generation{};
 };
 
@@ -161,6 +162,10 @@ class GpuGalleryRenderer {
         const noexcept = 0;
     [[nodiscard]] virtual bool render(const GpuRenderRequest &request,
                                       std::string &error) = 0;
+    // Release resources tied to the current native presentation target before
+    // its platform shell destroys that target. Offscreen-only adapters need no
+    // action.
+    virtual void detach_target() noexcept {}
 };
 
 // Implemented by the native graphics adapter selected by the Gallery target.

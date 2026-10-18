@@ -248,7 +248,8 @@ void draw_frame_timing_overlay(std::vector<std::uint32_t> &rgba,
 void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                           std::uint32_t width, std::uint32_t height,
                           GalleryContext selection,
-                          std::span<const GalleryCatalogItem> catalog) {
+                          std::span<const GalleryCatalogItem> catalog,
+                          std::span<const std::string> action_help) {
     if (catalog.empty()) return;
     const MenuScale ui = menu_scale(width, height);
     const int center = static_cast<int>(width) / 2;
@@ -297,7 +298,11 @@ void draw_context_overlay(std::vector<std::uint32_t> &rgba,
         row(y, entry.context,
             available ? color(entry.background) : Color{25, 30, 35, 255},
             available ? color(entry.icon) : Color{70, 75, 80, 255}, entry.name,
-            available ? entry.help : item.unavailable_reason,
+            available
+                ? (action_help.size() == catalog.size()
+                      ? std::string_view(action_help[static_cast<std::size_t>(index)])
+                      : entry.summary)
+                : std::string_view(item.unavailable_reason),
             available ? Color{105, 255, 155, 255} : Color{180, 185, 190, 255});
         y += row_height;
     }

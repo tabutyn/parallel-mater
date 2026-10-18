@@ -14,13 +14,14 @@ from collections import Counter
 import pymupdf as fitz
 from PIL import Image
 
-from build import DEST, ROOT, all_cards
+from build import DEST, ROOT, RELEASE_ARTIFACTS, all_cards
 from content import SECTIONS
 from layout import BOTTOM, COLUMNS, MARGIN, TOP, SPEC_PURPLE, symbol_color
 from model import REFERENCE_NOTES, SPEC_NUMBERS, reference_sections
-from specification import NUMBERS, plain
+from specification_text import NUMBERS, plain
 from api_model import public_types
 from check_api import check_contract
+from provenance import file_sha256, registry_provenance
 
 
 def require(condition, message):
@@ -35,9 +36,33 @@ def run(command, **kwargs):
     return result
 
 
+def compiler_matrix():
+    defaults = ("cl", "cl") if os.name == "nt" else ("cc", "c++")
+    return ((os.environ.get("CC", defaults[0]), "c", "c11"),
+            (os.environ.get("CXX", defaults[1]), "c++", "c++17"))
+
+
+def compile_source(compiler, language, standard, source, include=None):
+    if Path(compiler).name.lower() in ("cl", "cl.exe"):
+        command = [compiler, "/nologo", "/TC" if language == "c" else "/TP",
+                   f"/std:{standard}", "/W4", "/WX", "/wd4232", "/permissive-", "/Zs"]
+        if include:
+            command.append(f"/I{include}")
+        command.append(str(source))
+    else:
+        command = [compiler, "-x", language, f"-std={standard}", "-Wall",
+                   "-Wextra", "-Werror", "-pedantic"]
+        if include:
+            command += [f"-I{include}"]
+        command += ["-fsyntax-only", str(source)]
+    run(command)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--font-dir", type=Path)
+    parser.add_argument("--staging-root", type=Path,
+                        help="Keep the clean regenerated artifact tree at this path")
     parser.add_argument("--skip-vulkan-header", action="store_true",
                         help="Only if the optional Vulkan SDK is not installed")
     args = parser.parse_args()
@@ -45,11 +70,9 @@ def main():
     if not args.skip_vulkan_header:
         examples.append("vulkan_header.c")
     compile_count = 0
-    for compiler, language, standard in ((os.environ.get("CC", "cc"), "c", "c11"),
-                                          (os.environ.get("CXX", "c++"), "c++", "c++17")):
+    for compiler, language, standard in compiler_matrix():
         for example in examples:
-            run([compiler, "-x", language, f"-std={standard}", "-Wall", "-Wextra",
-                 "-Werror", "-pedantic", "-fsyntax-only", str(DEST / "examples" / example)])
+            compile_source(compiler, language, standard, DEST / "examples" / example)
             compile_count += 1
     print(f"PASS: {compile_count} C11/C++17 syntax and ABI checks (no linking or runtime claims)")
 
@@ -60,9 +83,6 @@ def main():
     headers = [DEST / "api/parallel_mater.h", DEST / "api/interop_vulkan.h"]
     installed_headers = [ROOT / "include/parallel_mater/parallel_mater.h",
                          ROOT / "include/parallel_mater/interop_vulkan.h"]
-    generated_paths = headers + installed_headers + [
-        DEST / "api-coverage.json"]
-    before_headers = {p: p.read_bytes() for p in generated_paths}
     for draft, installed in zip(headers, installed_headers):
         require(draft.read_text() == installed.read_text(),
                 f"Installed header differs from reference: {installed}")
@@ -78,6 +98,9 @@ def main():
     require(declared_types == set(manifest["symbols"]) - declared,
             "Public structs, enums, aliases or callback types are missing from the reference")
     coverage = json.loads((DEST / "api-coverage.json").read_text())
+    provenance = registry_provenance()
+    require(coverage["registry"] == provenance,
+            "Coverage does not identify the current registry revision")
     require({cmd["name"] for cmd in coverage["functions"]} == declared, "Stale command inventory")
     require({typ["name"] for typ in coverage["types"]} == declared_types, "Stale type inventory")
     keys = {c.key for c in cards} | {s.key for s in SECTIONS}
@@ -88,10 +111,12 @@ def main():
                                          "\n".join(p.read_text() for p in checked_headers))))
     pointer_check = f'#include "{checked_headers[-1]}"\n' + "\n".join(
         f"PFN_{name} checked_{name} = {name};" for name in checked_names)
-    for compiler, language, standard in ((os.environ.get("CC", "cc"), "c", "c11"),
-                                          (os.environ.get("CXX", "c++"), "c++", "c++17")):
-        run([compiler, "-x", language, f"-std={standard}", "-Wall", "-Wextra",
-             "-Werror", "-pedantic", "-fsyntax-only", "-"], input=pointer_check)
+    with tempfile.TemporaryDirectory(prefix="pm-reference-pointers-") as directory:
+        for compiler, language, standard in compiler_matrix():
+            suffix = ".c" if language == "c" else ".cpp"
+            source = Path(directory) / ("pointers" + suffix)
+            source.write_text(pointer_check, encoding="utf-8", newline="\n")
+            compile_source(compiler, language, standard, source)
     print(f"PASS: {len(checked_names)} typed function pointers match their C/C++ declarations")
 
     doc = fitz.open(pdf_path)
@@ -99,6 +124,15 @@ def main():
     specification = json.loads(spec_path.with_suffix(".layout.json").read_text())
     spec_doc = fitz.open(spec_path)
     spec_markdown = spec_path.with_suffix(".md").read_text()
+    require(manifest["registry"] == provenance,
+            "Reference layout does not identify the current registry revision")
+    require(specification["registry"] == provenance,
+            "Specification layout does not identify the current registry revision")
+    require(all(provenance["sha256"] in path.read_text(encoding="utf-8")
+                for path in headers + installed_headers),
+            "Generated headers do not identify the current registry revision")
+    require(provenance["sha256"] in spec_markdown,
+            "Specification text does not identify the current registry revision")
     spec_text = "\n".join(page.get_text() for page in spec_doc)
     spec_body = "\n".join(page.get_text(clip=fitz.Rect(30, 40, page.rect.width-30,
                                                     page.rect.height-35)) for page in spec_doc)
@@ -282,25 +316,43 @@ def main():
     print(f"PASS: declaration-only reference body; {remote_count} purple specification links")
     print("PASS: searchable declarations, embedded fonts, safe page bounds, no overlapping sections")
 
+    release_path = DEST / "release-artifacts.json"
+    release = json.loads(release_path.read_text(encoding="utf-8"))
+    require(release["registry"] == provenance,
+            "Release artifact manifest does not identify the current registry revision")
+    require(release["known_nondeterminism"] == [],
+            "Reference artifacts claim unresolved nondeterminism")
+    require(set(release["artifacts"]) == set(RELEASE_ARTIFACTS),
+            "Release artifact manifest inventory is stale")
+    for relative, expected in release["artifacts"].items():
+        artifact = ROOT / relative
+        require(artifact.stat().st_size == expected["size"],
+                f"Release artifact size mismatch: {relative}")
+        require(file_sha256(artifact) == expected["sha256"],
+                f"Release artifact hash mismatch: {relative}")
+    print(f"PASS: {len(RELEASE_ARTIFACTS)} release artifacts share registry "
+          f"{provenance['sha256'][:12]}")
+
     with tempfile.TemporaryDirectory(prefix="pm-reference-check-") as directory:
-        check_contract(ROOT, DEST, Path(directory), run, require, args.skip_vulkan_header)
-        output = Path(directory) / "reference.pdf"
-        command = [sys.executable, "tools/reference/build.py", "--output", str(output)]
+        check_contract(ROOT, DEST, Path(directory), run, require,
+                       compile_source, args.skip_vulkan_header)
+        artifact_root = (args.staging_root.resolve() if args.staging_root
+                         else Path(directory) / "generated")
+        command = [sys.executable, "tools/reference/build.py",
+                   "--artifact-root", str(artifact_root)]
         if args.font_dir:
             command += ["--font-dir", str(args.font_dir)]
         run(command)
-        require(output.read_bytes() == pdf_path.read_bytes(), "PDF regeneration is not deterministic")
-        regenerated_spec = output.with_name(spec_path.name)
-        require(regenerated_spec.read_bytes() == spec_path.read_bytes(), "Specification PDF regeneration is not deterministic")
-        require(regenerated_spec.with_suffix(".md").read_text() == spec_markdown,
-                "Specification Markdown regeneration is not deterministic")
-        require(all(path.read_bytes() == value for path, value in before_headers.items()),
-                "Generated headers were stale; run the checker again after reviewing regeneration")
+        generated = list(RELEASE_ARTIFACTS) + ["docs/reference/release-artifacts.json"]
+        mismatches = [relative for relative in generated
+                      if (artifact_root / relative).read_bytes() != (ROOT / relative).read_bytes()]
+        require(not mismatches,
+                "Clean reference regeneration differs: " + ", ".join(mismatches))
     require(hashlib.sha256(pdf_path.read_bytes()).hexdigest() == manifest["pdf_sha256"],
             "PDF hash differs from manifest")
     require(hashlib.sha256(spec_path.read_bytes()).hexdigest() == specification["pdf_sha256"],
             "Specification hash differs from manifest")
-    print("PASS: deterministic reference, specification, and header regeneration")
+    print("PASS: deterministic clean regeneration of headers, text, coverage, PDFs and layouts")
 
 
 if __name__ == "__main__":

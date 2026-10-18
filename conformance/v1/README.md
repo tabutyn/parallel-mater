@@ -154,6 +154,25 @@ The existing 2 mm threshold is unchanged. A driver-contact depth is diagnostic;
 it cannot replace the independent mesh measurement. The original CUDA/D3D12
 failures and corrected observations remain in the revisioned Windows report.
 
+The `rigid-kinematic-sweep-v1` profile independently adjudicates the
+`rigid-direct` frame-21 kinematic impact. Capture all frames, then evaluate the
+raw trajectory directly:
+
+```text
+parallel-mater-conformance --case rigid-direct --every-frame \
+  --output /path/to/results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/rigid-kinematic-sweep-v1.json \
+  --actual /path/to/results/rigid-direct.json \
+  --report /path/to/rigid-kinematic-sweep-report.json
+```
+
+The profile pins the unchanged case hash and requires checkpoints 0 through
+60. It derives expected contact direction and torque sign from the declared
+0.2 m-half-extent collider and off-centre sweep, enforces the Coulomb cone, and
+bounds out-of-plane leakage from the fixture's mirror symmetry. It reads no
+trajectory golden and does not weaken the `direct` comparison tolerance.
+
 Run the capacity and graph-lifecycle gate with:
 
 ```text
@@ -239,6 +258,15 @@ failed three final angular-velocity comparisons against the historical CUDA
 capture (maximum absolute difference about 0.000256 versus about 0.0000102
 allowed). CPU `cloth-core` produced unsupported/exit 77. No tolerance or golden
 was changed by this separation.
+
+The tracked [F5-04 isolation](../../docs/roadmap/evidence/F5-04-rigid-direct-divergence.json)
+reproduces that result at its exact `603fee5` revision and retains same-revision
+CPU/CUDA outputs for all 61 frames. Frame 20 is identical and contact-free; the
+first contract failure appears on frame 21, in the first kinematic-box contact
+submission, including dynamic-box angular velocity. Current `3acb413` CPU and
+CUDA outputs pass the unchanged every-frame comparison, while both drift from
+the old CUDA golden. F5-17 therefore tracks independent adjudication of the
+shared response/reference instead of treating the remaining issue as CPU-only.
 
 Subsequent [Windows GTX 1080 evidence](evidence/windows-gtx1080-physics-2026-10-16.json)
 resolves the ten failing comparisons: the same-build SDK runner passes all 17
