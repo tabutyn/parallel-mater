@@ -1,7 +1,7 @@
 {
   "id": "F4-01",
   "title": "Describe resources and access ranges",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "device-contract"
@@ -15,6 +15,14 @@
     "Overlap, aliasing and out-of-range uses have explicit rules and tests."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "b9fd13c5-7ce6-40fe-ad8e-d09c35d6450f",
+    "owner": "codex-macos-runtime",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F4-01/thomass-macbook-air",
+    "claimed_at": "2026-10-18T02:39:33Z",
+    "heartbeat_at": "2026-10-18T02:39:33Z",
+    "expires_at": "2026-10-19T02:39:33Z"
+  },
   "history": []
 }
