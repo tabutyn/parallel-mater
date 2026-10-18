@@ -20,14 +20,19 @@ jobs:
             d3d12: 'OFF'
             cpu: 'ON'
             metal: 'OFF'
+            driver_args: '--expect-driver-target ParallelMater::slang_cpu_driver'
           - os: windows-latest
             d3d12: 'ON'
             cpu: 'OFF'
             metal: 'OFF'
+            driver_args: '--expect-driver-target ParallelMater::slang_d3d12_driver'
           - os: macos-26
             d3d12: 'OFF'
             cpu: 'ON'
             metal: 'ON'
+            driver_args: >-
+              --expect-driver-target ParallelMater::slang_cpu_driver
+              --expect-driver-target ParallelMater::slang_metal_driver
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
@@ -35,6 +40,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+        with:
+          arch: x64
       - name: Ensure native Metal compiler is available
         if: runner.os == 'macOS'
         shell: bash
@@ -67,20 +76,9 @@ jobs:
           ctest --test-dir build -C Release --output-on-failure --no-tests=error
           -E "^parallel-mater-(d3d12-command-api-tests|slang-metal-.*)$"
       - name: Validate installed package components
-        shell: bash
-        run: |
-          args=()
-          if [[ "${{ matrix.d3d12 }}" == "ON" ]]; then
-            args+=(--expect-driver-target ParallelMater::slang_d3d12_driver)
-          fi
-          if [[ "${{ matrix.cpu }}" == "ON" ]]; then
-            args+=(--expect-driver-target ParallelMater::slang_cpu_driver)
-          fi
-          if [[ "${{ matrix.metal }}" == "ON" ]]; then
-            args+=(--expect-driver-target ParallelMater::slang_metal_driver)
-          fi
-          python tools/check_sdk_components.py --build-dir build \
-            --output out/sdk-components/ci "${args[@]}"
+        run: >-
+          python tools/check_sdk_components.py --build-dir build
+          --output out/sdk-components/ci ${{ matrix.driver_args }}
       - name: Retain reflection and test evidence
         if: always()
         uses: actions/upload-artifact@v4
