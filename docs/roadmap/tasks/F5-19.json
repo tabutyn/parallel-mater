@@ -1,7 +1,7 @@
 {
   "id": "F5-19",
   "title": "Emit capacity recovery lifecycle checkpoints",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-03",
     "F5-16"
@@ -19,6 +19,14 @@
     "conformance/v1/lifecycle.py passes the capacity-replacement-recovery case on CUDA and Vulkan from one clean Linux revision; unsupported drivers remain explicitly unsupported and no lifecycle profile rule is weakened."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "13eaa70f-ac70-4b65-8439-a618e7e2f45f",
+    "owner": "codex-linux-evidence",
+    "machine": "thomas-laptop",
+    "branch": "work/F5-19/thomas-laptop",
+    "claimed_at": "2026-10-18T19:03:41Z",
+    "heartbeat_at": "2026-10-18T19:03:41Z",
+    "expires_at": "2026-10-19T19:03:41Z"
+  },
   "history": []
 }
