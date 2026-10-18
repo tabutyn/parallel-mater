@@ -1,7 +1,7 @@
 {
   "id": "F5-20",
   "title": "Emit graph rollback lifecycle checkpoints",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-03",
     "F5-19"
@@ -18,15 +18,33 @@
     "Prove the rejected partial update preserves the accepted graph and every tracked resource, recovery restores the installed graph, and liquid replacement changes only the declared endpoint generation/state.",
     "conformance/v1/lifecycle.py passes the three-family-partial-rollback case on every production driver advertising its required feature set; unsupported drivers remain explicit and no profile rule is weakened."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "73ae90b0-6147-4664-8be0-06ba4d141517",
-    "owner": "codex-linux-evidence",
-    "machine": "thomas-laptop",
-    "branch": "work/F5-20/thomas-laptop",
-    "claimed_at": "2026-10-18T19:15:45Z",
-    "heartbeat_at": "2026-10-18T19:15:45Z",
-    "expires_at": "2026-10-19T19:15:45Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: CUDA and Vulkan each produced 5/5 three-family-partial-rollback checkpoints with 0 lifecycle evaluator failures at clean source dbe5303.",
+    "PASS: CUDA/Vulkan graph and capacity CTests passed 4/4; graph fixture passed 10/10 repeated runs per backend with identical cross-driver observations.",
+    "PASS: Full adverse lifecycle profile passed 2 cases, 9 checkpoints, 0 failures on both CUDA and Vulkan; 75/75 conformance tests and embedded warning-clean compile passed.",
+    "docs/roadmap/evidence/F5-20-graph-lifecycle.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "73ae90b0-6147-4664-8be0-06ba4d141517",
+        "owner": "codex-linux-evidence",
+        "machine": "thomas-laptop",
+        "branch": "work/F5-20/thomas-laptop",
+        "claimed_at": "2026-10-18T19:15:45Z",
+        "heartbeat_at": "2026-10-18T19:15:45Z",
+        "expires_at": "2026-10-19T19:15:45Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T19:35:45Z",
+      "reason": "Emitted deterministic public-state and active-graph rollback lifecycle checkpoints from the shared standalone and embedded fixture path.",
+      "evidence": [
+        "PASS: CUDA and Vulkan each produced 5/5 three-family-partial-rollback checkpoints with 0 lifecycle evaluator failures at clean source dbe5303.",
+        "PASS: CUDA/Vulkan graph and capacity CTests passed 4/4; graph fixture passed 10/10 repeated runs per backend with identical cross-driver observations.",
+        "PASS: Full adverse lifecycle profile passed 2 cases, 9 checkpoints, 0 failures on both CUDA and Vulkan; 75/75 conformance tests and embedded warning-clean compile passed.",
+        "docs/roadmap/evidence/F5-20-graph-lifecycle.json"
+      ]
+    }
+  ]
 }
