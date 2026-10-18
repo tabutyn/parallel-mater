@@ -1,7 +1,7 @@
 {
   "id": "F6-99",
   "title": "Review F6 exit evidence",
-  "status": "leased",
+  "status": "open",
   "dependencies": [
     "F6-01",
     "F6-02",
@@ -29,15 +29,7 @@
     "Update the qualification index with exact scope and unresolved limitations; an implementation/demo alone cannot close the gate."
   ],
   "evidence": [],
-  "lease": {
-    "token": "22c6826c-8185-4fcf-9ee1-1892b32cc279",
-    "owner": "codex-linux-release-review",
-    "machine": "thomas-laptop",
-    "branch": "work/F6-99/thomas-laptop",
-    "claimed_at": "2026-10-18T20:45:58Z",
-    "heartbeat_at": "2026-10-18T20:45:58Z",
-    "expires_at": "2026-10-19T20:45:58Z"
-  },
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -52,6 +44,21 @@
       "outcome": "released",
       "at": "2026-10-18T20:33:39Z",
       "reason": "Exit review found current sdk-ci and relocated corpus validation blocked by stale manifest hashes; retain work/F6-99/thomas-laptop and add a bounded synchronization task before resuming.",
+      "evidence": []
+    },
+    {
+      "lease": {
+        "token": "22c6826c-8185-4fcf-9ee1-1892b32cc279",
+        "owner": "codex-linux-release-review",
+        "machine": "thomas-laptop",
+        "branch": "work/F6-99/thomas-laptop",
+        "claimed_at": "2026-10-18T20:45:58Z",
+        "heartbeat_at": "2026-10-18T20:45:58Z",
+        "expires_at": "2026-10-19T20:45:58Z"
+      },
+      "outcome": "released",
+      "at": "2026-10-18T20:52:15Z",
+      "reason": "Current two-build release audit found two installed raw evidence logs retaining an absolute workstation path; retain the review branch and add a bounded sanitization task before resuming.",
       "evidence": []
     }
   ]
