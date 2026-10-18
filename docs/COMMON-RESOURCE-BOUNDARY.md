@@ -223,9 +223,36 @@ PM_QUEUE_FAMILY_EXTERNAL`; D3D12 buffers enter and leave PM in
 The portable handoff contract test covers borrowed/owned destruction, move and
 exactly-once release, prior-before-consumer ordering, same-device cross-queue
 handoff, invalid and foreign completion rejection, explicit next identity,
-transitive prior retention and absence of CPU waits. F4-08 remains responsible
-for a complete engine-independent mock adapter alternating physics and rendering
-over simultaneous live frames and testing import/teardown failure injection.
+transitive prior retention and absence of CPU waits.
+
+## Engine handoff mock qualification
+
+`engine_handoff_mock_tests.cpp` supplies a native-API-independent engine and
+thin adapter around the common objects. The engine owns one device, separate
+physics and renderer queues, and shared scene/output buffers. The adapter stores
+borrowed `NativeObject` views, creates only PM buffer wrappers, and uses the
+common `SubmissionQueue` for both queue identities.
+
+Three frames are recorded before any mock GPU work completes. Each physics
+submission waits for the previous renderer completion, and each renderer copy
+waits for that frame's physics completion. This produces six simultaneous live
+submissions and five cross-queue GPU dependencies in strict
+physics/render/physics/render order. All caller completion tokens and buffer
+handles are dropped before adapter teardown; queue-owned and transitive
+completion references keep them valid without a host wait.
+
+The failure path rejects a queue from another device, a wrong-API object, a
+queue passed as a buffer, and a buffer from another device before creating a
+wrapper or accepting work. Teardown drains each accepted native job and destroys
+each completion and imported wrapper exactly once. It then proves that no native
+device, queue or buffer was destroyed; only the engine's later explicit teardown
+destroys those objects.
+
+This portable mock qualifies the common ownership/dependency protocol before a
+native engine plugin exists. It does not advertise device/timeline import in a
+driver whose `PmNativeInteropProperties` says it is unsupported, and it does not
+replace native D3D12 fence, Metal shared-event, Vulkan timeline or CUDA external
+semaphore qualification.
 
 ## Vulkan binding and validation isolation — 2026-10-18
 
@@ -259,11 +286,11 @@ system package. See [F5-09 evidence](roadmap/evidence/F5-09-vulkan-validation-la
 Resources now carry explicit owning-device/allocation identities, typed access
 ranges, range-derived dependencies and common completion ownership at the Metal
 command-list boundary. Borrowed-object destruction and prior/next queue handoff
-are now explicit common contracts, while migration of the other adapters and
-full engine-alternation qualification remain incomplete. The F4-08 mock adapter
-must prove that all indirect pointer resources survive the renderer-waited next
-completion over simultaneous frames and failure/teardown paths before
-engine-specific packages advertise interoperability.
+are now explicit common contracts, and the engine-independent mock qualifies
+alternation, simultaneous frames, caller-token release and teardown. Migration
+of the other adapters and native engine plugins remains incomplete. Native
+packages must still prove their API-specific imports and synchronization before
+advertising interoperability.
 
 Physical heap capacity, usable OS/driver budget, library/application allocation
 accounting and borrowed bytes are different quantities. Current budget queries

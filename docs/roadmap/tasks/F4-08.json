@@ -1,7 +1,7 @@
 {
   "id": "F4-08",
   "title": "Qualify engine handoff with a mock adapter",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F4-03",
     "F4-07"
@@ -18,15 +18,31 @@
     "Physics/renderer alternation, simultaneous live frames and caller-token release pass.",
     "Import failure and teardown tests prove exactly-once ownership and completion."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "b3e36088-206c-4567-a665-5ef2ac2af7e1",
-    "owner": "codex-windows-sdk",
-    "machine": "windows-gtx1080",
-    "branch": "work/F4-08/windows-gtx1080",
-    "claimed_at": "2026-10-18T17:52:24Z",
-    "heartbeat_at": "2026-10-18T17:52:24Z",
-    "expires_at": "2026-10-19T17:52:24Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: portable solver and architecture suite, 12/12 tests.",
+    "PASS: three simultaneous frames and six alternating submissions drain with exactly-once completion and ownership.",
+    "PASS: MSVC strict-warning mock build; engine handoff stress, 100/100 executions."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "b3e36088-206c-4567-a665-5ef2ac2af7e1",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F4-08/windows-gtx1080",
+        "claimed_at": "2026-10-18T17:52:24Z",
+        "heartbeat_at": "2026-10-18T17:52:24Z",
+        "expires_at": "2026-10-19T17:52:24Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T17:59:33Z",
+      "reason": "Qualified the common borrowed-object and prior/next completion protocol with an engine-independent physics/render mock adapter.",
+      "evidence": [
+        "PASS: portable solver and architecture suite, 12/12 tests.",
+        "PASS: three simultaneous frames and six alternating submissions drain with exactly-once completion and ownership.",
+        "PASS: MSVC strict-warning mock build; engine handoff stress, 100/100 executions."
+      ]
+    }
+  ]
 }
