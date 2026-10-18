@@ -1,7 +1,7 @@
 {
   "id": "F3-02",
   "title": "Validate command recording state",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F3-01"
   ],
@@ -16,15 +16,29 @@
     "Negative controls prove the layer rejects illegal transitions before driver dispatch.",
     "Legal reuse and deferred failure recovery pass."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "db99a066-c96d-4192-a4b9-38b974c78ec4",
-    "owner": "codex-windows-validation",
-    "machine": "windows-gtx1080",
-    "branch": "work/F3-02/windows-gtx1080",
-    "claimed_at": "2026-10-17T23:22:12Z",
-    "heartbeat_at": "2026-10-17T23:22:12Z",
-    "expires_at": "2026-10-18T23:22:12Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: Windows GTX 1080, MSBuild 18.9 baseline; focused loader/layer/ABI regression slice passed 13/13, including validation-on rejection and permissive-driver negative controls.",
+    "PASS: Windows GTX 1080, VS2022 CUDA+D3D12 configuration; command-state validation and plain controls passed 2/2, including pre-acceptance retry and deferred DEVICE_LOST recovery."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "db99a066-c96d-4192-a4b9-38b974c78ec4",
+        "owner": "codex-windows-validation",
+        "machine": "windows-gtx1080",
+        "branch": "work/F3-02/windows-gtx1080",
+        "claimed_at": "2026-10-17T23:22:12Z",
+        "heartbeat_at": "2026-10-17T23:22:12Z",
+        "expires_at": "2026-10-18T23:22:12Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-17T23:41:22Z",
+      "reason": "Validation now enforces command pool, recording, submission, pending, completion, and one-time reuse states before driver dispatch.",
+      "evidence": [
+        "PASS: Windows GTX 1080, MSBuild 18.9 baseline; focused loader/layer/ABI regression slice passed 13/13, including validation-on rejection and permissive-driver negative controls.",
+        "PASS: Windows GTX 1080, VS2022 CUDA+D3D12 configuration; command-state validation and plain controls passed 2/2, including pre-acceptance retry and deferred DEVICE_LOST recovery."
+      ]
+    }
+  ]
 }
