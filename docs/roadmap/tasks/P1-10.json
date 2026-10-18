@@ -3,7 +3,8 @@
   "title": "Reconstruct immiscible fluid interfaces",
   "status": "deferred",
   "dependencies": [
-    "P1-05"
+    "P1-05",
+    "P1-56"
   ],
   "locks": [
     "fluid-kernels",
