@@ -130,7 +130,7 @@
       "profile_sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
       "schema": "parallel-mater-conformance-lifecycle-result/v1",
       "source": {
-        "commit": "39e0ea6b891023729a6b78cf6fb836feba6c96a4",
+        "commit": "eed669e141ed9f6eeed4ef1cf12f2454cc4c3408",
         "dirty": false
       }
     }
@@ -167,9 +167,9 @@
   },
   "driver": {
     "binary_path": "build-f5-16-linux/libparallel_mater_driver_slang_cpu.so",
-    "binary_sha256": "cfc42173fb0d876dd45bc4eeb5b4ac15059fc323d5a5d2d56890dae9247fe83f",
+    "binary_sha256": "60e491d00644d5d001fc9bc17bd72744e397bfea010e96d3f3636793d852d7be",
     "name": "slang-cpu",
-    "version": "0.2.0+39e0ea6"
+    "version": "0.2.0+eed669e"
   },
   "host": {
     "architecture": "x86_64",
@@ -178,13 +178,13 @@
     "kernel": "Linux 6.1.0-53-amd64",
     "operating_system": "Debian GNU/Linux 12 (bookworm)"
   },
-  "id": "linux-thomas-laptop-slang-cpu-39e0ea6",
+  "id": "linux-thomas-laptop-slang-cpu-eed669e",
   "immutable_contracts": {
     "adverse_capacity_three_family_v1": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
-    "capability_obligations_v1": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
+    "capability_obligations_v1": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
     "conformance_manifest_v1": "d66c1a26c24735d2179d4078dd584309327f2038e6b7d0e47b0f9e0cd1dab7cb",
     "core_conservation_v1": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
-    "interaction_registry": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
+    "interaction_registry": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
     "rigid_brick_penetration_v1": "59f42d2fc20434552f053aaea3df08c9a12165763e9c0d33d7bcfc693d462659",
     "rigid_kinematic_sweep_v1": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc"
   },
@@ -278,7 +278,7 @@
         "schema": "parallel-mater-conformance-quality-report/v1",
         "scope": "analytic_invariants"
       },
-      "result_sha256": "6a07ebe9256d50e4d53c0f20a2c88bb3259d0768a83bceaee402a2ba2b447090"
+      "result_sha256": "2615b0ac341c27e6a7ec0438292c5eb8885eb95bb648f67f3e5713c6d886f41e"
     }
   },
   "portability": {
@@ -301,12 +301,12 @@
     "device_name": "Parallel Mater Slang CPU (Slang CPU reference)",
     "driver_version": 202618,
     "host_compiler": "12.2.0",
-    "source_commit": "39e0ea6b891023729a6b78cf6fb836feba6c96a4",
+    "source_commit": "eed669e141ed9f6eeed4ef1cf12f2454cc4c3408",
     "vendor_id": 0
   },
   "schema": "parallel-mater-linux-driver-evidence/v1",
   "source": {
-    "commit": "39e0ea6b891023729a6b78cf6fb836feba6c96a4",
+    "commit": "eed669e141ed9f6eeed4ef1cf12f2454cc4c3408",
     "dirty": false
   },
   "toolchain": {
@@ -340,70 +340,70 @@
         "case_sha256": "3c78c1301851c4f5a91e779ea40bf09f0a0e20923a02c73d65c299c54b27ca26",
         "execution_status": "completed",
         "id": "compound-weld-lifecycle",
-        "result_sha256": "46379611eeb6d16b2781d09b1861c4e79192ffedecc87965b9a8ca681dbebf8b",
+        "result_sha256": "9e5721e99d2c3acd1bac9de3ca70aaf4ef90eece3fe569470129cdc52c7fb884",
         "state_hash": "165e85918ca487e1469330b683f03c70b39a1624ec7262f833d968f76004245a"
       },
       {
         "case_sha256": "ee88456eba855a56a18b23116e940ad5901ee745161c1a70033630ab0f70b993",
         "execution_status": "completed",
         "id": "constraint-breaking",
-        "result_sha256": "70ea46588cd41715bf4c55943078089ed83c352b14c8cea8030945c61eec6c9c",
+        "result_sha256": "a354f99f796dce91207d18fc5fe0ed111401601b5bd9d40f01e9f89e9a3f92c1",
         "state_hash": "21115ce07bb9c62ddfaed6dbf3630a9e2f805b4f60ef5c9d7d25270b7fc1a920"
       },
       {
         "case_sha256": "e86b977f76e006c42dfd0f441aec730583286a8ed829a21f89c0db5322155f11",
         "execution_status": "completed",
         "id": "constraint-fixed",
-        "result_sha256": "dac9f6f2d728a4b3c80a2269f6d8426dbe1e4315fa030e06fe83012aa385dcf2",
+        "result_sha256": "9fbaaaf526a5a67a5d10af6031fec3a67f0f71d9359a014a8896d76c67c52164",
         "state_hash": "eb3b85ee4305db8f8d229c9017837cf597517f6a1992e515310acca3d0be0fce"
       },
       {
         "case_sha256": "7cc4e0f3621026fe48959e162f1248d5c407bb68284fce7454e1197ec8c33a5b",
         "execution_status": "completed",
         "id": "constraint-generic-spring",
-        "result_sha256": "f9b877aadb4652b852e265b57bfa53d049e1edf00e4d11eae21233daebe12d59",
+        "result_sha256": "6c1c1c0685b0d4a87650c8cca8b5559284b465963f783dfb031aab54523ce715",
         "state_hash": "33bcb7a8f5c365857e0cd4b97d53d440e32bcb9b8cde1607beeadb3e1cc38241"
       },
       {
         "case_sha256": "84b2b29f3bc0e07d32013518e652f70e0e90f3864524a3452ec1ce80c79e3127",
         "execution_status": "completed",
         "id": "constraint-generic",
-        "result_sha256": "8554dea8a0e57bc0e20e544cde0d5ab5a145d068858ce9a72ca919f72177aaaa",
+        "result_sha256": "04ba013ebbaa0aa549ac1f0e28a93409081eea318000a49e4024ecb909ef4dbb",
         "state_hash": "423c992a6c32633503ac9fe6d93099a76d909bbbed5d08682978d7969dbe50af"
       },
       {
         "case_sha256": "e6180187b34d4f914503304cf5687159f0ecf495f6152c4d45ccc13477946bbd",
         "execution_status": "completed",
         "id": "constraint-hinge",
-        "result_sha256": "c344b1b2e222783cc2b5f507f9b06a1c1c28fcf02d8ee9d5d5fa7f927b1258f5",
+        "result_sha256": "36188ea0a6516cf41ac71d3a45c3dc7d3d4b9531d0235ab22cc06c0474490c90",
         "state_hash": "28f8596d3069883e9adaa4d10a0ad4ecffe960f83e16f02bd385e568f1946ef6"
       },
       {
         "case_sha256": "acfdf20008d5b27980656aea19945981e1d449412684b596ef87dce7605af4df",
         "execution_status": "completed",
         "id": "constraint-motor",
-        "result_sha256": "a2e348bce2530c36ef506cac010e181b0b3e997b8e1b491344d3ea7b5efb867d",
+        "result_sha256": "2c5f71bb7d1d76bf1c62b5724fe253ee98dcba8f8fd453865fedd45b79ed9643",
         "state_hash": "3044e41a73957f47552801a9717cc35998fda74b097444a0bf21a50e59bdcd65"
       },
       {
         "case_sha256": "4421466e8e5381b79944fb287f8106f4848d8b59ff904ad2021609de34af6c3c",
         "execution_status": "completed",
         "id": "constraint-piston",
-        "result_sha256": "936bea05272ba8a51ba8c60703c43e7683cbd8fd71364974403a2e8c400f07ca",
+        "result_sha256": "5b396ceaf8e9733b6d8fcc7624611d4b13d868ba1f3b636d4620ce5c3a78732a",
         "state_hash": "182700d3ce66c007d22b064d6c2835b428c433c773d1645445f40e6d38d2d7be"
       },
       {
         "case_sha256": "2f2593e422b8c61fb79f24b4096cbf76894c1b3c5b1fc3947b2e259776ad77d2",
         "execution_status": "completed",
         "id": "constraint-point",
-        "result_sha256": "0de3e6f3280f992cf2e98fef5977390bd3ef28ca39c6e3a48107a894c22ecd03",
+        "result_sha256": "867eabf03d533dcac9fa19985b6f508236793c15a3a68a623fe63e2023be00f4",
         "state_hash": "1c057582071e0172e9c46d088f1d45b6fc615d5cb900b8382b497d126c431495"
       },
       {
         "case_sha256": "c998761e7543598206f72a85dc9c3bffa98ef2f235ac7f82de41ace28e739dcf",
         "execution_status": "completed",
         "id": "constraint-slider",
-        "result_sha256": "58d7b491c2f315edef5bf101b75c5b05fc1a37b7ecebbf655863a15a0475ae04",
+        "result_sha256": "7db71d9cd7dd9f4fd20cc7c34b0901e70aceb44ba9d020b2a18edc523d226685",
         "state_hash": "7aff5ba0c505f8100aba7092e54c6cd1a2bb769d601e0d3197bf0402b1073333"
       },
       {
@@ -424,14 +424,14 @@
         "case_sha256": "8f7e68c2ca6b10668e58e7232dff97cd9e7a002a13823bb4d23e4bc2fbbee4f5",
         "execution_status": "completed",
         "id": "passive-active",
-        "result_sha256": "33fa69e37a23ef01cbcc63e697ceb3fc149f9ccf29fbb21713c94e76c9fbf794",
+        "result_sha256": "e993a9b66f97b4233483e81ad653d93d38a2cf7157ddf9c74c053ecf7217df31",
         "state_hash": "5ca64a7dcb00f979a1ce2b2e42d799e0eec82a3960f014bb1d9005170479dedf"
       },
       {
         "case_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
         "execution_status": "completed",
         "id": "rigid-direct",
-        "result_sha256": "dff95731977ad396c3c98dde716aaf739cc245a463cf512c06fe5d393a38e4b5",
+        "result_sha256": "28a02c3713391fffbdae1debfbdcae717a325798e6f2787b3090912c975672ea",
         "state_hash": "ade25ec9f83b97b7aa4a385878b2a304a6c8d76c863963512f778d2f514dd978"
       },
       {

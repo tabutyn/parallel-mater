@@ -12,7 +12,7 @@
       },
       "key_text": "RIGID_BODY/RIGID_BODY/SAME_DOMAIN/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-thomas-laptop-slang-cpu-39e0ea6",
+      "report": "linux-thomas-laptop-slang-cpu-eed669e",
       "rule_id": "rigid-attachment",
       "scopes": {
         "analytic_invariants": {
@@ -23,7 +23,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -61,7 +61,7 @@
       },
       "key_text": "RIGID_BODY/RIGID_BODY/SAME_DOMAIN/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-thomas-laptop-slang-cpu-39e0ea6",
+      "report": "linux-thomas-laptop-slang-cpu-eed669e",
       "rule_id": "rigid-contact",
       "scopes": {
         "analytic_invariants": {
@@ -72,7 +72,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -110,7 +110,7 @@
       },
       "key_text": "CLOTH/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "cloth-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -121,7 +121,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -204,7 +204,7 @@
       },
       "key_text": "CLOTH/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "cloth-rope",
       "scopes": {
         "analytic_invariants": {
@@ -215,7 +215,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -298,7 +298,7 @@
       },
       "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
@@ -309,7 +309,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -392,7 +392,7 @@
       },
       "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
@@ -403,7 +403,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -490,7 +490,7 @@
       },
       "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
@@ -501,7 +501,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -584,7 +584,7 @@
       },
       "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
@@ -595,7 +595,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -682,7 +682,7 @@
       },
       "key_text": "CLOTH/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "cloth-soft-body",
       "scopes": {
         "analytic_invariants": {
@@ -693,7 +693,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -776,7 +776,7 @@
       },
       "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-cloth",
       "scopes": {
         "analytic_invariants": {
@@ -787,7 +787,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -870,7 +870,7 @@
       },
       "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-cloth",
       "scopes": {
         "analytic_invariants": {
@@ -881,7 +881,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -964,7 +964,7 @@
       },
       "key_text": "FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-self",
       "scopes": {
         "analytic_invariants": {
@@ -975,7 +975,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -1062,7 +1062,7 @@
       },
       "key_text": "FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-self",
       "scopes": {
         "analytic_invariants": {
@@ -1073,7 +1073,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -1160,7 +1160,7 @@
       },
       "key_text": "FLUID/FLUID/SELF/VISCOSITY/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-self",
       "scopes": {
         "analytic_invariants": {
@@ -1171,7 +1171,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -1308,7 +1308,7 @@
       },
       "key_text": "FLUID/FLUID/SEPARATE_SYSTEM/CONTACT/BIDIRECTIONAL/EQUAL",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-pair-equal-pressure-contact",
       "scopes": {
         "analytic_invariants": {
@@ -1321,7 +1321,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -1458,7 +1458,7 @@
       },
       "key_text": "FLUID/FLUID/SEPARATE_SYSTEM/PRESSURE/BIDIRECTIONAL/EQUAL",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-pair-equal-pressure-contact",
       "scopes": {
         "analytic_invariants": {
@@ -1471,7 +1471,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -1608,7 +1608,7 @@
       },
       "key_text": "FLUID/FLUID/SEPARATE_SYSTEM/VISCOSITY/BIDIRECTIONAL/EQUAL",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-pair-equal-viscosity",
       "scopes": {
         "analytic_invariants": {
@@ -1621,7 +1621,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -1708,7 +1708,7 @@
       },
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -1719,7 +1719,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -1802,7 +1802,7 @@
       },
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -1813,7 +1813,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -1896,7 +1896,7 @@
       },
       "key_text": "FLUID/ROPE/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-rope",
       "scopes": {
         "analytic_invariants": {
@@ -1907,7 +1907,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -1994,7 +1994,7 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -2005,7 +2005,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -2088,7 +2088,7 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -2099,7 +2099,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -2182,7 +2182,7 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -2193,7 +2193,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -2276,7 +2276,7 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -2287,7 +2287,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -2370,7 +2370,7 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -2381,7 +2381,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -2464,7 +2464,7 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -2475,7 +2475,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -2558,7 +2558,7 @@
       },
       "key_text": "FLUID/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-soft-body",
       "scopes": {
         "analytic_invariants": {
@@ -2569,7 +2569,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -2656,7 +2656,7 @@
       },
       "key_text": "RIGID_BODY/RIGID_BODY/SAME_DOMAIN/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "rigid-attachment",
       "scopes": {
         "analytic_invariants": {
@@ -2667,7 +2667,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -2754,7 +2754,7 @@
       },
       "key_text": "RIGID_BODY/RIGID_BODY/SAME_DOMAIN/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "rigid-contact",
       "scopes": {
         "analytic_invariants": {
@@ -2765,7 +2765,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -2852,7 +2852,7 @@
       },
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "rope-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -2863,7 +2863,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -2950,7 +2950,7 @@
       },
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "rope-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -2961,7 +2961,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -3048,7 +3048,7 @@
       },
       "key_text": "ROPE/ROPE/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "rope-self",
       "scopes": {
         "analytic_invariants": {
@@ -3059,7 +3059,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -3146,7 +3146,7 @@
       },
       "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "rope-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -3157,7 +3157,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -3240,7 +3240,7 @@
       },
       "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "rope-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -3251,7 +3251,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -3334,7 +3334,7 @@
       },
       "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "rope-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -3345,7 +3345,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -3428,7 +3428,7 @@
       },
       "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "rope-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -3439,7 +3439,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -3522,7 +3522,7 @@
       },
       "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "smoke-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -3533,7 +3533,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -3616,7 +3616,7 @@
       },
       "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "smoke-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -3627,7 +3627,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -3710,7 +3710,7 @@
       },
       "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "smoke-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -3721,7 +3721,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -3804,7 +3804,7 @@
       },
       "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "smoke-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -3815,7 +3815,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -3898,7 +3898,7 @@
       },
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "smoke-self",
       "scopes": {
         "analytic_invariants": {
@@ -3909,7 +3909,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -3992,7 +3992,7 @@
       },
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "smoke-self",
       "scopes": {
         "analytic_invariants": {
@@ -4003,7 +4003,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -4086,7 +4086,7 @@
       },
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "smoke-self",
       "scopes": {
         "analytic_invariants": {
@@ -4097,7 +4097,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -4180,7 +4180,7 @@
       },
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "smoke-self",
       "scopes": {
         "analytic_invariants": {
@@ -4191,7 +4191,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -4274,7 +4274,7 @@
       },
       "key_text": "SOFT_BODY/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "soft-body-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -4285,7 +4285,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -4368,7 +4368,7 @@
       },
       "key_text": "SOFT_BODY/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "soft-body-rope",
       "scopes": {
         "analytic_invariants": {
@@ -4379,7 +4379,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -4466,7 +4466,7 @@
       },
       "key_text": "SOFT_BODY/ROPE/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "soft-body-rope",
       "scopes": {
         "analytic_invariants": {
@@ -4477,7 +4477,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -4564,7 +4564,7 @@
       },
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "soft-body-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -4575,7 +4575,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -4658,7 +4658,7 @@
       },
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "soft-body-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -4669,7 +4669,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -4752,7 +4752,7 @@
       },
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "soft-body-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -4763,7 +4763,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -4846,7 +4846,7 @@
       },
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "soft-body-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -4857,7 +4857,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -9800,7 +9800,7 @@
       },
       "key_text": "CLOTH/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "cloth-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -9811,7 +9811,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -9847,7 +9847,7 @@
       },
       "key_text": "CLOTH/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "cloth-rope",
       "scopes": {
         "analytic_invariants": {
@@ -9858,7 +9858,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -9894,7 +9894,7 @@
       },
       "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
@@ -9905,7 +9905,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -9941,7 +9941,7 @@
       },
       "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
@@ -9952,7 +9952,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -9990,7 +9990,7 @@
       },
       "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
@@ -10001,7 +10001,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10037,7 +10037,7 @@
       },
       "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
@@ -10048,7 +10048,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10086,7 +10086,7 @@
       },
       "key_text": "CLOTH/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "cloth-soft-body",
       "scopes": {
         "analytic_invariants": {
@@ -10097,7 +10097,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10133,7 +10133,7 @@
       },
       "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-cloth",
       "scopes": {
         "analytic_invariants": {
@@ -10144,7 +10144,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10180,7 +10180,7 @@
       },
       "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-cloth",
       "scopes": {
         "analytic_invariants": {
@@ -10191,7 +10191,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10227,7 +10227,7 @@
       },
       "key_text": "FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-self",
       "scopes": {
         "analytic_invariants": {
@@ -10238,7 +10238,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10276,7 +10276,7 @@
       },
       "key_text": "FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-self",
       "scopes": {
         "analytic_invariants": {
@@ -10287,7 +10287,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10325,7 +10325,7 @@
       },
       "key_text": "FLUID/FLUID/SELF/VISCOSITY/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-self",
       "scopes": {
         "analytic_invariants": {
@@ -10336,7 +10336,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10374,7 +10374,7 @@
       },
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -10385,7 +10385,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10421,7 +10421,7 @@
       },
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -10432,7 +10432,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10468,7 +10468,7 @@
       },
       "key_text": "FLUID/ROPE/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-rope",
       "scopes": {
         "analytic_invariants": {
@@ -10479,7 +10479,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10517,7 +10517,7 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -10528,7 +10528,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10564,7 +10564,7 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -10575,7 +10575,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10611,7 +10611,7 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -10622,7 +10622,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10658,7 +10658,7 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -10669,7 +10669,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10705,7 +10705,7 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -10716,7 +10716,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10752,7 +10752,7 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -10763,7 +10763,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10799,7 +10799,7 @@
       },
       "key_text": "FLUID/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-soft-body",
       "scopes": {
         "analytic_invariants": {
@@ -10810,7 +10810,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10848,7 +10848,7 @@
       },
       "key_text": "RIGID_BODY/RIGID_BODY/SAME_DOMAIN/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "rigid-attachment",
       "scopes": {
         "analytic_invariants": {
@@ -10859,7 +10859,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10897,7 +10897,7 @@
       },
       "key_text": "RIGID_BODY/RIGID_BODY/SAME_DOMAIN/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "rigid-contact",
       "scopes": {
         "analytic_invariants": {
@@ -10908,7 +10908,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10946,7 +10946,7 @@
       },
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "rope-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -10957,7 +10957,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10995,7 +10995,7 @@
       },
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "rope-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -11006,7 +11006,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11044,7 +11044,7 @@
       },
       "key_text": "ROPE/ROPE/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "rope-self",
       "scopes": {
         "analytic_invariants": {
@@ -11055,7 +11055,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11093,7 +11093,7 @@
       },
       "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "rope-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -11104,7 +11104,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11140,7 +11140,7 @@
       },
       "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "rope-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -11151,7 +11151,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11187,7 +11187,7 @@
       },
       "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "rope-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -11198,7 +11198,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11234,7 +11234,7 @@
       },
       "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "rope-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -11245,7 +11245,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11281,7 +11281,7 @@
       },
       "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "smoke-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -11292,7 +11292,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11328,7 +11328,7 @@
       },
       "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "smoke-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -11339,7 +11339,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11375,7 +11375,7 @@
       },
       "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "smoke-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -11386,7 +11386,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11422,7 +11422,7 @@
       },
       "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "smoke-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -11433,7 +11433,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11469,7 +11469,7 @@
       },
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "smoke-self",
       "scopes": {
         "analytic_invariants": {
@@ -11480,7 +11480,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11516,7 +11516,7 @@
       },
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "smoke-self",
       "scopes": {
         "analytic_invariants": {
@@ -11527,7 +11527,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11563,7 +11563,7 @@
       },
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "smoke-self",
       "scopes": {
         "analytic_invariants": {
@@ -11574,7 +11574,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11610,7 +11610,7 @@
       },
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "smoke-self",
       "scopes": {
         "analytic_invariants": {
@@ -11621,7 +11621,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11657,7 +11657,7 @@
       },
       "key_text": "SOFT_BODY/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "soft-body-rigid",
       "scopes": {
         "analytic_invariants": {
@@ -11668,7 +11668,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11704,7 +11704,7 @@
       },
       "key_text": "SOFT_BODY/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "soft-body-rope",
       "scopes": {
         "analytic_invariants": {
@@ -11715,7 +11715,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11753,7 +11753,7 @@
       },
       "key_text": "SOFT_BODY/ROPE/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "soft-body-rope",
       "scopes": {
         "analytic_invariants": {
@@ -11764,7 +11764,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11802,7 +11802,7 @@
       },
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "soft-body-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -11813,7 +11813,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11849,7 +11849,7 @@
       },
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "soft-body-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -11860,7 +11860,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11896,7 +11896,7 @@
       },
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "soft-body-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -11907,7 +11907,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11943,7 +11943,7 @@
       },
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "soft-body-smoke",
       "scopes": {
         "analytic_invariants": {
@@ -11954,7 +11954,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11986,11 +11986,11 @@
       "id": "slang-cpu",
       "label": "Slang CPU",
       "qualification_result_ids": [
-        "linux-thomas-laptop-slang-cpu-39e0ea6"
+        "linux-thomas-laptop-slang-cpu-eed669e"
       ],
       "qualified_capability_count": 0,
       "report_ids": [
-        "linux-thomas-laptop-slang-cpu-39e0ea6"
+        "linux-thomas-laptop-slang-cpu-eed669e"
       ],
       "status": "unqualified",
       "unqualified_capability_count": 2
@@ -12000,13 +12000,13 @@
       "label": "CUDA",
       "qualification_result_ids": [
         "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
-        "linux-rtx3050ti-slang-cuda-39e0ea6",
+        "linux-rtx3050ti-slang-cuda-eed669e",
         "windows-gtx1080-slang-cuda-2b04e55"
       ],
       "qualified_capability_count": 0,
       "report_ids": [
         "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
-        "linux-rtx3050ti-slang-cuda-39e0ea6",
+        "linux-rtx3050ti-slang-cuda-eed669e",
         "windows-gtx1080-slang-cuda-2b04e55",
         "windows-gtx1080-physics-2026-10-16"
       ],
@@ -12031,11 +12031,11 @@
       "id": "slang-vulkan",
       "label": "Vulkan",
       "qualification_result_ids": [
-        "linux-rtx3050ti-slang-vulkan-39e0ea6"
+        "linux-rtx3050ti-slang-vulkan-eed669e"
       ],
       "qualified_capability_count": 0,
       "report_ids": [
-        "linux-rtx3050ti-slang-vulkan-39e0ea6"
+        "linux-rtx3050ti-slang-vulkan-eed669e"
       ],
       "status": "unqualified",
       "unqualified_capability_count": 46
@@ -12064,16 +12064,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[0].analytic_invariants",
-      "report": "linux-thomas-laptop-slang-cpu-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cpu",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[0].compilation",
-      "report": "linux-thomas-laptop-slang-cpu-39e0ea6"
+      "report": "linux-thomas-laptop-slang-cpu-eed669e"
     },
     {
       "actual": "No vendor-neutral rigid attachment quality case is registered.",
@@ -12082,34 +12073,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[1].analytic_invariants",
-      "report": "linux-thomas-laptop-slang-cpu-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cpu",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[1].compilation",
-      "report": "linux-thomas-laptop-slang-cpu-39e0ea6"
-    },
-    {
-      "actual": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
-      "driver": "slang-cpu",
-      "expected": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
-      "kind": "qualification_failure",
-      "message": "evidence contract hash mismatch",
-      "path": "$.evidence[0].contract_sha256",
-      "report": "linux-thomas-laptop-slang-cpu-39e0ea6"
-    },
-    {
-      "actual": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
-      "driver": "slang-cpu",
-      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
-      "kind": "qualification_failure",
-      "message": "obligations hash mismatch",
-      "path": "$.obligations_sha256",
-      "report": "linux-thomas-laptop-slang-cpu-39e0ea6"
+      "report": "linux-thomas-laptop-slang-cpu-eed669e"
     },
     {
       "case": "cloth-tear",
@@ -12206,7 +12170,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[0].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
@@ -12233,15 +12197,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[0].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[0].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -12251,7 +12206,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[0].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "missing",
@@ -12269,7 +12224,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[10].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke self-system quality case is registered.",
@@ -12287,15 +12242,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[10].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[10].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -12305,7 +12251,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[10].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact smoke self-system replacement/capacity case is registered.",
@@ -12323,7 +12269,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[11].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "The rigid penetration fixture is not yet a versioned vendor-neutral profile.",
@@ -12333,15 +12279,6 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[11].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[11].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -12368,7 +12305,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[12].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral rigid attachment quality case is registered.",
@@ -12386,15 +12323,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[12].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[12].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -12404,7 +12332,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[13].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid-cloth quality case is registered.",
@@ -12422,15 +12350,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[13].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[13].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -12440,7 +12359,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[13].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact fluid-cloth adverse graph case is registered.",
@@ -12458,7 +12377,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[14].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid-cloth quality case is registered.",
@@ -12476,15 +12395,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[14].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[14].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -12494,7 +12404,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[14].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact fluid-cloth adverse graph case is registered.",
@@ -12512,7 +12422,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[15].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid-soft-body quality case is registered.",
@@ -12522,15 +12432,6 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[15].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[15].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -12557,7 +12458,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[15].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "missing",
@@ -12584,7 +12485,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[16].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid-rope quality case is registered.",
@@ -12594,15 +12495,6 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[16].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[16].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -12629,7 +12521,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[16].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "missing",
@@ -12647,7 +12539,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[16].reference_regression",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "failed",
@@ -12665,7 +12557,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[17].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -12675,15 +12567,6 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[17].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[17].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -12710,7 +12593,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[17].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
@@ -12737,7 +12620,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[18].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -12747,15 +12630,6 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[18].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[18].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -12782,7 +12656,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[18].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
@@ -12809,7 +12683,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[19].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -12819,15 +12693,6 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[19].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[19].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -12854,7 +12719,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[19].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
@@ -12881,7 +12746,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[1].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
@@ -12908,15 +12773,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[1].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[1].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -12926,7 +12782,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[1].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "missing",
@@ -12944,7 +12800,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[20].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -12954,15 +12810,6 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[20].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[20].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -12989,7 +12836,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[20].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
@@ -13016,7 +12863,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[21].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -13026,15 +12873,6 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[21].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[21].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -13061,7 +12899,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[21].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
@@ -13088,7 +12926,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[22].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -13098,15 +12936,6 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[22].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[22].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -13133,7 +12962,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[22].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
@@ -13160,7 +12989,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[23].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid-rigid quality case is registered.",
@@ -13178,15 +13007,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[23].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[23].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13196,7 +13016,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[23].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact fluid-rigid adverse graph case is registered.",
@@ -13214,7 +13034,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[23].reference_regression",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "failed",
@@ -13232,7 +13052,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[24].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid-rigid quality case is registered.",
@@ -13250,15 +13070,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[24].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[24].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13268,7 +13079,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[24].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact fluid-rigid adverse graph case is registered.",
@@ -13286,7 +13097,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[24].reference_regression",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "failed",
@@ -13304,7 +13115,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[25].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral cloth-soft-body quality case is registered.",
@@ -13322,15 +13133,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[25].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[25].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13340,7 +13142,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[25].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact cloth-soft-body adverse graph case is registered.",
@@ -13358,7 +13160,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[26].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral cloth-rope attachment quality case is registered.",
@@ -13368,15 +13170,6 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[26].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[26].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -13403,7 +13196,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[26].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact cloth-rope adverse graph case is registered.",
@@ -13430,7 +13223,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[27].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral cloth-smoke quality case is registered.",
@@ -13448,15 +13241,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[27].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[27].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13466,7 +13250,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[27].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "missing",
@@ -13484,7 +13268,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[28].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral cloth-smoke quality case is registered.",
@@ -13502,15 +13286,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[28].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[28].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13520,7 +13295,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[28].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "missing",
@@ -13538,7 +13313,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[29].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
@@ -13548,15 +13323,6 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[29].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[29].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -13574,7 +13340,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[29].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
@@ -13592,7 +13358,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[2].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
@@ -13619,15 +13385,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[2].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[2].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13637,7 +13394,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[2].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "missing",
@@ -13655,7 +13412,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[30].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
@@ -13673,15 +13430,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[30].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[30].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13691,7 +13439,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[30].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
@@ -13709,7 +13457,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[31].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral cloth-rigid quality case is registered.",
@@ -13727,15 +13475,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[31].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[31].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13745,7 +13484,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[31].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact cloth-rigid adverse lifecycle case is registered.",
@@ -13763,7 +13502,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[31].reference_regression",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "failed",
@@ -13781,7 +13520,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[32].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral soft-body-rope quality case is registered.",
@@ -13791,15 +13530,6 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[32].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[32].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -13826,7 +13556,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[32].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "missing",
@@ -13844,7 +13574,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[32].reference_regression",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "failed",
@@ -13862,7 +13592,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[33].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral soft-body-rope quality case is registered.",
@@ -13872,15 +13602,6 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[33].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[33].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -13907,7 +13628,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[33].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "missing",
@@ -13925,7 +13646,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[33].reference_regression",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "failed",
@@ -13943,7 +13664,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[34].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
@@ -13961,15 +13682,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[34].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[34].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13979,7 +13691,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[34].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact soft-body-smoke adverse graph case is registered.",
@@ -13997,7 +13709,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[35].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
@@ -14015,15 +13727,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[35].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[35].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14033,7 +13736,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[35].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact soft-body-smoke adverse graph case is registered.",
@@ -14051,7 +13754,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[36].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
@@ -14069,15 +13772,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[36].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[36].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14087,7 +13781,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[36].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact soft-body-smoke adverse graph case is registered.",
@@ -14105,7 +13799,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[37].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
@@ -14123,15 +13817,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[37].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[37].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14141,7 +13826,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[37].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact soft-body-smoke adverse graph case is registered.",
@@ -14159,7 +13844,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[38].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral soft-body-rigid quality case is registered.",
@@ -14177,15 +13862,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[38].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[38].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14195,7 +13871,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[38].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact soft-body-rigid adverse lifecycle case is registered.",
@@ -14213,7 +13889,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[38].reference_regression",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "failed",
@@ -14231,7 +13907,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[39].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral rope-smoke quality case is registered.",
@@ -14249,15 +13925,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[39].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[39].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14267,7 +13934,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[39].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact rope-smoke adverse graph case is registered.",
@@ -14285,15 +13952,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[3].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[3].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14303,7 +13961,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[3].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "missing",
@@ -14312,7 +13970,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[3].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "missing",
@@ -14339,7 +13997,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[40].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral rope-smoke quality case is registered.",
@@ -14357,15 +14015,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[40].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[40].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14375,7 +14024,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[40].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact rope-smoke adverse graph case is registered.",
@@ -14393,7 +14042,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[41].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral rope-smoke quality case is registered.",
@@ -14411,15 +14060,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[41].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[41].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14429,7 +14069,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[41].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact rope-smoke adverse graph case is registered.",
@@ -14447,7 +14087,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[42].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral rope-smoke quality case is registered.",
@@ -14465,15 +14105,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[42].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[42].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14483,7 +14114,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[42].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact rope-smoke adverse graph case is registered.",
@@ -14501,7 +14132,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[43].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral rope-rigid quality case is registered.",
@@ -14519,15 +14150,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[43].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[43].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14537,7 +14159,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[43].reference_regression",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "failed",
@@ -14555,7 +14177,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[44].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral rope-rigid quality case is registered.",
@@ -14573,15 +14195,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[44].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[44].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14591,7 +14204,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[44].reference_regression",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "failed",
@@ -14609,7 +14222,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[45].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke-rigid quality case is registered.",
@@ -14627,15 +14240,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[45].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[45].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14645,7 +14249,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[45].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact smoke-rigid adverse graph case is registered.",
@@ -14663,7 +14267,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[46].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke-rigid quality case is registered.",
@@ -14681,15 +14285,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[46].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[46].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14699,7 +14294,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[46].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact smoke-rigid adverse graph case is registered.",
@@ -14717,7 +14312,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[47].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke-rigid quality case is registered.",
@@ -14735,15 +14330,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[47].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[47].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14753,7 +14339,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[47].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact smoke-rigid adverse graph case is registered.",
@@ -14771,7 +14357,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[48].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke-rigid quality case is registered.",
@@ -14789,15 +14375,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[48].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[48].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14807,7 +14384,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[48].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact smoke-rigid adverse graph case is registered.",
@@ -14825,15 +14402,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[4].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[4].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14843,7 +14411,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[4].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "missing",
@@ -14852,7 +14420,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[4].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "missing",
@@ -14879,15 +14447,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[5].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[5].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14897,7 +14456,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[5].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "missing",
@@ -14906,7 +14465,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[5].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "missing",
@@ -14933,7 +14492,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[6].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral rope self-contact quality case is registered.",
@@ -14951,15 +14510,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[6].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[6].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14969,7 +14519,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[6].reference_regression",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "failed",
@@ -14987,7 +14537,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[7].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke self-system quality case is registered.",
@@ -15005,15 +14555,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[7].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[7].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -15023,7 +14564,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[7].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact smoke self-system replacement/capacity case is registered.",
@@ -15041,7 +14582,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[8].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke self-system quality case is registered.",
@@ -15059,15 +14600,6 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[8].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[8].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -15077,7 +14609,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[8].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact smoke self-system replacement/capacity case is registered.",
@@ -15095,7 +14627,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[9].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke self-system quality case is registered.",
@@ -15105,15 +14637,6 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[9].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-cuda",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[9].compilation",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -15131,7 +14654,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[9].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
       "actual": "No exact smoke self-system replacement/capacity case is registered.",
@@ -15150,15 +14673,6 @@
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
       "report": "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17"
-    },
-    {
-      "actual": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
-      "driver": "slang-cuda",
-      "expected": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
-      "kind": "qualification_failure",
-      "message": "evidence contract hash mismatch",
-      "path": "$.evidence[0].contract_sha256",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
@@ -15177,15 +14691,6 @@
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17"
-    },
-    {
-      "actual": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
-      "driver": "slang-cuda",
-      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
-      "kind": "qualification_failure",
-      "message": "obligations hash mismatch",
-      "path": "$.obligations_sha256",
-      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
@@ -18230,16 +17735,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[0].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[0].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "missing",
@@ -18248,7 +17744,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[0].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid-cloth quality case is registered.",
@@ -18257,16 +17753,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[10].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[10].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact fluid-cloth adverse graph case is registered.",
@@ -18275,7 +17762,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[10].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid-cloth quality case is registered.",
@@ -18284,16 +17771,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[11].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[11].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact fluid-cloth adverse graph case is registered.",
@@ -18302,7 +17780,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[11].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid-soft-body quality case is registered.",
@@ -18311,16 +17789,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[12].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[12].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "missing",
@@ -18329,7 +17798,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[12].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid-rope quality case is registered.",
@@ -18338,16 +17807,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[13].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[13].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "missing",
@@ -18356,7 +17816,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[13].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -18365,16 +17825,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[14].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[14].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
@@ -18383,7 +17834,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[14].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -18392,16 +17843,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[15].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[15].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
@@ -18410,7 +17852,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[15].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -18419,16 +17861,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[16].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[16].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
@@ -18437,7 +17870,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[16].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -18446,16 +17879,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[17].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[17].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
@@ -18464,7 +17888,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[17].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -18473,16 +17897,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[18].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[18].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
@@ -18491,7 +17906,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[18].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -18500,16 +17915,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[19].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[19].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
@@ -18518,7 +17924,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[19].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
@@ -18527,16 +17933,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[1].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[1].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "missing",
@@ -18545,7 +17942,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[1].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid-rigid quality case is registered.",
@@ -18554,16 +17951,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[20].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[20].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact fluid-rigid adverse graph case is registered.",
@@ -18572,7 +17960,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[20].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "failed",
@@ -18581,7 +17969,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[20].reference_regression",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid-rigid quality case is registered.",
@@ -18590,16 +17978,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[21].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[21].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact fluid-rigid adverse graph case is registered.",
@@ -18608,7 +17987,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[21].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "failed",
@@ -18617,7 +17996,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[21].reference_regression",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral cloth-soft-body quality case is registered.",
@@ -18626,16 +18005,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[22].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[22].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact cloth-soft-body adverse graph case is registered.",
@@ -18644,7 +18014,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[22].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral cloth-rope attachment quality case is registered.",
@@ -18653,16 +18023,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[23].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[23].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact cloth-rope adverse graph case is registered.",
@@ -18671,7 +18032,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[23].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral cloth-smoke quality case is registered.",
@@ -18680,16 +18041,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[24].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[24].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "missing",
@@ -18698,7 +18050,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[24].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral cloth-smoke quality case is registered.",
@@ -18707,16 +18059,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[25].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[25].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "missing",
@@ -18725,7 +18068,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[25].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
@@ -18734,16 +18077,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[26].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[26].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
@@ -18752,7 +18086,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[26].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
@@ -18761,16 +18095,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[27].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[27].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
@@ -18779,7 +18104,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[27].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral cloth-rigid quality case is registered.",
@@ -18788,16 +18113,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[28].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[28].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact cloth-rigid adverse lifecycle case is registered.",
@@ -18806,7 +18122,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[28].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "failed",
@@ -18815,7 +18131,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[28].reference_regression",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral soft-body-rope quality case is registered.",
@@ -18824,16 +18140,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[29].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[29].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "missing",
@@ -18842,7 +18149,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[29].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "failed",
@@ -18851,7 +18158,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[29].reference_regression",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
@@ -18860,16 +18167,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[2].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[2].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "missing",
@@ -18878,7 +18176,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[2].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral soft-body-rope quality case is registered.",
@@ -18887,16 +18185,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[30].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[30].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "missing",
@@ -18905,7 +18194,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[30].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "failed",
@@ -18914,7 +18203,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[30].reference_regression",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
@@ -18923,16 +18212,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[31].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[31].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact soft-body-smoke adverse graph case is registered.",
@@ -18941,7 +18221,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[31].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
@@ -18950,16 +18230,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[32].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[32].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact soft-body-smoke adverse graph case is registered.",
@@ -18968,7 +18239,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[32].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
@@ -18977,16 +18248,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[33].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[33].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact soft-body-smoke adverse graph case is registered.",
@@ -18995,7 +18257,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[33].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
@@ -19004,16 +18266,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[34].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[34].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact soft-body-smoke adverse graph case is registered.",
@@ -19022,7 +18275,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[34].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral soft-body-rigid quality case is registered.",
@@ -19031,16 +18284,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[35].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[35].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact soft-body-rigid adverse lifecycle case is registered.",
@@ -19049,7 +18293,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[35].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "failed",
@@ -19058,7 +18302,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[35].reference_regression",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral rope-smoke quality case is registered.",
@@ -19067,16 +18311,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[36].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[36].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact rope-smoke adverse graph case is registered.",
@@ -19085,7 +18320,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[36].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral rope-smoke quality case is registered.",
@@ -19094,16 +18329,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[37].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[37].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact rope-smoke adverse graph case is registered.",
@@ -19112,7 +18338,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[37].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral rope-smoke quality case is registered.",
@@ -19121,16 +18347,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[38].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[38].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact rope-smoke adverse graph case is registered.",
@@ -19139,7 +18356,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[38].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral rope-smoke quality case is registered.",
@@ -19148,16 +18365,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[39].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[39].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact rope-smoke adverse graph case is registered.",
@@ -19166,7 +18374,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[39].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral rope self-contact quality case is registered.",
@@ -19175,16 +18383,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[3].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[3].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "failed",
@@ -19193,7 +18392,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[3].reference_regression",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral rope-rigid quality case is registered.",
@@ -19202,16 +18401,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[40].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[40].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "failed",
@@ -19220,7 +18410,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[40].reference_regression",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral rope-rigid quality case is registered.",
@@ -19229,16 +18419,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[41].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[41].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "failed",
@@ -19247,7 +18428,7 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[41].reference_regression",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke-rigid quality case is registered.",
@@ -19256,16 +18437,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[42].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[42].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact smoke-rigid adverse graph case is registered.",
@@ -19274,7 +18446,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[42].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke-rigid quality case is registered.",
@@ -19283,16 +18455,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[43].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[43].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact smoke-rigid adverse graph case is registered.",
@@ -19301,7 +18464,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[43].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke-rigid quality case is registered.",
@@ -19310,16 +18473,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[44].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[44].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact smoke-rigid adverse graph case is registered.",
@@ -19328,7 +18482,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[44].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke-rigid quality case is registered.",
@@ -19337,16 +18491,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[45].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[45].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact smoke-rigid adverse graph case is registered.",
@@ -19355,7 +18500,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[45].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke self-system quality case is registered.",
@@ -19364,16 +18509,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[4].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[4].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact smoke self-system replacement/capacity case is registered.",
@@ -19382,7 +18518,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[4].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke self-system quality case is registered.",
@@ -19391,16 +18527,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[5].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[5].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact smoke self-system replacement/capacity case is registered.",
@@ -19409,7 +18536,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[5].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke self-system quality case is registered.",
@@ -19418,16 +18545,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[6].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[6].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact smoke self-system replacement/capacity case is registered.",
@@ -19436,7 +18554,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[6].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral smoke self-system quality case is registered.",
@@ -19445,16 +18563,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[7].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[7].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No exact smoke self-system replacement/capacity case is registered.",
@@ -19463,7 +18572,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[7].lifecycle_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "The rigid penetration fixture is not yet a versioned vendor-neutral profile.",
@@ -19472,16 +18581,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[8].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[8].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
       "actual": "No vendor-neutral rigid attachment quality case is registered.",
@@ -19490,34 +18590,7 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[9].analytic_invariants",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "registry:interaction-capabilities",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "required evidence metadata is invalid",
-      "path": "$.advertised_capabilities[9].compilation",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
-      "driver": "slang-vulkan",
-      "expected": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
-      "kind": "qualification_failure",
-      "message": "evidence contract hash mismatch",
-      "path": "$.evidence[0].contract_sha256",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
-    },
-    {
-      "actual": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
-      "driver": "slang-vulkan",
-      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
-      "kind": "qualification_failure",
-      "message": "obligations hash mismatch",
-      "path": "$.obligations_sha256",
-      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     }
   ],
   "obligations_id": "capability-obligations-v1",
@@ -19594,18 +18667,18 @@
         "vendor_id": 4318
       },
       "driver": {
-        "binary_sha256": "4ce9680dcd096f3d62599f3b99d5100251668a96c18593a28d92131e89f000fc",
+        "binary_sha256": "62d08b007b9cd7047f0bc47ec5baad66d321a67d0508211cc29b99b02870fdeb",
         "name": "slang-cuda",
-        "version": "0.2.0+39e0ea6"
+        "version": "0.2.0+eed669e"
       },
-      "failure_count": 154,
-      "id": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "failure_count": 103,
+      "id": "linux-rtx3050ti-slang-cuda-eed669e",
       "kind": "capability-qualification",
-      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-39e0ea6-qualification.json",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-eed669e-qualification.json",
       "qualified_count": 0,
-      "sha256": "ad4e300b3b71230375847280ad33abb414d4f778d643b4961f512573928b1324",
+      "sha256": "24e12069e812795774a83cb2450c27e1680847fadf65eff0594ddb06b6afe8f8",
       "source": {
-        "commit": "39e0ea6b891023729a6b78cf6fb836feba6c96a4",
+        "commit": "eed669e141ed9f6eeed4ef1cf12f2454cc4c3408",
         "dirty": false
       },
       "toolchain": {
@@ -19623,18 +18696,18 @@
         "vendor_id": 4318
       },
       "driver": {
-        "binary_sha256": "7ad29e3abcc7f18104e4b4a314c34cf097a646cd59f69d8fd88b211d2a9917ea",
+        "binary_sha256": "ccc4b8c77260bfab4af59bceced17434222d5dd77b75f3628689ed7074b3f5f1",
         "name": "slang-vulkan",
-        "version": "0.2.0+39e0ea6"
+        "version": "0.2.0+eed669e"
       },
-      "failure_count": 144,
-      "id": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "failure_count": 96,
+      "id": "linux-rtx3050ti-slang-vulkan-eed669e",
       "kind": "capability-qualification",
-      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-39e0ea6-qualification.json",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-qualification.json",
       "qualified_count": 0,
-      "sha256": "e997315dbe7c8415b4082419087729029295852e16a0867a37a70e3587e4afcf",
+      "sha256": "040b04c96c547304c9609366c891eb22ae019f75e1dafc05591a0a0658cf6b1b",
       "source": {
-        "commit": "39e0ea6b891023729a6b78cf6fb836feba6c96a4",
+        "commit": "eed669e141ed9f6eeed4ef1cf12f2454cc4c3408",
         "dirty": false
       },
       "toolchain": {
@@ -19652,18 +18725,18 @@
         "vendor_id": 0
       },
       "driver": {
-        "binary_sha256": "cfc42173fb0d876dd45bc4eeb5b4ac15059fc323d5a5d2d56890dae9247fe83f",
+        "binary_sha256": "60e491d00644d5d001fc9bc17bd72744e397bfea010e96d3f3636793d852d7be",
         "name": "slang-cpu",
-        "version": "0.2.0+39e0ea6"
+        "version": "0.2.0+eed669e"
       },
-      "failure_count": 6,
-      "id": "linux-thomas-laptop-slang-cpu-39e0ea6",
+      "failure_count": 2,
+      "id": "linux-thomas-laptop-slang-cpu-eed669e",
       "kind": "capability-qualification",
-      "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-39e0ea6-qualification.json",
+      "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json",
       "qualified_count": 0,
-      "sha256": "069530403d1602c2400d7139d438b248372e5905833716348650a0d7e963ae83",
+      "sha256": "e3ae75435330251f28ac8196012f921bf7be032541362db1fdc978f5eb7f7473",
       "source": {
-        "commit": "39e0ea6b891023729a6b78cf6fb836feba6c96a4",
+        "commit": "eed669e141ed9f6eeed4ef1cf12f2454cc4c3408",
         "dirty": false
       },
       "toolchain": {
@@ -19830,7 +18903,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "8341b30c01ca92c9b476b2ebe3f3e20ad97ec4ee76ca9a56c4ed827de77e66ce",
+  "sources_sha256": "c6dacf7d7dbbb1512522c1138d50b0dc96c0a493788f039d996edc64200f560a",
   "valid": true,
   "validation_failures": []
 }

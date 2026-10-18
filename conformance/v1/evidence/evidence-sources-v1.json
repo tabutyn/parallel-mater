@@ -39,19 +39,19 @@
       "sha256": "9e4249918ada6243353ef2f5885772672dc1741d552f58b01d7edeb9518637ea"
     },
     {
-      "id": "linux-rtx3050ti-slang-cuda-39e0ea6",
-      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-39e0ea6-qualification.json",
-      "sha256": "ad4e300b3b71230375847280ad33abb414d4f778d643b4961f512573928b1324"
+      "id": "linux-rtx3050ti-slang-cuda-eed669e",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-eed669e-qualification.json",
+      "sha256": "24e12069e812795774a83cb2450c27e1680847fadf65eff0594ddb06b6afe8f8"
     },
     {
-      "id": "linux-rtx3050ti-slang-vulkan-39e0ea6",
-      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-39e0ea6-qualification.json",
-      "sha256": "e997315dbe7c8415b4082419087729029295852e16a0867a37a70e3587e4afcf"
+      "id": "linux-rtx3050ti-slang-vulkan-eed669e",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-qualification.json",
+      "sha256": "040b04c96c547304c9609366c891eb22ae019f75e1dafc05591a0a0658cf6b1b"
     },
     {
-      "id": "linux-thomas-laptop-slang-cpu-39e0ea6",
-      "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-39e0ea6-qualification.json",
-      "sha256": "069530403d1602c2400d7139d438b248372e5905833716348650a0d7e963ae83"
+      "id": "linux-thomas-laptop-slang-cpu-eed669e",
+      "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json",
+      "sha256": "e3ae75435330251f28ac8196012f921bf7be032541362db1fdc978f5eb7f7473"
     },
     {
       "id": "macos-m4-slang-metal-aac6d59",

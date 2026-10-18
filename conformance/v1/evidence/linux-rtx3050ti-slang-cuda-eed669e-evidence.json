@@ -1,6 +1,6 @@
 {
   "adverse_lifecycle": {
-    "console_log": "Internal ctest changing into directory: <repo>/build-f5-16-linux\nUpdateCTestConfiguration  from :<repo>/build-f5-16-linux/DartConfiguration.tcl\nParse Config file:<repo>/build-f5-16-linux/DartConfiguration.tcl\nUpdateCTestConfiguration  from :<repo>/build-f5-16-linux/DartConfiguration.tcl\nParse Config file:<repo>/build-f5-16-linux/DartConfiguration.tcl\nTest project <repo>/build-f5-16-linux\nConstructing a list of tests\nDone constructing a list of tests\nUpdating test list for fixtures\nAdded 0 tests to meet fixture requirements\nChecking test dependency graph...\nChecking test dependency graph end\ntest 119\n    Start 119: parallel-mater-cuda-resource-lifecycle-tests\n\n119: Test command: <repo>/build-f5-16-linux/tests/api/parallel-mater-resource-lifecycle-tests\n119: Working Directory: <repo>/build-f5-16-linux/tests/api\n119: Environment variables: \n119:  PM_DRIVER_FILES=<repo>/build-f5-16-linux/Release/manifests/slang-cuda.json\n119: Test timeout computed to be: 120\n119: PASS: exact queried storage, capacity sweep and 4096 fluid replacements\n1/3 Test #119: parallel-mater-cuda-resource-lifecycle-tests ............   Passed    1.78 sec\ntest 130\n    Start 130: parallel-mater-cuda-interaction-graph-lifecycle-tests\n\n130: Test command: <repo>/build-f5-16-linux/tests/api/parallel-mater-interaction-graph-lifecycle-tests\n130: Working Directory: <repo>/build-f5-16-linux/tests/api\n130: Environment variables: \n130:  PM_DRIVER_FILES=<repo>/build-f5-16-linux/Release/manifests/slang-cuda.json\n130: Test timeout computed to be: 120\n130: PASS: all 12 interaction pairs rebind; three-family rollback recovers\n2/3 Test #130: parallel-mater-cuda-interaction-graph-lifecycle-tests ...   Passed    0.21 sec\ntest 147\n    Start 147: parallel-mater-cuda-fluid-pair-graph-lifecycle-tests\n\n147: Test command: <repo>/build-f5-16-linux/tests/api/parallel-mater-fluid-pair-graph-lifecycle-tests\n147: Working Directory: <repo>/build-f5-16-linux/tests/api\n147: Environment variables: \n147:  PM_DRIVER_FILES=<repo>/build-f5-16-linux/Release/manifests/slang-cuda.json\n147: Test timeout computed to be: 120\n147: PASS: bounded generation-safe fluid pair graph lifecycle\n3/3 Test #147: parallel-mater-cuda-fluid-pair-graph-lifecycle-tests ....   Passed    0.23 sec\n\nThe following tests passed:\n\tparallel-mater-cuda-resource-lifecycle-tests\n\tparallel-mater-cuda-interaction-graph-lifecycle-tests\n\tparallel-mater-cuda-fluid-pair-graph-lifecycle-tests\n\n100% tests passed, 0 tests failed out of 3\n\nLabel Time Summary:\napi          =   2.21 sec*proc (3 tests)\ncuda         =   2.21 sec*proc (3 tests)\nlifecycle    =   2.21 sec*proc (3 tests)\n\nTotal Test time (real) =   2.22 sec\n",
+    "console_log": "Internal ctest changing into directory: <repo>/build-f5-16-linux\nUpdateCTestConfiguration  from :<repo>/build-f5-16-linux/DartConfiguration.tcl\nParse Config file:<repo>/build-f5-16-linux/DartConfiguration.tcl\nUpdateCTestConfiguration  from :<repo>/build-f5-16-linux/DartConfiguration.tcl\nParse Config file:<repo>/build-f5-16-linux/DartConfiguration.tcl\nTest project <repo>/build-f5-16-linux\nConstructing a list of tests\nDone constructing a list of tests\nUpdating test list for fixtures\nAdded 0 tests to meet fixture requirements\nChecking test dependency graph...\nChecking test dependency graph end\ntest 119\n    Start 119: parallel-mater-cuda-resource-lifecycle-tests\n\n119: Test command: <repo>/build-f5-16-linux/tests/api/parallel-mater-resource-lifecycle-tests\n119: Working Directory: <repo>/build-f5-16-linux/tests/api\n119: Environment variables: \n119:  PM_DRIVER_FILES=<repo>/build-f5-16-linux/Release/manifests/slang-cuda.json\n119: Test timeout computed to be: 120\n119: PASS: exact queried storage, capacity sweep and 4096 fluid replacements\n1/3 Test #119: parallel-mater-cuda-resource-lifecycle-tests ............   Passed    0.30 sec\ntest 130\n    Start 130: parallel-mater-cuda-interaction-graph-lifecycle-tests\n\n130: Test command: <repo>/build-f5-16-linux/tests/api/parallel-mater-interaction-graph-lifecycle-tests\n130: Working Directory: <repo>/build-f5-16-linux/tests/api\n130: Environment variables: \n130:  PM_DRIVER_FILES=<repo>/build-f5-16-linux/Release/manifests/slang-cuda.json\n130: Test timeout computed to be: 120\n130: PASS: all 12 interaction pairs rebind; three-family rollback recovers\n2/3 Test #130: parallel-mater-cuda-interaction-graph-lifecycle-tests ...   Passed    0.19 sec\ntest 147\n    Start 147: parallel-mater-cuda-fluid-pair-graph-lifecycle-tests\n\n147: Test command: <repo>/build-f5-16-linux/tests/api/parallel-mater-fluid-pair-graph-lifecycle-tests\n147: Working Directory: <repo>/build-f5-16-linux/tests/api\n147: Environment variables: \n147:  PM_DRIVER_FILES=<repo>/build-f5-16-linux/Release/manifests/slang-cuda.json\n147: Test timeout computed to be: 120\n147: PASS: bounded generation-safe fluid pair graph lifecycle\n3/3 Test #147: parallel-mater-cuda-fluid-pair-graph-lifecycle-tests ....   Passed    0.19 sec\n\nThe following tests passed:\n\tparallel-mater-cuda-resource-lifecycle-tests\n\tparallel-mater-cuda-interaction-graph-lifecycle-tests\n\tparallel-mater-cuda-fluid-pair-graph-lifecycle-tests\n\n100% tests passed, 0 tests failed out of 3\n\nLabel Time Summary:\napi          =   0.68 sec*proc (3 tests)\ncuda         =   0.68 sec*proc (3 tests)\nlifecycle    =   0.68 sec*proc (3 tests)\n\nTotal Test time (real) =   0.68 sec\n",
     "report": {
       "case_count": 2,
       "checkpoint_count": 0,
@@ -130,7 +130,7 @@
       "profile_sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
       "schema": "parallel-mater-conformance-lifecycle-result/v1",
       "source": {
-        "commit": "39e0ea6b891023729a6b78cf6fb836feba6c96a4",
+        "commit": "eed669e141ed9f6eeed4ef1cf12f2454cc4c3408",
         "dirty": false
       }
     }
@@ -591,9 +591,9 @@
   },
   "driver": {
     "binary_path": "build-f5-16-linux/libparallel_mater_driver_slang_cuda.so",
-    "binary_sha256": "4ce9680dcd096f3d62599f3b99d5100251668a96c18593a28d92131e89f000fc",
+    "binary_sha256": "62d08b007b9cd7047f0bc47ec5baad66d321a67d0508211cc29b99b02870fdeb",
     "name": "slang-cuda",
-    "version": "0.2.0+39e0ea6"
+    "version": "0.2.0+eed669e"
   },
   "host": {
     "architecture": "x86_64",
@@ -602,13 +602,13 @@
     "kernel": "Linux 6.1.0-53-amd64",
     "operating_system": "Debian GNU/Linux 12 (bookworm)"
   },
-  "id": "linux-rtx3050ti-slang-cuda-39e0ea6",
+  "id": "linux-rtx3050ti-slang-cuda-eed669e",
   "immutable_contracts": {
     "adverse_capacity_three_family_v1": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
-    "capability_obligations_v1": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
+    "capability_obligations_v1": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
     "conformance_manifest_v1": "d66c1a26c24735d2179d4078dd584309327f2038e6b7d0e47b0f9e0cd1dab7cb",
     "core_conservation_v1": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
-    "interaction_registry": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
+    "interaction_registry": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
     "rigid_brick_penetration_v1": "59f42d2fc20434552f053aaea3df08c9a12165763e9c0d33d7bcfc693d462659",
     "rigid_kinematic_sweep_v1": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc"
   },
@@ -4666,7 +4666,7 @@
         "schema": "parallel-mater-conformance-quality-report/v1",
         "scope": "analytic_invariants"
       },
-      "result_sha256": "26ea5529b676317ead5598203dbf877121cf44b817b983c0a18d33cef08737ad"
+      "result_sha256": "c64317f1c92a1aa876714f43824146c84c0d088451787cd3ed43fb4ec2e47550"
     }
   },
   "portability": {
@@ -4689,12 +4689,12 @@
     "device_name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
     "driver_version": 13010,
     "host_compiler": "12.2.0",
-    "source_commit": "39e0ea6b891023729a6b78cf6fb836feba6c96a4",
+    "source_commit": "eed669e141ed9f6eeed4ef1cf12f2454cc4c3408",
     "vendor_id": 4318
   },
   "schema": "parallel-mater-linux-driver-evidence/v1",
   "source": {
-    "commit": "39e0ea6b891023729a6b78cf6fb836feba6c96a4",
+    "commit": "eed669e141ed9f6eeed4ef1cf12f2454cc4c3408",
     "dirty": false
   },
   "toolchain": {
@@ -4707,210 +4707,210 @@
         "case_sha256": "f01de9dd068a989a60510fcbe167f80230b6606ef6892691a62786d5d7eda6e5",
         "execution_status": "completed",
         "id": "cloth-core",
-        "result_sha256": "d2183855e00dc36d37ce6a37bf84d486dbd32a96b93969cc2c78beed0b91621b",
+        "result_sha256": "b8b60d42edc1e69e800a6d14ef7345b6adf894de8b1e4c89d27984212ad1c4cf",
         "state_hash": "18562b8ce1d2cafd5dc800196b87947f89e021bd28ba02c0dd219c92e3c344cb"
       },
       {
         "case_sha256": "2f05830bf1ff8e06b9c8170a62d0e949c09f39fb472537d013ce3e901c84b33e",
         "execution_status": "completed",
         "id": "cloth-tear",
-        "result_sha256": "a6191ee5de16041f53257396c128cdcff317f3f7a6de0a54b8982d2f5dd55950",
+        "result_sha256": "2a32dd8eb35add77380d4cc1f307be1a4a3f68b3edc2be266b0b6a9cdf25b00c",
         "state_hash": "e826ad9afa7d0247f597bdf60c36dd93ba33ce66b9f3ef77248d84e72cce8624"
       },
       {
         "case_sha256": "b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5",
         "execution_status": "completed",
         "id": "cloth-water",
-        "result_sha256": "e18012aad9767765a3fa1dbbe9e83466744794155240503880f8a2437d8e4bde",
-        "state_hash": "39aadc6f066aab785a06559180b12b8afb4ce45f81e9f417a818a4074de28558"
+        "result_sha256": "be1269f3459f02623c6f4a7a0399ffb2a73559258b8a511de5df8d316266c7af",
+        "state_hash": "fa7c482c68412b0d3fad22db30775978a82d87cf5a8ee1854146313c8719399e"
       },
       {
         "case_sha256": "3c78c1301851c4f5a91e779ea40bf09f0a0e20923a02c73d65c299c54b27ca26",
         "execution_status": "completed",
         "id": "compound-weld-lifecycle",
-        "result_sha256": "cbf0fb449cb70114508f3676e69dfbc101d59e360d60bf7efd4687629609e52a",
+        "result_sha256": "a96e7b9d81dcfbf8373f813c10e22edca1fddde33af7a6cf32b9613848cc4f3f",
         "state_hash": "fec3dfaa17f52cda538be1caf1bd88101c4868cb581ff0115a99026a0ab1e7f3"
       },
       {
         "case_sha256": "ee88456eba855a56a18b23116e940ad5901ee745161c1a70033630ab0f70b993",
         "execution_status": "completed",
         "id": "constraint-breaking",
-        "result_sha256": "90d6a99e021f4aca4bac36f8f64f0ffe108fb6c569da098ce75a09a738700377",
+        "result_sha256": "963c1ac5e0089e9e943e9025df85625ca40ab7f4dfdfae0ba1adf0c56c6af119",
         "state_hash": "21115ce07bb9c62ddfaed6dbf3630a9e2f805b4f60ef5c9d7d25270b7fc1a920"
       },
       {
         "case_sha256": "e86b977f76e006c42dfd0f441aec730583286a8ed829a21f89c0db5322155f11",
         "execution_status": "completed",
         "id": "constraint-fixed",
-        "result_sha256": "8d868f3d47f2895a833ba2248d50e1e467fd5765992789acb11df54ac238450f",
+        "result_sha256": "d8700e38fa515d9746bd36bba1e4be18943eb47a669b1c9af2f5b10586582a10",
         "state_hash": "9d94fb7f515dcbd8726d4672e0a77a43ad7e2b65132f9059116eb97443832821"
       },
       {
         "case_sha256": "7cc4e0f3621026fe48959e162f1248d5c407bb68284fce7454e1197ec8c33a5b",
         "execution_status": "completed",
         "id": "constraint-generic-spring",
-        "result_sha256": "de86b26c71d5e5102869b706ad1faaf3017b4bfdff2481a2ff93edaf6f1e6d9f",
+        "result_sha256": "ca64eef5e2e4157233d4b3d2a1f9645e1cd6fe0feb620435b47c829fcb708381",
         "state_hash": "b5e02fcb14ef6cec7bcf27247794c6765ae9f17a212845f5efbbd02e57ac440e"
       },
       {
         "case_sha256": "84b2b29f3bc0e07d32013518e652f70e0e90f3864524a3452ec1ce80c79e3127",
         "execution_status": "completed",
         "id": "constraint-generic",
-        "result_sha256": "2aa6facfada0012fe83ede756dea25087150c3df91154d26e026c6ca90df2b9b",
+        "result_sha256": "40e5edc6fd5ffdc7945889b139767aec3850aef2e813bafc68e0ba60bf4abfa0",
         "state_hash": "25dd42d275fbe861c0e2e2ec5afab5f4f7ad06bb11ced24df3065e29da63c28a"
       },
       {
         "case_sha256": "e6180187b34d4f914503304cf5687159f0ecf495f6152c4d45ccc13477946bbd",
         "execution_status": "completed",
         "id": "constraint-hinge",
-        "result_sha256": "a39b73822de4d04db244b37dc2c15de502e136e5370f0e54f0960983b10a09b2",
+        "result_sha256": "f45bc4651a38ee93d7f8e7a922bc10de4feb3c838f3ae3ba687098ee432f3a0f",
         "state_hash": "8a838c4ddf1a54c8d7b2b15cddca23c13878e7caa913ca7c6ae5180de8b85f78"
       },
       {
         "case_sha256": "acfdf20008d5b27980656aea19945981e1d449412684b596ef87dce7605af4df",
         "execution_status": "completed",
         "id": "constraint-motor",
-        "result_sha256": "57ee1af390aec0df6ab053402e4b9979c04c35090b907a0af5e630100734cffd",
+        "result_sha256": "cdfec0fb1733f18c4e4a2620825d80b1f9ff6b80405cb726eb7636b8b29c4210",
         "state_hash": "f912c395d0ab00e74070f9253301c2cf9ede117b5b82e3fa9dd7cc66760544f0"
       },
       {
         "case_sha256": "4421466e8e5381b79944fb287f8106f4848d8b59ff904ad2021609de34af6c3c",
         "execution_status": "completed",
         "id": "constraint-piston",
-        "result_sha256": "e5557869532edd8a30fd5807ad7fda53ee415524dc401328787a286c6f70998d",
+        "result_sha256": "48606f5434a3415fe20557e70d762be23842e5adcbaa90e7ffa17705c216c6e2",
         "state_hash": "996bd7a501c23a9c92b7066a71b9aee3c38272a6f067517325b12435968d9669"
       },
       {
         "case_sha256": "2f2593e422b8c61fb79f24b4096cbf76894c1b3c5b1fc3947b2e259776ad77d2",
         "execution_status": "completed",
         "id": "constraint-point",
-        "result_sha256": "9132353f1adf2c46404b0445296f42cbc0a55549d0cb2f43dcde978bb6ede030",
+        "result_sha256": "0908bb10dbf62fe3fd32766fbe662a2b20483c4b78f99cf3cf5f470dfb16a203",
         "state_hash": "215207de366e1262b389e15cd98bfb4b86a1917c53c24ea6b3a2968d60ca8c67"
       },
       {
         "case_sha256": "c998761e7543598206f72a85dc9c3bffa98ef2f235ac7f82de41ace28e739dcf",
         "execution_status": "completed",
         "id": "constraint-slider",
-        "result_sha256": "0bbd8bb989bab536fb7292cbcb8aa71def5599ed1e5ecaafaebeb7714ff1dacf",
+        "result_sha256": "458f137dce54deefbb246d74cf69c710d8fea793e2b083d765f596ba81cdf5b6",
         "state_hash": "df0195e98fda03340c9cb6dcac4a763a035de5385277abe6cf1bcf183c95a299"
       },
       {
         "case_sha256": "43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b",
         "execution_status": "completed",
         "id": "fluid-lifecycle",
-        "result_sha256": "b81ecc731e8638b2083d9ba745aa3ce97bff7f9ce0dd2468ee422daa0440e7f7",
+        "result_sha256": "9fe45e37f31bc63cba92030da6d4948c5ea0825f3a94381b583d3a04957f1e13",
         "state_hash": "6bea5e8db96af2ad91bb23d1b82c407edb110b87072afdf06ddfb9c90cb2db02"
       },
       {
         "case_sha256": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
         "execution_status": "completed",
         "id": "fluid-rigid",
-        "result_sha256": "6b0a23834e939b14d483c475205d39d4869f71713b11047899d8082ae8429a32",
+        "result_sha256": "d4629e1e08609bb4fbe4ab06ef185e8add154258e8dfc44869d77d1726ee6a3b",
         "state_hash": "4aabc267741f0928012ba34a2f404f1e0dc3c0d1bcf238aa65c01958c124e2e5"
       },
       {
         "case_sha256": "8f7e68c2ca6b10668e58e7232dff97cd9e7a002a13823bb4d23e4bc2fbbee4f5",
         "execution_status": "completed",
         "id": "passive-active",
-        "result_sha256": "a13e1e94d4df2143c761378ff7377f019c455c3683da67129859b37b5e4f088f",
+        "result_sha256": "3e795c4d3f068b2663ec047bcd33f4fa686d81f02b43530b13f0b8eedbeae886",
         "state_hash": "44f5d0749bac0c1df576122f1d6de4c7b049963d5c3842ed2e33a859afcd1388"
       },
       {
         "case_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
         "execution_status": "completed",
         "id": "rigid-direct",
-        "result_sha256": "de9fb9b5bed03051dea5bb0c419eb4f29e32ca3c8f72dd79fab4aa220b472b58",
+        "result_sha256": "2031ff76f72142b4aa4b8266d79a9fd61f56125dbbe9ae2550a951f19c94b1b5",
         "state_hash": "2c7b7fd5b2daf0afdd039b1a27a955ec27e570fd469cf4b1aaf896e6c4ffb0c5"
       },
       {
         "case_sha256": "28280bb786efb6a69ead8bfed2f76ef1ac145672de29fbd2d625f69e89eda792",
         "execution_status": "completed",
         "id": "rope-cloth",
-        "result_sha256": "e0e5516b2aba4634ea0d3a033599d5ca948691372276e9a3ebf3de36db2dd5bd",
+        "result_sha256": "5afc04fbbb7acb8de3ee46ca07d5906dd54a0e9c11d458ea0a3b6eabe9f2d0e6",
         "state_hash": "6cced7111b58afca51532f4af2eb972a408f30ffcce9977dae55368056a87507"
       },
       {
         "case_sha256": "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41",
         "execution_status": "completed",
         "id": "rope-core",
-        "result_sha256": "f9cf1e4da24f27310ea033527321f68756a082398fb63a6c08a4d4b0c1a0ad4a",
+        "result_sha256": "55ab96b7dd6cda7f80af1dc3615b4817c18f386885596e3a225b2aa094344bf2",
         "state_hash": "2d692b3953fea4c2435830409819422cb65f9de59c8b5eab2b3aac9f75393986"
       },
       {
         "case_sha256": "368a65ec45f88baebc53e252dcbf8b95e3775b205714deed1006210dd5d13d27",
         "execution_status": "completed",
         "id": "rope-fluid",
-        "result_sha256": "def32e478c33cb42a19cd98780dd9983854bf4f94d8c4a9424a68cf6e292e8a1",
+        "result_sha256": "a1d3e6368c233227997d1f7745e207445648a7c2b5ed31802e65d703772530eb",
         "state_hash": "564feeed5b49fad8c6321721e8f427dfadec0355f1e4f560e2962f9a0b4d9acf"
       },
       {
         "case_sha256": "8d774dd377086780d1b4d52735290a73ccaa7fd4cc9334dfa5ad4fb0763b3549",
         "execution_status": "completed",
         "id": "rope-soft-body",
-        "result_sha256": "55667b1260070a97fb9c6d809045a7e92ffeba1e01c007e67a1e60a7b975a6eb",
-        "state_hash": "ddc9e04f93a94bf0878fbbae0678a85d6b92500abcd943aafe81333680d3796c"
+        "result_sha256": "591b12ba75d91e26b38f3b9e4652f22dc4a4151f90c1402c0d7ad85ff7167c57",
+        "state_hash": "295314a4b49dbbee50633b8099294579c55cbcbecca5ddd33791d66cfc17048e"
       },
       {
         "case_sha256": "8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc",
         "execution_status": "completed",
         "id": "smoke-cloth",
-        "result_sha256": "c79564b2db7bbd3a91910fbc55eb2452531f0ac0ff7032f0dbeba243335bc49c",
-        "state_hash": "b44270cc1928b0fc5629268a3b3b36629566413fbcc85f634858dc2d3d30f6db"
+        "result_sha256": "493a2be430cc85e7be85afb543fed5c5f74811c7ae12492351efa389d3d217c9",
+        "state_hash": "99e617a5c0702159b24a6123b7821610dbe221ec31c4883aad13562c7a695410"
       },
       {
         "case_sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3",
         "execution_status": "completed",
         "id": "smoke-grid",
-        "result_sha256": "b90bcd41283f130b34c5cbcbbc7fda00742f581be71f5a92c8cbd1b1daa1b4b8",
+        "result_sha256": "146fdc2d93b03479180dd1c94cf54ac4288657bece487facc6acba5c50e0dbbd",
         "state_hash": "14363596bbfbba7c040d89f6193bb788ec631c176d8748442e0fe3d8455a2d09"
       },
       {
         "case_sha256": "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7",
         "execution_status": "completed",
         "id": "smoke-rope",
-        "result_sha256": "9804fb2a2c7db2d9008d4b5a3453dfa12f48b4274220632249cadc26895888c5",
-        "state_hash": "6798e77f3c5d4151e15e861d06a6417c8d3b5ef3d002d5d195981e4f895daa74"
+        "result_sha256": "841062a0618646095a42f208ed5b77ea3c42247a4295ffdc5d869ee1bf5dbee1",
+        "state_hash": "3e5b224402ca2ccb86781f91aa15e2cf94dc5227b822368f3c74a01cf3d97fdf"
       },
       {
         "case_sha256": "a3566fe480be274b850d10f10b88ee4f3ea22e59d5cae5ccf9a652fa7d6b9cb8",
         "execution_status": "completed",
         "id": "smoke-soft-body",
-        "result_sha256": "d79380445d3a9d35a7876b61055073638db350ef12e9b73359009774a851e9da",
-        "state_hash": "6f097661a87545310de02c93f292e8df190b37bdc4dd6fd8466aa9ef81a49f47"
+        "result_sha256": "76af0ea01197fdcac738df541a340634584dc1ac62b528d68e20a885d27cf078",
+        "state_hash": "ee7383a7adabec5c0ad468bf5a47003b84132bae51b972c0054cc463d671aa9c"
       },
       {
         "case_sha256": "cbe349e888648ef1fe6f0adb507be33888be83b988d72b4bcc5c4a23a604964c",
         "execution_status": "completed",
         "id": "smoke-water",
-        "result_sha256": "c5223342ec7a28e7c20721073380723613ee4d7cd04b45e4287d5bd27302579c",
-        "state_hash": "515b621d6115a33dde4ec44e28831601f958c3cc512ae7348ea4c03d70a329a2"
+        "result_sha256": "6cdb3fa0fea638b8f18ae48a95f68154f47bef20a84c0d3d86d18e8561b01a13",
+        "state_hash": "5e6ebeb5822fa8f232a54614112004583e9f1e03c7e94d8b6c7dec1bbd20002b"
       },
       {
         "case_sha256": "779b5f55f4db0b9f0952d0d8607c1221ca2c50a52bc2dca2b95dff70ea5e6f4a",
         "execution_status": "completed",
         "id": "soft-body-cloth",
-        "result_sha256": "b25c263d6b3aefdf5385e1d606ee3e6782cf3ff9a3165874cfdb19c04cb02752",
+        "result_sha256": "e1a9df4e783dd8fc994a2eff7c108bdd2986a4861bf346a9f19e6766df6ef565",
         "state_hash": "96a1311319ce9e921aab1b0ad0adfedfd28d1b61a5bfba45cb33a8c8315b39c3"
       },
       {
         "case_sha256": "e453b88e5a753b608b9a56857df82f3176fe43ae9b7f351c36dc792e601abffc",
         "execution_status": "completed",
         "id": "soft-body-core",
-        "result_sha256": "c64dc5e2b000890a36f86a25cfc17679296c419d07af407bf84580fde78cce08",
+        "result_sha256": "a68a3c8a9ec578065310eeefc9114cb293530b695adf7b39dfc3616d646894d2",
         "state_hash": "15538d674391dcc6fea6bff5f5611a52649337464407ddecc0e1eb8289945cb4"
       },
       {
         "case_sha256": "935838337761fc3a0fb6bbe4cc787953b27e8cfa7dcb4cb7adb17eb85a3fd653",
         "execution_status": "completed",
         "id": "soft-body-fluid",
-        "result_sha256": "191f4848b0f20f79604224cf23dc8360d276269cb8fcf169fb6377a9c6573317",
+        "result_sha256": "5278433d8b74fa2ce00999e51c39344fb5f1f0d8bac169c72230c2b5aeef6b00",
         "state_hash": "b5ce7d702ff5c3f95392d9cfa6aa178157c263d64f6c3996d8d260bd9d467d5e"
       },
       {
         "case_sha256": "ab0e5f813b9953fd80f278842cab75e8e53d54f6f790e31e7572eb9e2e043505",
         "execution_status": "completed",
         "id": "soft-body-rigid",
-        "result_sha256": "ad97069c1dba7c8dac01cf6d7b78a48e87b9509c1bc4e817ec0570219ec373a4",
+        "result_sha256": "7c2fcefc67dce7f27dcea0f9fe1de158da39878ee9e67df3cf5860d6eee78f03",
         "state_hash": "bb5d6438037e61433a68bd77d8261f05e97d2bef4fa8f6180d549da1e772dd79"
       }
     ],
@@ -12775,10 +12775,10 @@
           "differences": [
             {
               "actual": [
-                -0.510034441947937,
-                -0.3604198694229126,
-                -0.780782163143158,
-                0.0184817872941494
+                -0.5100194811820984,
+                -0.3604314625263214,
+                -0.7807869911193848,
+                0.018466854467988014
               ],
               "expected": [
                 -0.5124914646148682,
@@ -12786,8 +12786,14 @@
                 -0.7790382504463196,
                 0.016266563907265663
               ],
-              "message": "quaternion angular error 0.007520979767284235 > 0.002",
+              "message": "quaternion angular error 0.007525139824346491 > 0.002",
               "path": "$.checkpoints[2].resources[2].orientation"
+            },
+            {
+              "actual": 0.083337500048821,
+              "expected": 0.11032307240714798,
+              "message": "absolute error 0.02698557235832698 > 0.00555161536203574",
+              "path": "$.checkpoints[2].resources[3].aggregate.maximum_speed"
             }
           ],
           "id": "rope-soft-body",
