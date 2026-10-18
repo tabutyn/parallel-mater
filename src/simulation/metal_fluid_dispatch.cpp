@@ -212,6 +212,36 @@ void fluid_immiscible_interface_curvature(
         second_degenerate_interface_count, first_curvature_clamp_count,
         second_curvature_clamp_count);
 }
+void fluid_immiscible_pair_pressure_capillarity(
+    device::DispatchSize grid, device::DispatchSize,
+    device::ExecutionQueue stream, const void *first_positions,
+    const void *first_velocities, const std::uint32_t *first_count,
+    std::uint32_t first_capacity, void *first_forces,
+    const float *first_density_samples, const void *first_interface_normals,
+    const float *first_interface_curvatures,
+    const std::uint32_t *first_interface_flags,
+    const void *second_positions, const void *second_velocities,
+    const std::uint32_t *second_count, std::uint32_t second_capacity,
+    void *second_forces, const float *second_density_samples,
+    const void *second_interface_normals,
+    const float *second_interface_curvatures,
+    const std::uint32_t *second_interface_flags,
+    const std::uint64_t *keys, const std::uint32_t *identities,
+    std::uint32_t total_capacity,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants,
+    float surface_tension) noexcept {
+    (void)metal::launch(stream,
+        "fluid_apply_immiscible_pair_pressure_capillarity", grid,
+        first_positions, first_velocities, first_count, first_capacity,
+        first_forces, first_density_samples, first_interface_normals,
+        first_interface_curvatures, first_interface_flags, second_positions,
+        second_velocities, second_count, second_capacity, second_forces,
+        second_density_samples, second_interface_normals,
+        second_interface_curvatures, second_interface_flags, keys,
+        identities, total_capacity, options(first_constants),
+        options(second_constants), surface_tension);
+}
 void fluid_forces(device::DispatchSize grid, device::DispatchSize, device::ExecutionQueue stream,
     void *positions, void *velocities, void *accelerations, float *foam,
     std::uint32_t *count, const FluidDispatchConstants &values,
