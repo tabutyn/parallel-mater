@@ -1,7 +1,7 @@
 {
   "id": "F4-08",
   "title": "Qualify engine handoff with a mock adapter",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F4-03",
     "F4-07"
@@ -19,6 +19,14 @@
     "Import failure and teardown tests prove exactly-once ownership and completion."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "b3e36088-206c-4567-a665-5ef2ac2af7e1",
+    "owner": "codex-windows-sdk",
+    "machine": "windows-gtx1080",
+    "branch": "work/F4-08/windows-gtx1080",
+    "claimed_at": "2026-10-18T17:52:24Z",
+    "heartbeat_at": "2026-10-18T17:52:24Z",
+    "expires_at": "2026-10-19T17:52:24Z"
+  },
   "history": []
 }
