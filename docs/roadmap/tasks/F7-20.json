@@ -1,0 +1,16 @@
+{
+  "id": "F7-20",
+  "title": "Consolidate the common Gallery scene descriptor",
+  "status": "open",
+  "dependencies": ["F7-12", "F7-19"],
+  "locks": ["gallery-scene-descriptor"],
+  "requires": ["Any development host"],
+  "scope": "Replace parallel Gallery context, catalog, asset and capability mappings with one immutable common scene descriptor consumed by the session, CLI, desktop and mobile shells.",
+  "acceptance": [
+    "Each scene's stable ID, asset, name, help, controls, camera, workload flags, broad features and exact interaction requirements are declared once in a common descriptor.",
+    "Contract tests prove descriptor order, uniqueness and completeness and show catalog and CLI selection derive from it without platform-maintained scene mappings."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -2,7 +2,7 @@
   "id": "F7-18",
   "title": "Qualify complete Android Gallery",
   "status": "open",
-  "dependencies": ["F5-15", "F7-05", "F7-10", "F7-11", "F7-12", "F7-13", "F7-14", "F7-15", "F7-16", "F7-17"],
+  "dependencies": ["F5-15", "F7-05", "F7-10", "F7-11", "F7-12", "F7-13", "F7-14", "F7-15", "F7-16", "F7-17", "F7-22"],
   "locks": ["android-gallery-qualification"],
   "requires": ["Physical Android Vulkan device and adb access"],
   "scope": "Run revision-pinned scene, control, lifecycle, rendering, memory, thermal and sustained-runtime checks for the complete capability-driven Android Gallery.",
