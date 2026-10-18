@@ -807,6 +807,44 @@ uses its endpoint rest density and pressure stiffness for its equation of
 state, while the pressure-gradient pair operator is symmetric in both endpoint
 pressures and densities.
 
+For the initial `miscible` profile, density uses the normalized three-
+dimensional poly6 sample from the preceding pair-sampling contract. For a
+cross pair at distance `r < h_ij`, endpoint pressure and the positive radial
+kernel-gradient magnitude are
+
+```text
+p_i = pressureStiffness_i * max(rho_i - restDensity_i, 0)
+G_ij = 9.40008882636 * r / h_ij^5 * (1 - r^2 / h_ij^2)^2
+```
+
+With `n_ij = (x_i - x_j) / r`, the common pressure force on endpoint `i` is
+
+```text
+F_pressure = n_ij * m_i * m_j *
+             (p_i / rho_i^2 + p_j / rho_j^2) * G_ij
+```
+
+Short-range contact applies only for `r < d_ij`. Define
+
+```text
+m_pair = 2 * m_i * m_j / (m_i + m_j)
+a_contact = 0.5 * (pressureStiffness_i * 1000 / restDensity_i +
+                   pressureStiffness_j * 1000 / restDensity_j) *
+                   (1 - r / d_ij)^2 +
+            0.5 * (normalDamping_i + normalDamping_j) *
+                   dot(v_j - v_i, n_ij)
+F_contact = n_ij * m_pair * a_contact
+```
+
+The factor in `m_pair` preserves the established per-particle contact response
+when the endpoint masses and material values are equal. At coincident
+positions, `n_ij` is the normalized relative velocity `v_j - v_i`; it is zero
+when that velocity is also zero. This rule is independent of endpoint
+ownership and avoids choosing a physical direction from local array indices.
+The implementation sums `F_pressure + F_contact`, limits that common force to
+the smaller enabled endpoint bound `m_i * maximumPairAcceleration_i`, and only
+then divides by endpoint mass.
+
 Let `nu_i` be kinematic viscosity and `mu_i = restDensity_i * nu_i` be dynamic
 viscosity. The cross-pair viscosity is the harmonic combination
 

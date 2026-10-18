@@ -598,6 +598,18 @@ void test_miscible_contact_uses_radius_volume_and_fallback_mass() {
     check_miscible_endpoint_reversal(
         first, second, first_material, second_material);
 
+    // Coincident local index zero cannot choose a direction from ownership.
+    FluidState coincident_a{{{0.02F, -0.03F, 0.01F}},
+        {{0.4F, 0.1F, 0.0F}}};
+    FluidState coincident_b{{{0.02F, -0.03F, 0.01F}},
+        {{-0.2F, -0.1F, 0.0F}}};
+    apply_miscible_pressure_contact(coincident_a, coincident_b,
+        first_material, second_material);
+    check_miscible_pair_invariants(coincident_a, coincident_b,
+        first_material, second_material);
+    check_miscible_endpoint_reversal(coincident_a, coincident_b,
+        first_material, second_material);
+
     // Explicit volume keeps mass fixed while smaller radii remove contact.
     FluidDispatchConstants separated_first = first_material;
     FluidDispatchConstants separated_second = second_material;
