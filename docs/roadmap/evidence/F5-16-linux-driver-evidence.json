@@ -1,0 +1,149 @@
+{
+  "drivers": {
+    "cpu": {
+      "advertised_capabilities": 2,
+      "evidence_bundle": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-evidence.json",
+      "evidence_bundle_sha256": "bd3a0aed0938780f9273743532c69ae601d7ea566ff23356022691a7766372ee",
+      "metrics": {
+        "fluid_quality": {
+          "status": "unsupported"
+        },
+        "lifecycle_console": {
+          "formal_checkpoint_status": "not_applicable",
+          "passed": 0,
+          "unsupported": 3
+        },
+        "reference_regression": {
+          "failed": 8,
+          "passed": 4,
+          "unsupported": 18
+        },
+        "rigid_brick_penetration": {
+          "maximum_penetration_frame": 1,
+          "maximum_penetration_m": 0.000114486,
+          "passed": true
+        },
+        "rigid_kinematic_sweep": {
+          "failures": 0,
+          "passed": true,
+          "samples": 61
+        }
+      },
+      "qualification_result": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json",
+      "qualification_result_sha256": "e3ae75435330251f28ac8196012f921bf7be032541362db1fdc978f5eb7f7473"
+    },
+    "cuda": {
+      "advertised_capabilities": 49,
+      "evidence_bundle": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-eed669e-evidence.json",
+      "evidence_bundle_sha256": "09aa6fcba1bf135aa99d4e4f9da6446bb484fa93acf7646bd83cc8c152a6a445",
+      "metrics": {
+        "fluid_quality": {
+          "failures": 0,
+          "passed": true,
+          "samples": 18
+        },
+        "lifecycle_console": {
+          "formal_checkpoint_status": "missing",
+          "passed": 3,
+          "unsupported": 0
+        },
+        "reference_regression": {
+          "failed": 15,
+          "passed": 15,
+          "unsupported": 0
+        },
+        "rigid_brick_penetration": {
+          "maximum_penetration_frame": 205,
+          "maximum_penetration_m": 0.000161126,
+          "passed": true
+        },
+        "rigid_kinematic_sweep": {
+          "failures": 0,
+          "passed": true,
+          "samples": 61
+        }
+      },
+      "qualification_result": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-eed669e-qualification.json",
+      "qualification_result_sha256": "24e12069e812795774a83cb2450c27e1680847fadf65eff0594ddb06b6afe8f8"
+    },
+    "vulkan": {
+      "advertised_capabilities": 46,
+      "evidence_bundle": "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-evidence.json",
+      "evidence_bundle_sha256": "b37fd26ff6d260070879b5683c2059376f0c073fa3ec4b87cf7a8d26df1bf12d",
+      "metrics": {
+        "fluid_quality": {
+          "status": "unsupported"
+        },
+        "lifecycle_console": {
+          "formal_checkpoint_status": "missing",
+          "passed": 2,
+          "unsupported": 1
+        },
+        "reference_regression": {
+          "failed": 14,
+          "passed": 16,
+          "unsupported": 0
+        },
+        "rigid_brick_penetration": {
+          "maximum_penetration_frame": 205,
+          "maximum_penetration_m": 0.000161126,
+          "passed": true
+        },
+        "rigid_kinematic_sweep": {
+          "failures": 0,
+          "passed": true,
+          "samples": 61
+        }
+      },
+      "qualification_result": "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-qualification.json",
+      "qualification_result_sha256": "040b04c96c547304c9609366c891eb22ae019f75e1dafc05591a0a0658cf6b1b"
+    }
+  },
+  "host": {
+    "architecture": "x86_64",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11370H @ 3.30GHz",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "hostname": "ThomasLaptop",
+    "kernel": "Linux 6.1.0-53-amd64",
+    "nvidia_driver": "590.44.01",
+    "operating_system": "Debian GNU/Linux 12 (bookworm)"
+  },
+  "index": {
+    "capability_records": 251,
+    "linux_regeneration": "passed",
+    "qualification_complete": true,
+    "qualified_capabilities": 0,
+    "report_records": 10,
+    "valid": true,
+    "windows_regeneration": "passed: https://github.com/tabutyn/parallel-mater/actions/runs/39155725639/job/117758435016"
+  },
+  "limitations": [
+    "Formal adverse-lifecycle reports fail because console fixtures still do not emit required checkpoint fingerprints.",
+    "Historical CUDA goldens predate several refactors; current CPU, CUDA and Vulkan results retain every reference mismatch.",
+    "No timing result was captured or used to qualify behavior."
+  ],
+  "reproduction": [
+    "Use the configure, build and per-driver commands embedded in each driver evidence bundle.",
+    "Run python3 conformance/v1/evidence_index.py --check on Linux and the Windows loader CI checkout."
+  ],
+  "schema": "parallel-mater-roadmap-linux-driver-evidence/v1",
+  "source": {
+    "branch": "work/F5-16/thomas-laptop",
+    "clean_at_build": true,
+    "lease_token": "39359c9c-2c60-4574-b982-f0c6d3440dfc",
+    "tested_commit": "eed669e141ed9f6eeed4ef1cf12f2454cc4c3408"
+  },
+  "task": "F5-16",
+  "validation": {
+    "clean_release_build": "616/616 build steps passed",
+    "conformance_inputs": "passed",
+    "current_revision_rebuild": "266/266 dependency-selected build steps passed after latest main merge",
+    "evidence_index_check": "passed",
+    "python_conformance_tests": {
+      "failed": 0,
+      "passed": 74
+    },
+    "roadmap_check": "passed",
+    "windows_evidence_index_check": "passed: https://github.com/tabutyn/parallel-mater/actions/runs/39155725639/job/117758435016"
+  }
+}
