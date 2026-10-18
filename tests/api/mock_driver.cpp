@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <new>
 
@@ -19,6 +20,7 @@ namespace {
 
 struct MockInstance { std::uint32_t tag{0x504d4452U}; };
 struct MockPhysical { MockInstance *instance{}; };
+struct MockSemaphore { std::uint64_t value{}; };
 
 PmResult mock_create_instance(const PmInstanceCreateInfo *,
                               const PmAllocationCallbacks *,
@@ -138,6 +140,15 @@ void mock_destroy_device(PmDevice device) { delete reinterpret_cast<char *>(devi
 void mock_get_queue(PmDevice device, std::uint32_t, std::uint32_t, PmQueue *out) {
     *out = reinterpret_cast<PmQueue>(device);
 }
+PmResult mock_create_command_pool(PmDevice, const PmCommandPoolCreateInfo *,
+                                  PmCommandPool *out) {
+    *out = reinterpret_cast<PmCommandPool>(new char);
+    return PM_SUCCESS;
+}
+void mock_destroy_command_pool(PmDevice, PmCommandPool pool) {
+    delete reinterpret_cast<char *>(pool);
+}
+PmResult mock_reset_command_pool(PmDevice, PmCommandPool) { return PM_SUCCESS; }
 PmResult mock_allocate_commands(PmDevice, PmCommandPool, std::uint32_t count,
                                 PmCommandBuffer *out) {
     for (std::uint32_t index = 0U; index < count; ++index)
@@ -149,8 +160,69 @@ void mock_free_commands(PmDevice, PmCommandPool, std::uint32_t count,
     for (std::uint32_t index = 0U; index < count; ++index)
         delete reinterpret_cast<char *>(buffers[index]);
 }
-PmResult mock_queue_submit(PmQueue, const PmSubmitInfo *, PmFence) {
+PmResult mock_begin_commands(PmCommandBuffer,
+                             const PmCommandBufferBeginInfo *) {
     return PM_SUCCESS;
+}
+PmResult mock_end_commands(PmCommandBuffer) { return PM_SUCCESS; }
+PmResult mock_reset_commands(PmCommandBuffer) { return PM_SUCCESS; }
+PmResult mock_cmd_copy_buffer(PmCommandBuffer, PmBuffer, PmBuffer,
+                              std::uint32_t, const PmBufferCopy *) {
+    return PM_SUCCESS;
+}
+PmResult mock_queue_submit(PmQueue, const PmSubmitInfo *info, PmFence) {
+    if (std::getenv("PM_TEST_MOCK_SUBMIT_FAILURE"))
+        return PM_ERROR_OUT_OF_HOST_MEMORY;
+    for (std::uint32_t index = 0U; index < info->signalCount; ++index) {
+        auto *timeline = reinterpret_cast<MockSemaphore *>(
+            info->pSignals[index].semaphore);
+        timeline->value = std::max(timeline->value,
+                                   info->pSignals[index].value);
+    }
+    return PM_SUCCESS;
+}
+PmResult mock_completion_result() {
+    return std::getenv("PM_TEST_MOCK_DEFERRED_FAILURE")
+        ? PM_ERROR_DEVICE_LOST : PM_SUCCESS;
+}
+PmResult mock_queue_wait_idle(PmQueue) { return mock_completion_result(); }
+PmResult mock_device_wait_idle(PmDevice) { return mock_completion_result(); }
+PmResult mock_create_fence(PmDevice, PmFlags, PmFence *out) {
+    *out = reinterpret_cast<PmFence>(new char);
+    return PM_SUCCESS;
+}
+void mock_destroy_fence(PmDevice, PmFence fence) {
+    delete reinterpret_cast<char *>(fence);
+}
+PmResult mock_get_fence_status(PmDevice, PmFence) {
+    return mock_completion_result();
+}
+PmResult mock_reset_fences(PmDevice, std::uint32_t, const PmFence *) {
+    return PM_SUCCESS;
+}
+PmResult mock_wait_for_fences(PmDevice, std::uint32_t, const PmFence *,
+                              PmBool32, std::uint64_t) {
+    return mock_completion_result();
+}
+PmResult mock_create_semaphore(PmDevice, const PmSemaphoreCreateInfo *info,
+                               PmSemaphore *out) {
+    *out = reinterpret_cast<PmSemaphore>(
+        new (std::nothrow) MockSemaphore{info->initialValue});
+    return *out ? PM_SUCCESS : PM_ERROR_OUT_OF_HOST_MEMORY;
+}
+void mock_destroy_semaphore(PmDevice, PmSemaphore semaphore) {
+    delete reinterpret_cast<MockSemaphore *>(semaphore);
+}
+PmResult mock_get_semaphore_value(PmDevice, PmSemaphore semaphore,
+                                  std::uint64_t *value) {
+    const auto result = mock_completion_result();
+    if (result == PM_SUCCESS)
+        *value = reinterpret_cast<MockSemaphore *>(semaphore)->value;
+    return result;
+}
+PmResult mock_wait_semaphore(PmDevice, PmSemaphore, std::uint64_t,
+                             std::uint64_t) {
+    return mock_completion_result();
 }
 PmResult mock_import_native_device(PmInstance, const PmNativeDeviceImportInfo *,
                                    PmDevice *out) {
@@ -232,9 +304,27 @@ PM_MOCK_EXPORT PFN_pmVoidFunction PMAPI_CALL pm_driverGetDeviceProcAddr(
         return reinterpret_cast<PFN_pmVoidFunction>(&implementation)
     MOCK(pmDestroyDevice, mock_destroy_device);
     MOCK(pmGetDeviceQueue, mock_get_queue);
+    MOCK(pmCreateCommandPool, mock_create_command_pool);
+    MOCK(pmDestroyCommandPool, mock_destroy_command_pool);
+    MOCK(pmResetCommandPool, mock_reset_command_pool);
     MOCK(pmAllocateCommandBuffers, mock_allocate_commands);
     MOCK(pmFreeCommandBuffers, mock_free_commands);
+    MOCK(pmBeginCommandBuffer, mock_begin_commands);
+    MOCK(pmEndCommandBuffer, mock_end_commands);
+    MOCK(pmResetCommandBuffer, mock_reset_commands);
+    MOCK(pmCmdCopyBuffer, mock_cmd_copy_buffer);
     MOCK(pmQueueSubmit, mock_queue_submit);
+    MOCK(pmQueueWaitIdle, mock_queue_wait_idle);
+    MOCK(pmDeviceWaitIdle, mock_device_wait_idle);
+    MOCK(pmCreateFence, mock_create_fence);
+    MOCK(pmDestroyFence, mock_destroy_fence);
+    MOCK(pmGetFenceStatus, mock_get_fence_status);
+    MOCK(pmResetFences, mock_reset_fences);
+    MOCK(pmWaitForFences, mock_wait_for_fences);
+    MOCK(pmCreateSemaphore, mock_create_semaphore);
+    MOCK(pmDestroySemaphore, mock_destroy_semaphore);
+    MOCK(pmGetSemaphoreCounterValue, mock_get_semaphore_value);
+    MOCK(pmWaitSemaphore, mock_wait_semaphore);
     MOCK(pmAllocateMemory, mock_allocate);
     MOCK(pmFreeMemory, mock_free);
     MOCK(pmCreateBuffer, mock_create_buffer);

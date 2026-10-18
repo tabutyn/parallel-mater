@@ -166,7 +166,8 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeFrame(JNIEnv *env, jclass, jlong handle) {
     try {
         auto &s = session(handle); auto &g = *s.gallery;
-        g.frame([&](const GallerySession &frame) { s.present(frame); });
+        g.frame_at(GallerySession::FrameClock::now(),
+            [&](const GallerySession &frame) { s.present(frame); });
         if (!g.is_paused() && g.active() && ++s.logged_frames == 60) {
             const auto stats = g.timing.statistics();
             __android_log_print(ANDROID_LOG_INFO, "ParallelMater",

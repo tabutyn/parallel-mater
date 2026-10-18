@@ -1,7 +1,7 @@
 {
   "id": "F3-05",
   "title": "Expose structured validation diagnostics",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F3-01"
   ],
@@ -18,6 +18,14 @@
     "Reentrancy, callback lifetime and OOM behavior are documented and tested."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "8b3508df-dddc-481e-8d31-ba333e5147f6",
+    "owner": "codex-windows-validation",
+    "machine": "windows-gtx1080",
+    "branch": "work/F3-05/windows-gtx1080",
+    "claimed_at": "2026-10-18T00:19:48Z",
+    "heartbeat_at": "2026-10-18T00:19:48Z",
+    "expires_at": "2026-10-19T00:19:48Z"
+  },
   "history": []
 }

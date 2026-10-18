@@ -1,7 +1,7 @@
 {
   "id": "F3-04",
   "title": "Validate synchronization state",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F3-02"
   ],
@@ -17,7 +17,31 @@
     "Host mock tests cover wait-before-signal, pending reuse, failed submit and device teardown.",
     "Valid asynchronous schedules pass without accidental serialization requirements."
   ],
-  "evidence": [],
+  "evidence": [
+    "Windows VS 18 Release: cmake --build build-d3d12-baseline --config Release --target parallel-mater-layer-validation-tests; focused validation/plain CTest pair passed 2/2.",
+    "Windows VS 17 2022 CUDA+D3D12 Release: the focused validation/plain CTest pair passed 2/2 after compiling the updated layer and mock driver.",
+    "Host mock regression covers cross-device timelines, invalid scopes, same-submit cycles, failed-submit retry, consumer-before-producer, precise fence/timeline completion, deferred failure, counter observation, pending reuse and device teardown."
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "fc9b1dcd-9e1c-4552-aba2-30124a40647d",
+        "owner": "codex-windows-validation",
+        "machine": "windows-gtx1080",
+        "branch": "work/F3-04/windows-gtx1080",
+        "claimed_at": "2026-10-18T00:03:01Z",
+        "heartbeat_at": "2026-10-18T00:03:01Z",
+        "expires_at": "2026-10-19T00:03:01Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T00:15:43Z",
+      "reason": "Validation now tracks submission identity across fences and timelines, enforces synchronization ownership and scopes, and preserves asynchronous wait-before-signal schedules.",
+      "evidence": [
+        "Windows VS 18 Release: cmake --build build-d3d12-baseline --config Release --target parallel-mater-layer-validation-tests; focused validation/plain CTest pair passed 2/2.",
+        "Windows VS 17 2022 CUDA+D3D12 Release: the focused validation/plain CTest pair passed 2/2 after compiling the updated layer and mock driver.",
+        "Host mock regression covers cross-device timelines, invalid scopes, same-submit cycles, failed-submit retry, consumer-before-producer, precise fence/timeline completion, deferred failure, counter observation, pending reuse and device teardown."
+      ]
+    }
+  ]
 }
