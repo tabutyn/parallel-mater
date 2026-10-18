@@ -1,7 +1,7 @@
 {
   "id": "F6-12",
   "title": "Keep installed corpus manifest synchronized",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-24",
     "F6-04"
@@ -18,15 +18,27 @@
     "Focused tests prove stale input changes fail validation, refresh updates only the intended pins, and a second refresh is byte-identical.",
     "The current sdk-ci suite and relocated installed-SDK input check pass from a clean revision."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "bd56f181-3b62-422f-82c3-fe65569dd38e",
-    "owner": "codex-linux-release",
-    "machine": "thomas-laptop",
-    "branch": "work/F6-12/thomas-laptop",
-    "claimed_at": "2026-10-18T20:35:23Z",
-    "heartbeat_at": "2026-10-18T20:35:23Z",
-    "expires_at": "2026-10-19T20:35:23Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F6-12-corpus-manifest.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "bd56f181-3b62-422f-82c3-fe65569dd38e",
+        "owner": "codex-linux-release",
+        "machine": "thomas-laptop",
+        "branch": "work/F6-12/thomas-laptop",
+        "claimed_at": "2026-10-18T20:35:23Z",
+        "heartbeat_at": "2026-10-18T20:35:23Z",
+        "expires_at": "2026-10-19T20:35:23Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T20:39:45Z",
+      "reason": "Manifest updater and relocated installed input gate pass from clean revision; standalone conformance package defect split for separate repair.",
+      "evidence": [
+        "docs/roadmap/evidence/F6-12-corpus-manifest.json"
+      ]
+    }
+  ]
 }
