@@ -191,7 +191,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-14](roadmap/tasks/F5-14.json) | Publish current iPadOS Metal driver evidence | done | F5-02, F5-03, F5-05, F5-06, F5-10, F5-11, F5-13 | — |
 | [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
 | [F5-16](roadmap/tasks/F5-16.json) | Publish current Linux driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
-| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16 | — |
+| [F5-17](roadmap/tasks/F5-17.json) | Adjudicate rigid-direct reference drift | waiting on dependencies | F5-04, F5-10 | — |
+| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17 | — |
 
 ### F6. SDK releases and repository ownership
 
@@ -333,10 +334,10 @@ listed acceptance checks, not its entire area or a driver's physical compliance.
 The [qualification index](QUALIFICATION.md) keeps known failures visible.
 Windows F5-10 evidence passes the selected 17 CUDA/D3D12 comparisons and the
 independent shared-brick penetration gate without changing inputs, tolerances
-or historical goldens. Current limits include CPU rigid-direct divergence,
-remaining driver/domain qualification, native Vulkan validation failure and
-unqualified engine handoff. Do not promote execution to physical correctness
-to complete a lease.
+or historical goldens. Current limits include shared rigid-direct reference
+drift pending independent adjudication, remaining driver/domain qualification,
+native Vulkan validation failure and unqualified engine handoff. Do not promote
+execution to physical correctness to complete a lease.
 
 The detailed [2026-10-16 roadmap snapshot](history/ROADMAP-2026-10-16.md) preserves
 prior implementation checkpoints, original exits and platform evidence. It is
