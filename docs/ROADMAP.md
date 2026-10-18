@@ -146,9 +146,13 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F3-03](roadmap/tasks/F3-03.json) | Validate object dependencies and query state | done | F3-01, F1-03, F1-04 | — |
 | [F3-04](roadmap/tasks/F3-04.json) | Validate synchronization state | done | F3-02 | — |
 | [F3-05](roadmap/tasks/F3-05.json) | Expose structured validation diagnostics | done | F3-01 | — |
-| [F3-06](roadmap/tasks/F3-06.json) | Close threading and deferred-error contract gaps | leased | F1-06, F3-04 | codex-windows-validation / windows-gtx1080 / 2026-10-19T01:37:47Z |
+| [F3-06](roadmap/tasks/F3-06.json) | Close threading and deferred-error contract gaps | done | F1-06, F3-04 | — |
 | [F3-07](roadmap/tasks/F3-07.json) | Test independent compatibility combinations | ready | F3-05 | — |
 | [F3-08](roadmap/tasks/F3-08.json) | Restore repeated statistics-query validation | done | F3-03 | — |
+| [F3-09](roadmap/tasks/F3-09.json) | Qualify portable host concurrency | ready | F3-06 | — |
+| [F3-10](roadmap/tasks/F3-10.json) | Qualify descriptor snapshot coverage | ready | F3-06 | — |
+| [F3-11](roadmap/tasks/F3-11.json) | Qualify destruction wait profiles | ready | F3-06 | — |
+| [F3-12](roadmap/tasks/F3-12.json) | Qualify runtime capacity recovery | ready | F3-06 | — |
 | [F3-99](roadmap/tasks/F3-99.json) | Review F3 exit evidence | waiting on dependencies | F3-01, F3-02, F3-03, F3-04, F3-05, F3-06, F3-07 | — |
 
 ### F4. Common resources and engine ownership
@@ -198,7 +202,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F6-02](roadmap/tasks/F6-02.json) | Qualify macOS SDK installation | done | — | — |
 | [F6-03](roadmap/tasks/F6-03.json) | Separate optional package exports | ready | F5-07 | — |
 | [F6-04](roadmap/tasks/F6-04.json) | Record reproducible release inputs | ready | — | — |
-| [F6-05](roadmap/tasks/F6-05.json) | Regenerate and verify release reference artifacts | waiting on dependencies | F3-06 | — |
+| [F6-05](roadmap/tasks/F6-05.json) | Regenerate and verify release reference artifacts | ready | F3-06 | — |
 | [F6-06](roadmap/tasks/F6-06.json) | Reconcile legacy launcher and branding patches | ready | — | — |
 | [F6-07](roadmap/tasks/F6-07.json) | Reconcile legacy hinge and contact patches | ready | — | — |
 | [F6-08](roadmap/tasks/F6-08.json) | Retire reconciled old worktrees | waiting on dependencies | F6-06, F6-07 | — |

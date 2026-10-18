@@ -1,0 +1,22 @@
+{
+  "id": "F3-11",
+  "title": "Qualify destruction wait profiles",
+  "status": "open",
+  "dependencies": [
+    "F3-06"
+  ],
+  "locks": [
+    "lifecycle-tests"
+  ],
+  "requires": [
+    "Host fixture; one advertised native driver"
+  ],
+  "scope": "Test explicit completion and reference-runtime implicit device teardown waits with pending public objects.",
+  "acceptance": [
+    "Accepted work drains before reference-driver device teardown returns, without use-after-free, hang or stale ownership after handle reuse.",
+    "Explicit completion avoids the implicit wait, and evidence does not generalize reference-runtime behavior to external drivers."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,22 @@
+{
+  "id": "F3-10",
+  "title": "Qualify descriptor snapshot coverage",
+  "status": "open",
+  "dependencies": [
+    "F3-06"
+  ],
+  "locks": [
+    "sdk-contract-tests"
+  ],
+  "requires": [
+    "Host fixture and one advertised reference solver"
+  ],
+  "scope": "Exercise record-time ownership for flat and nested host descriptor arrays across command families.",
+  "acceptance": [
+    "Caller storage mutation after successful recording cannot change later execution for every descriptor-shape class.",
+    "Rejected or allocation-failed recording retains no caller pointer, and command-buffer reset releases owned snapshots."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
