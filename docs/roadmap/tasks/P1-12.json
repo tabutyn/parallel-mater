@@ -1,7 +1,7 @@
 {
   "id": "P1-12",
   "title": "Apply immiscible interfacial viscosity",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "P1-11"
   ],
@@ -17,6 +17,14 @@
     "Zero-viscosity and endpoint-order limits pass across unequal density and mass ratios."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "6ddd4c75-f52b-45eb-8a64-f816d54cef29",
+    "owner": "codex-immiscible-viscosity",
+    "machine": "thomas-laptop",
+    "branch": "work/P1-12/thomas-laptop",
+    "claimed_at": "2026-10-18T23:40:06Z",
+    "heartbeat_at": "2026-10-18T23:40:06Z",
+    "expires_at": "2026-10-19T23:40:06Z"
+  },
   "history": []
 }
