@@ -1,0 +1,211 @@
+{
+  "schema": "parallel-mater-roadmap-rigid-quality-evidence/v1",
+  "task": "F5-22",
+  "source": {
+    "commit": "c17d73f48812fe98277abdcac0bd7c256ec385af",
+    "dirty": false,
+    "branch": "work/F5-22/windows-gtx1080",
+    "lease_token": "773578fe-eb87-4e04-a5a0-eb659f02a7aa"
+  },
+  "canonical_hash_normalization": "UTF-8 bytes with CRLF normalized to LF, matching conformance input verification",
+  "host": {
+    "hostname": "Thomas-Desktop",
+    "operating_system": "Microsoft Windows 10.0.26200.9711",
+    "architecture": "x86_64",
+    "cpu": "AMD Ryzen 5 5500",
+    "gpu": "NVIDIA GeForce GTX 1080",
+    "pci_device_id": "0x1B8010DE",
+    "nvidia_driver": "582.66",
+    "cpu_reference_environment": "BallRoller-Preview, Ubuntu 24.04.4 LTS under WSL2"
+  },
+  "toolchain": {
+    "windows_host_compiler": "MSVC",
+    "windows_cmake": "4.4.2",
+    "cpu_host_compiler": "GCC 13.3.0",
+    "cpu_cmake": "3.28.3",
+    "slang": "2026.18",
+    "python": "3.12.9"
+  },
+  "profiles": {
+    "contact": {
+      "id": "rigid-brick-penetration-v1",
+      "path": "conformance/v1/quality/rigid-brick-penetration-v1.json",
+      "sha256": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da",
+      "canonical_scene": "RigidBody.glb",
+      "canonical_scene_sha256": "0167a7f3f91ca57703e74996c9c99051c0ed8793fd50aa59adaab3c304b7dd09",
+      "oracle": "independent closed-mesh surface sampling over public rigid output",
+      "units": "metres",
+      "retained_thresholds": {
+        "maximum_penetration_m": 0.002
+      }
+    },
+    "attachment": {
+      "id": "rigid-attachment-v1",
+      "path": "conformance/v1/quality/rigid-attachment-v1.json",
+      "sha256": "570add4a6e74539f46513a5baa8168bd2b81dd2ef95ff2a7f6bbb407f3afd108",
+      "canonical_scene": "ConstraintHinge.glb",
+      "canonical_scene_sha256": "db5447b00a33d29990e2f0d441d154c0509dee99689fc940261c1c92c2fe2a20",
+      "oracle": "authored local frames transformed from public rigid and constraint output",
+      "units": {
+        "anchor_error": "metres",
+        "axis_error": "unit-vector distance",
+        "sideways_drift": "metres",
+        "travel": "metres"
+      },
+      "retained_thresholds": {
+        "maximum_hinge_anchor_error_m": 0.002,
+        "maximum_hinge_axis_error": 0.014,
+        "maximum_slider_sideways_drift_m": 0.002,
+        "maximum_slider_axis_error": 0.001,
+        "minimum_slider_travel_m": 0.01,
+        "maximum_slider_travel_m": 1.0,
+        "constraints_enabled": true,
+        "constraints_unbroken": true
+      }
+    }
+  },
+  "qualification_obligations": {
+    "path": "conformance/v1/qualification/capability-obligations-v1.json",
+    "sha256": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
+    "rigid_contact": {
+      "execution": "case:rigid-direct",
+      "reference_regression": "case:rigid-direct",
+      "lifecycle_invariants": "case:rigid-direct",
+      "analytic_invariants": "quality:rigid-brick-penetration-v1"
+    },
+    "rigid_attachment": {
+      "execution": "case:compound-weld-lifecycle",
+      "reference_regression": "case:compound-weld-lifecycle",
+      "lifecycle_invariants": "case:compound-weld-lifecycle",
+      "analytic_invariants": "quality:rigid-attachment-v1"
+    }
+  },
+  "drivers": {
+    "slang_cuda": {
+      "provenance": {
+        "api_version": 8192,
+        "device_id": 0,
+        "device_name": "NVIDIA GeForce GTX 1080",
+        "driver_version": 13000,
+        "host_compiler": "MSVC",
+        "source_commit": "c17d73f48812fe98277abdcac0bd7c256ec385af",
+        "vendor_id": 4318
+      },
+      "runner_sha256": "a2120292f46e13a1d56222488639d6b90421bcbe351f75f1c8d30832d15740f6",
+      "driver_binary_sha256": "9be659dacc9647fc393f43ae980efe54afbcdf5da513f9f88eeb08d612a82d7e",
+      "validation_layer_sha256": "ab9f48a9cf95d36106ed1e9809c2d9a1630a0ae9950f292c63d1b3021072232a",
+      "contact": {
+        "result": "docs/roadmap/evidence/F5-22-rigid-c17d73f-cuda-contact.json",
+        "result_sha256": "e676366da2b0e5af72c2269549c32fefe9693cb030e915fd990c2bda78ffe24d",
+        "report": "docs/roadmap/evidence/F5-22-rigid-c17d73f-cuda-contact-report.json",
+        "report_sha256": "be9c459c2abc35bf8613ffbba001d846de5cef52c6d0fa3a69b1f1ed121f06f4",
+        "maximum_penetration_m": 0.00028187036514282227,
+        "maximum_penetration_frame": 227,
+        "passed": true
+      },
+      "attachment": {
+        "result": "docs/roadmap/evidence/F5-22-rigid-c17d73f-cuda-attachment.json",
+        "result_sha256": "6212d4d744a38d33d480f9a3ca8fff2502322825c5f60afafc6512e378f578c8",
+        "report": "docs/roadmap/evidence/F5-22-rigid-c17d73f-cuda-attachment-report.json",
+        "report_sha256": "49dd655019f987688e31f59ffd37468f2e2fa619a470bd5ddc4049b5477a276a",
+        "maximum_hinge_anchor_error_m": 4.9151338998854044e-7,
+        "maximum_hinge_axis_error": 2.9219891075626947e-6,
+        "maximum_slider_axis_error": 2.4277919692394789e-6,
+        "maximum_slider_sideways_drift_m": 1.4592307707061991e-5,
+        "maximum_slider_travel_m": 0.23598670959472656,
+        "constraints_enabled": true,
+        "constraints_unbroken": true,
+        "passed": true
+      }
+    },
+    "slang_cpu": {
+      "provenance": {
+        "api_version": 8192,
+        "device_id": 0,
+        "device_name": "Parallel Mater Slang CPU (Slang CPU reference)",
+        "driver_version": 202618,
+        "host_compiler": "13.3.0",
+        "source_commit": "c17d73f48812fe98277abdcac0bd7c256ec385af",
+        "vendor_id": 0
+      },
+      "runner_sha256": "5399e546c1ac28e27bdc6722f8024437525faeee77fa6bffeed94cf2a0103f4c",
+      "driver_binary_sha256": "9c227c181bcd0dea5ab334d285ced7c0d0718455cb3561b60d87757eaafb7e0c",
+      "validation_layer_sha256": "55e9e20093573cfac65b1abadfeaff93a4248c5f69f103fb734ba548cfc46858",
+      "contact": {
+        "result": "docs/roadmap/evidence/F5-22-rigid-c17d73f-cpu-contact.json",
+        "result_sha256": "943740104c366b2462c26dcf5149e1aed3a7120d76072318d2884987e5761287",
+        "report": "docs/roadmap/evidence/F5-22-rigid-c17d73f-cpu-contact-report.json",
+        "report_sha256": "301cb9001fe1cfc8593009e6c636720f6ddb973df8657a2ae50b2d6ae19c2f12",
+        "maximum_penetration_m": 0.00020511448383331299,
+        "maximum_penetration_frame": 220,
+        "passed": true
+      },
+      "attachment": {
+        "result": "docs/roadmap/evidence/F5-22-rigid-c17d73f-cpu-attachment.json",
+        "result_sha256": "44c2a2921ca2dcb26b1a8d15ca382cd0f6fd85407aef2fa8d30812b858e118c9",
+        "report": "docs/roadmap/evidence/F5-22-rigid-c17d73f-cpu-attachment-report.json",
+        "report_sha256": "afd1eac87f5c08ab64b69f35f7206fe59348bbc98cab61660c98457641c797a3",
+        "maximum_hinge_anchor_error_m": 4.9151338998854044e-7,
+        "maximum_hinge_axis_error": 2.9201007691881387e-6,
+        "maximum_slider_axis_error": 1.9626584162324434e-6,
+        "maximum_slider_sideways_drift_m": 1.4402139640878886e-5,
+        "maximum_slider_travel_m": 0.23600912094116211,
+        "constraints_enabled": true,
+        "constraints_unbroken": true,
+        "passed": true
+      }
+    }
+  },
+  "trajectory_and_lifecycle_checks": {
+    "slang_cuda": {
+      "rigid_direct": {
+        "actual_sha256": "44d6f904f7d8a1e76af035a0af582d8d90d438afbaa60c3730e34d9fb95d819f",
+        "report_sha256": "267d878ad51ef9599e67a46c36ed5d48510dc10e5add0decdb332152c4780a97",
+        "passed": true
+      },
+      "compound_weld_lifecycle": {
+        "actual_sha256": "305212d2f96ef7806da52664001962e02732b21093621b919e2f3fb4255c728a",
+        "report_sha256": "77c46c4eac84bf50b8200a062571cf85b0a19a5c46712d4523293824969e68f0",
+        "passed": true
+      }
+    },
+    "slang_cpu": {
+      "rigid_direct": {
+        "actual_sha256": "0d7a7dfcfdd40860d36fc43e1e57bea1baeee866509fc59d446f3429e4c3b72c",
+        "report_sha256": "267d878ad51ef9599e67a46c36ed5d48510dc10e5add0decdb332152c4780a97",
+        "passed": true
+      },
+      "compound_weld_lifecycle": {
+        "actual_sha256": "90704fff6a3d6c3e6da18207e8f171232a6100683f35d56467937f948e91fdba",
+        "report_sha256": "77c46c4eac84bf50b8200a062571cf85b0a19a5c46712d4523293824969e68f0",
+        "passed": true
+      }
+    }
+  },
+  "validation": {
+    "clean_source_capture": true,
+    "quality_profiles": "Slang CUDA and Slang CPU each passed contact 1/1 and attachment 5/5 samples",
+    "trajectory_reference": "rigid-direct passed against the CUDA golden on Slang CUDA and Slang CPU",
+    "attachment_lifecycle_reference": "compound-weld-lifecycle passed against the CUDA golden on Slang CUDA and Slang CPU",
+    "python_conformance_tests": "79/79 passed",
+    "evidence_index_check": "passed; 10 reports indexed",
+    "roadmap_check": "passed; 174 task cards",
+    "input_manifest_check": "passed"
+  },
+  "reproduction": [
+    "Configure and build parallel-mater-conformance plus slang-cuda on Windows with PARALLEL_MATER_SOURCE_REVISION=c17d73f48812fe98277abdcac0bd7c256ec385af.",
+    "Configure and build parallel-mater-conformance plus slang-cpu in Ubuntu 24.04 with the same PARALLEL_MATER_SOURCE_REVISION.",
+    "Set PM_DRIVER_FILES and PM_LAYER_FILES to the selected driver and validation manifests.",
+    "parallel-mater-conformance --quality rigid-brick-penetration-v1 --output <quality-output>",
+    "parallel-mater-conformance --quality rigid-attachment-v1 --output <quality-output>",
+    "python conformance/v1/quality.py --profile conformance/v1/quality/<profile>.json --actual <quality-output>/<profile>.json --report <report>",
+    "parallel-mater-conformance --case rigid-direct --output <case-output>",
+    "parallel-mater-conformance --case compound-weld-lifecycle --output <case-output>",
+    "python conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <case-output> --case <case> --report <report>"
+  ],
+  "limitations": [
+    "Analytic profile success does not replace the separate execution, reference-regression, and lifecycle obligations recorded for each rigid capability.",
+    "This evidence qualifies only the captured Slang CPU and physical GTX 1080 Slang CUDA executions; it makes no claim for another driver or device.",
+    "The CPU and CUDA measurements are independently thresholded. Cross-driver numerical equality is not a qualification requirement."
+  ]
+}

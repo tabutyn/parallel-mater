@@ -19,6 +19,7 @@ sys.modules[SPEC.name] = quality
 SPEC.loader.exec_module(quality)
 PROFILE_PATH = ROOT / "quality" / "core-conservation-v1.json"
 BRICK_PROFILE_PATH = ROOT / "quality" / "rigid-brick-penetration-v1.json"
+ATTACHMENT_PROFILE_PATH = ROOT / "quality" / "rigid-attachment-v1.json"
 SWEEP_PROFILE_PATH = ROOT / "quality" / "rigid-kinematic-sweep-v1.json"
 
 
@@ -284,6 +285,85 @@ class RigidPenetrationQualityTests(unittest.TestCase):
 
         result = self.valid_result()
         result["fixture"]["maximum_penetration_m"] = float("nan")
+        self.assert_rejected(result, "expected a finite number")
+
+
+class RigidAttachmentQualityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.profile = json.loads(
+            ATTACHMENT_PROFILE_PATH.read_text(encoding="utf-8"))
+        cls.digest = quality.profile_sha256(ATTACHMENT_PROFILE_PATH)
+
+    def valid_result(self) -> dict:
+        fixture = copy.deepcopy(self.profile["fixture"])
+        fixture.update({
+            "maximum_hinge_anchor_error_m": 0.00001,
+            "maximum_hinge_axis_error": 0.00002,
+            "maximum_slider_sideways_drift_m": 0.00003,
+            "maximum_slider_axis_error": 0.00004,
+            "maximum_slider_travel_m": 0.25,
+            "constraints_enabled": True,
+            "constraints_unbroken": True,
+        })
+        return {
+            "schema": quality.RESULT_SCHEMA,
+            "profile_id": self.profile["id"],
+            "profile_sha256": self.digest,
+            "execution_status": "completed",
+            "driver": {"name": "test-driver", "device": "test-device"},
+            "fixture": fixture,
+        }
+
+    def evaluate(self, result: dict) -> dict:
+        return quality.evaluate(self.profile, result, self.digest)
+
+    def assert_rejected(self, result: dict, message: str) -> None:
+        report = self.evaluate(result)
+        self.assertFalse(report["passed"])
+        self.assertTrue(any(message in failure["message"]
+                            for failure in report["failures"]), report)
+
+    def test_public_state_attachment_measurements_pass(self):
+        report = self.evaluate(self.valid_result())
+        self.assertTrue(report["passed"], report)
+        self.assertEqual(report["fixture_count"], 1)
+        self.assertEqual(report["sample_count"], 5)
+
+    def test_each_existing_attachment_limit_is_enforced(self):
+        for field in ("maximum_hinge_anchor_error_m",
+                      "maximum_hinge_axis_error",
+                      "maximum_slider_sideways_drift_m",
+                      "maximum_slider_axis_error",
+                      "maximum_slider_travel_m"):
+            with self.subTest(field=field):
+                result = self.valid_result()
+                result["fixture"][field] = self.profile["tolerances"][field]
+                self.assert_rejected(result, "reaches or exceeds profile")
+
+        result = self.valid_result()
+        result["fixture"]["maximum_slider_travel_m"] = 0.01
+        self.assert_rejected(result, "does not exceed profile minimum")
+
+    def test_fixture_identity_and_constraint_state_are_required(self):
+        result = self.valid_result()
+        result["fixture"]["scene_sha256"] = "0" * 64
+        self.assert_rejected(result, "fixture setting does not match profile")
+
+        for field in ("constraints_enabled", "constraints_unbroken"):
+            with self.subTest(field=field):
+                result = self.valid_result()
+                result["fixture"][field] = False
+                self.assert_rejected(result,
+                                     "all authored constraints must remain active")
+
+    def test_failed_or_nonfinite_measurement_cannot_pass(self):
+        result = self.valid_result()
+        result["execution_status"] = "failed"
+        self.assert_rejected(result, "must be completed")
+
+        result = self.valid_result()
+        result["fixture"]["maximum_hinge_axis_error"] = float("nan")
         self.assert_rejected(result, "expected a finite number")
 
 

@@ -6,6 +6,7 @@ endif()
 
 add_library(parallel-mater-conformance-runner STATIC
     conformance/v1/src/command_runner.cpp
+    conformance/v1/src/rigid_quality.cpp
     conformance/v1/src/lifecycle_fixtures.cpp
     conformance/v1/src/capacity_recovery_fixture.cpp
     conformance/v1/src/interaction_graph_lifecycle_fixture.cpp
@@ -25,8 +26,6 @@ if(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION)
         tests/api/fluid_pair_quality_tests.cpp)
     target_compile_definitions(parallel-mater-conformance-runner PRIVATE
         PM_QUALITY_PROFILE_SHA256="a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326")
-    target_include_directories(parallel-mater-conformance-runner PRIVATE
-        examples/support/include)
 endif()
 parallel_mater_enable_warnings(parallel-mater-conformance-runner)
 

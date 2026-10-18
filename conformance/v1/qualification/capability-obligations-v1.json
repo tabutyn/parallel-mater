@@ -44,6 +44,8 @@
     {"id": "case:smoke-soft-body", "path": "conformance/v1/cases/smoke-soft-body.json", "sha256": "a3566fe480be274b850d10f10b88ee4f3ea22e59d5cae5ccf9a652fa7d6b9cb8"},
     {"id": "case:soft-body-rigid", "path": "conformance/v1/cases/soft-body-rigid.json", "sha256": "ab0e5f813b9953fd80f278842cab75e8e53d54f6f790e31e7572eb9e2e043505"},
     {"id": "case:smoke-rope", "path": "conformance/v1/cases/smoke-rope.json", "sha256": "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7"},
+    {"id": "quality:rigid-brick-penetration-v1", "path": "conformance/v1/quality/rigid-brick-penetration-v1.json", "sha256": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da"},
+    {"id": "quality:rigid-attachment-v1", "path": "conformance/v1/quality/rigid-attachment-v1.json", "sha256": "570add4a6e74539f46513a5baa8168bd2b81dd2ef95ff2a7f6bbb407f3afd108"},
     {"id": "quality:core-conservation-stability-v1#equal-material-pressure-contact", "path": "conformance/v1/quality/core-conservation-v1.json", "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"},
     {"id": "quality:core-conservation-stability-v1#equal-material-viscosity", "path": "conformance/v1/quality/core-conservation-v1.json", "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"},
     {"id": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery", "path": "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json", "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"},
@@ -95,15 +97,21 @@
       "id": "rigid-contact",
       "match": {"first_family": ["RIGID_BODY"], "second_family": ["RIGID_BODY"], "scope": ["SAME_DOMAIN"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:rigid-direct",
-      "required": {"lifecycle_invariants": ["case:rigid-direct"]},
-      "missing": {"analytic_invariants": "The rigid penetration fixture is not yet a versioned vendor-neutral profile."}
+      "required": {
+        "lifecycle_invariants": ["case:rigid-direct"],
+        "analytic_invariants": ["quality:rigid-brick-penetration-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "rigid-attachment",
       "match": {"first_family": ["RIGID_BODY"], "second_family": ["RIGID_BODY"], "scope": ["SAME_DOMAIN"], "mode": ["ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:compound-weld-lifecycle",
-      "required": {"lifecycle_invariants": ["case:compound-weld-lifecycle"]},
-      "missing": {"analytic_invariants": "No vendor-neutral rigid attachment quality case is registered."}
+      "required": {
+        "lifecycle_invariants": ["case:compound-weld-lifecycle"],
+        "analytic_invariants": ["quality:rigid-attachment-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "fluid-cloth",
