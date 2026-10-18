@@ -1,5 +1,23 @@
 # Device-adaptive gallery scenes
 
+## Memory admission
+
+The shared device-profile code consumes the complete `PmMemoryBudget` snapshot
+immediately before each desktop brick-workload decision. It rejects a missing,
+unknown, malformed or internally inconsistent snapshot. For a usable snapshot,
+the policy selects the largest known heap headroom, subtracts all reported
+borrowed-buffer bytes with saturation, and admits at most 70% of the remainder.
+The unused 30% is reserved for driver-private allocations and budget movement
+after the query. Confidence values retain their provenance; estimates and
+driver/OS reports do not imply a quality ordering or a reservation guarantee.
+
+The policy is deliberately stateless. Budgets are live observations, so each
+scene decision is made from a new query: a falling budget immediately reduces
+admission and a later recovery is evaluated from the new snapshot, never from a
+cached byte count. Platform-neutral tests supply fake snapshots for unknown,
+estimated, borrowed, changing and invalid resource states; no device-specific
+shader tuning participates in admission.
+
 Android additionally consumes the catalog's `startup_limits` records for brick,
 fluid/smoke particle, coupled-body, dump-sphere and render budgets. These are explicit,
 unmeasured limits, separate from benchmark recommendations and verified profiles.

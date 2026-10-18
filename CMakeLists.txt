@@ -1265,6 +1265,7 @@ if(BUILD_TESTING)
     target_include_directories(parallel-mater-gallery-workload-tests PRIVATE include examples/support/include)
     target_compile_definitions(parallel-mater-gallery-workload-tests PRIVATE
         PM_PROFILE_CATALOG="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json")
+    parallel_mater_enable_warnings(parallel-mater-gallery-workload-tests)
     add_test(NAME parallel-mater-gallery-workload-tests COMMAND parallel-mater-gallery-workload-tests)
     if(NOT CMAKE_CROSSCOMPILING AND TARGET parallel-mater-driver-slang-metal AND
        TARGET parallel-mater-gallery-renderer-adapters)

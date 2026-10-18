@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <limits>
 
 #define CHECK(x) do { if (!(x)) { std::cerr << __LINE__ << ": " << #x << '\n'; std::abort(); } } while (false)
 
@@ -31,6 +32,71 @@ int main() {
     catalog.startup_limits.push_back(specific);
     CHECK(select_workload_limits(catalog, "Android", "Pixel 7", "slang-cpu")->fluid_particles == 32);
     CHECK(select_workload_limits(catalog, "Android", "Pixel 7", "vulkan")->fluid_particles == 128);
+
+    // Fake snapshots keep admission policy independent of any specific phone,
+    // GPU API or machine. Unknown values can never be read as usable memory.
+    PmMemoryBudget budget{};
+    budget.heapCount = 1U;
+    budget.budget[0] = 1'000U;
+    budget.usage[0] = 100U;
+    auto admission = assess_workload_admission(budget, 1U);
+    CHECK(!admission.accepted());
+    CHECK(admission.status == WorkloadAdmissionStatus::budget_unknown);
+
+    budget.confidence[0] = PM_MEMORY_BUDGET_CONFIDENCE_IMPLEMENTATION_ESTIMATE;
+    admission = assess_workload_admission(budget, 600U);
+    CHECK(admission.accepted());
+    CHECK(admission.available_bytes == 900U && admission.limit_bytes == 630U);
+    CHECK(admission.confidence ==
+          PM_MEMORY_BUDGET_CONFIDENCE_IMPLEMENTATION_ESTIMATE);
+
+    // Borrowed ranges are not assumed to be included in heap usage. Reserve
+    // all of them, even when that conservative subtraction denies the work.
+    budget.borrowedBufferBytes = 100U;
+    admission = assess_workload_admission(budget, 600U);
+    CHECK(!admission.accepted());
+    CHECK(admission.status == WorkloadAdmissionStatus::insufficient_budget);
+    CHECK(admission.available_bytes == 800U && admission.limit_bytes == 560U);
+    budget.borrowedBufferBytes = 2'000U;
+    admission = assess_workload_admission(budget, 1U);
+    CHECK(!admission.accepted() && admission.available_bytes == 0U);
+
+    // A new live observation replaces the preceding decision. Falling budget
+    // deterministically denies; a later recovery is evaluated from that new
+    // snapshot rather than stale cached headroom.
+    budget.borrowedBufferBytes = 0U;
+    budget.confidence[0] = PM_MEMORY_BUDGET_CONFIDENCE_DRIVER_REPORTED;
+    budget.budget[0] = 1'000U;
+    budget.usage[0] = 100U;
+    CHECK(assess_workload_admission(budget, 500U).accepted());
+    budget.budget[0] = 700U;
+    budget.usage[0] = 100U;
+    CHECK(!assess_workload_admission(budget, 500U).accepted());
+    budget.budget[0] = 1'000U;
+    CHECK(assess_workload_admission(budget, 500U).accepted());
+
+    budget.usage[0] = 1'001U;
+    admission = assess_workload_admission(budget, 1U);
+    CHECK(!admission.accepted());
+    CHECK(admission.status == WorkloadAdmissionStatus::invalid_budget);
+    budget.usage[0] = 0U;
+    budget.confidence[0] = static_cast<PmMemoryBudgetConfidence>(99);
+    CHECK(assess_workload_admission(budget, 1U).status ==
+          WorkloadAdmissionStatus::invalid_budget);
+    budget.heapCount = 17U;
+    CHECK(assess_workload_admission(budget, 1U).status ==
+          WorkloadAdmissionStatus::invalid_budget);
+
+    budget = {};
+    budget.heapCount = 1U;
+    budget.budget[0] = std::numeric_limits<std::uint64_t>::max();
+    budget.confidence[0] = PM_MEMORY_BUDGET_CONFIDENCE_OS_REPORTED;
+    admission = assess_workload_admission(
+        budget, std::numeric_limits<std::uint64_t>::max());
+    CHECK(!admission.accepted());
+    CHECK(admission.limit_bytes ==
+          (std::numeric_limits<std::uint64_t>::max() / 10U) * 7U +
+              ((std::numeric_limits<std::uint64_t>::max() % 10U) * 7U) / 10U);
 
     // Existing verification must not erase the newly added workload records.
     const auto path = std::filesystem::current_path() / "workload-profile-roundtrip.json";

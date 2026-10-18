@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#include <parallel_mater/parallel_mater.h>
+
 #include <array>
 #include <cstdint>
 #include <filesystem>
@@ -111,6 +113,31 @@ struct GalleryWorkloadLimits {
     std::uint32_t target_fps{};
 };
 
+// Memory budgets are live observations, not reservations. Gallery clients
+// must query immediately before each workload decision and pass that snapshot
+// through this shared policy instead of caching a byte count.
+enum class WorkloadAdmissionStatus {
+    admitted,
+    budget_unknown,
+    invalid_budget,
+    insufficient_budget,
+};
+
+struct WorkloadAdmission {
+    WorkloadAdmissionStatus status{WorkloadAdmissionStatus::budget_unknown};
+    PmMemoryBudgetConfidence confidence{PM_MEMORY_BUDGET_CONFIDENCE_UNKNOWN};
+    std::uint64_t required_bytes{};
+    // Headroom after reserving every reported borrowed buffer byte.
+    std::uint64_t available_bytes{};
+    // At most 70% of available_bytes may be admitted. The remainder absorbs
+    // driver-private allocations and changes after the live query.
+    std::uint64_t limit_bytes{};
+
+    [[nodiscard]] constexpr bool accepted() const noexcept {
+        return status == WorkloadAdmissionStatus::admitted;
+    }
+};
+
 struct DeviceProfileCatalog {
     std::uint32_t schema_version{brick_profile_schema_version};
     std::vector<HardwareRecord> hardware{};
@@ -135,6 +162,10 @@ struct CalibrationSample {
                                          std::string &error) noexcept;
 [[nodiscard]] std::uint64_t estimated_rigid_contact_bytes(
     std::uint32_t rigid_body_count) noexcept;
+[[nodiscard]] WorkloadAdmission assess_workload_admission(
+    const PmMemoryBudget &budget, std::uint64_t required_bytes) noexcept;
+[[nodiscard]] const char *workload_admission_message(
+    WorkloadAdmissionStatus status) noexcept;
 [[nodiscard]] const std::array<BrickSceneConfig, 12> &brick_calibration_presets() noexcept;
 [[nodiscard]] CalibrationMetrics summarize_calibration(
     const std::vector<CalibrationSample> &samples, double duration_seconds,
