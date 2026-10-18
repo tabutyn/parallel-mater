@@ -65,6 +65,10 @@ jobs:
       - uses: android-actions/setup-android@v3
         with:
           packages: platform-tools
+      - name: Enable KVM for the phone emulator
+        run: |
+          sudo chown "$USER" /dev/kvm
+          sudo chmod 660 /dev/kvm
       - run: sdkmanager 'platforms;android-36' 'ndk;29.0.14206865' 'cmake;4.1.2'
       - name: Build x86_64 Slang CPU Gallery for UI evidence
         env:

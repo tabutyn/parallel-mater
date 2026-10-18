@@ -31,9 +31,17 @@ class Device:
         return result.stdout
 
     def hierarchy(self):
-        self.run("shell", "uiautomator", "dump", "/sdcard/pm-gallery-window.xml")
-        return ET.fromstring(self.run(
-            "exec-out", "cat", "/sdcard/pm-gallery-window.xml"))
+        dump = self.run("shell", "uiautomator", "dump", "--compressed",
+                        "/sdcard/pm-gallery-window.xml")
+        raw = self.run("exec-out", "cat", "/sdcard/pm-gallery-window.xml")
+        start = raw.find("<?xml")
+        if start < 0:
+            start = raw.find("<hierarchy")
+        end = raw.rfind("</hierarchy>")
+        if start < 0 or end < start:
+            raise ET.ParseError(
+                "incomplete Android hierarchy; dump output=" + dump.strip()[:200])
+        return ET.fromstring(raw[start:end + len("</hierarchy>")])
 
     @staticmethod
     def matches(node, value):
@@ -43,7 +51,11 @@ class Device:
         deadline = time.monotonic() + self.timeout
         last = None
         while time.monotonic() < deadline:
-            last = self.hierarchy()
+            try:
+                last = self.hierarchy()
+            except (subprocess.CalledProcessError, ET.ParseError):
+                time.sleep(1)
+                continue
             matches = [node for node in last.iter() if self.matches(node, value)]
             if bool(matches) == present:
                 return matches[0] if matches else None, last
