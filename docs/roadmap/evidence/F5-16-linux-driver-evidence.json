@@ -115,7 +115,7 @@
     "qualified_capabilities": 0,
     "report_records": 10,
     "valid": true,
-    "windows_regeneration": "pending pull-request CI"
+    "windows_regeneration": "passed: https://github.com/tabutyn/parallel-mater/actions/runs/39155725639/job/117758435016"
   },
   "limitations": [
     "Formal adverse-lifecycle reports fail because console fixtures still do not emit required checkpoint fingerprints.",
@@ -143,6 +143,7 @@
       "failed": 0,
       "passed": 74
     },
-    "roadmap_check": "passed"
+    "roadmap_check": "passed",
+    "windows_evidence_index_check": "passed: https://github.com/tabutyn/parallel-mater/actions/runs/39155725639/job/117758435016"
   }
 }
