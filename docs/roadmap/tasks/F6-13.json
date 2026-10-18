@@ -1,0 +1,23 @@
+{
+  "id": "F6-13",
+  "title": "Package the conformance runner source closure",
+  "status": "open",
+  "dependencies": [
+    "F6-12"
+  ],
+  "locks": [
+    "conformance-runner-packaging"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Remove repository-test source dependencies from the conformance component so its declared source tree can configure and build solely against a relocated installed SDK.",
+  "acceptance": [
+    "The conformance component has an explicit self-contained source closure with no parent-relative dependency on tests/api or other unshipped repository internals.",
+    "A contract test rejects future source references that escape the copied conformance component.",
+    "The full SDK install checker passes configure, build, corpus input, installed-runner, unsupported-case and missing-driver checks after relocating a clean install."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
