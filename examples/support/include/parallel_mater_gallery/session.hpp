@@ -119,6 +119,10 @@ public:
     [[nodiscard]] const CommandSceneFrame &output() const noexcept {
         return runtime_.frame;
     }
+    [[nodiscard]] const PhysicsDebugHistory &physics_history() const noexcept {
+        return runtime_.capture_history;
+    }
+    [[nodiscard]] PhysicsCaptureProvenance physics_capture_provenance() const;
     CameraController &camera() noexcept { return runtime_.camera; }
     const CameraController &camera() const noexcept { return runtime_.camera; }
     bool ready() const { return runtime_.ready(); }

@@ -209,8 +209,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F6-07](roadmap/tasks/F6-07.json) | Reconcile legacy hinge and contact patches | done | — | — |
 | [F6-08](roadmap/tasks/F6-08.json) | Retire reconciled old worktrees | waiting on dependencies | F6-06, F6-07, F6-09, F6-10, F6-11 | — |
 | [F6-09](roadmap/tasks/F6-09.json) | Qualify the retained hinge fixture candidate | done | F6-07 | — |
-| [F6-10](roadmap/tasks/F6-10.json) | Productize physics capture and substep replay | leased | F6-07 | codex-linux-replay / thomas-laptop / 2026-10-19T17:58:22Z |
-| [F6-11](roadmap/tasks/F6-11.json) | Adjudicate the retained rigid contact patch | waiting on dependencies | F6-09, F6-10 | — |
+| [F6-10](roadmap/tasks/F6-10.json) | Productize physics capture and substep replay | done | F6-07 | — |
+| [F6-11](roadmap/tasks/F6-11.json) | Adjudicate the retained rigid contact patch | ready | F6-09, F6-10 | — |
 | [F6-99](roadmap/tasks/F6-99.json) | Review F6 exit evidence | waiting on dependencies | F6-01, F6-02, F6-03, F6-04, F6-05, F6-06, F6-07, F6-08, F6-09, F6-10, F6-11 | — |
 
 ### F7. Shared Gallery application

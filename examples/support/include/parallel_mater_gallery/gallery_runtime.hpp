@@ -6,6 +6,7 @@
 #include <parallel_mater_gallery/dump_truck.hpp>
 #include <parallel_mater_gallery/fixed_collector.hpp>
 #include <parallel_mater_gallery/gallery_context.hpp>
+#include <parallel_mater_gallery/physics_debug.hpp>
 #include <parallel_mater_gallery/renderer_adapter.hpp>
 #include <parallel_mater_gallery/render_scene.hpp>
 #include <parallel_mater_gallery/scene.hpp>
@@ -83,6 +84,7 @@ struct GalleryRuntimeCreateInfo {
     std::filesystem::path asset;
     std::optional<PmNativeBackend> backend;
     std::uint32_t debug_frame_capacity{};
+    std::size_t capture_history_capacity{};
     std::uint32_t width{1U};
     std::uint32_t height{1U};
     bool create_host_renderer{true};
@@ -133,6 +135,7 @@ class GalleryRuntime {
     CommandScene simulation{};
     CommandSceneInstance instance{};
     CommandSceneFrame frame{};
+    PhysicsDebugHistory capture_history{};
     RenderSceneFrame render_frame{};
     RendererHandle renderer{};
     std::unique_ptr<GpuGalleryRenderer> native_renderer{};
