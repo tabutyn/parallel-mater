@@ -4,8 +4,15 @@ import argparse
 import json
 import pathlib
 import subprocess
+import sys
 import time
 import uuid
+
+SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from mobile_gallery_report import validate_mobile_gallery_report  # noqa: E402
 
 
 def main():
@@ -43,14 +50,8 @@ def main():
     report = wait("qualification.json", lambda r: r.get("completed"), args.timeout)
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / "qualification.json").write_text(json.dumps(report, indent=2) + "\n")
+    supported, unsupported = validate_mobile_gallery_report(report, nonce=nonce)
     scenes = report["scenes"]
-    if len(scenes) != 28:
-        raise RuntimeError("Shared scene catalog is incomplete; see qualification.json")
-    supported = [scene for scene in scenes if scene.get("available")]
-    unsupported = [scene for scene in scenes if not scene.get("available")]
-    if (not supported or not all(scene.get("passed") for scene in supported) or
-            not all(scene.get("skipped") and scene.get("reason") for scene in unsupported)):
-        raise RuntimeError("Scene checks failed; see qualification.json")
     before = wait("runtime-info.json", lambda r: r["active"])
     adb("shell", "input", "keyevent", "KEYCODE_HOME")
     background = wait("runtime-info.json", lambda r: not r["active"] and r["backgrounds"] > before["backgrounds"])

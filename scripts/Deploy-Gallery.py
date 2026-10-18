@@ -6,9 +6,16 @@ import json
 import pathlib
 import plistlib
 import subprocess
+import sys
 import tempfile
 import time
 import uuid
+
+SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from mobile_gallery_report import validate_mobile_gallery_report  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BUNDLE = "com.ballrollergames.parallelmater.gallery"
@@ -227,14 +234,7 @@ def main():
                                      health=lambda: assert_process_running(args.device, runtime["pid"], directory),
                                      save=args.output / "ipad-qualification.json")
                 (args.output / "ipad-qualification.json").write_text(json.dumps(report, indent=2) + "\n")
-                scenes = report["scenes"]
-                supported = [scene for scene in scenes if scene.get("available")]
-                unavailable = [scene for scene in scenes if not scene.get("available")]
-                if (len(scenes) != 28 or not supported or
-                    not all(scene.get("passed") for scene in supported) or
-                    not all(scene.get("skipped") and scene.get("reason")
-                            for scene in unavailable)):
-                    raise RuntimeError("iPad scene qualification failed; see saved report")
+                validate_mobile_gallery_report(report, nonce=nonce)
                 # Exercise the OS lifecycle, separately from session-only checks.
                 run("xcrun", "devicectl", "device", "process", "launch", "--device", args.device, "com.apple.Preferences")
                 background = wait_report(args.device, "runtime-info.json", nonce, directory,
