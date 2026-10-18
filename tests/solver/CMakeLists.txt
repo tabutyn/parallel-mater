@@ -30,6 +30,12 @@ target_include_directories(parallel-mater-compute-handoff-contract-tests PRIVATE
 add_test(NAME parallel-mater-compute-handoff-contract-tests
     COMMAND parallel-mater-compute-handoff-contract-tests)
 
+add_executable(parallel-mater-engine-handoff-mock-tests engine_handoff_mock_tests.cpp)
+target_compile_features(parallel-mater-engine-handoff-mock-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-engine-handoff-mock-tests PRIVATE ../../src)
+add_test(NAME parallel-mater-engine-handoff-mock-tests
+    COMMAND parallel-mater-engine-handoff-mock-tests)
+
 if(APPLE)
     add_executable(parallel-mater-metal-schedule-recovery-tests
         metal_schedule_recovery_tests.cpp ../../src/driver/metal/schedule_context.cpp)
