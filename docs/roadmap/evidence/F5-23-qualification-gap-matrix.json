@@ -1,0 +1,1505 @@
+{
+  "capability_key_fields": [
+    "first_family",
+    "second_family",
+    "scope",
+    "mode",
+    "direction",
+    "material_profile"
+  ],
+  "decision_basis": {
+    "advertisement_correction": {
+      "all_unique_tuples_have_a_passing_execution_record": true,
+      "current_failed_execution_occurrences": 11,
+      "failed_occurrence_driver": "slang-cuda",
+      "failed_occurrence_report": "windows-gtx1080-slang-cuda-2b04e55",
+      "resolution": "Preserve the failed evidence. Each leaf must remove the exact driver advertisement if fresh bounded qualification cannot demonstrate the behavior."
+    },
+    "existing_contract_binding": "Every selected scope is explicitly missing_contract with no bound contract; execution and reference records are not analytic or lifecycle contracts."
+  },
+  "gaps": {
+    "CLOTH/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-44"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-d3d12",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55",
+        "windows-gtx1080-slang-d3d12-2b04e55"
+      ],
+      "physical_behavior": "Cloth and rigid geometry prevent overlap and exchange reciprocal normal response without hidden attachment.",
+      "rule_id": "cloth-rigid"
+    },
+    "CLOTH/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "ATTACHMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-41"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "The declared cloth-rope attachment maintains its positional relationship with bounded drift and reciprocal constraint reaction.",
+      "rule_id": "cloth-rope"
+    },
+    "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID": {
+      "capability": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-42"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Cloth redirects particle and grid smoke at the declared surface without applying an unadvertised reverse mechanical response.",
+      "rule_id": "cloth-smoke-grid"
+    },
+    "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE": {
+      "capability": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-42"
+      },
+      "missing_scopes": [
+        "analytic_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Cloth redirects particle and grid smoke at the declared surface without applying an unadvertised reverse mechanical response.",
+      "rule_id": "cloth-smoke-particle"
+    },
+    "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID": {
+      "capability": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-43"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Particle and grid smoke flow applies bounded velocity-dependent one-way loading to cloth without requiring contact.",
+      "rule_id": "cloth-smoke-grid"
+    },
+    "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE": {
+      "capability": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-43"
+      },
+      "missing_scopes": [
+        "analytic_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Particle and grid smoke flow applies bounded velocity-dependent one-way loading to cloth without requiring contact.",
+      "rule_id": "cloth-smoke-particle"
+    },
+    "CLOTH/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SOFT_BODY"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-40"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Cloth and a bound soft-body surface prevent overlap with reciprocal impulse and no hidden attachment or mass duplication.",
+      "rule_id": "cloth-soft-body"
+    },
+    "FLUID/CLOTH/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "CLOTH"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-31"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-d3d12",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55",
+        "windows-gtx1080-slang-d3d12-2b04e55"
+      ],
+      "physical_behavior": "Fluid and cloth prevent overlap at the declared contact distance and apply reciprocal normal response without implying containment.",
+      "rule_id": "fluid-cloth"
+    },
+    "FLUID/CLOTH/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTAINMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "CLOTH"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-32"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-d3d12",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55",
+        "windows-gtx1080-slang-d3d12-2b04e55"
+      ],
+      "physical_behavior": "A consistently oriented closed cloth boundary retains fluid with bounded leakage and penetration and reports reciprocal reaction.",
+      "rule_id": "fluid-cloth"
+    },
+    "FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "SELF",
+        "second_family": "FLUID"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-25"
+      },
+      "missing_scopes": [
+        "analytic_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-d3d12",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55",
+        "windows-gtx1080-slang-d3d12-2b04e55"
+      ],
+      "physical_behavior": "Fluid particles enforce their declared exclusion distance without creating an ownership seam or net internal impulse.",
+      "rule_id": "fluid-self"
+    },
+    "FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "PRESSURE",
+        "scope": "SELF",
+        "second_family": "FLUID"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-26"
+      },
+      "missing_scopes": [
+        "analytic_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-d3d12",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55",
+        "windows-gtx1080-slang-d3d12-2b04e55"
+      ],
+      "physical_behavior": "Internal fluid pressure moves density toward the material rest state while keeping net internal linear impulse bounded.",
+      "rule_id": "fluid-self"
+    },
+    "FLUID/FLUID/SELF/VISCOSITY/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "VISCOSITY",
+        "scope": "SELF",
+        "second_family": "FLUID"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-27"
+      },
+      "missing_scopes": [
+        "analytic_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-d3d12",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55",
+        "windows-gtx1080-slang-d3d12-2b04e55"
+      ],
+      "physical_behavior": "Internal fluid viscosity dissipates relative motion without increasing kinetic energy or producing net internal impulse.",
+      "rule_id": "fluid-self"
+    },
+    "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-38"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-d3d12",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55",
+        "windows-gtx1080-slang-d3d12-2b04e55"
+      ],
+      "physical_behavior": "Fluid and rigid geometry prevent overlap and exchange reciprocal normal response without claiming closed-volume retention.",
+      "rule_id": "fluid-rigid"
+    },
+    "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTAINMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-39"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-d3d12",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55",
+        "windows-gtx1080-slang-d3d12-2b04e55"
+      ],
+      "physical_behavior": "Closed rigid geometry retains fluid with bounded leakage and penetration and exposes the reciprocal boundary reaction.",
+      "rule_id": "fluid-rigid"
+    },
+    "FLUID/ROPE/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-34"
+      },
+      "missing_scopes": [
+        "analytic_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Fluid and rope prevent overlap at their declared radii and exchange reciprocal normal response without hidden attachment.",
+      "rule_id": "fluid-rope"
+    },
+    "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID": {
+      "capability": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-35"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Smoke flow applies a velocity-dependent one-way force to fluid without requiring contact or adding an unadvertised reverse force.",
+      "rule_id": "fluid-smoke"
+    },
+    "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE": {
+      "capability": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-35"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Smoke flow applies a velocity-dependent one-way force to fluid without requiring contact or adding an unadvertised reverse force.",
+      "rule_id": "fluid-smoke"
+    },
+    "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_GRID": {
+      "capability": {
+        "direction": "FIRST_TO_SECOND_TRANSFER",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_GRID",
+        "mode": "PHASE",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-37"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Fluid particles are consumed and smoke is emitted with bounded mass, momentum, energy, identity and capacity accounting.",
+      "rule_id": "fluid-smoke"
+    },
+    "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_PARTICLE": {
+      "capability": {
+        "direction": "FIRST_TO_SECOND_TRANSFER",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "PHASE",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-37"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Fluid particles are consumed and smoke is emitted with bounded mass, momentum, energy, identity and capacity accounting.",
+      "rule_id": "fluid-smoke"
+    },
+    "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_GRID": {
+      "capability": {
+        "direction": "EXTERNAL_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_GRID",
+        "mode": "THERMAL",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-36"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "The external heater changes fluid sensible energy with bounded accounting while retaining both fluid and smoke endpoints.",
+      "rule_id": "fluid-smoke"
+    },
+    "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_PARTICLE": {
+      "capability": {
+        "direction": "EXTERNAL_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "THERMAL",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-36"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "The external heater changes fluid sensible energy with bounded accounting while retaining both fluid and smoke endpoints.",
+      "rule_id": "fluid-smoke"
+    },
+    "FLUID/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SOFT_BODY"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-33"
+      },
+      "missing_scopes": [
+        "analytic_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Fluid and a bound soft-body surface prevent overlap and exchange reciprocal contact impulse without multiplying bound-node mass.",
+      "rule_id": "fluid-soft-body"
+    },
+    "ROPE/RIGID_BODY/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "ROPE",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "ATTACHMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-53"
+      },
+      "missing_scopes": [
+        "analytic_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "The declared rope-rigid attachment maintains its endpoint relationship with bounded drift and reciprocal constraint reaction.",
+      "rule_id": "rope-rigid"
+    },
+    "ROPE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "ROPE",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-52"
+      },
+      "missing_scopes": [
+        "analytic_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Rope and rigid geometry prevent overlap at the declared radius and exchange reciprocal normal response without hidden attachment.",
+      "rule_id": "rope-rigid"
+    },
+    "ROPE/ROPE/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "ROPE",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "SELF",
+        "second_family": "ROPE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-28"
+      },
+      "missing_scopes": [
+        "analytic_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Nonadjacent sampled rope nodes remain separated by the declared radius while documented topology neighbors stay excluded.",
+      "rule_id": "rope-self"
+    },
+    "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID": {
+      "capability": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "ROPE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-50"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Rope redirects particle and grid smoke at its declared radius without applying an unadvertised reverse mechanical response.",
+      "rule_id": "rope-smoke"
+    },
+    "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE": {
+      "capability": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "ROPE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-50"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Rope redirects particle and grid smoke at its declared radius without applying an unadvertised reverse mechanical response.",
+      "rule_id": "rope-smoke"
+    },
+    "ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID": {
+      "capability": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "ROPE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-51"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Particle and grid smoke flow applies bounded velocity-dependent one-way loading to rope without requiring contact.",
+      "rule_id": "rope-smoke"
+    },
+    "ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE": {
+      "capability": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "ROPE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-51"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Particle and grid smoke flow applies bounded velocity-dependent one-way loading to rope without requiring contact.",
+      "rule_id": "rope-smoke"
+    },
+    "SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/SMOKE_GRID": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-54"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Particle and grid smoke remain separated from rigid geometry with reciprocal normal response at the declared contact distance.",
+      "rule_id": "smoke-rigid"
+    },
+    "SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/SMOKE_PARTICLE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-54"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Particle and grid smoke remain separated from rigid geometry with reciprocal normal response at the declared contact distance.",
+      "rule_id": "smoke-rigid"
+    },
+    "SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL/SMOKE_GRID": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-55"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Particle and grid smoke exchange bounded velocity-dependent force with rigid bodies without requiring contact.",
+      "rule_id": "smoke-rigid"
+    },
+    "SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL/SMOKE_PARTICLE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-55"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Particle and grid smoke exchange bounded velocity-dependent force with rigid bodies without requiring contact.",
+      "rule_id": "smoke-rigid"
+    },
+    "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_GRID": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "PRESSURE",
+        "scope": "SELF",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-29"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Particle and grid smoke pressure responses remain bounded, representation-specific and free of unexplained net internal impulse.",
+      "rule_id": "smoke-self"
+    },
+    "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_PARTICLE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "PRESSURE",
+        "scope": "SELF",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-29"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Particle and grid smoke pressure responses remain bounded, representation-specific and free of unexplained net internal impulse.",
+      "rule_id": "smoke-self"
+    },
+    "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "VISCOSITY",
+        "scope": "SELF",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-30"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Particle and grid smoke viscosity dissipates relative motion without numerical energy growth or unexplained net internal impulse.",
+      "rule_id": "smoke-self"
+    },
+    "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_PARTICLE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "VISCOSITY",
+        "scope": "SELF",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-30"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Particle and grid smoke viscosity dissipates relative motion without numerical energy growth or unexplained net internal impulse.",
+      "rule_id": "smoke-self"
+    },
+    "SOFT_BODY/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SOFT_BODY",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-49"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "A bound soft-body surface and rigid geometry prevent overlap and exchange reciprocal contact impulse without mass duplication.",
+      "rule_id": "soft-body-rigid"
+    },
+    "SOFT_BODY/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SOFT_BODY",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "ATTACHMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-46"
+      },
+      "missing_scopes": [
+        "analytic_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "The declared soft-body-rope attachment maintains its positional relationship with bounded drift and reciprocal constraint reaction.",
+      "rule_id": "soft-body-rope"
+    },
+    "SOFT_BODY/ROPE/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE": {
+      "capability": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SOFT_BODY",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-45"
+      },
+      "missing_scopes": [
+        "analytic_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "A bound soft-body surface and rope prevent overlap with reciprocal contact impulse and no hidden attachment.",
+      "rule_id": "soft-body-rope"
+    },
+    "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID": {
+      "capability": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-47"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "A bound soft-body surface redirects particle and grid smoke without applying an unadvertised reverse mechanical response.",
+      "rule_id": "soft-body-smoke"
+    },
+    "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE": {
+      "capability": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-47"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "A bound soft-body surface redirects particle and grid smoke without applying an unadvertised reverse mechanical response.",
+      "rule_id": "soft-body-smoke"
+    },
+    "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID": {
+      "capability": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-48"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Particle and grid smoke flow applies bounded velocity-dependent one-way loading to a soft body without requiring contact.",
+      "rule_id": "soft-body-smoke"
+    },
+    "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE": {
+      "capability": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "classification": {
+        "kind": "new_leaf_task",
+        "reason": "No existing exact contract covers analytic_invariants, lifecycle_invariants; execution or reference evidence cannot substitute for that contract.",
+        "task_id": "F5-48"
+      },
+      "missing_scopes": [
+        "analytic_invariants",
+        "lifecycle_invariants"
+      ],
+      "observed_drivers": [
+        "slang-cuda",
+        "slang-metal",
+        "slang-vulkan"
+      ],
+      "observed_reports": [
+        "ipados-m1-slang-metal-9f7e72e",
+        "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-vulkan-eed669e",
+        "macos-m4-slang-metal-aac6d59",
+        "windows-gtx1080-slang-cuda-2b04e55"
+      ],
+      "physical_behavior": "Particle and grid smoke flow applies bounded velocity-dependent one-way loading to a soft body without requiring contact.",
+      "rule_id": "soft-body-smoke"
+    }
+  },
+  "limitations": [
+    "This planning matrix does not qualify a capability or change any driver advertisement.",
+    "Existing missing, failed, invalid and unsupported evidence states are outside F5-23 unless the obligation contract itself is absent.",
+    "Each follow-up must preserve failures and remove an exact advertisement if its physical behavior cannot be demonstrated."
+  ],
+  "method": "Select every scope whose generated evidence-index status is missing_contract, deduplicate report occurrences by the complete six-field capability identity, and preserve every reporting driver and qualification result.",
+  "schema": "parallel-mater-qualification-gap-matrix/v1",
+  "source": {
+    "capability_obligations": {
+      "normalized_sha256": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
+      "path": "conformance/v1/qualification/capability-obligations-v1.json"
+    },
+    "evidence_index": {
+      "normalized_sha256": "7cfdc1fc790898b23c46f773617c27b85c6415abe6a9138d557b16bdf0c3d2d7",
+      "path": "conformance/v1/evidence/index-v1.json"
+    },
+    "repository_revision": "e51bc891bfc696cd716cc1916162061cb534827d"
+  },
+  "summary": {
+    "advertisement_corrections": 0,
+    "existing_contract_bindings": 0,
+    "new_leaf_tasks": 31,
+    "report_level_missing_contract_results": 393,
+    "unique_capability_tuples": 44,
+    "unique_tuple_scope_gaps": 76
+  },
+  "task": "F5-23"
+}
