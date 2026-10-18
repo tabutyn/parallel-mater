@@ -7,15 +7,18 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <list>
 #include <map>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <unordered_set>
 #include <vector>
 
 namespace parallel_mater::device::compute {
@@ -379,6 +382,8 @@ public:
     virtual ~Submission() = default;
     // GPU failures are deferred exceptions from ready()/wait()/elapsed_seconds().
     // Destruction never waits or throws. Driver ABI entrypoints translate errors.
+    // ready() may throw only after native work is terminal; wait() must drain
+    // native work before returning OR throwing. Ownership relies on this rule.
     [[nodiscard]] virtual bool ready() const = 0;
     virtual void wait() const = 0;
     [[nodiscard]] virtual double elapsed_seconds() const = 0;
@@ -386,9 +391,11 @@ public:
 };
 using SubmissionPtr = std::shared_ptr<Submission>;
 
-class CommandList {
+// Native encoding only. Common CommandList owns every referenced allocation.
+// Encoding never submits work; destruction cancels unsubmitted native commands.
+class CommandEncoder {
 public:
-    virtual ~CommandList() = default;
+    virtual ~CommandEncoder() = default;
     // Dispatch boundaries guarantee visibility of prior writes on this queue,
     // including indirectly addressed buffers. No implicit CPU wait/readback.
     virtual void dispatch(const Arguments &arguments, Extent groups) = 0;
@@ -397,10 +404,226 @@ public:
                       std::size_t size) = 0;
     virtual void fill(const BufferPtr &destination, std::size_t offset,
                       std::size_t size, std::uint8_t value) = 0;
-    // Snapshot caller memory during encoding, retain upload through completion.
-    virtual void upload(const BufferPtr &destination, std::size_t offset,
-                        std::span<const std::byte> bytes) = 0;
+    // Snapshot caller memory during encoding; return the owning staging buffer
+    // for common retention. nullptr is allowed only when no staging is needed.
+    virtual BufferPtr upload(const BufferPtr &destination, std::size_t offset,
+                             std::span<const std::byte> bytes) = 0;
+    // Allocate the native completion token BEFORE enqueueing. A throw/null
+    // result means nothing was enqueued. Once accepted, always return a token
+    // and report execution errors through it, never via a submit exception.
     [[nodiscard]] virtual SubmissionPtr submit() = 0;
+};
+
+namespace detail {
+struct ResourceOwners {
+    std::unordered_set<BufferPtr> buffers;
+    std::unordered_set<KernelPtr> kernels;
+};
+
+class RetainedSubmission final : public Submission {
+public:
+    explicit RetainedSubmission(std::shared_ptr<ResourceOwners> owners)
+        : owners_(std::move(owners)) {}
+    void attach(SubmissionPtr native) noexcept { native_ = std::move(native); }
+    bool ready() const override {
+        // Another thread may be inside explicit wait(). Polling must not turn
+        // that wait into an implicit queue-wide GPU synchronization point.
+        std::unique_lock lock(mutex_, std::try_to_lock);
+        if (!lock.owns_lock()) return false;
+        return ready_locked();
+    }
+    void wait() const override {
+        std::lock_guard lock(mutex_);
+        try { native_->wait(); }
+        catch (...) { owners_.reset(); throw; }
+        owners_.reset();
+    }
+    double elapsed_seconds() const override {
+        std::unique_lock lock(mutex_, std::try_to_lock);
+        if (!lock.owns_lock() || !ready_locked())
+            throw std::logic_error("GPU timestamps requested before completion");
+        return native_->elapsed_seconds();
+    }
+    void *native_handle() const noexcept override { return native_->native_handle(); }
+private:
+    bool ready_locked() const {
+        try {
+            if (!native_->ready()) return false;
+        } catch (...) { owners_.reset(); throw; }
+        owners_.reset();
+        return true;
+    }
+    SubmissionPtr native_;
+    mutable std::mutex mutex_;
+    mutable std::shared_ptr<ResourceOwners> owners_;
+};
+
+class SubmissionState {
+public:
+    void require_open() const {
+        std::lock_guard lock(mutex_);
+        if (closed_) throw std::logic_error("compute submission queue is closed");
+    }
+    SubmissionPtr submit(CommandEncoder &encoder, const std::shared_ptr<ResourceOwners> &owners) {
+        auto completion = std::make_shared<RetainedSubmission>(owners);
+        std::lock_guard lock(mutex_);
+        if (closed_) throw std::logic_error("compute submission queue is closed");
+        collect_locked();
+        // Allocate the pending slot before native acceptance. Everything after
+        // successful enqueue is noexcept, even if the client drops its token.
+        pending_.push_back(completion);
+        try {
+            auto native = encoder.submit();
+            if (!native) throw std::runtime_error("native submit returned no completion");
+            completion->attach(std::move(native));
+        } catch (...) {
+            pending_.pop_back();
+            throw;
+        }
+        return completion;
+    }
+    void collect() {
+        std::lock_guard lock(mutex_);
+        collect_locked();
+    }
+    void close() noexcept {
+        std::list<std::shared_ptr<RetainedSubmission>> pending;
+        {
+            std::lock_guard lock(mutex_);
+            closed_ = true;
+            pending.swap(pending_);
+        }
+        // No queue lock while waiting. A deferred failure is terminal, but
+        // must not prevent later submissions from draining during teardown.
+        for (const auto &completion : pending) {
+            try { completion->wait(); } catch (...) {}
+        }
+    }
+private:
+    void collect_locked() {
+        for (auto it = pending_.begin(); it != pending_.end();) {
+            bool terminal;
+            try { terminal = (*it)->ready(); } catch (...) { terminal = true; }
+            if (terminal) it = pending_.erase(it);
+            else ++it;
+        }
+    }
+    mutable std::mutex mutex_;
+    bool closed_{};
+    std::list<std::shared_ptr<RetainedSubmission>> pending_;
+};
+} // namespace detail
+
+class SubmissionQueue;
+
+// Single-writer recording object. Validation errors leave prior commands
+// intact; an encoding/submit failure cancels this list. Pending work is owned
+// by the device's SubmissionQueue, not by the caller's completion token.
+class CommandList final {
+public:
+    CommandList(const CommandList &) = delete;
+    CommandList &operator=(const CommandList &) = delete;
+    void dispatch(const Arguments &arguments, Extent groups) {
+        ensure_open();
+        arguments.validate();
+        if (!groups.x || !groups.y || !groups.z)
+            throw std::invalid_argument("empty compute dispatch");
+        const auto bindings = arguments.bindings();
+        encode([&] {
+            owners_->kernels.insert(arguments.kernel());
+            for (const auto &binding : bindings) owners_->buffers.insert(binding.range.buffer);
+            encoder_->dispatch(arguments, groups);
+        });
+    }
+    void copy(const BufferPtr &destination, std::size_t destination_offset,
+              const BufferPtr &source, std::size_t source_offset, std::size_t size) {
+        ensure_open();
+        range(destination, destination_offset, size);
+        range(source, source_offset, size);
+        if (!size) return;
+        if (overlaps({destination, destination_offset, size}, {source, source_offset, size}))
+            throw std::invalid_argument("overlapping GPU copy ranges");
+        encode([&] {
+            owners_->buffers.insert(destination);
+            owners_->buffers.insert(source);
+            encoder_->copy(destination, destination_offset, source, source_offset, size);
+        });
+    }
+    void fill(const BufferPtr &destination, std::size_t offset, std::size_t size, std::uint8_t value) {
+        ensure_open();
+        range(destination, offset, size);
+        if (!size) return;
+        encode([&] {
+            owners_->buffers.insert(destination);
+            encoder_->fill(destination, offset, size, value);
+        });
+    }
+    void upload(const BufferPtr &destination, std::size_t offset, std::span<const std::byte> bytes) {
+        ensure_open();
+        range(destination, offset, bytes.size());
+        if (bytes.empty()) return;
+        encode([&] {
+            owners_->buffers.insert(destination);
+            auto staging = encoder_->upload(destination, offset, bytes);
+            if (staging) owners_->buffers.insert(std::move(staging));
+        });
+    }
+    [[nodiscard]] SubmissionPtr submit() {
+        ensure_open();
+        try {
+            auto completion = state_->submit(*encoder_, owners_);
+            cancel(); // Native token and queue now own the accepted work.
+            return completion;
+        } catch (...) { cancel(); throw; }
+    }
+private:
+    friend class SubmissionQueue;
+    CommandList(std::shared_ptr<detail::SubmissionState> state, std::unique_ptr<CommandEncoder> encoder)
+        : state_(std::move(state)), owners_(std::make_shared<detail::ResourceOwners>()),
+          encoder_(std::move(encoder)) {
+        if (!encoder_) throw std::invalid_argument("null compute command encoder");
+        ensure_open();
+    }
+    static void range(const BufferPtr &buffer, std::size_t offset, std::size_t size) {
+        if (!buffer || !buffer->identity().valid() || offset > buffer->size() ||
+            size > buffer->size() - offset)
+            throw std::invalid_argument("invalid compute transfer range");
+    }
+    void ensure_open() const {
+        if (!encoder_) throw std::logic_error("compute command list already submitted or cancelled");
+        state_->require_open();
+    }
+    template<class Function> void encode(Function &&function) {
+        try { function(); } catch (...) { cancel(); throw; }
+    }
+    void cancel() noexcept {
+        encoder_.reset();
+        owners_.reset();
+    }
+    std::shared_ptr<detail::SubmissionState> state_;
+    std::shared_ptr<detail::ResourceOwners> owners_;
+    // Destroy the unsubmitted native encoder before releasing its allocations.
+    std::unique_ptr<CommandEncoder> encoder_;
+};
+
+// Device-owned lifetime domain. Declare after native device/queue members so
+// destruction drains accepted work before those native objects are released.
+// Command lists may outlive it, but cannot encode/submit after shutdown.
+class SubmissionQueue final {
+public:
+    SubmissionQueue() : state_(std::make_shared<detail::SubmissionState>()) {}
+    ~SubmissionQueue() { state_->close(); }
+    SubmissionQueue(const SubmissionQueue &) = delete;
+    SubmissionQueue &operator=(const SubmissionQueue &) = delete;
+    [[nodiscard]] std::unique_ptr<CommandList> commands(std::unique_ptr<CommandEncoder> encoder) {
+        collect();
+        return std::unique_ptr<CommandList>(new CommandList(state_, std::move(encoder)));
+    }
+    // Nonblocking reclamation, also performed when recording/submitting again.
+    // Errors remain observable through a retained completion token.
+    void collect() { state_->collect(); }
+private:
+    std::shared_ptr<detail::SubmissionState> state_;
 };
 
 class Device {

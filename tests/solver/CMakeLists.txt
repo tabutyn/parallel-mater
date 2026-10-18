@@ -11,6 +11,14 @@ target_compile_features(parallel-mater-compute-contract-tests PRIVATE cxx_std_20
 target_include_directories(parallel-mater-compute-contract-tests PRIVATE ../../src)
 add_test(NAME parallel-mater-compute-contract-tests COMMAND parallel-mater-compute-contract-tests)
 
+add_executable(parallel-mater-compute-lifetime-tests compute_lifetime_tests.cpp)
+find_package(Threads REQUIRED)
+target_compile_features(parallel-mater-compute-lifetime-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-compute-lifetime-tests PRIVATE ../../src)
+target_link_libraries(parallel-mater-compute-lifetime-tests PRIVATE Threads::Threads)
+add_test(NAME parallel-mater-compute-lifetime-tests COMMAND parallel-mater-compute-lifetime-tests)
+set_tests_properties(parallel-mater-compute-lifetime-tests PROPERTIES TIMEOUT 30)
+
 add_executable(parallel-mater-memory-arena-tests memory_arena_tests.cpp ../../src/simulation/memory_arena.cpp)
 target_compile_features(parallel-mater-memory-arena-tests PRIVATE cxx_std_20)
 target_include_directories(parallel-mater-memory-arena-tests PRIVATE ../../src ../../include)

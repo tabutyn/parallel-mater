@@ -32,7 +32,7 @@ private:
     std::size_t size_;
     std::uint64_t address_;
 };
-class RecordingCommandList final : public compute::CommandList {
+class RecordingCommandList final : public compute::CommandEncoder {
 public:
     void dispatch(const compute::Arguments &arguments, compute::Extent) override {
         arguments.validate();
@@ -41,7 +41,8 @@ public:
     void copy(const compute::BufferPtr &, std::size_t, const compute::BufferPtr &,
               std::size_t, std::size_t) override {}
     void fill(const compute::BufferPtr &, std::size_t, std::size_t, std::uint8_t) override {}
-    void upload(const compute::BufferPtr &, std::size_t, std::span<const std::byte>) override {}
+    compute::BufferPtr upload(const compute::BufferPtr &, std::size_t,
+                             std::span<const std::byte>) override { return {}; }
     compute::SubmissionPtr submit() override { return {}; }
     std::vector<compute::ResourceBinding> observed;
 };

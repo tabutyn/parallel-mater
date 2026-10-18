@@ -244,6 +244,26 @@ void check_transfers_and_records(Gpu &gpu) {
     std::cout << "Async uploads/copies, private memory, resource lifetimes and nested pointer records passed\n";
 }
 
+void check_device_teardown() {
+    auto device = compute::create_metal_device();
+    require(bool(device), "cannot create teardown test device");
+    auto readback = device->allocate(64, true);
+    auto survivor = device->commands();
+    {
+        auto temporary = device->allocate(64, false);
+        auto command = device->commands();
+        command->fill(temporary, 0, 64, 91);
+        command->copy(readback, 0, temporary, 0, 64);
+        (void)command->submit();
+    }
+    device.reset(); // Must drain even though no caller kept a completion token.
+    const auto bytes = static_cast<const std::uint8_t *>(readback->host_address());
+    for (unsigned i = 0; i < 64; ++i)
+        require(bytes[i] == 91, "device teardown did not drain pending GPU transfer");
+    rejects([&] { (void)survivor->submit(); }, "submission accepted after device teardown");
+    std::cout << "Native device teardown drains dropped-token GPU work\n";
+}
+
 void check_rigid_integration(Gpu &gpu) {
     constexpr std::uint32_t count = 513;
     const auto &kernel = gpu.kernels.at("pm_integrate_rigid_bodies");
@@ -548,6 +568,7 @@ int main(int argc, char **argv) {
         gpu.load(argv[1], argc == 3);
         check_device_operations(gpu);
         check_transfers_and_records(gpu);
+        check_device_teardown();
         check_rigid_integration(gpu);
         check_soft_body_simd(gpu);
         check_avbd_schedule(gpu);

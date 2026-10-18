@@ -55,8 +55,50 @@ Overlapping bindings for the same allocation are legal and remain separate, so
 an adapter can observe every shader-visible use and combine access modes without
 losing their source names. Adjacent half-open ranges do not overlap. Access
 metadata describes a dispatch; it does not itself insert a barrier or establish
-completion ownership. Those scheduling and lifetime rules remain separate
-follow-up work.
+completion ownership. The shared lifetime layer below consumes those bindings;
+dependency scheduling remains separate work.
+
+## Command and completion ownership
+
+`compute::CommandList` retains kernels, direct and record-pointer bindings,
+explicit indirect references, transfer buffers and upload staging allocations.
+Native `CommandEncoder` implementations encode commands and return native
+completion tokens; they no longer implement their own C++ retention policy.
+The Metal adapter uses this shared layer. Other adapter execution surfaces have
+not yet migrated, so this is not a claim of universal backend interoperability.
+
+A device owns one `SubmissionQueue`. Its pending list is independent of client
+completion tokens: dropping a token or command list neither cancels accepted
+work nor waits on the GPU. Observing terminal completion releases the retained
+owners, including on deferred execution failure. Dropped-token completions are
+reclaimed nonblockingly when recording/submitting again or calling `collect()`;
+an idle queue may retain them until its next collection or destruction.
+
+The queue allocates its completion wrapper and pending slot before native
+acceptance. Native submission must either enqueue nothing and throw, or return
+a valid token without throwing after acceptance. Native `ready()` may throw only
+for terminal failures, and `wait()` must drain before returning or throwing.
+These are adapter contracts, exercised by a deliberately non-owning mock.
+
+Common transfer/binding validation errors preserve prior recorded commands.
+Encoding or submit failure cancels the private command list and releases its
+owners after destroying the unsubmitted native encoder. This private behavior
+does not change public `pmQueueSubmit` retry/error semantics. Native upload
+encoding snapshots caller bytes and returns the staging owner to the common
+list; later host edits do not change queued data.
+
+Device teardown drains accepted work before releasing native device/queue
+members, continues draining after a deferred error, and does not throw. A
+surviving unsubmitted command list cannot enqueue after teardown. Each command
+list is single-writer; shared queue bookkeeping and completion observations are
+serialized. No physics equations, GPU barriers, borrowed-device contract or
+public API changed in this step.
+
+Portable evidence is in `tests/solver/compute_lifetime_tests.cpp`; the ordinary
+shader-portability CI executes it on Windows, Linux and macOS. Native Metal
+tests additionally verify dropped-token transfers and device teardown with
+actual GPU work. These tests establish ownership/execution behavior, not
+physical solver quality or an engine integration.
 
 ## Qualification on this laptop — 2026-10-16
 
@@ -82,8 +124,8 @@ restored to the reflected bindings; no shader or tolerance workaround was added.
 ## Remaining common contracts
 
 Resources now carry explicit owning-device/allocation identities and typed
-access ranges at the Metal command-list boundary. Completion ownership and
-dependency scheduling are still incomplete. A borrowed engine
+access ranges and common completion ownership at the Metal command-list boundary.
+Migration of the other adapters and dependency scheduling remain incomplete. A borrowed engine
 device/queue/buffer must never be destroyed by the library. Queue handoff must
 identify both prior completion and the completion the renderer waits for; all
 indirect pointer resources must survive that completion, even if the caller
