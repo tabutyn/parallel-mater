@@ -1,7 +1,7 @@
 {
   "id": "F5-21",
   "title": "Make Gallery validation discovery hermetic",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F6-11"
   ],
@@ -18,6 +18,14 @@
     "Run the affected CPU/CUDA/Vulkan Gallery tests available on the host; layer-not-present is not accepted as a skip or physics result."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "c2b33901-6042-4769-a6ac-7d1220deb9b3",
+    "owner": "codex-linux-gallery",
+    "machine": "thomas-laptop",
+    "branch": "work/F5-21/thomas-laptop",
+    "claimed_at": "2026-10-18T20:01:17Z",
+    "heartbeat_at": "2026-10-18T20:01:17Z",
+    "expires_at": "2026-10-19T20:01:17Z"
+  },
   "history": []
 }
