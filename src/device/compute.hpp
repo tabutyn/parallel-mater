@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#include "native_object.hpp"
+
 // Private reference-runtime execution boundary. No native API types and no
 // physics equations. A command list owns its encoding state; submissions own
 // all referenced resources through GPU completion.
@@ -37,6 +39,18 @@ struct ResourceIdentity {
     std::uint64_t device{}, allocation{};
     [[nodiscard]] bool valid() const noexcept { return device != 0 && allocation != 0; }
     friend bool operator==(const ResourceIdentity &, const ResourceIdentity &) = default;
+};
+
+// Opaque native API/device/queue identity. Cross-queue handoff is legal only
+// when both queues belong to the same API and device; adapters decide whether they can
+// encode that wait without host synchronization.
+struct QueueIdentity {
+    NativeApi api{NativeApi::none};
+    std::uintptr_t device{}, queue{};
+    [[nodiscard]] bool valid() const noexcept {
+        return api != NativeApi::none && device != 0 && queue != 0;
+    }
+    friend bool operator==(const QueueIdentity &, const QueueIdentity &) = default;
 };
 
 enum class ResourceAccess : std::uint8_t {
@@ -402,6 +416,7 @@ public:
     virtual void wait() const = 0;
     [[nodiscard]] virtual double elapsed_seconds() const = 0;
     [[nodiscard]] virtual void *native_handle() const noexcept = 0;
+    [[nodiscard]] virtual QueueIdentity queue_identity() const noexcept = 0;
 };
 using SubmissionPtr = std::shared_ptr<Submission>;
 
@@ -410,6 +425,11 @@ using SubmissionPtr = std::shared_ptr<Submission>;
 class CommandEncoder {
 public:
     virtual ~CommandEncoder() = default;
+    [[nodiscard]] virtual QueueIdentity queue_identity() const noexcept = 0;
+    // Encode waits for previously submitted GPU work. Implementations must not
+    // poll/wait on the CPU or submit this encoder. Unsupported cross-queue
+    // synchronization is an explicit validation error.
+    virtual void wait(std::span<const SubmissionPtr> prior) = 0;
     // Order only the conflicting resource slices identified by common code.
     // This records native GPU ordering; it must never wait on the CPU or submit.
     virtual void barrier(std::span<const ResourceDependency> dependencies) = 0;
@@ -433,6 +453,9 @@ namespace detail {
 struct ResourceOwners {
     std::unordered_set<BufferPtr> buffers;
     std::unordered_set<KernelPtr> kernels;
+    // A next completion retains every prior completion it consumes. This also
+    // retains their transitive resources when the application drops tokens.
+    std::vector<SubmissionPtr> prerequisites;
 };
 
 struct DependencyPlan {
@@ -577,8 +600,8 @@ private:
 
 class RetainedSubmission final : public Submission {
 public:
-    explicit RetainedSubmission(std::shared_ptr<ResourceOwners> owners)
-        : owners_(std::move(owners)) {}
+    RetainedSubmission(std::shared_ptr<ResourceOwners> owners, QueueIdentity identity)
+        : identity_(identity), owners_(std::move(owners)) {}
     void attach(SubmissionPtr native) noexcept { native_ = std::move(native); }
     bool ready() const override {
         // Another thread may be inside explicit wait(). Polling must not turn
@@ -600,6 +623,7 @@ public:
         return native_->elapsed_seconds();
     }
     void *native_handle() const noexcept override { return native_->native_handle(); }
+    QueueIdentity queue_identity() const noexcept override { return identity_; }
 private:
     bool ready_locked() const {
         try {
@@ -609,6 +633,7 @@ private:
         return true;
     }
     SubmissionPtr native_;
+    QueueIdentity identity_;
     mutable std::mutex mutex_;
     mutable std::shared_ptr<ResourceOwners> owners_;
 };
@@ -620,7 +645,9 @@ public:
         if (closed_) throw std::logic_error("compute submission queue is closed");
     }
     SubmissionPtr submit(CommandEncoder &encoder, const std::shared_ptr<ResourceOwners> &owners) {
-        auto completion = std::make_shared<RetainedSubmission>(owners);
+        const auto identity = encoder.queue_identity();
+        if (!identity.valid()) throw std::invalid_argument("invalid compute queue identity");
+        auto completion = std::make_shared<RetainedSubmission>(owners, identity);
         std::lock_guard lock(mutex_);
         if (closed_) throw std::logic_error("compute submission queue is closed");
         collect_locked();
@@ -746,11 +773,24 @@ public:
     }
 private:
     friend class SubmissionQueue;
-    CommandList(std::shared_ptr<detail::SubmissionState> state, std::unique_ptr<CommandEncoder> encoder)
+    CommandList(std::shared_ptr<detail::SubmissionState> state, std::unique_ptr<CommandEncoder> encoder,
+                std::span<const SubmissionPtr> prior)
         : state_(std::move(state)), owners_(std::make_shared<detail::ResourceOwners>()),
           encoder_(std::move(encoder)) {
         if (!encoder_) throw std::invalid_argument("null compute command encoder");
         ensure_open();
+        const auto next = encoder_->queue_identity();
+        if (!next.valid()) throw std::invalid_argument("invalid compute queue identity");
+        owners_->prerequisites.reserve(prior.size());
+        for (const auto &completion : prior) {
+            if (!completion || !completion->queue_identity().valid())
+                throw std::invalid_argument("null or unidentified prior completion");
+            if (completion->queue_identity().api != next.api ||
+                completion->queue_identity().device != next.device)
+                throw std::invalid_argument("prior completion belongs to another device");
+            owners_->prerequisites.push_back(completion);
+        }
+        if (!owners_->prerequisites.empty()) encoder_->wait(owners_->prerequisites);
     }
     static void range(const BufferPtr &buffer, std::size_t offset, std::size_t size) {
         if (!buffer || !buffer->identity().valid() || offset > buffer->size() ||
@@ -794,9 +834,10 @@ public:
     ~SubmissionQueue() { state_->close(); }
     SubmissionQueue(const SubmissionQueue &) = delete;
     SubmissionQueue &operator=(const SubmissionQueue &) = delete;
-    [[nodiscard]] std::unique_ptr<CommandList> commands(std::unique_ptr<CommandEncoder> encoder) {
+    [[nodiscard]] std::unique_ptr<CommandList> commands(std::unique_ptr<CommandEncoder> encoder,
+                                                        std::span<const SubmissionPtr> prior = {}) {
         collect();
-        return std::unique_ptr<CommandList>(new CommandList(state_, std::move(encoder)));
+        return std::unique_ptr<CommandList>(new CommandList(state_, std::move(encoder), prior));
     }
     // Nonblocking reclamation, also performed when recording/submitting again.
     // Errors remain observable through a retained completion token.
@@ -812,9 +853,12 @@ public:
     [[nodiscard]] virtual BufferPtr allocate(std::size_t size, bool host_visible) = 0;
     [[nodiscard]] virtual KernelPtr load_kernel(const std::string &library,
         const std::string &reflection, const std::string &entry) = 0;
-    [[nodiscard]] virtual std::unique_ptr<CommandList> commands() = 0;
-    [[nodiscard]] virtual void *native_device() const noexcept = 0;
-    [[nodiscard]] virtual void *native_queue() const noexcept = 0;
+    [[nodiscard]] virtual std::unique_ptr<CommandList> commands(
+        std::span<const SubmissionPtr> prior = {}) = 0;
+    // Borrowed views: destroying the returned wrapper never destroys the
+    // adapter's native device or queue.
+    [[nodiscard]] virtual NativeObject native_device() const = 0;
+    [[nodiscard]] virtual NativeObject native_queue() const = 0;
 };
 
 // nullptr means no supported hardware; never substitutes serial CPU execution.

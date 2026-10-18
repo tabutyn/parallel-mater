@@ -158,7 +158,8 @@ Field record_layout(MTLStructType *record, bool expand_pointers) {
 
 class MetalSubmission final : public Submission {
 public:
-    explicit MetalSubmission(id<MTLCommandBuffer> command) : command_(command) {}
+    MetalSubmission(id<MTLCommandBuffer> command, QueueIdentity identity)
+        : command_(command), identity_(identity) {}
     bool ready() const override {
         check_error();
         return command_.status == MTLCommandBufferStatusCompleted;
@@ -174,23 +175,45 @@ public:
         return command_.GPUEndTime - command_.GPUStartTime;
     }
     void *native_handle() const noexcept override { return (__bridge void *)command_; }
+    QueueIdentity queue_identity() const noexcept override { return identity_; }
 private:
     void check_error() const {
         if (command_.status == MTLCommandBufferStatusError)
             throw std::runtime_error("Metal execution failed: " + error_text(command_.error));
     }
     id<MTLCommandBuffer> command_;
+    QueueIdentity identity_;
 };
 
 class MetalCommandList final : public CommandEncoder {
 public:
     MetalCommandList(id<MTLDevice> device, id<MTLCommandQueue> queue)
-        : device_(device) {
+        : device_(device), queue_(queue) {
         // A caller may run thousands of physics submissions inside one outer
         // autorelease pool. Do not retain every completed command until then.
         @autoreleasepool {
             command_ = [queue commandBuffer];
             require(command_ != nil, "Metal command buffer allocation failed");
+        }
+    }
+    QueueIdentity queue_identity() const noexcept override {
+        return {NativeApi::metal,
+                reinterpret_cast<std::uintptr_t>((__bridge void *)device_),
+                reinterpret_cast<std::uintptr_t>((__bridge void *)queue_)};
+    }
+    void wait(std::span<const SubmissionPtr> prior) override {
+        @autoreleasepool {
+            ensure_open();
+            for (const auto &completion : prior) {
+                if (!completion || completion->queue_identity().api != NativeApi::metal ||
+                    completion->queue_identity().device != queue_identity().device)
+                    throw std::invalid_argument("foreign Metal prior completion");
+                if (completion->queue_identity().queue != queue_identity().queue)
+                    throw std::invalid_argument(
+                        "Metal cross-queue handoff requires shared-event adapter support");
+            }
+            // Submitted command buffers on one MTLCommandQueue execute in order.
+            // No host wait or additional native command is required here.
         }
     }
     void barrier(std::span<const ResourceDependency> dependencies) override {
@@ -296,7 +319,7 @@ public:
     SubmissionPtr submit() override {
         @autoreleasepool {
             ensure_open();
-            auto result = std::make_shared<MetalSubmission>(command_);
+            auto result = std::make_shared<MetalSubmission>(command_, queue_identity());
             [command_ commit];
             submitted_ = true;
             return result;
@@ -325,6 +348,7 @@ private:
             throw std::invalid_argument("compute buffer range out of bounds");
     }
     id<MTLDevice> device_;
+    id<MTLCommandQueue> queue_;
     id<MTLCommandBuffer> command_;
     bool submitted_{};
 };
@@ -427,13 +451,19 @@ public:
     catch (const std::exception &error) {
         throw std::runtime_error(entry + ": " + error.what());
     }
-    std::unique_ptr<CommandList> commands() override {
+    std::unique_ptr<CommandList> commands(std::span<const SubmissionPtr> prior = {}) override {
         @autoreleasepool {
-            return submissions_.commands(std::make_unique<MetalCommandList>(device_, queue_));
+            return submissions_.commands(std::make_unique<MetalCommandList>(device_, queue_), prior);
         }
     }
-    void *native_device() const noexcept override { return (__bridge void *)device_; }
-    void *native_queue() const noexcept override { return (__bridge void *)queue_; }
+    NativeObject native_device() const override {
+        return NativeObject::borrowed(NativeApi::metal, NativeObjectKind::device,
+            reinterpret_cast<std::uintptr_t>((__bridge void *)device_));
+    }
+    NativeObject native_queue() const override {
+        return NativeObject::borrowed(NativeApi::metal, NativeObjectKind::queue,
+            reinterpret_cast<std::uintptr_t>((__bridge void *)queue_));
+    }
 private:
     id<MTLDevice> device_;
     id<MTLCommandQueue> queue_;

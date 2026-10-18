@@ -24,6 +24,12 @@ target_link_libraries(parallel-mater-compute-lifetime-tests PRIVATE Threads::Thr
 add_test(NAME parallel-mater-compute-lifetime-tests COMMAND parallel-mater-compute-lifetime-tests)
 set_tests_properties(parallel-mater-compute-lifetime-tests PROPERTIES TIMEOUT 30)
 
+add_executable(parallel-mater-compute-handoff-contract-tests compute_handoff_contract_tests.cpp)
+target_compile_features(parallel-mater-compute-handoff-contract-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-compute-handoff-contract-tests PRIVATE ../../src)
+add_test(NAME parallel-mater-compute-handoff-contract-tests
+    COMMAND parallel-mater-compute-handoff-contract-tests)
+
 if(APPLE)
     add_executable(parallel-mater-metal-schedule-recovery-tests
         metal_schedule_recovery_tests.cpp ../../src/driver/metal/schedule_context.cpp)

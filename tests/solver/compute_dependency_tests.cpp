@@ -48,12 +48,19 @@ public:
     void wait() const override { ++state_->waits; }
     double elapsed_seconds() const override { return 0; }
     void *native_handle() const noexcept override { return nullptr; }
+    compute::QueueIdentity queue_identity() const noexcept override {
+        return {compute::NativeApi::mock, 1, 1};
+    }
 private:
     std::shared_ptr<State> state_;
 };
 class Encoder final : public compute::CommandEncoder {
 public:
     explicit Encoder(std::shared_ptr<State> state) : state_(std::move(state)) {}
+    compute::QueueIdentity queue_identity() const noexcept override {
+        return {compute::NativeApi::mock, 1, 1};
+    }
+    void wait(std::span<const compute::SubmissionPtr>) override {}
     void barrier(std::span<const compute::ResourceDependency> dependencies) override {
         state_->events.push_back({"barrier", {dependencies.begin(), dependencies.end()}});
     }
