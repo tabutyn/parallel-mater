@@ -3,6 +3,7 @@ plugins { id("com.android.application") }
 val slangCompiler = providers.gradleProperty("slangc")
     .orElse(providers.environmentVariable("SLANGC"))
 val cgltfSource = providers.gradleProperty("cgltfSource")
+val sourceRevision = providers.gradleProperty("sourceRevision")
 val physicsBackend = providers.gradleProperty("physicsBackend").orElse("vulkan").get()
 require(physicsBackend in listOf("vulkan", "cpu")) {
     "physicsBackend must be vulkan or cpu"
@@ -48,6 +49,8 @@ android {
                     arguments += "-DPARALLEL_MATER_SLANGC_EXECUTABLE=${slangCompiler.get()}"
                 if (cgltfSource.isPresent)
                     arguments += "-DFETCHCONTENT_SOURCE_DIR_PARALLEL_MATER_CGLTF=${cgltfSource.get()}"
+                if (sourceRevision.isPresent)
+                    arguments += "-DPARALLEL_MATER_SOURCE_REVISION=${sourceRevision.get()}"
                 targets += "parallel-mater-gallery-android"
                 if (qualification) targets += listOf("pm-android-command-tests",
                     "pm-android-async-tests", "pm-android-liquid-tests")
