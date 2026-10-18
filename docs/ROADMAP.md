@@ -153,7 +153,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F3-10](roadmap/tasks/F3-10.json) | Qualify descriptor snapshot coverage | done | F3-06 | — |
 | [F3-11](roadmap/tasks/F3-11.json) | Qualify destruction wait profiles | done | F3-06 | — |
 | [F3-12](roadmap/tasks/F3-12.json) | Qualify runtime capacity recovery | done | F3-06 | — |
-| [F3-99](roadmap/tasks/F3-99.json) | Review F3 exit evidence | ready | F3-01, F3-02, F3-03, F3-04, F3-05, F3-06, F3-07, F3-08, F3-09, F3-10, F3-11, F3-12 | — |
+| [F3-99](roadmap/tasks/F3-99.json) | Review F3 exit evidence | leased | F3-01, F3-02, F3-03, F3-04, F3-05, F3-06, F3-07, F3-08, F3-09, F3-10, F3-11, F3-12 | codex-windows-review / windows-gtx1080 / 2026-10-19T04:49:17Z |
 
 ### F4. Common resources and engine ownership
 
