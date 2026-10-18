@@ -1,7 +1,7 @@
 {
   "id": "F6-14",
   "title": "Remove workstation paths from installed evidence",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F6-04",
     "F6-12"
@@ -18,15 +18,27 @@
     "Qualification, evidence-index and corpus-manifest hashes are refreshed through their checked generators without changing the recorded result classifications.",
     "The current two-clean-build release reproducibility check passes its runtime-path audit and records all remaining binary differences without claiming bit-identical output."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "1c934a4d-5cdb-42aa-ad02-7198c8980363",
-    "owner": "codex-linux-release",
-    "machine": "thomas-laptop",
-    "branch": "work/F6-14/thomas-laptop",
-    "claimed_at": "2026-10-18T20:53:30Z",
-    "heartbeat_at": "2026-10-18T20:53:30Z",
-    "expires_at": "2026-10-19T20:53:30Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F6-14-installed-evidence-paths.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "1c934a4d-5cdb-42aa-ad02-7198c8980363",
+        "owner": "codex-linux-release",
+        "machine": "thomas-laptop",
+        "branch": "work/F6-14/thomas-laptop",
+        "claimed_at": "2026-10-18T20:53:30Z",
+        "heartbeat_at": "2026-10-18T20:53:30Z",
+        "expires_at": "2026-10-19T20:53:30Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T20:58:44Z",
+      "reason": "Installed evidence uses canonical paths, dependent hashes are current, and the clean two-build runtime-path audit passes.",
+      "evidence": [
+        "docs/roadmap/evidence/F6-14-installed-evidence-paths.json"
+      ]
+    }
+  ]
 }

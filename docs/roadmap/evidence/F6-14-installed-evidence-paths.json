@@ -1,0 +1,48 @@
+{
+  "schema": "parallel-mater-roadmap-installed-evidence-paths/v1",
+  "task": "F6-14",
+  "result": "passed",
+  "source_revision": "03f704cb5e4507b918f7f2da3a4f1dd3e1179b8e",
+  "source_dirty": false,
+  "repair": {
+    "placeholder": "<repo>",
+    "files": [
+      {
+        "path": "conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-lifecycle-2026-10-17.txt",
+        "sha256": "d40ed6eb1b53a376f357f9e194220421e7b8927bff765776b17b37b797186ee4"
+      },
+      {
+        "path": "conformance/v1/evidence/linux-rtx3050ti-vulkan-equal-fluid-unsupported-2026-10-17.txt",
+        "sha256": "c0d4ff331ef7baf5db30150fa5d9d2ba291b4579cb7f795574c581cef317f3a8"
+      }
+    ],
+    "qualification_sha256": "b4385464d8f2c702ed851c6323c610bf3b22ccfe528b89cb4290b1a54e5b4150",
+    "result_classifications_changed": false
+  },
+  "verification": [
+    {
+      "check": "python3 -m unittest conformance.v1.tests.test_evidence_index -v",
+      "result": "8/8 passed, including rejection of capture-host paths in installed text evidence"
+    },
+    {
+      "check": "python3 conformance/v1/evidence_index.py --check && python3 conformance/v1/update_manifest.py --check",
+      "result": "passed; evidence remained 0/251 qualified capabilities from 10 reports"
+    },
+    {
+      "check": "ctest --preset sdk-ci",
+      "result": "47/47 passed"
+    },
+    {
+      "check": "python3 tools/check_release_reproducibility.py --preset sdk-ci --output /tmp/f6-14-repro-03f704c",
+      "result": "passed two clean configure/build/install runs; equivalent inputs, matching artifact sets and zero required workstation-path hits",
+      "report_sha256": "e6eea3b9f5e51b33047f5d5ed8f19e547a0efd176a062b7590b6479bf8616c5a",
+      "manifest_a_sha256": "ce4201d372c328005f346739a587259bfdab60ce880d0687a63589fe0b418528",
+      "manifest_b_sha256": "8c5c8f5e5b4d095883ada4dc68c71e35c25006da7f00ff62cfe626cd64ac4e43"
+    }
+  ],
+  "limitations": [
+    "Bit-identical output is not established: the installed conformance ELF differed between isolated build directories.",
+    "Ten generated build-tree test manifests differ by their intentionally distinct build paths; they are not installed runtime metadata.",
+    "The classifications apply only to the recorded Linux/GCC input tuple and do not claim cross-host or cross-toolchain binary identity."
+  ]
+}

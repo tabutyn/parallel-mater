@@ -42,12 +42,12 @@
     {
       "kind": "lifecycle_test_log",
       "path": "conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-lifecycle-2026-10-17.txt",
-      "sha256": "67e874b3401c4f93dc045198466d731a0bf1c9bc7528558374ba2d4bca79197e"
+      "sha256": "d40ed6eb1b53a376f357f9e194220421e7b8927bff765776b17b37b797186ee4"
     },
     {
       "kind": "unsupported_boundary_log",
       "path": "conformance/v1/evidence/linux-rtx3050ti-vulkan-equal-fluid-unsupported-2026-10-17.txt",
-      "sha256": "7be162ae6a70a69e003ade71380c5218e07621ac5b763109d298d27b10eb6f73"
+      "sha256": "c0d4ff331ef7baf5db30150fa5d9d2ba291b4579cb7f795574c581cef317f3a8"
     }
   ],
   "device": {
@@ -87,7 +87,7 @@
       "status": "passed"
     },
     {
-      "artifact_sha256": "67e874b3401c4f93dc045198466d731a0bf1c9bc7528558374ba2d4bca79197e",
+      "artifact_sha256": "d40ed6eb1b53a376f357f9e194220421e7b8927bff765776b17b37b797186ee4",
       "contract": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery",
       "contract_sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
       "scope": "lifecycle_invariants",
@@ -95,7 +95,7 @@
       "status": "passed"
     },
     {
-      "artifact_sha256": "67e874b3401c4f93dc045198466d731a0bf1c9bc7528558374ba2d4bca79197e",
+      "artifact_sha256": "d40ed6eb1b53a376f357f9e194220421e7b8927bff765776b17b37b797186ee4",
       "contract": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback",
       "contract_sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
       "scope": "lifecycle_invariants",

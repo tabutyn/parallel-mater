@@ -18701,7 +18701,7 @@
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17.json",
       "qualified_count": 0,
-      "sha256": "9e4249918ada6243353ef2f5885772672dc1741d552f58b01d7edeb9518637ea",
+      "sha256": "b4385464d8f2c702ed851c6323c610bf3b22ccfe528b89cb4290b1a54e5b4150",
       "source": {
         "commit": "0b46a47eeb887c67842884c0e3767a5f676a32a7",
         "dirty": false
@@ -18958,7 +18958,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "63155d9f79a35104d39979f2492963e826f473ae44eca8d08d724519a43f65d5",
+  "sources_sha256": "9864e4e0a2bf954d9907cc3635b42c319af4db850ebf787880faccf4f6fe6465",
   "valid": true,
   "validation_failures": []
 }
