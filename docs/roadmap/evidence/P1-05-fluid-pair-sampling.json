@@ -1,0 +1,60 @@
+{
+  "schema": "parallel-mater-roadmap-fluid-pair-sampling/v1",
+  "task": "P1-05",
+  "result": "passed",
+  "source": {
+    "revision": "919f5966979522b350509afa1425404e755ee9ec",
+    "branch": "work/P1-05/thomas-laptop",
+    "lease_token": "57a06708-1b8c-48b4-8a02-808b09b6f177",
+    "machine": "thomas-laptop"
+  },
+  "sampling_contract": {
+    "pair_support": "max(first.supportRadius, second.supportRadius)",
+    "same_population_support": "the receiving endpoint support radius",
+    "particle_mass": "restDensity * restParticleVolume when volume is positive; otherwise restDensity * (2 * particleRadius)^3",
+    "density_kernel": "normalized three-dimensional poly6 with output units kg/m^3",
+    "cross_density": "each receiving particle samples the neighboring endpoint particle mass with the one symmetric pair support and kernel value",
+    "inactive_capacity": "count-excluded slots receive zero neighbor counts and zero density",
+    "endpoint_order": "swapping endpoint populations, material records, capacities and limits swaps the outputs within floating-point tolerance"
+  },
+  "bounded_storage": {
+    "index": "two combined-capacity key and identity arrays plus radix-sort workspace",
+    "endpoint_arrays": "total-neighbor, cross-neighbor and density arrays are sized independently from each endpoint capacity",
+    "density_lifetime": "pair-private scratch",
+    "diagnostics": "persistent overflow and maximum-neighbor counters exist for each endpoint",
+    "simulation_query": "the coupling memory plan uses the largest declared fluid capacity for both endpoints, conservatively bounding every legal pair"
+  },
+  "validation": [
+    {
+      "command": "ctest --test-dir build-foundations -R 'parallel-mater-(fluid-pair-neighbor-index|slang-architecture)' --output-on-failure",
+      "result": "2/2 passed; generated Slang CPU execution covered unequal capacities, supports, radii, rest densities, explicit/fallback volumes, masses, endpoint reversal, empty populations and overflow"
+    },
+    {
+      "command": "cmake --build build-f5-16-linux --target parallel-mater-slang-kernel-mirrors -j2",
+      "result": "212/212 build steps passed; shared kernels compiled to CUDA, PTX, Vulkan SPIR-V and Metal"
+    },
+    {
+      "command": "cmake --build build-desktop-switch --target parallel-mater-driver-slang-cuda parallel-mater-driver-slang-vulkan -j2",
+      "result": "CUDA and Vulkan shared-driver builds passed with reflected heterogeneous sampling bindings"
+    },
+    {
+      "command": "python3 -m unittest tests.solver.test_dxil_bindings",
+      "result": "4/4 DirectCompute DXIL binding generator tests passed"
+    },
+    {
+      "command": "cmake --build build-sdk-ci -j2 && ctest --test-dir build-sdk-ci --output-on-failure",
+      "result": "47/47 SDK, ABI, generator, resource-plan and architecture tests passed"
+    },
+    {
+      "command": "python3 tools/reference/build.py --check-generated && python3 conformance/v1/evidence_index.py --check && python3 conformance/v1/update_manifest.py --check",
+      "result": "public generated files, evidence index and conformance manifest remained current"
+    }
+  ],
+  "boundaries": [
+    "No different-material capability is advertised",
+    "Public miscible and immiscible-interface graph requests remain PM_ERROR_FEATURE_NOT_PRESENT",
+    "Balanced heterogeneous pressure/contact remains P1-06",
+    "Harmonic heterogeneous viscosity remains P1-07",
+    "Heterogeneous graph scheduling and lifecycle recovery remain P1-08"
+  ]
+}
