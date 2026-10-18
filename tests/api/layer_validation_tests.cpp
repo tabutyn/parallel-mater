@@ -572,11 +572,21 @@ int main(int argc, char **argv) {
               PM_SUCCESS);
     }
     submit.pCommandBuffers = &commands;
-    CHECK(pmQueueSubmit(queue, &submit, nullptr) == PM_SUCCESS);
-    CHECK(pmQueueWaitIdle(queue) == PM_SUCCESS);
+    CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
+    CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
+    CHECK(pmWaitForFences(device, 1U, &fence, PM_TRUE,
+                          PM_TIMEOUT_INFINITE) == PM_SUCCESS);
+    alignas(8) PmStepStatistics statistics_results{};
+    CHECK(pmGetQueryPoolResults(device, statistics, 0U, 1U,
+                                sizeof(statistics_results),
+                                &statistics_results,
+                                sizeof(statistics_results),
+                                PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+    CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
     CHECK(pmCmdResetQueryPool(commands, timestamps, 0U, 1U) ==
           invalid_state);
+    CHECK(pmCmdResetQueryPool(commands, statistics, 0U, 1U) == PM_SUCCESS);
     CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
     alignas(8) std::uint64_t timestamp_results[2]{};
     CHECK(pmGetQueryPoolResults(other, timestamps, 0U, 1U,
@@ -593,6 +603,27 @@ int main(int argc, char **argv) {
                                 sizeof(std::uint64_t), 0U) == PM_SUCCESS);
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
     CHECK(pmCmdResetQueryPool(commands, timestamps, 0U, 2U) == PM_SUCCESS);
+    CHECK(pmCmdResetQueryPool(commands, statistics, 0U, 1U) == PM_SUCCESS);
+    CHECK(pmCmdBeginStatisticsQuery(commands, statistics, 0U) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands, replacement_pipeline) == PM_SUCCESS);
+    CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
+    CHECK(pmCmdEndStatisticsQuery(commands, statistics, 0U) == PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
+    CHECK(pmWaitForFences(device, 1U, &fence, PM_TRUE,
+                          PM_TIMEOUT_INFINITE) == PM_SUCCESS);
+    CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdResetQueryPool(commands, statistics, 0U, 1U) ==
+          invalid_state);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmGetQueryPoolResults(device, statistics, 0U, 1U,
+                                sizeof(statistics_results),
+                                &statistics_results,
+                                sizeof(statistics_results),
+                                PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdResetQueryPool(commands, statistics, 0U, 1U) == PM_SUCCESS);
     CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
 
     if (validation) {

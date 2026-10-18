@@ -179,6 +179,15 @@ bool CommandScene::step(float timestep, std::uint32_t substeps, Vec3 gravity,
     if (!impl_->submit(error)) return false;
     impl_->output_ready = true;
 
+    // Statistics are part of every completed step, including native GPU
+    // rendering where the scene output deliberately stays on the device.
+    // Consume the query before the next command buffer tries to reset it.
+    const PmResult query_result = pmGetQueryPoolResults(
+        impl_->device, impl_->statistics_query, 0U, 1U,
+        sizeof(frame.statistics), &frame.statistics,
+        sizeof(frame.statistics), PM_QUERY_RESULT_WAIT_BIT);
+    if (!checked(query_result, "read statistics query", error)) return false;
+
     // Native rendering borrows completed public exports. Host reads are explicit.
     impl_->contacts_available = collect_contacts;
     frame.full_host_output = false;
@@ -237,11 +246,6 @@ bool CommandScene::read_output(CommandSceneFrame &frame, std::string &error,
     if (impl_->contacts_available) {
         if (!read(impl_->contact_output, frame.contacts)) return false;
     } else frame.contacts.clear();
-    const PmResult query_result = pmGetQueryPoolResults(
-        impl_->device, impl_->statistics_query, 0U, 1U,
-        sizeof(frame.statistics), &frame.statistics,
-        sizeof(frame.statistics), PM_QUERY_RESULT_WAIT_BIT);
-    if (!checked(query_result, "read statistics query", error)) return false;
     frame.revision = std::max(frame.revision, frame.statistics.stepCount);
     return true;
 }
