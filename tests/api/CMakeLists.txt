@@ -8,16 +8,38 @@ endif()
 find_package(Threads REQUIRED)
 foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction-graph-lifecycle graph-validation geometry-lifecycle paint-lifecycle endpoint-lifecycle fluid-pair-graph-lifecycle)
     string(REPLACE "-" "_" source_name "${suite}")
-    add_executable(parallel-mater-${suite}-tests ${source_name}_tests.cpp)
+    set(suite_source ${source_name}_tests.cpp)
+    if(suite STREQUAL "resource-lifecycle")
+        set(suite_source ../../conformance/v1/src/resource_lifecycle_fixture.cpp)
+    elseif(suite STREQUAL "interaction-graph-lifecycle")
+        set(suite_source ../../conformance/v1/src/interaction_graph_lifecycle_fixture.cpp)
+    endif()
+    add_executable(parallel-mater-${suite}-tests ${suite_source})
     target_compile_features(parallel-mater-${suite}-tests PRIVATE cxx_std_20)
     target_link_libraries(parallel-mater-${suite}-tests PRIVATE ParallelMater::parallel_mater)
     foreach(backend cpu cuda vulkan d3d12 metal)
         if(TARGET parallel-mater-driver-slang-${backend})
             add_dependencies(parallel-mater-${suite}-tests parallel-mater-driver-slang-${backend})
-            add_test(NAME parallel-mater-${backend}-${suite}-tests COMMAND parallel-mater-${suite}-tests)
+            set(suite_arguments)
+            set(suite_environment
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json")
+            if(suite STREQUAL "interaction-graph-lifecycle")
+                list(APPEND suite_arguments
+                    --output "${CMAKE_CURRENT_BINARY_DIR}/${backend}-graph-lifecycle.json"
+                    --driver-name "slang-${backend}")
+                if(TARGET parallel-mater-layer-validation)
+                    add_dependencies(parallel-mater-${suite}-tests
+                        parallel-mater-layer-validation)
+                    list(APPEND suite_environment
+                        "PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json"
+                        "PM_TEST_VALIDATION=1")
+                endif()
+            endif()
+            add_test(NAME parallel-mater-${backend}-${suite}-tests
+                COMMAND parallel-mater-${suite}-tests ${suite_arguments})
             set_tests_properties(parallel-mater-${backend}-${suite}-tests PROPERTIES
                 LABELS "api;lifecycle;${backend}" SKIP_RETURN_CODE 77 TIMEOUT 120
-                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json")
+                ENVIRONMENT "${suite_environment}")
             if(suite STREQUAL "resource-lifecycle")
                 add_test(NAME parallel-mater-${backend}-validated-lifecycle-tests
                     COMMAND parallel-mater-${suite}-tests)
@@ -34,8 +56,12 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction
        TARGET parallel-mater-test-driver-slang-cpu-resources)
         add_dependencies(parallel-mater-${suite}-tests
             parallel-mater-test-driver-slang-cpu-resources)
+        set(host_suite_arguments)
+        if(suite STREQUAL "fluid-pair-graph-lifecycle")
+            list(APPEND host_suite_arguments --miscible)
+        endif()
         add_test(NAME parallel-mater-host-${suite}-tests
-            COMMAND parallel-mater-${suite}-tests)
+            COMMAND parallel-mater-${suite}-tests ${host_suite_arguments})
         set_tests_properties(
             parallel-mater-host-${suite}-tests PROPERTIES
             LABELS "api;lifecycle;host-fixture" TIMEOUT 120
@@ -46,6 +72,12 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction
         set_tests_properties(parallel-mater-external-${suite}-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
     endif()
 endforeach()
+
+target_include_directories(parallel-mater-interaction-graph-lifecycle-tests
+    PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../../conformance/v1/include")
+target_compile_definitions(parallel-mater-interaction-graph-lifecycle-tests
+    PRIVATE
+    PM_LIFECYCLE_PROFILE_PATH="${CMAKE_CURRENT_LIST_DIR}/../../conformance/v1/lifecycle/adverse-capacity-three-family-v1.json")
 
 add_executable(parallel-mater-host-concurrency-tests
     host_concurrency_tests.cpp)
@@ -107,7 +139,10 @@ target_compile_features(parallel-mater-fluid-pair-quality-tests PRIVATE cxx_std_
 target_include_directories(parallel-mater-fluid-pair-quality-tests PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/../../conformance/v1/include")
 target_compile_definitions(parallel-mater-fluid-pair-quality-tests PRIVATE
-    PM_QUALITY_PROFILE_SHA256="a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326")
+    PM_QUALITY_PROFILE_SHA256="a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"
+    PM_FLUID_SELF_CONTACT_PROFILE_SHA256="21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2"
+    PM_FLUID_SELF_PRESSURE_PROFILE_SHA256="4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b"
+    PM_FLUID_SELF_VISCOSITY_PROFILE_SHA256="9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c")
 target_link_libraries(parallel-mater-fluid-pair-quality-tests
     PRIVATE ParallelMater::parallel_mater)
 foreach(backend cpu cuda vulkan d3d12 metal)
@@ -116,10 +151,41 @@ foreach(backend cpu cuda vulkan d3d12 metal)
             parallel-mater-driver-slang-${backend})
         add_test(NAME parallel-mater-${backend}-fluid-pair-quality-tests
             COMMAND parallel-mater-fluid-pair-quality-tests
+                --driver-name "slang-${backend}"
                 --output "${CMAKE_CURRENT_BINARY_DIR}/${backend}-fluid-pair-quality.json")
         set_tests_properties(parallel-mater-${backend}-fluid-pair-quality-tests
             PROPERTIES LABELS "api;quality;${backend}" SKIP_RETURN_CODE 77
             TIMEOUT 180
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json")
+        add_test(NAME parallel-mater-${backend}-fluid-self-contact-quality-tests
+            COMMAND parallel-mater-fluid-pair-quality-tests --self-contact
+                --driver-name "slang-${backend}"
+                --output "${CMAKE_CURRENT_BINARY_DIR}/${backend}-fluid-self-contact-quality.json")
+        set_tests_properties(
+            parallel-mater-${backend}-fluid-self-contact-quality-tests
+            PROPERTIES LABELS "api;quality;self-contact;${backend}"
+            SKIP_RETURN_CODE 77 TIMEOUT 180
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json")
+        add_test(NAME parallel-mater-${backend}-fluid-self-pressure-quality-tests
+            COMMAND parallel-mater-fluid-pair-quality-tests --self-pressure
+                --driver-name "slang-${backend}"
+                --output "${CMAKE_CURRENT_BINARY_DIR}/${backend}-fluid-self-pressure-quality.json")
+        set_tests_properties(
+            parallel-mater-${backend}-fluid-self-pressure-quality-tests
+            PROPERTIES LABELS "api;quality;self-pressure;${backend}"
+            SKIP_RETURN_CODE 77 TIMEOUT 180
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json")
+        add_test(NAME parallel-mater-${backend}-fluid-self-viscosity-quality-tests
+            COMMAND parallel-mater-fluid-pair-quality-tests --self-viscosity
+                --driver-name "slang-${backend}"
+                --output "${CMAKE_CURRENT_BINARY_DIR}/${backend}-fluid-self-viscosity-quality.json")
+        set_tests_properties(
+            parallel-mater-${backend}-fluid-self-viscosity-quality-tests
+            PROPERTIES LABELS "api;quality;self-viscosity;${backend}"
+            SKIP_RETURN_CODE 77 TIMEOUT 180
             ENVIRONMENT
                 "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json")
     endif()
@@ -178,9 +244,13 @@ if(TARGET parallel-mater-test-driver-slang-cpu-resources AND
 endif()
 
 add_executable(parallel-mater-capacity-recovery-tests
-    capacity_recovery_tests.cpp)
+    ../../conformance/v1/src/capacity_recovery_fixture.cpp)
 target_compile_features(parallel-mater-capacity-recovery-tests PRIVATE
     cxx_std_20)
+target_include_directories(parallel-mater-capacity-recovery-tests PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/../../conformance/v1/include")
+target_compile_definitions(parallel-mater-capacity-recovery-tests PRIVATE
+    PM_LIFECYCLE_PROFILE_PATH="${CMAKE_CURRENT_LIST_DIR}/../../conformance/v1/lifecycle/adverse-capacity-three-family-v1.json")
 target_link_libraries(parallel-mater-capacity-recovery-tests PRIVATE
     ParallelMater::parallel_mater)
 foreach(backend cuda vulkan d3d12 metal)

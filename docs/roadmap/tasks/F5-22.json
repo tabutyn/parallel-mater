@@ -1,0 +1,50 @@
+{
+  "id": "F5-22",
+  "title": "Version rigid contact quality profiles",
+  "status": "done",
+  "dependencies": [
+    "F5-18",
+    "F6-11"
+  ],
+  "locks": [
+    "quality-rigid-profiles"
+  ],
+  "requires": [
+    "Slang CPU and at least one physical GPU driver on one clean revision"
+  ],
+  "scope": "Turn the existing independent rigid penetration and rigid attachment checks into immutable vendor-neutral analytic profiles and bind them to the advertised same-domain rigid contact and attachment capabilities.",
+  "acceptance": [
+    "Publish separate versioned contact and attachment profiles with canonical inputs, physical units, unchanged thresholds and independent oracles that do not use driver-private state.",
+    "Run both profiles through the public API on Slang CPU and at least one physical GPU driver; retain every failure rather than qualifying from cross-driver agreement.",
+    "Update capability obligations and revisioned evidence so each rigid capability qualifies only when its own analytic, lifecycle and reference obligations pass."
+  ],
+  "evidence": [
+    "docs/roadmap/evidence/F5-22-rigid-quality-profiles.json",
+    "conformance/v1/quality/rigid-brick-penetration-v1.json",
+    "conformance/v1/quality/rigid-attachment-v1.json",
+    "conformance/v1/qualification/capability-obligations-v1.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "773578fe-eb87-4e04-a5a0-eb659f02a7aa",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F5-22/windows-gtx1080",
+        "claimed_at": "2026-10-18T19:41:07Z",
+        "heartbeat_at": "2026-10-18T19:41:07Z",
+        "expires_at": "2026-10-19T19:41:07Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T20:33:48Z",
+      "reason": "Published versioned rigid contact and attachment profiles with independent public-state oracles and clean Slang CPU/CUDA captures.",
+      "evidence": [
+        "docs/roadmap/evidence/F5-22-rigid-quality-profiles.json",
+        "conformance/v1/quality/rigid-brick-penetration-v1.json",
+        "conformance/v1/quality/rigid-attachment-v1.json",
+        "conformance/v1/qualification/capability-obligations-v1.json"
+      ]
+    }
+  ]
+}

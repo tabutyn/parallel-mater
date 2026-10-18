@@ -1,7 +1,7 @@
 {
   "id": "F4-05",
   "title": "Specify memory-budget confidence",
-  "status": "open",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "api-registry",
@@ -15,7 +15,27 @@
     "Unknown/estimated values cannot be mistaken for guaranteed usable memory.",
     "Mock SDK tests cover confidence and overflow/failure semantics."
   ],
-  "evidence": [],
+  "evidence": [
+    "docs/roadmap/evidence/F4-05-memory-budget-confidence.md"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "806182dd-19d9-4b66-aeb5-d8eeff23997a",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F4-05/windows-gtx1080",
+        "claimed_at": "2026-10-18T18:01:04Z",
+        "heartbeat_at": "2026-10-18T18:01:04Z",
+        "expires_at": "2026-10-19T18:01:04Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T18:20:42Z",
+      "reason": "Specified confidence-aware budgets and qualified failure semantics",
+      "evidence": [
+        "docs/roadmap/evidence/F4-05-memory-budget-confidence.md"
+      ]
+    }
+  ]
 }

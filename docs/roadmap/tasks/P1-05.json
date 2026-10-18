@@ -1,7 +1,7 @@
 {
   "id": "P1-05",
   "title": "Build heterogeneous fluid pair sampling",
-  "status": "deferred",
+  "status": "done",
   "dependencies": [
     "P1-04"
   ],
@@ -17,7 +17,33 @@
     "Symmetric support and per-endpoint capacity tests cover swapped endpoints, empty populations and unequal resolutions.",
     "Storage planning bounds all heterogeneous pair scratch and overflow diagnostics."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: shared Slang CPU pair fixture covers unequal capacities, radii, supports, rest densities, particle volumes, masses, empty populations, endpoint reversal and overflow.",
+    "PASS: CUDA/PTX/SPIR-V/Metal mirror build completed 212/212 steps; CUDA and Vulkan shared drivers compiled; DirectCompute generator tests passed 4/4.",
+    "PASS: SDK CI passed 47/47 tests; tracked report docs/roadmap/evidence/P1-05-fluid-pair-sampling.json.",
+    "REVIEW: pressure/contact, viscosity, heterogeneous graph scheduling and capability advertisement remain P1-06 through P1-09."
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "57a06708-1b8c-48b4-8a02-808b09b6f177",
+        "owner": "codex-fluid-sampling",
+        "machine": "thomas-laptop",
+        "branch": "work/P1-05/thomas-laptop",
+        "claimed_at": "2026-10-18T21:47:04Z",
+        "heartbeat_at": "2026-10-18T21:47:04Z",
+        "expires_at": "2026-10-19T21:47:04Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T22:00:54Z",
+      "reason": "Implemented bounded endpoint-order-invariant density sampling for heterogeneous fluid pairs without advertising a new capability.",
+      "evidence": [
+        "PASS: shared Slang CPU pair fixture covers unequal capacities, radii, supports, rest densities, particle volumes, masses, empty populations, endpoint reversal and overflow.",
+        "PASS: CUDA/PTX/SPIR-V/Metal mirror build completed 212/212 steps; CUDA and Vulkan shared drivers compiled; DirectCompute generator tests passed 4/4.",
+        "PASS: SDK CI passed 47/47 tests; tracked report docs/roadmap/evidence/P1-05-fluid-pair-sampling.json.",
+        "REVIEW: pressure/contact, viscosity, heterogeneous graph scheduling and capability advertisement remain P1-06 through P1-09."
+      ]
+    }
+  ]
 }

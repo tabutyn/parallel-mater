@@ -381,6 +381,26 @@ void fluid_copy_initial(
 static const uint kFluidSecondPopulation = 0x80000000u;
 static const uint kFluidLocalIndexMask = 0x7fffffffu;
 
+float fluid_particle_mass(FluidOptions options)
+{
+    float diameter = 2.0f * options.particle_radius;
+    float volume = options.rest_particle_volume > 0.0f
+        ? options.rest_particle_volume : diameter * diameter * diameter;
+    return options.rest_density * volume;
+}
+
+// Three-dimensional poly6 sample. Writing the normalized form in terms of
+// r^2 / h^2 avoids h^9 and keeps density values in kg/m^3.
+float fluid_density_kernel(float squared_distance, float support_radius)
+{
+    float support_squared = support_radius * support_radius;
+    if (squared_distance >= support_squared) return 0.0f;
+    float q_squared = max(0.0f, 1.0f - squared_distance / support_squared);
+    float support_cubed = support_radius * support_squared;
+    return 1.56668147106f * q_squared * q_squared * q_squared /
+        support_cubed;
+}
+
 [shader("compute")]
 [numthreads(PM_THREADS(128), 1, 1)]
 void fluid_emit_pair_cells(
@@ -421,11 +441,14 @@ void fluid_count_pair_neighbors(
     uniform PMBuffer<uint> second_count, uniform uint second_capacity,
     uniform uint second_maximum_neighbors,
     uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> identities,
-    uniform uint total_capacity, uniform float support_radius,
+    uniform uint total_capacity, uniform FluidOptions first_options,
+    uniform FluidOptions second_options,
     uniform PMBuffer<uint> first_total_neighbors,
     uniform PMBuffer<uint> first_cross_neighbors,
+    uniform PMBuffer<float> first_density_samples,
     uniform PMBuffer<uint> second_total_neighbors,
     uniform PMBuffer<uint> second_cross_neighbors,
+    uniform PMBuffer<float> second_density_samples,
     uniform PMBuffer<uint> first_neighbor_overflow,
     uniform PMBuffer<uint> second_neighbor_overflow,
     uniform PMBuffer<uint> first_maximum_neighbor_count,
@@ -443,23 +466,29 @@ void fluid_count_pair_neighbors(
     {
         second_total_neighbors[local] = 0u;
         second_cross_neighbors[local] = 0u;
+        second_density_samples[local] = 0.0f;
     }
     else
     {
         first_total_neighbors[local] = 0u;
         first_cross_neighbors[local] = 0u;
+        first_density_samples[local] = 0.0f;
     }
     if (local >= count) return;
 
     Vec3 position = second ? second_positions[local] : first_positions[local];
     uint selfIdentity = local | (second ? kFluidSecondPopulation : 0u);
-    float inverseRadius = 1.0f / support_radius;
+    FluidOptions localOptions = second ? second_options : first_options;
+    float pairSupport = max(first_options.support_radius,
+        second_options.support_radius);
+    float inverseRadius = 1.0f / pairSupport;
     int cx = int(floor(position.x * inverseRadius));
     int cy = int(floor(position.y * inverseRadius));
     int cz = int(floor(position.z * inverseRadius));
-    float supportSquared = support_radius * support_radius;
     uint neighbors = 0u;
     uint crossNeighbors = 0u;
+    float density = fluid_particle_mass(localOptions) *
+        fluid_density_kernel(0.0f, localOptions.support_radius);
     for (int dz = -1; dz <= 1; ++dz)
     {
         for (int dy = -1; dy <= 1; ++dy)
@@ -481,11 +510,19 @@ void fluid_count_pair_neighbors(
                     uint other = otherIdentity & kFluidLocalIndexMask;
                     Vec3 otherPosition = otherSecond
                         ? second_positions[other] : first_positions[other];
-                    if (length_squared(subtract(position, otherPosition)) >=
-                        supportSquared)
+                    bool crossPopulation = otherSecond != second;
+                    float support = crossPopulation
+                        ? pairSupport : localOptions.support_radius;
+                    float squared = length_squared(
+                        subtract(position, otherPosition));
+                    if (squared >= support * support)
                         continue;
                     ++neighbors;
-                    if (otherSecond != second) ++crossNeighbors;
+                    if (crossPopulation) ++crossNeighbors;
+                    FluidOptions otherOptions = otherSecond
+                        ? second_options : first_options;
+                    density += fluid_particle_mass(otherOptions) *
+                        fluid_density_kernel(squared, support);
                 }
             }
         }
@@ -495,6 +532,7 @@ void fluid_count_pair_neighbors(
     {
         second_total_neighbors[local] = neighbors;
         second_cross_neighbors[local] = crossNeighbors;
+        second_density_samples[local] = density;
         pmAtomicMax(second_maximum_neighbor_count, neighbors);
         if (neighbors > second_maximum_neighbors)
             pmAtomicAdd(second_neighbor_overflow, 1u);
@@ -503,6 +541,7 @@ void fluid_count_pair_neighbors(
     {
         first_total_neighbors[local] = neighbors;
         first_cross_neighbors[local] = crossNeighbors;
+        first_density_samples[local] = density;
         pmAtomicMax(first_maximum_neighbor_count, neighbors);
         if (neighbors > first_maximum_neighbors)
             pmAtomicAdd(first_neighbor_overflow, 1u);
@@ -658,6 +697,855 @@ void fluid_apply_pair_viscosity(
             }
         }
     }
+    if (second)
+        second_forces[local] = add(second_forces[local], acceleration);
+    else
+        first_forces[local] = add(first_forces[local], acceleration);
+}
+
+public float fluid_pair_pressure(
+    FluidOptions options, float density)
+{
+    return options.repulsion * max(density - options.rest_density, 0.0f);
+}
+
+public float fluid_pressure_gradient_magnitude(
+    float distance, float support_radius)
+{
+    float supportSquared = support_radius * support_radius;
+    float qSquared = max(
+        0.0f, 1.0f - distance * distance / supportSquared);
+    return 9.40008882636f * distance * qSquared * qSquared /
+        (supportSquared * supportSquared * support_radius);
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_apply_miscible_pair_pressure_contact(
+    uniform PMBuffer<Vec3> first_positions,
+    uniform PMBuffer<Vec3> first_velocities,
+    uniform PMBuffer<uint> first_count, uniform uint first_capacity,
+    uniform PMBuffer<Vec3> first_forces,
+    uniform PMBuffer<float> first_density_samples,
+    uniform PMBuffer<Vec3> second_positions,
+    uniform PMBuffer<Vec3> second_velocities,
+    uniform PMBuffer<uint> second_count, uniform uint second_capacity,
+    uniform PMBuffer<Vec3> second_forces,
+    uniform PMBuffer<float> second_density_samples,
+    uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> identities,
+    uniform uint total_capacity,
+    uniform FluidOptions first_options,
+    uniform FluidOptions second_options
+    PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint item = pmThreadIndex();
+    if (item >= total_capacity || item >= first_capacity + second_capacity)
+        return;
+    bool second = item >= first_capacity;
+    uint local = second ? item - first_capacity : item;
+    uint count = second ? *second_count : *first_count;
+    if (local >= count) return;
+
+    Vec3 position = second ? second_positions[local] : first_positions[local];
+    float pairSupport = max(
+        first_options.support_radius, second_options.support_radius);
+    float inverseSupport = 1.0f / pairSupport;
+    int cx = int(floor(position.x * inverseSupport));
+    int cy = int(floor(position.y * inverseSupport));
+    int cz = int(floor(position.z * inverseSupport));
+    float supportSquared = pairSupport * pairSupport;
+    float firstMass = fluid_particle_mass(first_options);
+    float secondMass = fluid_particle_mass(second_options);
+    float pairMass = 2.0f * firstMass * secondMass /
+        max(firstMass + secondMass, 1.0e-20f);
+    float contactSeparation =
+        first_options.particle_radius + second_options.particle_radius;
+    float firstContactScale = first_options.repulsion *
+        (1000.0f / first_options.rest_density);
+    float secondContactScale = second_options.repulsion *
+        (1000.0f / second_options.rest_density);
+    Vec3 acceleration = {};
+
+    for (int dz = -1; dz <= 1; ++dz)
+    {
+        for (int dy = -1; dy <= 1; ++dy)
+        {
+            for (int dx = -1; dx <= 1; ++dx)
+            {
+                if (cx + dx < -kFluidCellBias || cx + dx >= kFluidCellBias ||
+                    cy + dy < -kFluidCellBias || cy + dy >= kFluidCellBias ||
+                    cz + dz < -kFluidCellBias || cz + dz >= kFluidCellBias)
+                    continue;
+                uint64_t key = fluid_cell_key(cx + dx, cy + dy, cz + dz);
+                for (uint sorted = fluid_lower_bound(keys, total_capacity, key);
+                     sorted < total_capacity && keys[sorted] == key; ++sorted)
+                {
+                    uint otherIdentity = identities[sorted];
+                    bool otherSecond =
+                        (otherIdentity & kFluidSecondPopulation) != 0u;
+                    if (otherSecond == second) continue;
+                    uint other = otherIdentity & kFluidLocalIndexMask;
+
+                    uint firstIndex = second ? other : local;
+                    uint secondIndex = second ? local : other;
+                    Vec3 firstPosition = first_positions[firstIndex];
+                    Vec3 secondPosition = second_positions[secondIndex];
+                    Vec3 delta = subtract(firstPosition, secondPosition);
+                    float squared = length_squared(delta);
+                    if (squared >= supportSquared) continue;
+
+                    Vec3 firstVelocity = first_velocities[firstIndex];
+                    Vec3 secondVelocity = second_velocities[secondIndex];
+                    Vec3 relativeVelocity =
+                        subtract(secondVelocity, firstVelocity);
+                    float distance = sqrt(max(squared, 1.0e-12f));
+                    Vec3 direction = squared > 1.0e-12f
+                        ? multiply(delta, 1.0f / distance)
+                        : normalized_or(relativeVelocity, Vec3(0.0f));
+                    float firstDensity = max(
+                        first_density_samples[firstIndex], 1.0e-6f);
+                    float secondDensity = max(
+                        second_density_samples[secondIndex], 1.0e-6f);
+                    float firstPressure = fluid_pair_pressure(
+                        first_options, firstDensity);
+                    float secondPressure = fluid_pair_pressure(
+                        second_options, secondDensity);
+                    float pressureMagnitude = firstMass * secondMass *
+                        (firstPressure / (firstDensity * firstDensity) +
+                         secondPressure / (secondDensity * secondDensity)) *
+                        fluid_pressure_gradient_magnitude(
+                            distance, pairSupport);
+
+                    float contactMagnitude = 0.0f;
+                    if (distance < contactSeparation)
+                    {
+                        float q = 1.0f - distance / contactSeparation;
+                        float radialSpeed = dot(relativeVelocity, direction);
+                        float contactAcceleration =
+                            0.5f * (firstContactScale + secondContactScale) *
+                                q * q +
+                            0.5f * (first_options.normal_damping +
+                                second_options.normal_damping) * radialSpeed;
+                        contactMagnitude = pairMass * contactAcceleration;
+                    }
+
+                    Vec3 commonForce = multiply(
+                        direction, pressureMagnitude + contactMagnitude);
+                    float forceLimit = 0.0f;
+                    if (first_options.maximum_pair_acceleration > 0.0f)
+                        forceLimit = firstMass *
+                            first_options.maximum_pair_acceleration;
+                    if (second_options.maximum_pair_acceleration > 0.0f)
+                    {
+                        float secondLimit = secondMass *
+                            second_options.maximum_pair_acceleration;
+                        forceLimit = forceLimit > 0.0f
+                            ? min(forceLimit, secondLimit) : secondLimit;
+                    }
+                    if (forceLimit > 0.0f)
+                        commonForce = clamp_length(commonForce, forceLimit);
+                    acceleration = add(acceleration,
+                        multiply(commonForce,
+                            second ? -1.0f / secondMass : 1.0f / firstMass));
+                }
+            }
+        }
+    }
+
+    if (second)
+        second_forces[local] = add(second_forces[local], acceleration);
+    else
+        first_forces[local] = add(first_forces[local], acceleration);
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_apply_miscible_pair_viscosity(
+    uniform PMBuffer<Vec3> first_positions,
+    uniform PMBuffer<Vec3> first_velocities,
+    uniform PMBuffer<uint> first_count, uniform uint first_capacity,
+    uniform PMBuffer<Vec3> first_forces,
+    uniform PMBuffer<Vec3> second_positions,
+    uniform PMBuffer<Vec3> second_velocities,
+    uniform PMBuffer<uint> second_count, uniform uint second_capacity,
+    uniform PMBuffer<Vec3> second_forces,
+    uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> identities,
+    uniform uint total_capacity,
+    uniform FluidOptions first_options,
+    uniform FluidOptions second_options
+    PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint item = pmThreadIndex();
+    if (item >= total_capacity || item >= first_capacity + second_capacity)
+        return;
+    bool second = item >= first_capacity;
+    uint local = second ? item - first_capacity : item;
+    uint count = second ? *second_count : *first_count;
+    if (local >= count) return;
+
+    Vec3 position = second ? second_positions[local] : first_positions[local];
+    float pairSupport = max(
+        first_options.support_radius, second_options.support_radius);
+    float inverseSupport = 1.0f / pairSupport;
+    int cx = int(floor(position.x * inverseSupport));
+    int cy = int(floor(position.y * inverseSupport));
+    int cz = int(floor(position.z * inverseSupport));
+    float supportSquared = pairSupport * pairSupport;
+    float firstMass = fluid_particle_mass(first_options);
+    float secondMass = fluid_particle_mass(second_options);
+    float firstVolume = firstMass / first_options.rest_density;
+    float secondVolume = secondMass / second_options.rest_density;
+    float pairVolume = 2.0f * firstVolume * secondVolume /
+        max(firstVolume + secondVolume, 1.0e-20f);
+    float firstDynamicViscosity =
+        first_options.rest_density * first_options.viscosity;
+    float secondDynamicViscosity =
+        second_options.rest_density * second_options.viscosity;
+    float viscositySum = firstDynamicViscosity + secondDynamicViscosity;
+    float pairDynamicViscosity = viscositySum > 0.0f
+        ? 2.0f * firstDynamicViscosity * secondDynamicViscosity /
+            viscositySum
+        : 0.0f;
+    float forceLimit = 0.0f;
+    if (first_options.maximum_pair_acceleration > 0.0f)
+        forceLimit = firstMass * first_options.maximum_pair_acceleration;
+    if (second_options.maximum_pair_acceleration > 0.0f)
+    {
+        float secondLimit = secondMass *
+            second_options.maximum_pair_acceleration;
+        forceLimit = forceLimit > 0.0f
+            ? min(forceLimit, secondLimit) : secondLimit;
+    }
+    Vec3 acceleration = {};
+
+    for (int dz = -1; dz <= 1; ++dz)
+    {
+        for (int dy = -1; dy <= 1; ++dy)
+        {
+            for (int dx = -1; dx <= 1; ++dx)
+            {
+                if (cx + dx < -kFluidCellBias || cx + dx >= kFluidCellBias ||
+                    cy + dy < -kFluidCellBias || cy + dy >= kFluidCellBias ||
+                    cz + dz < -kFluidCellBias || cz + dz >= kFluidCellBias)
+                    continue;
+                uint64_t key = fluid_cell_key(cx + dx, cy + dy, cz + dz);
+                for (uint sorted = fluid_lower_bound(keys, total_capacity, key);
+                     sorted < total_capacity && keys[sorted] == key; ++sorted)
+                {
+                    uint otherIdentity = identities[sorted];
+                    bool otherSecond =
+                        (otherIdentity & kFluidSecondPopulation) != 0u;
+                    if (otherSecond == second) continue;
+                    uint other = otherIdentity & kFluidLocalIndexMask;
+                    uint firstIndex = second ? other : local;
+                    uint secondIndex = second ? local : other;
+                    float squared = length_squared(subtract(
+                        first_positions[firstIndex],
+                        second_positions[secondIndex]));
+                    if (squared >= supportSquared) continue;
+                    float distance = sqrt(max(squared, 0.0f));
+                    float weight = 1.0f - distance * inverseSupport;
+                    Vec3 commonForce = multiply(subtract(
+                        second_velocities[secondIndex],
+                        first_velocities[firstIndex]),
+                        pairDynamicViscosity * pairVolume * weight);
+                    if (forceLimit > 0.0f)
+                        commonForce = clamp_length(commonForce, forceLimit);
+                    acceleration = add(acceleration,
+                        multiply(commonForce,
+                            second ? -1.0f / secondMass : 1.0f / firstMass));
+                }
+            }
+        }
+    }
+
+    if (second)
+        second_forces[local] = add(second_forces[local], acceleration);
+    else
+        first_forces[local] = add(first_forces[local], acceleration);
+}
+
+static const uint kFluidInterfaceSample = 1u;
+static const uint kFluidInterfaceUnderResolved = 2u;
+static const uint kFluidInterfaceDegenerate = 4u;
+static const uint kFluidInterfaceCurvatureClamped = 8u;
+
+// Invert the symmetric weighted position moment used by both reconstruction
+// passes. The relative determinant threshold rejects collinear and coplanar
+// neighborhoods without introducing a scale-dependent epsilon.
+bool fluid_inverse_interface_moment(
+    float xx, float xy, float xz, float yy, float yz, float zz,
+    out float inverseXX, out float inverseXY, out float inverseXZ,
+    out float inverseYY, out float inverseYZ, out float inverseZZ)
+{
+    float cofactorXX = yy * zz - yz * yz;
+    float cofactorXY = xz * yz - xy * zz;
+    float cofactorXZ = xy * yz - xz * yy;
+    float cofactorYY = xx * zz - xz * xz;
+    float cofactorYZ = xy * xz - xx * yz;
+    float cofactorZZ = xx * yy - xy * xy;
+    float determinant = xx * cofactorXX + xy * cofactorXY +
+        xz * cofactorXZ;
+    float trace = xx + yy + zz;
+    float minimumDeterminant = max(1.0e-30f,
+        1.0e-6f * trace * trace * trace);
+    if (!isfinite(determinant) || determinant <= minimumDeterminant)
+    {
+        inverseXX = 0.0f;
+        inverseXY = 0.0f;
+        inverseXZ = 0.0f;
+        inverseYY = 0.0f;
+        inverseYZ = 0.0f;
+        inverseZZ = 0.0f;
+        return false;
+    }
+    float inverseDeterminant = 1.0f / determinant;
+    inverseXX = cofactorXX * inverseDeterminant;
+    inverseXY = cofactorXY * inverseDeterminant;
+    inverseXZ = cofactorXZ * inverseDeterminant;
+    inverseYY = cofactorYY * inverseDeterminant;
+    inverseYZ = cofactorYZ * inverseDeterminant;
+    inverseZZ = cofactorZZ * inverseDeterminant;
+    return isfinite(inverseXX) && isfinite(inverseXY) &&
+        isfinite(inverseXZ) && isfinite(inverseYY) &&
+        isfinite(inverseYZ) && isfinite(inverseZZ);
+}
+
+Vec3 fluid_apply_interface_inverse(
+    float inverseXX, float inverseXY, float inverseXZ,
+    float inverseYY, float inverseYZ, float inverseZZ, Vec3 value)
+{
+    return {
+        inverseXX * value.x + inverseXY * value.y + inverseXZ * value.z,
+        inverseXY * value.x + inverseYY * value.y + inverseYZ * value.z,
+        inverseXZ * value.x + inverseYZ * value.y + inverseZZ * value.z};
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_reconstruct_immiscible_interface_normals(
+    uniform PMBuffer<Vec3> first_positions,
+    uniform PMBuffer<uint> first_count, uniform uint first_capacity,
+    uniform PMBuffer<uint> first_total_neighbors,
+    uniform PMBuffer<uint> first_cross_neighbors,
+    uniform PMBuffer<float> first_phase_labels,
+    uniform PMBuffer<Vec3> first_interface_normals,
+    uniform PMBuffer<uint> first_interface_flags,
+    uniform PMBuffer<Vec3> second_positions,
+    uniform PMBuffer<uint> second_count, uniform uint second_capacity,
+    uniform PMBuffer<uint> second_total_neighbors,
+    uniform PMBuffer<uint> second_cross_neighbors,
+    uniform PMBuffer<float> second_phase_labels,
+    uniform PMBuffer<Vec3> second_interface_normals,
+    uniform PMBuffer<uint> second_interface_flags,
+    uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> identities,
+    uniform uint total_capacity, uniform FluidOptions first_options,
+    uniform FluidOptions second_options,
+    uniform PMBuffer<uint> first_interface_sample_count,
+    uniform PMBuffer<uint> second_interface_sample_count,
+    uniform PMBuffer<uint> first_under_resolved_interface_count,
+    uniform PMBuffer<uint> second_under_resolved_interface_count,
+    uniform PMBuffer<uint> first_degenerate_interface_count,
+    uniform PMBuffer<uint> second_degenerate_interface_count
+    PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint item = pmThreadIndex();
+    if (item >= total_capacity || item >= first_capacity + second_capacity)
+        return;
+    bool second = item >= first_capacity;
+    uint local = second ? item - first_capacity : item;
+    uint count = second ? *second_count : *first_count;
+    Vec3 zero = {};
+    if (second)
+    {
+        second_phase_labels[local] = local < count ? 1.0f : 0.0f;
+        second_interface_normals[local] = zero;
+        second_interface_flags[local] = 0u;
+    }
+    else
+    {
+        first_phase_labels[local] = local < count ? -1.0f : 0.0f;
+        first_interface_normals[local] = zero;
+        first_interface_flags[local] = 0u;
+    }
+    if (local >= count) return;
+
+    uint totalNeighbors = second
+        ? second_total_neighbors[local] : first_total_neighbors[local];
+    uint crossNeighbors = second
+        ? second_cross_neighbors[local] : first_cross_neighbors[local];
+    if (crossNeighbors == 0u) return;
+    if (second) pmAtomicAdd(second_interface_sample_count, 1u);
+    else pmAtomicAdd(first_interface_sample_count, 1u);
+
+    uint flags = kFluidInterfaceSample;
+    if (totalNeighbors < 6u || crossNeighbors < 3u)
+    {
+        flags |= kFluidInterfaceUnderResolved;
+        if (second) pmAtomicAdd(second_under_resolved_interface_count, 1u);
+        else pmAtomicAdd(first_under_resolved_interface_count, 1u);
+    }
+
+    Vec3 position = second ? second_positions[local] : first_positions[local];
+    float phase = second ? 1.0f : -1.0f;
+    float pairSupport = max(
+        first_options.support_radius, second_options.support_radius);
+    float inverseSupport = 1.0f / pairSupport;
+    float supportSquared = pairSupport * pairSupport;
+    int cx = int(floor(position.x * inverseSupport));
+    int cy = int(floor(position.y * inverseSupport));
+    int cz = int(floor(position.z * inverseSupport));
+    float xx = 0.0f;
+    float xy = 0.0f;
+    float xz = 0.0f;
+    float yy = 0.0f;
+    float yz = 0.0f;
+    float zz = 0.0f;
+    Vec3 phaseMoment = {};
+    uint selfIdentity = local | (second ? kFluidSecondPopulation : 0u);
+    for (int dz = -1; dz <= 1; ++dz)
+    {
+        for (int dy = -1; dy <= 1; ++dy)
+        {
+            for (int dx = -1; dx <= 1; ++dx)
+            {
+                if (cx + dx < -kFluidCellBias || cx + dx >= kFluidCellBias ||
+                    cy + dy < -kFluidCellBias || cy + dy >= kFluidCellBias ||
+                    cz + dz < -kFluidCellBias || cz + dz >= kFluidCellBias)
+                    continue;
+                uint64_t key = fluid_cell_key(cx + dx, cy + dy, cz + dz);
+                for (uint sorted = fluid_lower_bound(keys, total_capacity, key);
+                     sorted < total_capacity && keys[sorted] == key; ++sorted)
+                {
+                    uint otherIdentity = identities[sorted];
+                    if (otherIdentity == selfIdentity) continue;
+                    bool otherSecond =
+                        (otherIdentity & kFluidSecondPopulation) != 0u;
+                    uint other = otherIdentity & kFluidLocalIndexMask;
+                    Vec3 otherPosition = otherSecond
+                        ? second_positions[other] : first_positions[other];
+                    Vec3 delta = subtract(otherPosition, position);
+                    float squared = length_squared(delta);
+                    if (squared >= supportSquared) continue;
+                    float distance = sqrt(max(squared, 1.0e-30f));
+                    float q = 1.0f - distance * inverseSupport;
+                    float weight = q * q;
+                    xx += weight * delta.x * delta.x;
+                    xy += weight * delta.x * delta.y;
+                    xz += weight * delta.x * delta.z;
+                    yy += weight * delta.y * delta.y;
+                    yz += weight * delta.y * delta.z;
+                    zz += weight * delta.z * delta.z;
+                    float otherPhase = otherSecond ? 1.0f : -1.0f;
+                    phaseMoment = add(phaseMoment,
+                        multiply(delta, weight * (otherPhase - phase)));
+                }
+            }
+        }
+    }
+
+    float inverseXX;
+    float inverseXY;
+    float inverseXZ;
+    float inverseYY;
+    float inverseYZ;
+    float inverseZZ;
+    bool invertible = fluid_inverse_interface_moment(
+        xx, xy, xz, yy, yz, zz, inverseXX, inverseXY, inverseXZ,
+        inverseYY, inverseYZ, inverseZZ);
+    Vec3 gradient = invertible ? fluid_apply_interface_inverse(
+        inverseXX, inverseXY, inverseXZ, inverseYY, inverseYZ, inverseZZ,
+        phaseMoment) : zero;
+    float gradientLength = vector_length(gradient);
+    bool finiteGradient = isfinite(gradient.x) && isfinite(gradient.y) &&
+        isfinite(gradient.z) && isfinite(gradientLength);
+    if (!invertible || !finiteGradient ||
+        gradientLength <= 1.0e-6f * inverseSupport)
+    {
+        flags |= kFluidInterfaceDegenerate;
+        if (second) pmAtomicAdd(second_degenerate_interface_count, 1u);
+        else pmAtomicAdd(first_degenerate_interface_count, 1u);
+        gradient = zero;
+    }
+    else
+        gradient = multiply(gradient, 1.0f / gradientLength);
+
+    if (second)
+    {
+        second_interface_normals[local] = gradient;
+        second_interface_flags[local] = flags;
+    }
+    else
+    {
+        first_interface_normals[local] = gradient;
+        first_interface_flags[local] = flags;
+    }
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_reconstruct_immiscible_interface_curvature(
+    uniform PMBuffer<Vec3> first_positions,
+    uniform PMBuffer<uint> first_count, uniform uint first_capacity,
+    uniform PMBuffer<Vec3> first_interface_normals,
+    uniform PMBuffer<float> first_interface_curvatures,
+    uniform PMBuffer<uint> first_interface_flags,
+    uniform PMBuffer<Vec3> second_positions,
+    uniform PMBuffer<uint> second_count, uniform uint second_capacity,
+    uniform PMBuffer<Vec3> second_interface_normals,
+    uniform PMBuffer<float> second_interface_curvatures,
+    uniform PMBuffer<uint> second_interface_flags,
+    uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> identities,
+    uniform uint total_capacity, uniform FluidOptions first_options,
+    uniform FluidOptions second_options,
+    uniform PMBuffer<uint> first_under_resolved_interface_count,
+    uniform PMBuffer<uint> second_under_resolved_interface_count,
+    uniform PMBuffer<uint> first_degenerate_interface_count,
+    uniform PMBuffer<uint> second_degenerate_interface_count,
+    uniform PMBuffer<uint> first_curvature_clamp_count,
+    uniform PMBuffer<uint> second_curvature_clamp_count
+    PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint item = pmThreadIndex();
+    if (item >= total_capacity || item >= first_capacity + second_capacity)
+        return;
+    bool second = item >= first_capacity;
+    uint local = second ? item - first_capacity : item;
+    uint count = second ? *second_count : *first_count;
+    if (second) second_interface_curvatures[local] = 0.0f;
+    else first_interface_curvatures[local] = 0.0f;
+    if (local >= count) return;
+
+    uint flags = second
+        ? second_interface_flags[local] : first_interface_flags[local];
+    if ((flags & kFluidInterfaceSample) == 0u ||
+        (flags & kFluidInterfaceDegenerate) != 0u)
+        return;
+    Vec3 position = second ? second_positions[local] : first_positions[local];
+    Vec3 normal = second
+        ? second_interface_normals[local] : first_interface_normals[local];
+    float pairSupport = max(
+        first_options.support_radius, second_options.support_radius);
+    float inverseSupport = 1.0f / pairSupport;
+    float supportSquared = pairSupport * pairSupport;
+    int cx = int(floor(position.x * inverseSupport));
+    int cy = int(floor(position.y * inverseSupport));
+    int cz = int(floor(position.z * inverseSupport));
+    float xx = 0.0f;
+    float xy = 0.0f;
+    float xz = 0.0f;
+    float yy = 0.0f;
+    float yz = 0.0f;
+    float zz = 0.0f;
+    float bXX = 0.0f;
+    float bXY = 0.0f;
+    float bXZ = 0.0f;
+    float bYX = 0.0f;
+    float bYY = 0.0f;
+    float bYZ = 0.0f;
+    float bZX = 0.0f;
+    float bZY = 0.0f;
+    float bZZ = 0.0f;
+    uint normalNeighbors = 0u;
+    uint selfIdentity = local | (second ? kFluidSecondPopulation : 0u);
+    for (int dz = -1; dz <= 1; ++dz)
+    {
+        for (int dy = -1; dy <= 1; ++dy)
+        {
+            for (int dx = -1; dx <= 1; ++dx)
+            {
+                if (cx + dx < -kFluidCellBias || cx + dx >= kFluidCellBias ||
+                    cy + dy < -kFluidCellBias || cy + dy >= kFluidCellBias ||
+                    cz + dz < -kFluidCellBias || cz + dz >= kFluidCellBias)
+                    continue;
+                uint64_t key = fluid_cell_key(cx + dx, cy + dy, cz + dz);
+                for (uint sorted = fluid_lower_bound(keys, total_capacity, key);
+                     sorted < total_capacity && keys[sorted] == key; ++sorted)
+                {
+                    uint otherIdentity = identities[sorted];
+                    if (otherIdentity == selfIdentity) continue;
+                    bool otherSecond =
+                        (otherIdentity & kFluidSecondPopulation) != 0u;
+                    uint other = otherIdentity & kFluidLocalIndexMask;
+                    uint otherFlags = otherSecond
+                        ? second_interface_flags[other]
+                        : first_interface_flags[other];
+                    if ((otherFlags & kFluidInterfaceSample) == 0u ||
+                        (otherFlags & kFluidInterfaceDegenerate) != 0u)
+                        continue;
+                    Vec3 otherPosition = otherSecond
+                        ? second_positions[other] : first_positions[other];
+                    Vec3 delta = subtract(otherPosition, position);
+                    float squared = length_squared(delta);
+                    if (squared >= supportSquared) continue;
+                    Vec3 otherNormal = otherSecond
+                        ? second_interface_normals[other]
+                        : first_interface_normals[other];
+                    Vec3 deltaNormal = subtract(otherNormal, normal);
+                    float distance = sqrt(max(squared, 1.0e-30f));
+                    float q = 1.0f - distance * inverseSupport;
+                    float weight = q * q;
+                    xx += weight * delta.x * delta.x;
+                    xy += weight * delta.x * delta.y;
+                    xz += weight * delta.x * delta.z;
+                    yy += weight * delta.y * delta.y;
+                    yz += weight * delta.y * delta.z;
+                    zz += weight * delta.z * delta.z;
+                    bXX += weight * deltaNormal.x * delta.x;
+                    bXY += weight * deltaNormal.x * delta.y;
+                    bXZ += weight * deltaNormal.x * delta.z;
+                    bYX += weight * deltaNormal.y * delta.x;
+                    bYY += weight * deltaNormal.y * delta.y;
+                    bYZ += weight * deltaNormal.y * delta.z;
+                    bZX += weight * deltaNormal.z * delta.x;
+                    bZY += weight * deltaNormal.z * delta.y;
+                    bZZ += weight * deltaNormal.z * delta.z;
+                    ++normalNeighbors;
+                }
+            }
+        }
+    }
+
+    if (normalNeighbors < 6u &&
+        (flags & kFluidInterfaceUnderResolved) == 0u)
+    {
+        flags |= kFluidInterfaceUnderResolved;
+        if (second) pmAtomicAdd(second_under_resolved_interface_count, 1u);
+        else pmAtomicAdd(first_under_resolved_interface_count, 1u);
+    }
+    float inverseXX;
+    float inverseXY;
+    float inverseXZ;
+    float inverseYY;
+    float inverseYZ;
+    float inverseZZ;
+    bool invertible = fluid_inverse_interface_moment(
+        xx, xy, xz, yy, yz, zz, inverseXX, inverseXY, inverseXZ,
+        inverseYY, inverseYZ, inverseZZ);
+    float curvature = invertible
+        ? bXX * inverseXX + bXY * inverseXY + bXZ * inverseXZ +
+          bYX * inverseXY + bYY * inverseYY + bYZ * inverseYZ +
+          bZX * inverseXZ + bZY * inverseYZ + bZZ * inverseZZ
+        : 0.0f;
+    if (!invertible || !isfinite(curvature))
+    {
+        if ((flags & kFluidInterfaceDegenerate) == 0u)
+        {
+            flags |= kFluidInterfaceDegenerate;
+            if (second) pmAtomicAdd(second_degenerate_interface_count, 1u);
+            else pmAtomicAdd(first_degenerate_interface_count, 1u);
+        }
+        curvature = 0.0f;
+    }
+    else
+    {
+        float minimumParticleRadius = max(1.0e-6f, min(
+            first_options.particle_radius, second_options.particle_radius));
+        float curvatureLimit = 2.0f / minimumParticleRadius;
+        if (abs(curvature) > curvatureLimit)
+        {
+            flags |= kFluidInterfaceCurvatureClamped;
+            curvature = clamp_scalar(
+                curvature, -curvatureLimit, curvatureLimit);
+            if (second) pmAtomicAdd(second_curvature_clamp_count, 1u);
+            else pmAtomicAdd(first_curvature_clamp_count, 1u);
+        }
+    }
+    if (second)
+    {
+        second_interface_curvatures[local] = curvature;
+        second_interface_flags[local] = flags;
+    }
+    else
+    {
+        first_interface_curvatures[local] = curvature;
+        first_interface_flags[local] = flags;
+    }
+}
+
+public float fluid_immiscible_pressure_jump(
+    float surface_tension, float first_curvature, float second_curvature)
+{
+    return surface_tension *
+        0.5f * (first_curvature + second_curvature);
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_apply_immiscible_pair_pressure_capillarity(
+    uniform PMBuffer<Vec3> first_positions,
+    uniform PMBuffer<Vec3> first_velocities,
+    uniform PMBuffer<uint> first_count, uniform uint first_capacity,
+    uniform PMBuffer<Vec3> first_forces,
+    uniform PMBuffer<float> first_density_samples,
+    uniform PMBuffer<Vec3> first_interface_normals,
+    uniform PMBuffer<float> first_interface_curvatures,
+    uniform PMBuffer<uint> first_interface_flags,
+    uniform PMBuffer<Vec3> second_positions,
+    uniform PMBuffer<Vec3> second_velocities,
+    uniform PMBuffer<uint> second_count, uniform uint second_capacity,
+    uniform PMBuffer<Vec3> second_forces,
+    uniform PMBuffer<float> second_density_samples,
+    uniform PMBuffer<Vec3> second_interface_normals,
+    uniform PMBuffer<float> second_interface_curvatures,
+    uniform PMBuffer<uint> second_interface_flags,
+    uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> identities,
+    uniform uint total_capacity,
+    uniform FluidOptions first_options,
+    uniform FluidOptions second_options,
+    uniform float surface_tension
+    PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint item = pmThreadIndex();
+    if (item >= total_capacity || item >= first_capacity + second_capacity)
+        return;
+    bool second = item >= first_capacity;
+    uint local = second ? item - first_capacity : item;
+    uint count = second ? *second_count : *first_count;
+    if (local >= count) return;
+
+    Vec3 position = second ? second_positions[local] : first_positions[local];
+    float pairSupport = max(
+        first_options.support_radius, second_options.support_radius);
+    float inverseSupport = 1.0f / pairSupport;
+    int cx = int(floor(position.x * inverseSupport));
+    int cy = int(floor(position.y * inverseSupport));
+    int cz = int(floor(position.z * inverseSupport));
+    float supportSquared = pairSupport * pairSupport;
+    float firstMass = fluid_particle_mass(first_options);
+    float secondMass = fluid_particle_mass(second_options);
+    float pairMass = 2.0f * firstMass * secondMass /
+        max(firstMass + secondMass, 1.0e-20f);
+    float firstVolume = firstMass / first_options.rest_density;
+    float secondVolume = secondMass / second_options.rest_density;
+    float contactSeparation =
+        first_options.particle_radius + second_options.particle_radius;
+    float firstContactScale = first_options.repulsion *
+        (1000.0f / first_options.rest_density);
+    float secondContactScale = second_options.repulsion *
+        (1000.0f / second_options.rest_density);
+    float forceLimit = 0.0f;
+    if (first_options.maximum_pair_acceleration > 0.0f)
+        forceLimit = firstMass * first_options.maximum_pair_acceleration;
+    if (second_options.maximum_pair_acceleration > 0.0f)
+    {
+        float secondLimit = secondMass *
+            second_options.maximum_pair_acceleration;
+        forceLimit = forceLimit > 0.0f
+            ? min(forceLimit, secondLimit) : secondLimit;
+    }
+    Vec3 acceleration = {};
+
+    for (int dz = -1; dz <= 1; ++dz)
+    {
+        for (int dy = -1; dy <= 1; ++dy)
+        {
+            for (int dx = -1; dx <= 1; ++dx)
+            {
+                if (cx + dx < -kFluidCellBias || cx + dx >= kFluidCellBias ||
+                    cy + dy < -kFluidCellBias || cy + dy >= kFluidCellBias ||
+                    cz + dz < -kFluidCellBias || cz + dz >= kFluidCellBias)
+                    continue;
+                uint64_t key = fluid_cell_key(cx + dx, cy + dy, cz + dz);
+                for (uint sorted = fluid_lower_bound(keys, total_capacity, key);
+                     sorted < total_capacity && keys[sorted] == key; ++sorted)
+                {
+                    uint otherIdentity = identities[sorted];
+                    bool otherSecond =
+                        (otherIdentity & kFluidSecondPopulation) != 0u;
+                    if (otherSecond == second) continue;
+                    uint other = otherIdentity & kFluidLocalIndexMask;
+                    uint firstIndex = second ? other : local;
+                    uint secondIndex = second ? local : other;
+                    Vec3 firstPosition = first_positions[firstIndex];
+                    Vec3 secondPosition = second_positions[secondIndex];
+                    Vec3 delta = subtract(firstPosition, secondPosition);
+                    float squared = length_squared(delta);
+                    if (squared >= supportSquared) continue;
+
+                    Vec3 firstVelocity = first_velocities[firstIndex];
+                    Vec3 secondVelocity = second_velocities[secondIndex];
+                    Vec3 relativeVelocity =
+                        subtract(secondVelocity, firstVelocity);
+                    float distance = sqrt(max(squared, 1.0e-12f));
+                    Vec3 direction = squared > 1.0e-12f
+                        ? multiply(delta, 1.0f / distance)
+                        : normalized_or(relativeVelocity, Vec3(0.0f));
+                    float gradientMagnitude =
+                        fluid_pressure_gradient_magnitude(
+                            distance, pairSupport);
+                    float firstDensity = max(
+                        first_density_samples[firstIndex], 1.0e-6f);
+                    float secondDensity = max(
+                        second_density_samples[secondIndex], 1.0e-6f);
+                    float firstPressure = fluid_pair_pressure(
+                        first_options, firstDensity);
+                    float secondPressure = fluid_pair_pressure(
+                        second_options, secondDensity);
+                    float pressureMagnitude = firstMass * secondMass *
+                        (firstPressure / (firstDensity * firstDensity) +
+                         secondPressure / (secondDensity * secondDensity)) *
+                        gradientMagnitude;
+
+                    float contactMagnitude = 0.0f;
+                    if (distance < contactSeparation)
+                    {
+                        float q = 1.0f - distance / contactSeparation;
+                        float radialSpeed = dot(relativeVelocity, direction);
+                        float contactAcceleration =
+                            0.5f * (firstContactScale + secondContactScale) *
+                                q * q +
+                            0.5f * (first_options.normal_damping +
+                                second_options.normal_damping) * radialSpeed;
+                        contactMagnitude = pairMass * contactAcceleration;
+                    }
+
+                    float capillaryMagnitude = 0.0f;
+                    uint firstFlags = first_interface_flags[firstIndex];
+                    uint secondFlags = second_interface_flags[secondIndex];
+                    bool validInterface = squared > 1.0e-12f &&
+                        (firstFlags & kFluidInterfaceSample) != 0u &&
+                        (secondFlags & kFluidInterfaceSample) != 0u &&
+                        (firstFlags & kFluidInterfaceDegenerate) == 0u &&
+                        (secondFlags & kFluidInterfaceDegenerate) == 0u;
+                    if (surface_tension > 0.0f && validInterface)
+                    {
+                        Vec3 averageNormal = normalized_or(add(
+                            first_interface_normals[firstIndex],
+                            second_interface_normals[secondIndex]),
+                            multiply(direction, -1.0f));
+                        Vec3 firstToSecond = multiply(direction, -1.0f);
+                        float alignment = max(
+                            0.0f, dot(averageNormal, firstToSecond));
+                        float pressureJump = fluid_immiscible_pressure_jump(
+                            surface_tension,
+                            first_interface_curvatures[firstIndex],
+                            second_interface_curvatures[secondIndex]);
+                        if (isfinite(pressureJump))
+                            capillaryMagnitude = abs(pressureJump) *
+                                firstVolume * secondVolume *
+                                gradientMagnitude * alignment;
+                    }
+
+                    Vec3 commonForce = multiply(direction,
+                        pressureMagnitude + contactMagnitude -
+                            capillaryMagnitude);
+                    if (forceLimit > 0.0f)
+                        commonForce = clamp_length(commonForce, forceLimit);
+                    acceleration = add(acceleration,
+                        multiply(commonForce,
+                            second ? -1.0f / secondMass :
+                                1.0f / firstMass));
+                }
+            }
+        }
+    }
+
     if (second)
         second_forces[local] = add(second_forces[local], acceleration);
     else

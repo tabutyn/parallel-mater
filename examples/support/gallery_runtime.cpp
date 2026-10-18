@@ -92,6 +92,7 @@ bool GalleryRuntime::replace(GalleryRuntimeCreateInfo info,
     error.clear();
     GalleryRuntime next;
     next.context = info.context;
+    next.capture_history = PhysicsDebugHistory(info.capture_history_capacity);
     if (!load_glb_scene(info.asset, next.scene, error)) {
         error = "scene load failed: " + error;
         return false;
@@ -155,15 +156,30 @@ bool GalleryRuntime::step(const GalleryStepOptions &options,
         error = "Choose a scene or Reset to continue";
         return false;
     }
+    const bool capture_host_step = capture_history.enabled() && options.read_host;
     if (!simulation.step(options.timestep, options.substeps, options.gravity,
                          frame, error,
                          options.collect_rigid_contacts ||
-                             options.collect_fluid_contacts,
+                             options.collect_fluid_contacts || capture_host_step,
                          options.read_deformables, options.read_host))
         return false;
     gpu_ready = true;
     ++gpu_frame_generation;
-    if (!options.read_host) return true;
+    if (!options.read_host) {
+        if (capture_history.enabled()) capture_history.mark_gap();
+        return true;
+    }
+    if (capture_history.enabled()) {
+        PmStepInfo step{options.timestep, options.substeps,
+                        {options.gravity.x, options.gravity.y,
+                         options.gravity.z},
+                        options.collect_rigid_contacts ||
+                                options.collect_fluid_contacts || capture_host_step
+                            ? static_cast<PmFlags>(
+                                  PM_STEP_COLLECT_CONTACT_EVENTS_BIT)
+                            : PmFlags{}};
+        if (!capture_history.record(frame, step, error)) return false;
+    }
     return make_render_scene_frame(scene, frame, render_frame, error);
 }
 

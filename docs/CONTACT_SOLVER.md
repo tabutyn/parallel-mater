@@ -145,6 +145,16 @@ For an open boundary against a convex collider, the alternative separating
 plane uses the whole collider's support interval, not one triangle. This
 preserves real sheet-edge impacts along a floor's internal diagonal.
 
+Swept triangle contact uses the closest feature pair at impact for guided and
+unguided contacts. Concave pairs begin continuous testing at a 1 mm gap so a
+crossing is not deferred until broad-phase overlap. If two concave triangles
+are already intersecting at the end of a step, the common Slang path brackets
+their crossing, transports the impact witnesses to the current triangles, and
+derives signed penetration from that recovered normal. It does not reinterpret
+the broad-phase margin as penetration. Certified shell-facing checks are
+applied to the recovered normal. These rules are shared by every compiled
+backend; they add no driver-specific collision path.
+
 ## Iterations and diagnostics
 
 The default is ten primal/dual iterations per phase, raised by active joint

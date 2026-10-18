@@ -1,0 +1,47 @@
+{
+  "id": "P1-56",
+  "title": "Expose immiscible interface state",
+  "status": "done",
+  "dependencies": [
+    "P1-04"
+  ],
+  "locks": [
+    "api-spec",
+    "interaction-spec"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Add a separately queryable interface mode and typed, versioned capillary state for immiscible fluid pairs; advertise nothing.",
+  "acceptance": [
+    "Registry, generated C API and specification define the interface capability identity, first-to-second normal convention, surface tension in N/m and the zero limit.",
+    "Negative tests atomically reject interface state on other material profiles plus missing, negative, nonfinite, duplicate and unsupported state."
+  ],
+  "evidence": [
+    "PASS: docs/roadmap/evidence/P1-56-immiscible-interface-state.json records the generated API/spec contract and unadvertised capability identity",
+    "PASS: 47/47 SDK/conformance tests and the focused Slang CPU atomic graph-validation test",
+    "PASS: CUDA and Vulkan drivers rebuilt with the additive ABI; generated reference, evidence index and manifest checks passed"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "69313ef8-d46a-44b3-8fd3-f1300329f153",
+        "owner": "codex-immiscible-interface",
+        "machine": "thomas-laptop",
+        "branch": "work/P1-56/thomas-laptop",
+        "claimed_at": "2026-10-18T22:45:26Z",
+        "heartbeat_at": "2026-10-18T22:45:26Z",
+        "expires_at": "2026-10-19T22:45:26Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T23:00:03Z",
+      "reason": "Added the independently queryable interface mode and versioned capillary state with first-to-second normal semantics, strict atomic validation and no driver advertisement",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/P1-56-immiscible-interface-state.json records the generated API/spec contract and unadvertised capability identity",
+        "PASS: 47/47 SDK/conformance tests and the focused Slang CPU atomic graph-validation test",
+        "PASS: CUDA and Vulkan drivers rebuilt with the additive ABI; generated reference, evidence index and manifest checks passed"
+      ]
+    }
+  ]
+}

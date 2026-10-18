@@ -11,13 +11,13 @@ new build.
 <!-- BEGIN GENERATED DRIVER EVIDENCE -->
 | Driver | Current capability result | Qualified records | Open evidence |
 |---|---|---:|---|
-| Slang CPU | None | 0 | 1 missing qualification result |
-| CUDA | [`linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17`](../conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17.json), [`windows-gtx1080-slang-cuda-2b04e55`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-2b04e55-qualification.json) | 0 | Supplemental: [`windows-gtx1080-physics-2026-10-16`](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json); 10 historical baseline failure, 3 limitation, 179 qualification failure |
+| Slang CPU | [`linux-thomas-laptop-slang-cpu-eed669e`](../conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json) | 0 | 6 qualification failure |
+| CUDA | [`linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17`](../conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17.json), [`linux-rtx3050ti-slang-cuda-eed669e`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-eed669e-qualification.json), [`windows-gtx1080-slang-cuda-2b04e55`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-2b04e55-qualification.json) | 0 | Supplemental: [`windows-gtx1080-physics-2026-10-16`](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json); 10 historical baseline failure, 3 limitation, 333 qualification failure |
 | D3D12 | [`windows-gtx1080-slang-d3d12-2b04e55`](../conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-qualification.json) | 0 | Supplemental: [`windows-gtx1080-physics-2026-10-16`](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json); 10 historical baseline failure, 3 limitation, 34 qualification failure, 2 unsupported |
-| Vulkan | None | 0 | 1 missing qualification result |
+| Vulkan | [`linux-rtx3050ti-slang-vulkan-eed669e`](../conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-qualification.json) | 0 | 144 qualification failure |
 | Metal | [`ipados-m1-slang-metal-9f7e72e`](../conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e-qualification.json), [`macos-m4-slang-metal-aac6d59`](../conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json) | 0 | 291 qualification failure |
 
-Index status: **0 qualified capability records from 7 revisioned report records**. Supplemental and historical evidence remains visible but never certifies a capability.
+Index status: **0 qualified capability records from 10 revisioned report records**. Supplemental and historical evidence remains visible but never certifies a capability.
 <!-- END GENERATED DRIVER EVIDENCE -->
 
 Only the generated block states current per-driver capability qualification.
@@ -29,19 +29,19 @@ promoting those results to capability certification.
 | Resource lifetime and capacity (F1) | Reference-lifecycle foundation closed by F1-01–F1-07: exact-query fluid churn/recovery; CUDA mixed-domain churn; geometry, paint and borrowed-endpoint replacement; failure/pending lifetime; fixed host owner metadata. Current Windows CUDA/D3D12 and Apple M4 Metal console tests pass 4,096 fluid replacements and exact-capacity recovery. | The console tests do not emit F5-03 checkpoint state hashes/write ordinals, so current results retain explicit `missing` profile evidence. Numerical physics and remaining driver/domain pairs remain separate; see F2-04, F4-05 and P1-01. |
 | Specification, ABI and validation (F3) | F3-01–F3-12 reconcile the generated API/specification, loader and layer negotiation, typed validation diagnostics, command/object/query/synchronization state, host snapshots, deferred errors, teardown and capacity recovery. The F3-99 review passes 23 Windows D3D12/validation tests, 6 independent WSL host tests and all 18 relocated public SDK consumer/ABI cases. | This is portable contract and reference-runtime evidence, not exhaustive proof of every specification clause, physical correctness or every driver. Native interop handoff remains F4-07/F4-08; driver/domain qualification remains F5/P1. SDK installation is qualified separately by F6-01/F6-02. |
 | Runtime-generated capacity recovery (F3-12) | Public API profile fixes four colocated particles, one allowed neighbor and one isolated control population. D3D12 on the Windows GTX 1080 and the independent WSL Slang C++ host fixture each pass 20/20: acceptance succeeds; completion, status and statistics report exactly four generated overflows; invalid output is not published; selective reinitialization recovers while preserving the control. | This qualifies only the named shared-Slang neighbor-overflow profile and lifecycle contract. It is not physical-quality, performance or blanket driver-capacity evidence. |
-| SDK/loader/host contracts | Windows x64 Release passes 38/38 `sdk-ci` CTests and all 12 relocated-install stages, including 18/18 external C/C++/ABI cases and all 30 conformance inputs. F6-03 additionally passes 44/44 driver-free and 49/49 D3D12 relocated component checks across separate loader, validation, preparation, scene, driver, conformance and benchmark exports. Linux, Apple Silicon macOS and Windows CI repeat the selected-component matrix and assert each built driver target. | This gate qualifies packaging and public ABI behavior only; physics quality and a stable optional C++ ABI are not claimed. A driver export check proves package integrity, not the driver's physical correctness or capability coverage. |
+| SDK/loader/host contracts (F6) | API/package 0.2.0. Clean Linux source `3407259` passes 47/47 `sdk-ci` CTests, all 12 relocated-install stages, 44/44 component checks and 87/87 conformance metadata tests. Windows F6-01 passes 38/38 tests plus 18/18 external C/C++/ABI cases and all 30 then-current conformance inputs; macOS ARM64 and Linux CI pass the same 12-stage relocation gate. F6-03 separates loader, validation, preparation, scene, driver, conformance and benchmark exports. Latest tracked two-build Linux evidence has matching 173-file installed artifact sets and no required workstation paths. | This qualifies packaging and public ABI behavior only. Physical quality and the optional C++ preparation/scene ABI are not certified. Bit-identical output is not established: one installed ELF and ten build-tree manifests differ between the recorded isolated Linux builds. Gallery is an opt-in public-API example application under F7, not an installed SDK component. |
 | Interaction graph lifecycle (F2-04) | Linux RTX 3050 Ti and current Windows GTX 1080 CUDA plus Apple M4 Metal execute all 12 implemented pairs through create/update/clear, endpoint replacement, three-family mutation and partial-create rollback. | Current CUDA and Metal console evidence lacks required F5-03 checkpoint fingerprints; D3D12 reports the complete three-family case unsupported because it does not advertise rope, soft-body or smoke. Unsupported/missing never passes the lifecycle evaluator. |
 | Native Vulkan validation (F5-09) | A standalone shader-module/pipeline probe pins the layer, fluid SPIR-V and probe hashes. Debian layer 1.3.239 exits 139 inside `vkCreateShaderModule`; pinned SDK layer 1.4.341 completes the same probe and the unchanged 4,096-replacement validated lifecycle case on the RTX 3050 Ti. | This isolates a host validation-tool defect and supplies a working validation setup. It does not qualify Vulkan physics, other drivers or imported engine devices. |
-| Vendor-neutral physical quality (F5-02, F5-05) | Hashed `core-conservation-stability-v1` and `rigid-brick-penetration-v1` profiles independently evaluate fluid conservation/stability and rigid surface separation. Current Windows CUDA passes all 18 equal-fluid samples; CUDA and D3D12 pass the fixed eight-brick gate at 0.205278 mm and Apple M4 Metal passes at 0.146627 mm, all against 2 mm. | D3D12 and Metal do not advertise separate-system equal-fluid modes. Brick quality does not override failed reference regression or missing lifecycle/interaction-specific analytic evidence; remaining modes still need fixtures. |
+| Vendor-neutral physical quality (F5-02, F5-05, F5-25–F5-28) | Hashed `core-conservation-stability-v1`, `rigid-brick-penetration-v1`, three exact fluid-self profiles and `rope-self-contact-v1` independently evaluate fluid conservation/stability, rigid surface separation, fluid self contact/pressure/viscosity and sampled-node rope separation. Current Windows CUDA passes all 18 equal-fluid samples, the fixed eight-brick gate, all three public-API two-particle self gates and the rope sampled-node gate. D3D12 passes the brick and fluid-self gates; Apple M4 Metal passes the brick gate. | D3D12 does not advertise rope or separate-system equal-fluid modes, and Metal does not advertise separate-system equal-fluid. Historical and unrecaptured builds remain unqualified. Analytic quality never overrides failed reference regression or missing exact lifecycle evidence; remaining modes need separate fixtures. |
 | Capability evidence obligations (F5-01) | Hashed `capability-obligations-v1` rules cover all 49 API 0.2 interaction records exactly once and keep compilation, execution, regression, lifecycle, analytic and timing evidence separate. Current physical results register 49 CUDA and 10 D3D12 records on GTX 1080 plus 46 Metal records on Apple M4. | Qualification remains 0/49 for current Windows CUDA, 0/10 D3D12 and 0/46 Metal. Reference failures, process crashes, missing exact lifecycle captures and rule-level analytic gaps stay explicit. |
 | iPadOS development qualification runner (F5-13) | The opt-in, development-only app channel reuses the canonical 30-case public-API runner, rigid penetration oracle, equal-fluid fixture and adverse lifecycle operations. Collection pins a fresh nonce, source, app/driver hashes, public device/OS/Metal and toolchain metadata and rejects stale, partial, mismatched and Gallery-only reports. | This runner is not enabled by default in ordinary iOS builds. Equal-fluid remains unsupported on Metal and the existing lifecycle fixtures still lack F5-03 checkpoint fingerprints; device execution and evidence publication remain separate gates. |
 | Quality-gated performance (F5-07) | Independent headless gate computes throughput, median/p95 timing and public memory peaks from raw samples; every metric carries the fixed quality-profile hash and exact source/binary/device/toolchain tuple | This defines score admission but publishes no production benchmark. Missing, failed, unsupported, stale or mismatched physical-quality evidence leaves measurements unqualified. |
 | Distinct fluid–fluid systems | F2-05–F2-10 specify, schedule and qualify equal-material contact/pressure/viscosity with bounded pair storage, combined-population tolerances, balanced momentum, stable-ID ownership and lifecycle recovery. Linux RTX 3050 Ti CUDA qualifies all three records. Current Windows GTX 1080 CUDA independently passes the same 18/18 physical samples and fluid-pair graph lifecycle console test. | Windows CUDA lacks the exact F5-03 checkpoint artifact, so its three records remain unqualified; D3D12 and Metal do not advertise these records, and their tests skip without fallback. Different-material modes remain P1-04–P1-18, and phase transfer remains undefined. |
 | Cloth self and cloth–cloth systems | F2-12 specifies separate intrinsic self-contact and graph-owned inter-system contact identities, swept double-sided vertex-triangle/edge-edge behavior, topology exclusions, thickness, friction, conservation, tunnelling and overflow criteria. | API 0.2 exposes neither capability; typed controls, bounded contact generation, self/inter operators, scheduling and per-driver qualification remain P1-19–P1-24. |
 | Soft-body self and soft-body systems | F2-13 specifies separate intrinsic and graph-owned surface-contact identities, bound closed-surface sampling, swept primitive contact, topology exclusions, node-radius separation, friction, conservation and bounded failure behavior. | API 0.2 exposes neither capability; typed controls, bounded surface contacts, self/inter operators, scheduling and per-driver qualification remain P1-25–P1-30. Open/non-manifold skins, volume inversion and merging remain unsupported. |
-| Rope self and rope–rope systems | F2-14 narrows the API 0.2 self-contact record to sampled-node exclusion and specifies a separate future `rope-capsule` profile for continuous self/inter segment contact plus an independent endpoint attachment mode. | The advertised node-only record still needs the P1-31 physical audit. Capsule contact, pair edges and rope-rope attachment remain unsupported pending P1-32–P1-38; knots, splices, sliding and interior attachments are outside that profile. |
+| Rope self and rope–rope systems | F2-14 narrows the API 0.2 self-contact record to sampled-node exclusion and specifies a separate future `rope-capsule` profile for continuous self/inter segment contact plus an independent endpoint attachment mode. F5-28 now binds and physically passes the exact sampled-node analytic gate on Windows CUDA. | P1-31 still owns the broader physical audit. D3D12 does not advertise rope. Capsule contact, pair edges and rope-rope attachment remain unsupported pending P1-32–P1-38; knots, splices, sliding and interior attachments are outside this profile. |
 | Smoke self and smoke–smoke systems | F2-15 specifies particle-particle, grid-grid and particle-grid profiles with separate mechanical, thermal and projection behavior; bounded overlap/neighborhood construction; fixed-point and conservation criteria; and graph lifecycle rules. | API 0.2 exposes no smoke–smoke record. Typed profiles/material state, bounded maps, shared Slang operators, scheduling and per-driver qualification remain P1-39–P1-55; combustion, chemistry, phase transfer and topology-changing guarantees remain unsupported. |
-| Engine-owned devices/queues | Public contract and import declarations exist | Common dependency/completion handoff and imported-device tests still required before engine adoption claims |
+| Common resources and engine ownership (F4) | F4-01–F4-08 define device/allocation identities, typed access ranges, reflection-derived bindings, exact RAW/WAR/WAW ordering, common completion ownership, confidence-aware memory admission, borrowed native objects and prior/next queue handoff. The engine-independent mock holds six alternating physics/render submissions live without host waits and proves failure plus exactly-once teardown. The F4-99 review passes 10 current host/ABI/admission tests, the 12-test strict portable suite and the native D3D12 command API on the Windows GTX 1080. | Metal is the only production adapter using the common `compute::CommandList`/completion surface end to end; remaining adapter/domain inventory is P1-01. No driver yet claims qualified imported-device/timeline interoperability. P2-01 owns the first native handoff fixture and P2-02–P2-04 own engine plugins. Mock execution does not establish physical quality, performance or native engine adoption. |
 
 ## F1 resource-lifetime exit review
 
@@ -86,7 +86,7 @@ not qualify physical accuracy or release readiness.
 ## F2 interaction graph lifecycle
 
 The public SDK-only
-[interaction graph lifecycle suite](../tests/api/interaction_graph_lifecycle_tests.cpp)
+[interaction graph lifecycle suite](../conformance/v1/src/interaction_graph_lifecycle_fixture.cpp)
 constructs one endpoint from every implemented family and installs all 12
 implemented non-fluid-fluid pair types. It exercises pipeline and explicit
 graph create, parameter update, clear and recreation. It then replaces fluid,
@@ -213,6 +213,54 @@ The review preserves these boundaries:
 No uncovered F3-specific leaf was found. Closing F3 establishes the reviewed
 specification/ABI/validation foundation only; it does not certify a solver,
 driver, engine integration, package release or physical-quality profile.
+
+### F6-99 SDK release and repository ownership exit review
+
+The original F6 exit required a clean checkout to produce a relocatable,
+versioned SDK and independently built consumer and driver packages without
+private-source or workstation-path dependencies. F6-01 through F6-14 are
+merged `done`, carry nonempty reviewable evidence and have completed lease
+history. Together they satisfy that scope:
+
+- Package and API version 0.2.0, compatibility rejection, minimal/headless
+  presets and independent installed C/C++ consumers are exercised on Linux,
+  Windows and Apple Silicon macOS. The external mock driver proves the public
+  driver ABI without importing implementation types.
+- Loader, validation, preparation, scene, driver, conformance and benchmark
+  exports have independent positive and negative component checks. The
+  Gallery remains separately gated by `PARALLEL_MATER_BUILD_GALLERY` as an
+  example application built on the public API; its types are deliberately not
+  installed with the physics SDK.
+- Standalone conformance owns its complete source closure and validates the
+  relocated installed corpus. One deterministic updater maintains every
+  manifest hash, and installed text evidence rejects capture-host paths.
+- Two isolated release builds record source, toolchain, dependency and option
+  identity, compare matching artifact sets and audit installed runtime
+  metadata for workstation paths. The later F6-14 Linux audit passes for 173
+  installed files after the stale corpus hashes and captured absolute paths
+  found by the first two exit-review attempts were fixed.
+- Legacy launcher, branding, hinge, capture/replay and rigid-contact work was
+  archived and adjudicated before old worktrees were retired. The retained
+  hinge candidate was rejected on measured penetration, and no failing asset,
+  solver change or golden was promoted merely to close the foundation.
+
+Current clean Linux source `34072593338c19bc5d3eb37e03d70d16e6e75c9c`
+passes 47/47 `sdk-ci` CTests, all 12 relocated-install stages, 44/44 supported
+and negative component checks, and 87/87 conformance metadata/unit tests. The
+tracked [F6-99 evidence](roadmap/evidence/F6-99-exit-review.json) ties those
+results to the prior Windows, macOS and two-build release records.
+
+This closes package reproducibility in the recorded input sense, not
+byte-for-byte reproducible binaries: the current two-build Linux record has one
+differing installed conformance ELF and ten generated test manifests containing
+their distinct build paths. Cross-host and cross-toolchain binary identity is
+also unclaimed. The installed preparation and scene libraries do not promise a
+stable C++ ABI. Driver exports establish package integrity only; the generated
+capability index still has 0 qualified records, so physical correctness,
+production vendor-driver qualification and performance remain F5/P1/P3 work.
+F7-18 and F7-99 retain full Android Gallery/device qualification, while P2 owns
+Unity, Unreal and Godot integrations and P4 owns independent vendor and standards
+handoff. No uncovered F6 leaf remains.
 
 ### F6-01 Windows SDK installation qualification
 
@@ -459,3 +507,106 @@ The [versioned F5-18 evidence](roadmap/evidence/F5-18-rigid-direct-planar-symmet
 retains the pre-correction failure, current raw captures, independent quality
 reports and both reference comparisons. It closes only the bounded F5-17
 planar-symmetry limitation and grants no broader driver or performance claim.
+
+### F5-25 fluid self-contact quality
+
+Clean source `990531ccc09c82013909842750d6d83e1c5701bd` adds the immutable
+`fluid-self-contact-v1` profile without adding a solver or backend path. Its
+public-API fixture places two equal particles inside their declared exclusion
+distance with zero gravity, viscosity and damping. The independent evaluator
+uses only the emitted public states to require stable identity and ordering,
+95 percent of the two-radius exclusion distance, non-vacuous outward response,
+balanced internal impulse, fixed center of mass and bounded transverse leakage.
+
+Physical GTX 1080 CUDA and D3D12 runs each pass the single sample at
+`0.21250000596046448 m` separation against the `0.19 m` minimum. Both report
+`18 kg*m/s` exchange activity and zero net internal impulse, center-of-mass
+drift and transverse leakage. The [versioned F5-25 evidence](roadmap/evidence/F5-25-fluid-self-contact.json)
+pins the profile, source, runner, driver binaries, raw public output and reports.
+
+The obligation matrix binds the analytic profile only to
+`FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE`. The existing fluid
+lifecycle trajectory and adverse capacity/replacement contract remain separate
+requirements. Pressure and viscosity keep separate exact rules and are
+qualified independently by F5-26 and F5-27. The rebuilt index retains all
+historical failures and leaves every unrecaptured driver unqualified.
+
+### F5-26 fluid self-pressure quality
+
+Clean source `c6deaa06461eefe22cf9e165374ad8166e7e7037` adds the immutable
+`fluid-self-pressure-v1` profile without adding a solver or backend path. Its
+public-API fixture places two equal particles at half their isotropic rest
+spacing with zero gravity, viscosity and damping. Because the API deliberately
+does not expose driver-private density, the independent evaluator derives SI
+density as authored particle mass divided by the cube of public pair spacing.
+It also requires stable identity and ordering, non-vacuous outward response,
+balanced internal impulse, fixed center of mass and bounded transverse leakage.
+
+Physical GTX 1080 CUDA and D3D12 runs each pass the single sample. Both move the
+independent density estimate from `7999.999642372142 kg/m^3` to
+`1572.1888607632552 kg/m^3` toward the authored `1000 kg/m^3` rest density,
+reducing relative density error by `0.9182587300005414`. Both report zero net
+internal impulse, center-of-mass drift and transverse leakage. The
+[versioned F5-26 evidence](roadmap/evidence/F5-26-fluid-self-pressure.json)
+pins the profile, source, runner, driver binaries, raw public output and reports.
+
+The obligation matrix binds the analytic profile only to
+`FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE`. The exact fluid
+lifecycle trajectory and adverse capacity/replacement/rollback contract remain
+independent requirements; this analytic fixture cannot substitute for them.
+Self-viscosity retains its separate exact analytic contract under F5-27, and
+historical or unrecaptured drivers remain unqualified.
+
+### F5-27 fluid self-viscosity quality
+
+Clean source `d08ca42c2f1e67ca02ac8f1bfe20f3d7c123706f` adds the immutable
+`fluid-self-viscosity-v1` profile without adding a solver or backend path. Its
+public-API fixture gives two equal particles symmetric separating velocities
+with zero gravity, pressure and damping. The independent evaluator derives
+relative speed, kinetic energy and impulse only from public particle states and
+authored mass. It requires non-vacuous relative-motion and energy dissipation,
+no energy increase, balanced internal impulse, fixed center of mass, stable
+identity and ordering, and bounded transverse leakage.
+
+Physical GTX 1080 CUDA and D3D12 runs each pass the single sample. Both reduce
+relative speed from `2.0 m/s` to `1.7000000476837158 m/s` and kinetic energy
+from `8.0 J` to `5.780000324249272 J`, reductions of `0.1499999761581421` and
+`0.277499959468841`. Both report zero net internal impulse, center-of-mass drift
+and transverse leakage. The
+[versioned F5-27 evidence](roadmap/evidence/F5-27-fluid-self-viscosity.json)
+pins the profile, source, runner, driver binaries, raw public output and reports.
+
+The obligation matrix binds the analytic profile only to
+`FLUID/FLUID/SELF/VISCOSITY/BIDIRECTIONAL/ENDPOINT_NATIVE`. The exact fluid
+lifecycle trajectory and adverse capacity/replacement/rollback contract remain
+independent requirements; this analytic fixture cannot substitute for them.
+Self-contact and self-pressure retain their separate exact analytic contracts,
+and historical or unrecaptured drivers remain unqualified.
+
+### F5-28 sampled rope self-contact quality
+
+Clean source `f08b130193b0f0982bc9e1384afd5cd66acede82` adds the immutable
+`rope-self-contact-v1` profile without adding or changing a solver/backend path.
+Its canonical public-API fixture folds four sampled nodes so indices zero and
+three start at `0.019999999552965164 m`, well inside their combined `0.12 m`
+material radius, while the topology-neighbor pair one and three remains inside
+the same radius. The independent evaluator consumes only the public input and
+queried rope output. It checks exact node ordering, eligible pair separation,
+the index-distance-two exclusion, center-of-mass drift, transverse leakage and
+the authored speed bound.
+
+The physical GTX 1080 CUDA run passes the single sample: the eligible pair ends
+at `0.11999999507617162 m` against the `0.114 m` retained minimum, with
+`9.315374889959498e-10 m` center-of-mass drift and zero transverse leakage.
+D3D12 does not advertise rope, so its failed unsupported result is retained and
+grants no qualification. The [versioned F5-28 evidence](roadmap/evidence/F5-28-rope-self-contact.json)
+pins the profile, source, runner, validation layer, driver binaries, raw public
+output, passing CUDA report and D3D12 failure.
+
+The obligation matrix binds the analytic profile only to
+`ROPE/ROPE/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE`. The unchanged
+`case:rope-core` trajectory/lifecycle obligation remains independently required;
+this analytic fixture cannot substitute for capacity, replacement or rollback
+evidence. Nodes separated by two topology indices or less remain excluded, and
+no continuous segment, knot, splice or inter-rope contact behavior is claimed.
+Historical and unrecaptured drivers remain unqualified.

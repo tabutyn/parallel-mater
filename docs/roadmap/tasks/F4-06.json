@@ -1,7 +1,7 @@
 {
   "id": "F4-06",
   "title": "Apply conservative workload admission",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F4-05"
   ],
@@ -16,7 +16,29 @@
     "Unknown budget, borrowed memory and changing budget have deterministic conservative behavior.",
     "Gallery policy tests use fake hardware resources; no phone-specific shader tuning."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: fake-resource workload policy covers unknown, borrowed, changing, malformed and overflow-scale budgets; parallel-mater-gallery-workload-tests",
+    "PASS: Windows D3D12 Gallery build and one-frame brick render on NVIDIA GeForce GTX 1080; docs/roadmap/evidence/F4-06-conservative-workload-admission.md"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "63dba482-70a6-4630-aaa8-b85e36f10c7b",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F4-06/windows-gtx1080",
+        "claimed_at": "2026-10-18T18:24:00Z",
+        "heartbeat_at": "2026-10-18T18:24:00Z",
+        "expires_at": "2026-10-19T18:24:00Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T18:40:11Z",
+      "reason": "Applied confidence-aware live memory admission in the shared Gallery policy",
+      "evidence": [
+        "PASS: fake-resource workload policy covers unknown, borrowed, changing, malformed and overflow-scale budgets; parallel-mater-gallery-workload-tests",
+        "PASS: Windows D3D12 Gallery build and one-frame brick render on NVIDIA GeForce GTX 1080; docs/roadmap/evidence/F4-06-conservative-workload-admission.md"
+      ]
+    }
+  ]
 }

@@ -106,6 +106,7 @@ inline constexpr std::array gallery_features{
     case PM_INTERACTION_MODE_VISCOSITY: return "viscosity";
     case PM_INTERACTION_MODE_THERMAL: return "thermal";
     case PM_INTERACTION_MODE_PHASE: return "phase";
+    case PM_INTERACTION_MODE_INTERFACE: return "interface";
     }
     return "unknown";
 }

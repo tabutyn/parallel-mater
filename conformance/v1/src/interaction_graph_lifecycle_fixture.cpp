@@ -1,14 +1,32 @@
 // SPDX-License-Identifier: MIT
+#include "lifecycle_fixture.hpp"
 #include "test_context.hpp"
 
+#include <parallel_mater_conformance/json.hpp>
+#include <parallel_mater_conformance/sha256.hpp>
+
 #include <array>
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
 #include <limits>
+#include <sstream>
+#include <string>
+#include <string_view>
 
+using parallel_mater::conformance::Json;
+using parallel_mater::conformance::sha256;
+using parallel_mater::conformance::sha256_contract_file;
 using parallel_mater::test::Context;
+using parallel_mater::test::GraphLifecycleResult;
+using parallel_mater::test::LifecycleCheckpointObservation;
+using parallel_mater::test::LifecycleResourceObservation;
 
 namespace {
 
@@ -154,13 +172,227 @@ std::array<PmCouplingState, 12> coupling_graph(bool updated) {
     return edges;
 }
 
+void append_float(std::ostringstream &stream, float value) {
+    stream << std::hex << std::setw(8) << std::setfill('0')
+           << std::bit_cast<std::uint32_t>(value);
+}
+
+void append_state_float(std::ostringstream &stream, float value) {
+    if (!std::isfinite(value)) {
+        stream << (std::isnan(value) ? "nan," : value < 0.0F ? "-inf," : "inf,");
+        return;
+    }
+    stream << std::dec << std::llround(static_cast<double>(value) * 10000.0)
+           << ',';
+}
+
+void append_state_vec3(std::ostringstream &stream, const PmFloat3 &value) {
+    append_state_float(stream, value.x);
+    append_state_float(stream, value.y);
+    append_state_float(stream, value.z);
+}
+
+template <typename State, typename AppendState>
+std::string domain_fingerprint(std::string_view family,
+                               const PmDomainOutputHeader *header,
+                               AppendState append_state) {
+    std::ostringstream canonical;
+    canonical << "parallel-mater-domain-public-state/v1;family=" << family
+              << ";count=" << header->activeCount
+              << ";capacity=" << header->capacity;
+    const auto *states = reinterpret_cast<const State *>(header + 1);
+    for (std::uint32_t index = 0U; index < header->activeCount; ++index) {
+        canonical << ";state=" << index << ',';
+        append_state(canonical, states[index]);
+    }
+    return sha256(canonical.str());
+}
+
+std::string fluid_fingerprint(const PmDomainOutputHeader *header) {
+    return domain_fingerprint<PmFluidParticleOutput>(
+        "liquid", header, [](std::ostringstream &stream,
+                             const PmFluidParticleOutput &state) {
+            for (float value : state.position) append_state_float(stream, value);
+            stream << std::dec << state.stableId;
+        });
+}
+
+std::string cloth_fingerprint(const PmDomainOutputHeader *header) {
+    return domain_fingerprint<PmClothVertexState>(
+        "cloth", header, [](std::ostringstream &stream,
+                            const PmClothVertexState &state) {
+            append_state_vec3(stream, state.position);
+        });
+}
+
+std::string rope_fingerprint(const PmDomainOutputHeader *header) {
+    return domain_fingerprint<PmRopeNodeState>(
+        "rope", header, [](std::ostringstream &stream,
+                           const PmRopeNodeState &state) {
+            append_state_vec3(stream, state.position);
+        });
+}
+
+std::string soft_body_fingerprint(const PmDomainOutputHeader *header) {
+    return domain_fingerprint<PmSoftBodyNodeState>(
+        "soft-body", header, [](std::ostringstream &stream,
+                                const PmSoftBodyNodeState &state) {
+            append_state_vec3(stream, state.position);
+        });
+}
+
+std::string smoke_fingerprint(const PmDomainOutputHeader *header) {
+    return domain_fingerprint<PmSmokeParticleState>(
+        "smoke", header, [](std::ostringstream &stream,
+                            const PmSmokeParticleState &state) {
+            append_state_vec3(stream, state.position);
+        });
+}
+
+std::string graph_fingerprint(const PmCouplingState *edges,
+                              std::size_t count) {
+    std::ostringstream canonical;
+    canonical << "parallel-mater-coupling-graph/v1;count=" << count;
+    for (std::size_t index = 0U; index < count; ++index) {
+        const auto &edge = edges[index];
+        canonical << ";edge=" << index << ",type=" << edge.type
+                  << ",first=" << edge.first << ",second=" << edge.second
+                  << ",modes=" << edge.modeFlags
+                  << ",material=" << edge.materialProfile << ",mechanical=";
+        for (float value : {edge.parameters.mechanical.contactDistance,
+                            edge.parameters.mechanical.stiffness,
+                            edge.parameters.mechanical.damping,
+                            edge.parameters.mechanical.friction,
+                            edge.parameters.mechanical.tangentialDrag,
+                            edge.parameters.mechanical.maximumForce,
+                            edge.parameters.mechanical.maximumAcceleration})
+            append_float(canonical, value);
+        canonical << ',' << edge.parameters.mechanical.twoWay << ",smoke=";
+        for (float value : {edge.parameters.smoke.windDrag,
+                            edge.parameters.smoke.maximumWindAcceleration,
+                            edge.parameters.smoke.airDensity,
+                            edge.parameters.smoke.dragCoefficient,
+                            edge.parameters.smoke.contactDistance})
+            append_float(canonical, value);
+        canonical << ',' << edge.parameters.smoke.tracerContact
+                  << ",attachment=" << edge.parameters.attachment.firstVertex
+                  << ',' << edge.parameters.attachment.lastVertex << ',';
+        for (float value : {edge.parameters.attachment.effectiveMass,
+                            edge.parameters.attachment.supportRadiusScale,
+                            edge.parameters.attachment.contactSupportRadiusScale,
+                            edge.parameters.attachment.maximumAcceleration})
+            append_float(canonical, value);
+        canonical << ',' << edge.parameters.attachment.attachFirst << ','
+                  << edge.parameters.attachment.attachLast << ",thermal=";
+        for (float value : edge.parameters.thermal.heaterCenter)
+            append_float(canonical, value);
+        for (float value : edge.parameters.thermal.heaterOrientation)
+            append_float(canonical, value);
+        for (float value : edge.parameters.thermal.heaterHalfExtents)
+            append_float(canonical, value);
+        for (float value : {edge.parameters.thermal.heaterTemperature,
+                            edge.parameters.thermal.boilingTemperature,
+                            edge.parameters.thermal.heatTransferRate,
+                            edge.parameters.thermal.windDrag,
+                            edge.parameters.thermal.steamRiseSpeed})
+            append_float(canonical, value);
+    }
+    return sha256(canonical.str());
+}
+
+const PmDomainOutputHeader *output_header(
+    const parallel_mater::test::Buffer &buffer, PmDeviceSize offset) {
+    return reinterpret_cast<const PmDomainOutputHeader *>(
+        static_cast<const std::byte *>(buffer.mapped) + offset);
+}
+
+void record_checkpoint(GraphLifecycleResult *result, std::string id,
+                       std::string outcome, std::string graph_sha256,
+                       const std::array<const PmDomainOutputHeader *, 5> &state,
+                       std::uint64_t liquid_generation) {
+    if (result == nullptr) return;
+    LifecycleCheckpointObservation checkpoint;
+    checkpoint.id = std::move(id);
+    checkpoint.outcome = std::move(outcome);
+    checkpoint.active_graph_sha256 = std::move(graph_sha256);
+    checkpoint.resources = {
+        LifecycleResourceObservation{
+            "liquid", true, liquid_generation, fluid_fingerprint(state[0])},
+        LifecycleResourceObservation{
+            "rope", true, 1U, rope_fingerprint(state[1])},
+        LifecycleResourceObservation{
+            "soft-body", true, 1U, soft_body_fingerprint(state[2])},
+        LifecycleResourceObservation{
+            "smoke", true, 1U, smoke_fingerprint(state[3])},
+        LifecycleResourceObservation{
+            "cloth", true, 1U, cloth_fingerprint(state[4])},
+    };
+    result->observations.push_back(std::move(checkpoint));
+}
+
+#ifndef PM_CONFORMANCE_EMBEDDED
+
+Json resource_json(const LifecycleResourceObservation &resource) {
+    Json value = Json::object();
+    value["id"] = resource.id;
+    value["active"] = resource.active;
+    value["generation"] = resource.generation;
+    value["state_sha256"] = resource.state_sha256;
+    return value;
+}
+
+std::string lifecycle_result_json(const GraphLifecycleResult &fixture,
+                                  std::string_view driver_name,
+                                  const std::filesystem::path &profile) {
+    Json observations = Json::array();
+    for (const auto &checkpoint : fixture.observations) {
+        Json resources = Json::array();
+        for (const auto &resource : checkpoint.resources)
+            resources.push_back(resource_json(resource));
+        Json value = Json::object();
+        value["id"] = checkpoint.id;
+        value["outcome"] = checkpoint.outcome;
+        value["active_graph_sha256"] = checkpoint.active_graph_sha256;
+        value["resources"] = std::move(resources);
+        observations.push_back(std::move(value));
+    }
+    Json families = Json::array();
+    for (const char *family : {"liquid", "rope", "soft-body"})
+        families.push_back(family);
+    Json unrelated = Json::array();
+    for (const char *family : {"smoke", "cloth"}) unrelated.push_back(family);
+    Json graph = Json::object();
+    graph["id"] = "three-family-partial-rollback";
+    graph["execution_status"] = fixture.status == 0 ? "completed" :
+        fixture.status == 77 ? "unsupported" : "failed";
+    graph["families"] = std::move(families);
+    graph["unrelated_resources"] = std::move(unrelated);
+    graph["observations"] = std::move(observations);
+    Json cases = Json::array();
+    cases.push_back(std::move(graph));
+    Json driver = Json::object();
+    driver["name"] = std::string(driver_name);
+    driver["device"] = fixture.device.empty() ? "unavailable" : fixture.device;
+    Json result = Json::object();
+    result["schema"] = "parallel-mater-conformance-lifecycle-result/v1";
+    result["profile_id"] = "adverse-capacity-three-family-v1";
+    result["profile_sha256"] = sha256_contract_file(profile);
+    result["execution_status"] = fixture.status == 0 ? "completed" :
+        fixture.status == 77 ? "unsupported" : "failed";
+    result["driver"] = std::move(driver);
+    result["cases"] = std::move(cases);
+    return result.serialize();
+}
+
+#endif
+
 } // namespace
 
-#ifdef PM_CONFORMANCE_EMBEDDED
-int parallel_mater_interaction_graph_lifecycle_fixture() {
-#else
-int main() {
-#endif
+int parallel_mater_interaction_graph_lifecycle_fixture(
+    GraphLifecycleResult *result) {
+    GraphLifecycleResult discarded_result;
+    if (result == nullptr) result = &discarded_result;
+    *result = {};
     Context context;
     PmPhysicalDeviceFeatures needed{};
     needed.rigidBodies = PM_TRUE;
@@ -171,7 +403,13 @@ int main() {
     needed.softBodies = PM_TRUE;
     needed.smoke = PM_TRUE;
     needed.domainCouplings = PM_TRUE;
-    if (!context.open(needed)) return 77;
+    if (!context.open(needed)) {
+        result->status = 77;
+        return 77;
+    }
+    PmPhysicalDeviceProperties properties{};
+    pmGetPhysicalDeviceProperties(context.physical, &properties);
+    result->device = properties.deviceName;
 
     const auto geometry_source = context.buffer(
         sizeof(tetra_vertices) + sizeof(tetra_indices),
@@ -288,15 +526,22 @@ int main() {
     PM_CHECK(pmCreatePhysicsPipeline(context.device, &pipeline_info,
                                      &updated_pipeline) == PM_SUCCESS);
 
-    PmParticleState particle{};
-    particle.position[0] = particle.position[1] = particle.position[2] = 10.0F;
+    std::array<PmParticleState, 2> particle_states{};
+    particle_states[0].position[0] = particle_states[0].position[1] =
+        particle_states[0].position[2] = 10.0F;
+    particle_states[1].position[0] = particle_states[1].position[1] =
+        particle_states[1].position[2] = 11.0F;
     const auto particle_input = context.buffer(
-        sizeof(particle), PM_BUFFER_PARTICLE_INPUT_BIT);
-    std::memcpy(particle_input.mapped, &particle, sizeof(particle));
+        sizeof(particle_states), PM_BUFFER_PARTICLE_INPUT_BIT);
+    std::memcpy(particle_input.mapped, particle_states.data(),
+                sizeof(particle_states));
     context.flush(particle_input);
     const PmBufferView particles{
-        {particle_input.handle, 0U, sizeof(particle)},
-        PM_FORMAT_PARTICLE_STATE, 1U, sizeof(particle)};
+        {particle_input.handle, 0U, sizeof(PmParticleState)},
+        PM_FORMAT_PARTICLE_STATE, 1U, sizeof(PmParticleState)};
+    const PmBufferView replacement_particles{
+        {particle_input.handle, sizeof(PmParticleState), sizeof(PmParticleState)},
+        PM_FORMAT_PARTICLE_STATE, 1U, sizeof(PmParticleState)};
     const PmClothInfo cloth{
         PM_TRUE, 0U, static_cast<std::uint32_t>(tetra_vertices.size()),
         tetra_vertices.data(), static_cast<std::uint32_t>(tetra_indices.size()),
@@ -333,6 +578,10 @@ int main() {
         static_cast<std::uint32_t>(soft_vertices.size()), soft_vertices.data(),
         static_cast<std::uint32_t>(tetra_indices.size()), tetra_indices.data(),
         skin.data()};
+    const PmFloat3 stable_rope_points[2]{{0.0F, 0.0F, 0.0F},
+                                         {-0.02F, 0.0F, 0.0F}};
+    PmRopeInfo stable_rope = rope;
+    stable_rope.pCenterline = stable_rope_points;
     PmSmokeInfo smoke{};
     smoke.active = PM_TRUE;
     smoke.particleCapacity = 4U;
@@ -466,10 +715,93 @@ int main() {
         graph[2], graph[3], graph[6], graph[9]};
     std::array<PmCouplingState, 4> four_family_update{
         updated_graph[2], updated_graph[3], updated_graph[6], updated_graph[9]};
+    const std::string installed_graph_sha = graph_fingerprint(
+        four_family_graph.data(), four_family_graph.size());
+    const std::string updated_graph_sha = graph_fingerprint(
+        four_family_update.data(), four_family_update.size());
+    PM_CHECK(installed_graph_sha != updated_graph_sha);
+
+    // Start the formal profile from freshly installed endpoint generations.
+    submit_endpoint("formal reset", [&] {
+        PM_CHECK(pmCmdResetSimulation(context.commands, simulation) == PM_SUCCESS);
+    });
+    submit_endpoint("formal fluid", [&] {
+        PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation, 0U,
+                                        &particles) == PM_SUCCESS);
+    });
+    submit_endpoint("formal cloth", [&] {
+        PM_CHECK(pmCmdWriteCloths(context.commands, simulation, 0U, 1U, &cloth) ==
+                 PM_SUCCESS);
+    });
+    submit_endpoint("formal rope", [&] {
+        PM_CHECK(pmCmdWriteRopes(context.commands, simulation, 0U, 1U,
+                                 &stable_rope) == PM_SUCCESS);
+    });
+    submit_endpoint("formal soft body", [&] {
+        PM_CHECK(pmCmdWriteSoftBodies(context.commands, simulation, 0U, 1U,
+                                      &soft) == PM_SUCCESS);
+    });
+    submit_endpoint("formal smoke", [&] {
+        PM_CHECK(pmCmdWriteSmoke(context.commands, simulation, 0U, 1U, &smoke) ==
+                 PM_SUCCESS);
+    });
+
+    const PmDeviceSize fluid_size = sizeof(PmDomainOutputHeader) +
+        fluid_capacity.particleCapacity * sizeof(PmFluidParticleOutput);
+    const PmDeviceSize rope_size = sizeof(PmDomainOutputHeader) +
+        rope_capacity.nodeCapacity * sizeof(PmRopeNodeState);
+    const PmDeviceSize soft_size = sizeof(PmDomainOutputHeader) +
+        soft_capacity.nodeCapacity * sizeof(PmSoftBodyNodeState);
+    const PmDeviceSize smoke_size = sizeof(PmDomainOutputHeader) +
+        smoke_capacity.particleCapacity * sizeof(PmSmokeParticleState);
+    const PmDeviceSize cloth_size = sizeof(PmDomainOutputHeader) +
+        cloth_capacity.vertexCapacity * sizeof(PmClothVertexState);
+    const PmDeviceSize fluid_offset = 0U;
+    const PmDeviceSize rope_offset = fluid_offset + fluid_size;
+    const PmDeviceSize soft_offset = rope_offset + rope_size;
+    const PmDeviceSize smoke_offset = soft_offset + soft_size;
+    const PmDeviceSize cloth_offset = smoke_offset + smoke_size;
+    const auto state_output = context.buffer(
+        cloth_offset + cloth_size,
+        PM_BUFFER_SIMULATION_OUTPUT_BIT | PM_BUFFER_TRANSFER_DST_BIT);
+    const PmBufferRange fluid_output{state_output.handle, fluid_offset, fluid_size};
+    const PmBufferRange rope_output{state_output.handle, rope_offset, rope_size};
+    const PmBufferRange soft_output{state_output.handle, soft_offset, soft_size};
+    const PmBufferRange smoke_output{state_output.handle, smoke_offset, smoke_size};
+    const PmBufferRange cloth_output{state_output.handle, cloth_offset, cloth_size};
+
+    const auto capture = [&](std::string id, std::string outcome,
+                             const std::string &graph_sha,
+                             std::uint64_t liquid_generation) {
+        context.begin();
+        PM_CHECK(pmCmdCopyFluidParticles(context.commands, simulation, 0U,
+                                         &fluid_output) == PM_SUCCESS);
+        PM_CHECK(pmCmdCopyRopeState(context.commands, simulation, 0U,
+                                    &rope_output) == PM_SUCCESS);
+        PM_CHECK(pmCmdCopySoftBodyState(context.commands, simulation, 0U,
+                                        &soft_output) == PM_SUCCESS);
+        PM_CHECK(pmCmdCopySmokeState(context.commands, simulation, 0U,
+                                     &smoke_output) == PM_SUCCESS);
+        PM_CHECK(pmCmdCopyClothState(context.commands, simulation, 0U,
+                                     &cloth_output) == PM_SUCCESS);
+        PM_CHECK(context.submit() == PM_SUCCESS);
+        context.invalidate(state_output);
+        record_checkpoint(
+            result, std::move(id), std::move(outcome), graph_sha,
+            {output_header(state_output, fluid_offset),
+             output_header(state_output, rope_offset),
+             output_header(state_output, soft_offset),
+             output_header(state_output, smoke_offset),
+             output_header(state_output, cloth_offset)},
+            liquid_generation);
+    };
+
     submit_graph(four_family_graph.data(),
                  static_cast<std::uint32_t>(four_family_graph.size()));
+    capture("installed", "PM_SUCCESS", installed_graph_sha, 1U);
     submit_graph(four_family_update.data(),
                  static_cast<std::uint32_t>(four_family_update.size()));
+    capture("updated", "PM_SUCCESS", updated_graph_sha, 1U);
     auto invalid_replacement = four_family_update;
     invalid_replacement[1].parameters.mechanical.friction = -1.0F;
     // Descriptor/capability preflight accepts this graph. Runtime creation
@@ -478,12 +810,42 @@ int main() {
     submit_graph(invalid_replacement.data(),
                  static_cast<std::uint32_t>(invalid_replacement.size()),
                  PM_ERROR_INVALID_ARGUMENT);
+    capture("partial-failure", "PM_ERROR_INVALID_ARGUMENT", updated_graph_sha,
+            1U);
     submit_graph(four_family_graph.data(),
                  static_cast<std::uint32_t>(four_family_graph.size()));
+    capture("recovery", "PM_SUCCESS", installed_graph_sha, 1U);
     replace_and_step([&] {
-        PM_CHECK(pmCmdWriteSmoke(context.commands, simulation, 0U, 1U, &smoke) ==
-                 PM_SUCCESS);
+        PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation, 0U,
+                                        &replacement_particles) == PM_SUCCESS);
     });
+    capture("replace-liquid", "PM_SUCCESS", installed_graph_sha, 2U);
+
+    PM_CHECK(result->observations.size() == 5U);
+    const auto same_resources = [&](std::size_t first, std::size_t second,
+                                    std::size_t begin = 0U) {
+        for (std::size_t index = begin;
+             index < result->observations[first].resources.size(); ++index) {
+            const auto &a = result->observations[first].resources[index];
+            const auto &b = result->observations[second].resources[index];
+            if (a.generation != b.generation ||
+                a.state_sha256 != b.state_sha256)
+                std::fprintf(stderr,
+                    "checkpoint resource drift: %zu/%zu %s %s %s\n",
+                    first, second, a.id.c_str(), a.state_sha256.c_str(),
+                    b.state_sha256.c_str());
+            PM_CHECK(a.generation == b.generation);
+            PM_CHECK(a.state_sha256 == b.state_sha256);
+        }
+    };
+    same_resources(0U, 1U);
+    same_resources(1U, 2U);
+    same_resources(0U, 3U);
+    PM_CHECK(result->observations[3U].resources[0U].generation !=
+             result->observations[4U].resources[0U].generation);
+    PM_CHECK(result->observations[3U].resources[0U].state_sha256 !=
+             result->observations[4U].resources[0U].state_sha256);
+    same_resources(3U, 4U, 1U);
     submit_graph(nullptr, 0U);
 
     pmDestroySimulation(context.device, simulation);
@@ -491,6 +853,49 @@ int main() {
          {empty_pipeline, graph_pipeline, updated_pipeline})
         pmDestroyPhysicsPipeline(context.device, pipeline);
     pmDestroyGeometry(context.device, geometry);
-    std::puts("PASS: all 12 interaction pairs rebind; three-family rollback recovers");
+    result->status = 0;
+    std::printf(
+        "PASS: all 12 interaction pairs rebind; 5 graph rollback checkpoints "
+        "on %s (vendor=%04x device=%04x)\n",
+        properties.deviceName, properties.vendorId, properties.deviceId);
     return 0;
 }
+
+#ifndef PM_CONFORMANCE_EMBEDDED
+int main(int argc, char **argv) {
+    std::filesystem::path output;
+    std::filesystem::path profile = PM_LIFECYCLE_PROFILE_PATH;
+    std::string driver_name = "selected-driver";
+    for (int index = 1; index < argc; ++index) {
+        const std::string_view option = argv[index];
+        if ((option == "--output" || option == "--profile" ||
+             option == "--driver-name") && index + 1 >= argc) {
+            std::fprintf(stderr, "%.*s requires a value\n",
+                         static_cast<int>(option.size()), option.data());
+            return 2;
+        }
+        if (option == "--output") output = argv[++index];
+        else if (option == "--profile") profile = argv[++index];
+        else if (option == "--driver-name") driver_name = argv[++index];
+        else {
+            std::fprintf(stderr, "unknown option: %.*s\n",
+                         static_cast<int>(option.size()), option.data());
+            return 2;
+        }
+    }
+    GraphLifecycleResult result;
+    const int status = parallel_mater_interaction_graph_lifecycle_fixture(&result);
+    if (!output.empty()) {
+        if (!output.parent_path().empty())
+            std::filesystem::create_directories(output.parent_path());
+        std::ofstream stream(output, std::ios::binary);
+        if (!stream) {
+            std::fprintf(stderr, "cannot write lifecycle result: %s\n",
+                         output.string().c_str());
+            return 2;
+        }
+        stream << lifecycle_result_json(result, driver_name, profile);
+    }
+    return status;
+}
+#endif

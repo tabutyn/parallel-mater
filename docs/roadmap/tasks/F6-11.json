@@ -1,0 +1,47 @@
+{
+  "id": "F6-11",
+  "title": "Adjudicate the retained rigid contact patch",
+  "status": "done",
+  "dependencies": [
+    "F6-09",
+    "F6-10"
+  ],
+  "locks": [
+    "rigid-contact-solver"
+  ],
+  "requires": [
+    "CUDA reference device; second physical backend for shared-Slang parity"
+  ],
+  "scope": "Reproduce and independently review the retained closed-shell normals, swept triangle feature recovery, margin and constraint-break changes against the current common Slang solver.",
+  "acceptance": [
+    "Port only minimal hunks backed by a failing current-main reproduction; record why every remaining solver hunk is superseded or rejected.",
+    "Pass focused fast-impact, contact and conformance checks on CUDA and one other physical backend without a backend-specific physics fork or archived golden transplant."
+  ],
+  "evidence": [
+    "PASS: all 26 retained F6-11 hunks are individually ported, superseded or rejected with reproduction evidence; docs/roadmap/evidence/F6-11-rigid-contact-adjudication.json",
+    "PASS: candidate v5 replay and complete 120-frame rigid contact gallery suite pass identically on GTX 1080 Slang CUDA and D3D12; zero slider penetration, 0.0113148 mm gear penetration and zero locked-axis impulse",
+    "PASS: rigid-direct, constraint-hinge and constraint-slider execute and compare across current CUDA/D3D12; strict portable suite 12/12; historical hinge/slider golden drift retained without fixture, tolerance or golden changes"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "3bdd2aeb-e8aa-46f7-b3a3-57f6123bd753",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F6-11/windows-gtx1080",
+        "claimed_at": "2026-10-18T18:48:11Z",
+        "heartbeat_at": "2026-10-18T18:48:11Z",
+        "expires_at": "2026-10-19T18:48:11Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T19:36:42Z",
+      "reason": "Reproduced and minimized the retained contact patch into common Slang impact-feature recovery, rejecting unsupported margin and hinge exceptions.",
+      "evidence": [
+        "PASS: all 26 retained F6-11 hunks are individually ported, superseded or rejected with reproduction evidence; docs/roadmap/evidence/F6-11-rigid-contact-adjudication.json",
+        "PASS: candidate v5 replay and complete 120-frame rigid contact gallery suite pass identically on GTX 1080 Slang CUDA and D3D12; zero slider penetration, 0.0113148 mm gear penetration and zero locked-axis impulse",
+        "PASS: rigid-direct, constraint-hinge and constraint-slider execute and compare across current CUDA/D3D12; strict portable suite 12/12; historical hinge/slider golden drift retained without fixture, tolerance or golden changes"
+      ]
+    }
+  ]
+}

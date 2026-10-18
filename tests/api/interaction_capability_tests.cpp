@@ -84,10 +84,19 @@ int main() {
     CHECK(pmGetPhysicalDeviceInteractionCapability(
               physical, &unsupported, &queried) ==
           PM_ERROR_FEATURE_NOT_PRESENT);
-    unsupported.materialProfile = PM_INTERACTION_MATERIAL_MISCIBLE;
-    CHECK(pmGetPhysicalDeviceInteractionCapability(
-              physical, &unsupported, &queried) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
+    for (const auto profile : {PM_INTERACTION_MATERIAL_MISCIBLE,
+                               PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE}) {
+        unsupported.materialProfile = profile;
+        for (const auto mode : {PM_INTERACTION_MODE_CONTACT,
+                                PM_INTERACTION_MODE_PRESSURE,
+                                PM_INTERACTION_MODE_VISCOSITY,
+                                PM_INTERACTION_MODE_INTERFACE}) {
+            unsupported.mode = mode;
+            CHECK(pmGetPhysicalDeviceInteractionCapability(
+                      physical, &unsupported, &queried) ==
+                  PM_ERROR_FEATURE_NOT_PRESENT);
+        }
+    }
     unsupported.mode = static_cast<PmInteractionMode>(999);
     CHECK(pmGetPhysicalDeviceInteractionCapability(
               physical, &unsupported, &queried) == PM_ERROR_INVALID_ARGUMENT);

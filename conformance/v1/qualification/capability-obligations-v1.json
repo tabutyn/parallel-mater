@@ -25,7 +25,7 @@
     ]
   },
   "contracts": [
-    {"id": "registry:interaction-capabilities", "path": "registry/pm.xml", "sha256": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7"},
+    {"id": "registry:interaction-capabilities", "path": "registry/pm.xml", "sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af"},
     {"id": "case:fluid-lifecycle", "path": "conformance/v1/cases/fluid-lifecycle.json", "sha256": "43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b"},
     {"id": "case:rope-core", "path": "conformance/v1/cases/rope-core.json", "sha256": "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41"},
     {"id": "case:smoke-grid", "path": "conformance/v1/cases/smoke-grid.json", "sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3"},
@@ -44,6 +44,10 @@
     {"id": "case:smoke-soft-body", "path": "conformance/v1/cases/smoke-soft-body.json", "sha256": "a3566fe480be274b850d10f10b88ee4f3ea22e59d5cae5ccf9a652fa7d6b9cb8"},
     {"id": "case:soft-body-rigid", "path": "conformance/v1/cases/soft-body-rigid.json", "sha256": "ab0e5f813b9953fd80f278842cab75e8e53d54f6f790e31e7572eb9e2e043505"},
     {"id": "case:smoke-rope", "path": "conformance/v1/cases/smoke-rope.json", "sha256": "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7"},
+    {"id": "quality:rigid-brick-penetration-v1", "path": "conformance/v1/quality/rigid-brick-penetration-v1.json", "sha256": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da"},
+    {"id": "quality:rigid-attachment-v1", "path": "conformance/v1/quality/rigid-attachment-v1.json", "sha256": "570add4a6e74539f46513a5baa8168bd2b81dd2ef95ff2a7f6bbb407f3afd108"},
+    {"id": "quality:fluid-self-contact-v1", "path": "conformance/v1/quality/fluid-self-contact-v1.json", "sha256": "21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2"},
+    {"id": "quality:fluid-self-pressure-v1", "path": "conformance/v1/quality/fluid-self-pressure-v1.json", "sha256": "4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b"},
     {"id": "quality:core-conservation-stability-v1#equal-material-pressure-contact", "path": "conformance/v1/quality/core-conservation-v1.json", "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"},
     {"id": "quality:core-conservation-stability-v1#equal-material-viscosity", "path": "conformance/v1/quality/core-conservation-v1.json", "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"},
     {"id": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery", "path": "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json", "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"},
@@ -51,11 +55,34 @@
   ],
   "rules": [
     {
-      "id": "fluid-self",
-      "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SELF"], "mode": ["CONTACT", "PRESSURE", "VISCOSITY"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "id": "fluid-self-contact",
+      "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SELF"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:fluid-lifecycle",
-      "required": {"lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"]},
-      "missing": {"analytic_invariants": "No vendor-neutral fluid self-interaction quality case is registered."}
+      "required": {
+        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"],
+        "analytic_invariants": ["quality:fluid-self-contact-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "fluid-self-pressure",
+      "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SELF"], "mode": ["PRESSURE"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:fluid-lifecycle",
+      "required": {
+        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"],
+        "analytic_invariants": ["quality:fluid-self-pressure-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "fluid-self-viscosity",
+      "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SELF"], "mode": ["VISCOSITY"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:fluid-lifecycle",
+      "required": {
+        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"],
+        "analytic_invariants": ["quality:fluid-self-viscosity-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "fluid-pair-equal-pressure-contact",
@@ -81,8 +108,11 @@
       "id": "rope-self",
       "match": {"first_family": ["ROPE"], "second_family": ["ROPE"], "scope": ["SELF"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:rope-core",
-      "required": {"lifecycle_invariants": ["case:rope-core"]},
-      "missing": {"analytic_invariants": "No vendor-neutral rope self-contact quality case is registered."}
+      "required": {
+        "lifecycle_invariants": ["case:rope-core"],
+        "analytic_invariants": ["quality:rope-self-contact-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "smoke-self",
@@ -95,15 +125,21 @@
       "id": "rigid-contact",
       "match": {"first_family": ["RIGID_BODY"], "second_family": ["RIGID_BODY"], "scope": ["SAME_DOMAIN"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:rigid-direct",
-      "required": {"lifecycle_invariants": ["case:rigid-direct"]},
-      "missing": {"analytic_invariants": "The rigid penetration fixture is not yet a versioned vendor-neutral profile."}
+      "required": {
+        "lifecycle_invariants": ["case:rigid-direct"],
+        "analytic_invariants": ["quality:rigid-brick-penetration-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "rigid-attachment",
       "match": {"first_family": ["RIGID_BODY"], "second_family": ["RIGID_BODY"], "scope": ["SAME_DOMAIN"], "mode": ["ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:compound-weld-lifecycle",
-      "required": {"lifecycle_invariants": ["case:compound-weld-lifecycle"]},
-      "missing": {"analytic_invariants": "No vendor-neutral rigid attachment quality case is registered."}
+      "required": {
+        "lifecycle_invariants": ["case:compound-weld-lifecycle"],
+        "analytic_invariants": ["quality:rigid-attachment-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "fluid-cloth",

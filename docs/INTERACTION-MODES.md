@@ -23,7 +23,7 @@ order.
 | `viscosity` | Exchange dissipative shear forces across a system boundary. Contact friction is not a viscosity capability. |
 | `thermal` | Exchange heat while retaining both endpoint families and account for supplied, removed and transferred energy. |
 | `phase` | Transfer mass or membership between families or material phases while defining identity, capacity, momentum and energy handling. |
-| `interface` | Preserve a material boundary and exchange capillary traction. This future mode is independent from contact, pressure and thermal exchange. |
+| `interface` | Preserve a material boundary and exchange capillary traction. Support is queried independently from contact, pressure and thermal exchange. |
 
 `contact` parameters may include friction. Pressure and viscosity remain
 separate modes because a vendor can implement collision without a continuum
@@ -98,7 +98,7 @@ separately owned systems. Capability discovery must identify the scope.
 
 | Family | Current reference scope | Separate-system roadmap scope |
 |---|---|---|
-| Fluid | `R` contact, pressure and viscosity within one population. | `P fluid A ↔ fluid B` contact, pressure and viscosity for equal material; later miscible/immiscible, thermal and phase profiles. API 0.2 `LIQUID_LIQUID` is explicitly unsupported. |
+| Fluid | `R` contact, pressure and viscosity within one population. | `P fluid A ↔ fluid B` contact, pressure and viscosity for equal material on qualified drivers; miscible/immiscible requests have typed state but remain unadvertised, while thermal and phase profiles remain later work. |
 | Cloth | No advertised self or cloth–cloth contact mode. | `P cloth A ↔ cloth B` contact/friction; self-contact and distinct sheets are specified by F2-12. |
 | Soft body | No advertised self or soft-body/soft-body surface-contact mode. | `P soft A ↔ soft B` surface contact; self and distinct volumes are specified by F2-13. |
 | Rope | `R` sampled-node self-exclusion within one rope when `selfCollision` is true; no segment-continuity or self-friction claim. `P` continuous capsule-segment self-contact/friction. | `P rope A ↔ rope B` capsule-segment contact and endpoint attachment; specified by F2-14. |
@@ -606,8 +606,8 @@ The initial profiles are:
 | `smoke-grid` | Smoke is the projected Eulerian grid model. | Reference profile for implemented smoke pairs; support is independent from `smoke-particle`. |
 | `smoke-particle-grid` | A particle smoke endpoint exchanges with a projected-grid smoke endpoint. | Future profile specified by F2-15; only reciprocal drag and thermal exchange are defined. |
 | `equal-material` | Distinct fluid systems use numerically equal material state and a symmetric cross-population operator. | CUDA qualification complete for `contact`, `pressure` and `viscosity`; other production drivers remain unsupported. |
-| `miscible` | Different Newtonian fluid materials share a mechanical neighborhood without a material interface. | Specified by F2-11; reserved and unsupported in API 0.2. |
-| `immiscible-interface` | Different Newtonian fluids retain a material boundary with defined pressure, shear and capillary behavior. | Specified by F2-11; reserved and unsupported in API 0.2. |
+| `miscible` | Different Newtonian fluid materials share a mechanical neighborhood without a material interface. | Typed mechanical request exists; all drivers remain unadvertised pending implementation and qualification. |
+| `immiscible-interface` | Different Newtonian fluids retain a material boundary with defined pressure, shear and capillary behavior. | Typed mechanical and capillary request exists; all drivers remain unadvertised pending implementation and qualification. |
 | `thermal-phase` | Reserved for a future material-changing thermal or phase law. Thermal exchange that retains both materials uses the mechanical material profile plus the `thermal` mode. | Unsupported; F2-11 does not define phase transfer. |
 | `rope-capsule` | Rope centreline segments are swept capsules; contact covers their full length rather than sampled nodes only. | Future profile specified by F2-14; unsupported in API 0.2. |
 
@@ -749,12 +749,31 @@ systems.
 ## Different-material separate fluid systems
 
 The `miscible` and `immiscible-interface` profiles describe two live fluid
-systems whose `PmLiquidMaterialState` values differ. They are future contracts,
-not API 0.2 capabilities. The existing enum values reserve names only: every
-API 0.2 driver must omit their capability records and reject graph edges that
-request them with `PM_ERROR_FEATURE_NOT_PRESENT`. It must not fall back to the
-`equal-material` operator, average the endpoint materials silently, or mutate
-the live graph after rejecting a replacement.
+systems whose `PmLiquidMaterialState` values differ. The public contract can
+represent these requests, but no driver advertises them yet. Every driver must
+omit their capability records and reject a structurally valid graph edge with
+`PM_ERROR_FEATURE_NOT_PRESENT`. It must not fall back to the `equal-material`
+operator, average endpoint materials silently, or mutate the live graph after
+rejecting a replacement.
+
+`PmCouplingStateInfo` is the extensible coupling descriptor. For either
+different-material profile its `pNext` chain contains exactly one
+`PmFluidPairMaterialState`; duplicate and unknown structures are invalid.
+An `immiscible-interface` request also contains exactly one
+`PmFluidInterfaceState`. Recognized structures may appear in either chain
+order. `firstMaterialIndex` and `secondMaterialIndex` equal the edge's
+`first` and `second` fluid slots and select those endpoints' immutable
+`PmLiquidMaterialState` entries. This explicit mapping prevents a loader or
+driver from swapping, copying or synthesizing material ownership. Equal-
+material fluid pairs may use the same typed state for source compatibility,
+but retain the API 0.2 `PmCouplingState` path.
+
+`pmCmdSetCouplings2` records a complete simulation-owned array of extensible
+descriptors. `PmPhysicsPipelineCouplingStateInfo` supplies the corresponding
+complete pipeline array through `PmPhysicsPipelineCreateInfo::pNext`; the
+legacy base count and pointer are zero and null when that extension is present.
+Both entry points validate and deep-copy all descriptor layers before changing
+live state. A rejected replacement leaves the previous usable graph intact.
 
 Both profiles are bidirectional. The edge keeps independent endpoint storage,
 counts, capacities, stable-ID namespaces, temperature and foam fields. It
@@ -781,14 +800,52 @@ failure, and external-boundary ownership follow the equal-material rules.
 
 ### Miscible mechanical profile
 
-A miscible mechanical edge requests bidirectional `contact`, `pressure` and
-`viscosity` with material profile `miscible`. The populations may interpenetrate
+A miscible mechanical edge has the exact mode bundle bidirectional `contact`,
+`pressure` and `viscosity` with material profile `miscible`. The populations may interpenetrate
 and intermingle without an ownership seam. `contact` supplies the same
 short-range particle exclusion used within each endpoint; it does not create a
 membrane. Cross neighbors contribute their own mass to density. Each particle
 uses its endpoint rest density and pressure stiffness for its equation of
 state, while the pressure-gradient pair operator is symmetric in both endpoint
 pressures and densities.
+
+For the initial `miscible` profile, density uses the normalized three-
+dimensional poly6 sample from the preceding pair-sampling contract. For a
+cross pair at distance `r < h_ij`, endpoint pressure and the positive radial
+kernel-gradient magnitude are
+
+```text
+p_i = pressureStiffness_i * max(rho_i - restDensity_i, 0)
+G_ij = 9.40008882636 * r / h_ij^5 * (1 - r^2 / h_ij^2)^2
+```
+
+With `n_ij = (x_i - x_j) / r`, the common pressure force on endpoint `i` is
+
+```text
+F_pressure = n_ij * m_i * m_j *
+             (p_i / rho_i^2 + p_j / rho_j^2) * G_ij
+```
+
+Short-range contact applies only for `r < d_ij`. Define
+
+```text
+m_pair = 2 * m_i * m_j / (m_i + m_j)
+a_contact = 0.5 * (pressureStiffness_i * 1000 / restDensity_i +
+                   pressureStiffness_j * 1000 / restDensity_j) *
+                   (1 - r / d_ij)^2 +
+            0.5 * (normalDamping_i + normalDamping_j) *
+                   dot(v_j - v_i, n_ij)
+F_contact = n_ij * m_pair * a_contact
+```
+
+The factor in `m_pair` preserves the established per-particle contact response
+when the endpoint masses and material values are equal. At coincident
+positions, `n_ij` is the normalized relative velocity `v_j - v_i`; it is zero
+when that velocity is also zero. This rule is independent of endpoint
+ownership and avoids choosing a physical direction from local array indices.
+The implementation sums `F_pressure + F_contact`, limits that common force to
+the smaller enabled endpoint bound `m_i * maximumPairAcceleration_i`, and only
+then divides by endpoint mass.
 
 Let `nu_i` be kinematic viscosity and `mu_i = restDensity_i * nu_i` be dynamic
 viscosity. The cross-pair viscosity is the harmonic combination
@@ -802,6 +859,22 @@ equal and opposite and, without external work, must not increase kinetic
 energy. Pressure/contact must also conserve linear and angular momentum within
 the qualification tolerances. Endpoint order cannot affect any result.
 
+Let `V_i = m_i / restDensity_i` be the explicit or fallback rest particle
+volume defined above. The initial miscible shear operator uses
+
+```text
+V_ij = 2 * V_i * V_j / (V_i + V_j)
+q_ij = max(1 - ||x_i - x_j|| / h_ij, 0)
+F_viscosity = mu_ij * V_ij * q_ij * (v_j - v_i)
+```
+
+`F_viscosity / m_i` and `-F_viscosity / m_j` are accumulated at the two
+endpoints. This reduces exactly to the established equal-material acceleration
+`kinematicViscosity * q_ij * (v_j - v_i)` when material and particle volume
+match. If either endpoint viscosity is zero, harmonic `mu_ij` makes the cross
+viscous force zero. Enabled endpoint acceleration limits clamp the common force
+before either mass division.
+
 This profile is a mechanical mixture, not a species solver. Particles retain
 their material and stable identity as they mingle. It does not claim Fickian
 diffusion, concentration fields, reactions, temperature-dependent properties,
@@ -811,23 +884,29 @@ must report those behaviors unsupported rather than infer them from
 
 ### Immiscible interface profile
 
-An immiscible edge retains two material regions. Its core bundle is
-bidirectional `contact`, `pressure` and the future `interface` mode; interfacial
-`viscosity` and `thermal` are independent optional records. Contact prevents
+An immiscible mechanical request has the exact bundle bidirectional `contact`,
+`pressure` and `interface` with material profile `immiscible-interface`.
+These are three independently queryable capability identities even though the
+initial graph descriptor requires their complete bundle. Interfacial
+`viscosity` and `thermal` remain independent optional records. Contact prevents
 particles crossing the represented boundary, pressure transfers normal
 traction, and interface force represents capillarity. No one of these records
 implies another.
 
-The future edge state owns a nonnegative surface-tension coefficient `sigma`
-in N/m. At resolved curvature its equilibrium pressure jump obeys the
+`PmFluidInterfaceState` owns a finite, nonnegative surface-tension coefficient
+`surfaceTension`, written as `sigma` below, in N/m. The state appears exactly
+once in an immiscible edge's `pNext` chain and is invalid for every other
+material profile. At resolved curvature its equilibrium pressure jump obeys the
 Young-Laplace relation
 
 ```text
 pressure_first - pressure_second = sigma * (1 / R1 + 1 / R2)
 ```
 
-for principal radii `R1` and `R2` using the edge's declared first-to-second
-normal. A planar interface therefore has zero capillary pressure jump. The
+for principal radii `R1` and `R2`. The normal always points from the edge's
+first fluid endpoint to its second fluid endpoint; swapping endpoints reverses
+the normal and pressure-jump sign without changing the physical state. A
+planar interface therefore has zero capillary pressure jump. The
 discrete interface force is internal: absent external work it has zero net
 linear force and torque within tolerance. It may exchange kinetic and surface
 energy but must not create unbounded energy in the long-run stability corpus.
@@ -872,14 +951,13 @@ latent heat, boiling, freezing, evaporation, condensation and particle
 transfer are unsupported here. Those need explicit phase identities, energy
 and capacity accounting, so the `thermal-phase` profile remains reserved.
 
-### Required future API separation
+### API separation and remaining state
 
-Before any different-material capability is enabled, the public registry must
-add typed, versioned state for the combination rules above. It must add the
-`interface` mode instead of hiding capillary behavior under `contact`, and add
-caloric fields without reusing the API 0.2 heater rate. Mechanical, interface,
-thermal and phase records remain separately queryable. Implementation leaves
-then add shared Slang operators and backend-neutral scheduling; qualification
+The public registry has typed, versioned mechanical pair and capillary state.
+Thermal work must add caloric fields without reusing the API 0.2 heater rate.
+Mechanical, interface, thermal and phase records remain separately queryable.
+Implementation leaves add shared Slang operators and backend-neutral
+scheduling; qualification
 leaves advertise one exact `(scope, mode, direction, material profile)` record
 at a time on each tested driver.
 

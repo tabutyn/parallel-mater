@@ -1,0 +1,55 @@
+{
+  "schema": "parallel-mater-roadmap-corpus-manifest/v1",
+  "task": "F6-12",
+  "result": "passed",
+  "source_revision": "7fcdadaeab72938e4ef59cf1325bac5ea6ed052a",
+  "source_dirty": false,
+  "implementation": {
+    "tool": "conformance/v1/update_manifest.py",
+    "hash_sections": [
+      "glb_sha256",
+      "lifecycle_profile_sha256",
+      "quality_profile_sha256",
+      "qualification_profile_sha256",
+      "evidence_index_sha256"
+    ],
+    "normalization": "JSON and XML CRLF bytes are converted to LF before SHA-256, matching the installed C++ runner",
+    "scope_limit": "Only existing hash pins are refreshed; files, provenance, evidence indexes and trajectory goldens are not generated or added"
+  },
+  "repaired_pins": [
+    {
+      "path": "conformance/v1/qualification/capability-obligations-v1.json",
+      "sha256": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e"
+    },
+    {
+      "path": "conformance/v1/evidence/evidence-sources-v1.json",
+      "sha256": "c6dacf7d7dbbb1512522c1138d50b0dc96c0a493788f039d996edc64200f560a"
+    },
+    {
+      "path": "conformance/v1/evidence/index-v1.json",
+      "sha256": "730a61d3200b0d785ef7612d10e7267baddef2adba12929420d442138b286b46"
+    }
+  ],
+  "verification": [
+    {
+      "check": "python3 -m unittest conformance/v1/tests/test_manifest_sync.py",
+      "result": "4/4 passed; stale detection, exact pin-only refresh, CRLF normalization, path containment and byte-idempotence covered"
+    },
+    {
+      "check": "python3 -m unittest discover -s conformance/v1/tests -p test_*.py",
+      "result": "79/79 passed"
+    },
+    {
+      "check": "ctest --preset sdk-ci",
+      "result": "47/47 passed"
+    },
+    {
+      "check": "relocated-sdk/bin/parallel-mater-conformance --check-inputs --root relocated-sdk/share/parallel-mater",
+      "result": "passed after cmake install and directory relocation"
+    }
+  ],
+  "follow_up": {
+    "finding": "The broader SDK checker cannot configure its copied standalone conformance sources because conformance/v1/CMakeLists.txt reaches back to three tests/api sources that are absent from the package.",
+    "disposition": "Track as a separate F6 release-packaging leaf before F6-99 exit review."
+  }
+}

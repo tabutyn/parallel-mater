@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 #include "test_context.hpp"
 
+#include <limits>
+
 using parallel_mater::test::Context;
 
 int main() {
@@ -109,6 +111,126 @@ int main() {
     PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
              PM_SUCCESS);
     PM_CHECK(context.submit() == PM_SUCCESS);
+
+    PmCouplingStateInfo pair{};
+    pair.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+    pair.type = PM_COUPLING_LIQUID_LIQUID;
+    pair.first = 0U;
+    pair.second = 1U;
+    pair.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+        PM_INTERACTION_MODE_PRESSURE_BIT |
+        PM_INTERACTION_MODE_VISCOSITY_BIT;
+    pair.materialProfile = PM_INTERACTION_MATERIAL_MISCIBLE;
+    pair.parameters.mechanical.twoWay = PM_TRUE;
+    PmFluidPairMaterialState materials{
+        PM_STRUCTURE_TYPE_FLUID_PAIR_MATERIAL_STATE, nullptr, 0U, 1U};
+
+    const auto reject_pair = [&](const PmCouplingStateInfo &candidate,
+                                 PmResult expected) {
+        context.begin();
+        PM_CHECK(pmCmdSetCouplings2(context.commands, simulation, 1U,
+                                    &candidate) == expected);
+        PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, empty) == PM_SUCCESS);
+        PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
+                 PM_SUCCESS);
+        PM_CHECK(context.submit() == PM_SUCCESS);
+    };
+
+    // Different-material profiles require one exact typed endpoint-material
+    // state. Every rejected replacement leaves the prior liquid/rigid graph.
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+    pair.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+    pair.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+
+    auto unknown_materials = materials;
+    unknown_materials.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
+    pair.pNext = &unknown_materials;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+
+    auto nested_materials = materials;
+    nested_materials.pNext = &materials;
+    pair.pNext = &nested_materials;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+
+    auto mismatched_materials = materials;
+    mismatched_materials.secondMaterialIndex = 0U;
+    pair.pNext = &mismatched_materials;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+
+    pair.pNext = &materials;
+    reject_pair(pair, PM_ERROR_FEATURE_NOT_PRESENT);
+
+    PmFluidInterfaceState interface_state{
+        PM_STRUCTURE_TYPE_FLUID_INTERFACE_STATE, nullptr, 0.072F};
+    materials.pNext = &interface_state;
+    pair.pNext = &materials;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+
+    pair.materialProfile = PM_INTERACTION_MATERIAL_EQUAL;
+    pair.pNext = &interface_state;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+
+    pair.materialProfile = PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE;
+    pair.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+        PM_INTERACTION_MODE_PRESSURE_BIT |
+        PM_INTERACTION_MODE_INTERFACE_BIT;
+
+    pair.pNext = nullptr;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+    materials.pNext = nullptr;
+    pair.pNext = &materials;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+    pair.pNext = &interface_state;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+
+    auto invalid_interface = interface_state;
+    invalid_interface.surfaceTension = -0.001F;
+    materials.pNext = &invalid_interface;
+    pair.pNext = &materials;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+    invalid_interface.surfaceTension =
+        std::numeric_limits<float>::infinity();
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+    invalid_interface.surfaceTension =
+        std::numeric_limits<float>::quiet_NaN();
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+
+    auto duplicate_interface = interface_state;
+    duplicate_interface.pNext = &interface_state;
+    materials.pNext = &duplicate_interface;
+    reject_pair(pair, PM_ERROR_INVALID_ARGUMENT);
+
+    interface_state.surfaceTension = 0.0F;
+    materials.pNext = &interface_state;
+    pair.pNext = &materials;
+    reject_pair(pair, PM_ERROR_FEATURE_NOT_PRESENT);
+
+    interface_state.pNext = &materials;
+    materials.pNext = nullptr;
+    pair.pNext = &interface_state;
+    reject_pair(pair, PM_ERROR_FEATURE_NOT_PRESENT);
+
+    PmPhysicsPipelineCouplingStateInfo pipeline_couplings{
+        PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_COUPLING_STATE_INFO, nullptr, 1U,
+        &pair};
+    PmPhysicsPipelineCreateInfo extensible_info{};
+    extensible_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
+    extensible_info.pNext = &pipeline_couplings;
+    PmPhysicsPipeline rejected = empty;
+    PM_CHECK(pmCreatePhysicsPipeline(context.device, &extensible_info,
+                                     &rejected) ==
+             PM_ERROR_FEATURE_NOT_PRESENT);
+    PM_CHECK(rejected == nullptr);
+
+    // The legacy and extensible coupling arrays are mutually exclusive.
+    extensible_info.couplingCount = 1U;
+    extensible_info.pCouplings = &edge;
+    rejected = empty;
+    PM_CHECK(pmCreatePhysicsPipeline(context.device, &extensible_info,
+                                     &rejected) ==
+             PM_ERROR_INVALID_ARGUMENT);
+    PM_CHECK(rejected == nullptr);
 
     pmDestroySimulation(context.device, simulation);
     for (const auto pipeline : {empty, coupled, duplicate, excessive})

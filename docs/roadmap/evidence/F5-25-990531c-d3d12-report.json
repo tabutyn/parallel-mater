@@ -1,0 +1,29 @@
+{
+  "driver": {
+    "device": "NVIDIA GeForce GTX 1080",
+    "device_id": 7040,
+    "driver_version": "1",
+    "name": "slang-d3d12",
+    "vendor_id": 4318
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 1,
+  "observations": {
+    "center_of_mass_drift_m": 0.0,
+    "exchange_impulse_kg_m_s": 18.0,
+    "final_separation_m": 0.21250000596046448,
+    "maximum_speed_m_s": 1.125,
+    "maximum_transverse_position_m": 0.0,
+    "maximum_transverse_velocity_m_s": 0.0,
+    "minimum_separation_m": 0.19,
+    "net_internal_impulse_kg_m_s": 0.0,
+    "outward_relative_speed_m_s": 2.25
+  },
+  "passed": true,
+  "profile_id": "fluid-self-contact-v1",
+  "profile_sha256": "21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2",
+  "sample_count": 1,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

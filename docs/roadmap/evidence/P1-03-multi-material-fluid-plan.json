@@ -1,0 +1,120 @@
+{
+  "schema": "parallel-mater-roadmap-fluid-operator-plan/v1",
+  "task": "P1-03",
+  "result": "passed",
+  "source_contract": {
+    "task": "F2-11",
+    "document": "docs/INTERACTION-MODES.md#different-material-separate-fluid-systems",
+    "status": "Different-material profiles are specified but reserved and unsupported in API 0.2."
+  },
+  "shared_prerequisites": [
+    {
+      "task": "P1-04",
+      "role": "Public pair-material selection and exact miscible/immiscible mechanical capability identities"
+    },
+    {
+      "task": "P1-05",
+      "role": "Bounded heterogeneous pair sampling for unequal radii, supports, masses and rest densities"
+    }
+  ],
+  "mode_plans": [
+    {
+      "profile": "miscible",
+      "contract_tasks": [
+        "P1-04"
+      ],
+      "operator_tasks": [
+        "P1-05",
+        "P1-06",
+        "P1-07"
+      ],
+      "schedule_and_lifecycle_tasks": [
+        "P1-08"
+      ],
+      "public_api_quality_gate_tasks": [
+        "P1-09"
+      ],
+      "physical_obligations": [
+        "endpoint-order invariance",
+        "linear and angular momentum conservation",
+        "dissipative harmonic dynamic-viscosity exchange",
+        "density, radius, particle-volume and mass-ratio sweeps",
+        "timestep and long-run stability"
+      ]
+    },
+    {
+      "profile": "immiscible-interface",
+      "contract_tasks": [
+        "P1-04",
+        "P1-56"
+      ],
+      "operator_tasks": [
+        "P1-05",
+        "P1-10",
+        "P1-11",
+        "P1-12"
+      ],
+      "schedule_and_lifecycle_tasks": [
+        "P1-13"
+      ],
+      "public_api_quality_gate_tasks": [
+        "P1-14"
+      ],
+      "physical_obligations": [
+        "orientation-consistent interface normals",
+        "resolution-convergent curvature",
+        "zero capillary pressure on planar interfaces",
+        "Young-Laplace droplet pressure",
+        "momentum and torque conservation",
+        "dissipative optional tangential traction",
+        "high-density-ratio, timestep, breakup-stress and long-run cases"
+      ]
+    },
+    {
+      "profile": "miscible-or-immiscible thermal",
+      "contract_tasks": [
+        "P1-04",
+        "P1-15",
+        "P1-56",
+        "P1-57"
+      ],
+      "operator_tasks": [
+        "P1-05",
+        "P1-16"
+      ],
+      "schedule_and_lifecycle_tasks": [
+        "P1-17"
+      ],
+      "public_api_quality_gate_tasks": [
+        "P1-18"
+      ],
+      "physical_obligations": [
+        "sensible-energy conservation",
+        "temperature-extrema preservation",
+        "endpoint-order invariance",
+        "conductivity, heat-capacity, interface-conductance and unequal-mass limits",
+        "timestep, capacity, lifecycle and long-run cases"
+      ]
+    }
+  ],
+  "dependency_review": {
+    "acyclic": true,
+    "advertisement_only_after_public_gate": true,
+    "shared_sampling_precedes_every_operator": true,
+    "interface_reconstruction_requires_interface_contract": true,
+    "immiscible_thermal_state_requires_interface_contract": true
+  },
+  "explicit_exclusions": [
+    "Fickian diffusion and concentration fields",
+    "species reactions",
+    "temperature-dependent material coefficients",
+    "thermal expansion and buoyancy",
+    "radiation",
+    "latent heat and phase transfer",
+    "boiling, freezing, evaporation and condensation",
+    "fluid-solid wetting, contact angles and triple-line behavior",
+    "surfactants and Marangoni stress",
+    "breakup guarantees"
+  ],
+  "activation_policy": "P1-04 through P1-18, P1-56 and P1-57 remain deferred. Activate and lease one bounded leaf at a time; no implementation task may advertise a capability before its public-API qualification task passes per driver."
+}

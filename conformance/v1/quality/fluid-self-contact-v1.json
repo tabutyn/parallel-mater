@@ -1,0 +1,53 @@
+{
+  "schema": "parallel-mater-conformance-quality-profile/v1",
+  "id": "fluid-self-contact-v1",
+  "title": "Fluid self-contact exclusion and internal impulse balance",
+  "evaluation": "fluid_self_contact",
+  "sources": {
+    "capability": "docs/INTERACTION-MODES.md: FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+    "fixture": "tests/api/fluid_pair_quality_tests.cpp: public-API self-contact mode",
+    "oracle": "Independent pair distance, momentum and symmetry checks over public fluid output",
+    "tolerances": "docs/INTERACTION-MODES.md: five-percent fluid exclusion allowance; core-conservation-stability-v1 momentum bounds"
+  },
+  "fixture": {
+    "id": "symmetric-two-particle-self-contact",
+    "particle_count": 2,
+    "timestep_seconds": 0.05,
+    "substeps": 1,
+    "gravity_m_s2": [0.0, 0.0, 0.0],
+    "particle_radius_m": 0.1,
+    "support_radius_m": 0.4,
+    "rest_density_kg_m3": 1000.0,
+    "rest_particle_volume_m3": 0.008,
+    "pressure_stiffness": 40.0,
+    "kinematic_viscosity_m2_s": 0.0,
+    "normal_damping": 0.0,
+    "maximum_speed_m_s": 100.0,
+    "maximum_pair_acceleration_m_s2": 1000.0,
+    "density_iterations": 1,
+    "initial_particles": [
+      {
+        "stable_id": 0,
+        "position_m": [-0.05, 0.0, 0.0],
+        "velocity_m_s": [0.0, 0.0, 0.0]
+      },
+      {
+        "stable_id": 1,
+        "position_m": [0.05, 0.0, 0.0],
+        "velocity_m_s": [0.0, 0.0, 0.0]
+      }
+    ],
+    "oracle": "public-output-pair-distance-momentum-and-symmetry"
+  },
+  "tolerances": {
+    "fixture_state_absolute": 1e-07,
+    "exclusion_distance_fraction": 0.95,
+    "exchange_impulse_minimum_kg_m_s": 0.0001,
+    "linear_momentum_absolute_kg_m_s": 1e-07,
+    "linear_momentum_relative": 5e-05,
+    "center_of_mass_drift_absolute_m": 1e-06,
+    "transverse_position_absolute_m": 1e-06,
+    "transverse_velocity_absolute_m_s": 1e-06,
+    "outward_relative_speed_minimum_m_s": 0.0001
+  }
+}

@@ -1,7 +1,7 @@
 {
   "id": "P1-04",
   "title": "Expose multi-material fluid pair state",
-  "status": "deferred",
+  "status": "done",
   "dependencies": [
     "P1-03"
   ],
@@ -12,12 +12,36 @@
   "requires": [
     "Any development host"
   ],
-  "scope": "Add versioned pair-combination, interface and caloric state plus exact capability identities; advertise nothing.",
+  "scope": "Add versioned pair-material selection and exact capability identities for miscible and immiscible mechanical profiles; advertise nothing.",
   "acceptance": [
-    "Registry, generated C API and specification expose units, validation and extension-chain compatibility.",
-    "Negative tests reject missing, invalid and unsupported profile state without mutating the graph."
+    "Registry, generated C API and specification distinguish the two mechanical profiles, their mode bundles, endpoint material inputs and extension-chain compatibility.",
+    "Negative tests reject missing, invalid and unsupported pair-material state without mutating the graph."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: docs/roadmap/evidence/P1-04-fluid-pair-state.json; generated registry, C API, specification and tracked validation results",
+    "PASS: CUDA and Vulkan graph validation reject missing, invalid and unsupported pair state without replacing the usable graph",
+    "LIMIT: no miscible or immiscible operator/capability advertised; capillary and thermal state remain separately leaseable roadmap leaves"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "3a7105eb-4e3f-4a4f-b26b-417ae462f879",
+        "owner": "codex-fluid-api",
+        "machine": "thomas-laptop",
+        "branch": "work/P1-04/thomas-laptop",
+        "claimed_at": "2026-10-18T21:19:06Z",
+        "heartbeat_at": "2026-10-18T21:19:06Z",
+        "expires_at": "2026-10-19T21:19:06Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T21:42:18Z",
+      "reason": "Versioned fluid pair material selection, exact profile bundles and rejection-safe command/pipeline paths implemented",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/P1-04-fluid-pair-state.json; generated registry, C API, specification and tracked validation results",
+        "PASS: CUDA and Vulkan graph validation reject missing, invalid and unsupported pair state without replacing the usable graph",
+        "LIMIT: no miscible or immiscible operator/capability advertised; capillary and thermal state remain separately leaseable roadmap leaves"
+      ]
+    }
+  ]
 }

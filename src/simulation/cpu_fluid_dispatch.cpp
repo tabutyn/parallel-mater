@@ -22,7 +22,8 @@ FluidOptions_0 constants(const FluidDispatchConstants &value) noexcept {
     return {value.count, value.particle_radius, value.rest_density,
         value.support_radius, 0U, value.maximum_neighbors, value.repulsion,
         value.viscosity, value.velocity_damping, value.maximum_speed,
-        value.normal_damping, 0.0F, value.maximum_pair_acceleration};
+        value.normal_damping, value.rest_particle_volume,
+        value.maximum_pair_acceleration};
 }
 
 } // namespace
@@ -59,11 +60,15 @@ void fluid_pair_neighbor_counts(device::DispatchSize grid,
     const void *second_positions, const std::uint32_t *second_count,
     std::uint32_t second_capacity, std::uint32_t second_maximum_neighbors,
     const std::uint64_t *keys, const std::uint32_t *identities,
-    std::uint32_t total_capacity, float support_radius,
+    std::uint32_t total_capacity,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants,
     std::uint32_t *first_total_neighbors,
     std::uint32_t *first_cross_neighbors,
+    float *first_density_samples,
     std::uint32_t *second_total_neighbors,
     std::uint32_t *second_cross_neighbors,
+    float *second_density_samples,
     std::uint32_t *first_neighbor_overflow,
     std::uint32_t *second_neighbor_overflow,
     std::uint32_t *first_maximum_neighbor_count,
@@ -78,8 +83,9 @@ void fluid_pair_neighbor_counts(device::DispatchSize grid,
         reinterpret_cast<std::uint64_t *>(
             const_cast<std::uint64_t *>(keys)),
         const_cast<std::uint32_t *>(identities), total_capacity,
-        support_radius, first_total_neighbors, first_cross_neighbors,
-        second_total_neighbors, second_cross_neighbors,
+        constants(first_constants), constants(second_constants),
+        first_total_neighbors, first_cross_neighbors, first_density_samples,
+        second_total_neighbors, second_cross_neighbors, second_density_samples,
         first_neighbor_overflow, second_neighbor_overflow,
         first_maximum_neighbor_count, second_maximum_neighbor_count};
     device::dispatch_cpu(grid, block, fluid_count_pair_neighbors_Thread, &args);
@@ -137,6 +143,198 @@ void fluid_pair_viscosity(device::DispatchSize grid,
         constants(values)};
     device::dispatch_cpu(
         grid, block, fluid_apply_pair_viscosity_Thread, &args);
+}
+
+void fluid_miscible_pair_pressure_contact(device::DispatchSize grid,
+    device::DispatchSize block, device::ExecutionQueue,
+    const void *first_positions, const void *first_velocities,
+    const std::uint32_t *first_count, std::uint32_t first_capacity,
+    void *first_forces, const float *first_density_samples,
+    const void *second_positions, const void *second_velocities,
+    const std::uint32_t *second_count, std::uint32_t second_capacity,
+    void *second_forces, const float *second_density_samples,
+    const std::uint64_t *keys, const std::uint32_t *identities,
+    std::uint32_t total_capacity,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants) noexcept {
+    EntryPointParams_14 args{
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_velocities)),
+        const_cast<std::uint32_t *>(first_count), first_capacity,
+        as<Vec3_0>(first_forces), const_cast<float *>(first_density_samples),
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_velocities)),
+        const_cast<std::uint32_t *>(second_count), second_capacity,
+        as<Vec3_0>(second_forces), const_cast<float *>(second_density_samples),
+        reinterpret_cast<std::uint64_t *>(
+            const_cast<std::uint64_t *>(keys)),
+        const_cast<std::uint32_t *>(identities), total_capacity,
+        constants(first_constants), constants(second_constants)};
+    device::dispatch_cpu(grid, block,
+        fluid_apply_miscible_pair_pressure_contact_Thread, &args);
+}
+
+void fluid_miscible_pair_viscosity(device::DispatchSize grid,
+    device::DispatchSize block, device::ExecutionQueue,
+    const void *first_positions, const void *first_velocities,
+    const std::uint32_t *first_count, std::uint32_t first_capacity,
+    void *first_forces, const void *second_positions,
+    const void *second_velocities, const std::uint32_t *second_count,
+    std::uint32_t second_capacity, void *second_forces,
+    const std::uint64_t *keys, const std::uint32_t *identities,
+    std::uint32_t total_capacity,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants) noexcept {
+    EntryPointParams_15 args{
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_velocities)),
+        const_cast<std::uint32_t *>(first_count), first_capacity,
+        as<Vec3_0>(first_forces),
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_velocities)),
+        const_cast<std::uint32_t *>(second_count), second_capacity,
+        as<Vec3_0>(second_forces),
+        reinterpret_cast<std::uint64_t *>(
+            const_cast<std::uint64_t *>(keys)),
+        const_cast<std::uint32_t *>(identities), total_capacity,
+        constants(first_constants), constants(second_constants)};
+    device::dispatch_cpu(
+        grid, block, fluid_apply_miscible_pair_viscosity_Thread, &args);
+}
+
+void fluid_immiscible_interface_normals(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue, const void *first_positions,
+    const std::uint32_t *first_count, std::uint32_t first_capacity,
+    const std::uint32_t *first_total_neighbors,
+    const std::uint32_t *first_cross_neighbors, float *first_phase_labels,
+    void *first_interface_normals, std::uint32_t *first_interface_flags,
+    const void *second_positions, const std::uint32_t *second_count,
+    std::uint32_t second_capacity,
+    const std::uint32_t *second_total_neighbors,
+    const std::uint32_t *second_cross_neighbors, float *second_phase_labels,
+    void *second_interface_normals, std::uint32_t *second_interface_flags,
+    const std::uint64_t *keys, const std::uint32_t *identities,
+    std::uint32_t total_capacity,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants,
+    std::uint32_t *first_interface_sample_count,
+    std::uint32_t *second_interface_sample_count,
+    std::uint32_t *first_under_resolved_interface_count,
+    std::uint32_t *second_under_resolved_interface_count,
+    std::uint32_t *first_degenerate_interface_count,
+    std::uint32_t *second_degenerate_interface_count) noexcept {
+    EntryPointParams_16 args{
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_positions)),
+        const_cast<std::uint32_t *>(first_count), first_capacity,
+        const_cast<std::uint32_t *>(first_total_neighbors),
+        const_cast<std::uint32_t *>(first_cross_neighbors), first_phase_labels,
+        as<Vec3_0>(first_interface_normals), first_interface_flags,
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_positions)),
+        const_cast<std::uint32_t *>(second_count), second_capacity,
+        const_cast<std::uint32_t *>(second_total_neighbors),
+        const_cast<std::uint32_t *>(second_cross_neighbors),
+        second_phase_labels, as<Vec3_0>(second_interface_normals),
+        second_interface_flags,
+        reinterpret_cast<std::uint64_t *>(
+            const_cast<std::uint64_t *>(keys)),
+        const_cast<std::uint32_t *>(identities), total_capacity,
+        constants(first_constants), constants(second_constants),
+        first_interface_sample_count, second_interface_sample_count,
+        first_under_resolved_interface_count,
+        second_under_resolved_interface_count,
+        first_degenerate_interface_count,
+        second_degenerate_interface_count};
+    device::dispatch_cpu(grid, block,
+        fluid_reconstruct_immiscible_interface_normals_Thread, &args);
+}
+
+void fluid_immiscible_interface_curvature(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue, const void *first_positions,
+    const std::uint32_t *first_count, std::uint32_t first_capacity,
+    const void *first_interface_normals,
+    float *first_interface_curvatures,
+    std::uint32_t *first_interface_flags,
+    const void *second_positions, const std::uint32_t *second_count,
+    std::uint32_t second_capacity, const void *second_interface_normals,
+    float *second_interface_curvatures,
+    std::uint32_t *second_interface_flags,
+    const std::uint64_t *keys, const std::uint32_t *identities,
+    std::uint32_t total_capacity,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants,
+    std::uint32_t *first_under_resolved_interface_count,
+    std::uint32_t *second_under_resolved_interface_count,
+    std::uint32_t *first_degenerate_interface_count,
+    std::uint32_t *second_degenerate_interface_count,
+    std::uint32_t *first_curvature_clamp_count,
+    std::uint32_t *second_curvature_clamp_count) noexcept {
+    EntryPointParams_17 args{
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_positions)),
+        const_cast<std::uint32_t *>(first_count), first_capacity,
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_interface_normals)),
+        first_interface_curvatures, first_interface_flags,
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_positions)),
+        const_cast<std::uint32_t *>(second_count), second_capacity,
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_interface_normals)),
+        second_interface_curvatures, second_interface_flags,
+        reinterpret_cast<std::uint64_t *>(
+            const_cast<std::uint64_t *>(keys)),
+        const_cast<std::uint32_t *>(identities), total_capacity,
+        constants(first_constants), constants(second_constants),
+        first_under_resolved_interface_count,
+        second_under_resolved_interface_count,
+        first_degenerate_interface_count,
+        second_degenerate_interface_count, first_curvature_clamp_count,
+        second_curvature_clamp_count};
+    device::dispatch_cpu(grid, block,
+        fluid_reconstruct_immiscible_interface_curvature_Thread, &args);
+}
+
+void fluid_immiscible_pair_pressure_capillarity(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue, const void *first_positions,
+    const void *first_velocities, const std::uint32_t *first_count,
+    std::uint32_t first_capacity, void *first_forces,
+    const float *first_density_samples, const void *first_interface_normals,
+    const float *first_interface_curvatures,
+    const std::uint32_t *first_interface_flags,
+    const void *second_positions, const void *second_velocities,
+    const std::uint32_t *second_count, std::uint32_t second_capacity,
+    void *second_forces, const float *second_density_samples,
+    const void *second_interface_normals,
+    const float *second_interface_curvatures,
+    const std::uint32_t *second_interface_flags,
+    const std::uint64_t *keys, const std::uint32_t *identities,
+    std::uint32_t total_capacity,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants,
+    float surface_tension) noexcept {
+    EntryPointParams_18 args{
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_velocities)),
+        const_cast<std::uint32_t *>(first_count), first_capacity,
+        as<Vec3_0>(first_forces),
+        const_cast<float *>(first_density_samples),
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_interface_normals)),
+        const_cast<float *>(first_interface_curvatures),
+        const_cast<std::uint32_t *>(first_interface_flags),
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_velocities)),
+        const_cast<std::uint32_t *>(second_count), second_capacity,
+        as<Vec3_0>(second_forces),
+        const_cast<float *>(second_density_samples),
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_interface_normals)),
+        const_cast<float *>(second_interface_curvatures),
+        const_cast<std::uint32_t *>(second_interface_flags),
+        reinterpret_cast<std::uint64_t *>(
+            const_cast<std::uint64_t *>(keys)),
+        const_cast<std::uint32_t *>(identities), total_capacity,
+        constants(first_constants), constants(second_constants),
+        surface_tension};
+    device::dispatch_cpu(grid, block,
+        fluid_apply_immiscible_pair_pressure_capillarity_Thread, &args);
 }
 
 void fluid_forces(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue,

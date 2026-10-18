@@ -11,6 +11,7 @@
   "fixture": {
     "id": "eight-brick-stack",
     "scene": "RigidBody.glb",
+    "scene_sha256": "0167a7f3f91ca57703e74996c9c99051c0ed8793fd50aa59adaab3c304b7dd09",
     "body_count": 8,
     "frames": 300,
     "substeps": 4,

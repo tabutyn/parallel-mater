@@ -34,6 +34,29 @@ constexpr InteractionCandidate interaction_candidates[] = {
 #define PM_INTERACTION_CAPABILITY(first, second, scope, mode, direction, profile, maximum, requirements) \
     {{{first, second, scope, mode, direction, profile}, maximum}, requirements},
 #include "interaction_capabilities.inc"
+#if defined(PARALLEL_MATER_TEST_RESOURCE_DRIVER)
+    PM_INTERACTION_CAPABILITY(
+        PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_FLUID,
+        PM_INTERACTION_SCOPE_SEPARATE_SYSTEM, PM_INTERACTION_MODE_CONTACT,
+        PM_INTERACTION_DIRECTION_BIDIRECTIONAL,
+        PM_INTERACTION_MATERIAL_MISCIBLE,
+        PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY,
+        require_particleLiquids | require_liquidLiquidCoupling)
+    PM_INTERACTION_CAPABILITY(
+        PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_FLUID,
+        PM_INTERACTION_SCOPE_SEPARATE_SYSTEM, PM_INTERACTION_MODE_PRESSURE,
+        PM_INTERACTION_DIRECTION_BIDIRECTIONAL,
+        PM_INTERACTION_MATERIAL_MISCIBLE,
+        PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY,
+        require_particleLiquids | require_liquidLiquidCoupling)
+    PM_INTERACTION_CAPABILITY(
+        PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_FLUID,
+        PM_INTERACTION_SCOPE_SEPARATE_SYSTEM, PM_INTERACTION_MODE_VISCOSITY,
+        PM_INTERACTION_DIRECTION_BIDIRECTIONAL,
+        PM_INTERACTION_MATERIAL_MISCIBLE,
+        PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY,
+        require_particleLiquids | require_liquidLiquidCoupling)
+#endif
 #undef PM_INTERACTION_CAPABILITY
 };
 
@@ -53,7 +76,16 @@ bool requirements_supported(std::uint32_t requirements,
 
 bool driver_supports_interaction(
     const PmInteractionCapabilityKey &key) noexcept {
-    (void)key;
+    if (key.materialProfile == PM_INTERACTION_MATERIAL_MISCIBLE) {
+#if defined(PARALLEL_MATER_TEST_RESOURCE_DRIVER) || \
+    defined(PARALLEL_MATER_QUALIFIED_MISCIBLE_FLUID)
+        return true;
+#else
+        // The registry identity exists for private lifecycle coverage. P1-09
+        // will enable it only on adapters that pass physical qualification.
+        return false;
+#endif
+    }
     return true;
 }
 
@@ -74,7 +106,7 @@ bool valid_interaction_key(const PmInteractionCapabilityKey &key) noexcept {
         key.scope < PM_INTERACTION_SCOPE_SELF ||
         key.scope > PM_INTERACTION_SCOPE_DISTINCT_FAMILY ||
         key.mode < PM_INTERACTION_MODE_CONTACT ||
-        key.mode > PM_INTERACTION_MODE_PHASE ||
+        key.mode > PM_INTERACTION_MODE_INTERFACE ||
         key.direction < PM_INTERACTION_DIRECTION_BIDIRECTIONAL ||
         key.direction > PM_INTERACTION_DIRECTION_EXTERNAL_TO_SECOND ||
         key.materialProfile < PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE ||
@@ -250,6 +282,7 @@ PFN_pmVoidFunction lookup_proc(const char *value) noexcept {
     PM_LOOKUP(pmCmdResetSimulation);
     PM_LOOKUP(pmCmdSetFluidParticles);
     PM_LOOKUP(pmCmdSetCouplings);
+    PM_LOOKUP(pmCmdSetCouplings2);
     PM_LOOKUP(pmCmdWriteCloths);
     PM_LOOKUP(pmCmdWriteRopes);
     PM_LOOKUP(pmCmdWriteSoftBodies);

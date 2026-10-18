@@ -207,6 +207,14 @@ int main() {
     PmMemoryBudget budget{};
     CHECK(pmGetDeviceMemoryBudget(device, &budget) == PM_SUCCESS);
     CHECK(budget.heapCount == 1U);
+    const auto expected_budget_confidence =
+        PM_TEST_NATIVE_BACKEND == PM_NATIVE_BACKEND_CUDA
+        ? PM_MEMORY_BUDGET_CONFIDENCE_DRIVER_REPORTED
+        : PM_TEST_NATIVE_BACKEND == PM_NATIVE_BACKEND_VULKAN
+        ? PM_MEMORY_BUDGET_CONFIDENCE_IMPLEMENTATION_ESTIMATE
+        : PM_MEMORY_BUDGET_CONFIDENCE_OS_REPORTED;
+    CHECK(budget.confidence[0] == expected_budget_confidence);
+    CHECK(budget.usage[0] <= budget.budget[0]);
     CHECK(budget.applicationAllocationBytes >= byte_count * 2U);
 
     PmSimulationCreateInfo simulation_info{};

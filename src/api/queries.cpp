@@ -261,16 +261,33 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetDeviceMemoryBudget(
     PmDevice device, PmMemoryBudget *budget) {
     if (device == nullptr || budget == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     *budget = {};
-    PmDeviceSize available = 0U;
-    PmDeviceSize total = 0U;
-    const PmResult result = device->services->memory_budget(available, total);
+    parallel_mater::device::MemoryBudgetSnapshot snapshot{};
+    const PmResult result = device->services->memory_budget(snapshot);
     if (result != PM_SUCCESS) return result;
+    switch (snapshot.confidence) {
+    case PM_MEMORY_BUDGET_CONFIDENCE_UNKNOWN:
+        snapshot.available = 0U;
+        snapshot.total = 0U;
+        break;
+    case PM_MEMORY_BUDGET_CONFIDENCE_IMPLEMENTATION_ESTIMATE:
+    case PM_MEMORY_BUDGET_CONFIDENCE_DRIVER_REPORTED:
+    case PM_MEMORY_BUDGET_CONFIDENCE_OS_REPORTED:
+        if (snapshot.available > snapshot.total)
+            return PM_ERROR_INVALID_STATE;
+        break;
+    default: return PM_ERROR_INVALID_STATE;
+    }
     budget->heapCount = 1U;
-    budget->budget[0] = total;
-    budget->usage[0] = total - available;
+    budget->budget[0] = snapshot.total;
+    budget->usage[0] = snapshot.total - snapshot.available;
+    budget->confidence[0] = snapshot.confidence;
     budget->applicationAllocationBytes =
         device->application_bytes.load(std::memory_order_relaxed);
+    budget->libraryDeviceBytes =
+        device->library_device_bytes.load(std::memory_order_relaxed);
     budget->libraryHostBytes =
         device->library_host_bytes.load(std::memory_order_relaxed);
+    budget->borrowedBufferBytes =
+        device->borrowed_buffer_bytes.load(std::memory_order_relaxed);
     return PM_SUCCESS;
 }

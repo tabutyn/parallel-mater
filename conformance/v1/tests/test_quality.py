@@ -19,7 +19,16 @@ sys.modules[SPEC.name] = quality
 SPEC.loader.exec_module(quality)
 PROFILE_PATH = ROOT / "quality" / "core-conservation-v1.json"
 BRICK_PROFILE_PATH = ROOT / "quality" / "rigid-brick-penetration-v1.json"
+ATTACHMENT_PROFILE_PATH = ROOT / "quality" / "rigid-attachment-v1.json"
 SWEEP_PROFILE_PATH = ROOT / "quality" / "rigid-kinematic-sweep-v1.json"
+FLUID_SELF_CONTACT_PROFILE_PATH = (
+    ROOT / "quality" / "fluid-self-contact-v1.json")
+FLUID_SELF_PRESSURE_PROFILE_PATH = (
+    ROOT / "quality" / "fluid-self-pressure-v1.json")
+FLUID_SELF_VISCOSITY_PROFILE_PATH = (
+    ROOT / "quality" / "fluid-self-viscosity-v1.json")
+ROPE_SELF_CONTACT_PROFILE_PATH = (
+    ROOT / "quality" / "rope-self-contact-v1.json")
 
 
 def particle(identity: int) -> dict:
@@ -284,6 +293,474 @@ class RigidPenetrationQualityTests(unittest.TestCase):
 
         result = self.valid_result()
         result["fixture"]["maximum_penetration_m"] = float("nan")
+        self.assert_rejected(result, "expected a finite number")
+
+
+class FluidSelfContactQualityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.profile = json.loads(
+            FLUID_SELF_CONTACT_PROFILE_PATH.read_text(encoding="utf-8"))
+        cls.digest = quality.profile_sha256(FLUID_SELF_CONTACT_PROFILE_PATH)
+
+    def valid_result(self) -> dict:
+        fixture = copy.deepcopy(self.profile["fixture"])
+        fixture["final_particles"] = [
+            {
+                "stable_id": 0,
+                "position_m": [-0.105, 0.0, 0.0],
+                "velocity_m_s": [-1.1, 0.0, 0.0],
+            },
+            {
+                "stable_id": 1,
+                "position_m": [0.105, 0.0, 0.0],
+                "velocity_m_s": [1.1, 0.0, 0.0],
+            },
+        ]
+        return {
+            "schema": quality.RESULT_SCHEMA,
+            "profile_id": self.profile["id"],
+            "profile_sha256": self.digest,
+            "execution_status": "completed",
+            "driver": {"name": "test-driver", "device": "test-device"},
+            "fixture": fixture,
+        }
+
+    def evaluate(self, result: dict) -> dict:
+        return quality.evaluate(self.profile, result, self.digest)
+
+    def assert_rejected(self, result: dict, message: str) -> None:
+        report = self.evaluate(result)
+        self.assertFalse(report["passed"])
+        self.assertTrue(any(message in failure["message"]
+                            for failure in report["failures"]), report)
+
+    def test_public_state_exclusion_and_balance_pass(self):
+        report = self.evaluate(self.valid_result())
+        self.assertTrue(report["passed"], report)
+        self.assertEqual(report["fixture_count"], 1)
+        self.assertEqual(report["sample_count"], 1)
+        self.assertGreaterEqual(report["observations"]["final_separation_m"],
+                                0.19)
+        self.assertEqual(report["observations"][
+            "net_internal_impulse_kg_m_s"], 0.0)
+
+    def test_fixture_inputs_and_stable_ids_are_exact(self):
+        result = self.valid_result()
+        result["fixture"]["particle_radius_m"] = 0.11
+        self.assert_rejected(result, "fixture setting differs from profile")
+
+        result = self.valid_result()
+        result["fixture"]["initial_particles"][0]["position_m"][0] = -0.06
+        self.assert_rejected(result, "initial public state differs from profile")
+
+        result = self.valid_result()
+        result["fixture"]["final_particles"][1]["stable_id"] = 0
+        self.assert_rejected(result, "stable ID must be a unique integer")
+        self.assert_rejected(result, "preserve stable IDs")
+
+    def test_penetration_and_vacuous_response_fail(self):
+        result = self.valid_result()
+        result["fixture"]["final_particles"][0]["position_m"][0] = -0.08
+        result["fixture"]["final_particles"][1]["position_m"][0] = 0.08
+        self.assert_rejected(result, "violate exclusion distance")
+
+        result = self.valid_result()
+        for particle in result["fixture"]["final_particles"]:
+            particle["velocity_m_s"] = [0.0, 0.0, 0.0]
+        self.assert_rejected(result, "impulse activity is too small")
+        self.assert_rejected(result, "response is not outward")
+
+    def test_unbalanced_or_asymmetric_response_fails(self):
+        result = self.valid_result()
+        result["fixture"]["final_particles"][1]["velocity_m_s"][0] = 1.2
+        self.assert_rejected(result, "net internal impulse exceeds profile")
+
+        result = self.valid_result()
+        result["fixture"]["final_particles"][1]["position_m"][1] = 0.001
+        self.assert_rejected(result, "center-of-mass drift exceeds profile")
+        self.assert_rejected(result, "transverse symmetry leakage")
+
+    def test_crossing_nonfinite_and_incomplete_results_fail(self):
+        result = self.valid_result()
+        result["fixture"]["final_particles"][0]["position_m"][0] = 0.105
+        result["fixture"]["final_particles"][1]["position_m"][0] = -0.105
+        result["fixture"]["final_particles"][0]["velocity_m_s"][0] = 1.1
+        result["fixture"]["final_particles"][1]["velocity_m_s"][0] = -1.1
+        self.assert_rejected(result, "crossed stable-ID ordering")
+
+        result = self.valid_result()
+        result["fixture"]["final_particles"][0]["position_m"][0] = float("nan")
+        self.assert_rejected(result, "expected three finite components")
+
+        result = self.valid_result()
+        result["execution_status"] = "failed"
+        self.assert_rejected(result, "must be completed")
+
+
+class FluidSelfPressureQualityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.profile = json.loads(
+            FLUID_SELF_PRESSURE_PROFILE_PATH.read_text(encoding="utf-8"))
+        cls.digest = quality.profile_sha256(FLUID_SELF_PRESSURE_PROFILE_PATH)
+
+    def valid_result(self) -> dict:
+        fixture = copy.deepcopy(self.profile["fixture"])
+        fixture["final_particles"] = [
+            {
+                "stable_id": 0,
+                "position_m": [-0.086, 0.0, 0.0],
+                "velocity_m_s": [-0.9, 0.0, 0.0],
+            },
+            {
+                "stable_id": 1,
+                "position_m": [0.086, 0.0, 0.0],
+                "velocity_m_s": [0.9, 0.0, 0.0],
+            },
+        ]
+        return {
+            "schema": quality.RESULT_SCHEMA,
+            "profile_id": self.profile["id"],
+            "profile_sha256": self.digest,
+            "execution_status": "completed",
+            "driver": {"name": "test-driver", "device": "test-device"},
+            "fixture": fixture,
+        }
+
+    def evaluate(self, result: dict) -> dict:
+        return quality.evaluate(self.profile, result, self.digest)
+
+    def assert_rejected(self, result: dict, message: str) -> None:
+        report = self.evaluate(result)
+        self.assertFalse(report["passed"])
+        self.assertTrue(any(message in failure["message"]
+                            for failure in report["failures"]), report)
+
+    def test_public_state_density_relaxation_and_balance_pass(self):
+        report = self.evaluate(self.valid_result())
+        self.assertTrue(report["passed"], report)
+        observations = report["observations"]
+        self.assertGreater(observations["initial_density_kg_m3"], 1000.0)
+        self.assertLess(observations["final_density_relative_error"],
+                        observations["initial_density_relative_error"])
+        self.assertGreater(observations[
+            "density_error_reduction_fraction"], 0.85)
+        self.assertEqual(observations["net_internal_impulse_kg_m_s"], 0.0)
+
+    def test_fixture_inputs_estimator_and_stable_ids_are_exact(self):
+        result = self.valid_result()
+        result["fixture"]["density_estimator"] = "driver-private-density"
+        self.assert_rejected(result, "fixture setting does not match profile")
+
+        result = self.valid_result()
+        result["fixture"]["initial_particles"][0]["position_m"][0] = -0.06
+        self.assert_rejected(result, "initial public state differs from profile")
+
+        result = self.valid_result()
+        result["fixture"]["final_particles"][1]["stable_id"] = 0
+        self.assert_rejected(result, "stable ID must be a unique integer")
+
+    def test_static_or_wrong_direction_density_response_fails(self):
+        result = self.valid_result()
+        result["fixture"]["final_particles"] = copy.deepcopy(
+            result["fixture"]["initial_particles"])
+        self.assert_rejected(result, "did not move density sufficiently")
+        self.assert_rejected(result, "response is not outward")
+
+        result = self.valid_result()
+        result["fixture"]["final_particles"][0]["position_m"][0] = -0.045
+        result["fixture"]["final_particles"][1]["position_m"][0] = 0.045
+        self.assert_rejected(result, "final density remains too far from rest")
+        self.assert_rejected(result, "did not move density sufficiently")
+
+    def test_unbalanced_or_asymmetric_response_fails(self):
+        result = self.valid_result()
+        result["fixture"]["final_particles"][1]["velocity_m_s"][0] = 1.0
+        self.assert_rejected(result, "net internal impulse exceeds profile")
+
+        result = self.valid_result()
+        result["fixture"]["final_particles"][1]["position_m"][1] = 0.001
+        self.assert_rejected(result, "center-of-mass drift exceeds profile")
+        self.assert_rejected(result, "transverse symmetry leakage")
+
+    def test_nonfinite_and_incomplete_results_fail(self):
+        result = self.valid_result()
+        result["fixture"]["final_particles"][0]["position_m"][0] = float("nan")
+        self.assert_rejected(result, "expected three finite components")
+
+        result = self.valid_result()
+        result["execution_status"] = "failed"
+        self.assert_rejected(result, "must be completed")
+
+
+class FluidSelfViscosityQualityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.profile = json.loads(
+            FLUID_SELF_VISCOSITY_PROFILE_PATH.read_text(encoding="utf-8"))
+        cls.digest = quality.profile_sha256(FLUID_SELF_VISCOSITY_PROFILE_PATH)
+
+    def valid_result(self) -> dict:
+        fixture = copy.deepcopy(self.profile["fixture"])
+        fixture["final_particles"] = [
+            {
+                "stable_id": 0,
+                "position_m": [-0.0925, 0.0, 0.0],
+                "velocity_m_s": [-0.85, 0.0, 0.0],
+            },
+            {
+                "stable_id": 1,
+                "position_m": [0.0925, 0.0, 0.0],
+                "velocity_m_s": [0.85, 0.0, 0.0],
+            },
+        ]
+        return {
+            "schema": quality.RESULT_SCHEMA,
+            "profile_id": self.profile["id"],
+            "profile_sha256": self.digest,
+            "execution_status": "completed",
+            "driver": {"name": "test-driver", "device": "test-device"},
+            "fixture": fixture,
+        }
+
+    def evaluate(self, result: dict) -> dict:
+        return quality.evaluate(self.profile, result, self.digest)
+
+    def assert_rejected(self, result: dict, message: str) -> None:
+        report = self.evaluate(result)
+        self.assertFalse(report["passed"])
+        self.assertTrue(any(message in failure["message"]
+                            for failure in report["failures"]), report)
+
+    def test_public_state_dissipation_and_balance_pass(self):
+        report = self.evaluate(self.valid_result())
+        self.assertTrue(report["passed"], report)
+        observations = report["observations"]
+        self.assertLess(observations["final_relative_speed_m_s"],
+                        observations["initial_relative_speed_m_s"])
+        self.assertLess(observations["final_kinetic_energy_j"],
+                        observations["initial_kinetic_energy_j"])
+        self.assertEqual(observations["net_internal_impulse_kg_m_s"], 0.0)
+
+    def test_fixture_inputs_and_stable_ids_are_exact(self):
+        result = self.valid_result()
+        result["fixture"]["kinematic_viscosity_m2_s"] = 1.0
+        self.assert_rejected(result, "fixture setting differs from profile")
+
+        result = self.valid_result()
+        result["fixture"]["initial_particles"][0]["velocity_m_s"][0] = -0.5
+        self.assert_rejected(result, "initial public state differs from profile")
+
+        result = self.valid_result()
+        result["fixture"]["final_particles"][1]["stable_id"] = 0
+        self.assert_rejected(result, "stable ID must be a unique integer")
+
+    def test_static_or_energy_increasing_response_fails(self):
+        result = self.valid_result()
+        result["fixture"]["final_particles"] = copy.deepcopy(
+            result["fixture"]["initial_particles"])
+        self.assert_rejected(result, "did not dissipate relative motion")
+        self.assert_rejected(result, "did not dissipate sufficient kinetic energy")
+
+        result = self.valid_result()
+        result["fixture"]["final_particles"][0]["velocity_m_s"][0] = -1.1
+        result["fixture"]["final_particles"][1]["velocity_m_s"][0] = 1.1
+        self.assert_rejected(result, "increased kinetic energy")
+
+    def test_unbalanced_or_asymmetric_response_fails(self):
+        result = self.valid_result()
+        result["fixture"]["final_particles"][1]["velocity_m_s"][0] = 0.9
+        self.assert_rejected(result, "net internal impulse exceeds profile")
+
+        result = self.valid_result()
+        result["fixture"]["final_particles"][1]["position_m"][1] = 0.001
+        self.assert_rejected(result, "center-of-mass drift exceeds profile")
+        self.assert_rejected(result, "transverse symmetry leakage")
+
+    def test_nonfinite_and_incomplete_results_fail(self):
+        result = self.valid_result()
+        result["fixture"]["final_particles"][0]["velocity_m_s"][0] = float("nan")
+        self.assert_rejected(result, "expected three finite components")
+
+        result = self.valid_result()
+        result["execution_status"] = "failed"
+        self.assert_rejected(result, "must be completed")
+
+
+class RopeSelfContactQualityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.profile = json.loads(
+            ROPE_SELF_CONTACT_PROFILE_PATH.read_text(encoding="utf-8"))
+        cls.digest = quality.profile_sha256(ROPE_SELF_CONTACT_PROFILE_PATH)
+
+    @staticmethod
+    def node(index: int, position: list[float],
+             velocity: list[float]) -> dict:
+        return {
+            "index": index,
+            "position_m": position,
+            "velocity_m_s": velocity,
+        }
+
+    def valid_result(self) -> dict:
+        fixture = copy.deepcopy(self.profile["fixture"])
+        initial_positions = fixture.pop("initial_sampled_nodes_m")
+        fixture["initial_nodes"] = [
+            self.node(index, copy.deepcopy(position), [0.0, 0.0, 0.0])
+            for index, position in enumerate(initial_positions)
+        ]
+        fixture["final_nodes"] = [
+            self.node(0, [-0.05, 0.0, 0.0], [-5.0, 0.0, 0.0]),
+            self.node(1, [0.1, 0.0, 0.0], [0.0, 0.0, 0.0]),
+            self.node(2, [0.06, 0.091651514, 0.0], [0.0, 0.0, 0.0]),
+            self.node(3, [0.07, 0.0, 0.0], [5.0, 0.0, 0.0]),
+        ]
+        return {
+            "schema": quality.RESULT_SCHEMA,
+            "profile_id": self.profile["id"],
+            "profile_sha256": self.digest,
+            "execution_status": "completed",
+            "driver": {"name": "test-driver", "device": "test-device"},
+            "fixture": fixture,
+        }
+
+    def evaluate(self, result: dict) -> dict:
+        return quality.evaluate(self.profile, result, self.digest)
+
+    def assert_rejected(self, result: dict, message: str) -> None:
+        report = self.evaluate(result)
+        self.assertFalse(report["passed"])
+        self.assertTrue(any(message in failure["message"]
+                            for failure in report["failures"]), report)
+
+    def test_sampled_node_contact_and_topology_exclusion_pass(self):
+        report = self.evaluate(self.valid_result())
+        self.assertTrue(report["passed"], report)
+        self.assertEqual(report["fixture_count"], 1)
+        self.assertEqual(report["sample_count"], 1)
+        observations = report["observations"]
+        self.assertEqual(observations["target_separation_m"], 0.12)
+        self.assertGreaterEqual(
+            observations["minimum_eligible_final_separation_m"], 0.114)
+
+    def test_fixture_inputs_and_sample_order_are_exact(self):
+        result = self.valid_result()
+        result["fixture"]["radius_m"] = 0.061
+        self.assert_rejected(result, "fixture setting differs from profile")
+
+        result = self.valid_result()
+        result["fixture"]["initial_centerline_m"][0][0] = 0.01
+        self.assert_rejected(result, "initial public input differs from profile")
+
+        result = self.valid_result()
+        result["fixture"]["initial_nodes"][1]["index"] = 2
+        self.assert_rejected(result, "node order/index changed")
+
+    def test_static_overlap_and_topology_overcorrection_fail(self):
+        result = self.valid_result()
+        result["fixture"]["final_nodes"] = copy.deepcopy(
+            result["fixture"]["initial_nodes"])
+        self.assert_rejected(result,
+                             "nonadjacent sampled nodes remain inside")
+
+        result = self.valid_result()
+        result["fixture"]["final_nodes"][3]["position_m"] = [0.22, 0.0, 0.0]
+        self.assert_rejected(result,
+                             "topology-neighbor probe was separated")
+
+    def test_asymmetry_nonfinite_and_incomplete_results_fail(self):
+        result = self.valid_result()
+        result["fixture"]["final_nodes"][2]["position_m"][2] = 0.001
+        self.assert_rejected(result, "center-of-mass drift exceeds profile")
+        self.assert_rejected(result, "transverse symmetry leakage")
+
+        result = self.valid_result()
+        result["fixture"]["final_nodes"][0]["position_m"][0] = float("nan")
+        self.assert_rejected(result, "expected three finite components")
+
+        result = self.valid_result()
+        result["execution_status"] = "failed"
+        self.assert_rejected(result, "must be completed")
+
+
+class RigidAttachmentQualityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.profile = json.loads(
+            ATTACHMENT_PROFILE_PATH.read_text(encoding="utf-8"))
+        cls.digest = quality.profile_sha256(ATTACHMENT_PROFILE_PATH)
+
+    def valid_result(self) -> dict:
+        fixture = copy.deepcopy(self.profile["fixture"])
+        fixture.update({
+            "maximum_hinge_anchor_error_m": 0.00001,
+            "maximum_hinge_axis_error": 0.00002,
+            "maximum_slider_sideways_drift_m": 0.00003,
+            "maximum_slider_axis_error": 0.00004,
+            "maximum_slider_travel_m": 0.25,
+            "constraints_enabled": True,
+            "constraints_unbroken": True,
+        })
+        return {
+            "schema": quality.RESULT_SCHEMA,
+            "profile_id": self.profile["id"],
+            "profile_sha256": self.digest,
+            "execution_status": "completed",
+            "driver": {"name": "test-driver", "device": "test-device"},
+            "fixture": fixture,
+        }
+
+    def evaluate(self, result: dict) -> dict:
+        return quality.evaluate(self.profile, result, self.digest)
+
+    def assert_rejected(self, result: dict, message: str) -> None:
+        report = self.evaluate(result)
+        self.assertFalse(report["passed"])
+        self.assertTrue(any(message in failure["message"]
+                            for failure in report["failures"]), report)
+
+    def test_public_state_attachment_measurements_pass(self):
+        report = self.evaluate(self.valid_result())
+        self.assertTrue(report["passed"], report)
+        self.assertEqual(report["fixture_count"], 1)
+        self.assertEqual(report["sample_count"], 5)
+
+    def test_each_existing_attachment_limit_is_enforced(self):
+        for field in ("maximum_hinge_anchor_error_m",
+                      "maximum_hinge_axis_error",
+                      "maximum_slider_sideways_drift_m",
+                      "maximum_slider_axis_error",
+                      "maximum_slider_travel_m"):
+            with self.subTest(field=field):
+                result = self.valid_result()
+                result["fixture"][field] = self.profile["tolerances"][field]
+                self.assert_rejected(result, "reaches or exceeds profile")
+
+        result = self.valid_result()
+        result["fixture"]["maximum_slider_travel_m"] = 0.01
+        self.assert_rejected(result, "does not exceed profile minimum")
+
+    def test_fixture_identity_and_constraint_state_are_required(self):
+        result = self.valid_result()
+        result["fixture"]["scene_sha256"] = "0" * 64
+        self.assert_rejected(result, "fixture setting does not match profile")
+
+        for field in ("constraints_enabled", "constraints_unbroken"):
+            with self.subTest(field=field):
+                result = self.valid_result()
+                result["fixture"][field] = False
+                self.assert_rejected(result,
+                                     "all authored constraints must remain active")
+
+    def test_failed_or_nonfinite_measurement_cannot_pass(self):
+        result = self.valid_result()
+        result["execution_status"] = "failed"
+        self.assert_rejected(result, "must be completed")
+
+        result = self.valid_result()
+        result["fixture"]["maximum_hinge_axis_error"] = float("nan")
         self.assert_rejected(result, "expected a finite number")
 
 

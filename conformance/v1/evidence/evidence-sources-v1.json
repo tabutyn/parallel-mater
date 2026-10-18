@@ -3,7 +3,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe"
+    "sha256": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341"
   },
   "expected_drivers": [
     {
@@ -36,7 +36,22 @@
     {
       "id": "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
       "path": "conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17.json",
-      "sha256": "9e4249918ada6243353ef2f5885772672dc1741d552f58b01d7edeb9518637ea"
+      "sha256": "b4385464d8f2c702ed851c6323c610bf3b22ccfe528b89cb4290b1a54e5b4150"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-eed669e",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-eed669e-qualification.json",
+      "sha256": "24e12069e812795774a83cb2450c27e1680847fadf65eff0594ddb06b6afe8f8"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-vulkan-eed669e",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-qualification.json",
+      "sha256": "040b04c96c547304c9609366c891eb22ae019f75e1dafc05591a0a0658cf6b1b"
+    },
+    {
+      "id": "linux-thomas-laptop-slang-cpu-eed669e",
+      "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json",
+      "sha256": "e3ae75435330251f28ac8196012f921bf7be032541362db1fdc978f5eb7f7473"
     },
     {
       "id": "macos-m4-slang-metal-aac6d59",

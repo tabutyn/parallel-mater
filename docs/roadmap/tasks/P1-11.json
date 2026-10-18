@@ -1,7 +1,7 @@
 {
   "id": "P1-11",
   "title": "Apply immiscible pressure and capillarity",
-  "status": "deferred",
+  "status": "done",
   "dependencies": [
     "P1-10"
   ],
@@ -16,7 +16,31 @@
     "Pair forces conserve linear/angular momentum and planar zero-curvature cases add no capillary pressure.",
     "Static droplet pressure follows the specified Young-Laplace relation across tension and radius sweeps."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: shared Slang CPU contact, pressure, planar/degenerate limits, force/torque balance, endpoint reversal and Young-Laplace sweeps; docs/roadmap/evidence/P1-11-immiscible-pressure-capillarity.json.",
+    "PASS: 217/217 Metal, CUDA, PTX and Vulkan SPIR-V mirror steps; CUDA/Vulkan drivers rebuilt; DirectCompute binding generator 4/4.",
+    "PASS: SDK CI 47/47, capability remains unadvertised, generated and conformance checks passed."
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "85bb24fe-a817-4729-a744-a626cc2d9a2c",
+        "owner": "codex-immiscible-capillarity",
+        "machine": "thomas-laptop",
+        "branch": "work/P1-11/thomas-laptop",
+        "claimed_at": "2026-10-18T23:25:03Z",
+        "heartbeat_at": "2026-10-18T23:25:03Z",
+        "expires_at": "2026-10-19T23:25:03Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T23:36:20Z",
+      "reason": "Implemented shared-Slang non-mixing contact, normal pressure transfer and Young-Laplace capillary traction without capability advertisement",
+      "evidence": [
+        "PASS: shared Slang CPU contact, pressure, planar/degenerate limits, force/torque balance, endpoint reversal and Young-Laplace sweeps; docs/roadmap/evidence/P1-11-immiscible-pressure-capillarity.json.",
+        "PASS: 217/217 Metal, CUDA, PTX and Vulkan SPIR-V mirror steps; CUDA/Vulkan drivers rebuilt; DirectCompute binding generator 4/4.",
+        "PASS: SDK CI 47/47, capability remains unadvertised, generated and conformance checks passed."
+      ]
+    }
+  ]
 }

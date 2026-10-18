@@ -1,7 +1,7 @@
 {
   "id": "F6-07",
   "title": "Reconcile legacy hinge and contact patches",
-  "status": "open",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "legacy-patch-review"
@@ -14,7 +14,12 @@
     "Record changed fixture hashes and preserve raw reproductions independently of solver changes.",
     "Each unique patch hunk has a disposition; no unreviewed golden or solver transplant."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: python3 -m unittest tests/roadmap/test_f6_07_evidence.py -v; 2/2 archive and 62-item disposition integrity tests; docs/roadmap/evidence/F6-07/",
+    "PASS: archived CUDA default, steering, full-rotation and over-top reproductions on NVIDIA GeForce RTX 3050 Ti Laptop GPU driver 590.44.01; docs/roadmap/evidence/F6-07/cuda-reproduction.json",
+    "PASS: current main 1532f2f CUDA baseline, 2400 frames; docs/roadmap/evidence/F6-07/cuda-reproduction.json",
+    "REVIEW: 59 text hunks, 2 binary fixture diffs and 1 raw capture are content-addressed; the archived golden is quarantined and no solver/golden transplant was made; docs/roadmap/evidence/F6-07/hunk-dispositions.json"
+  ],
   "lease": null,
   "history": [
     {
@@ -31,6 +36,26 @@
       "at": "2026-10-18T11:24:18Z",
       "reason": "Required dirty snapshot deb158a and ignored out/worktree-backups/2026-10-16 archive exist only on the Linux owner machine; neither GitHub nor this Windows workspace contains the changed hinge fixture or patch hunks needed for review.",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "61ff0945-1f82-41aa-a7ee-823bd9beb61b",
+        "owner": "codex-linux-cleanup",
+        "machine": "thomas-laptop",
+        "branch": "work/F6-07/thomas-laptop",
+        "claimed_at": "2026-10-18T17:16:03Z",
+        "heartbeat_at": "2026-10-18T17:16:03Z",
+        "expires_at": "2026-10-19T17:16:03Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T17:37:44Z",
+      "reason": "Preserved and reproduced the retained hinge/contact snapshot, quarantined its mixed golden, and split fixture, capture/replay and solver review into F6-09 through F6-11.",
+      "evidence": [
+        "PASS: python3 -m unittest tests/roadmap/test_f6_07_evidence.py -v; 2/2 archive and 62-item disposition integrity tests; docs/roadmap/evidence/F6-07/",
+        "PASS: archived CUDA default, steering, full-rotation and over-top reproductions on NVIDIA GeForce RTX 3050 Ti Laptop GPU driver 590.44.01; docs/roadmap/evidence/F6-07/cuda-reproduction.json",
+        "PASS: current main 1532f2f CUDA baseline, 2400 frames; docs/roadmap/evidence/F6-07/cuda-reproduction.json",
+        "REVIEW: 59 text hunks, 2 binary fixture diffs and 1 raw capture are content-addressed; the archived golden is quarantined and no solver/golden transplant was made; docs/roadmap/evidence/F6-07/hunk-dispositions.json"
+      ]
     }
   ]
 }

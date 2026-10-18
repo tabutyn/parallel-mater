@@ -56,6 +56,18 @@ and comparator with:
 ctest --test-dir <build> -R parallel-mater-conformance
 ```
 
+When a file already named by `manifest.json` changes, refresh all pinned hashes
+with the same JSON/XML line-ending normalization used by the installed runner:
+
+```text
+python3 conformance/v1/update_manifest.py
+python3 conformance/v1/update_manifest.py --check
+```
+
+Review the manifest diff with the input change. The tool does not add files,
+change provenance, regenerate the evidence index or update trajectory goldens;
+those remain explicit review steps. A second refresh must produce no diff.
+
 Record the selected driver's public identity and exact advertised interaction
 keys with `--provenance` and `--capabilities`. The capability output uses the
 same canonical names and graph-limit representation as qualification results.
@@ -141,18 +153,41 @@ Rigid contact uses the separate `rigid-brick-penetration-v1` profile. Its
 result repeats the fixed `RigidBody.glb`, eight-brick, 300-frame, four-substep
 configuration and reports the maximum pairwise penetration observed by the
 independent closed-mesh sampler in `tests/gallery/rigid_mesh_checks.hpp`.
-Evaluate a captured result with:
+Select one installed driver and capture the public-API result, then evaluate it:
 
 ```text
+parallel-mater-conformance --quality rigid-brick-penetration-v1 \
+  --output /path/to/rigid-quality-results
 python3 conformance/v1/quality.py \
   --profile conformance/v1/quality/rigid-brick-penetration-v1.json \
-  --actual /path/to/rigid-brick-result.json \
+  --actual /path/to/rigid-quality-results/rigid-brick-penetration-v1.json \
   --report /path/to/rigid-brick-report.json
 ```
 
 The existing 2 mm threshold is unchanged. A driver-contact depth is diagnostic;
 it cannot replace the independent mesh measurement. The original CUDA/D3D12
 failures and corrected observations remain in the revisioned Windows report.
+
+Rigid attachment has its own `rigid-attachment-v1` profile. It runs the
+accepted six-body, five-constraint `ConstraintHinge.glb` settling fixture for
+2,400 frames and derives hinge-anchor, hinge-axis, slider-drift, slider-axis and
+slider-travel measurements from authored local frames and public rigid output.
+It also requires every authored constraint to remain enabled and unbroken.
+The existing 2 mm, 0.014, 2 mm, 0.001 and 0.01--1.0 m gates are unchanged.
+
+```text
+parallel-mater-conformance --quality rigid-attachment-v1 \
+  --output /path/to/rigid-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/rigid-attachment-v1.json \
+  --actual /path/to/rigid-quality-results/rigid-attachment-v1.json \
+  --report /path/to/rigid-attachment-report.json
+```
+
+Both profiles pin their scene SHA-256, schedule, physical units and oracle.
+They are separate analytic obligations for the advertised same-domain rigid
+contact and attachment capabilities; neither substitutes for lifecycle or
+reference-regression evidence.
 
 The `rigid-kinematic-sweep-v1` profile independently adjudicates the
 `rigid-direct` frame-21 kinematic impact. Capture all frames, then evaluate the
@@ -173,20 +208,54 @@ The profile pins the unchanged case hash and requires checkpoints 0 through
 bounds out-of-plane leakage from the fixture's mirror symmetry. It reads no
 trajectory golden and does not weaken the `direct` comparison tolerance.
 
-Run the capacity and graph-lifecycle gate with:
+Capture the complete capacity and graph-lifecycle suite through the same
+installed command used for trajectory conformance, then run its independent
+gate:
 
 ```text
+PM_DRIVER_FILES=<build>/manifests/slang-cuda.json \
+  <build>/parallel-mater-conformance --lifecycle \
+  --output /path/to/adverse-capacity-three-family-v1.json
+
 python3 conformance/v1/lifecycle.py \
   --actual /path/to/adverse-capacity-three-family-v1.json \
   --report /path/to/lifecycle-report.json
 ```
 
+For an installed SDK, pass its installed corpus root explicitly:
+
+```text
+PM_DRIVER_FILES=/path/to/slang-cuda.json \
+  /path/to/sdk/bin/parallel-mater-conformance --lifecycle \
+  --root /path/to/sdk/share/parallel-mater \
+  --output /path/to/adverse-capacity-three-family-v1.json
+```
+
+An individual producer can be checked while the other case is still absent by
+adding `--case capacity-replacement-recovery` or
+`--case three-family-partial-rollback`. Omitting `--case` always requires the
+complete suite. The lower-level standalone capacity fixture writes its revisioned input
+with `parallel-mater-capacity-recovery-tests --output <path> --driver-name
+<driver>`. The graph fixture uses the same options on
+`parallel-mater-interaction-graph-lifecycle-tests`. The installed CLI and
+embedded qualification compile the same operation sequences and one lifecycle
+result serializer; they do not merge standalone result files.
+The CLI writes the result before returning 2 for a failed fixture or 77 when a
+required fixture is unsupported, so either outcome remains reviewable.
+
 The result records canonical public resource-state SHA-256 fingerprints and
 harness write ordinals at every required checkpoint; ordinals are never private
-driver handles. Each command completes and state is read before any physics
-step. Replacement must advance the target ordinal and change its observable
-state. A capacity failure may retire its target, but
-must preserve an unrelated fluid before recovery. The mixed graph contains a
+driver handles. Each checkpoint completes and state is read before any
+following physics step. Replacement must advance the target ordinal and change
+its observable state. Graph resource fingerprints cover active count, capacity,
+stable liquid identities and public positions canonicalized to 0.1 mm; this
+keeps the lifecycle identity independent of no-force solver roundoff. Active
+graph fingerprints cover every public coupling descriptor field without that
+position canonicalization. `active: false` at the capacity checkpoint means the
+failed step has no valid published target output; it does not infer destruction
+of driver-private storage or forbid retrying the prior input. The unrelated
+fluid must remain
+publicly readable and unchanged before recovery. The mixed graph contains a
 liquid/rope/soft-body component plus an unrelated smoke/cloth edge; a rejected
 partial update must restore the prior complete graph and preserve every
 endpoint. Expected command errors are observations inside a completed case.
