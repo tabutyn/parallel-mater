@@ -1,0 +1,112 @@
+{
+  "schema": "parallel-mater-roadmap-hinge-fixture-qualification/v1",
+  "task": "F6-09",
+  "result": "rejected-current-solver",
+  "scope": "Five-body functional Hinge + Slider fixture preserved by F6-07 and evaluated independently of its archived solver and golden changes",
+  "source": {
+    "base_revision": "04548a19d4470b65c0ffc4e481329f8adbb4e686",
+    "lease_token": "437e8f67-5390-4503-93b5-67a8d4e7b28e",
+    "claim_pr": "https://github.com/tabutyn/parallel-mater/pull/252",
+    "archive": "docs/roadmap/evidence/F6-07/snapshot-working-files.tar.gz",
+    "candidate_blend_sha256": "354c2804aa5ce8b7f7b5301289f5891a6de0ca71408fad0e521dc48564f3bea7",
+    "archived_glb_sha256": "80a5f22de8c7662397d7405eff6720232389e5163fd12dc586b39deb9f784e7b",
+    "candidate_blender_test_sha256": "0575491408b50bfb6c589923c9398dda93e6bab94296e670e63798f0f619f273",
+    "current_exporter_glb_sha256": "80a5f22de8c7662397d7405eff6720232389e5163fd12dc586b39deb9f784e7b",
+    "export_is_byte_identical": true,
+    "accepted_assets": {
+      "blend_sha256": "cdd0db5ab1d43e813923367bf42a70771ce0c7ef2fa48e93085f92fd0154de3e",
+      "glb_sha256": "db5447b00a33d29990e2f0d441d154c0509dee99689fc940261c1c92c2fe2a20",
+      "cuda_golden_sha256": "fa3f330fd69cbd783de56d8581789c2046495357b3a9316537ca31ab997ded10"
+    }
+  },
+  "hardware": {
+    "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "driver_version": "590.44.01",
+    "backend": "slang-cuda",
+    "blender": "4.5.2 LTS"
+  },
+  "reviewed_fixture": {
+    "rigid_bodies": [
+      "Ground.001",
+      "Ground.002",
+      "Gear",
+      "Gear.001",
+      "Gear.002"
+    ],
+    "constraints": {
+      "hinge": 3,
+      "slider": 1,
+      "generic_spring": 1
+    },
+    "constraint_pairs": [
+      "Ground.001/Gear",
+      "Ground.001/Gear.001",
+      "Ground.001/Gear.002",
+      "Ground.001/Ground.002"
+    ],
+    "hinge_solver_iterations": 64,
+    "slider_solver_iterations": 8,
+    "slider_axis": "local X, unlimited",
+    "spring": {
+      "axis": "local X",
+      "stiffness": 5.0,
+      "damping": 0.5
+    },
+    "materials": {
+      "Ground.001_friction": 4.0,
+      "Ground.002_friction": 0.08,
+      "gear_friction": 0.08,
+      "gear_restitution": 0.0,
+      "driver_angular_damping": 0.03,
+      "follower_mass": 1.0,
+      "follower_angular_damping": 0.01
+    },
+    "geometry": {
+      "driver_vertices": 414,
+      "driver_contains_offset_paddle": true,
+      "driver_local_bounds_center_offset_minimum": 1.9,
+      "gear_shells_closed_and_manifold": true,
+      "separate_HingeFrame_body": false
+    }
+  },
+  "verification": [
+    {
+      "check": "blender --background --threads 1 <candidate.blend> --python-exit-code 1 --python tools/blender/export_parallel_mater_scene.py -- --output <candidate-current-export.glb>",
+      "result": "PASS: current exporter output is byte-identical to the archived GLB"
+    },
+    {
+      "check": "blender --background --factory-startup --threads 1 --python-exit-code 1 --python tests/blender/export_scene_tests.py with the candidate authored/exported pair",
+      "result": "PASS: 33 tests, 1 skipped; includes five-body topology, constraint/material semantics, closed manifold gear shells and tooth-cycle engagement"
+    },
+    {
+      "check": "parallel-mater-rigid-constraint-command-tests --backend cuda --scene <candidate.glb> --scenario settling",
+      "exit_code": 0,
+      "result": "PASS",
+      "metrics": "frames=2400 hinge_anchor_error=8.5963e-07 hinge_axis_error=2.86407e-06 slider_sideways_drift=1.06624e-05 slider_axis_error=1.70682e-06 slider_travel=0.315761 slider_axial_overlap=3.10694 slider_mesh_penetration=0 gear_mesh_penetration=0 driver_rotation=0.519468 slider_contact_impulse=88.5203"
+    },
+    {
+      "check": "parallel-mater-rigid-constraint-command-tests --backend cuda --scene <candidate.glb> --scenario steering",
+      "exit_code": 0,
+      "result": "PASS",
+      "metrics": "frames=2400 hinge_anchor_error=8.67857e-07 hinge_axis_error=3.20718e-06 slider_sideways_drift=1.31217e-05 slider_axis_error=2.34361e-06 slider_travel=0.728764 slider_axial_overlap=2.9557 slider_mesh_penetration=0 gear_mesh_penetration=1.10196e-05 driver_rotation=1.36726 slider_contact_impulse=75.6438"
+    },
+    {
+      "check": "parallel-mater-rigid-constraint-command-tests --backend cuda --scene <candidate.glb> --scenario full-rotation",
+      "exit_code": 1,
+      "result": "REJECTED: gear meshes interpenetrated by 41.4778 mm; limit is 2 mm",
+      "metrics": "frames=2400 hinge_anchor_error=7.65636e-07 hinge_axis_error=0.00231225 slider_sideways_drift=1.33514e-05 slider_axis_error=1.841e-06 slider_travel=6.48022 slider_axial_overlap=1.37308 slider_mesh_penetration=1.06321e-05 gear_mesh_penetration=0.0414778 driver_rotation=13.1578 slider_contact_impulse=116.122"
+    },
+    {
+      "check": "parallel-mater-rigid-constraint-command-tests --backend cuda --scenario settling using the accepted committed fixture",
+      "exit_code": 0,
+      "result": "PASS: 2400-frame regression remains valid after adding the external-scene probe"
+    }
+  ],
+  "disposition": {
+    "candidate_promoted": false,
+    "committed_gallery_assets_changed": false,
+    "golden_generated": false,
+    "golden_reason": "The full-rotation trajectory violates the 2 mm mesh-overlap quality limit under the current solver. The archived mixed golden remains quarantined.",
+    "next_task": "F6-11 must reproduce and adjudicate the shared-Slang swept-contact changes after F6-10 supplies the independent substep replay path."
+  }
+}
