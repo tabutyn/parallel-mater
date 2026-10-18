@@ -250,6 +250,7 @@ PFN_pmVoidFunction lookup_proc(const char *value) noexcept {
     PM_LOOKUP(pmCmdResetSimulation);
     PM_LOOKUP(pmCmdSetFluidParticles);
     PM_LOOKUP(pmCmdSetCouplings);
+    PM_LOOKUP(pmCmdSetCouplings2);
     PM_LOOKUP(pmCmdWriteCloths);
     PM_LOOKUP(pmCmdWriteRopes);
     PM_LOOKUP(pmCmdWriteSoftBodies);

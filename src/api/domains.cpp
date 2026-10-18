@@ -1892,3 +1892,52 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetCouplings(
             });
     } catch (const std::bad_alloc &) { return PM_ERROR_OUT_OF_HOST_MEMORY; }
 }
+
+extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetCouplings2(
+    PmCommandBuffer command_buffer, PmSimulation simulation, std::uint32_t count,
+    const PmCouplingStateInfo *couplings) {
+    const auto recording = parallel_mater::api::require_recording(command_buffer);
+    if (recording != PM_SUCCESS) return recording;
+    if (!simulation || simulation->device != command_buffer->device ||
+        (count != 0U && couplings == nullptr))
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (count > simulation->info.couplingCapacity)
+        return PM_ERROR_CAPACITY_EXCEEDED;
+
+    try {
+        std::vector<PmCouplingState> copied;
+        copied.reserve(count);
+        for (std::uint32_t index = 0U; index < count; ++index) {
+            PmCouplingState normalized{};
+            const auto result = parallel_mater::api::normalize_coupling_info(
+                simulation->device, couplings[index], normalized);
+            if (result != PM_SUCCESS) return result;
+            for (const auto &prior : copied)
+                if (prior.type == normalized.type &&
+                    prior.first == normalized.first &&
+                    prior.second == normalized.second)
+                    return PM_ERROR_INVALID_ARGUMENT;
+            copied.push_back(normalized);
+        }
+        return parallel_mater::api::record_simulation(
+            command_buffer, simulation,
+            [simulation, copied = std::move(copied)](
+                parallel_mater::device::Services &) noexcept {
+                if (!simulation->binding.persistentMemory)
+                    return PM_ERROR_INVALID_STATE;
+                std::vector<PmCouplingState> next;
+                try {
+                    // Preserve recorded data for command-buffer resubmission.
+                    next = copied;
+                } catch (...) {
+                    return PM_ERROR_OUT_OF_HOST_MEMORY;
+                }
+                simulation->requested_couplings.swap(next);
+                simulation->explicit_couplings = true;
+                simulation->couplings_initialized = false;
+                return PM_SUCCESS;
+            });
+    } catch (const std::bad_alloc &) {
+        return PM_ERROR_OUT_OF_HOST_MEMORY;
+    }
+}

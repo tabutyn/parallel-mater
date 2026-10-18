@@ -682,7 +682,30 @@ SECTIONS += [
                 PmInteractionMaterialProfile materialProfile;
                 PmCouplingParameters parameters;
             } PmCouplingState;
-        """, text="first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. modeFlags is a nonzero bit set and materialProfile selects the exact advertised interaction records consumed by the edge. API 0.2 coupling types use fixed mode bundles; omitting or adding a known mode returns FEATURE_NOT_PRESENT, while zero or unknown bits return INVALID_ARGUMENT. Non-smoke pairs require ENDPOINT_NATIVE. Smoke pairs require an advertised SMOKE_PARTICLE or SMOKE_GRID profile.<br/><br/>Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings copies a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. The complete replacement is validated before live edges are removed. If installation then fails, the previous usable graph is restored. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph.<br/><br/>Coupling units are: contact distance and heater geometry in m; stiffness in N/m; damping and tangential drag in N·s/m; maximum force in N; acceleration limits in m/s²; wind drag and heat-transfer rate in s⁻¹; air density in kg/m³; effective mass in kg; steam rise speed in m/s; heater and boiling temperatures in °C. Friction, drag coefficient and radius scales are dimensionless.<br/><br/>The reference mechanical contact pairs currently require twoWay = PM_TRUE; one-way requests return FEATURE_NOT_PRESENT. API 0.2 directions are fixed by coupling type and checked through the exact capability records. Liquid/cloth derives interaction radius from liquid supportRadius; maximumAcceleration must be zero for this pair. Collision, attachment, drag, containment, pressure, viscosity, thermal and phase behavior are independent capabilities; a driver must not infer one from another or from the broad domainCouplings bit."),
+            typedef struct PmCouplingStateInfo {
+                PmStructureType sType;
+                const void* pNext;
+                PmCouplingType type;
+                uint32_t first;
+                uint32_t second;
+                PmInteractionModeFlags modeFlags;
+                PmInteractionMaterialProfile materialProfile;
+                PmCouplingParameters parameters;
+            } PmCouplingStateInfo;
+            typedef struct PmFluidPairMaterialState {
+                PmStructureType sType;
+                const void* pNext;
+                uint32_t firstMaterialIndex;
+                uint32_t secondMaterialIndex;
+            } PmFluidPairMaterialState;
+        """, functions="""
+            PmResult pmCmdSetCouplings(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t couplingCount,
+                const PmCouplingState* pCouplings);
+            PmResult pmCmdSetCouplings2(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t couplingCount,
+                const PmCouplingStateInfo* pCouplings);
+        """, text="first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. modeFlags is a nonzero bit set and materialProfile selects the exact advertised interaction records consumed by the edge. API 0.2 coupling types use fixed mode bundles; omitting or adding a known mode returns FEATURE_NOT_PRESENT, while zero or unknown bits return INVALID_ARGUMENT. Non-smoke pairs require ENDPOINT_NATIVE. Smoke pairs require an advertised SMOKE_PARTICLE or SMOKE_GRID profile.<br/><br/>PmCouplingState is the API 0.2 descriptor. PmCouplingStateInfo is an ABI-compatible extensible path: sType identifies that exact structure and pNext is NULL except for a separately permitted typed state. A LIQUID_LIQUID edge using MISCIBLE or IMMISCIBLE_INTERFACE must chain exactly one PmFluidPairMaterialState. Its material indices must equal first and second, so the edge consumes the two endpoint PmLiquidMaterialState records without copying, averaging or silently changing ownership. MISCIBLE requests contact, pressure and viscosity as one mechanical bundle. IMMISCIBLE_INTERFACE reserves contact and pressure plus an independently queryable future interface mode; optional interfacial viscosity remains a separate capability. Both profiles remain unsupported until their operator and qualification leaves complete. A well-formed request therefore returns FEATURE_NOT_PRESENT, while missing, mismatched, nested, duplicate or unknown typed state returns INVALID_ARGUMENT and cannot replace a live graph.<br/><br/>Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings and pmCmdSetCouplings2 copy a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. The complete replacement is validated before live edges are removed. If installation then fails, the previous usable graph is restored. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph.<br/><br/>Coupling units are: contact distance and heater geometry in m; stiffness in N/m; damping and tangential drag in N·s/m; maximum force in N; acceleration limits in m/s²; wind drag and heat-transfer rate in s⁻¹; air density in kg/m³; effective mass in kg; steam rise speed in m/s; heater and boiling temperatures in °C. Friction, drag coefficient and radius scales are dimensionless.<br/><br/>The reference mechanical contact pairs currently require twoWay = PM_TRUE; one-way requests return FEATURE_NOT_PRESENT. API 0.2 directions are fixed by coupling type and checked through the exact capability records. Liquid/cloth derives interaction radius from liquid supportRadius; maximumAcceleration must be zero for this pair. Collision, attachment, drag, containment, pressure, viscosity, thermal and phase behavior are independent capabilities; a driver must not infer one from another or from the broad domainCouplings bit."),
         c("domain_materials", "Deformable, rope & smoke materials", types="""
             typedef struct PmClothMaterialState {
                 float vertexMass;
@@ -742,6 +765,12 @@ SECTIONS += [
             } PmSmokeMaterialState;
         """),
         c("pipeline_create", "Pipeline creation", types="""
+            typedef struct PmPhysicsPipelineCouplingStateInfo {
+                PmStructureType sType;
+                const void* pNext;
+                uint32_t couplingCount;
+                const PmCouplingStateInfo* pCouplings;
+            } PmPhysicsPipelineCouplingStateInfo;
             typedef struct PmPhysicsPipelineCreateInfo {
                 PmStructureType sType;
                 const void* pNext;
@@ -767,7 +796,7 @@ SECTIONS += [
             void pmDestroyPhysicsPipeline(
                 PmDevice device,
                 PmPhysicsPipeline pipeline);
-        """, text="Creation copies all settings. pRigidState may be NULL only when no rigid domain is needed. The material count must equal a bound simulation's fluid count. Pipelines are immutable and shareable across compatible simulations. Changing materials creates a new pipeline, without reallocating state if its capacity requirements remain satisfied."),
+        """, text="Creation copies all settings. pRigidState may be NULL only when no rigid domain is needed. The material count must equal a bound simulation's fluid count. Pipelines are immutable and shareable across compatible simulations. Changing materials creates a new pipeline, without reallocating state if its capacity requirements remain satisfied.<br/><br/>Chain at most one PmPhysicsPipelineCouplingStateInfo to supply extensible coupling descriptors. Its own pNext is NULL. When present, the base couplingCount is zero and pCouplings is NULL; the chained count and array provide the complete pipeline edge list. Descriptor validation and deep-copy rules match pmCmdSetCouplings2. Unknown, nested or conflicting chains return INVALID_ARGUMENT."),
         c("pipeline_flow", "What a step records", text="pmCmdStepSimulation records a complete operation, not one CPU call per internal kernel. Its implementation owns dependencies among integration, broad phase, contact/neighbor generation, solve/coupling, velocity reconstruction and sleep. Applications supply dependencies between uploads, steps, exports, and other APIs.<br/><br/>A substep is a slice of physical time. An iteration refines constraints within that slice. Neither is a renderer frame. The API exposes the work budget explicitly and the queries report work actually executed.", links=("step", "step_stats")),
         c("pipeline_validity", "Compatibility & bounds", text="A rigid simulation requires pRigidState and enabled rigidBodies. Live constraints additionally require rigidConstraints. Each active fluid requires particleLiquids. Each coupling requires its matching enabled feature. A disabled domain cannot allocate hidden capacity.<br/><br/>All numerical inputs must be finite. Neighbors, contacts and output ranges are bounded. If runtime generation exceeds capacity, the step reports CAPACITY_EXCEEDED and its output is invalid; the application must reset/reinitialize before reuse. There is no silent truncation advertised as correct physics.", links=("simulation_create", "step_stats"), tone="warm"),
     ], "pipeline"),
