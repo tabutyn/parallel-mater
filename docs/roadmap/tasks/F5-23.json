@@ -1,7 +1,7 @@
 {
   "id": "F5-23",
   "title": "Split advertised qualification gaps",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-19",
     "F5-20",
@@ -20,6 +20,14 @@
     "Add every new leaf as an F5-99 dependency and regenerate the roadmap; this planning task does not itself qualify a capability or weaken an obligation."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "b7f0690d-e426-41a2-9ecb-7cb7cb510711",
+    "owner": "codex-windows-qualification",
+    "machine": "windows-gtx1080",
+    "branch": "work/F5-23/windows-gtx1080",
+    "claimed_at": "2026-10-18T21:00:00Z",
+    "heartbeat_at": "2026-10-18T21:00:00Z",
+    "expires_at": "2026-10-19T21:00:00Z"
+  },
   "history": []
 }
