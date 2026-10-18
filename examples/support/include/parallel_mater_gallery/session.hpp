@@ -96,8 +96,10 @@ public:
     bool is_paused() const { return paused_; }
     unsigned selection() const { return selected_; }
     std::uint64_t revision() const noexcept { return revision_; }
-    void set_presentation_layer(void *layer) { presentation_layer_ = layer; }
-    void *native_render_device() const;
+    void set_render_target(GpuRenderTarget target) noexcept {
+        render_target_ = target;
+    }
+    PmNativeDeviceInfo native_render_device() const;
     GalleryWorkloadLimits limits;
     unsigned width{}, height{};
     std::uint64_t frames{};
@@ -114,7 +116,7 @@ private:
     float right_{}, up_{};
     bool released_{};
     std::string device_;
-    void *presentation_layer_{};
+    GpuRenderTarget render_target_{};
     bool diagnostics_{};
     GalleryFramePolicy frame_policy_{};
     const GalleryCatalogItem &catalog_item(unsigned index) const;

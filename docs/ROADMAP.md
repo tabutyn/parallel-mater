@@ -148,7 +148,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F3-05](roadmap/tasks/F3-05.json) | Expose structured validation diagnostics | done | F3-01 | — |
 | [F3-06](roadmap/tasks/F3-06.json) | Close threading and deferred-error contract gaps | done | F1-06, F3-04 | — |
 | [F3-07](roadmap/tasks/F3-07.json) | Test independent compatibility combinations | ready | F3-05 | — |
-| [F3-08](roadmap/tasks/F3-08.json) | Restore repeated statistics-query validation | ready | F3-03 | — |
+| [F3-08](roadmap/tasks/F3-08.json) | Restore repeated statistics-query validation | leased | F3-03 | codex-macos-gallery / Thomass-MacBook-Air / 2026-10-19T01:54:48Z |
 | [F3-09](roadmap/tasks/F3-09.json) | Qualify portable host concurrency | ready | F3-06 | — |
 | [F3-10](roadmap/tasks/F3-10.json) | Qualify descriptor snapshot coverage | ready | F3-06 | — |
 | [F3-11](roadmap/tasks/F3-11.json) | Qualify destruction wait profiles | ready | F3-06 | — |
@@ -219,8 +219,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-05](roadmap/tasks/F7-05.json) | Unify Gallery clock and workload policy | done | F7-03 | — |
 | [F7-06](roadmap/tasks/F7-06.json) | Adopt common runtime in desktop Gallery | done | F7-02, F7-03, F7-04, F7-05 | — |
 | [F7-07](roadmap/tasks/F7-07.json) | Make mobile Gallery shells thin adapters | done | F7-02, F7-03, F7-04, F7-05 | — |
-| [F7-08](roadmap/tasks/F7-08.json) | Define common Gallery GPU renderer contract | leased | F7-01 | codex-linux-gallery / thomas-laptop / 2026-10-19T01:18:39Z |
-| [F7-09](roadmap/tasks/F7-09.json) | Implement native Vulkan Gallery rendering | waiting on dependencies | F7-08 | — |
+| [F7-08](roadmap/tasks/F7-08.json) | Define common Gallery GPU renderer contract | done | F7-01 | — |
+| [F7-09](roadmap/tasks/F7-09.json) | Implement native Vulkan Gallery rendering | leased | F7-08 | codex-linux-gallery / thomas-laptop / 2026-10-19T02:04:58Z |
 | [F7-10](roadmap/tasks/F7-10.json) | Enable Vulkan cloth Gallery domains | done | F7-03 | — |
 | [F7-11](roadmap/tasks/F7-11.json) | Enable Vulkan soft-body Gallery domains | ready | F7-03 | — |
 | [F7-12](roadmap/tasks/F7-12.json) | Enable Vulkan rope Gallery domains | ready | F7-03 | — |

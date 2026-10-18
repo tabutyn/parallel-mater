@@ -4,6 +4,7 @@
 #include <parallel_mater_scene/preparation.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <cstring>
@@ -20,6 +21,8 @@ namespace {
 constexpr PmFlags k_buffer_usage = PM_BUFFER_TRANSFER_SRC_BIT |
     PM_BUFFER_TRANSFER_DST_BIT | PM_BUFFER_GEOMETRY_INPUT_BIT |
     PM_BUFFER_PARTICLE_INPUT_BIT | PM_BUFFER_SIMULATION_OUTPUT_BIT;
+
+std::atomic_uint64_t next_output_resource_generation{1U};
 
 [[nodiscard]] const char *result_name(PmResult result) noexcept {
     switch (result) {

@@ -6,7 +6,7 @@
 #include <parallel_mater_gallery/dump_truck.hpp>
 #include <parallel_mater_gallery/renderer.hpp>
 #include <parallel_mater_gallery/runtime_platform.hpp>
-#ifdef PM_GALLERY_METAL_RENDERER
+#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
 #include <parallel_mater_gallery/gpu_renderer.hpp>
 #endif
 #include <parallel_mater_gallery/gallery_context.hpp>
@@ -33,7 +33,7 @@ const GalleryCatalogItem &GallerySession::catalog_item(unsigned index) const {
     return catalog_[index];
 }
 GallerySession::GallerySession(GallerySessionConfig config) : config_(std::move(config)) {
-#ifndef PM_GALLERY_METAL_RENDERER
+#ifndef PM_GALLERY_NATIVE_GPU_RENDERER
     if (config_.gpu_rendering) throw std::runtime_error("Native GPU Gallery renderer is not built");
 #endif
     if (config_.workload_limits) {
@@ -139,15 +139,14 @@ void GallerySession::select(unsigned index) {
                 return false;
             }
         }
-#ifdef PM_GALLERY_METAL_RENDERER
+#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
         if (gpu_rendering) {
-            try {
-                next.native_renderer = std::make_shared<GpuGalleryRenderer>(
-                    next.simulation.device(), next.scene, next.instance);
-            } catch (const std::exception &exception) {
-                failure = exception.what();
-                return false;
-            }
+            GpuRendererDevice device;
+            if (!resolve_gpu_renderer_device(next.instance.render_buffers,
+                                             device, failure)) return false;
+            next.native_renderer = create_gpu_gallery_renderer(
+                device, next.scene, next.instance, failure);
+            if (!next.native_renderer) return false;
         }
 #else
         (void)gpu_rendering;
@@ -343,12 +342,20 @@ void GallerySession::frame_at(
         }
         frame_policy_.finish_frame();
         timing.begin_phase(FramePhase::render);
-#ifdef PM_GALLERY_METAL_RENDERER
+#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
         if (runtime_.native_renderer) {
             pixels.clear();
-            static_cast<GpuGalleryRenderer *>(runtime_.native_renderer.get())->render(
-                runtime_.instance.render_buffers, runtime_.camera.camera(), width, height,
-                diagnostics_ ? nullptr : presentation_layer_, diagnostics_ ? &pixels : nullptr, &timing);
+            GpuRenderTarget target = render_target_;
+            target.width = width;
+            target.height = height;
+            if (diagnostics_) target.handle = 0U;
+            GpuRenderRequest request;
+            require(make_gpu_render_request(
+                runtime_.instance.render_buffers,
+                runtime_.gpu_frame_generation, runtime_.camera.camera(), target,
+                {diagnostics_ ? &pixels : nullptr}, &timing, {}, request, error),
+                error);
+            require(runtime_.native_renderer->render(request, error), error);
         } else
 #endif
             require(runtime_.renderer.render(runtime_.render_frame,
@@ -392,12 +399,14 @@ FrameTimingStatistics GallerySession::qualify(unsigned frame_count) {
     return statistics;
 }
 std::string GallerySession::build_revision() { return PM_GALLERY_BUILD_REVISION; }
-void *GallerySession::native_render_device() const {
+PmNativeDeviceInfo GallerySession::native_render_device() const {
     require_scene();
+    if (runtime_.native_renderer)
+        return runtime_.native_renderer->renderer_device().native;
     PmNativeDeviceInfo native{};
     if (pmGetNativeDevice(runtime_.simulation.device(), &native) != PM_SUCCESS)
         throw std::runtime_error("No native rendering device");
-    return reinterpret_cast<void *>(native.device);
+    return native;
 }
 std::size_t GallerySession::particle_count() const {
     return runtime_.ready() ? runtime_.frame.fluid_particles.size() : 0;
