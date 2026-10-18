@@ -210,12 +210,17 @@ Status SimulationRuntime::add_fluid_pair_coupling(
     if (options.first.index >= options.second.index)
         return failure(StatusCode::invalid_argument,
                        "fluid pair endpoints must be distinct and canonical");
+    if (options.material_profile != FluidPairMaterialProfile::equal &&
+        options.material_profile != FluidPairMaterialProfile::miscible)
+        return failure(StatusCode::invalid_argument,
+                       "fluid pair material profile is invalid");
     FluidStorage *first = nullptr;
     FluidStorage *second = nullptr;
     if (!(status = impl_->validate_handle(options.first, first)) ||
         !(status = impl_->validate_handle(options.second, second)))
         return status;
-    if (!equal_fluid_material(first->options, second->options))
+    if (options.material_profile == FluidPairMaterialProfile::equal &&
+        !equal_fluid_material(first->options, second->options))
         return failure(StatusCode::not_supported,
                        "fluid pair requires equal material state");
     for (const auto &coupling : impl_->fluid_pair_couplings)

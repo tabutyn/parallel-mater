@@ -56,8 +56,12 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction
        TARGET parallel-mater-test-driver-slang-cpu-resources)
         add_dependencies(parallel-mater-${suite}-tests
             parallel-mater-test-driver-slang-cpu-resources)
+        set(host_suite_arguments)
+        if(suite STREQUAL "fluid-pair-graph-lifecycle")
+            list(APPEND host_suite_arguments --miscible)
+        endif()
         add_test(NAME parallel-mater-host-${suite}-tests
-            COMMAND parallel-mater-${suite}-tests)
+            COMMAND parallel-mater-${suite}-tests ${host_suite_arguments})
         set_tests_properties(
             parallel-mater-host-${suite}-tests PROPERTIES
             LABELS "api;lifecycle;host-fixture" TIMEOUT 120

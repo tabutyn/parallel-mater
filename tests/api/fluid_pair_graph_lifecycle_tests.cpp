@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstring>
+#include <string_view>
 
 using parallel_mater::test::Context;
 
@@ -23,7 +24,7 @@ PmLiquidMaterialState material(float density = 1000.0F) {
     return result;
 }
 
-PmCouplingState pair_edge() {
+PmCouplingState pair_edge(PmInteractionMaterialProfile profile) {
     PmCouplingState result{};
     result.type = PM_COUPLING_LIQUID_LIQUID;
     result.first = 0U;
@@ -31,14 +32,19 @@ PmCouplingState pair_edge() {
     result.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
         PM_INTERACTION_MODE_PRESSURE_BIT |
         PM_INTERACTION_MODE_VISCOSITY_BIT;
-    result.materialProfile = PM_INTERACTION_MATERIAL_EQUAL;
+    result.materialProfile = profile;
     result.parameters.mechanical.twoWay = PM_TRUE;
     return result;
 }
 
 } // namespace
 
-int main() {
+int main(int argc, char **argv) {
+    const bool miscible = argc == 2 &&
+        std::string_view(argv[1]) == "--miscible";
+    PM_CHECK(argc == 1 || miscible);
+    const auto profile = miscible ? PM_INTERACTION_MATERIAL_MISCIBLE
+                                  : PM_INTERACTION_MATERIAL_EQUAL;
     Context context;
     PmPhysicalDeviceFeatures needed{};
     needed.particleLiquids = PM_TRUE;
@@ -52,7 +58,7 @@ int main() {
             PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_FLUID,
             PM_INTERACTION_SCOPE_SEPARATE_SYSTEM, mode,
             PM_INTERACTION_DIRECTION_BIDIRECTIONAL,
-            PM_INTERACTION_MATERIAL_EQUAL};
+            profile};
         PmInteractionCapability capability{};
         PM_CHECK(pmGetPhysicalDeviceInteractionCapability(
                      context.physical, &key, &capability) == PM_SUCCESS);
@@ -60,7 +66,7 @@ int main() {
                  PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY);
     }
 
-    const PmFluidCapacity capacities[2]{{4U, 16U}, {4U, 16U}};
+    const PmFluidCapacity capacities[2]{{4U, 1U}, {4U, 1U}};
     PmSimulationCreateInfo create{};
     create.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
     create.fluidCount = 2U;
@@ -77,9 +83,11 @@ int main() {
     PM_CHECK(pmBindSimulationMemory(context.device, simulation, &binding) ==
              PM_SUCCESS);
 
-    const std::array<PmParticleState, 2> particles{{
+    const std::array<PmParticleState, 4> particles{{
         {{0.0F, 0.0F, 0.0F}, {0.1F, 0.0F, 0.0F}, 20.0F},
+        {{0.01F, 0.0F, 0.0F}, {0.1F, 0.0F, 0.0F}, 20.0F},
         {{0.05F, 0.0F, 0.0F}, {-0.1F, 0.0F, 0.0F}, 20.0F},
+        {{0.06F, 0.0F, 0.0F}, {-0.1F, 0.0F, 0.0F}, 20.0F},
     }};
     const auto input = context.buffer(sizeof(particles),
                                       PM_BUFFER_PARTICLE_INPUT_BIT);
@@ -88,8 +96,15 @@ int main() {
     const PmBufferView views[2]{
         {{input.handle, 0U, sizeof(PmParticleState)},
          PM_FORMAT_PARTICLE_STATE, 1U, sizeof(PmParticleState)},
-        {{input.handle, sizeof(PmParticleState), sizeof(PmParticleState)},
+        {{input.handle, 2U * sizeof(PmParticleState), sizeof(PmParticleState)},
          PM_FORMAT_PARTICLE_STATE, 1U, sizeof(PmParticleState)},
+    };
+    const PmBufferView crowded_views[2]{
+        {{input.handle, 0U, 2U * sizeof(PmParticleState)},
+         PM_FORMAT_PARTICLE_STATE, 2U, sizeof(PmParticleState)},
+        {{input.handle, 2U * sizeof(PmParticleState),
+          2U * sizeof(PmParticleState)},
+         PM_FORMAT_PARTICLE_STATE, 2U, sizeof(PmParticleState)},
     };
 
     const PmLiquidMaterialState equal_materials[2]{material(), material()};
@@ -97,7 +112,7 @@ int main() {
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
     pipeline_info.fluidMaterialCount = 2U;
-    auto edge = pair_edge();
+    auto edge = pair_edge(profile);
     PmFluidPairMaterialState pipeline_materials{
         PM_STRUCTURE_TYPE_FLUID_PAIR_MATERIAL_STATE, nullptr, 0U, 1U};
     PmCouplingStateInfo pipeline_edge{};
@@ -130,7 +145,9 @@ int main() {
     context.begin();
     PM_CHECK(pmCmdSetCouplings(context.commands, simulation, 1U, &invalid) ==
              PM_SUCCESS);
-    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, equal_pipeline) ==
+    const PmPhysicsPipeline working_pipeline = miscible
+        ? unequal_pipeline : equal_pipeline;
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, working_pipeline) ==
              PM_SUCCESS);
     for (std::uint32_t index = 0U; index < 2U; ++index)
         PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation, index,
@@ -154,7 +171,7 @@ int main() {
     context.begin();
     PM_CHECK(pmCmdSetCouplings2(context.commands, simulation, 1U,
                                 &command_edge) == PM_SUCCESS);
-    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, equal_pipeline) ==
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, working_pipeline) ==
              PM_SUCCESS);
     PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
              PM_SUCCESS);
@@ -164,7 +181,7 @@ int main() {
     // recreates it with the new endpoint generation without growing capacity.
     for (std::uint32_t edit = 0U; edit < 32U; ++edit) {
         context.begin();
-        PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, equal_pipeline) ==
+        PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, working_pipeline) ==
                  PM_SUCCESS);
         const auto endpoint = edit % 2U;
         PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation, endpoint,
@@ -177,7 +194,7 @@ int main() {
     context.begin();
     PM_CHECK(pmCmdSetCouplings2(context.commands, simulation, 0U, nullptr) ==
              PM_SUCCESS);
-    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, equal_pipeline) ==
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, working_pipeline) ==
              PM_SUCCESS);
     PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
              PM_SUCCESS);
@@ -185,7 +202,7 @@ int main() {
 
     context.begin();
     PM_CHECK(pmCmdResetSimulation(context.commands, simulation) == PM_SUCCESS);
-    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, equal_pipeline) ==
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, working_pipeline) ==
              PM_SUCCESS);
     for (std::uint32_t index = 0U; index < 2U; ++index)
         PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation, index,
@@ -194,20 +211,67 @@ int main() {
              PM_SUCCESS);
     PM_CHECK(context.submit() == PM_SUCCESS);
 
-    // Unequal endpoint materials reject the requested profile. Replacing the
-    // endpoints under the equal pipeline makes the unchanged graph usable.
+    if (miscible) {
+        // Installing an equal-material edge over unequal endpoints fails after
+        // removal. The old miscible graph must be restored successfully.
+        auto incompatible = command_edge;
+        incompatible.pNext = nullptr;
+        incompatible.materialProfile = PM_INTERACTION_MATERIAL_EQUAL;
+        context.begin();
+        PM_CHECK(pmCmdSetCouplings2(context.commands, simulation, 1U,
+                                    &incompatible) == PM_SUCCESS);
+        PM_CHECK(pmCmdBindPhysicsPipeline(context.commands,
+                                          unequal_pipeline) == PM_SUCCESS);
+        PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
+                 PM_SUCCESS);
+        PM_CHECK(context.submit() == PM_ERROR_FEATURE_NOT_PRESENT);
+
+        context.begin();
+        PM_CHECK(pmCmdSetCouplings2(context.commands, simulation, 1U,
+                                    &command_edge) == PM_SUCCESS);
+        PM_CHECK(pmCmdBindPhysicsPipeline(context.commands,
+                                          unequal_pipeline) == PM_SUCCESS);
+        PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
+                 PM_SUCCESS);
+        PM_CHECK(context.submit() == PM_SUCCESS);
+    } else {
+        // Unequal endpoint materials reject the equal profile. Replacing the
+        // endpoints under the equal pipeline makes the graph usable again.
+        context.begin();
+        PM_CHECK(pmCmdBindPhysicsPipeline(context.commands,
+                                          unequal_pipeline) == PM_SUCCESS);
+        for (std::uint32_t index = 0U; index < 2U; ++index)
+            PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation,
+                                            index, &views[index]) == PM_SUCCESS);
+        PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
+                 PM_SUCCESS);
+        PM_CHECK(context.submit() == PM_ERROR_FEATURE_NOT_PRESENT);
+
+        context.begin();
+        PM_CHECK(pmCmdBindPhysicsPipeline(context.commands,
+                                          equal_pipeline) == PM_SUCCESS);
+        for (std::uint32_t index = 0U; index < 2U; ++index)
+            PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation,
+                                            index, &views[index]) == PM_SUCCESS);
+        PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
+                 PM_SUCCESS);
+        PM_CHECK(context.submit() == PM_SUCCESS);
+    }
+
+    // Pair-neighbor overflow is reported after asynchronous completion. A
+    // smaller replacement recovers without rebuilding the simulation.
     context.begin();
-    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, unequal_pipeline) ==
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, working_pipeline) ==
              PM_SUCCESS);
     for (std::uint32_t index = 0U; index < 2U; ++index)
         PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation, index,
-                                       &views[index]) == PM_SUCCESS);
+                                       &crowded_views[index]) == PM_SUCCESS);
     PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
              PM_SUCCESS);
-    PM_CHECK(context.submit() == PM_ERROR_FEATURE_NOT_PRESENT);
+    PM_CHECK(context.submit() == PM_ERROR_CAPACITY_EXCEEDED);
 
     context.begin();
-    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, equal_pipeline) ==
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, working_pipeline) ==
              PM_SUCCESS);
     for (std::uint32_t index = 0U; index < 2U; ++index)
         PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation, index,
@@ -219,5 +283,7 @@ int main() {
     pmDestroySimulation(context.device, simulation);
     pmDestroyPhysicsPipeline(context.device, unequal_pipeline);
     pmDestroyPhysicsPipeline(context.device, equal_pipeline);
-    std::puts("PASS: bounded generation-safe fluid pair graph lifecycle");
+    std::puts(miscible
+        ? "PASS: bounded generation-safe miscible fluid pair graph lifecycle"
+        : "PASS: bounded generation-safe equal fluid pair graph lifecycle");
 }
