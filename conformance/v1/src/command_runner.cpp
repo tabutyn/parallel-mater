@@ -1376,7 +1376,9 @@ int conformance_command_main(int argc, char **argv) {
                 "rigid-brick-penetration-v1";
             const bool attachment = arguments.quality_id ==
                 "rigid-attachment-v1";
-            if (!brick && !attachment)
+            const bool rope_self_contact = arguments.quality_id ==
+                "rope-self-contact-v1";
+            if (!brick && !attachment && !rope_self_contact)
                 throw std::runtime_error(
                     "unknown conformance quality profile: " +
                     arguments.quality_id);
@@ -1384,8 +1386,10 @@ int conformance_command_main(int argc, char **argv) {
             try {
                 if (brick) {
                     result = conformance_rigid_brick_quality(root);
-                } else {
+                } else if (attachment) {
                     result = conformance_rigid_attachment_quality(root);
+                } else {
+                    result = conformance_rope_self_contact_quality(root);
                 }
             } catch (const std::exception &error) {
                 Json failure = Json::object();

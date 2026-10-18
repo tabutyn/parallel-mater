@@ -108,8 +108,11 @@
       "id": "rope-self",
       "match": {"first_family": ["ROPE"], "second_family": ["ROPE"], "scope": ["SELF"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:rope-core",
-      "required": {"lifecycle_invariants": ["case:rope-core"]},
-      "missing": {"analytic_invariants": "No vendor-neutral rope self-contact quality case is registered."}
+      "required": {
+        "lifecycle_invariants": ["case:rope-core"],
+        "analytic_invariants": ["quality:rope-self-contact-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "smoke-self",

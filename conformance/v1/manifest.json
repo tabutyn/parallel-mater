@@ -53,10 +53,11 @@
     "conformance/v1/quality/fluid-self-viscosity-v1.json": "9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c",
     "conformance/v1/quality/rigid-attachment-v1.json": "570add4a6e74539f46513a5baa8168bd2b81dd2ef95ff2a7f6bbb407f3afd108",
     "conformance/v1/quality/rigid-brick-penetration-v1.json": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da",
-    "conformance/v1/quality/rigid-kinematic-sweep-v1.json": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc"
+    "conformance/v1/quality/rigid-kinematic-sweep-v1.json": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc",
+    "conformance/v1/quality/rope-self-contact-v1.json": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113"
   },
   "qualification_profile_sha256": {
-    "conformance/v1/qualification/capability-obligations-v1.json": "1630b7fd29c8f569069205c0d3476b5e96b75e3919c8a364c96929a85be44472"
+    "conformance/v1/qualification/capability-obligations-v1.json": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372"
   },
   "evidence_index_sha256": {
     "conformance/v1/evidence/evidence-sources-v1.json": "022e0aa7a337e726724342ebfa12c2b2516dbefb76a49cc9919c6243b2dfdba9",

@@ -27,6 +27,8 @@ struct CaseExecution {
     const std::filesystem::path &root);
 [[nodiscard]] std::string conformance_rigid_attachment_quality(
     const std::filesystem::path &root);
+[[nodiscard]] std::string conformance_rope_self_contact_quality(
+    const std::filesystem::path &root);
 [[nodiscard]] std::string conformance_fluid_pair_quality(
     const std::filesystem::path &temporary_output);
 [[nodiscard]] std::string conformance_adverse_lifecycle(
