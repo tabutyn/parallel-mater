@@ -1,7 +1,7 @@
 {
   "id": "P1-08",
   "title": "Schedule miscible fluid pair graphs",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "P1-07"
   ],
@@ -19,6 +19,14 @@
     "Reference adapters compile the shared schedule or explicitly reject the profile."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "c9860e5f-f240-44aa-b72c-9a4161973f8c",
+    "owner": "codex-miscible-graph",
+    "machine": "thomas-laptop",
+    "branch": "work/P1-08/thomas-laptop",
+    "claimed_at": "2026-10-18T22:30:44Z",
+    "heartbeat_at": "2026-10-18T22:30:44Z",
+    "expires_at": "2026-10-19T22:30:44Z"
+  },
   "history": []
 }
