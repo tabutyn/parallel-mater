@@ -14,13 +14,117 @@
 #include <cmath>
 #include <cstdlib>
 #include <memory>
+#include <locale>
+#include <sstream>
 #include <string>
+#include <string_view>
 
 using parallel_mater::gallery::GallerySession;
 using parallel_mater::gallery::MobileGalleryCommand;
 using parallel_mater::gallery::MobileGallerySession;
 namespace {
-NSString *text(const std::string &value) { return [NSString stringWithUTF8String:value.c_str()]; }
+NSString *text(std::string_view value) {
+    if (value.empty()) return @"";
+    return [[NSString alloc] initWithBytes:value.data() length:value.size()
+                                  encoding:NSUTF8StringEncoding];
+}
+
+std::string directional_label(parallel_mater::gallery::GalleryControlPolicy policy) {
+    using parallel_mater::gallery::GalleryControlPolicy;
+    switch (policy) {
+    case GalleryControlPolicy::authored_force: return "Push objects";
+    case GalleryControlPolicy::motor_drive: return "Drive and steer";
+    case GalleryControlPolicy::none: return "Camera only";
+    case GalleryControlPolicy::rigid_gravity:
+    case GalleryControlPolicy::collector_gravity:
+    case GalleryControlPolicy::peg_gravity:
+    case GalleryControlPolicy::cloth_gravity: return "Tilt gravity";
+    }
+    return "Camera only";
+}
+
+std::string primary_action_label(
+    const parallel_mater::gallery::GalleryControllerState &controls) {
+    using parallel_mater::gallery::GalleryPrimaryAction;
+    switch (controls.primary) {
+    case GalleryPrimaryAction::release_restore_constraints:
+        return controls.constraints_released ? "Restore" : "Release";
+    case GalleryPrimaryAction::toggle_dump_bed:
+        return controls.dump_bed_angle > 0.05F ? "Lower bed" : "Raise bed";
+    case GalleryPrimaryAction::none: return {};
+    }
+    return {};
+}
+
+std::string renderer_label(
+    const parallel_mater::gallery::GalleryPresentationState &state) {
+    using parallel_mater::gallery::GalleryRendererKind;
+    return state.renderer == GalleryRendererKind::native_gpu
+        ? std::string(parallel_mater::gallery::gallery_backend_label(
+              state.backend)) + " GPU renderer"
+        : "Software image renderer";
+}
+
+std::string readback_label(
+    parallel_mater::gallery::GalleryReadbackMode mode) {
+    using parallel_mater::gallery::GalleryReadbackMode;
+    return mode == GalleryReadbackMode::diagnostic_only
+        ? "Diagnostic captures only" : "Host image each frame";
+}
+
+std::string status_text(
+    const parallel_mater::gallery::MobileGalleryState &state) {
+    using parallel_mater::gallery::GalleryRendererKind;
+    if (state.failed) return state.failure;
+    const auto &view = state.presentation;
+    if (!view.ready) return "Gallery unavailable";
+    std::ostringstream text;
+    text << (view.paused ? "Paused · " : "")
+         << parallel_mater::gallery::gallery_backend_label(view.backend)
+         << " · " << view.steps << " steps · "
+         << (view.renderer == GalleryRendererKind::native_gpu
+                 ? "GPU graphics" : "software graphics");
+    if (view.particle_count != 0U)
+        text << " · " << view.particle_count << " particles";
+    return text.str();
+}
+
+std::string details_text(
+    const parallel_mater::gallery::GalleryPresentationState &state) {
+    std::ostringstream text;
+    text.imbue(std::locale::classic());
+    text << state.device << "\n" << state.platform << " · "
+         << parallel_mater::gallery::gallery_backend_label(state.backend)
+         << "\nScene: " << state.scene_name << " (" << state.scene_id << ")"
+         << "\n" << state.scene_summary
+         << "\nRequires: " << state.required_features
+         << "\nRenderer: " << renderer_label(state)
+         << "\nReadback: " << readback_label(state.readback)
+         << "\n\nProfile: " << state.workload_profile
+         << "\n" << state.fluid_particle_limit << " liquid particles · "
+         << state.coupled_body_limit << " coupled bodies"
+         << "\n" << state.width << " × " << state.height << " · target "
+         << state.target_updates_per_second << " updates/s"
+         << "\nHost work: " << state.host_work_frames_per_second << " frames/s";
+    if (state.latest_timing) {
+        const auto &sample = *state.latest_timing;
+        text << "\nFrame work: " << sample.total_ms << " ms"
+             << "\nPhysics: " << sample.physics_ms << " ms · render: "
+             << sample.render_ms << " ms";
+        if (sample.present_ms)
+            text << " · present callback: " << *sample.present_ms << " ms";
+    }
+    text << "\n\nDrag to orbit. Pinch to zoom.";
+    if (state.controls.directional !=
+        parallel_mater::gallery::GalleryControlPolicy::none)
+        text << " Direction buttons: "
+             << directional_label(state.controls.directional) << '.';
+    const std::string primary = primary_action_label(state.controls);
+    if (!primary.empty()) text << " Use " << primary << " for the scene action.";
+    text << "\n\nBuild " << state.build_revision;
+    return text.str();
+}
+
 std::uint64_t memory_footprint() {
     task_vm_info_data_t info{};
     mach_msg_type_number_t count = TASK_VM_INFO_COUNT;
@@ -164,15 +268,18 @@ UIImage *frame_image(const GallerySession &session) {
 - (void)publishMobileStateCompletingFrame:(BOOL)completeFrame {
     if (!_mobile) return;
     const auto state = _mobile->state();
-    NSString *status = text(state.status + "\n" + state.directional_label);
-    NSString *details = text(_session->details());
-    NSString *primary = text(state.primary_action_label);
-    NSString *scene = state.selection < _session->catalog().size()
-        ? text(std::string(_session->catalog()[state.selection].scene.name))
+    const auto &view = state.presentation;
+    NSString *status = text(status_text(state) + "\n" +
+        directional_label(view.controls.directional));
+    NSString *details = text(details_text(view));
+    NSString *primary = text(primary_action_label(view.controls));
+    NSString *scene = view.selection < _session->catalog().size()
+        ? text(std::string(_session->catalog()[view.selection].scene.name))
         : @"Unknown scene";
-    const BOOL paused = state.paused;
+    const BOOL paused = view.paused;
     const BOOL failed = state.failed;
-    const BOOL primaryAvailable = state.primary_action_available;
+    const BOOL primaryAvailable =
+        view.controls.primary != parallel_mater::gallery::GalleryPrimaryAction::none;
     dispatch_async(dispatch_get_main_queue(), ^{
         self->_failed = failed;
         self->_status.text = status;
@@ -273,7 +380,7 @@ UIImage *frame_image(const GallerySession &session) {
                     [catalog addObject:@{
                         @"id":text(std::string(item.id)),
                         @"name":text(std::string(item.scene.name)),
-                        @"description":text(std::string(item.scene.help)),
+                        @"description":text(std::string(item.scene.summary)),
                         @"requirements":text(item.required_feature_names),
                         @"available":@(item.available),
                         @"reason":text(item.unavailable_reason)}];
@@ -433,13 +540,14 @@ UIImage *frame_image(const GallerySession &session) {
 }
 - (void)writeRuntimeInfo {
     try {
+        const auto view = _session->presentation();
         write_report(@"runtime-info.json", @{
-            @"revision":text(GallerySession::build_revision()), @"backend":text(_session->backend_name()),
+            @"revision":text(view.build_revision), @"backend":text(view.backend),
             @"pid":@(getpid()),
-            @"device":text(_session->device_name()), @"nonce":argument(@"--deployment-nonce") ?: @"",
+            @"device":text(view.device), @"nonce":argument(@"--deployment-nonce") ?: @"",
             @"backgrounds":@(_backgrounds), @"foregrounds":@(_foregrounds),
-            @"active":@(_session->active()), @"frames":@(_session->frames), @"background_frames":@(_backgroundFrames),
-            @"release_channel":@"development-preview", @"renderer":@"metal-direct-fenced"});
+            @"active":@(view.active), @"frames":@(view.steps), @"background_frames":@(_backgroundFrames),
+            @"release_channel":@"development-preview", @"renderer":text(renderer_label(view))});
     } catch (const std::exception &error) { NSLog(@"Runtime report failed: %s", error.what()); }
 }
 - (void)shutdown {
@@ -465,7 +573,8 @@ UIImage *frame_image(const GallerySession &session) {
     };
     const auto initial_generation = _mobile->state().surface_generation;
     _mobile->set_foreground(false);
-    require_mobile(!_mobile->frame() && !_mobile->state().active,
+    require_mobile(!_mobile->frame() &&
+                       !_mobile->state().presentation.active,
                    "Background mobile session admitted a frame");
     _mobile->set_foreground(true);
     _mobile->detach_surface();
@@ -481,9 +590,9 @@ UIImage *frame_image(const GallerySession &session) {
                            initial_generation + 2U,
                    "Replacement mobile surface did not recover");
     require_mobile(_mobile->execute(MobileGalleryCommand::toggle_paused) &&
-                       _mobile->state().paused &&
+                       _mobile->state().presentation.paused &&
                        _mobile->execute(MobileGalleryCommand::toggle_paused) &&
-                       !_mobile->state().paused,
+                       !_mobile->state().presentation.paused,
                    "Shared mobile pause/resume failed");
     require_mobile(!_mobile->frame([](const GallerySession &) {
                        throw std::runtime_error("qualification presentation failure");
@@ -500,6 +609,7 @@ UIImage *frame_image(const GallerySession &session) {
         @autoreleasepool {
             const auto &item = catalog[i];
             if (!item.available) {
+                const auto view = _session->presentation();
                 [results addObject:@{
                     @"id":text(std::string(item.id)),
                     @"scene":text(std::string(item.scene.name)),
@@ -507,9 +617,9 @@ UIImage *frame_image(const GallerySession &session) {
                     @"available":@NO, @"skipped":@YES,
                     @"reason":text(item.unavailable_reason)}];
                 write_report(@"smoke-report.json", @{
-                    @"revision":text(GallerySession::build_revision()),
-                    @"backend":text(_session->backend_name()),
-                    @"device":text(_session->device_name()),
+                    @"revision":text(view.build_revision),
+                    @"backend":text(view.backend),
+                    @"device":text(view.device),
                     @"nonce":argument(@"--deployment-nonce") ?: @"",
                     @"completed":@(results.count == catalog.size()),
                     @"frames_per_scene":@(steps),
@@ -525,6 +635,7 @@ UIImage *frame_image(const GallerySession &session) {
                                       static_cast<float>(i)))
                     throw std::runtime_error(_mobile->state().failure);
                 const auto statistics = _session->qualify(steps);
+                const auto view = _session->presentation();
                 [results addObject:@{@"id":text(std::string(item.id)),
                     @"scene":text(std::string(item.scene.name)),
                     @"requirements":text(item.required_feature_names),
@@ -532,7 +643,7 @@ UIImage *frame_image(const GallerySession &session) {
                     @"mean_ms":@(statistics.mean_ms), @"p95_ms":@(statistics.p95_ms),
                     @"timing_window_frames":@(statistics.count), @"session_controls":@YES,
                     @"memory_footprint_bytes":@(memory_footprint()),
-                    @"passed":@YES, @"details":text(_session->details())}];
+                    @"passed":@YES, @"details":text(details_text(view))}];
                 NSLog(@"ParallelMater smoke PASS: %@", text(std::string(item.scene.name)));
                 [UIImagePNGRepresentation(frame_image(*_session)) writeToURL:
                     [directories.firstObject URLByAppendingPathComponent:@"last-smoke-frame.png"] atomically:YES];
@@ -543,9 +654,10 @@ UIImage *frame_image(const GallerySession &session) {
                 NSLog(@"ParallelMater smoke FAIL: %@: %@",
                       text(std::string(item.scene.name)), text(error.what()));
             }
+            const auto reportView = _session->presentation();
             write_report(@"smoke-report.json", @{
-                @"revision":text(GallerySession::build_revision()), @"backend":text(_session->backend_name()),
-                @"device":text(_session->device_name()), @"nonce":argument(@"--deployment-nonce") ?: @"",
+                @"revision":text(reportView.build_revision), @"backend":text(reportView.backend),
+                @"device":text(reportView.device), @"nonce":argument(@"--deployment-nonce") ?: @"",
                 @"completed":@(results.count == catalog.size()), @"frames_per_scene":@(steps),
                 @"mobile_session_contract":mobileContract,
                 @"scope":@"scene output and shared controls; not numerical, thermal, or full physics qualification",
