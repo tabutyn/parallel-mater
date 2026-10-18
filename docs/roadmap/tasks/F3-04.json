@@ -1,7 +1,7 @@
 {
   "id": "F3-04",
   "title": "Validate synchronization state",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F3-02"
   ],
@@ -18,6 +18,14 @@
     "Valid asynchronous schedules pass without accidental serialization requirements."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "fc9b1dcd-9e1c-4552-aba2-30124a40647d",
+    "owner": "codex-windows-validation",
+    "machine": "windows-gtx1080",
+    "branch": "work/F3-04/windows-gtx1080",
+    "claimed_at": "2026-10-18T00:03:01Z",
+    "heartbeat_at": "2026-10-18T00:03:01Z",
+    "expires_at": "2026-10-19T00:03:01Z"
+  },
   "history": []
 }
