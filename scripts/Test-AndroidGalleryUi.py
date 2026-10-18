@@ -31,7 +31,7 @@ class Device:
         return result.stdout
 
     def hierarchy(self):
-        dump = self.run("shell", "uiautomator", "dump", "--compressed",
+        dump = self.run("shell", "uiautomator", "dump",
                         "/sdcard/pm-gallery-window.xml")
         raw = self.run("exec-out", "cat", "/sdcard/pm-gallery-window.xml")
         start = raw.find("<?xml")
@@ -60,6 +60,18 @@ class Device:
             if bool(matches) == present:
                 return matches[0] if matches else None, last
             time.sleep(1)
+        slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")[:48]
+        if last is not None:
+            ET.ElementTree(last).write(
+                self.output / f"failure-{slug}.xml", encoding="utf-8",
+                xml_declaration=True)
+        try:
+            (self.output / f"failure-{slug}.png").write_bytes(
+                self.run("exec-out", "screencap", "-p", binary=True))
+            (self.output / f"failure-{slug}-logcat.txt").write_text(
+                self.run("logcat", "-d"), encoding="utf-8")
+        except subprocess.CalledProcessError:
+            pass
         state = "appear" if present else "disappear"
         raise RuntimeError(f"Timed out waiting for {value!r} to {state}")
 
@@ -139,7 +151,10 @@ def main():
 
     device.run("shell", "am", "force-stop", PACKAGE)
     device.run("shell", "am", "start", "-n", ACTIVITY)
-    device.wait_node("Choose scene: RIGID BODY")
+    _, initial = device.wait_node("Choose scene: RIGID BODY")
+    ET.ElementTree(initial).write(
+        args.output / "initial-rigid-body.xml", encoding="utf-8",
+        xml_declaration=True)
 
     records = []
     global_controls = {
