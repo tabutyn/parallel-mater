@@ -1,7 +1,7 @@
 {
   "id": "F5-24",
   "title": "Expose lifecycle qualification through the installed CLI",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-19",
     "F5-20"
@@ -19,6 +19,14 @@
     "Prove the build-tree and installed CLI outputs pass conformance/v1/lifecycle.py on every production driver available on the host, and document the installed invocation."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "c25d20da-22f8-41b6-95f2-0c2825b71fc7",
+    "owner": "codex-linux-evidence",
+    "machine": "thomas-laptop",
+    "branch": "work/F5-24/thomas-laptop",
+    "claimed_at": "2026-10-18T19:48:13Z",
+    "heartbeat_at": "2026-10-18T19:48:13Z",
+    "expires_at": "2026-10-19T19:48:13Z"
+  },
   "history": []
 }
