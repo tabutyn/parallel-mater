@@ -2,6 +2,7 @@
   "schema": "parallel-mater-roadmap-vulkan-validation-layer-evidence/v1",
   "task": "F5-09",
   "source": {
+    "implementation_commit": "12faaa0dc8e53c92f46a4633edcf3752a3841aa5",
     "tested_commit": "a6300ed2d20f72dd60fa974543804f4271bfba9b",
     "branch": "work/F5-09/thomas-laptop",
     "tested_at": "2026-10-18T15:23:21Z"
