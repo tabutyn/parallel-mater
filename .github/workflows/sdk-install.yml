@@ -32,6 +32,8 @@ jobs:
         run: python3 tools/check_sdk_install.py --build-dir build-sdk-ci --output out/sdk-evidence/ci
       - name: Validate selected package components
         run: python3 tools/check_sdk_components.py --build-dir build-sdk-ci --output out/sdk-components/ci
+      - name: Compare two clean release builds
+        run: python3 tools/check_release_reproducibility.py --preset sdk-ci --output out/release-reproducibility/ci
       - name: Preserve qualification scope and logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -42,6 +44,9 @@ jobs:
             out/sdk-evidence/ci/*.log
             out/sdk-components/ci/report.json
             out/sdk-components/ci/*.log
+            out/release-reproducibility/ci/report.json
+            out/release-reproducibility/ci/manifest-*.json
+            out/release-reproducibility/ci/*.log
             build-sdk-ci/Testing/Temporary/*.log
   sdk-macos:
     name: sdk (macOS ARM64)
@@ -71,6 +76,8 @@ jobs:
         run: python3 tools/check_sdk_install.py --build-dir build-sdk-ci --output out/sdk-evidence/ci
       - name: Validate selected package components
         run: python3 tools/check_sdk_components.py --build-dir build-sdk-ci --output out/sdk-components/ci
+      - name: Compare two clean release builds
+        run: python3 tools/check_release_reproducibility.py --preset sdk-ci --output out/release-reproducibility/ci
       - name: Preserve qualification scope and logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -81,6 +88,9 @@ jobs:
             out/sdk-evidence/ci/*.log
             out/sdk-components/ci/report.json
             out/sdk-components/ci/*.log
+            out/release-reproducibility/ci/report.json
+            out/release-reproducibility/ci/manifest-*.json
+            out/release-reproducibility/ci/*.log
             build-sdk-ci/Testing/Temporary/*.log
   sdk-windows:
     name: sdk (Windows x64)
@@ -111,6 +121,8 @@ jobs:
         run: python tools/check_sdk_install.py --build-dir build-sdk-ci --output out/sdk-evidence/ci
       - name: Validate selected package components
         run: python tools/check_sdk_components.py --build-dir build-sdk-ci --output out/sdk-components/ci
+      - name: Compare two clean release builds
+        run: python tools/check_release_reproducibility.py --preset sdk-ci --output out/release-reproducibility/ci
       - name: Preserve qualification scope and logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -121,4 +133,7 @@ jobs:
             out/sdk-evidence/ci/*.log
             out/sdk-components/ci/report.json
             out/sdk-components/ci/*.log
+            out/release-reproducibility/ci/report.json
+            out/release-reproducibility/ci/manifest-*.json
+            out/release-reproducibility/ci/*.log
             build-sdk-ci/Testing/Temporary/*.log

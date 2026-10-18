@@ -82,6 +82,46 @@ Windows DLLs install in `bin`, Unix shared libraries in the configured `libdir`.
 
 ## Required release evidence
 
+Before packaging a release, run two isolated builds from a clean checkout and
+retain their manifests and comparison report:
+
+```bash
+python3 tools/check_release_reproducibility.py \
+  --preset sdk-ci \
+  --output out/release-reproducibility/sdk-ci
+```
+
+The output directory must not already exist. Each build has an independent
+build and install prefix. `manifest-a.json` and `manifest-b.json` record the
+source revision and tracked-tree digest, host/toolchain executable identities,
+pinned dependencies, normalized CMake options, generated artifacts, installed
+artifacts and every artifact SHA-256. The checker rejects installed runtime
+metadata that requires a source, build or install path from the workstation.
+Compiler paths are represented by executable name and checksum rather than by
+their workstation location.
+
+`report.json` compares the complete artifact sets. A difference is retained and
+classified as text, binary-container content, known PE/archive metadata, or an
+embedded build path. The check succeeds when both builds used equivalent
+recorded inputs and neither installed runtime configuration retained a local
+path; artifact differences do not become a false failure or disappear. The
+report says that output is bit-identical only when every installed and generated
+artifact checksum agrees. That observation applies only to the exact recorded
+host, toolchain and input tuple and is not a cross-host reproducibility claim.
+
+The repository presets use Ninja. A development host without Ninja can select
+its native generator while preserving the same preset options, for example:
+
+```powershell
+python tools/check_release_reproducibility.py `
+  --preset sdk-ci `
+  --generator "Visual Studio 18 2026" --architecture x64 `
+  --output out/release-reproducibility/sdk-ci-vs
+```
+
+`--allow-dirty` exists only for diagnostics. Evidence submitted for a release
+must come from the default clean-source path.
+
 `tools/check_sdk_install.py --build-dir build-sdk-ci --output out/sdk-evidence/new`
 requires a new output directory. It installs, moves the SDK, then stages only
 public consumer and independent mock-driver sources into an external project.
