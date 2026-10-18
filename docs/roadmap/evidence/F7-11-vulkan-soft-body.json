@@ -1,0 +1,67 @@
+{
+  "schema": "parallel-mater-roadmap-vulkan-soft-body-evidence/v1",
+  "task": "F7-11",
+  "scope": "Shared Slang soft-body, rigid-soft-body and fluid-soft-body schedules executed through the public Vulkan driver and common Gallery session",
+  "source": {
+    "merged_main_commit": "442782bda58f0bb1bc562cc3dbd8672048f4e8ee",
+    "implementation_commit": "577afd6d3363e68d2d53ca2dc0f2d20dbd7795c8",
+    "verification_merge_commit": "74edef68c1d756692eb3465f2b1bf89f7d7e8809",
+    "branch": "work/F7-11/thomas-laptop",
+    "dirty_before_evidence": false
+  },
+  "device": {
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "driver": "590.44.01",
+    "operating_system": "Linux 6.1.0-53-amd64 x86_64",
+    "compiler": "GCC 12.2.0",
+    "slang": "2026.18",
+    "graphics_api": "Vulkan"
+  },
+  "contract": {
+    "shared_slang_modules": [
+      "soft_body",
+      "geometry_soft_body",
+      "fluid_soft_body"
+    ],
+    "portable_workgroup_size": 128,
+    "advertised_domain": "soft body",
+    "advertised_interactions": [
+      "fluid-soft-body contact",
+      "soft-body-rigid contact"
+    ],
+    "explicitly_unavailable_interactions": [
+      "cloth-soft-body contact"
+    ]
+  },
+  "verification": [
+    {
+      "check": "VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation ctest --test-dir build-f7-11 --output-on-failure -j1 -R 'vulkan-|gallery-input|gallery-workload|^parallel-mater-command-api-tests$'",
+      "result": "42 selected tests completed with Vulkan SDK 1.4.341.0 validation: 37 passed, 5 capability-expected skips and 0 failures"
+    },
+    {
+      "check": "VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation ctest --test-dir build-f7-11 -R '^parallel-mater-gallery-session-contract-tests$' --output-on-failure",
+      "result": "passed in 366.51 seconds; common session exercised soft body, soft-body-rigid and soft-body-fluid scenes with visible render validation"
+    },
+    {
+      "check": "ctest --test-dir build-f7-11 --output-on-failure -j1 -R 'vulkan-soft-body-capability|vulkan-gallery-Softbody|gallery-session-contract'",
+      "result": "5/5 passed after merging current main; exact capability contract, common session and three 120-frame public-command Gallery checks"
+    },
+    {
+      "check": "slangc SPIR-V compilation through cmake/ParallelMaterVulkan.cmake",
+      "result": "soft_body, geometry_soft_body and fluid_soft_body compiled and bound; 3/3 module checks passed"
+    },
+    {
+      "check": "headless Vulkan captures for Softbody.glb, SoftbodyRigidBody.glb and SoftbodyFluid.glb",
+      "result": "valid 1920x1080 visible captures; sha256 8c31ce03c3f5369d047749448d881f914623c5df1f52c2b2f7708a31448b99c0, f13ef206fde79547bdf59eb287efa1a26b769f088e607e5ece8269b44aa302ae, 13d238132a0932c28b026b3a24ce516993762bee617b57a99d6fcc843d570f2f"
+    },
+    {
+      "check": "python3 tests/solver/check_slang_architecture.py and python3 tools/reference/build.py --check",
+      "result": "passed; no native physics kernels or direct native launches, and generated public reference artifacts are current"
+    }
+  ],
+  "limitations": [
+    "Physical Android execution is qualified separately by F5-15 and the complete Android Gallery gate F7-18.",
+    "Cloth-soft-body and the remaining cross-deformable pairs remain unavailable until F7-14 qualifies them.",
+    "Rope and smoke schedules remain unavailable on Vulkan until F7-12 and F7-13 qualify them."
+  ]
+}
