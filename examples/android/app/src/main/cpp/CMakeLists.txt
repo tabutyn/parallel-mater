@@ -54,7 +54,7 @@ if(PARALLEL_MATER_ANDROID_QUALIFICATION)
         parallel-mater-conformance-runner)
     add_executable(pm-android-device-contracts qualification_main.cpp)
     target_link_libraries(pm-android-device-contracts PRIVATE
-        parallel-mater-conformance-runner)
+        parallel-mater-conformance-runner Vulkan::Vulkan)
     foreach(target pm-android-conformance pm-android-device-contracts)
         target_compile_features(${target} PRIVATE cxx_std_20)
     endforeach()

@@ -170,6 +170,7 @@ def main():
         ("rigid-quality", f"{remote_results}/quality/rigid-brick-penetration-v1.json"),
         ("fluid-quality", f"{remote_results}/quality/core-conservation-stability-v1.json"),
         ("adverse-lifecycle", f"{remote_results}/lifecycle/adverse-capacity-three-family-v1.json"),
+        ("vulkan-info", f"{remote_results}/vulkan.json"),
     )
     for contract, output in contracts:
         run_device("pm-android-device-contracts",
@@ -213,6 +214,7 @@ def main():
 
     apk = ROOT / "examples/android/app/build/outputs/apk/debug/app-debug.apk"
     provenance = json.loads((args.output / "provenance.json").read_text())
+    vulkan = json.loads((artifacts / "vulkan.json").read_text())
     capture = {
         "schema": "parallel-mater-android-vulkan-qualification-capture/v1",
         "source_commit": provenance["source_commit"],
@@ -229,6 +231,11 @@ def main():
             "vendor_id": provenance["vendor_id"],
             "device_id": provenance["device_id"],
             "vulkan_driver_version": provenance["driver_version"],
+            "vulkan_api_version": vulkan["api_version"],
+            "vulkan_instance_api_version": vulkan["instance_api_version"],
+            "vulkan_driver_id": vulkan["driver_id"],
+            "vulkan_driver_name": vulkan["driver_name"],
+            "vulkan_driver_info": vulkan["driver_info"],
         },
         "toolchain": {
             "compiler": provenance["host_compiler"],

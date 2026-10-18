@@ -151,7 +151,9 @@ It executes command/API, asynchronous submission and bounded liquid/reset
 checks, then captures device provenance, advertised capabilities, all canonical
 trajectories, analytic quality fixtures and adverse lifecycle fixtures. Raw
 artifacts, independent evaluator reports, hashes and public device/toolchain
-metadata are saved in ignored `out/android/native-vulkan-tests/`. Failed,
+metadata are saved in ignored `out/android/native-vulkan-tests/`. Vulkan API,
+driver name, driver information and numeric driver identity come directly from
+the device loader. Failed,
 unsupported and missing contracts remain in the capture instead of being
 converted into passes.
 These tests enable the Parallel Mater command validation layer; they do not
