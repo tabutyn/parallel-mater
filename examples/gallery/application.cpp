@@ -410,7 +410,6 @@ static int run_gallery_application(
                   << " is not available\n";
         return 1;
     }
-    GalleryWindow presentation;
     const bool interactive = options.headless_output.empty() &&
         !options.print_brick_profile;
     if (!options.backend && backends.size() == 1U)
@@ -490,18 +489,27 @@ static int run_gallery_application(
     FrameTimingCollector frame_timings;
     GalleryFramePolicy frame_policy(
         options.workload_limits ? &*options.workload_limits : nullptr);
-    // Backend-specific workload profiles may change the render resolution.
-    // Create the simulation presentation after those limits are selected.
-    if (interactive &&
-        !GalleryWindow::create(1280U, 720U, options.width, options.height,
-                               window_title.c_str(), presentation, error)) {
-        std::cerr << error << '\n';
-        return 1;
-    }
     GallerySession session(desktop_session_config(
         options, options.initial_context));
     GalleryRuntime &runtime = session.runtime();
     const GalleryCatalog &scene_catalog = session.catalog();
+    // The target-detach guard below releases swapchains before this platform
+    // surface, while the session keeps its borrowed native instance alive.
+    GalleryWindow presentation;
+    if (interactive &&
+        !GalleryWindow::create(1280U, 720U, options.width, options.height,
+                               window_title.c_str(), presentation, error,
+                               options.backend)) {
+        std::cerr << error << '\n';
+        return 1;
+    }
+    struct NativeTargetDetach {
+        GalleryRuntime &runtime;
+        ~NativeTargetDetach() {
+            if (runtime.native_renderer)
+                runtime.native_renderer->detach_target();
+        }
+    } native_target_detach{runtime};
     std::cout << "Gallery scene ready index=" << session.selection()
               << " revision=" << session.revision() << '\n' << std::flush;
     PmPhysicalDeviceProperties physics_device{};
@@ -1322,16 +1330,13 @@ static int run_gallery_application(
                 runtime.native_renderer->renderer_device().native;
             const bool capture_image = !options.interactive_smoke_output.empty() &&
                 displayed_frames + 1 == static_cast<unsigned>(options.frames);
+            const auto target = presentation.native_render_target(
+                native_device, options.width, options.height, error);
             parallel_mater::gallery::GpuRenderRequest request;
-            if (parallel_mater::gallery::make_gpu_render_request(
+            if (error.empty() && parallel_mater::gallery::make_gpu_render_request(
                     runtime.instance.render_buffers,
                     runtime.gpu_frame_generation, current_camera,
-                    {native_device.backend,
-                     native_device.device,
-                     static_cast<PmNativeHandle>(reinterpret_cast<std::uintptr_t>(
-                         presentation.metal_layer(reinterpret_cast<void *>(
-                             native_device.device)))),
-                     options.width, options.height},
+                    target,
                     {capture_image ? &pixels : nullptr}, &frame_timings, pixels,
                     request, error)) {
                 presented_ok = runtime.native_renderer->render(request, error);
@@ -1358,8 +1363,15 @@ static int run_gallery_application(
         ++displayed_frames;
         if (!options.interactive_smoke_output.empty() && displayed_frames == static_cast<unsigned>(options.frames)) {
             if (!write_ppm(options.interactive_smoke_output, pixels, options.width, options.height)) return 1;
-            std::cout << "Interactive smoke: " << displayed_frames << " frames, renderer="
-                      << (gpu_frame ? "metal-direct-fenced" : "software") << '\n';
+            std::cout << "Interactive smoke: " << displayed_frames
+                      << " frames, renderer=";
+            if (gpu_frame)
+                std::cout << gallery_backend_name(
+                    runtime.native_renderer->renderer_device().native.backend)
+                          << "-direct-fenced";
+            else
+                std::cout << "software";
+            std::cout << '\n';
             return 0;
         }
     }

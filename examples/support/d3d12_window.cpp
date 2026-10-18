@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/window.hpp>
+#include <parallel_mater_gallery/gpu_renderer.hpp>
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -78,7 +79,8 @@ bool GalleryWindow::create(std::uint32_t window_width,
                            std::uint32_t image_width,
                            std::uint32_t image_height,
                            std::string_view title, GalleryWindow &output,
-                           std::string &error) {
+                           std::string &error,
+                           std::optional<PmNativeBackend>) {
     error.clear();
     if (image_width == 0U || image_height == 0U) {
         error = "presentation image dimensions must be nonzero";
@@ -390,6 +392,13 @@ void GalleryWindow::set_vsync(bool enabled) noexcept {
 
 GLFWwindow *GalleryWindow::native_handle() const noexcept {
     return impl_ ? impl_->window : nullptr;
+}
+
+GpuRenderTarget GalleryWindow::native_render_target(
+    const PmNativeDeviceInfo &, std::uint32_t, std::uint32_t,
+    std::string &error) {
+    error = "D3D12 Gallery does not use the native GPU renderer contract";
+    return {};
 }
 
 } // namespace parallel_mater::gallery

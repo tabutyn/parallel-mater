@@ -1,0 +1,63 @@
+{
+  "schema": "parallel-mater-roadmap-vulkan-gallery-evidence/v1",
+  "task": "F7-09",
+  "scope": "Direct Vulkan Gallery rendering from public GPU outputs, including explicit queue identity, offscreen diagnostics and native-surface lifecycle",
+  "source": {
+    "merged_main_commit": "bbb32e7b6a024376ca5bfe3b3a045342907e10d4",
+    "implementation_commit": "3a5ab6d252be9aa7523ad9f1a0bdf185a31ac184",
+    "dirty": false
+  },
+  "device": {
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "driver": "590.44.01",
+    "operating_system": "Linux 6.1.0-53-amd64 x86_64",
+    "compiler": "GCC 12.2.0",
+    "slang": "2026.18",
+    "graphics_api": "Vulkan"
+  },
+  "contract": {
+    "public_native_device": true,
+    "public_native_queue": true,
+    "public_native_output_buffer": true,
+    "physics_graphics_device_identity_checked": true,
+    "ordinary_frame_host_readback": false,
+    "frame_slots": 2,
+    "synchronization": "queue-idle ownership handoff plus per-slot Vulkan fences and acquire/render semaphores",
+    "shared_graphics_source": "examples/gallery/render/gallery.slang"
+  },
+  "verification": [
+    {
+      "check": "ctest --test-dir build-linux-vulkan-preview -R 'parallel-mater-(generated-api-check|vulkan-command-api-tests|vulkan-gallery-renderer-tests|vulkan-gallery-surface-tests|gallery-gpu-renderer-contract-tests)$' --output-on-failure",
+      "result": "5/5 passed with PM_VULKAN_VALIDATION=1; direct output, empty ordinary-frame readback, top-oriented diagnostic readback, resize, repeated frames and teardown"
+    },
+    {
+      "check": "ctest --test-dir build-linux-vulkan-preview -R '^parallel-mater-gallery-session-contract-tests$' --output-on-failure",
+      "result": "1/1 passed; 33.76 seconds; common lifecycle, frame and native-renderer session contract"
+    },
+    {
+      "check": "parallel-mater-vulkan-gallery-surface-tests",
+      "result": "passed with Vulkan validation; attached a GLFW Vulkan surface, rendered, detached, rendered offscreen, destroyed it, attached a differently sized replacement, resized, rendered and tore down cleanly"
+    },
+    {
+      "check": "PM_VULKAN_VALIDATION=1 ./scripts/Run-DesktopGallery.sh --backend vulkan --constraint-point --interactive-smoke /tmp/f7-09-vulkan.ppm --frames 6",
+      "result": "passed; renderer=vulkan-direct-fenced; upright 1280x720 capture; PPM sha256 f45dcdfeddaaaea01e70987525e6d659bad9f06be489b50b1fead7fe3f33a2e8"
+    },
+    {
+      "check": "ctest --test-dir build-desktop-switch -R '^parallel-mater-command-api-tests$' --output-on-failure",
+      "result": "passed on CUDA; public native-queue API retains cross-backend loader coverage"
+    },
+    {
+      "check": "ANDROID_HOME=/home/thomas/Android/Sdk ./scripts/Build-AndroidGallery.sh",
+      "result": "ARM64 Vulkan debug APK built successfully; sha256 5b746a581a8ff9c9853b603882b2c3773de576c33d8a0102466713e1ee280b8f"
+    },
+    {
+      "check": "python3 tests/solver/check_slang_architecture.py and python3 tools/reference/build.py --check",
+      "result": "passed; physics remains in common Slang and public headers/specification match canonical sources"
+    }
+  ],
+  "limitations": [
+    "The physical surface test exercises the same detach, teardown and replacement recovery required after VK_ERROR_SURFACE_LOST_KHR; it cannot force the window-system driver to return that result deterministically.",
+    "The Android APK compiles this renderer, but Android still uses software presentation until F7-16 supplies its ANativeWindow as a Vulkan target.",
+    "Queue-idle handoff is correct and explicit but intentionally conservative; timeline-semaphore overlap remains future performance work."
+  ]
+}

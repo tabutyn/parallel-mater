@@ -42,7 +42,13 @@ bool resolve_gpu_renderer_device(const GpuSceneBuffers &buffers,
         error = "GPU renderer could not export the public native device";
         return false;
     }
-    output = {buffers.device, buffers.queue, native,
+    PmNativeQueueInfo native_queue{};
+    if (pmGetNativeQueue(buffers.queue, &native_queue) != PM_SUCCESS ||
+        native_queue.queue == 0U) {
+        error = "GPU renderer could not export the public native queue";
+        return false;
+    }
+    output = {buffers.device, buffers.queue, native, native_queue,
               buffers.resource_generation};
     return true;
 }

@@ -71,6 +71,24 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetNativeDevice(
 #endif
 }
 
+extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetNativeQueue(
+    PmQueue queue, PmNativeQueueInfo *native_queue) {
+    if (native_queue == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+    *native_queue = {};
+    if (queue == nullptr || queue->device == nullptr)
+        return PM_ERROR_INVALID_ARGUMENT;
+#if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
+    return PM_ERROR_FEATURE_NOT_PRESENT;
+#else
+    queue->device->services->describe_native_queue(*native_queue);
+    if (native_queue->queue == 0U) {
+        *native_queue = {};
+        return PM_ERROR_FEATURE_NOT_PRESENT;
+    }
+    return PM_SUCCESS;
+#endif
+}
+
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmImportNativeBuffer(
     PmDevice device, const PmNativeBufferInfo *info, PmBuffer *buffer) {
     if (buffer == nullptr) return PM_ERROR_INVALID_ARGUMENT;

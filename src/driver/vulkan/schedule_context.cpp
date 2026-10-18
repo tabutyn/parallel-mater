@@ -23,6 +23,51 @@ void check(VkResult result, const char *operation) {
         throw std::runtime_error(operation);
     }
 }
+
+std::vector<const char *> available_instance_extensions() {
+    std::uint32_t count{};
+    check(vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr),
+          "enumerate instance extensions");
+    std::vector<VkExtensionProperties> available(count);
+    check(vkEnumerateInstanceExtensionProperties(
+              nullptr, &count, available.data()),
+          "enumerate instance extensions");
+    constexpr const char *candidates[]{
+        "VK_KHR_surface", "VK_KHR_xcb_surface", "VK_KHR_xlib_surface",
+        "VK_KHR_wayland_surface", "VK_KHR_win32_surface",
+        "VK_KHR_android_surface", "VK_EXT_metal_surface",
+        "VK_MVK_macos_surface"};
+    std::vector<const char *> enabled;
+    for (const char *candidate : candidates) {
+        if (std::any_of(available.begin(), available.end(),
+                [&](const VkExtensionProperties &extension) {
+                    return std::strcmp(extension.extensionName, candidate) == 0;
+                }))
+            enabled.push_back(candidate);
+    }
+    return enabled;
+}
+
+std::vector<const char *> available_device_extensions(
+    VkPhysicalDevice physical) {
+    std::uint32_t count{};
+    check(vkEnumerateDeviceExtensionProperties(
+              physical, nullptr, &count, nullptr),
+          "enumerate device extensions");
+    std::vector<VkExtensionProperties> available(count);
+    check(vkEnumerateDeviceExtensionProperties(
+              physical, nullptr, &count, available.data()),
+          "enumerate device extensions");
+    std::vector<const char *> enabled;
+    if (std::any_of(available.begin(), available.end(),
+            [](const VkExtensionProperties &extension) {
+                return std::strcmp(extension.extensionName,
+                                   VK_KHR_SWAPCHAIN_EXTENSION_NAME) == 0;
+            }))
+        enabled.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    return enabled;
+}
+
 struct Instance {
     VkInstance handle{};
     Instance() {
@@ -31,6 +76,9 @@ struct Instance {
         app.apiVersion = VK_API_VERSION_1_3;
         VkInstanceCreateInfo info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
         info.pApplicationInfo = &app;
+        const auto extensions = available_instance_extensions();
+        info.enabledExtensionCount = static_cast<std::uint32_t>(extensions.size());
+        info.ppEnabledExtensionNames = extensions.data();
         const char *validation = "VK_LAYER_KHRONOS_validation";
         if (const char *enabled = std::getenv("PM_VULKAN_VALIDATION");
             enabled && std::strcmp(enabled, "1") == 0) {
@@ -412,6 +460,10 @@ PmResult ScheduleContext::initialize(int ordinal) noexcept {
         create.queueCreateInfoCount = 1;
         create.pQueueCreateInfos = &queue;
         create.pEnabledFeatures = &features;
+        const auto extensions = available_device_extensions(i.adapter.handle);
+        create.enabledExtensionCount =
+            static_cast<std::uint32_t>(extensions.size());
+        create.ppEnabledExtensionNames = extensions.data();
         check(vkCreateDevice(i.adapter.handle, &create, nullptr, &i.device),
               "create device");
         i.initialize_cache();
@@ -853,6 +905,10 @@ VkPhysicalDevice ScheduleContext::physical() const noexcept {
 }
 int ScheduleContext::ordinal() const noexcept { return impl_->ordinal; }
 VkDevice ScheduleContext::device() const noexcept { return impl_->device; }
+VkQueue ScheduleContext::queue() const noexcept { return impl_->queue; }
+std::uint32_t ScheduleContext::queue_family() const noexcept {
+    return impl_->adapter.family;
+}
 VkBuffer ScheduleContext::buffer(const void *pointer) const noexcept {
     std::lock_guard lock(impl_->mutex);
     auto b = impl_->find(pointer);

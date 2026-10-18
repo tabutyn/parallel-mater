@@ -80,6 +80,23 @@ checked against the adapter's Vulkan cache identity before use.
 interactive startup limits. Command-line counts override startup defaults.
 Headless tests use explicit counts and do not apply interactive profiles.
 
+### Native Gallery rendering
+
+The desktop Gallery compiles `examples/gallery/render/gallery.slang` to SPIR-V
+and renders the public physics output buffer directly on the Vulkan device. The
+renderer obtains the borrowed instance, physical device, logical device, queue,
+and output buffer only through Parallel Mater's public native-interoperability
+records. Ordinary frames perform no physics-state or image readback. Explicit
+capture and qualification requests render offscreen and copy only the final
+RGBA image.
+
+The GLFW shell owns `VkSurfaceKHR`; the renderer owns its swapchain. Target
+detach releases the swapchain before the shell destroys or replaces the
+surface, while the physics driver keeps the borrowed Vulkan instance alive.
+The renderer handles resize, out-of-date/suboptimal swapchains and reported
+surface loss. Android continues to copy the software image until F7-16 attaches
+its `ANativeWindow` surface to this same renderer.
+
 Use a recent Vulkan SDK validator. On this laptop the system 1.3.239 layer
 crashes while inspecting the liquid shader; the isolated SDK 1.4.341.0 layer
 passes. No system driver or validation package was replaced.
@@ -104,7 +121,19 @@ The scripts do not start a build. Use `--parallel 1` for builds on this laptop.
 Tests exercise transfers, rigid-body motion and contact, GPU timestamps,
 asynchronous completion, analytic liquid free fall across dispatch boundaries,
 bounded Fluid and FluidRigid scenes, all four cloth Gallery scenes, paint, and
-reset.
+reset. Native Gallery tests additionally cover device/queue identity, direct
+output, frames in flight, oriented diagnostic readback, resize, surface detach
+and replacement, offscreen fallback, and validation-clean teardown.
+
+## Native Gallery evidence (2026-10-18)
+
+On the NVIDIA GeForce RTX 3050 Ti Laptop GPU, the validation-enabled renderer
+contract passed direct rendering without ordinary-frame readback, repeated
+frames, offscreen image checks, resize, and teardown. A physical GLFW test
+passed surface attach, detach, offscreen fallback, replacement, resize, and
+teardown. A six-frame interactive Point-constraint smoke presented through the
+Vulkan swapchain and captured an upright 1280×720 image without a validation
+message.
 
 ## Desktop cloth evidence (2026-10-17)
 

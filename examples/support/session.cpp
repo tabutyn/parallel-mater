@@ -224,6 +224,14 @@ void GallerySession::resize(unsigned w, unsigned h) {
     width = w; height = h;
     timing.clear_history();
 }
+void GallerySession::set_render_target(GpuRenderTarget target) noexcept {
+    const bool replacing = render_target_.backend != target.backend ||
+        render_target_.device != target.device ||
+        render_target_.handle != target.handle;
+    if (replacing && runtime_.native_renderer)
+        runtime_.native_renderer->detach_target();
+    render_target_ = target;
+}
 void GallerySession::orbit(float x, float y) {
     require_scene();
     runtime_.camera.begin_drag(CameraDragMode::orbit, 0, 0);

@@ -81,8 +81,9 @@
     if (limits.target_fps == 0U)
         limits.target_fps = GalleryFramePolicy::default_target_fps;
     const bool create_native_renderer =
-        options.backend == PM_NATIVE_BACKEND_METAL && !options.calibrate &&
-        options.headless_output.empty();
+        (options.backend == PM_NATIVE_BACKEND_METAL ||
+         options.backend == PM_NATIVE_BACKEND_VULKAN) &&
+        !options.calibrate && options.headless_output.empty();
     GallerySessionConfig config{
         .assets = gallery_resource_path(
             options, PARALLEL_MATER_GALLERY_ASSET_DIRECTORY),
@@ -101,7 +102,10 @@
         .rigid_body_asset = gallery_resource_path(options, options.scene),
         .replacement = GalleryReplacementPolicy::preserve_until_ready,
         .create_host_renderer = true,
-        .prime_scene = false,
+        // Direct renderers need one completed output generation before the
+        // window can present its first frame. Headless/software desktop paths
+        // retain their existing explicit stepping behavior.
+        .prime_scene = create_native_renderer,
     };
     const auto backend = options.backend;
     config.validate_scene =

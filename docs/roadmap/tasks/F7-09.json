@@ -1,7 +1,7 @@
 {
   "id": "F7-09",
   "title": "Implement native Vulkan Gallery rendering",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-08"
   ],
@@ -16,15 +16,27 @@
     "Ordinary frames perform no physics-state or image readback and use the same physical device as the selected Vulkan physics driver.",
     "Offscreen image checks, resize, frames in flight, surface loss and teardown pass with Vulkan validation enabled where available."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "35d5517d-3e3e-495f-af44-2f9dbeffab5d",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F7-09/thomas-laptop",
-    "claimed_at": "2026-10-18T02:04:58Z",
-    "heartbeat_at": "2026-10-18T02:04:58Z",
-    "expires_at": "2026-10-19T02:04:58Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F7-09-vulkan-gallery.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "35d5517d-3e3e-495f-af44-2f9dbeffab5d",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-09/thomas-laptop",
+        "claimed_at": "2026-10-18T02:04:58Z",
+        "heartbeat_at": "2026-10-18T02:04:58Z",
+        "expires_at": "2026-10-19T02:04:58Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T02:58:14Z",
+      "reason": "Common Slang Gallery graphics now render public Vulkan GPU outputs directly with validated device/queue identity, ordinary-frame zero readback, offscreen diagnostics and surface lifecycle recovery.",
+      "evidence": [
+        "docs/roadmap/evidence/F7-09-vulkan-gallery.json"
+      ]
+    }
+  ]
 }

@@ -9091,7 +9091,7 @@
     {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-cuda",
-      "expected": "b612c4aad5e3f0a84e47c7906335d71dcba6053a14b9e7c87c3fd867825088e8",
+      "expected": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
@@ -9100,7 +9100,7 @@
     {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-cuda",
-      "expected": "b612c4aad5e3f0a84e47c7906335d71dcba6053a14b9e7c87c3fd867825088e8",
+      "expected": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[2].contract_sha256",
@@ -9109,7 +9109,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "82c846f1f6bec65b715ee72daebbe4df019c254540dcbcb9b4594a83ba949b9c",
+      "expected": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -9118,7 +9118,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "82c846f1f6bec65b715ee72daebbe4df019c254540dcbcb9b4594a83ba949b9c",
+      "expected": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -9503,7 +9503,7 @@
     {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-d3d12",
-      "expected": "b612c4aad5e3f0a84e47c7906335d71dcba6053a14b9e7c87c3fd867825088e8",
+      "expected": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
@@ -9512,7 +9512,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "82c846f1f6bec65b715ee72daebbe4df019c254540dcbcb9b4594a83ba949b9c",
+      "expected": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -12118,7 +12118,7 @@
     {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-metal",
-      "expected": "b612c4aad5e3f0a84e47c7906335d71dcba6053a14b9e7c87c3fd867825088e8",
+      "expected": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
@@ -12127,7 +12127,7 @@
     {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-metal",
-      "expected": "b612c4aad5e3f0a84e47c7906335d71dcba6053a14b9e7c87c3fd867825088e8",
+      "expected": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
@@ -12136,7 +12136,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "82c846f1f6bec65b715ee72daebbe4df019c254540dcbcb9b4594a83ba949b9c",
+      "expected": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -12145,7 +12145,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "82c846f1f6bec65b715ee72daebbe4df019c254540dcbcb9b4594a83ba949b9c",
+      "expected": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -12159,7 +12159,7 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "82c846f1f6bec65b715ee72daebbe4df019c254540dcbcb9b4594a83ba949b9c",
+  "obligations_sha256": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
   "qualification_complete": false,
   "qualified_capability_count": 0,
   "report_count": 7,
@@ -12380,7 +12380,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "c17a49a5ec17b3e1ad3b17333cd8b26d20a7f82d267ad4864d4bcc16dba6f800",
+  "sources_sha256": "f52b7d0c64bc5a3390b54ec1bfce8e9585145b5766b5472cef5202733191400e",
   "valid": true,
   "validation_failures": []
 }

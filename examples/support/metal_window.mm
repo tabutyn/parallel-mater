@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Native surface/input adapter. No physics, session logic or timing collector.
 #include <parallel_mater_gallery/window.hpp>
+#include <parallel_mater_gallery/gpu_renderer.hpp>
 #define GLFW_INCLUDE_NONE
 #define GLFW_EXPOSE_NATIVE_COCOA
 #include <GLFW/glfw3.h>
@@ -26,7 +27,8 @@ GalleryWindow::~GalleryWindow() = default;
 GalleryWindow::GalleryWindow(GalleryWindow &&) noexcept = default;
 GalleryWindow &GalleryWindow::operator=(GalleryWindow &&) noexcept = default;
 bool GalleryWindow::create(unsigned window_width, unsigned window_height, unsigned width, unsigned height,
-                          std::string_view title, GalleryWindow &output, std::string &error) {
+                          std::string_view title, GalleryWindow &output, std::string &error,
+                          std::optional<PmNativeBackend>) {
     if (!width || !height || !glfwInit()) { error = "Invalid dimensions or GLFW unavailable"; return false; }
     auto next = std::make_unique<Impl>(); next->width = width; next->height = height;
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -82,10 +84,20 @@ bool GalleryWindow::present(const std::vector<std::uint32_t> &rgba, std::string 
 }
 void GalleryWindow::set_vsync(bool enabled) noexcept { if (impl_) impl_->layer.displaySyncEnabled = enabled; }
 GLFWwindow *GalleryWindow::native_handle() const noexcept { return impl_ ? impl_->window : nullptr; }
-void *GalleryWindow::metal_layer(void *device) {
-    if (!impl_) return nullptr;
-    impl_->layer.device = (__bridge id<MTLDevice>)device;
-    impl_->layer.drawableSize = CGSizeMake(impl_->width,impl_->height);
-    return (__bridge void *)impl_->layer;
+GpuRenderTarget GalleryWindow::native_render_target(
+    const PmNativeDeviceInfo &native, std::uint32_t width,
+    std::uint32_t height, std::string &error) {
+    if (!impl_ || native.backend != PM_NATIVE_BACKEND_METAL ||
+        native.device == 0U || width == 0U || height == 0U) {
+        error = "Metal presentation target is invalid";
+        return {};
+    }
+    impl_->layer.device = (__bridge id<MTLDevice>)(
+        reinterpret_cast<void *>(native.device));
+    impl_->layer.drawableSize = CGSizeMake(width, height);
+    error.clear();
+    return {native.backend, native.device,
+        static_cast<PmNativeHandle>(reinterpret_cast<std::uintptr_t>(
+            (__bridge void *)impl_->layer)), width, height};
 }
 }

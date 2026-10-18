@@ -1,10 +1,27 @@
 // SPDX-License-Identifier: MIT
 // Common raster drawing of public pm* output records. No physics lives here.
 #include "gallery_uniforms.slangh"
+#ifndef PM_GALLERY_VULKAN
+#define PM_GALLERY_VULKAN 0
+#endif
+#if PM_GALLERY_VULKAN
+#define GALLERY_VERTEX_ID SV_VulkanVertexID
+#define GALLERY_INSTANCE_ID SV_VulkanInstanceID
+#else
+#define GALLERY_VERTEX_ID SV_VertexID
+#define GALLERY_INSTANCE_ID SV_InstanceID
+#endif
 [[vk::binding(1, 0)]] ByteAddressBuffer physics : register(t0);
 [[vk::binding(2, 0)]] StructuredBuffer<float3> surfaceVertices : register(t1);
+[[vk::binding(3, 0)]] Texture2D<float4> overlayImage : register(t2);
+[[vk::binding(4, 0)]] SamplerState overlaySampler : register(s0);
 
-struct VertexInput { float3 position : POSITION; float3 normal : NORMAL; };
+struct VertexInput
+{
+    float3 position : POSITION;
+    float3 normal : NORMAL;
+    float2 uv : TEXCOORD0;
+};
 struct FragmentInput
 {
     float4 position : SV_Position;
@@ -29,19 +46,19 @@ float4 project(float3 world)
 }
 
 [shader("vertex")]
-FragmentInput vertexMain(VertexInput input, uint vertex : SV_VertexID,
-                         uint instance : SV_InstanceID)
+FragmentInput vertexMain(VertexInput input, uint vertex : GALLERY_VERTEX_ID,
+                         uint instance : GALLERY_INSTANCE_ID)
 {
     FragmentInput output = {};
     float3 world = input.position;
     float3 normal = input.normal;
     if (draw.x == GALLERY_DRAW_RIGID_MESH)
     {
-        uint offset = draw.y + draw.z * 52;
+        uint offset = draw.y;
         float3 position = asfloat(physics.Load3(offset));
         float4 orientation = asfloat(physics.Load4(offset + 12));
         orientation = dot(orientation, orientation) > 0.1 ? normalize(orientation) : float4(0,0,0,1);
-        uint previousOffset = draw.w + draw.z * 52;
+        uint previousOffset = draw.w;
         float4 previousOrientation = asfloat(physics.Load4(previousOffset + 12));
         if (dot(previousOrientation, previousOrientation) > 0.1)
         {
@@ -70,12 +87,13 @@ FragmentInput vertexMain(VertexInput input, uint vertex : SV_VertexID,
         const float2 corners[6] = {float2(-1,-1),float2(1,-1),float2(-1,1),
                                   float2(-1,1),float2(1,-1),float2(1,1)};
         output.uv = corners[vertex % 6];
-        uint offset = draw.y + 16 + instance * 48;
+        uint offset = draw.y + 16 + instance * draw.z;
         float3 center = asfloat(physics.Load3(offset));
         world = center + settings.x * (cameraRight.xyz * output.uv.x + cameraUp.xyz * output.uv.y);
         normal = -cameraForward.xyz;
-        output.foam = asfloat(physics.Load(offset + 40));
+        output.foam = settings.w != 0.0 ? asfloat(physics.Load(offset + 40)) : 0.0;
     }
+    if (draw.x != GALLERY_DRAW_PARTICLES) output.uv = input.uv;
     output.world = world;
     output.normal = normal;
     output.position = project(world);
@@ -102,5 +120,41 @@ float4 fragmentMain(FragmentInput input, bool front : SV_IsFrontFace) : SV_Targe
     float3 color = draw.x == GALLERY_DRAW_PARTICLES
         ? lerp(baseColor.xyz, float3(0.92), saturate(input.foam))
         : baseColor.xyz;
+    if (paint.y != 0)
+    {
+        uint2 xy = uint2(clamp(input.uv, 0.0, 0.999999) * paint.y);
+        uint index = xy.y * paint.y + xy.x;
+        uint count = min(physics.Load(paint.x), paint.z);
+        if (index < count)
+        {
+            uint value = physics.Load(paint.x + 16 + index * 4);
+            if (value != 0)
+                color = float3(value & 255, (value >> 8) & 255,
+                               (value >> 16) & 255) / 255.0;
+        }
+    }
     return float4(color * shade, 1.0);
+}
+
+struct OverlayOutput
+{
+    float4 position : SV_Position;
+    float2 uv : TEXCOORD0;
+};
+
+[shader("vertex")]
+OverlayOutput overlayVertex(uint vertex : GALLERY_VERTEX_ID)
+{
+    const float2 positions[3] = {
+        float2(-1.0, -1.0), float2(3.0, -1.0), float2(-1.0, 3.0)};
+    OverlayOutput output;
+    output.position = float4(positions[vertex], 0.0, 1.0);
+    output.uv = (positions[vertex] + 1.0) * 0.5;
+    return output;
+}
+
+[shader("fragment")]
+float4 overlayFragment(OverlayOutput input) : SV_Target
+{
+    return overlayImage.Sample(overlaySampler, input.uv);
 }

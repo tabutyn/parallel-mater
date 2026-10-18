@@ -194,10 +194,13 @@ int main() {
         CHECK(static_cast<const std::uint32_t *>(mapped_readback)[32U + index] == 0xabc00000U + index);
 
     PmNativeDeviceInfo native_device{};
+    PmNativeQueueInfo native_queue{};
     PmNativeBufferInfo native_buffer{};
     CHECK(pmGetNativeDevice(device, &native_device) == PM_SUCCESS);
     CHECK(native_device.backend == PM_TEST_NATIVE_BACKEND);
     CHECK(native_device.device != 0U);
+    CHECK(pmGetNativeQueue(queue, &native_queue) == PM_SUCCESS);
+    CHECK(native_queue.queue != 0U && native_queue.queueIndex == 0U);
     CHECK(pmGetNativeBuffer(device, destination, &native_buffer) == PM_SUCCESS);
     CHECK(native_buffer.buffer != 0U);
     CHECK(native_buffer.size == byte_count);

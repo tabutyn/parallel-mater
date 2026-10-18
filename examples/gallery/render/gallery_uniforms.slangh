@@ -14,5 +14,6 @@ static const uint GALLERY_DRAW_FLUID_SURFACE = 3;
     float4 cameraForward;
     float4 baseColor;
     uint4 draw;
+    uint4 paint;
     float4 settings;
 };

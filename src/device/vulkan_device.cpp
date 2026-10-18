@@ -47,6 +47,11 @@ class VulkanServices final : public Services {
         info.instance = reinterpret_cast<PmNativeHandle>(context_.instance());
         info.physicalDevice = reinterpret_cast<PmNativeHandle>(context_.physical());
     }
+    void describe_native_queue(PmNativeQueueInfo &info) const noexcept override {
+        info.queue = reinterpret_cast<PmNativeHandle>(context_.queue());
+        info.familyIndex = context_.queue_family();
+        info.queueIndex = 0U;
+    }
     [[nodiscard]] void *native_queue_handle() const noexcept override {
         return const_cast<vulkan::ScheduleContext *>(&context_);
     }
