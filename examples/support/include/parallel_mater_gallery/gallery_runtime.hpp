@@ -6,6 +6,7 @@
 #include <parallel_mater_gallery/dump_truck.hpp>
 #include <parallel_mater_gallery/fixed_collector.hpp>
 #include <parallel_mater_gallery/gallery_context.hpp>
+#include <parallel_mater_gallery/gpu_renderer.hpp>
 #include <parallel_mater_gallery/renderer.hpp>
 #include <parallel_mater_gallery/render_scene.hpp>
 #include <parallel_mater_gallery/scene.hpp>
@@ -134,8 +135,9 @@ class GalleryRuntime {
     CommandSceneFrame frame{};
     RenderSceneFrame render_frame{};
     RendererHandle renderer{};
-    std::shared_ptr<void> native_renderer{};
+    std::unique_ptr<GpuGalleryRenderer> native_renderer{};
     bool gpu_ready{};
+    std::uint64_t gpu_frame_generation{};
     CameraController camera{};
     FixedContactCollector fixed_collector{};
     ArrowForces arrow_forces{};

@@ -151,6 +151,7 @@ bool GalleryRuntime::step(const GalleryStepOptions &options,
                          options.read_deformables, options.read_host))
         return false;
     gpu_ready = true;
+    ++gpu_frame_generation;
     if (!options.read_host) return true;
     return make_render_scene_frame(scene, frame, render_frame, error);
 }

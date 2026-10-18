@@ -21,8 +21,9 @@ availability come from one
 ordered `GalleryCatalog`; platform shells only choose how to display its
 records. `GalleryFramePolicy` supplies the same profiled fixed-step clock and
 catch-up behavior to desktop scheduling and the session-managed mobile loop.
-Native renderers remain partly shell-specific and move behind a common contract
-in the remaining F7 tasks.
+Native rendering uses a common device, buffer, synchronization, target,
+readback, and draw-semantics contract. Metal implements that contract today;
+F7-09 adds the Vulkan adapter used by desktop and Android.
 
 | Responsibility | Current desktop owner | Current mobile owner | Required owner |
 |---|---|---|---|
@@ -51,6 +52,31 @@ frame timing, diagnostics, and the render handoff. A renderer adapter may hold
 graphics resources, but it must not select scenes, advance physics, or interpret
 controls. A platform shell may discover paths and native surfaces and translate
 events, but it must not create physics resources or implement a scene rule.
+
+## Native GPU renderer boundary
+
+`GpuGalleryRenderer` receives typed `GpuRenderRequest` records. The common
+resolver obtains `PmNativeDeviceInfo` and `PmNativeBufferInfo` only through the
+public interoperability API. A request names the physics queue, synchronization
+mode, ownership direction, resource generation, completed frame generation,
+native target backend/device/handle, dimensions, overlay, and optional
+diagnostic readback. A null readback keeps ordinary frames on the GPU.
+
+Every scene-buffer allocation receives a new resource generation. Every
+successful physics submission advances a frame generation. The shared contract
+state permits a paused frame to be drawn again, but rejects an older frame, an
+old scene allocation, a foreign device or target, overlapping graphics
+ownership, and a handoff that does not return the buffer to physics. The
+current Metal adapter uses a queue-idle handoff and completes drawing before it
+returns ownership. Timeline semaphore fields are part of the same contract for
+the pipelined Vulkan adapter.
+
+`GpuSceneDrawList` describes rigid meshes with current/previous poses, cloth
+and soft-body surfaces, liquid/smoke/rope particles, fracture corner indexing,
+paint fields, colors, and presentation radii. The records contain public output
+layout and drawing meaning only. Named draw kinds in
+`gallery_uniforms.slangh` are shared graphics shader inputs; physics behavior
+remains in the physics Slang modules.
 
 The common command vocabulary must cover:
 
@@ -135,6 +161,7 @@ These tests protect behavior while later F7 tasks move ownership:
 | Camera, gravity/force policies, motor/dump classification, and four-wheel steering math | `parallel-mater-camera-controller-tests` |
 | Full mobile session scene loop, presentation failure, and qualification lifecycle on Metal | `parallel-mater-ipad-session-tests` |
 | Cross-adapter fixed-step traces, catch-up limits, stalls, pause/background, modal UI, and profile changes | `parallel-mater-gallery-frame-policy-tests` |
+| Native interop identity, stale generations, ownership transitions, target matching, and all-domain draw semantics | `parallel-mater-gallery-gpu-renderer-contract-tests` |
 | Frame measurement and headless render behavior | `parallel-mater-gallery-frame-timing-tests` and `parallel-mater-gallery-frame-timing-headless` |
 
 F7-02 through F7-07 may change types and file layout only while these observable

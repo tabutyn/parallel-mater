@@ -13,6 +13,9 @@ struct GpuSceneBuffers {
     PmDevice device{};
     PmQueue queue{};
     PmBuffer output{};
+    // Changes whenever scene output resources are recreated. Native renderers
+    // use it to reject borrowed views retained across selection or reset.
+    std::uint64_t resource_generation{};
     struct Region { PmDeviceSize offset{}, size{}; };
     Region rigid, previous_rigid, fluid, smoke;
     std::uint32_t fluid_capacity{};
