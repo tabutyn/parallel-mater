@@ -147,10 +147,10 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F3-04](roadmap/tasks/F3-04.json) | Validate synchronization state | done | F3-02 | — |
 | [F3-05](roadmap/tasks/F3-05.json) | Expose structured validation diagnostics | done | F3-01 | — |
 | [F3-06](roadmap/tasks/F3-06.json) | Close threading and deferred-error contract gaps | done | F1-06, F3-04 | — |
-| [F3-07](roadmap/tasks/F3-07.json) | Test independent compatibility combinations | ready | F3-05 | — |
+| [F3-07](roadmap/tasks/F3-07.json) | Test independent compatibility combinations | leased | F3-05 | codex-windows-validation / windows-gtx1080 / 2026-10-19T02:28:30Z |
 | [F3-08](roadmap/tasks/F3-08.json) | Restore repeated statistics-query validation | leased | F3-03 | codex-macos-gallery / Thomass-MacBook-Air / 2026-10-19T01:54:48Z |
-| [F3-09](roadmap/tasks/F3-09.json) | Qualify portable host concurrency | ready | F3-06 | — |
-| [F3-10](roadmap/tasks/F3-10.json) | Qualify descriptor snapshot coverage | ready | F3-06 | — |
+| [F3-09](roadmap/tasks/F3-09.json) | Qualify portable host concurrency | waiting on lock | F3-06 | — |
+| [F3-10](roadmap/tasks/F3-10.json) | Qualify descriptor snapshot coverage | waiting on lock | F3-06 | — |
 | [F3-11](roadmap/tasks/F3-11.json) | Qualify destruction wait profiles | ready | F3-06 | — |
 | [F3-12](roadmap/tasks/F3-12.json) | Qualify runtime capacity recovery | ready | F3-06 | — |
 | [F3-99](roadmap/tasks/F3-99.json) | Review F3 exit evidence | waiting on dependencies | F3-01, F3-02, F3-03, F3-04, F3-05, F3-06, F3-07, F3-08, F3-09, F3-10, F3-11, F3-12 | — |
