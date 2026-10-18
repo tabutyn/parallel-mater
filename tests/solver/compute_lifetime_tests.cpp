@@ -78,6 +78,7 @@ class Encoder final : public compute::CommandEncoder {
 public:
     explicit Encoder(std::shared_ptr<State> state) : state_(std::move(state)) {}
     ~Encoder() override { ++state_->destroyed; }
+    void barrier(std::span<const compute::ResourceDependency>) override {}
     void dispatch(const compute::Arguments &args, compute::Extent) override {
         state_->observe(args.kernel());
         for (const auto &binding : args.bindings()) state_->observe(binding.range.buffer);

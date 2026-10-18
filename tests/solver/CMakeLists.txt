@@ -11,6 +11,11 @@ target_compile_features(parallel-mater-compute-contract-tests PRIVATE cxx_std_20
 target_include_directories(parallel-mater-compute-contract-tests PRIVATE ../../src)
 add_test(NAME parallel-mater-compute-contract-tests COMMAND parallel-mater-compute-contract-tests)
 
+add_executable(parallel-mater-compute-dependency-tests compute_dependency_tests.cpp)
+target_compile_features(parallel-mater-compute-dependency-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-compute-dependency-tests PRIVATE ../../src)
+add_test(NAME parallel-mater-compute-dependency-tests COMMAND parallel-mater-compute-dependency-tests)
+
 add_executable(parallel-mater-compute-lifetime-tests compute_lifetime_tests.cpp)
 find_package(Threads REQUIRED)
 target_compile_features(parallel-mater-compute-lifetime-tests PRIVATE cxx_std_20)

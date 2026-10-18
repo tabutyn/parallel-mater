@@ -39,6 +39,7 @@ private:
 class Encoder final : public compute::CommandEncoder {
 public:
     explicit Encoder(State &state) : state_(state) { ++state_.encoders; }
+    void barrier(std::span<const compute::ResourceDependency>) override {}
     void dispatch(const compute::Arguments &, compute::Extent) override {}
     void copy(const compute::BufferPtr &, std::size_t, const compute::BufferPtr &,
               std::size_t, std::size_t) override {}

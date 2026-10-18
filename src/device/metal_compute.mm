@@ -193,6 +193,31 @@ public:
             require(command_ != nil, "Metal command buffer allocation failed");
         }
     }
+    void barrier(std::span<const ResourceDependency> dependencies) override {
+        @autoreleasepool {
+            ensure_open();
+            for (const auto &dependency : dependencies) {
+                if (!aliases(dependency.prior, dependency.next) ||
+                    !overlaps(dependency.prior, dependency.next) ||
+                    (!writes(dependency.prior.access) && !writes(dependency.next.access)) ||
+                    dependency.prior.offset != dependency.next.offset ||
+                    dependency.prior.size != dependency.next.size)
+                    throw std::invalid_argument("invalid Metal resource dependency");
+                auto prior = buffer(dependency.prior.buffer);
+                auto next = buffer(dependency.next.buffer);
+                require(prior == next, "inconsistent Metal resource dependency");
+                range(dependency.prior.buffer, dependency.prior.offset,
+                      dependency.prior.size);
+                range(dependency.next.buffer, dependency.next.offset,
+                      dependency.next.size);
+            }
+            // Every operation below closes its native encoder. Metal orders
+            // those encoders within one command buffer and tracked resources
+            // make their writes visible, so this adapter needs no extra native
+            // command. The callback still proves common scheduling selected the
+            // dependency; it never turns that dependency into a CPU wait.
+        }
+    }
     void dispatch(const Arguments &arguments, Extent groups) override {
         @autoreleasepool {
             ensure_open();
@@ -218,8 +243,8 @@ public:
             [encoder dispatchThreadgroups:MTLSizeMake(groups.x, groups.y, groups.z)
                 threadsPerThreadgroup:MTLSizeMake(kernel->threads.x, kernel->threads.y, kernel->threads.z)];
             [encoder endEncoding];
-            // Separate encoders + tracked resources establish GPU-wide ordering,
-            // including raw-pointer accesses declared above. Never a group barrier.
+            // Separate encoders + tracked resources implement dependencies
+            // selected by the common scheduler. Never a group or host barrier.
         }
     }
     void copy(const BufferPtr &destination, std::size_t destination_offset,

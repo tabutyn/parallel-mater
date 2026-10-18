@@ -34,6 +34,7 @@ private:
 };
 class RecordingCommandList final : public compute::CommandEncoder {
 public:
+    void barrier(std::span<const compute::ResourceDependency>) override {}
     void dispatch(const compute::Arguments &arguments, compute::Extent) override {
         arguments.validate();
         observed = arguments.bindings();
