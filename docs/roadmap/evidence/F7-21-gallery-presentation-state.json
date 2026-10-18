@@ -1,0 +1,80 @@
+{
+  "schema": "parallel-mater-roadmap-gallery-presentation-state-evidence/v1",
+  "task": "F7-21",
+  "scope": "One backend-neutral Gallery presentation view supplies structured runtime, scene, workload, renderer, readback, timing and semantic-action data to desktop, Android and iPad shells",
+  "source": {
+    "implementation_commit": "21487d88047e2635c9e067ee8e73969ab203fba3",
+    "base_main_commit": "39f06b20947865a44fa4cd10a44ddbc2ade658e1",
+    "branch": "work/F7-21/thomas-laptop",
+    "lease_token": "c3bc9774-7d12-46a7-92f7-9bac21298087",
+    "dirty_before_evidence": false
+  },
+  "device": {
+    "machine": "thomas-laptop",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "driver": "590.44.01",
+    "operating_system": "Linux 6.1.0-53-amd64 x86_64",
+    "compiler": "GCC 12.2.0",
+    "slang": "2026.18",
+    "graphics_api": "Vulkan"
+  },
+  "contract": {
+    "structured_fields": [
+      "platform, backend and device",
+      "renderer and readback modes",
+      "ready, active, paused, selection and step state",
+      "scene identity, summary and requirements",
+      "semantic directional, primary and count actions",
+      "workload profile, limits and render extent",
+      "population, moving bodies and frame timing",
+      "build revision"
+    ],
+    "backend_labels": {
+      "vulkan": "Vulkan",
+      "cuda": "CUDA",
+      "d3d12": "Direct3D 12",
+      "metal": "Metal"
+    },
+    "shell_ownership": [
+      "Desktop derives keyboard help and startup diagnostics from the common view.",
+      "Android JNI derives phone status, action labels and Info text from the common view.",
+      "The iPad shell derives its status, action labels, Info text and runtime reports from the common view."
+    ],
+    "removed_common_wording": [
+      "Metal-only direct-renderer prose",
+      "touch gesture and arrow-button instructions",
+      "formatted common status and details strings",
+      "desktop key bindings embedded in common scene summaries"
+    ]
+  },
+  "verification": [
+    {
+      "check": "cmake --build build-f7-21 --target parallel-mater-gallery parallel-mater-gallery-session-contract-tests parallel-mater-gallery-registry-tests -j 2",
+      "result": "passed; common session and desktop shell compile against the structured presentation view"
+    },
+    {
+      "check": "ctest --test-dir build-f7-21 --output-on-failure -R 'parallel-mater-gallery-(registry|input)-tests'",
+      "result": "2/2 passed; the common scene registry and semantic input contracts remain intact"
+    },
+    {
+      "check": "ctest --test-dir build-f7-21 --output-on-failure -R '^parallel-mater-gallery-session-contract-tests$'",
+      "result": "1/1 passed in 57.29 seconds on the physical Vulkan GPU; structured state and all shared lifecycle contracts passed"
+    },
+    {
+      "check": "ANDROID_HOME=/home/thomas/Android/Sdk SLANGC=<Slang 2026.18> ./scripts/Build-AndroidGallery.sh -PcgltfSource=<cached cgltf>",
+      "result": "passed; ARM64 Vulkan debug APK is 6585588 bytes with SHA-256 38ebe7053c8f523fb7d67d0a7022505e2f143734002414eca6fede1d26dbc09f"
+    },
+    {
+      "check": "build-f7-21/parallel-mater-gallery --help",
+      "result": "passed; desktop command-line surface remains available for every catalog scene"
+    },
+    {
+      "check": "python3 -m unittest discover -s tests/roadmap && python3 tools/roadmap.py check --base origin/main --branch work/F7-21/thomas-laptop",
+      "result": "19/19 roadmap workflow tests passed; all 164 task cards, dependencies, locks, history and generated roadmap passed"
+    }
+  ],
+  "limitations": [
+    "The Linux host cannot compile UIKit; the completion pull request's macOS iPad job validates the Objective-C++ shell.",
+    "This task changes presentation ownership and wording only; it does not add a renderer backend or qualify new physics interactions."
+  ]
+}
