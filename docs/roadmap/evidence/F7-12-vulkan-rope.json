@@ -1,0 +1,75 @@
+{
+  "schema": "parallel-mater-roadmap-vulkan-rope-evidence/v1",
+  "task": "F7-12",
+  "scope": "Shared Slang rope, rigid-rope and fluid-rope schedules executed through the public Vulkan driver and common Gallery session",
+  "source": {
+    "implementation_commits": [
+      "009f5ddc690fd0c4f6f5abc91b9f9c23c836a5aa",
+      "3ebb756f522156ba115bf2c71432fe2f4449426f"
+    ],
+    "base_main_commit": "03988e6f5d0d1da62df1758b64777a5de6ac012b",
+    "branch": "work/F7-12/thomas-laptop",
+    "pull_request": "https://github.com/tabutyn/parallel-mater/pull/203",
+    "dirty_before_evidence": false
+  },
+  "device": {
+    "machine": "thomas-laptop",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "driver": "590.44.01",
+    "operating_system": "Linux 6.1.0-53-amd64 x86_64",
+    "compiler": "GCC 12.2.0",
+    "slang": "2026.18",
+    "graphics_api": "Vulkan"
+  },
+  "contract": {
+    "shared_slang_modules": [
+      "rope",
+      "fluid_rope",
+      "queries"
+    ],
+    "advertised_domain": "rope",
+    "advertised_interactions": [
+      "rope self contact",
+      "rope-rigid-body contact",
+      "rope-rigid-body attachment",
+      "fluid-rope contact"
+    ],
+    "explicitly_unavailable_interactions": [
+      "cloth-rope attachment",
+      "soft-body-rope contact",
+      "soft-body-rope attachment"
+    ],
+    "catalog_policy": "A scene is selectable only when the physical device advertises every exact interaction key required by that scene."
+  },
+  "verification": [
+    {
+      "check": "ctest --test-dir build-f7-12 --output-on-failure -R 'parallel-mater-vulkan-rope-capability-tests|parallel-mater-vulkan-gallery-(Rope|RopeFluid)$'",
+      "result": "3/3 passed on the physical Vulkan GPU; exact capability inventory and two 120-frame public-command Gallery runs"
+    },
+    {
+      "check": "ctest --test-dir build-f7-12 --output-on-failure -R '^parallel-mater-gallery-session-contract-tests$'",
+      "result": "1/1 passed in 55.90 seconds on the physical Vulkan GPU; the common session qualified Rope and RopeFluid and rejected unadvertised RopeCloth and RopeSoftbody couplings"
+    },
+    {
+      "check": "ctest --test-dir build-f7-12 --output-on-failure -R '^parallel-mater-vulkan-spirv-'",
+      "result": "15/15 passed, including rope, fluid_rope and query-module SPIR-V validation"
+    },
+    {
+      "check": "Gallery registry, input, workload, frame-policy, timing, timing-overlay and GPU-renderer contracts",
+      "result": "7/7 passed"
+    },
+    {
+      "check": "cmake --build build-f7-12 -j2",
+      "result": "passed; all configured library, driver, Gallery, shared Slang mirror and test targets built"
+    },
+    {
+      "check": "Headless Vulkan captures for Rope.glb and RopeFluid.glb",
+      "result": "visually inspected valid 1920x1080 output; sha256 f9eddd167d9b76ad79c7fd2e0982f844080d424dd56f9b0f281f6c9ba58273f3 and b33ba3fa12481b39af662bbb75513aa265fbc57871f7e2b490df2855e335c7f2"
+    }
+  ],
+  "limitations": [
+    "Cloth-rope and soft-body-rope schedules remain unavailable until F7-14 qualifies those cross-deformable couplings.",
+    "Physical Android execution remains tracked by F7-16 and the complete Android Gallery gate F7-18.",
+    "The installed Debian Vulkan validation layer 1.3.239 segfaults while inspecting physical-storage-buffer dispatches. A pre-F7-12 build at 4748e6f shows the same crash in the already-qualified Softbody scene. Runtime qualification therefore used the normal NVIDIA driver path, while all generated SPIR-V passed static validation. Earlier F7-11 evidence records successful runtime validation with Vulkan SDK 1.4.341.0."
+  ]
+}
