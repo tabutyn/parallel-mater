@@ -72,9 +72,32 @@ class ReflectedABITest(unittest.TestCase):
         abi = ReflectedABI(fixture())
         array = {'kind': 'array', 'elementType': scalar('uint32', 4),
                  'elementCount': 3, 'uniformStride': 16,
-                 'sizes': [{'kind': 'uniform', 'value': 48, 'alignment': 16}]}
+                 'sizes': [{'kind': 'uniform', 'value': 36, 'alignment': 16}]}
         with self.assertRaisesRegex(ValueError, 'padded array stride'):
             abi.host_size(array)
+        abi.validate_storage(array)
+
+    def test_entry_layout_validates_offsets_sizes_and_unsupported_shapes(self):
+        data = fixture()
+        abi = ReflectedABI(data)
+        entry = data['entryPoints'][0]
+        self.assertEqual(abi.validate_entry(entry), entry['parameters'])
+        self.assertEqual(abi.constant_size(entry), 8)
+
+        overlap = copy.deepcopy(data)
+        overlap['entryPoints'][0]['parameters'].append(
+            field('again', scalar('uint32', 4), 4, 4))
+        with self.assertRaisesRegex(ValueError, 'parameter layout'):
+            ReflectedABI(overlap).validate_entry(overlap['entryPoints'][0])
+
+        unsupported = copy.deepcopy(data)
+        unsupported['entryPoints'][0]['parameters'][0]['type'] = {
+            'kind': 'matrix',
+            'sizes': [{'kind': 'uniform', 'value': 16, 'alignment': 4}]}
+        unsupported['entryPoints'][0]['parameters'][0]['binding']['size'] = 16
+        with self.assertRaisesRegex(ValueError, 'unsupported uniform ABI type'):
+            ReflectedABI(unsupported).validate_entry(
+                unsupported['entryPoints'][0])
 
     def test_recursive_pointer_is_allowed_but_by_value_cycle_is_not(self):
         data = fixture()

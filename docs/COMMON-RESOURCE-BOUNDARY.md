@@ -22,11 +22,34 @@ compiler-generated CUDA declarations. The kernel inventory remains in
 and push-constant layout. Pointer translation and native dispatch stay in the
 Vulkan adapter. Shared Slang equations are unchanged.
 
-This is an incremental boundary: handwritten `.cu` launch wrappers are still
-translated, including their legacy mangled field/type references. Migrating
-those wrappers to common typed command lists and using this ABI model in every
-adapter remain open. A reflection match alone does not prove synchronization or
-physical correctness.
+D3D12's 141 isolated DXIL entries use the same model. The Python embedder now
+validates each reflected signature and emits the bytecode table, thread-group
+size, total constant size and named parameter offsets/sizes. Direct rigid,
+AVBD and primitive dispatches refer to those generated symbols; they contain no
+literal DXIL offsets. The domain wrapper generator validates every reflected
+type and parameter before translating host launch control. The former CMake
+JSON layout parser has been removed.
+
+This is an incremental boundary: handwritten `.cu` launch wrappers still
+provide transitional host control flow and launch geometry, including legacy
+mangled field/type references. They provide no ABI declarations or offsets.
+Migrating those wrappers to common typed command lists remains open. A
+reflection match alone does not prove synchronization or physical correctness.
+
+## DXIL binding qualification — 2026-10-18
+
+- Pinned Slang 2026.18 generated and validated all 141 DXIL entry reflections;
+  the eight D3D12 domain sources produced 52 host functions.
+- Existing Vulkan artifacts validated 84 entries in 14 available modules with
+  the same common model, including padded arrays and target-specific resources.
+- Visual Studio 2022/MSVC 19.44 built the Release D3D12 driver on Windows 11
+  x64. Common ABI, DXIL generator, architecture and native D3D12 command API
+  tests passed 4/4 on the GTX 1080.
+- Negative tests reject duplicate/mismatched entries, signature-count changes,
+  overlapping layouts and unsupported uniform shapes before C++ compilation.
+
+These results qualify binding generation and native adapter execution only.
+They do not replace physical-quality, lifecycle or performance evidence.
 
 ## Resource identities and dispatch access
 

@@ -677,6 +677,29 @@ else:
                 f"src/driver/d3d12: physics/backend implementation "
                 f"leaked into thin driver: {forbidden}")
 
+for generator_name in ("generate_dxil_dispatch.py", "embed_dxil_library.py"):
+    generator_path = ROOT / "tools" / generator_name
+    if not generator_path.exists():
+        failures.append(f"tools/{generator_name}: reflected DXIL generator missing")
+    elif "from slang_abi import ReflectedABI" not in generator_path.read_text(
+            encoding="utf-8"):
+        failures.append(
+            f"tools/{generator_name}: bypasses common reflected ABI model")
+if (ROOT / "cmake" / "EmbedDxilLibrary.cmake").exists():
+    failures.append(
+        "cmake/EmbedDxilLibrary.cmake: legacy CMake JSON layout parser remains")
+if "tools/embed_dxil_library.py" not in cmake or \
+        "tools/slang_abi.py" not in cmake:
+    failures.append("CMakeLists.txt: reflected DXIL generator dependencies missing")
+d3d12_geometry_path = ROOT / "src" / "simulation" / "d3d12_geometry_dispatch.cpp"
+d3d12_geometry = d3d12_geometry_path.read_text(encoding="utf-8")
+if "parallel_mater_slang_dxil.hpp" not in d3d12_geometry:
+    failures.append(
+        "src/simulation/d3d12_geometry_dispatch.cpp: reflected layouts missing")
+if re.search(r"Constants<\d|\.(?:set|buffer|boolean)\(\d+U", d3d12_geometry):
+    failures.append(
+        "src/simulation/d3d12_geometry_dispatch.cpp: literal DXIL layout remains")
+
 # Native CUDA is limited to device services and generated-Slang dispatch. Host
 # scheduling and shared helper headers must never regain a physics kernel.
 native_sources = list(runtime_paths)
