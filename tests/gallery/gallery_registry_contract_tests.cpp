@@ -28,7 +28,7 @@ constexpr bool registry_is_complete_and_unique() {
     for (std::size_t index = 0; index < gallery_entries.size(); ++index) {
         const auto &entry = gallery_entries[index];
         if (entry.id.empty() || entry.asset_file.empty() || entry.name.empty() ||
-            entry.help.empty() || entry.required_features == 0U ||
+            entry.summary.empty() || entry.required_features == 0U ||
             entry.required_interactions == 0U ||
             (entry.command_line_option.empty() != (index == 0U)))
             return false;

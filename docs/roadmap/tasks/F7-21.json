@@ -1,7 +1,7 @@
 {
   "id": "F7-21",
   "title": "Make Gallery presentation state backend-neutral",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-19",
     "F7-20"
@@ -17,15 +17,29 @@
     "The session reports platform, backend, device, renderer, readback and timing as structured fields; common code does not hardcode a graphics backend or touch, keyboard or controller wording.",
     "Desktop and mobile shells format readable status and help from the same fields and semantic actions, with contract coverage for Vulkan, CUDA, D3D12 and Metal labels."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "c3bc9774-7d12-46a7-92f7-9bac21298087",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F7-21/thomas-laptop",
-    "claimed_at": "2026-10-18T07:14:21Z",
-    "heartbeat_at": "2026-10-18T07:14:21Z",
-    "expires_at": "2026-10-19T07:14:21Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: physical Vulkan Gallery session contract 1/1 in 57.29 seconds on NVIDIA RTX 3050 Ti, driver 590.44.01; docs/roadmap/evidence/F7-21-gallery-presentation-state.json",
+    "PASS: ARM64 Android Vulkan APK build; desktop and registry/input contracts; backend labels for Vulkan, CUDA, D3D12 and Metal; docs/roadmap/evidence/F7-21-gallery-presentation-state.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "c3bc9774-7d12-46a7-92f7-9bac21298087",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-21/thomas-laptop",
+        "claimed_at": "2026-10-18T07:14:21Z",
+        "heartbeat_at": "2026-10-18T07:14:21Z",
+        "expires_at": "2026-10-19T07:14:21Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T07:34:36Z",
+      "reason": "Structured backend-neutral Gallery presentation view implemented; desktop, Android and iPad shells own user-facing wording",
+      "evidence": [
+        "PASS: physical Vulkan Gallery session contract 1/1 in 57.29 seconds on NVIDIA RTX 3050 Ti, driver 590.44.01; docs/roadmap/evidence/F7-21-gallery-presentation-state.json",
+        "PASS: ARM64 Android Vulkan APK build; desktop and registry/input contracts; backend labels for Vulkan, CUDA, D3D12 and Metal; docs/roadmap/evidence/F7-21-gallery-presentation-state.json"
+      ]
+    }
+  ]
 }

@@ -20,6 +20,11 @@ void require(bool condition, const char *message) {
 
 int main() {
     try {
+        require(gallery::gallery_backend_label("vulkan") == "Vulkan" &&
+                    gallery::gallery_backend_label("cuda") == "CUDA" &&
+                    gallery::gallery_backend_label("d3d12") == "Direct3D 12" &&
+                    gallery::gallery_backend_label("metal") == "Metal",
+                "Backend presentation labels changed");
         const std::filesystem::path root = PM_GALLERY_SESSION_TEST_ROOT;
         require(gallery::GalleryRuntime::live_runtime_count() == 0U,
                 "Runtime count was not initially zero");
@@ -41,6 +46,17 @@ int main() {
                     "Shared catalog changed");
             require(session.ready() && session.selection() == 0U,
                     "Session did not select its initial scene");
+            const auto startup = session.presentation();
+            require(startup.platform == "ContractTest" &&
+                        startup.backend == PM_GALLERY_SESSION_TEST_BACKEND &&
+                        !startup.device.empty() && startup.ready &&
+                        startup.scene_id == "rigid-body" &&
+                        !startup.scene_summary.empty() &&
+                        startup.renderer ==
+                            gallery::GalleryRendererKind::software_image &&
+                        startup.readback ==
+                            gallery::GalleryReadbackMode::host_frame,
+                    "Session did not expose structured presentation state");
 
             session.frame();
             require(session.frames == 1U && session.timing.latest() &&
@@ -239,7 +255,8 @@ int main() {
         };
         for (unsigned recreation = 0U; recreation < 2U; ++recreation) {
             gallery::MobileGallerySession mobile(mobile_config());
-            require(!mobile.state().active && !mobile.state().surface_ready &&
+            require(!mobile.state().presentation.active &&
+                        !mobile.state().surface_ready &&
                         !mobile.should_frame(),
                     "Mobile session ran before a surface was attached");
             require(mobile.attach_surface(96U, 72U) &&
@@ -251,17 +268,17 @@ int main() {
 
             require(mobile.execute(
                         gallery::MobileGalleryCommand::toggle_paused) &&
-                        mobile.state().paused && mobile.frame() &&
+                        mobile.state().presentation.paused && mobile.frame() &&
                         mobile.gallery().frames == 1U,
                     "Shared mobile pause advanced physics");
             require(mobile.execute(
                         gallery::MobileGalleryCommand::toggle_paused) &&
-                        !mobile.state().paused,
+                        !mobile.state().presentation.paused,
                     "Shared mobile resume did not clear pause");
 
             mobile.set_foreground(false);
             require(!mobile.should_frame() && !mobile.frame() &&
-                        !mobile.state().active,
+                        !mobile.state().presentation.active,
                     "Background mobile session admitted a frame");
             mobile.set_foreground(true);
             require(mobile.should_frame() && mobile.frame(),
@@ -299,11 +316,12 @@ int main() {
 
             require(mobile.execute(
                         gallery::MobileGalleryCommand::select_scene, 2.0F) &&
-                        mobile.state().primary_action_available &&
-                        mobile.state().primary_action_label == "Release" &&
+                        mobile.state().presentation.controls.primary ==
+                            gallery::GalleryPrimaryAction::release_restore_constraints &&
+                        !mobile.state().presentation.controls.constraints_released &&
                         mobile.execute(
                             gallery::MobileGalleryCommand::primary_action) &&
-                        mobile.state().primary_action_label == "Restore",
+                        mobile.state().presentation.controls.constraints_released,
                     "Mobile shell did not derive Point controls from shared state");
         }
         require(gallery::GalleryRuntime::live_runtime_count() == 0U,

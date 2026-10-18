@@ -16,7 +16,7 @@ creation, frame assembly, and teardown. Platform code cannot obtain or mutate
 that runtime. Desktop uses typed session views and rendering, capture,
 calibration, and diagnostic operations. Android and iPad wrap the same session in
 `MobileGallerySession`, which owns surface admission, foreground/pause commands,
-controller presentation, and failure recovery. Scene metadata and backend
+controller state, and failure recovery. Scene metadata and backend
 availability come from one
 ordered `GalleryCatalog`; platform shells only choose how to display its
 records. `GallerySession::frame_at` owns `GalleryFramePolicy`, profiled
@@ -24,6 +24,12 @@ fixed-step cadence, readback admission, render/present ordering, failure
 cancellation, and timing publication for desktop and mobile frames. Desktop
 supplies semantic input plus render and presentation callbacks; mobile uses the
 session's default renderer path.
+`GallerySession::presentation()` publishes one structured snapshot containing
+platform, backend, device, renderer/readback modes, scene summary, workload
+limits, semantic actions, counters, and timing. It contains no input-device
+instructions or backend-specific renderer prose. Desktop, Android, and iPad
+format that snapshot for their own controls and layouts. `MobileGalleryState`
+adds surface/lifecycle admission and a latched error to the same snapshot.
 Native rendering uses a common device, buffer, synchronization, target,
 readback, and draw-semantics contract. Metal and Vulkan implement that contract.
 Desktop Vulkan uses it now; F7-16 attaches Android's native surface to the same
@@ -31,7 +37,7 @@ Vulkan adapter.
 
 | Responsibility | Current desktop owner | Current mobile owner | Required owner |
 |---|---|---|---|
-| Ordered scene identity, name, help, source, control policy, feature requirements, availability, and rejection reason | `GalleryCatalog` | `MobileGallerySession::gallery().catalog()` | Common runtime catalog (done) |
+| Ordered scene identity, name, summary, source, control policy, feature requirements, availability, and rejection reason | `GalleryCatalog` | `MobileGallerySession::gallery().catalog()` | Common runtime catalog (done) |
 | Driver discovery, explicit backend choice, and capability query | Desktop startup and backend picker | Platform startup configuration; Android fixes Vulkan | Platform shell requests a backend; common runtime reports devices and scene availability |
 | Asset and device-profile paths | Desktop options and compile-time resource paths | Android/iPad shell configuration | Platform shell supplies paths once |
 | Workload limits and user-adjustable counts | Desktop supplies resolved limits and edits `GallerySession` parameters | `GallerySession` profile selection and shared frame policy | Common session policy; shell edits declared parameters |
@@ -44,7 +50,7 @@ Vulkan adapter.
 | Software, native GPU, or external-engine drawing | Desktop renderer/window path, including direct Vulkan | Android software renderer or iPad Metal renderer | Renderer adapter |
 | Graphics API resources, swapchain/layer binding, upload, and presentation | Desktop window adapter | Android surface/ANativeWindow or Apple presentation layer | Renderer adapter, with the platform shell supplying the native surface |
 | Keyboard, touch, gamepad, lifecycle, window, intent, and accessibility events | GLFW/native desktop glue | Java/JNI or UIKit glue | Platform shell translating events into common commands |
-| Catalog, parameter, timing, status, and error view models | Shared catalog plus desktop overlays | `MobileGalleryState` plus Java/UIKit widgets | Common runtime data; platform shell chooses widgets and layout |
+| Catalog, parameter, timing, status, and error view models | `GalleryPresentationState` plus desktop formatting | `MobileGalleryState` plus Java/UIKit formatting | Common structured data; platform shell chooses wording, widgets, and layout (done) |
 | Physics capture, validation snapshots, and qualification sequencing | Typed `GallerySession` diagnostics and shared debug helpers | `GallerySession` qualification helpers | Common runtime diagnostics; shell chooses destination and presentation |
 | Filesystem writes, share sheets, logs, and platform telemetry | Desktop platform helpers | Java/UIKit | Platform shell |
 
