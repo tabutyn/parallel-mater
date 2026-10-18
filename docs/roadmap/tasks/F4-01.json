@@ -1,7 +1,7 @@
 {
   "id": "F4-01",
   "title": "Describe resources and access ranges",
-  "status": "leased",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "device-contract"
@@ -14,15 +14,31 @@
     "A mock adapter observes typed bindings and complete indirect resource references.",
     "Overlap, aliasing and out-of-range uses have explicit rules and tests."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "b9fd13c5-7ce6-40fe-ad8e-d09c35d6450f",
-    "owner": "codex-macos-runtime",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F4-01/thomass-macbook-air",
-    "claimed_at": "2026-10-18T02:39:33Z",
-    "heartbeat_at": "2026-10-18T02:39:33Z",
-    "expires_at": "2026-10-19T02:39:33Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: cmake --build build-gallery-portable-verify --target parallel-mater-compute-contract-tests and ctest -R ^parallel-mater-compute-contract-tests$; portable mock adapter observed named binding kinds, exact byte ranges, access modes, and complete indirect references.",
+    "PASS: Apple M4 native Metal driver build and parallel-mater-slang-metal-kernel-tests; 143 reflected pipelines plus dispatch, transfers, nested records, rigid integration, soft-body SIMD, and AVBD execution passed.",
+    "PASS: docs/COMMON-RESOURCE-BOUNDARY.md specifies device-scoped alias identity, half-open overlap rules, conservative default extents, null handling, and out-of-range rejection."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "b9fd13c5-7ce6-40fe-ad8e-d09c35d6450f",
+        "owner": "codex-macos-runtime",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F4-01/thomass-macbook-air",
+        "claimed_at": "2026-10-18T02:39:33Z",
+        "heartbeat_at": "2026-10-18T02:39:33Z",
+        "expires_at": "2026-10-19T02:39:33Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T02:47:54Z",
+      "reason": "Defined device-owned allocation identities and typed dispatch ranges, migrated Metal residency declarations, and added mock coverage for direct, record, and indirect bindings.",
+      "evidence": [
+        "PASS: cmake --build build-gallery-portable-verify --target parallel-mater-compute-contract-tests and ctest -R ^parallel-mater-compute-contract-tests$; portable mock adapter observed named binding kinds, exact byte ranges, access modes, and complete indirect references.",
+        "PASS: Apple M4 native Metal driver build and parallel-mater-slang-metal-kernel-tests; 143 reflected pipelines plus dispatch, transfers, nested records, rigid integration, soft-body SIMD, and AVBD execution passed.",
+        "PASS: docs/COMMON-RESOURCE-BOUNDARY.md specifies device-scoped alias identity, half-open overlap rules, conservative default extents, null handling, and out-of-range rejection."
+      ]
+    }
+  ]
 }
