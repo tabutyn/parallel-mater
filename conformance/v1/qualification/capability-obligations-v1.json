@@ -78,8 +78,11 @@
       "id": "fluid-self-viscosity",
       "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SELF"], "mode": ["VISCOSITY"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:fluid-lifecycle",
-      "required": {"lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"]},
-      "missing": {"analytic_invariants": "No vendor-neutral fluid self viscosity quality case is registered."}
+      "required": {
+        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"],
+        "analytic_invariants": ["quality:fluid-self-viscosity-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "fluid-pair-equal-pressure-contact",
