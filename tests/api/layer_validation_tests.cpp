@@ -2,16 +2,85 @@
 #include <parallel_mater/parallel_mater.h>
 #include <parallel_mater/pm_layer.h>
 #include <parallel_mater/pm_layer_args.h>
+#include <atomic>
 #include <cstdint>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <mutex>
+#include <thread>
+#include <vector>
 
 extern "C" PmResult PMAPI_CALL pm_layerNegotiateLoaderInterfaceVersion(uint32_t *);
 extern "C" PmResult PMAPI_CALL pm_layerPreCall(const PmLayerCallInfo *);
+extern "C" void PMAPI_CALL pm_layerTestFailNextTrackingAllocation();
 #define CHECK(x) do { if (!(x)) { std::fprintf(stderr, "%d: %s\n", __LINE__, #x); return 1; } } while(false)
 
 namespace {
+struct DiagnosticState {
+    std::mutex mutex;
+    std::uint32_t count{};
+    const char *rule{};
+    const char *command{};
+    const char *message{};
+    PmValidationSeverity severity{};
+    PmResult result{PM_SUCCESS};
+    PmValidationObjectType object_type{};
+    const void *object{};
+    std::uint32_t argument_size{};
+    PmDevice argument_device{};
+    PmSemaphore argument_semaphore{};
+    bool reenter{};
+    bool reentered{};
+    PmDevice reentry_device{};
+    PmSemaphore reentry_semaphore{};
+    PmResult reentry_result{PM_NOT_READY};
+};
+
+void PMAPI_CALL diagnostic_callback(
+    void *user, const PmValidationDiagnostic *diagnostic) {
+    auto &state = *static_cast<DiagnosticState *>(user);
+    bool reenter = false;
+    PmDevice device{};
+    PmSemaphore semaphore{};
+    {
+        std::lock_guard lock(state.mutex);
+        ++state.count;
+        state.rule = diagnostic->pRuleId;
+        state.command = diagnostic->pCommandName;
+        state.message = diagnostic->pMessage;
+        state.severity = diagnostic->severity;
+        state.result = diagnostic->result;
+        state.object_type = diagnostic->objectType;
+        state.object = diagnostic->object;
+        state.argument_size = diagnostic->argumentSize;
+        if (diagnostic->pCommandName &&
+            std::strcmp(diagnostic->pCommandName,
+                        "pmGetSemaphoreCounterValue") == 0 &&
+            diagnostic->argumentSize ==
+                sizeof(PmLayerArgs_pmGetSemaphoreCounterValue)) {
+            const auto &arguments = *static_cast<
+                const PmLayerArgs_pmGetSemaphoreCounterValue *>(
+                    diagnostic->pArguments);
+            state.argument_device = arguments.device;
+            state.argument_semaphore = arguments.semaphore;
+        }
+        if (state.reenter && !state.reentered) {
+            state.reentered = true;
+            reenter = true;
+            device = state.reentry_device;
+            semaphore = state.reentry_semaphore;
+        }
+    }
+    if (reenter) {
+        std::uint64_t value{};
+        const auto result = pmGetSemaphoreCounterValue(
+            device, semaphore, &value);
+        std::lock_guard lock(state.mutex);
+        state.reentry_result = result;
+    }
+}
+
 void set_mock_failure(const char *name, bool enabled) {
 #if defined(_WIN32)
     _putenv_s(name, enabled ? "1" : "");
@@ -24,21 +93,48 @@ void set_mock_failure(const char *name, bool enabled) {
 
 int main(int argc, char **argv) {
     const bool validation = argc < 2 || std::strcmp(argv[1], "plain") != 0;
+    DiagnosticState diagnostics{};
     uint32_t version = 1;
+    CHECK(pm_layerNegotiateLoaderInterfaceVersion(&version) == PM_ERROR_INCOMPATIBLE_VERSION);
+    version = 2;
     CHECK(pm_layerNegotiateLoaderInterfaceVersion(&version) == PM_ERROR_INCOMPATIBLE_VERSION);
     version = 999;
     CHECK(pm_layerNegotiateLoaderInterfaceVersion(&version) == PM_SUCCESS);
-    CHECK(version == 2);
+    CHECK(version == 3);
     PmLayerArgs_pmMapMemory bad_arguments{};
-    PmLayerCallInfo bad_call{"pmMapMemory", &bad_arguments, 0, &bad_arguments};
+    PmLayerCallInfo bad_call{
+        "pmMapMemory", &bad_arguments, 0U, nullptr,
+        PM_VALIDATION_OBJECT_UNKNOWN, nullptr,
+        diagnostic_callback, &diagnostics};
     CHECK(pm_layerPreCall(&bad_call) == PM_ERROR_INVALID_ARGUMENT);
+    CHECK(diagnostics.count == 1U);
+    CHECK(std::strcmp(diagnostics.rule,
+                      PM_VALIDATION_RULE_INVALID_LAYER_CALL) == 0);
+    CHECK(diagnostics.severity == PM_VALIDATION_SEVERITY_ERROR);
+    CHECK(diagnostics.result == PM_ERROR_INVALID_ARGUMENT);
+    diagnostics.count = 0U;
 
     PmInstanceCreateInfo info{};
     info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     info.apiVersion = PM_API_VERSION_0_2;
-    info.enableValidation = validation ? PM_TRUE : PM_FALSE;
+    PmValidationDiagnosticsCreateInfo diagnostic_info{};
+    diagnostic_info.sType =
+        PM_STRUCTURE_TYPE_VALIDATION_DIAGNOSTICS_CREATE_INFO;
+    diagnostic_info.pfnDiagnostic = diagnostic_callback;
+    diagnostic_info.pUserData = &diagnostics;
+    info.pNext = validation ? &diagnostic_info : nullptr;
     PmInstance instance{};
+    if (validation) {
+        diagnostic_info.pfnDiagnostic = nullptr;
+        CHECK(pmCreateInstance(&info, nullptr, &instance) ==
+              PM_ERROR_INVALID_ARGUMENT);
+        CHECK(instance == nullptr);
+        diagnostic_info.pfnDiagnostic = diagnostic_callback;
+    }
     CHECK(pmCreateInstance(&info, nullptr, &instance) == PM_SUCCESS);
+    // The loader owns a copy; the create-info storage is no longer observed.
+    diagnostic_info.pfnDiagnostic = nullptr;
+    diagnostic_info.pUserData = nullptr;
     uint32_t count = 1;
     PmPhysicalDevice physical{};
     CHECK(pmEnumeratePhysicalDevices(instance, &count, &physical) == PM_SUCCESS);
@@ -61,8 +157,45 @@ int main(int argc, char **argv) {
     CHECK(pmCreateSemaphore(device, &semaphore_info, &timeline) == PM_SUCCESS);
     CHECK(pmCreateSemaphore(other, &semaphore_info, &foreign_timeline) == PM_SUCCESS);
     std::uint64_t counter{};
+    diagnostics.reenter = validation;
+    diagnostics.reentry_device = device;
+    diagnostics.reentry_semaphore = timeline;
     CHECK(pmGetSemaphoreCounterValue(other, timeline, &counter) == invalid);
+    if (validation) {
+        CHECK(diagnostics.count == 1U);
+        CHECK(std::strcmp(diagnostics.rule,
+                          PM_VALIDATION_RULE_INVALID_ARGUMENT) == 0);
+        CHECK(std::strcmp(diagnostics.command,
+                          "pmGetSemaphoreCounterValue") == 0);
+        CHECK(diagnostics.severity == PM_VALIDATION_SEVERITY_ERROR);
+        CHECK(diagnostics.result == PM_ERROR_INVALID_ARGUMENT);
+        CHECK(diagnostics.object_type == PM_VALIDATION_OBJECT_DEVICE);
+        CHECK(diagnostics.object == other);
+        CHECK(diagnostics.argument_size ==
+              sizeof(PmLayerArgs_pmGetSemaphoreCounterValue));
+        CHECK(diagnostics.argument_device == other);
+        CHECK(diagnostics.argument_semaphore == timeline);
+        CHECK(diagnostics.message && diagnostics.message[0]);
+        CHECK(diagnostics.reentered);
+        CHECK(diagnostics.reentry_result == PM_SUCCESS);
+    }
+    diagnostics.reenter = false;
     CHECK(pmWaitSemaphore(other, timeline, 0U, 0U) == invalid);
+
+    // Delivery can occur concurrently; callback state remains application
+    // synchronized, and no global callback registration is involved.
+    const auto before_parallel = diagnostics.count;
+    std::atomic_uint32_t thread_failures{};
+    std::vector<std::thread> threads;
+    for (std::uint32_t index = 0U; index < 8U; ++index)
+        threads.emplace_back([&] {
+            std::uint64_t value{};
+            if (pmGetSemaphoreCounterValue(other, timeline, &value) != invalid)
+                thread_failures.fetch_add(1U);
+        });
+    for (auto &thread : threads) thread.join();
+    CHECK(thread_failures.load() == 0U);
+    CHECK(diagnostics.count == before_parallel + (validation ? 8U : 0U));
     PmCommandPoolCreateInfo pool_info{};
     pool_info.sType = PM_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     pool_info.flags = PM_COMMAND_POOL_RESET_BUFFER_BIT;
@@ -78,10 +211,23 @@ int main(int argc, char **argv) {
 
     // The mock driver accepts every transition. Differences in the validation
     // run therefore prove rejection happened before vendor dispatch.
+    const auto before_state = diagnostics.count;
     CHECK(pmEndCommandBuffer(commands) == invalid_state);
+    if (validation) {
+        CHECK(diagnostics.count == before_state + 1U);
+        CHECK(std::strcmp(diagnostics.rule,
+                          PM_VALIDATION_RULE_INVALID_STATE) == 0);
+        CHECK(std::strcmp(diagnostics.command, "pmEndCommandBuffer") == 0);
+        CHECK(diagnostics.result == PM_ERROR_INVALID_STATE);
+        CHECK(diagnostics.object_type ==
+              PM_VALIDATION_OBJECT_COMMAND_BUFFER);
+        CHECK(diagnostics.object == commands);
+    }
     CHECK(pmCmdCopyBuffer(commands, nullptr, nullptr, 0U, nullptr) == invalid_state);
     CHECK(pmResetCommandBuffer(fixed_commands) == invalid_state);
+    const auto before_valid = diagnostics.count;
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(diagnostics.count == before_valid);
     CHECK(pmCmdCopyBuffer(commands, nullptr, nullptr, 0U, nullptr) == PM_SUCCESS);
     CHECK(pmBeginCommandBuffer(commands, &begin) == invalid_state);
     CHECK(pmResetCommandPool(device, pool) == invalid_state);
@@ -338,10 +484,29 @@ int main(int argc, char **argv) {
     pmDestroySemaphore(replacement, replacement_timeline);
     pmDestroyDevice(replacement);
 
+    if (validation) {
+        const auto before_oom = diagnostics.count;
+        pm_layerTestFailNextTrackingAllocation();
+        PmPhysicalDeviceProperties properties{};
+        pmGetPhysicalDeviceProperties(physical, &properties);
+        CHECK(diagnostics.count == before_oom + 1U);
+        CHECK(std::strcmp(diagnostics.rule,
+                          PM_VALIDATION_RULE_TRACKING_UNAVAILABLE) == 0);
+        CHECK(std::strcmp(diagnostics.command,
+                          "pmGetPhysicalDeviceProperties") == 0);
+        CHECK(diagnostics.severity == PM_VALIDATION_SEVERITY_WARNING);
+        CHECK(diagnostics.result == PM_ERROR_OUT_OF_HOST_MEMORY);
+        CHECK(diagnostics.object_type ==
+              PM_VALIDATION_OBJECT_PHYSICAL_DEVICE);
+        CHECK(diagnostics.object == physical);
+        pmGetPhysicalDeviceProperties(physical, &properties);
+        CHECK(diagnostics.count == before_oom + 1U);
+    }
+
     pmDestroyDevice(other);
     pmDestroyDevice(device);
     pmDestroyInstance(instance);
     std::puts(validation
-        ? "PASS: layer validates resources, command transitions and asynchronous synchronization"
-        : "PASS: permissive driver accepts resource, command and synchronization negative controls");
+        ? "PASS: layer validates state and delivers structured diagnostics"
+        : "PASS: permissive driver accepts validation negative controls without diagnostics");
 }

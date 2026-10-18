@@ -22,10 +22,11 @@ struct MockInstance { std::uint32_t tag{0x504d4452U}; };
 struct MockPhysical { MockInstance *instance{}; };
 struct MockSemaphore { std::uint64_t value{}; };
 
-PmResult mock_create_instance(const PmInstanceCreateInfo *,
+PmResult mock_create_instance(const PmInstanceCreateInfo *info,
                               const PmAllocationCallbacks *,
                               PmInstance *output) {
-    if (output == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+    if (info == nullptr || info->pNext != nullptr || output == nullptr)
+        return PM_ERROR_INVALID_ARGUMENT;
     *output = reinterpret_cast<PmInstance>(new (std::nothrow) MockInstance);
     return *output == nullptr ? PM_ERROR_OUT_OF_HOST_MEMORY : PM_SUCCESS;
 }

@@ -78,6 +78,7 @@ typedef struct PmQueryPool_T* PmQueryPool;
     <type name="PmSubmitInfo" value="11" />
     <type name="PmNativeDeviceImportInfo" value="12" />
     <type name="PmQueryPoolCreateInfo" value="13" />
+    <type name="PmValidationDiagnosticsCreateInfo" value="14" />
   </structure-types>
   <interaction-capabilities>
     <!-- This is the reference-driver inventory.  Public records are emitted
@@ -220,6 +221,45 @@ PmResult pmCreateInstance(
     const PmAllocationCallbacks* pAllocator,
     PmInstance* pInstance);
 void pmDestroyInstance(PmInstance instance);</commands>
+    </card>
+    <card key="validation_diagnostics" section="instancing" extension="false" emit-header="true">
+      <types>#define PM_VALIDATION_RULE_INVALID_LAYER_CALL "PM-VAL-0001"
+#define PM_VALIDATION_RULE_INVALID_ARGUMENT "PM-VAL-0002"
+#define PM_VALIDATION_RULE_INVALID_STATE "PM-VAL-0003"
+#define PM_VALIDATION_RULE_TRACKING_UNAVAILABLE "PM-VAL-0004"
+typedef enum PmValidationSeverity {
+    PM_VALIDATION_SEVERITY_WARNING = 1,
+    PM_VALIDATION_SEVERITY_ERROR = 2
+} PmValidationSeverity;
+typedef enum PmValidationObjectType {
+    PM_VALIDATION_OBJECT_UNKNOWN = 0,
+    PM_VALIDATION_OBJECT_INSTANCE = 1,
+    PM_VALIDATION_OBJECT_PHYSICAL_DEVICE = 2,
+    PM_VALIDATION_OBJECT_DEVICE = 3,
+    PM_VALIDATION_OBJECT_QUEUE = 4,
+    PM_VALIDATION_OBJECT_COMMAND_BUFFER = 5
+} PmValidationObjectType;
+typedef struct PmValidationDiagnostic {
+    const char* pRuleId;
+    PmValidationSeverity severity;
+    PmResult result;
+    const char* pCommandName;
+    PmValidationObjectType objectType;
+    const void* object;
+    uint32_t argumentSize;
+    const void* pArguments;
+    const char* pMessage;
+} PmValidationDiagnostic;
+typedef void (PMAPI_CALL *PmValidationDiagnosticFn)(
+    void* pUserData,
+    const PmValidationDiagnostic* pDiagnostic);
+typedef struct PmValidationDiagnosticsCreateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    PmValidationDiagnosticFn pfnDiagnostic;
+    void* pUserData;
+} PmValidationDiagnosticsCreateInfo;</types>
+      <commands />
     </card>
     <card key="allocator" section="instancing" extension="false" emit-header="true">
       <types>typedef void* (PMAPI_CALL *PmAllocateFn)(

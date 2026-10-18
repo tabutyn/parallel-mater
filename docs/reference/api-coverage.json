@@ -19,7 +19,7 @@
       "section": "3.1",
       "card": "function_pointers",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:113",
+      "source": "src/loader/entry.cpp:122",
       "status": "implemented"
     },
     {
@@ -27,7 +27,7 @@
       "section": "3.2",
       "card": "instance",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:123",
+      "source": "src/loader/entry.cpp:132",
       "status": "implemented"
     },
     {
@@ -59,7 +59,7 @@
       "section": "3.2",
       "card": "instance",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:130",
+      "source": "src/loader/entry.cpp:139",
       "status": "implemented"
     },
     {
@@ -67,7 +67,7 @@
       "section": "3.2",
       "card": "instance",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:207",
+      "source": "src/loader/entry.cpp:216",
       "status": "implemented"
     },
     {
@@ -75,7 +75,7 @@
       "section": "4.1",
       "card": "physical_devices",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:220",
+      "source": "src/loader/entry.cpp:234",
       "status": "implemented"
     },
     {
@@ -107,7 +107,7 @@
       "section": "4.5",
       "card": "device",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:238",
+      "source": "src/loader/entry.cpp:262",
       "status": "implemented"
     },
     {
@@ -115,7 +115,7 @@
       "section": "4.5",
       "card": "device",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:291",
+      "source": "src/loader/entry.cpp:324",
       "status": "implemented"
     },
     {
@@ -123,7 +123,7 @@
       "section": "4.5",
       "card": "device",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:305",
+      "source": "src/loader/entry.cpp:338",
       "status": "implemented"
     },
     {
@@ -539,7 +539,7 @@
       "section": "11.2",
       "card": "command_buffers",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:338",
+      "source": "src/loader/entry.cpp:387",
       "status": "implemented"
     },
     {
@@ -547,7 +547,7 @@
       "section": "11.2",
       "card": "command_buffers",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:381",
+      "source": "src/loader/entry.cpp:440",
       "status": "implemented"
     },
     {
@@ -675,7 +675,7 @@
       "section": "13.4",
       "card": "submission",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:401",
+      "source": "src/loader/entry.cpp:473",
       "status": "implemented"
     },
     {
@@ -747,7 +747,7 @@
       "section": "14.2",
       "card": "native_device",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:426",
+      "source": "src/loader/entry.cpp:507",
       "status": "implemented"
     },
     {
@@ -795,7 +795,7 @@
       "section": "14.6",
       "card": "vulkan_device",
       "header": "interop_vulkan.h",
-      "source": "src/loader/entry.cpp:457",
+      "source": "src/loader/entry.cpp:549",
       "status": "implemented"
     },
     {
@@ -970,18 +970,43 @@
       "card": "instance"
     },
     {
-      "name": "PmAllocateFn",
+      "name": "PmValidationDiagnostic",
       "section": "3.3",
+      "card": "validation_diagnostics"
+    },
+    {
+      "name": "PmValidationDiagnosticFn",
+      "section": "3.3",
+      "card": "validation_diagnostics"
+    },
+    {
+      "name": "PmValidationDiagnosticsCreateInfo",
+      "section": "3.3",
+      "card": "validation_diagnostics"
+    },
+    {
+      "name": "PmValidationObjectType",
+      "section": "3.3",
+      "card": "validation_diagnostics"
+    },
+    {
+      "name": "PmValidationSeverity",
+      "section": "3.3",
+      "card": "validation_diagnostics"
+    },
+    {
+      "name": "PmAllocateFn",
+      "section": "3.4",
       "card": "allocator"
     },
     {
       "name": "PmAllocationCallbacks",
-      "section": "3.3",
+      "section": "3.4",
       "card": "allocator"
     },
     {
       "name": "PmFreeFn",
-      "section": "3.3",
+      "section": "3.4",
       "card": "allocator"
     },
     {

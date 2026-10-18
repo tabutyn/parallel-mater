@@ -377,8 +377,12 @@ std::vector<std::shared_ptr<Driver>> discover_drivers() {
     return result;
 }
 
-std::shared_ptr<LayerChain> load_validation_layers(bool enabled) {
+std::shared_ptr<LayerChain> load_validation_layers(
+    bool enabled, PmValidationDiagnosticFn diagnostic,
+    void *diagnostic_user) {
     auto result = std::make_shared<LayerChain>();
+    result->diagnostic = diagnostic;
+    result->diagnostic_user = diagnostic_user;
     if (!enabled) return result;
     std::vector<std::filesystem::path> paths;
 #if defined(_WIN32)
@@ -414,7 +418,8 @@ std::shared_ptr<LayerChain> load_validation_layers(bool enabled) {
     }
     for (const std::filesystem::path &path : paths) {
         std::string error;
-        if (auto layer = Layer::open(path, error)) result->push_back(std::move(layer));
+        if (auto layer = Layer::open(path, error))
+            result->entries.push_back(std::move(layer));
     }
     return result;
 }
@@ -422,8 +427,11 @@ std::shared_ptr<LayerChain> load_validation_layers(bool enabled) {
 PmResult pre_call(const Route &route, const char *command,
                   std::uint32_t size, const void *arguments) noexcept {
     if (route.layers == nullptr) return PM_SUCCESS;
-    for (const auto &layer : *route.layers) {
-        const PmResult result = layer->pre({command, route.native, size, arguments});
+    for (const auto &layer : route.layers->entries) {
+        const PmResult result = layer->pre({
+            command, route.native, size, arguments, route.object_type,
+            route.object, route.layers->diagnostic,
+            route.layers->diagnostic_user});
         if (result != PM_SUCCESS) return result;
     }
     return PM_SUCCESS;
@@ -432,13 +440,18 @@ PmResult pre_call(const Route &route, const char *command,
 void post_call(const Route &route, const char *command, PmResult result,
                std::uint32_t size, const void *arguments) noexcept {
     if (route.layers == nullptr) return;
-    for (auto layer = route.layers->rbegin(); layer != route.layers->rend(); ++layer)
-        (*layer)->post({command, route.native, size, arguments}, result);
+    for (auto layer = route.layers->entries.rbegin();
+         layer != route.layers->entries.rend(); ++layer)
+        (*layer)->post({command, route.native, size, arguments,
+                        route.object_type, route.object,
+                        route.layers->diagnostic,
+                        route.layers->diagnostic_user}, result);
 }
 
 Route route(PmPhysicalDevice value) noexcept {
     if (value == nullptr || value->dispatch != &loader_dispatch) return {};
-    return {value->driver, value->native, value->native_instance, Scope::physical,
+    return {value->driver, value->native, value->native_instance,
+            Scope::physical, PM_VALIDATION_OBJECT_PHYSICAL_DEVICE, value,
             value->layers};
 }
 
@@ -448,25 +461,25 @@ Route route(PmInstance value) noexcept {
         return {};
     const auto &child = value->children.front();
     return {child.driver, child.native, child.native, Scope::instance,
-            value->layers};
+            PM_VALIDATION_OBJECT_INSTANCE, value, value->layers};
 }
 
 Route route(PmDevice value) noexcept {
     if (value == nullptr || value->dispatch != &loader_dispatch) return {};
     return {value->driver, value->native, value->native, Scope::device,
-            value->layers};
+            PM_VALIDATION_OBJECT_DEVICE, value, value->layers};
 }
 
 Route route(PmQueue value) noexcept {
     if (value == nullptr || value->dispatch != &loader_dispatch) return {};
     return {value->driver, value->native, value->native_device, Scope::device,
-            value->layers};
+            PM_VALIDATION_OBJECT_QUEUE, value, value->layers};
 }
 
 Route route(PmCommandBuffer value) noexcept {
     if (value == nullptr || value->dispatch != &loader_dispatch) return {};
     return {value->driver, value->native, value->native_device, Scope::device,
-            value->layers};
+            PM_VALIDATION_OBJECT_COMMAND_BUFFER, value, value->layers};
 }
 
 } // namespace parallel_mater::loader
