@@ -188,6 +188,11 @@ struct PmQueryWrite {
     std::uint32_t count{};
 };
 
+struct PmRecordedCommand {
+    std::function<PmResult(parallel_mater::device::Services &)> execute;
+    bool continue_after_error{};
+};
+
 enum class PmCommandState : std::uint8_t { initial, recording, executable, pending };
 
 struct PmCommandBuffer_T {
@@ -201,10 +206,11 @@ struct PmCommandBuffer_T {
     PmQueryPool statistics_pool{};
     std::uint32_t statistics_query{};
     PmSimulation statistics_simulation{};
+    std::shared_ptr<bool> statistics_execution;
     std::shared_ptr<parallel_mater::device::SubmissionCompletion> completion;
     std::vector<PmQueryWrite> query_writes;
     std::vector<PmSimulation> simulation_resources;
-    std::vector<std::function<PmResult(parallel_mater::device::Services &)>> commands;
+    std::vector<PmRecordedCommand> commands;
 };
 
 struct PmCommandPool_T {
@@ -331,7 +337,8 @@ inline void refresh_command_state(PmCommandBuffer buffer) noexcept {
 
 inline PmResult record(PmCommandBuffer buffer,
                        std::function<PmResult(
-                           parallel_mater::device::Services &)> command) noexcept {
+                           parallel_mater::device::Services &)> command,
+                       bool continue_after_error = false) noexcept {
     const PmResult state = require_recording(buffer);
     if (state != PM_SUCCESS) return state;
 #if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
@@ -341,7 +348,8 @@ inline PmResult record(PmCommandBuffer buffer,
     }
 #endif
     try {
-        buffer->commands.push_back(std::move(command));
+        buffer->commands.push_back(
+            {std::move(command), continue_after_error});
         return PM_SUCCESS;
     } catch (const std::bad_alloc &) {
         buffer->latched_error = PM_ERROR_OUT_OF_HOST_MEMORY;
@@ -363,13 +371,14 @@ inline PmResult record_simulation(PmCommandBuffer buffer, PmSimulation simulatio
 
 inline PmResult record_query(PmCommandBuffer buffer, PmQueryPool pool,
     std::uint32_t first, std::uint32_t count,
-    std::function<PmResult(device::Services &)> command) noexcept {
+    std::function<PmResult(device::Services &)> command,
+    bool continue_after_error = false) noexcept {
     try {
         buffer->query_writes.push_back({pool, first, count});
     } catch (const std::bad_alloc &) {
         return buffer->latched_error = PM_ERROR_OUT_OF_HOST_MEMORY;
     }
-    return record(buffer, std::move(command));
+    return record(buffer, std::move(command), continue_after_error);
 }
 
 [[nodiscard]] PmPhysicalDeviceFeatures supported_features() noexcept;

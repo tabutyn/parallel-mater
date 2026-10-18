@@ -26,7 +26,7 @@ in one profile never silently qualifies another profile or backend.
 | PM-DIAG-001 | Validation failures deliver stable rule IDs, application-object context and callback-scoped typed arguments. Delivery is concurrent, independently reentrant and allocation-free; bookkeeping OOM disables stateful tracking without changing the API result. | permissive-driver validation diagnostics tests, paired with no-layer controls |
 | PM-THREAD-001 | Physical-device queries and distinct command pools may be used concurrently. Host access to the same mutable queue, pool, fence, mapped range or resource, including destruction versus queries, is externally synchronized. | native-driver public host-concurrency test through the loader and validation layer; concurrent validation callback test |
 | PM-DESTROY-001 | Applications complete work and destroy children before parents. In-tree reference drivers drain accepted work during device teardown; this reference-runtime behavior is not permission to violate portable dependency lifetime. | SDK destruction-wait qualification on the host fixture and advertised native drivers; submission queue destructor and validation device-teardown tests |
-| PM-CAP-001 | Authored data exceeding declared capacity is rejected without disturbing unrelated state. Runtime-generated overflow is deferred through statistics/status, invalidates that step output and requires reinitialization. | SDK lifecycle capacity tests; runtime-overflow qualification is F3-12 |
+| PM-CAP-001 | Authored data exceeding declared capacity is rejected without disturbing unrelated state. Runtime-generated overflow is deferred through statistics/status, invalidates that step output and requires reinitialization. | SDK lifecycle capacity tests; runtime-overflow qualification on the host fixture and advertised native drivers |
 | PM-RESET-001 | Pool, command-buffer, fence, query and simulation reset obey pending/state restrictions. Reset clears the state named by the command without silently changing declared capacity or unrelated objects. | async submission, failure lifecycle, resource lifecycle and validation-layer tests |
 
 ## F3-06 clause audit
@@ -43,8 +43,8 @@ coverage must validate safe API boundaries rather than manufacture a data race.
 | Host snapshots · PM-CMD-001 | [calling conventions](reference/parallel-mater-specification.md#spec-conventions), [command buffers](reference/parallel-mater-specification.md#spec-command_buffers) | host fixture + advertised native driver: [`descriptor_snapshot_tests.cpp`](../tests/api/descriptor_snapshot_tests.cpp) mutates and frees flat transfer arrays plus nested cloth descriptor/vertex/index/mass arrays before execution | rejected nested recording leaves existing state unchanged; reset discards successful flat and nested snapshots; deterministic recording OOM is latched, retains no caller storage and recovers after reset | covered |
 | Destruction / wait · PM-DESTROY-001 | [lifetime](reference/parallel-mater-specification.md#spec-units), [command lifetime](reference/parallel-mater-specification.md#spec-lifecycle), [submission](reference/parallel-mater-specification.md#spec-submission) | host fixture + advertised native driver: [`destruction_wait_tests.cpp`](../tests/api/destruction_wait_tests.cpp) distinguishes explicit fence completion from reference-driver device teardown with accepted pending work | deterministic host delay verifies copied output before teardown returns; a fresh device submission verifies no stale completion or validation ownership after retirement | covered |
 | Deferred completion · PM-SYNC-001 | [return codes](reference/parallel-mater-specification.md#spec-results), [command lifetime](reference/parallel-mater-specification.md#spec-lifecycle), [submission](reference/parallel-mater-specification.md#spec-submission), [statistics](reference/parallel-mater-specification.md#spec-step_stats) | reference solver: [`async_submission_tests.cpp`](../tests/api/async_submission_tests.cpp) covers wait-before-signal, pending state, ordered submissions and completion channels | host fixture: [`failure_lifecycle_tests.cpp`](../tests/api/failure_lifecycle_tests.cpp) separates rejection before acceptance from deferred failure and recovery; [`submission_queue_tests.cpp`](../tests/api/submission_queue_tests.cpp) proves a consumed error does not poison later waits | covered |
-| Capacity · PM-CAP-001 | [return codes](reference/parallel-mater-specification.md#spec-results), [pipeline bounds](reference/parallel-mater-specification.md#spec-pipeline_validity), [statistics](reference/parallel-mater-specification.md#spec-step_stats) | host fixture / advertised reference solver: [`resource_lifecycle_tests.cpp`](../tests/api/resource_lifecycle_tests.cpp), [`domain_lifecycle_tests.cpp`](../tests/api/domain_lifecycle_tests.cpp), [`coupling_lifecycle_tests.cpp`](../tests/api/coupling_lifecycle_tests.cpp), [`owner_slot_tests.cpp`](../tests/solver/owner_slot_tests.cpp) cover declared-capacity rejection and unrelated-state survival | no reference-solver test deliberately generates contact/neighbor overflow and proves statistics/status plus reset recovery | [F3-12](roadmap/tasks/F3-12.json) |
-| Reset · PM-RESET-001 | [command pools](reference/parallel-mater-specification.md#spec-command_pool), [command buffers](reference/parallel-mater-specification.md#spec-command_buffers), [simulation reset](reference/parallel-mater-specification.md#spec-simulation_init), [statistics](reference/parallel-mater-specification.md#spec-step_stats) | portable API / reference runtime: [`resource_lifecycle_tests.cpp`](../tests/api/resource_lifecycle_tests.cpp) reuses exact queried storage after reset; [`layer_validation_tests.cpp`](../tests/api/layer_validation_tests.cpp) releases tracked dependencies at completion | [`failure_lifecycle_tests.cpp`](../tests/api/failure_lifecycle_tests.cpp) clears a latched recording error; [`async_submission_tests.cpp`](../tests/api/async_submission_tests.cpp) rejects command/fence reset while pending; overflow-specific recovery remains F3-12 | covered except F3-12 |
+| Capacity · PM-CAP-001 | [return codes](reference/parallel-mater-specification.md#spec-results), [pipeline bounds](reference/parallel-mater-specification.md#spec-pipeline_validity), [statistics](reference/parallel-mater-specification.md#spec-step_stats) | host fixture / advertised reference solver: [`resource_lifecycle_tests.cpp`](../tests/api/resource_lifecycle_tests.cpp), [`domain_lifecycle_tests.cpp`](../tests/api/domain_lifecycle_tests.cpp), [`coupling_lifecycle_tests.cpp`](../tests/api/coupling_lifecycle_tests.cpp), [`owner_slot_tests.cpp`](../tests/solver/owner_slot_tests.cpp) cover declared-capacity rejection; [`capacity_recovery_tests.cpp`](../tests/api/capacity_recovery_tests.cpp) generates exact neighbor overflow and proves deferred completion/statistics/status plus selective reinitialization | failed-step output remains unpublished; replacing only the overflowing population preserves an unrelated live population and the next step succeeds | covered |
+| Reset · PM-RESET-001 | [command pools](reference/parallel-mater-specification.md#spec-command_pool), [command buffers](reference/parallel-mater-specification.md#spec-command_buffers), [simulation reset](reference/parallel-mater-specification.md#spec-simulation_init), [statistics](reference/parallel-mater-specification.md#spec-step_stats) | portable API / reference runtime: [`resource_lifecycle_tests.cpp`](../tests/api/resource_lifecycle_tests.cpp) reuses exact queried storage after reset; [`layer_validation_tests.cpp`](../tests/api/layer_validation_tests.cpp) releases tracked dependencies at completion; [`capacity_recovery_tests.cpp`](../tests/api/capacity_recovery_tests.cpp) reinitializes only the overflowing population | [`failure_lifecycle_tests.cpp`](../tests/api/failure_lifecycle_tests.cpp) clears a latched recording error; [`async_submission_tests.cpp`](../tests/api/async_submission_tests.cpp) rejects command/fence reset while pending | covered |
 
 ### F3-09 host-concurrency profile
 
@@ -96,6 +96,28 @@ exclude stale completion or validation ownership after handle retirement.
 Implicit device-teardown draining is an in-tree reference-driver extension, not
 portable guidance for external drivers. Applications must still wait explicitly
 and destroy dependent child objects before their parent device.
+
+### F3-12 runtime-capacity profile
+
+The public-only capacity fixture declares two fluid populations. Its target
+contains four particles at one position with `neighborCapacityPerParticle = 1`
+and `supportRadius = 0.1`; the shared Slang neighbor operator therefore counts
+three neighbors for each target particle and reports exactly four overflows. An
+isolated one-particle population at x = 10 is the unrelated live control.
+
+Command recording and `pmQueueSubmit` succeed. Fence completion,
+`pmGetSimulationStatus` and the closed statistics query all expose
+`PM_ERROR_CAPACITY_EXCEEDED`; the query reports `overflowCount = 4` and the copy
+recorded after the failed step remains unpublished. The fixture then replaces
+only the target with one isolated particle at x = 20. The next step, statistics
+query and both population copies succeed with zero overflow, while the control
+particle remains at x = 10.
+
+The same source runs through the validation layer on the private Slang C++ host
+fixture and each built advertised native Slang driver. Windows D3D12 compiles
+the schedule to DXIL and passed 20/20 runs on the NVIDIA GeForce GTX 1080; the
+WSL GCC 13.3 host fixture passed 20/20. This qualifies the named profile and
+runtime recovery contract, not arbitrary capacity choices or physical quality.
 
 ## Lifetime and error boundaries
 
