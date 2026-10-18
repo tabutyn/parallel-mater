@@ -2,7 +2,7 @@
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 #import <Metal/Metal.h>
-#include <parallel_mater_gallery/session.hpp>
+#include <parallel_mater_gallery/mobile_session.hpp>
 #if PM_IOS_QUALIFICATION_RUNNER
 #include <parallel_mater_conformance/runner.hpp>
 #include <parallel_mater_conformance/sha256.hpp>
@@ -17,6 +17,8 @@
 #include <string>
 
 using parallel_mater::gallery::GallerySession;
+using parallel_mater::gallery::MobileGalleryCommand;
+using parallel_mater::gallery::MobileGallerySession;
 namespace {
 NSString *text(const std::string &value) { return [NSString stringWithUTF8String:value.c_str()]; }
 std::uint64_t memory_footprint() {
@@ -102,13 +104,14 @@ UIImage *frame_image(const GallerySession &session) {
 @end
 
 @interface PMGalleryController : UIViewController <UIGestureRecognizerDelegate> {
-    std::unique_ptr<GallerySession> _session;
+    std::unique_ptr<MobileGallerySession> _mobile;
+    GallerySession *_session;
     dispatch_queue_t _worker;
     PMMetalView *_image;
     UILabel *_status;
     UIButton *_sceneButton, *_pauseButton, *_releaseButton;
     CADisplayLink *_display;
-    BOOL _ready, _pending, _active, _paused, _failed;
+    BOOL _ready, _pending, _active, _failed;
     float _orbitX, _orbitY, _zoom, _right, _up;
     NSInteger _selection;
     BOOL _reset, _focus, _release;
@@ -146,10 +149,6 @@ UIImage *frame_image(const GallerySession &session) {
                 PMGalleryController *owner = weakSelf;
                 if (!owner) return;
                 owner->_selection = static_cast<NSInteger>(index);
-                owner->_failed = NO;
-                owner->_releaseButton.enabled = index == 2U;
-                [owner->_sceneButton setTitle:[name stringByAppendingString:@" ▾"]
-                                      forState:UIControlStateNormal];
             }];
         action.attributes = available ? 0 : UIMenuElementAttributesDisabled;
         [scenes addObject:action];
@@ -161,6 +160,32 @@ UIImage *frame_image(const GallerySession &session) {
         [_sceneButton setTitle:[name stringByAppendingString:@" ▾"]
                       forState:UIControlStateNormal];
     }
+}
+- (void)publishMobileStateCompletingFrame:(BOOL)completeFrame {
+    if (!_mobile) return;
+    const auto state = _mobile->state();
+    NSString *status = text(state.status + "\n" + state.directional_label);
+    NSString *details = text(_session->details());
+    NSString *primary = text(state.primary_action_label);
+    NSString *scene = state.selection < _session->catalog().size()
+        ? text(std::string(_session->catalog()[state.selection].scene.name))
+        : @"Unknown scene";
+    const BOOL paused = state.paused;
+    const BOOL failed = state.failed;
+    const BOOL primaryAvailable = state.primary_action_available;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        self->_failed = failed;
+        self->_status.text = status;
+        self->_details = details;
+        [self->_pauseButton setTitle:paused ? @"Resume" : @"Pause"
+                            forState:UIControlStateNormal];
+        self->_releaseButton.enabled = primaryAvailable;
+        [self->_releaseButton setTitle:primary.length ? primary : @"Action"
+                              forState:UIControlStateNormal];
+        [self->_sceneButton setTitle:[scene stringByAppendingString:@" ▾"]
+                             forState:UIControlStateNormal];
+        if (completeFrame) self->_pending = NO;
+    });
 }
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -238,10 +263,11 @@ UIImage *frame_image(const GallerySession &session) {
                 setenv("PM_DRIVER_FILES", (resources / "manifests/slang-metal.json").c_str(), 1);
                 setenv("PM_LAYER_FILES", (resources / "manifests/validation.json").c_str(), 1);
                 struct utsname machine{}; uname(&machine);
-                self->_session = std::make_unique<GallerySession>(parallel_mater::gallery::GallerySessionConfig{
+                self->_mobile = std::make_unique<MobileGallerySession>(parallel_mater::gallery::GallerySessionConfig{
                     .assets = resources / "assets", .profiles = resources / "config/device-profiles.json",
                     .platform = "iPadOS", .model = machine.machine, .backend = "metal",
-                    .native_backend = PM_NATIVE_BACKEND_METAL, .gpu_rendering = true});
+                    .gpu_rendering = true});
+                self->_session = &self->_mobile->gallery();
                 NSMutableArray<NSDictionary *> *catalog = [NSMutableArray array];
                 for (const auto &item : self->_session->catalog()) {
                     [catalog addObject:@{
@@ -256,11 +282,6 @@ UIImage *frame_image(const GallerySession &session) {
                 dispatch_sync(dispatch_get_main_queue(), ^{
                     [self installCatalog:catalogSnapshot];
                 });
-                self->_session->set_render_target({
-                    .backend = PM_NATIVE_BACKEND_METAL,
-                    .handle = static_cast<PmNativeHandle>(
-                        reinterpret_cast<std::uintptr_t>(
-                            (__bridge void *)self->_image.layer))});
                 NSLog(@"ParallelMater: %@", text(self->_session->details()));
                 const auto native = self->_session->native_render_device();
                 id<MTLDevice> gpu = (__bridge id<MTLDevice>)(
@@ -273,9 +294,18 @@ UIImage *frame_image(const GallerySession &session) {
                     layer.drawableSize = CGSizeMake(limits.render_width, limits.render_height);
                     self->_renderWidth = limits.render_width; self->_renderHeight = limits.render_height;
                 });
+                if (!self->_mobile->attach_surface(
+                        limits.render_width, limits.render_height,
+                        {.backend = PM_NATIVE_BACKEND_METAL,
+                         .handle = static_cast<PmNativeHandle>(
+                             reinterpret_cast<std::uintptr_t>(
+                                 (__bridge void *)self->_image.layer))}))
+                    throw std::runtime_error(self->_mobile->state().failure);
                 // Publish a real drawable before a long offscreen diagnostic.
                 // The system must never wait for qualification to see first draw.
-                self->_session->frame();
+                if (!self->_mobile->frame())
+                    throw std::runtime_error(self->_mobile->state().failure);
+                [self publishMobileStateCompletingFrame:NO];
                 [self writeRuntimeInfo];
                 if ([NSProcessInfo.processInfo.arguments containsObject:@"--smoke-test"] ||
                     [NSProcessInfo.processInfo.arguments containsObject:@"--qualify"])
@@ -294,10 +324,11 @@ UIImage *frame_image(const GallerySession &session) {
 }
 - (void)tick:(CADisplayLink *)sender {
     (void)sender;
-    if (!_ready || !_active || _pending || _failed) return;
+    if (!_ready || !_active || _pending ||
+        (_failed && _selection < 0 && !_reset)) return;
     _pending = YES;
     const float x = _orbitX, y = _orbitY, z = _zoom, right = _right, up = _up;
-    const BOOL paused = _paused, reset = _reset, focus = _focus, release = _release;
+    const BOOL reset = _reset, focus = _focus, release = _release;
     const NSInteger selection = _selection;
     const unsigned width = std::max(1.0, self.view.bounds.size.width);
     const unsigned height = std::max(1.0, self.view.bounds.size.height);
@@ -308,26 +339,37 @@ UIImage *frame_image(const GallerySession &session) {
         @autoreleasepool {
             try {
                 auto &session = *self->_session;
-                if (selection >= 0) session.select(static_cast<unsigned>(selection));
-                else if (reset) session.reset();
+                auto command = [&](MobileGalleryCommand action, float a = 0.0F,
+                                   float b = 0.0F) {
+                    if (!self->_mobile->execute(action, a, b))
+                        throw std::runtime_error(self->_mobile->state().failure);
+                };
+                if (selection >= 0)
+                    command(MobileGalleryCommand::select_scene,
+                            static_cast<float>(selection));
+                else if (reset) command(MobileGalleryCommand::reset_scene);
                 if (selection >= 0 || reset) {
                     const auto native = session.native_render_device();
                     id<MTLDevice> gpu = (__bridge id<MTLDevice>)(
                         reinterpret_cast<void *>(native.device));
                     dispatch_sync(dispatch_get_main_queue(), ^{ ((CAMetalLayer *)self->_image.layer).device = gpu; });
                 }
-                session.resize(width, height);
-                if (focus) session.focus();
-                if (release) (void)session.primary_action();
-                session.orbit(x * session.height / height, y * session.height / height);
-                session.zoom(z); session.steer(right, up); session.set_paused(paused);
-                session.frame_at(GallerySession::FrameClock::now());
-                NSString *status = text(session.status());
-                NSString *details = text(session.details());
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    self->_status.text = status;
-                    self->_details = details; self->_pending = NO;
-                });
+                if (!self->_mobile->resize_surface(width, height)) {
+                    const auto state = self->_mobile->state();
+                    if (state.failed) throw std::runtime_error(state.failure);
+                }
+                if (focus) command(MobileGalleryCommand::focus);
+                if (release) command(MobileGalleryCommand::primary_action);
+                command(MobileGalleryCommand::orbit,
+                        x * session.height / height, y * session.height / height);
+                command(MobileGalleryCommand::zoom, z);
+                command(MobileGalleryCommand::steer, right, up);
+                const bool framed = self->_mobile->frame_at(
+                    GallerySession::FrameClock::now());
+                const auto state = self->_mobile->state();
+                if (!framed && state.failed)
+                    throw std::runtime_error(state.failure);
+                [self publishMobileStateCompletingFrame:YES];
             } catch (const std::exception &error) {
                 NSString *message = text(error.what());
                 dispatch_async(dispatch_get_main_queue(), ^{ self->_pending = NO; [self failure:message]; });
@@ -348,8 +390,18 @@ UIImage *frame_image(const GallerySession &session) {
     [alert addAction:[UIAlertAction actionWithTitle:@"Done" style:UIAlertActionStyleDefault handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
 }
-- (void)pause { _paused = !_paused; [_pauseButton setTitle:_paused ? @"Resume" : @"Pause" forState:UIControlStateNormal]; }
-- (void)reset { _reset = YES; _failed = NO; }
+- (void)pause {
+    dispatch_async(_worker, ^{
+        if (!self->_mobile) return;
+        if (!self->_mobile->execute(MobileGalleryCommand::toggle_paused)) {
+            NSString *message = text(self->_mobile->state().failure);
+            dispatch_async(dispatch_get_main_queue(), ^{ [self failure:message]; });
+            return;
+        }
+        [self publishMobileStateCompletingFrame:NO];
+    });
+}
+- (void)reset { _reset = YES; }
 - (void)focus { _focus = YES; }
 - (void)releaseConstraint { _release = YES; }
 - (void)press:(UIButton *)button { _right = button.tag == 0 ? -1 : button.tag == 3 ? 1 : 0; _up = button.tag == 1 ? -1 : button.tag == 2 ? 1 : 0; }
@@ -364,8 +416,8 @@ UIImage *frame_image(const GallerySession &session) {
     UIApplication.sharedApplication.idleTimerDisabled = NO;
     _active = NO; [self releaseDirections]; _orbitX = _orbitY = _zoom = 0;
     dispatch_async(_worker, ^{
-        if (!self->_session) return;
-        self->_session->set_active(false); ++self->_backgrounds;
+        if (!self->_mobile) return;
+        self->_mobile->set_foreground(false); ++self->_backgrounds;
         self->_backgroundFrames = self->_session->frames;
         [self writeRuntimeInfo];
     });
@@ -374,8 +426,8 @@ UIImage *frame_image(const GallerySession &session) {
     UIApplication.sharedApplication.idleTimerDisabled = YES;
     _active = YES;
     dispatch_async(_worker, ^{
-        if (!self->_session) return;
-        self->_session->set_active(true); ++self->_foregrounds;
+        if (!self->_mobile) return;
+        self->_mobile->set_foreground(true); ++self->_foregrounds;
         [self writeRuntimeInfo];
     });
 }
@@ -394,7 +446,10 @@ UIImage *frame_image(const GallerySession &session) {
     UIApplication.sharedApplication.idleTimerDisabled = NO;
     _active = NO; [_display invalidate];
     [NSNotificationCenter.defaultCenter removeObserver:self];
-    dispatch_async(_worker, ^{ self->_session.reset(); });
+    dispatch_async(_worker, ^{
+        self->_session = nullptr;
+        self->_mobile.reset();
+    });
 }
 - (void)runSmokeTests {
     NSMutableArray *results = [NSMutableArray array];
@@ -405,6 +460,42 @@ UIImage *frame_image(const GallerySession &session) {
     const unsigned steps = extended ? static_cast<unsigned>(requested) : 3;
     NSArray<NSURL *> *directories = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask];
     const auto &catalog = _session->catalog();
+    const auto require_mobile = [](bool condition, const char *failure) {
+        if (!condition) throw std::runtime_error(failure);
+    };
+    const auto initial_generation = _mobile->state().surface_generation;
+    _mobile->set_foreground(false);
+    require_mobile(!_mobile->frame() && !_mobile->state().active,
+                   "Background mobile session admitted a frame");
+    _mobile->set_foreground(true);
+    _mobile->detach_surface();
+    require_mobile(!_mobile->frame() && !_mobile->state().surface_ready,
+                   "Detached mobile surface admitted a frame");
+    require_mobile(_mobile->attach_surface(
+                       _renderWidth, _renderHeight,
+                       {.backend = PM_NATIVE_BACKEND_METAL,
+                        .handle = static_cast<PmNativeHandle>(
+                            reinterpret_cast<std::uintptr_t>(
+                                (__bridge void *)_image.layer))}) &&
+                       _mobile->state().surface_generation >=
+                           initial_generation + 2U,
+                   "Replacement mobile surface did not recover");
+    require_mobile(_mobile->execute(MobileGalleryCommand::toggle_paused) &&
+                       _mobile->state().paused &&
+                       _mobile->execute(MobileGalleryCommand::toggle_paused) &&
+                       !_mobile->state().paused,
+                   "Shared mobile pause/resume failed");
+    require_mobile(!_mobile->frame([](const GallerySession &) {
+                       throw std::runtime_error("qualification presentation failure");
+                   }) && _mobile->state().failed &&
+                       _mobile->execute(MobileGalleryCommand::reset_scene) &&
+                       !_mobile->state().failed,
+                   "Shared mobile failure recovery failed");
+    NSDictionary *mobileContract = @{
+        @"background_recovery":@YES,
+        @"surface_replacement":@YES,
+        @"pause_resume":@YES,
+        @"failure_recovery":@YES};
     for (unsigned i = 0; i < catalog.size(); ++i) {
         @autoreleasepool {
             const auto &item = catalog[i];
@@ -422,6 +513,7 @@ UIImage *frame_image(const GallerySession &session) {
                     @"nonce":argument(@"--deployment-nonce") ?: @"",
                     @"completed":@(results.count == catalog.size()),
                     @"frames_per_scene":@(steps),
+                    @"mobile_session_contract":mobileContract,
                     @"scope":@"scene output and shared controls; not numerical, thermal, or full physics qualification",
                     @"scenes":results});
                 continue;
@@ -429,7 +521,9 @@ UIImage *frame_image(const GallerySession &session) {
             try {
                 NSLog(@"ParallelMater smoke START: %@, footprint=%llu MiB",
                       text(std::string(item.scene.name)), memory_footprint() / (1024ULL*1024));
-                _session->select(i);
+                if (!_mobile->execute(MobileGalleryCommand::select_scene,
+                                      static_cast<float>(i)))
+                    throw std::runtime_error(_mobile->state().failure);
                 const auto statistics = _session->qualify(steps);
                 [results addObject:@{@"id":text(std::string(item.id)),
                     @"scene":text(std::string(item.scene.name)),
@@ -453,12 +547,15 @@ UIImage *frame_image(const GallerySession &session) {
                 @"revision":text(GallerySession::build_revision()), @"backend":text(_session->backend_name()),
                 @"device":text(_session->device_name()), @"nonce":argument(@"--deployment-nonce") ?: @"",
                 @"completed":@(results.count == catalog.size()), @"frames_per_scene":@(steps),
+                @"mobile_session_contract":mobileContract,
                 @"scope":@"scene output and shared controls; not numerical, thermal, or full physics qualification",
                 @"scenes":results});
         }
     }
     NSLog(@"ParallelMater smoke complete: %lu scenes", (unsigned long)results.count);
-    _session->select(0);
+    if (!_mobile->execute(MobileGalleryCommand::select_scene, 0.0F))
+        throw std::runtime_error(_mobile->state().failure);
+    [self publishMobileStateCompletingFrame:NO];
     [self writeRuntimeInfo];
 }
 #if PM_IOS_QUALIFICATION_RUNNER

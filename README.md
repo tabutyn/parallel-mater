@@ -189,7 +189,8 @@ physics qualification. See [build, install and controls](examples/android/README
 
 A native UIKit preview reuses the macOS Slang Metal driver for **Apple GPU
 physics** and direct Metal drawing from public GPU output buffers. Android and
-iPad share one C++ session, timer, controls and bounded mobile workloads. It exposes 27 existing scenes without CPU physics fallback.
+iPad share one C++ mobile-session coordinator, timer, controls and bounded
+workloads. It exposes all 28 catalog scenes without CPU physics fallback.
 Requires iPadOS 26+ and Apple GPU family 7 or newer; full physics and sustained
 performance qualification remain pending. See [build, install, controls and
 device diagnostics](examples/ios/README.md).

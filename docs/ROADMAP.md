@@ -143,7 +143,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F3-00](roadmap/tasks/F3-00.json) | Version and typed validation baseline | done | — | — |
 | [F3-01](roadmap/tasks/F3-01.json) | Finish manual command interception | done | — | — |
 | [F3-02](roadmap/tasks/F3-02.json) | Validate command recording state | done | F3-01 | — |
-| [F3-03](roadmap/tasks/F3-03.json) | Validate object dependencies and query state | leased | F3-01, F1-03, F1-04 | codex-windows-validation / windows-gtx1080 / 2026-10-19T01:02:04Z |
+| [F3-03](roadmap/tasks/F3-03.json) | Validate object dependencies and query state | done | F3-01, F1-03, F1-04 | — |
 | [F3-04](roadmap/tasks/F3-04.json) | Validate synchronization state | done | F3-02 | — |
 | [F3-05](roadmap/tasks/F3-05.json) | Expose structured validation diagnostics | done | F3-01 | — |
 | [F3-06](roadmap/tasks/F3-06.json) | Close threading and deferred-error contract gaps | ready | F1-06, F3-04 | — |
@@ -213,7 +213,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-04](roadmap/tasks/F7-04.json) | Move Gallery controllers into common runtime | done | F7-03 | — |
 | [F7-05](roadmap/tasks/F7-05.json) | Unify Gallery clock and workload policy | done | F7-03 | — |
 | [F7-06](roadmap/tasks/F7-06.json) | Adopt common runtime in desktop Gallery | done | F7-02, F7-03, F7-04, F7-05 | — |
-| [F7-07](roadmap/tasks/F7-07.json) | Make mobile Gallery shells thin adapters | leased | F7-02, F7-03, F7-04, F7-05 | codex-macos-gallery / Thomass-MacBook-Air / 2026-10-19T00:32:51Z |
+| [F7-07](roadmap/tasks/F7-07.json) | Make mobile Gallery shells thin adapters | done | F7-02, F7-03, F7-04, F7-05 | — |
 | [F7-08](roadmap/tasks/F7-08.json) | Define common Gallery GPU renderer contract | done | F7-01 | — |
 | [F7-09](roadmap/tasks/F7-09.json) | Implement native Vulkan Gallery rendering | ready | F7-08 | — |
 | [F7-10](roadmap/tasks/F7-10.json) | Enable Vulkan cloth Gallery domains | done | F7-03 | — |
@@ -221,7 +221,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-12](roadmap/tasks/F7-12.json) | Enable Vulkan rope Gallery domains | ready | F7-03 | — |
 | [F7-13](roadmap/tasks/F7-13.json) | Enable Vulkan smoke Gallery domains | ready | F7-03 | — |
 | [F7-14](roadmap/tasks/F7-14.json) | Enable Vulkan cross-deformable Gallery couplings | waiting on dependencies | F7-10, F7-11, F7-12, F7-13 | — |
-| [F7-15](roadmap/tasks/F7-15.json) | Expose capability-driven Android catalog | waiting on dependencies | F7-02, F7-07 | — |
+| [F7-15](roadmap/tasks/F7-15.json) | Expose capability-driven Android catalog | ready | F7-02, F7-07 | — |
 | [F7-16](roadmap/tasks/F7-16.json) | Use native Vulkan rendering on Android | waiting on dependencies | F7-07, F7-09 | — |
 | [F7-17](roadmap/tasks/F7-17.json) | Complete Android Gallery controls and help | waiting on dependencies | F7-04, F7-07, F7-15 | — |
 | [F7-18](roadmap/tasks/F7-18.json) | Qualify complete Android Gallery | waiting on dependencies | F5-15, F7-05, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17 | — |

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-#include <parallel_mater_gallery/session.hpp>
+#include <parallel_mater_gallery/mobile_session.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -31,9 +31,6 @@ int main() {
                 .platform = "ContractTest",
                 .model = "test-host",
                 .backend = PM_GALLERY_SESSION_TEST_BACKEND,
-#ifdef PM_GALLERY_SESSION_TEST_NATIVE_BACKEND
-                .native_backend = PM_GALLERY_SESSION_TEST_NATIVE_BACKEND,
-#endif
             };
             gallery::GallerySession session(std::move(config));
             session.resize(96U, 72U);
@@ -169,6 +166,88 @@ int main() {
         }
         require(gallery::GalleryRuntime::live_runtime_count() == 0U,
                 "Session teardown did not release its runtime exactly once");
+
+        const auto mobile_config = [&] {
+            return gallery::GallerySessionConfig{
+                .assets = root / "examples/assets",
+                .profiles = root /
+                    "tests/gallery/assets/session_contract_profiles.json",
+                .platform = "ContractTest",
+                .model = "test-host",
+                .backend = PM_GALLERY_SESSION_TEST_BACKEND,
+            };
+        };
+        for (unsigned recreation = 0U; recreation < 2U; ++recreation) {
+            gallery::MobileGallerySession mobile(mobile_config());
+            require(!mobile.state().active && !mobile.state().surface_ready &&
+                        !mobile.should_frame(),
+                    "Mobile session ran before a surface was attached");
+            require(mobile.attach_surface(96U, 72U) &&
+                        mobile.state().surface_generation == 1U &&
+                        mobile.should_frame(),
+                    "Mobile surface attachment did not admit frames");
+            require(mobile.frame() && mobile.gallery().frames == 1U,
+                    "Mobile surface did not produce a frame");
+
+            require(mobile.execute(
+                        gallery::MobileGalleryCommand::toggle_paused) &&
+                        mobile.state().paused && mobile.frame() &&
+                        mobile.gallery().frames == 1U,
+                    "Shared mobile pause advanced physics");
+            require(mobile.execute(
+                        gallery::MobileGalleryCommand::toggle_paused) &&
+                        !mobile.state().paused,
+                    "Shared mobile resume did not clear pause");
+
+            mobile.set_foreground(false);
+            require(!mobile.should_frame() && !mobile.frame() &&
+                        !mobile.state().active,
+                    "Background mobile session admitted a frame");
+            mobile.set_foreground(true);
+            require(mobile.should_frame() && mobile.frame(),
+                    "Foreground mobile session did not recover");
+
+            const auto old_selection = mobile.gallery().selection();
+            require(!mobile.execute(
+                        gallery::MobileGalleryCommand::select_scene, 999.0F) &&
+                        mobile.state().failed && !mobile.should_frame() &&
+                        mobile.gallery().selection() == old_selection,
+                    "Mobile failure did not latch without replacing the scene");
+            require(mobile.execute(
+                        gallery::MobileGalleryCommand::reset_scene) &&
+                        !mobile.state().failed && mobile.should_frame(),
+                    "Mobile reset did not recover a failed shell");
+
+            require(!mobile.frame([](const gallery::GallerySession &) {
+                        throw std::runtime_error("forced presentation failure");
+                    }) &&
+                        mobile.state().failed && !mobile.should_frame(),
+                    "Presentation failure did not stop mobile scheduling");
+            require(mobile.execute(
+                        gallery::MobileGalleryCommand::reset_scene),
+                    "Mobile reset did not recover presentation failure");
+
+            mobile.detach_surface();
+            require(!mobile.should_frame() && !mobile.frame() &&
+                        mobile.state().surface_generation == 2U,
+                    "Detached mobile surface admitted work");
+            require(mobile.attach_surface(80U, 60U) &&
+                        mobile.state().surface_generation == 3U &&
+                        mobile.gallery().width == 80U &&
+                        mobile.gallery().height == 60U && mobile.frame(),
+                    "Replacement mobile surface did not recover");
+
+            require(mobile.execute(
+                        gallery::MobileGalleryCommand::select_scene, 2.0F) &&
+                        mobile.state().primary_action_available &&
+                        mobile.state().primary_action_label == "Release" &&
+                        mobile.execute(
+                            gallery::MobileGalleryCommand::primary_action) &&
+                        mobile.state().primary_action_label == "Restore",
+                    "Mobile shell did not derive Point controls from shared state");
+        }
+        require(gallery::GalleryRuntime::live_runtime_count() == 0U,
+                "Mobile shell recreation leaked a runtime");
 
         // Desktop supplies resolved limits and exact scene parameters instead
         // of making the common session select a mobile device profile.

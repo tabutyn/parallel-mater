@@ -769,6 +769,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
 
     add_library(parallel-mater-gallery-session STATIC
                 examples/support/gallery_runtime.cpp
+                examples/support/mobile_session.cpp
                 examples/support/session.cpp)
     set_target_properties(parallel-mater-gallery-session PROPERTIES POSITION_INDEPENDENT_CODE YES)
     target_link_libraries(parallel-mater-gallery-session PUBLIC

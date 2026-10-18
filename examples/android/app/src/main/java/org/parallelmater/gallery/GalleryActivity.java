@@ -48,7 +48,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     private static native String nativeFrame(long handle);
     private static native String nativeDetails(long handle);
     private static native void nativeCommand(long handle, int command, float x, float y);
-    private static native int nativeTargetFps(long handle);
+    private static native String[] nativeControlState(long handle);
     private static native String[] nativeSceneCatalog(long handle);
     private static native double[] nativeQualifyScene(long handle, int scene, int frames);
     private static native String nativeRuntimeInfo(long handle);
@@ -77,15 +77,16 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     private Handler worker;
     private TextView status, steering;
     private Button pause, release, scenes;
-    // Native handles and frame scheduling belong to the worker thread.
-    private long handle;
-    private boolean active, surfaceReady, failed;
-    private int frameInterval = 33;
+    private SurfaceView surfaceView;
+    private volatile long handle;
+    // Lifecycle and presentation scheduling are UI-thread state. Simulation
+    // admission and recovery remain in the shared native mobile session.
+    private boolean active, surfaceReady, failed, framePending, framePosted, qualifying;
     private long lastStatus;
     private int backgrounds, foregrounds;
     private String diagnosticNonce = "";
     // UI state is only accessed on the main thread.
-    private boolean paused, released;
+    private boolean paused;
     private int selected;
     private volatile SceneInfo[] catalog = new SceneInfo[0];
     private float lastX, lastY;
@@ -93,7 +94,6 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
 
     private final Runnable frame = new Runnable() {
         @Override public void run() {
-            if (!active || !surfaceReady || failed || handle == 0) return;
             long start = SystemClock.uptimeMillis();
             try {
                 String[] state = nativeFrame(handle).split("\\n", 2);
@@ -106,8 +106,18 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                     });
                 }
             } catch (RuntimeException error) { showFailure(error); }
-            if (!failed) worker.postDelayed(this,
-                Math.max(1, frameInterval - (SystemClock.uptimeMillis() - start)));
+            runOnUiThread(() -> {
+                framePending = false;
+                requestFrame();
+            });
+        }
+    };
+    private final Runnable frameRequest = new Runnable() {
+        @Override public void run() {
+            framePosted = false;
+            if (!active || !surfaceReady || failed || qualifying || framePending || handle == 0) return;
+            framePending = true;
+            worker.post(frame);
         }
     };
 
@@ -118,9 +128,9 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         worker = new Handler(thread.getLooper());
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(11, 20, 29));
-        SurfaceView surface = new SurfaceView(this);
-        surface.getHolder().addCallback(this);
-        root.addView(surface, new FrameLayout.LayoutParams(-1, -1));
+        surfaceView = new SurfaceView(this);
+        surfaceView.getHolder().addCallback(this);
+        root.addView(surfaceView, new FrameLayout.LayoutParams(-1, -1));
         FrameLayout overlay = new FrameLayout(this);
         root.addView(overlay, new FrameLayout.LayoutParams(-1, -1));
         overlay.setOnApplyWindowInsetsListener((view, insets) -> {
@@ -150,11 +160,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         toolbar.addView(scenes, new LinearLayout.LayoutParams(dp(
             getResources().getConfiguration().screenWidthDp >= 720 ? 260 : 220), dp(48)));
         toolbar.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
-        pause = button("Pause", () -> {
-            paused = !paused;
-            pause.setText(paused ? "Resume" : "Pause");
-            command(2, paused ? 1 : 0, 0);
-        }, true);
+        pause = button("Pause", () -> command(10, 0, 0), true);
         addButton(toolbar, pause, 80);
         addButton(toolbar, button("Reset", this::resetScene, false), 72);
         addButton(toolbar, button("Info", this::showInfo, false), 60);
@@ -185,11 +191,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         overlay.addView(movement, new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.START));
 
         LinearLayout camera = row();
-        release = button("Release", () -> {
-            released = !released;
-            release.setText(released ? "Restore" : "Release");
-            command(6, 0, 0);
-        }, false);
+        release = button("Release", () -> command(6, 0, 0), false);
         release.setVisibility(View.GONE);
         addButton(camera, release, 84);
         addButton(camera, button("Focus", () -> command(8, 0, 0), false), 72);
@@ -208,7 +210,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                 return true;
             }
         });
-        surface.setOnTouchListener((view, event) -> {
+        surfaceView.setOnTouchListener((view, event) -> {
             scale.onTouchEvent(event);
             if (event.getActionMasked() == MotionEvent.ACTION_MOVE &&
                 !scale.isInProgress() && event.getPointerCount() == 1) {
@@ -252,11 +254,10 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                     new File(files, "config/device-profiles.json").getPath(), Build.MODEL,
                     new File(getCacheDir(), "vulkan").getPath());
                 catalog = parseCatalog(nativeSceneCatalog(handle));
-                frameInterval = Math.max(1, 1000 / nativeTargetFps(handle));
+                String[] controls = nativeControlState(handle);
                 runOnUiThread(() -> {
                     status.setText("Ready");
-                    scenes.setText(catalog[0].name + "  ▾");
-                    scenes.setContentDescription("Choose scene: " + catalog[0].name);
+                    applyControlState(controls);
                     applyDebugRequest(getIntent());
                 });
                 restartFrames();
@@ -335,12 +336,6 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
             status.setText(items[index].unavailableReason);
             return;
         }
-        selected = index;
-        scenes.setText(items[index].name + "  ▾");
-        scenes.setContentDescription("Choose scene: " + items[index].name);
-        released = false;
-        release.setText("Release");
-        release.setVisibility(index == 2 ? View.VISIBLE : View.GONE);
         status.setText("Loading scene…");
         command(0, index, 0);
     }
@@ -352,15 +347,15 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
             final int count = intent.getIntExtra("pm_qualify_frames", 120);
             final String nonce = intent.getStringExtra("pm_nonce");
             intent.removeExtra("pm_qualify_frames"); intent.removeExtra("pm_nonce");
+            qualifying = true;
+            restartFrames();
             worker.post(() -> qualify(count, nonce == null ? "" : nonce));
         }
         if (intent.hasExtra("pm_scene")) selectScene(intent.getIntExtra("pm_scene", 0));
         String action = intent.getStringExtra("pm_action");
         if ("reset".equals(action)) resetScene();
         else if ("pause".equals(action) || "resume".equals(action)) {
-            paused = "pause".equals(action);
-            pause.setText(paused ? "Resume" : "Pause");
-            command(2, paused ? 1 : 0, 0);
+            command(2, "pause".equals(action) ? 1 : 0, 0);
         } else if ("focus".equals(action)) command(8, 0, 0);
         else if ("info".equals(action)) showInfo();
         intent.removeExtra("pm_scene");
@@ -388,6 +383,11 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
             if (count < 1 || count > 100000) throw new IllegalArgumentException("Qualification frames must be 1..100000");
             diagnosticNonce = nonce;
             worker.removeCallbacks(frame);
+            runOnUiThread(() -> {
+                framePending = false;
+                if (surfaceView != null) surfaceView.removeCallbacks(frameRequest);
+                framePosted = false;
+            });
             JSONArray results = new JSONArray();
             JSONObject report = new JSONObject(nativeRuntimeInfo(handle));
             report.put("nonce", nonce).put("frames_per_scene", count).put("scenes", results);
@@ -414,8 +414,12 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
             }
             nativeCommand(handle, 0, 0, 0);
             writeRuntimeInfo();
-            runOnUiThread(() -> { selected = 0; scenes.setText(items[0].name + "  ▾"); });
-            restartFrames();
+            String[] controls = nativeControlState(handle);
+            runOnUiThread(() -> {
+                applyControlState(controls);
+                qualifying = false;
+                restartFrames();
+            });
         } catch (Exception error) { showFailure(error); }
     }
     @Override protected void onNewIntent(Intent intent) {
@@ -424,8 +428,6 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         applyDebugRequest(intent);
     }
     private void resetScene() {
-        released = false;
-        release.setText("Release");
         command(1, 0, 0);
     }
     private void showInfo() {
@@ -453,10 +455,31 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
             if (handle == 0) return;
             try {
                 nativeCommand(handle, kind, x, y);
-                if (kind == 0 || kind == 1) { failed = false; restartFrames(); }
+                String[] controls = nativeControlState(handle);
                 lastStatus = 0;
+                runOnUiThread(() -> {
+                    applyControlState(controls);
+                    restartFrames();
+                });
             } catch (RuntimeException error) { showFailure(error); }
         });
+    }
+    private void applyControlState(String[] state) {
+        if (state == null || state.length != 7)
+            throw new IllegalStateException("Invalid shared Gallery control state");
+        selected = Integer.parseInt(state[0]);
+        paused = "1".equals(state[1]);
+        pause.setText(paused ? "Resume" : "Pause");
+        release.setVisibility("1".equals(state[2]) ? View.VISIBLE : View.GONE);
+        if (!state[3].isEmpty()) release.setText(state[3]);
+        steering.setText(state[4]);
+        failed = "1".equals(state[5]);
+        if (selected >= 0 && selected < catalog.length) {
+            String name = catalog[selected].name;
+            scenes.setText(name + "  ▾");
+            scenes.setContentDescription("Choose scene: " + name);
+        }
+        if (failed && !state[6].isEmpty()) status.setText("Error: " + state[6]);
     }
     private void styleDialog(AlertDialog dialog) {
         GradientDrawable background = new GradientDrawable();
@@ -473,16 +496,30 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         // Android escapes slashes; the native manifest reader expects literal paths.
         return manifest.toString().replace("\\/", "/").getBytes(StandardCharsets.UTF_8);
     }
+    private void requestFrame() {
+        if (!active || !surfaceReady || failed || qualifying || framePending || framePosted ||
+            handle == 0 || surfaceView == null) return;
+        framePosted = true;
+        surfaceView.postOnAnimation(frameRequest);
+    }
     private void restartFrames() {
-        worker.removeCallbacks(frame);
-        if (active && surfaceReady && !failed && handle != 0) worker.post(frame);
+        runOnUiThread(() -> {
+            if (surfaceView != null) surfaceView.removeCallbacks(frameRequest);
+            framePosted = false;
+            requestFrame();
+        });
     }
     private void showFailure(Exception error) {
-        failed = true;
-        worker.removeCallbacks(frame);
         android.util.Log.e("ParallelMater", "Gallery error", error);
         String recovery = handle == 0 ? " — restart app" : " — try Reset or another scene";
-        runOnUiThread(() -> status.setText("Error: " + error.getMessage() + recovery));
+        runOnUiThread(() -> {
+            failed = true;
+            qualifying = false;
+            framePending = false;
+            if (surfaceView != null) surfaceView.removeCallbacks(frameRequest);
+            framePosted = false;
+            status.setText("Error: " + error.getMessage() + recovery);
+        });
     }
     private void copyAssets(String path, File directory) throws Exception {
         if (!directory.isDirectory() && !directory.mkdirs()) throw new java.io.IOException("Cannot create " + directory);
@@ -557,38 +594,47 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     @Override public void surfaceCreated(SurfaceHolder holder) {}
     @Override public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
         Surface surface = holder.getSurface();
+        surfaceReady = false;
+        restartFrames();
         worker.post(() -> {
             if (handle == 0) return;
-            try { nativeSurface(handle, surface, width, height); surfaceReady = true; restartFrames(); }
+            try {
+                nativeSurface(handle, surface, width, height);
+                runOnUiThread(() -> { surfaceReady = true; restartFrames(); });
+            }
             catch (RuntimeException error) { showFailure(error); }
         });
     }
     @Override public void surfaceDestroyed(SurfaceHolder holder) {
+        surfaceReady = false;
+        restartFrames();
         worker.post(() -> {
-            surfaceReady = false; worker.removeCallbacks(frame);
             if (handle != 0) nativeSurface(handle, null, 0, 0);
         });
     }
     @Override protected void onResume() {
         super.onResume();
+        active = true;
         worker.post(() -> {
-            active = true;
             if (handle != 0) nativeCommand(handle, 9, 1, 0);
             ++foregrounds; writeRuntimeInfo();
             restartFrames();
         });
     }
     @Override protected void onPause() {
+        active = false;
+        restartFrames();
         worker.post(() -> {
-            active = false; worker.removeCallbacks(frame);
             if (handle != 0) nativeCommand(handle, 9, 0, 0);
             ++backgrounds; writeRuntimeInfo();
         });
         super.onPause();
     }
     @Override protected void onDestroy() {
+        active = false;
+        restartFrames();
         worker.post(() -> {
-            active = false; worker.removeCallbacks(frame);
+            worker.removeCallbacks(frame);
             nativeDestroy(handle); handle = 0; thread.quitSafely();
         });
         super.onDestroy();

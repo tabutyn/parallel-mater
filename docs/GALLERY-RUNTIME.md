@@ -14,7 +14,10 @@ advances controlled steps, owns camera focus, and reports lifecycle revisions.
 Its `GalleryRuntime` owns GLB loading, physics resources, host-renderer
 creation, frame assembly, and teardown. Desktop reads the runtime only for
 rendering, capture, calibration, and diagnostics; it has no parallel scene
-lifecycle wrapper. Scene metadata and backend availability come from one
+lifecycle wrapper. Android and iPad wrap the same session in
+`MobileGallerySession`, which owns surface admission, foreground/pause commands,
+controller presentation, and failure recovery. Scene metadata and backend
+availability come from one
 ordered `GalleryCatalog`; platform shells only choose how to display its
 records. `GalleryFramePolicy` supplies the same profiled fixed-step clock and
 catch-up behavior to desktop scheduling and the session-managed mobile loop.
@@ -24,20 +27,20 @@ F7-09 adds the Vulkan adapter used by desktop and Android.
 
 | Responsibility | Current desktop owner | Current mobile owner | Required owner |
 |---|---|---|---|
-| Ordered scene identity, name, help, source, control policy, feature requirements, availability, and rejection reason | `GalleryCatalog` | `GallerySession::catalog()` | Common runtime catalog (done) |
+| Ordered scene identity, name, help, source, control policy, feature requirements, availability, and rejection reason | `GalleryCatalog` | `MobileGallerySession::gallery().catalog()` | Common runtime catalog (done) |
 | Driver discovery, explicit backend choice, and capability query | Desktop startup and backend picker | Platform startup configuration; Android fixes Vulkan | Platform shell requests a backend; common runtime reports devices and scene availability |
 | Asset and device-profile paths | Desktop options and compile-time resource paths | Android/iPad shell configuration | Platform shell supplies paths once |
 | Workload limits and user-adjustable counts | Desktop supplies resolved limits and edits `GallerySession` parameters | `GallerySession` profile selection and shared frame policy | Common session policy; shell edits declared parameters |
 | Asset loading and scene construction | `GallerySession`/`GalleryRuntime` | `GallerySession`/`GalleryRuntime` | Common runtime catalog and workload policy (done) |
-| Physics device, resources, command submission, scene replacement, reset, and teardown | `GallerySession`/`GalleryRuntime` | `GallerySession`/`GalleryRuntime` | Common runtime (done) |
-| Fixed, point, motor, steering, dump-bed, kinematic, gravity, force, paint, and deformable controllers | Semantic input adapter around `GalleryRuntime` | Semantic input adapter around `GallerySession`/`GalleryRuntime` | Common runtime semantic commands (done) |
-| Fixed-step accumulation, catch-up limits, substeps, pause, and foreground recovery | `GalleryFramePolicy` | `GalleryFramePolicy` through `GallerySession` | Common runtime clock and workload policy (done) |
-| Camera state and focus policy | `GallerySession::camera()`, driven by desktop input | `GallerySession` touch methods | Common runtime, driven by semantic pointer/zoom commands |
+| Physics device, resources, command submission, scene replacement, reset, and teardown | `GallerySession`/`GalleryRuntime` | `MobileGallerySession` around `GallerySession`/`GalleryRuntime` | Common runtime (done) |
+| Fixed, point, motor, steering, dump-bed, kinematic, gravity, force, paint, and deformable controllers | Semantic input adapter around `GallerySession`/`GalleryRuntime` | `MobileGallerySession` semantic commands around `GallerySession`/`GalleryRuntime` | Common runtime semantic commands (done) |
+| Fixed-step accumulation, catch-up limits, substeps, pause, and foreground recovery | `GalleryFramePolicy` through `GallerySession` | `GalleryFramePolicy` through `MobileGallerySession` | Common runtime clock and workload policy (done) |
+| Camera state and focus policy | `GallerySession::camera()`, driven by desktop input | `MobileGallerySession` touch commands | Common runtime, driven by semantic pointer/zoom commands |
 | Host render-frame assembly | `GalleryRuntime::step` | `GalleryRuntime::step` | Common runtime (done) |
 | Software, native GPU, or external-engine drawing | Desktop renderer/window path; optional Metal path | Software renderer or iPad Metal renderer | Renderer adapter |
 | Graphics API resources, swapchain/layer binding, upload, and presentation | Desktop window adapter | Android surface/ANativeWindow or Apple presentation layer | Renderer adapter, with the platform shell supplying the native surface |
 | Keyboard, touch, gamepad, lifecycle, window, intent, and accessibility events | GLFW/native desktop glue | Java/JNI or UIKit glue | Platform shell translating events into common commands |
-| Catalog, parameter, timing, status, and error view models | Shared catalog plus desktop overlays | Shared catalog plus Java/UIKit widgets and session strings | Common runtime data; platform shell chooses widgets and layout |
+| Catalog, parameter, timing, status, and error view models | Shared catalog plus desktop overlays | `MobileGalleryState` plus Java/UIKit widgets | Common runtime data; platform shell chooses widgets and layout |
 | Physics capture, validation snapshots, and qualification sequencing | Desktop application and shared debug helpers | `GallerySession` qualification helpers | Common runtime diagnostics; shell chooses destination and presentation |
 | Filesystem writes, share sheets, logs, and platform telemetry | Desktop platform helpers | Java/UIKit | Platform shell |
 
@@ -152,7 +155,7 @@ These tests protect behavior while later F7 tasks move ownership:
 
 | Behavior | Test |
 |---|---|
-| Common-session selection, rejected selection, reset, pause, inactive frame, foreground recovery, and point release/restore | `parallel-mater-gallery-session-contract-tests` |
+| Common-session recreation, surface replacement, selection, reset, pause/background, presentation failure recovery, and point release/restore | `parallel-mater-gallery-session-contract-tests` |
 | Shared catalog ordering, stable unique identities, required features, and precise backend rejection reasons | `parallel-mater-gallery-registry-tests` |
 | Catalog selection, modal reset/action gating, and held-input clearing | `parallel-mater-gallery-input-tests` |
 | Camera, gravity/force policies, motor/dump classification, and four-wheel steering math | `parallel-mater-camera-controller-tests` |
