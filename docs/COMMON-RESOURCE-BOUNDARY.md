@@ -24,9 +24,39 @@ Vulkan adapter. Shared Slang equations are unchanged.
 
 This is an incremental boundary: handwritten `.cu` launch wrappers are still
 translated, including their legacy mangled field/type references. Migrating
-those wrappers to common typed command lists, adding read/write range metadata,
-and using this ABI model in every adapter remain open. A reflection match alone
-does not prove synchronization or physical correctness.
+those wrappers to common typed command lists and using this ABI model in every
+adapter remain open. A reflection match alone does not prove synchronization or
+physical correctness.
+
+## Resource identities and dispatch access
+
+The private `device::compute` boundary identifies each allocation with an
+opaque `(device, allocation)` pair. Allocation values from different devices do
+not alias. Two buffer wrappers that report the same pair describe the same
+allocation and must agree on allocation size and device address; disagreement
+is rejected rather than guessed.
+
+Every non-null direct parameter, pointer inside a by-value record, and resource
+reached indirectly through a device-memory record produces a named binding with
+all of the following metadata:
+
+- binding kind: parameter, record pointer, or indirect reference;
+- allocation identity and retained buffer reference;
+- a non-empty half-open byte range `[offset, offset + size)`; and
+- read, write, or read-write access.
+
+Omitted sizes conservatively cover the remainder of the allocation, and the
+current pointer-oriented scheduler uses that default where the launch ABI does
+not yet carry a more precise extent. Explicit ranges must be inside the
+allocation and at least large enough for the reflected pointee. Null pointers do
+not create resource bindings and cannot carry offsets or ranges.
+
+Overlapping bindings for the same allocation are legal and remain separate, so
+an adapter can observe every shader-visible use and combine access modes without
+losing their source names. Adjacent half-open ranges do not overlap. Access
+metadata describes a dispatch; it does not itself insert a barrier or establish
+completion ownership. Those scheduling and lifetime rules remain separate
+follow-up work.
 
 ## Qualification on this laptop — 2026-10-16
 
@@ -51,11 +81,12 @@ restored to the reflected bindings; no shader or tolerance workaround was added.
 
 ## Remaining common contracts
 
-Resources need one explicit identity, owning device, allocation range, access
-mode and completion lifetime at the scheduler/adapter boundary. A borrowed
-engine device/queue/buffer must never be destroyed by the library. Queue handoff
-must identify both prior completion and the completion the renderer waits for;
-all indirect pointer resources must survive that completion, even if the caller
+Resources now carry explicit owning-device/allocation identities and typed
+access ranges at the Metal command-list boundary. Completion ownership and
+dependency scheduling are still incomplete. A borrowed engine
+device/queue/buffer must never be destroyed by the library. Queue handoff must
+identify both prior completion and the completion the renderer waits for; all
+indirect pointer resources must survive that completion, even if the caller
 drops its token. The common mock-adapter tests must exercise those rules before
 engine-specific packages advertise interoperability.
 

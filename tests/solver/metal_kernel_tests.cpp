@@ -214,7 +214,9 @@ void check_transfers_and_records(Gpu &gpu) {
         rejects([&] { arguments.set("inline_record", host); }, "raw host-pointer record accepted");
         arguments.record("inline_record", inline_record);
         arguments.bind("records", records);
-        for (auto &resource : indirect.resources()) arguments.reference(std::move(resource));
+        for (const auto &binding : indirect.bindings())
+            arguments.reference("records[]." + binding.name, binding.range.buffer,
+                binding.range.offset, binding.range.size, binding.range.access);
         gpu.encode(arguments, (count + kernel.threads - 1) / kernel.threads, commands);
         completion = commands->submit();
         require(host.inputs[0] == values.data() && host.inputs[1] == values.data(),
