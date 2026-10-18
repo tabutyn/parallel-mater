@@ -1,7 +1,7 @@
 {
   "id": "P1-05",
   "title": "Build heterogeneous fluid pair sampling",
-  "status": "deferred",
+  "status": "open",
   "dependencies": [
     "P1-04"
   ],
