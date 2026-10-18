@@ -1488,10 +1488,10 @@
       "path": "conformance/v1/qualification/capability-obligations-v1.json"
     },
     "evidence_index": {
-      "normalized_sha256": "bf1a223dbfc81fcc19184b8cd0027c308bfb2be33ecede34bea249a5d6c2a647",
+      "normalized_sha256": "7cfdc1fc790898b23c46f773617c27b85c6415abe6a9138d557b16bdf0c3d2d7",
       "path": "conformance/v1/evidence/index-v1.json"
     },
-    "repository_revision": "81c7a8ed7f198c6fe6253b8f54e6e4f977d60ed9"
+    "repository_revision": "e51bc891bfc696cd716cc1916162061cb534827d"
   },
   "summary": {
     "advertisement_corrections": 0,
