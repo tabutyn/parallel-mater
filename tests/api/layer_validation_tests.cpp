@@ -228,7 +228,7 @@ int main(int argc, char **argv) {
     const auto before_valid = diagnostics.count;
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
     CHECK(diagnostics.count == before_valid);
-    CHECK(pmCmdCopyBuffer(commands, nullptr, nullptr, 0U, nullptr) == PM_SUCCESS);
+    CHECK(pmCmdCopyBuffer(commands, nullptr, nullptr, 0U, nullptr) == invalid);
     CHECK(pmBeginCommandBuffer(commands, &begin) == invalid_state);
     CHECK(pmResetCommandPool(device, pool) == invalid_state);
     CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
@@ -436,6 +436,188 @@ int main(int argc, char **argv) {
     CHECK(pmBindBufferMemory(device, buffer, memory, 0) == invalid);
     pmFreeMemory(device, memory);
     CHECK(pmMapMemory(device, memory, 0, 1, &mapped) == invalid);
+
+    // Geometry, simulation, material, buffer and query dependencies are
+    // validated against the same deliberately permissive mock driver.
+    allocation.allocationSize = 2048U;
+    PmDeviceMemory resource_memory{};
+    CHECK(pmAllocateMemory(device, &allocation, &resource_memory) == PM_SUCCESS);
+    buffer_info.size = 256U;
+    buffer_info.usage = PM_BUFFER_GEOMETRY_INPUT_BIT |
+                        PM_BUFFER_TRANSFER_SRC_BIT |
+                        PM_BUFFER_TRANSFER_DST_BIT;
+    PmBuffer geometry_input{};
+    CHECK(pmCreateBuffer(device, &buffer_info, &geometry_input) == PM_SUCCESS);
+    pmGetBufferMemoryRequirements(device, geometry_input, &requirements);
+    CHECK(pmBindBufferMemory(device, geometry_input, resource_memory, 0U) ==
+          PM_SUCCESS);
+
+    PmGeometryCreateInfo geometry_info{};
+    geometry_info.sType = PM_STRUCTURE_TYPE_GEOMETRY_CREATE_INFO;
+    geometry_info.vertices = {{geometry_input, 0U, 36U},
+                              PM_FORMAT_R32G32B32_SFLOAT, 3U, 12U};
+    geometry_info.indices = {{geometry_input, 64U, 12U},
+                             PM_FORMAT_R32_UINT, 3U, 4U};
+    PmGeometry geometry{};
+    CHECK(pmCreateGeometry(device, &geometry_info, &geometry) == PM_SUCCESS);
+    PmMemoryRequirements geometry_requirements{};
+    pmGetGeometryMemoryRequirements(other, geometry, &geometry_requirements);
+    if (validation) CHECK(geometry_requirements.size == 0U);
+    pmGetGeometryMemoryRequirements(device, geometry, &geometry_requirements);
+    CHECK(geometry_requirements.size == 256U);
+    CHECK(pmBindGeometryMemory(other, geometry, resource_memory, 256U) ==
+          invalid);
+    CHECK(pmBindGeometryMemory(device, geometry, resource_memory, 256U) ==
+          PM_SUCCESS);
+    CHECK(pmBindGeometryMemory(device, geometry, resource_memory, 512U) ==
+          invalid_state);
+
+    PmClothCapacity cloth_capacity{3U, 3U, 3U};
+    PmSimulationCreateInfo simulation_info{};
+    simulation_info.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
+    simulation_info.rigidBodyCapacity = 1U;
+    simulation_info.clothCount = 1U;
+    simulation_info.pClothCapacities = &cloth_capacity;
+    PmSimulation simulation{};
+    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
+          PM_SUCCESS);
+    PmSimulationMemoryRequirements simulation_requirements{};
+    pmGetSimulationMemoryRequirements(device, simulation,
+                                      &simulation_requirements);
+    const PmSimulationMemoryBinding simulation_binding{
+        resource_memory, 512U, resource_memory, 768U};
+    CHECK(pmBindSimulationMemory(other, simulation, &simulation_binding) ==
+          invalid);
+    CHECK(pmBindSimulationMemory(device, simulation, &simulation_binding) ==
+          PM_SUCCESS);
+    CHECK(pmBindSimulationMemory(device, simulation, &simulation_binding) ==
+          invalid_state);
+
+    PmClothMaterialState cloth_material{};
+    PmPhysicsPipelineCreateInfo pipeline_create{};
+    pipeline_create.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
+    pipeline_create.clothMaterialCount = 1U;
+    pipeline_create.pClothMaterials = &cloth_material;
+    PmPhysicsPipeline pipeline{}, replacement_pipeline{};
+    CHECK(pmCreatePhysicsPipeline(device, &pipeline_create, &pipeline) ==
+          PM_SUCCESS);
+    CHECK(pmCreatePhysicsPipeline(device, &pipeline_create,
+                                  &replacement_pipeline) == PM_SUCCESS);
+
+    PmQueryPoolCreateInfo query_info{};
+    query_info.sType = PM_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+    query_info.queryType = PM_QUERY_TIMESTAMP;
+    query_info.queryCount = 13U;
+    PmQueryPool failed_query{};
+    CHECK(pmCreateQueryPool(device, &query_info, &failed_query) ==
+          PM_ERROR_OUT_OF_HOST_MEMORY);
+    CHECK(failed_query == nullptr);
+    query_info.queryCount = 2U;
+    PmQueryPool timestamps{};
+    CHECK(pmCreateQueryPool(device, &query_info, &timestamps) == PM_SUCCESS);
+    query_info.queryType = PM_QUERY_STEP_STATISTICS;
+    query_info.queryCount = 1U;
+    PmQueryPool statistics{};
+    CHECK(pmCreateQueryPool(device, &query_info, &statistics) == PM_SUCCESS);
+
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdBuildGeometry(commands, geometry) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+    PmClothInfo invalid_cloth{};
+    invalid_cloth.active = PM_TRUE;
+    invalid_cloth.materialIndex = 1U;
+    CHECK(pmCmdWriteCloths(commands, simulation, 0U, 1U,
+                           &invalid_cloth) == invalid);
+    invalid_cloth.materialIndex = 0U;
+    CHECK(pmCmdWriteCloths(commands, simulation, 0U, 1U,
+                           &invalid_cloth) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands, replacement_pipeline) ==
+          PM_SUCCESS);
+    PmRigidBodyInfo body{};
+    body.active = PM_TRUE;
+    body.geometry = geometry;
+    CHECK(pmCmdWriteRigidBodies(commands, simulation, 0U, 1U, &body) ==
+          PM_SUCCESS);
+
+    CHECK(pmCmdWriteTimestamp(commands, PM_STAGE_ALL_COMMANDS_BIT,
+                              timestamps, 0U) == invalid_state);
+    CHECK(pmCmdResetQueryPool(commands, timestamps, 1U, 2U) == invalid);
+    CHECK(pmCmdResetQueryPool(commands, timestamps, 0U, 2U) == PM_SUCCESS);
+    CHECK(pmCmdWriteTimestamp(commands, PM_STAGE_ALL_COMMANDS_BIT,
+                              timestamps, 0U) == PM_SUCCESS);
+    CHECK(pmCmdResetQueryPool(commands, statistics, 0U, 1U) == PM_SUCCESS);
+    CHECK(pmCmdBeginStatisticsQuery(commands, statistics, 0U) == PM_SUCCESS);
+    CHECK(pmCmdResetQueryPool(commands, statistics, 0U, 1U) ==
+          invalid_state);
+    CHECK(pmCmdBeginStatisticsQuery(commands, statistics, 0U) ==
+          invalid_state);
+    CHECK(pmCmdEndStatisticsQuery(commands, statistics, 0U) == invalid_state);
+    PmStepInfo step{};
+    step.timestep = 1.0F / 60.0F;
+    step.substeps = 1U;
+    CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
+    CHECK(pmCmdEndStatisticsQuery(commands, statistics, 0U) == PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
+
+    if (validation) {
+        // Recorded references survive completion until command-buffer reset.
+        pmDestroyGeometry(device, geometry);
+        pmDestroyPhysicsPipeline(device, pipeline);
+        pmDestroyPhysicsPipeline(device, replacement_pipeline);
+        pmDestroyQueryPool(device, timestamps);
+        pmDestroyBuffer(device, geometry_input);
+        pmFreeMemory(device, resource_memory);
+        PmResult execution{};
+        CHECK(pmGetSimulationStatus(device, simulation, &execution) ==
+              PM_SUCCESS);
+    }
+    submit.pCommandBuffers = &commands;
+    CHECK(pmQueueSubmit(queue, &submit, nullptr) == PM_SUCCESS);
+    CHECK(pmQueueWaitIdle(queue) == PM_SUCCESS);
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdResetQueryPool(commands, timestamps, 0U, 1U) ==
+          invalid_state);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+    alignas(8) std::uint64_t timestamp_results[2]{};
+    CHECK(pmGetQueryPoolResults(other, timestamps, 0U, 1U,
+                                sizeof(timestamp_results), timestamp_results,
+                                sizeof(std::uint64_t), 0U) == invalid);
+    CHECK(pmGetQueryPoolResults(device, timestamps, 1U, 2U,
+                                sizeof(timestamp_results), timestamp_results,
+                                sizeof(std::uint64_t), 0U) == invalid);
+    CHECK(pmGetQueryPoolResults(device, timestamps, 0U, 1U,
+                                sizeof(std::uint64_t), timestamp_results,
+                                4U, 0U) == invalid);
+    CHECK(pmGetQueryPoolResults(device, timestamps, 0U, 2U,
+                                sizeof(timestamp_results), timestamp_results,
+                                sizeof(std::uint64_t), 0U) == PM_SUCCESS);
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdResetQueryPool(commands, timestamps, 0U, 2U) == PM_SUCCESS);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+
+    if (validation) {
+        // The submitted body keeps its geometry live after recorded
+        // references are released. A submitted simulation reset releases it.
+        pmDestroyGeometry(device, geometry);
+        pmGetGeometryMemoryRequirements(device, geometry,
+                                        &geometry_requirements);
+        CHECK(geometry_requirements.size == 256U);
+    }
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdResetSimulation(commands, simulation) == PM_SUCCESS);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmQueueSubmit(queue, &submit, nullptr) == PM_SUCCESS);
+    CHECK(pmQueueWaitIdle(queue) == PM_SUCCESS);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+
+    pmDestroyQueryPool(device, statistics);
+    pmDestroyQueryPool(device, timestamps);
+    pmDestroyPhysicsPipeline(device, replacement_pipeline);
+    pmDestroyPhysicsPipeline(device, pipeline);
+    pmDestroyGeometry(device, geometry);
+    pmDestroyBuffer(device, geometry_input);
+    pmDestroySimulation(device, simulation);
+    pmFreeMemory(device, resource_memory);
     pmDestroyFence(device, fence);
     pmDestroyFence(device, async_fence);
     pmFreeCommandBuffers(device, pool, 2U, async_commands);
@@ -507,6 +689,6 @@ int main(int argc, char **argv) {
     pmDestroyDevice(device);
     pmDestroyInstance(instance);
     std::puts(validation
-        ? "PASS: layer validates state and delivers structured diagnostics"
+        ? "PASS: layer validates dependencies, queries, state and diagnostics"
         : "PASS: permissive driver accepts validation negative controls without diagnostics");
 }
