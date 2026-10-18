@@ -1,7 +1,7 @@
 {
   "id": "F6-01",
   "title": "Qualify Windows SDK installation",
-  "status": "open",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "sdk-packaging"
@@ -14,7 +14,31 @@
     "Clean relocated install passes C, C++, external driver and conformance input checks.",
     "Evidence identifies compiler/SDK/revision; add the same job to CI."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: clean source 6994b6c; Windows 11 x64, MSVC 19.51.36256.0, Windows SDK 10.0.26100.0; 38/38 sdk-ci CTests.",
+    "PASS: tools/check_sdk_install.py completed 12/12 stages; 18/18 relocated external C/C++/ABI cases and all 30 conformance inputs passed; docs/roadmap/evidence/F6-01-windows-sdk-install.json.",
+    "CI: .github/workflows/sdk-install.yml adds sdk (Windows x64), repeating minimal/sdk-ci builds, CTest, relocation and retained report/log artifacts."
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "bce22732-4370-472a-b0d3-97e2244cd137",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F6-01/windows-gtx1080",
+        "claimed_at": "2026-10-18T05:28:36Z",
+        "heartbeat_at": "2026-10-18T05:28:36Z",
+        "expires_at": "2026-10-19T05:28:36Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T05:36:18Z",
+      "reason": "Qualified relocated Windows x64 Release SDK installation and added the matching CI gate.",
+      "evidence": [
+        "PASS: clean source 6994b6c; Windows 11 x64, MSVC 19.51.36256.0, Windows SDK 10.0.26100.0; 38/38 sdk-ci CTests.",
+        "PASS: tools/check_sdk_install.py completed 12/12 stages; 18/18 relocated external C/C++/ABI cases and all 30 conformance inputs passed; docs/roadmap/evidence/F6-01-windows-sdk-install.json.",
+        "CI: .github/workflows/sdk-install.yml adds sdk (Windows x64), repeating minimal/sdk-ci builds, CTest, relocation and retained report/log artifacts."
+      ]
+    }
+  ]
 }
