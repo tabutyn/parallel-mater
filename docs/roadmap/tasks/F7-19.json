@@ -1,7 +1,7 @@
 {
   "id": "F7-19",
   "title": "Close common Gallery runtime boundary",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-06",
     "F7-08"
@@ -17,15 +17,27 @@
     "Desktop and mobile ordinary interactive frames use the same GallerySession stepping, timing and renderer handoff; platform shells do not own a second fixed-step policy or call controlled_step directly.",
     "Platform clients cannot mutate GalleryRuntime internals through GallerySession; typed rendering, capture, calibration and diagnostic interfaces retain current desktop behavior and pass common-session plus desktop backend tests."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "51c1d378-036c-4afd-a573-3a4098d941e3",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F7-19/thomas-laptop",
-    "claimed_at": "2026-10-18T04:02:14Z",
-    "heartbeat_at": "2026-10-18T04:02:14Z",
-    "expires_at": "2026-10-19T04:02:14Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F7-19-gallery-boundary.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "51c1d378-036c-4afd-a573-3a4098d941e3",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-19/thomas-laptop",
+        "claimed_at": "2026-10-18T04:02:14Z",
+        "heartbeat_at": "2026-10-18T04:02:14Z",
+        "expires_at": "2026-10-19T04:02:14Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T04:20:59Z",
+      "reason": "Desktop and mobile ordinary frames now share GallerySession scheduling, timing and renderer handoff; mutable GalleryRuntime access was replaced by typed session interfaces.",
+      "evidence": [
+        "docs/roadmap/evidence/F7-19-gallery-boundary.json"
+      ]
+    }
+  ]
 }

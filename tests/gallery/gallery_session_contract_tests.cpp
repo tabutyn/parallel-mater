@@ -138,6 +138,47 @@ int main() {
             require(session.frames == 2U,
                     "Resumed timestamp trace did not advance");
 
+            // Rich desktop rendering supplies callbacks, but cadence,
+            // stepping, timing, and presentation ordering remain session-owned.
+            session.reset();
+            timestamp = FrameClock::time_point{};
+            unsigned renders = 0U;
+            unsigned presents = 0U;
+            float interpolation = 0.0F;
+            gallery::GalleryFramePlan desktop_frame;
+            desktop_frame.controls.camera = session.camera().camera();
+            const auto render = [&](gallery::GallerySession &owner,
+                                    float alpha) {
+                require(&owner == &session,
+                        "Desktop renderer received a foreign session");
+                ++renders;
+                interpolation = alpha;
+            };
+            const auto present = [&](const gallery::GallerySession &owner) {
+                require(&owner == &session && renders == presents + 1U,
+                        "Desktop presentation ran out of order");
+                ++presents;
+            };
+            session.frame_at(timestamp, desktop_frame, render, present);
+            require(session.frames == 0U && renders == 1U && presents == 1U &&
+                        session.frame_timing().latest() &&
+                        session.frame_timing().latest()->physics_steps == 0U,
+                    "Desktop callback baseline bypassed common scheduling");
+            timestamp += interval;
+            session.frame_at(timestamp, desktop_frame, render, present);
+            require(session.frames == 1U && renders == 2U && presents == 2U &&
+                        session.frame_timing().latest()->physics_steps == 1U &&
+                        interpolation >= 0.0F && interpolation <= 1.0F,
+                    "Desktop callbacks did not use common frame policy");
+            desktop_frame.simulation_enabled = false;
+            timestamp += std::chrono::seconds(10);
+            session.frame_at(timestamp, desktop_frame, render, present);
+            desktop_frame.simulation_enabled = true;
+            timestamp += interval;
+            session.frame_at(timestamp, desktop_frame, render, present);
+            require(session.frames == 2U && renders == 4U && presents == 4U,
+                    "Desktop modal frame accumulated catch-up work");
+
             if (session.backend_name() == "vulkan") {
                 for (const gallery::GalleryContext context : {
                          gallery::GalleryContext::cloth,
@@ -293,8 +334,8 @@ int main() {
         {
             gallery::GallerySession desktop(std::move(desktop_config));
             require(validated_scene && desktop.ready() &&
-                        desktop.runtime().context == gallery::GalleryContext::fluid &&
-                        desktop.runtime().scene.fluid_options.capacity == 64U &&
+                        desktop.context() == gallery::GalleryContext::fluid &&
+                        desktop.scene().fluid_options.capacity == 64U &&
                         desktop.revision() == 1U,
                     "Explicit desktop session configuration was not applied");
             auto parameters = desktop.scene_parameters();
@@ -302,16 +343,16 @@ int main() {
             desktop.set_scene_parameters(parameters);
             desktop.select(static_cast<unsigned>(gallery::gallery_context_index(
                 gallery::GalleryContext::fluid)));
-            require(desktop.runtime().scene.fluid_options.capacity == 96U &&
+            require(desktop.scene().fluid_options.capacity == 96U &&
                         desktop.revision() == 2U,
                     "Desktop fluid parameter did not survive common selection");
             desktop.select(static_cast<unsigned>(gallery::gallery_context_index(
                 gallery::GalleryContext::dump)));
-            require(gallery::dump_payload_count(desktop.runtime().scene) == 13U &&
+            require(gallery::dump_payload_count(desktop.scene()) == 13U &&
                         desktop.revision() == 3U,
                     "Desktop dump parameter did not survive common selection");
             desktop.reset();
-            require(gallery::dump_payload_count(desktop.runtime().scene) == 13U &&
+            require(gallery::dump_payload_count(desktop.scene()) == 13U &&
                         desktop.revision() == 4U,
                     "Common reset lost desktop scene parameters");
         }
