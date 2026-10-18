@@ -232,6 +232,9 @@ void GallerySession::set_render_target(GpuRenderTarget target) noexcept {
         runtime_.native_renderer->detach_target();
     render_target_ = target;
 }
+void GallerySession::detach_render_target() noexcept {
+    set_render_target({});
+}
 void GallerySession::orbit(float x, float y) {
     require_scene();
     runtime_.camera.begin_drag(CameraDragMode::orbit, 0, 0);
@@ -319,56 +322,73 @@ bool GallerySession::controlled_step(const GalleryControlInput &input,
     ++frames;
     return true;
 }
-void GallerySession::frame(const std::function<void(const GallerySession &)> &present) {
+bool GallerySession::diagnostic_step(const GalleryControlInput &input,
+                                     GalleryStepOptions options,
+                                     std::string &error) {
+    return controlled_step(input, options, error);
+}
+void GallerySession::frame(const Presenter &present) {
     frame_at(frame_policy_.next_fixed_frame_time(), present);
 }
 void GallerySession::frame_at(
-    FrameClock::time_point timestamp,
-    const std::function<void(const GallerySession &)> &present) {
+    FrameClock::time_point timestamp, const Presenter &present) {
+    GalleryFramePlan plan;
+    plan.controls = {
+        .right = right_,
+        .forward = up_,
+        .camera = runtime_.camera.camera(),
+    };
+    plan.host_diagnostics = diagnostics_;
+    frame_at(timestamp, plan, {}, present);
+}
+void GallerySession::frame_at(
+    FrameClock::time_point timestamp, GalleryFramePlan plan,
+    const FrameRenderer &render, const Presenter &present) {
     if (!active_) return;
     require_scene();
-    frame_policy_.begin_frame(timestamp);
+    frame_policy_.begin_frame(timestamp, plan.simulation_enabled);
     timing.begin_frame();
     try {
         std::string error;
         while (frame_policy_.can_step()) {
             timing.begin_phase(FramePhase::physics);
             const auto controls = runtime_.controller_state();
-            const bool read_host = !config_.gpu_rendering || diagnostics_ ||
+            const bool native_host_renderer =
+                runtime_.renderer.native_image().handle != 0U;
+            const bool native_gpu_renderer = bool(runtime_.native_renderer);
+            const bool read_host = !native_gpu_renderer ||
+                plan.host_diagnostics ||
                 controls.directional == GalleryControlPolicy::collector_gravity;
-            require(controlled_step({
-                .right = right_,
-                .forward = up_,
-                .camera = runtime_.camera.camera(),
-            }, {
+            require(controlled_step(plan.controls, {
                 .timestep = frame_policy_.timestep(),
                 .substeps = frame_policy_.substeps(),
-                .read_deformables = read_host,
+                .collect_rigid_contacts = plan.collect_rigid_contacts,
+                .collect_fluid_contacts = plan.collect_fluid_contacts,
+                .rigid_contact_pass_limit = plan.rigid_contact_pass_limit,
+                .read_deformables =
+                    (!native_host_renderer && !native_gpu_renderer) ||
+                    plan.host_diagnostics,
                 .read_host = read_host,
             }, error), error);
             frame_policy_.record_step(timing.end_phase() / 1000.0);
         }
         frame_policy_.finish_frame();
         timing.begin_phase(FramePhase::render);
+        if (render) {
+            render(*this, frame_policy_.interpolation_alpha());
+        } else {
 #ifdef PM_GALLERY_NATIVE_GPU_RENDERER
-        if (runtime_.native_renderer) {
-            pixels.clear();
-            GpuRenderTarget target = render_target_;
-            target.width = width;
-            target.height = height;
-            if (diagnostics_) target.handle = 0U;
-            GpuRenderRequest request;
-            require(make_gpu_render_request(
-                runtime_.instance.render_buffers,
-                runtime_.gpu_frame_generation, runtime_.camera.camera(), target,
-                {diagnostics_ ? &pixels : nullptr}, &timing, {}, request, error),
-                error);
-            require(runtime_.native_renderer->render(request, error), error);
-        } else
+            if (runtime_.native_renderer) {
+                pixels.clear();
+                GpuRenderTarget target = render_target_;
+                if (diagnostics_) target.handle = 0U;
+                require(render_native(target, {},
+                    diagnostics_ ? &pixels : nullptr, error), error);
+            } else
 #endif
-            require(runtime_.renderer.render(runtime_.render_frame,
-                runtime_.camera.camera(), pixels,
-                error, nullptr, FluidRenderMode::particles), error);
+                require(render_host(pixels, error, nullptr,
+                                    FluidRenderMode::particles), error);
+        }
         timing.end_phase();
         if (present) {
             timing.begin_phase(FramePhase::present);
@@ -411,10 +431,92 @@ PmNativeDeviceInfo GallerySession::native_render_device() const {
     require_scene();
     if (runtime_.native_renderer)
         return runtime_.native_renderer->renderer_device().native;
+    return native_physics_device();
+}
+PmNativeDeviceInfo GallerySession::native_physics_device() const {
+    require_scene();
     PmNativeDeviceInfo native{};
     if (pmGetNativeDevice(runtime_.simulation.device(), &native) != PM_SUCCESS)
-        throw std::runtime_error("No native rendering device");
+        throw std::runtime_error("No native physics device");
     return native;
+}
+PmNativeQueueInfo GallerySession::native_render_queue() const {
+    require_scene();
+    PmNativeQueueInfo native{};
+    if (pmGetNativeQueue(runtime_.simulation.queue(), &native) != PM_SUCCESS)
+        throw std::runtime_error("No native rendering queue");
+    return native;
+}
+bool GallerySession::has_native_renderer() const noexcept {
+    return bool(runtime_.native_renderer);
+}
+NativeRenderImage GallerySession::native_image() const noexcept {
+    return runtime_.renderer.native_image();
+}
+bool GallerySession::render_host(
+    std::vector<std::uint32_t> &rgba, std::string &error,
+    RendererTimings *renderer_timings, FluidRenderMode fluid_mode,
+    bool show_smoke_particles, float rigid_interpolation_alpha) {
+    return runtime_.renderer.render(
+        runtime_.render_frame, runtime_.camera.camera(), rgba, error,
+        renderer_timings, fluid_mode, show_smoke_particles,
+        rigid_interpolation_alpha);
+}
+bool GallerySession::render_native(
+    GpuRenderTarget target, std::span<const std::uint32_t> overlay,
+    std::vector<std::uint32_t> *readback, std::string &error) {
+#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
+    if (!runtime_.native_renderer) {
+        error = "native Gallery renderer is not initialized";
+        return false;
+    }
+    target.width = width;
+    target.height = height;
+    GpuRenderRequest request;
+    if (!make_gpu_render_request(
+            runtime_.instance.render_buffers, runtime_.gpu_frame_generation,
+            runtime_.camera.camera(), target, {readback},
+            timing.measuring(FramePhase::render) ? &timing : nullptr, overlay,
+            request, error))
+        return false;
+    return runtime_.native_renderer->render(request, error);
+#else
+    (void)target;
+    (void)overlay;
+    (void)readback;
+    error = "native Gallery renderer is not built";
+    return false;
+#endif
+}
+bool GallerySession::read_host_image(
+    std::vector<std::uint32_t> &rgba, std::string &error) {
+    return runtime_.renderer.read_image(rgba, error);
+}
+bool GallerySession::read_host_output(std::string &error) {
+    return runtime_.simulation.read_output(runtime_.frame, error);
+}
+bool GallerySession::advance_host_visuals(std::string &error) {
+    return runtime_.renderer.advance_visuals(runtime_.render_frame, error);
+}
+bool GallerySession::paint_coverage(
+    std::uint64_t &painted_texels, std::string &error) const {
+    return runtime_.renderer.paint_coverage(painted_texels, error);
+}
+bool GallerySession::set_rigid_state(
+    std::size_t scene_body_index, const RigidBodyState &state,
+    std::string &error) {
+    if (scene_body_index >= runtime_.instance.rigid_bodies.size()) {
+        error = "Gallery rigid body index is out of range";
+        return false;
+    }
+    return runtime_.simulation.set_rigid_state(
+        runtime_.instance.rigid_bodies[scene_body_index], state, error);
+}
+std::size_t GallerySession::fixed_attached_count() const noexcept {
+    return runtime_.fixed_collector.attached_count();
+}
+std::size_t GallerySession::fixed_constraint_count() const noexcept {
+    return runtime_.fixed_collector.generated_constraint_count();
 }
 std::size_t GallerySession::particle_count() const {
     return runtime_.ready() ? runtime_.frame.fluid_particles.size() : 0;

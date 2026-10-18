@@ -10,30 +10,32 @@ std::filesystem::path device_profiles_path(const Options &options) {
     return gallery_resource_path(options, options.profiles_file);
 }
 
-bool launch_calibration_ball(GalleryRuntime &runtime, bool off_center,
+bool launch_calibration_ball(GallerySession &session, bool off_center,
                              std::string &error) {
-    for (std::size_t index = 0U; index < runtime.scene.rigid_bodies.size(); ++index) {
-        if (runtime.scene.rigid_bodies[index].source_name != "Icosphere") continue;
-        RigidBodyState state = runtime.scene.rigid_bodies[index].options.initial_state;
+    for (std::size_t index = 0U; index < session.scene().rigid_bodies.size(); ++index) {
+        if (session.scene().rigid_bodies[index].source_name != "Icosphere") continue;
+        RigidBodyState state = session.scene().rigid_bodies[index].options.initial_state;
         state.position = {off_center ? 1.0F : 0.0F, 1.05F, 3.0F};
         state.linear_velocity = {0.0F, 0.0F, -10.0F};
         state.angular_velocity = {};
-        return runtime.simulation.set_rigid_state(
-            runtime.instance.rigid_bodies[index], state, error);
+        return session.set_rigid_state(index, state, error);
     }
     error = "brick calibration scene has no ball";
     return false;
 }
 
-bool stable_calibration_scene(GalleryRuntime &runtime, bool quiet,
+bool stable_calibration_scene(const GallerySession &session, bool quiet,
                               float scale, std::string &error) {
-    if (runtime.frame.rigid_states.size() < runtime.instance.rigid_bodies.size()) {
+    if (session.output().rigid_states.size() <
+        session.scene_instance().rigid_bodies.size()) {
         error = "brick calibration rigid output is incomplete";
         return false;
     }
     unsigned displaced_bricks = 0U;
-    for (std::size_t index = 0U; index < runtime.instance.rigid_bodies.size(); ++index) {
-        const RigidBodyState state = rigid_state(runtime.frame.rigid_states[index]);
+    for (std::size_t index = 0U;
+         index < session.scene_instance().rigid_bodies.size(); ++index) {
+        const RigidBodyState state = rigid_state(
+            session.output().rigid_states[index]);
         if (!std::isfinite(state.position.x) || !std::isfinite(state.position.y) ||
             !std::isfinite(state.position.z) ||
             std::fabs(state.position.x) > 1'000.0F ||
@@ -50,7 +52,7 @@ bool stable_calibration_scene(GalleryRuntime &runtime, bool quiet,
             error = "brick calibration produced excessive kinetic energy";
             return false;
         }
-        const auto &body = runtime.scene.rigid_bodies[index];
+        const auto &body = session.scene().rigid_bodies[index];
         if (body.source_name != "Layer1" && body.source_name != "Layer2")
             continue;
         const auto initial = body.options.initial_state.position;
@@ -86,34 +88,32 @@ bool run_calibration_trial(const Options &base, const BrickSceneConfig &config,
         error = failure.what();
         return false;
     }
-    GalleryRuntime &runtime = session->runtime();
     const StepOptions step{.timestep = k_timestep, .substeps = 4U,
                            .gravity = {0.0F, -k_gravity, 0.0F}};
     for (std::uint32_t frame = 0U; frame < 30U; ++frame) {
-        if (!session->controlled_step({}, step, error)) {
+        if (!session->diagnostic_step({}, step, error)) {
             error = "calibration settle failed: " + error;
             return false;
         }
     }
     std::vector<std::uint32_t> pixels;
-    CameraController camera;
-    camera.set_preset(camera_preset_for(GalleryContext::rigid_body, config));
+    session->camera().set_preset(
+        camera_preset_for(GalleryContext::rigid_body, config));
     parallel_mater::gallery::FrameTimingCollector timings;
     using parallel_mater::gallery::FramePhase;
     auto measure = [&](bool collision) {
         timings.begin_frame();
         timings.begin_phase(FramePhase::physics);
-        if (!session->controlled_step({}, step, error)) {
+        if (!session->diagnostic_step({}, step, error)) {
             error = "calibration step failed: " + error;
             return false;
         }
         timings.end_phase();
         timings.begin_phase(FramePhase::render);
-        if (!runtime.renderer.render(runtime.render_frame,
-                                     camera.camera(), pixels, error)) return false;
+        if (!session->render_host(pixels, error)) return false;
         timings.end_phase();
         timings.begin_phase(FramePhase::present);
-        if (!window.present(pixels, error, runtime.renderer.native_image())) return false;
+        if (!window.present(pixels, error, session->native_image())) return false;
         const auto presented = parallel_mater::gallery::FrameTimingCollector::Clock::now();
         timings.end_phase(presented);
         timings.finish_frame(presented);
@@ -125,13 +125,13 @@ bool run_calibration_trial(const Options &base, const BrickSceneConfig &config,
         if (!measure(false)) { if (error.empty()) error = "calibration cancelled"; return false; }
     std::string correctness_error;
     stable = stable && stable_calibration_scene(
-        runtime, true, config.brick_scale, correctness_error);
-    if (!launch_calibration_ball(runtime, off_center, error)) return false;
+        *session, true, config.brick_scale, correctness_error);
+    if (!launch_calibration_ball(*session, off_center, error)) return false;
     for (std::uint32_t frame = 0U; frame < collision_frames; ++frame)
         if (!measure(true)) { if (error.empty()) error = "calibration cancelled"; return false; }
     correctness_error.clear();
     stable = stable && stable_calibration_scene(
-        runtime, false, config.brick_scale, correctness_error);
+        *session, false, config.brick_scale, correctness_error);
     return true;
 }
 
