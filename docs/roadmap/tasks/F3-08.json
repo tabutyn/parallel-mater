@@ -1,7 +1,7 @@
 {
   "id": "F3-08",
   "title": "Restore repeated statistics-query validation",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F3-03"
   ],
@@ -16,15 +16,29 @@
     "Repeated reset, statistics begin/end, submission, wait, result read and reuse passes through the validation layer while unread and in-flight reuse remains rejected.",
     "The installed macOS Metal Gallery interactive smoke passes with validation enabled and proves the expected revision and direct renderer."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "d0c38a8a-ca96-47bb-98b0-71d5b374d40f",
-    "owner": "codex-macos-gallery",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F3-08/thomass-macbook-air",
-    "claimed_at": "2026-10-18T01:54:48Z",
-    "heartbeat_at": "2026-10-18T01:54:48Z",
-    "expires_at": "2026-10-19T01:54:48Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: validation query lifecycle regression and native Metal zero-readback repeat; Apple M4/macOS 26.5.2; docs/roadmap/evidence/F3-08-query-reuse.json",
+    "PASS: installed exact revision a3eddaa332f2b79024e53b6c1541da8a2c228888; 6 interactive frames; renderer=metal-direct-fenced; docs/roadmap/evidence/F3-08-query-reuse.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "d0c38a8a-ca96-47bb-98b0-71d5b374d40f",
+        "owner": "codex-macos-gallery",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F3-08/thomass-macbook-air",
+        "claimed_at": "2026-10-18T01:54:48Z",
+        "heartbeat_at": "2026-10-18T01:54:48Z",
+        "expires_at": "2026-10-19T01:54:48Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T02:12:54Z",
+      "reason": "Direct Metal Gallery consumes completed statistics before zero-readback query reuse",
+      "evidence": [
+        "PASS: validation query lifecycle regression and native Metal zero-readback repeat; Apple M4/macOS 26.5.2; docs/roadmap/evidence/F3-08-query-reuse.json",
+        "PASS: installed exact revision a3eddaa332f2b79024e53b6c1541da8a2c228888; 6 interactive frames; renderer=metal-direct-fenced; docs/roadmap/evidence/F3-08-query-reuse.json"
+      ]
+    }
+  ]
 }
