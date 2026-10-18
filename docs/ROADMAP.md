@@ -227,7 +227,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-11](roadmap/tasks/F7-11.json) | Enable Vulkan soft-body Gallery domains | done | F7-03 | — |
 | [F7-12](roadmap/tasks/F7-12.json) | Enable Vulkan rope Gallery domains | done | F7-03 | — |
 | [F7-13](roadmap/tasks/F7-13.json) | Enable Vulkan smoke Gallery domains | done | F7-03 | — |
-| [F7-14](roadmap/tasks/F7-14.json) | Enable Vulkan cross-deformable Gallery couplings | leased | F7-10, F7-11, F7-12, F7-13 | codex-linux-gallery / thomas-laptop / 2026-10-19T14:37:12Z |
+| [F7-14](roadmap/tasks/F7-14.json) | Enable Vulkan cross-deformable Gallery couplings | done | F7-10, F7-11, F7-12, F7-13 | — |
 | [F7-15](roadmap/tasks/F7-15.json) | Expose capability-driven Android catalog | done | F7-02, F7-07 | — |
 | [F7-16](roadmap/tasks/F7-16.json) | Use native Vulkan rendering on Android | done | F7-07, F7-09 | — |
 | [F7-17](roadmap/tasks/F7-17.json) | Complete Android Gallery controls and help | done | F7-04, F7-07, F7-15, F7-20, F7-21 | — |

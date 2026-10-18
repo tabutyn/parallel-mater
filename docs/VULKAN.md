@@ -7,13 +7,12 @@ Vulkan, and D3D12 are selected by manifest; the desktop Gallery also accepts
 `--backend cuda|vulkan|d3d12|metal` for discovered drivers.
 
 The Vulkan qualification scope is rigid bodies, rigid constraints, liquids,
-cloth, ropes, soft bodies, smoke, liquid–rigid, liquid–cloth, liquid–rope,
-liquid–soft-body, liquid–smoke and rigid–deformable/smoke coupling, paint,
-emitters, queries, and asynchronous public submission. Cross-deformable
-coupling remains unadvertised. The exact interaction-capability query omits
-cloth–soft-body, cloth–rope, soft-body–rope, cloth–smoke, soft-body–smoke and
-rope–smoke interactions until their dispatch modules are qualified. The older
-standalone Vulkan `World` prototype is not used by this driver.
+cloth, ropes, soft bodies, smoke, all existing cross-domain Gallery couplings,
+paint, emitters, queries, and asynchronous public submission. Exact interaction
+capability records cover liquid–rigid, liquid–cloth, liquid–rope,
+liquid–soft-body, liquid–smoke, rigid–deformable/smoke, cloth–soft-body,
+cloth–rope, soft-body–rope, cloth–smoke, soft-body–smoke and rope–smoke. The
+older standalone Vulkan `World` prototype is not used by this driver.
 
 ## Architecture
 
@@ -60,7 +59,7 @@ not yet account for other applications' GPU memory use.
 This is a correctness and integration preview. Mapped host preparation,
 single-workgroup solving, and synchronization boundaries still need performance
 work. First-use pipeline compilation can delay scene loading. Passing desktop
-tests does not qualify sustained phone performance or the remaining domains.
+tests does not qualify sustained phone performance.
 
 ## Desktop testing
 
@@ -115,7 +114,7 @@ The Linux validation scripts pin SDK 1.4.341.0 and its archive SHA-256 in
 its manifest, and `spirv-val` into ignored `out/toolchains/`, verifies installed
 file hashes on reuse, and leaves system packages untouched. The test wrapper
 sets both the layer search path and library search path to that installation.
-It validates all seventeen production SPIR-V modules before running CTest serially.
+It validates all 23 production SPIR-V modules before running CTest serially.
 
 ```sh
 ./scripts/Setup-VulkanValidation.sh
@@ -130,8 +129,9 @@ The scripts do not start a build. Use `--parallel 1` for builds on this laptop.
 Tests exercise transfers, rigid-body motion and contact, GPU timestamps,
 asynchronous completion, analytic liquid free fall across dispatch boundaries,
 bounded Fluid and FluidRigid scenes, all four cloth Gallery scenes, the soft
-body, soft-body/rigid and soft-body/fluid scenes, Rope, RopeFluid, Smoke and
-SmokeWater, paint, and reset. Native Gallery tests additionally cover device/queue identity, direct
+body, soft-body/rigid and soft-body/fluid scenes, Rope, RopeFluid, Smoke,
+SmokeWater, all six cross-deformable Gallery scenes, paint, and reset. Native
+Gallery tests additionally cover device/queue identity, direct
 output, frames in flight, oriented diagnostic readback, resize, surface detach and
 replacement,
 offscreen fallback, and validation-clean teardown.
@@ -168,10 +168,9 @@ common-session rendered-image contract passes Soft Body, Soft Body Rigid and
 Soft Body Fluid. Separate 120-frame public-command lifecycle checks pass all
 three scenes, including reset and no-host-output recovery.
 
-Vulkan advertises `softBodies`, fluid–soft-body contact and soft-body–rigid
-contact. Its exact interaction-capability query rejects cloth–soft-body contact,
-which remains assigned to the cross-deformable qualification work. The Pixel
-catalog sweep passes the three available soft-body scenes.
+Vulkan advertises `softBodies`, fluid–soft-body, soft-body–rigid,
+cloth–soft-body and rope–soft-body interactions. The Pixel catalog sweep at the
+F7-13 revision passed the three then-available soft-body scenes.
 
 ## Desktop rope evidence (2026-10-18)
 
@@ -182,31 +181,47 @@ and reset. The common Gallery session contract advertises, selects, qualifies,
 and renders both scenes through the same backend-independent session used by
 desktop and mobile shells.
 
-Vulkan advertises `rope`, rope self-contact, fluid–rope contact, and
-rope–rigid contact and attachment. Its exact capability query rejects
-cloth–rope and soft-body–rope interactions pending F7-14. The Vulkan transport
+Vulkan advertises `rope`, rope self-contact, fluid–rope, rope–rigid,
+cloth–rope, soft-body–rope and rope–smoke interactions. The Vulkan transport
 stages reflected rope records because the complete 612-byte by-value entry block
 cannot fit the required 256-byte push-constant baseline. Android packages the
-same modules; the Pixel catalog sweep passes Rope and RopeFluid.
+same modules; the Pixel catalog sweep at the F7-13 revision passed Rope and
+RopeFluid.
 
 ## Desktop and Android smoke evidence (2026-10-18)
 
 The shared Slang geometry-smoke, smoke-grid and fluid-smoke modules compile to
-normalized SPIR-V. All seventeen production modules pass SDK 1.4.341.0 static
+normalized SPIR-V. All 23 production modules pass SDK 1.4.341.0 static
 validation. Separate 120-frame public-command lifecycle checks pass Smoke and
 SmokeWater, including finite visible output and reset. The common Gallery
 session qualifies both scenes through the backend-independent runtime.
 
-Vulkan advertises smoke self pressure/viscosity, smoke–rigid contact/drag and
-fluid–smoke drag/thermal/phase interactions for the particle and grid profiles.
-Its exact capability query rejects cloth–smoke, soft-body–smoke and rope–smoke
-interactions pending F7-14.
+Vulkan advertises smoke self pressure/viscosity, smoke–rigid contact/drag,
+fluid–smoke drag/thermal/phase interactions and cloth/soft-body/rope–smoke
+contact and drag for the particle and grid profiles.
 
-A revision-pinned Pixel 7 run passed Smoke and SmokeWater within the full
-28-scene catalog sweep. The run reported 22 supported scenes, direct Vulkan
+A revision-pinned F7-13 Pixel 7 run passed Smoke and SmokeWater within the full
+28-scene catalog sweep. That run reported 22 supported scenes, direct Vulkan
 presentation without ordinary-frame readback, background recovery, resize,
 rotation and native teardown. This short physical run establishes correctness
 and visible output; sustained thermal/performance qualification remains F7-18.
+
+## Desktop cross-domain evidence (2026-10-18)
+
+The shared Slang soft-body–cloth, cloth–rope, soft-body–rope, cloth–smoke,
+soft-body–smoke and rope–smoke modules compile to normalized SPIR-V and expose
+their exact interaction records. Separate 120-frame public-command tests pass
+all six Gallery scenes. The complete 17-scene Vulkan domain sweep and the common
+Gallery session contract also pass on the RTX 3050 Ti.
+
+The rope–smoke wind entry passes only the three smoke fields used by the common
+Slang wind function. Its reflected block is 188 bytes and stays on the portable
+push-constant path; passing the full 128-byte smoke options record made the
+module use the dynamic parameter-buffer path and stalled this workload on the
+desktop driver. CUDA compilation and Android ARM64 packaging pass with the same
+entry ABI. The revision-pinned Android APK contains all 23 modules; a fresh
+physical Pixel sweep is still required before claiming those six scenes on that
+device.
 
 ## Desktop evidence (2026-10-16)
 
@@ -256,7 +271,7 @@ are additionally rebound from push constants to a scalar-layout uniform buffer;
 smaller modules remain byte-identical after pointer ordering. Recursive types or
 unfamiliar dependencies fail the build with a diagnostic. CMake keeps
 the compiler output as `generated/vulkan/*.raw.spv` and embeds the normalized
-`*.spv`; validate the latter. All seventeen modules pass SDK 1.4.341.0 validation on
+`*.spv`; validate the latter. All 23 modules pass SDK 1.4.341.0 validation on
 Linux; the previous Pixel run covered the original six-module subset.
 
 `tools/vulkan_pipeline_probe.cpp` isolates pipeline compilation without the

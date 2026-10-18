@@ -1,15 +1,9 @@
 // SPDX-License-Identifier: MIT
 #include "smoke_coupling_dispatch.hpp"
 
-#include "metal_dispatch_options.hpp"
 #include "driver/metal/resource_records.hpp"
 
 namespace parallel_mater::simulation {
-namespace {
-using metal_bindings::smoke_options;
-
-} // namespace
-
 void apply_smoke_wind_to_rope(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *rope_positions,
     void *rope_velocities, std::uint32_t rope_count,
@@ -22,7 +16,8 @@ void apply_smoke_wind_to_rope(
     (void)metal::launch(stream, "smoke_rope_wind", grid,
         rope_positions,
         rope_velocities, rope_count, rope_maximum_speed,
-        first_attached, last_attached, soft_first, soft_last, smoke_options(smoke),
+        first_attached, last_attached, soft_first, soft_last, smoke.capacity,
+        smoke.particle_radius, smoke.rest_number_density,
         smoke_positions,
         smoke_velocities,
         keys,

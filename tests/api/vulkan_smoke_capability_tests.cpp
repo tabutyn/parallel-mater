@@ -90,16 +90,20 @@ int main() {
                         PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
                         PM_INTERACTION_MODE_CONTACT,
                         PM_INTERACTION_DIRECTION_FIRST_TO_SECOND, profile,
-                        capability) == PM_ERROR_FEATURE_NOT_PRESENT);
+                        capability) == PM_SUCCESS);
+            CHECK(capability.maxGraphEdgesPerSimulation ==
+                  PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY);
             CHECK(query(physical, deformable, PM_INTERACTION_FAMILY_SMOKE,
                         PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
                         PM_INTERACTION_MODE_DRAG,
                         PM_INTERACTION_DIRECTION_SECOND_TO_FIRST, profile,
-                        capability) == PM_ERROR_FEATURE_NOT_PRESENT);
+                        capability) == PM_SUCCESS);
+            CHECK(capability.maxGraphEdgesPerSimulation ==
+                  PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY);
         }
     }
 
     pmDestroyInstance(instance);
-    std::puts("PASS: Vulkan exposes only qualified smoke interactions");
+    std::puts("PASS: Vulkan exposes qualified smoke interactions");
     return 0;
 }

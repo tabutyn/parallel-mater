@@ -51,10 +51,11 @@ int main() {
     CHECK(capability.maxGraphEdgesPerSimulation ==
           PM_INTERACTION_GRAPH_EDGES_NOT_APPLICABLE);
     CHECK(query(physical, PM_INTERACTION_FAMILY_CLOTH,
-                PM_INTERACTION_FAMILY_SOFT_BODY, capability) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
+                PM_INTERACTION_FAMILY_SOFT_BODY, capability) == PM_SUCCESS);
+    CHECK(capability.maxGraphEdgesPerSimulation ==
+          PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY);
 
     pmDestroyInstance(instance);
-    std::puts("PASS: Vulkan exposes only qualified soft-body interactions");
+    std::puts("PASS: Vulkan exposes qualified soft-body interactions");
     return 0;
 }

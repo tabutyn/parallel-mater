@@ -66,17 +66,20 @@ int main() {
     CHECK(query(physical, PM_INTERACTION_FAMILY_CLOTH,
                 PM_INTERACTION_FAMILY_ROPE,
                 PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
-                PM_INTERACTION_MODE_ATTACHMENT, capability) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
+                PM_INTERACTION_MODE_ATTACHMENT, capability) == PM_SUCCESS);
+    CHECK(capability.maxGraphEdgesPerSimulation ==
+          PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY);
     for (const auto mode : {PM_INTERACTION_MODE_CONTACT,
                             PM_INTERACTION_MODE_ATTACHMENT}) {
         CHECK(query(physical, PM_INTERACTION_FAMILY_SOFT_BODY,
                     PM_INTERACTION_FAMILY_ROPE,
                     PM_INTERACTION_SCOPE_DISTINCT_FAMILY, mode,
-                    capability) == PM_ERROR_FEATURE_NOT_PRESENT);
+                    capability) == PM_SUCCESS);
+        CHECK(capability.maxGraphEdgesPerSimulation ==
+              PM_INTERACTION_GRAPH_EDGES_SIMULATION_CAPACITY);
     }
 
     pmDestroyInstance(instance);
-    std::puts("PASS: Vulkan exposes only qualified rope interactions");
+    std::puts("PASS: Vulkan exposes qualified rope interactions");
     return 0;
 }

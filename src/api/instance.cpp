@@ -53,29 +53,7 @@ bool requirements_supported(std::uint32_t requirements,
 
 bool driver_supports_interaction(
     const PmInteractionCapabilityKey &key) noexcept {
-#if defined(PARALLEL_MATER_VULKAN_DRIVER)
-    // Vulkan enables domain schedules incrementally. Feature bits describe
-    // available families, while this exact interaction list must not expose a
-    // pair until its dispatch module has been compiled and qualified.
-    const bool cloth_soft =
-        key.firstFamily == PM_INTERACTION_FAMILY_CLOTH &&
-        key.secondFamily == PM_INTERACTION_FAMILY_SOFT_BODY;
-    const bool cloth_rope =
-        key.firstFamily == PM_INTERACTION_FAMILY_CLOTH &&
-        key.secondFamily == PM_INTERACTION_FAMILY_ROPE;
-    const bool soft_rope =
-        key.firstFamily == PM_INTERACTION_FAMILY_SOFT_BODY &&
-        key.secondFamily == PM_INTERACTION_FAMILY_ROPE;
-    const bool deformable_smoke =
-        (key.firstFamily == PM_INTERACTION_FAMILY_CLOTH ||
-         key.firstFamily == PM_INTERACTION_FAMILY_SOFT_BODY ||
-         key.firstFamily == PM_INTERACTION_FAMILY_ROPE) &&
-        key.secondFamily == PM_INTERACTION_FAMILY_SMOKE;
-    if (cloth_soft || cloth_rope || soft_rope || deformable_smoke)
-        return false;
-#else
     (void)key;
-#endif
     return true;
 }
 

@@ -1,4 +1,5 @@
 #include "dispatch_entry.slang"
+#include "dispatch_shape.slangh"
 // SPDX-License-Identifier: MIT
 // Shared cloth/rope coupling kernels.
 
@@ -8,7 +9,7 @@ import device_intrinsics;
 import graphics_resources;
 
 [shader("compute")]
-[numthreads(1, 1, 1)]
+[numthreads(PM_THREADS(1), 1, 1)]
 void rope_cloth_sample_anchor(
     uniform PMBuffer<Vec3> soft_anchor_positions,
     uniform PMBuffer<Vec3> soft_anchor_velocities,
@@ -28,7 +29,7 @@ void rope_cloth_sample_anchor(
 }
 
 [shader("compute")]
-[numthreads(1, 1, 1)]
+[numthreads(PM_THREADS(1), 1, 1)]
 void rope_cloth_apply_anchor(
     uniform PMBuffer<Vec3> rope_positions, uniform PMBuffer<Vec3> rope_velocities,
     uniform uint rope_count, uniform PMBuffer<Vec3> soft_anchor_positions,

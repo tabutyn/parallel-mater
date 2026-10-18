@@ -1,7 +1,7 @@
 {
   "id": "F7-14",
   "title": "Enable Vulkan cross-deformable Gallery couplings",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-10",
     "F7-11",
@@ -19,15 +19,27 @@
     "Every existing cross-domain Gallery scene either passes public-API lifecycle and visible-output checks or remains unavailable with its exact unsupported capability.",
     "No aggregate domainCouplings claim is exposed when any capability record needed by a selectable scene is missing."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "c18470d7-88ac-496a-a083-ab846ac96d72",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F7-14/thomas-laptop",
-    "claimed_at": "2026-10-18T14:37:12Z",
-    "heartbeat_at": "2026-10-18T14:37:12Z",
-    "expires_at": "2026-10-19T14:37:12Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F7-14-vulkan-cross-domain.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "c18470d7-88ac-496a-a083-ab846ac96d72",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-14/thomas-laptop",
+        "claimed_at": "2026-10-18T14:37:12Z",
+        "heartbeat_at": "2026-10-18T14:37:12Z",
+        "expires_at": "2026-10-19T14:37:12Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T15:11:44Z",
+      "reason": "Six shared Slang coupling modules pass exact capability, 120-frame Vulkan Gallery, full domain regression, common session, CUDA compile and Android ARM64 packaging checks.",
+      "evidence": [
+        "docs/roadmap/evidence/F7-14-vulkan-cross-domain.json"
+      ]
+    }
+  ]
 }
