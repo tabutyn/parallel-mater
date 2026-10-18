@@ -30,6 +30,8 @@ jobs:
           ctest --preset sdk-ci
       - name: Relocate and build independent applications and vendor driver
         run: python3 tools/check_sdk_install.py --build-dir build-sdk-ci --output out/sdk-evidence/ci
+      - name: Validate selected package components
+        run: python3 tools/check_sdk_components.py --build-dir build-sdk-ci --output out/sdk-components/ci
       - name: Preserve qualification scope and logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -38,6 +40,8 @@ jobs:
           path: |
             out/sdk-evidence/ci/report.json
             out/sdk-evidence/ci/*.log
+            out/sdk-components/ci/report.json
+            out/sdk-components/ci/*.log
             build-sdk-ci/Testing/Temporary/*.log
   sdk-macos:
     name: sdk (macOS ARM64)
@@ -65,6 +69,8 @@ jobs:
           ctest --preset sdk-ci
       - name: Relocate and build independent applications and vendor driver
         run: python3 tools/check_sdk_install.py --build-dir build-sdk-ci --output out/sdk-evidence/ci
+      - name: Validate selected package components
+        run: python3 tools/check_sdk_components.py --build-dir build-sdk-ci --output out/sdk-components/ci
       - name: Preserve qualification scope and logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -73,6 +79,8 @@ jobs:
           path: |
             out/sdk-evidence/ci/report.json
             out/sdk-evidence/ci/*.log
+            out/sdk-components/ci/report.json
+            out/sdk-components/ci/*.log
             build-sdk-ci/Testing/Temporary/*.log
   sdk-windows:
     name: sdk (Windows x64)
@@ -101,6 +109,8 @@ jobs:
           ctest --preset sdk-ci
       - name: Relocate and build independent applications and vendor driver
         run: python tools/check_sdk_install.py --build-dir build-sdk-ci --output out/sdk-evidence/ci
+      - name: Validate selected package components
+        run: python tools/check_sdk_components.py --build-dir build-sdk-ci --output out/sdk-components/ci
       - name: Preserve qualification scope and logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -109,4 +119,6 @@ jobs:
           path: |
             out/sdk-evidence/ci/report.json
             out/sdk-evidence/ci/*.log
+            out/sdk-components/ci/report.json
+            out/sdk-components/ci/*.log
             build-sdk-ci/Testing/Temporary/*.log

@@ -31,7 +31,7 @@ if(Vulkan_FOUND)
 endif()
 target_link_libraries(parallel-mater PRIVATE ${CMAKE_DL_LIBS})
 parallel_mater_enable_warnings(parallel-mater)
-list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater)
+list(APPEND PARALLEL_MATER_LOADER_INSTALL_TARGETS parallel-mater)
 
 add_library(parallel-mater-layer-validation SHARED
     src/layers/validation.cpp)
@@ -48,7 +48,8 @@ if(Vulkan_FOUND)
     target_compile_definitions(parallel-mater-layer-validation PRIVATE
         PARALLEL_MATER_HAS_VULKAN_INTEROP=1)
 endif()
-list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-layer-validation)
+list(APPEND PARALLEL_MATER_VALIDATION_INSTALL_TARGETS
+    parallel-mater-layer-validation)
 
 set(PARALLEL_MATER_BUILD_MANIFEST_DIR
     "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/manifests")

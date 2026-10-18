@@ -25,4 +25,4 @@ target_include_directories(parallel-mater-scene
 target_link_libraries(parallel-mater-scene PUBLIC ParallelMater::parallel_mater
     ParallelMater::preparation)
 parallel_mater_enable_warnings(parallel-mater-scene)
-list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-scene)
+list(APPEND PARALLEL_MATER_SCENE_INSTALL_TARGETS parallel-mater-scene)
