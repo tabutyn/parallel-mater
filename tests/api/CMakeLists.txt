@@ -136,7 +136,8 @@ target_include_directories(parallel-mater-fluid-pair-quality-tests PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/../../conformance/v1/include")
 target_compile_definitions(parallel-mater-fluid-pair-quality-tests PRIVATE
     PM_QUALITY_PROFILE_SHA256="a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"
-    PM_FLUID_SELF_CONTACT_PROFILE_SHA256="21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2")
+    PM_FLUID_SELF_CONTACT_PROFILE_SHA256="21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2"
+    PM_FLUID_SELF_PRESSURE_PROFILE_SHA256="4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b")
 target_link_libraries(parallel-mater-fluid-pair-quality-tests
     PRIVATE ParallelMater::parallel_mater)
 foreach(backend cpu cuda vulkan d3d12 metal)
@@ -159,6 +160,16 @@ foreach(backend cpu cuda vulkan d3d12 metal)
         set_tests_properties(
             parallel-mater-${backend}-fluid-self-contact-quality-tests
             PROPERTIES LABELS "api;quality;self-contact;${backend}"
+            SKIP_RETURN_CODE 77 TIMEOUT 180
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json")
+        add_test(NAME parallel-mater-${backend}-fluid-self-pressure-quality-tests
+            COMMAND parallel-mater-fluid-pair-quality-tests --self-pressure
+                --driver-name "slang-${backend}"
+                --output "${CMAKE_CURRENT_BINARY_DIR}/${backend}-fluid-self-pressure-quality.json")
+        set_tests_properties(
+            parallel-mater-${backend}-fluid-self-pressure-quality-tests
+            PROPERTIES LABELS "api;quality;self-pressure;${backend}"
             SKIP_RETURN_CODE 77 TIMEOUT 180
             ENVIRONMENT
                 "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json")

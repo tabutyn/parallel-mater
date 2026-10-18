@@ -298,9 +298,9 @@ def _check_split_combined(profile: dict[str, Any], sample: dict[str, Any],
                                         error, limit))
 
 
-def _evaluate_fluid_self_contact(
+def _evaluate_fluid_self_pair(
         profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
-        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+        driver: Any, failures: list[Failure], *, pressure: bool) -> dict[str, Any]:
     definition = profile.get("fixture")
     actual = result.get("fixture")
     if not isinstance(definition, dict):
@@ -317,6 +317,8 @@ def _evaluate_fluid_self_contact(
 
     exact_fields = ("id", "particle_count", "substeps", "density_iterations",
                     "oracle")
+    if pressure:
+        exact_fields += ("density_estimator",)
     for field in exact_fields:
         if actual.get(field) != definition.get(field):
             failures.append(Failure(f"$.fixture.{field}",
@@ -431,21 +433,71 @@ def _evaluate_fluid_self_contact(
         initial_separation = _subtract(initial_states[1][0], initial_states[0][0])
         final_separation = _subtract(final_states[1][0], final_states[0][0])
         separation = _norm(final_separation)
-        radius = float(definition.get("particle_radius_m", 0.0))
-        exclusion = (2.0 * radius *
-                     float(tolerances.get("exclusion_distance_fraction", 0.0)))
         observations["final_separation_m"] = separation
-        observations["minimum_separation_m"] = exclusion
-        if separation < exclusion:
-            failures.append(Failure("$.fixture.final_particles",
-                                    "fluid particles violate exclusion distance",
-                                    separation, exclusion))
+        if not pressure:
+            radius = float(definition.get("particle_radius_m", 0.0))
+            exclusion = (2.0 * radius * float(tolerances.get(
+                "exclusion_distance_fraction", 0.0)))
+            observations["minimum_separation_m"] = exclusion
+            if separation < exclusion:
+                failures.append(Failure(
+                    "$.fixture.final_particles",
+                    "fluid particles violate exclusion distance",
+                    separation, exclusion))
         if sum(a * b for a, b in zip(initial_separation, final_separation)) <= 0.0:
             failures.append(Failure("$.fixture.final_particles",
                                     "fluid particles crossed stable-ID ordering"))
 
         mass = (float(definition.get("rest_density_kg_m3", 0.0)) *
                 float(definition.get("rest_particle_volume_m3", 0.0)))
+        if pressure:
+            initial_spacing = _norm(initial_separation)
+            rest_density = float(definition.get("rest_density_kg_m3", 0.0))
+            if initial_spacing <= 0.0 or separation <= 0.0 or rest_density <= 0.0:
+                failures.append(Failure(
+                    "$.fixture.final_particles",
+                    "density estimator requires positive spacing and rest density",
+                    {
+                        "initial_spacing_m": initial_spacing,
+                        "final_spacing_m": separation,
+                        "rest_density_kg_m3": rest_density,
+                    }))
+            else:
+                initial_density = mass / (initial_spacing ** 3)
+                final_density = mass / (separation ** 3)
+                initial_error = abs(initial_density - rest_density) / rest_density
+                final_error = abs(final_density - rest_density) / rest_density
+                error_reduction = (1.0 - final_error / initial_error
+                                   if initial_error > 0.0 else 0.0)
+                observations.update({
+                    "initial_density_kg_m3": initial_density,
+                    "final_density_kg_m3": final_density,
+                    "rest_density_kg_m3": rest_density,
+                    "initial_density_relative_error": initial_error,
+                    "final_density_relative_error": final_error,
+                    "density_error_reduction_fraction": error_reduction,
+                })
+                initial_minimum = float(tolerances.get(
+                    "initial_density_relative_error_minimum", 0.0))
+                if initial_error < initial_minimum:
+                    failures.append(Failure(
+                        "$.fixture.initial_particles",
+                        "initial density is not sufficiently displaced from rest",
+                        initial_error, initial_minimum))
+                final_maximum = float(tolerances.get(
+                    "final_density_relative_error_maximum", 0.0))
+                if final_error > final_maximum:
+                    failures.append(Failure(
+                        "$.fixture.final_particles",
+                        "final density remains too far from rest",
+                        final_error, final_maximum))
+                reduction_minimum = float(tolerances.get(
+                    "density_error_reduction_fraction_minimum", 0.0))
+                if error_reduction < reduction_minimum:
+                    failures.append(Failure(
+                        "$.fixture.final_particles",
+                        "pressure did not move density sufficiently toward rest",
+                        error_reduction, reduction_minimum))
         velocity_changes = [
             _subtract(final_states[identity][1], initial_states[identity][1])
             for identity in (0, 1)
@@ -459,8 +511,8 @@ def _evaluate_fluid_self_contact(
             float(tolerances.get("linear_momentum_relative", 0.0)) * activity)
         observations["exchange_impulse_kg_m_s"] = activity
         observations["net_internal_impulse_kg_m_s"] = residual
-        if activity < float(tolerances.get(
-                "exchange_impulse_minimum_kg_m_s", 0.0)):
+        if (not pressure and activity < float(tolerances.get(
+                "exchange_impulse_minimum_kg_m_s", 0.0))):
             failures.append(Failure("$.fixture.final_particles",
                                     "self-contact impulse activity is too small",
                                     activity, tolerances.get(
@@ -1030,9 +1082,10 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
     if evaluation == "rigid_attachment":
         return _evaluate_rigid_attachment(
             profile, result, expected_hash, driver, failures)
-    if evaluation == "fluid_self_contact":
-        return _evaluate_fluid_self_contact(
-            profile, result, expected_hash, driver, failures)
+    if evaluation in ("fluid_self_contact", "fluid_self_pressure"):
+        return _evaluate_fluid_self_pair(
+            profile, result, expected_hash, driver, failures,
+            pressure=evaluation == "fluid_self_pressure")
     if evaluation != "system_exchange":
         failures.append(Failure("$.profile.evaluation",
                                 "unsupported quality evaluation", evaluation))

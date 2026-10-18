@@ -1,0 +1,55 @@
+{
+  "schema": "parallel-mater-conformance-quality-profile/v1",
+  "id": "fluid-self-pressure-v1",
+  "title": "Fluid self-pressure density relaxation and impulse balance",
+  "evaluation": "fluid_self_pressure",
+  "sources": {
+    "capability": "docs/INTERACTION-MODES.md: FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE",
+    "fixture": "tests/api/fluid_pair_quality_tests.cpp: public-API self-pressure mode",
+    "oracle": "Independent isotropic packing density and momentum checks over public fluid output",
+    "tolerances": "SI density error reduction plus core-conservation-stability-v1 momentum bounds"
+  },
+  "fixture": {
+    "id": "symmetric-compressed-pair-pressure-relaxation",
+    "particle_count": 2,
+    "timestep_seconds": 0.04,
+    "substeps": 1,
+    "gravity_m_s2": [0.0, 0.0, 0.0],
+    "particle_radius_m": 0.1,
+    "support_radius_m": 0.4,
+    "rest_density_kg_m3": 1000.0,
+    "rest_particle_volume_m3": 0.008,
+    "pressure_stiffness": 40.0,
+    "kinematic_viscosity_m2_s": 0.0,
+    "normal_damping": 0.0,
+    "maximum_speed_m_s": 100.0,
+    "maximum_pair_acceleration_m_s2": 1000.0,
+    "density_iterations": 1,
+    "density_estimator": "particle-mass-per-isotropic-spacing-cubed",
+    "initial_particles": [
+      {
+        "stable_id": 0,
+        "position_m": [-0.05, 0.0, 0.0],
+        "velocity_m_s": [0.0, 0.0, 0.0]
+      },
+      {
+        "stable_id": 1,
+        "position_m": [0.05, 0.0, 0.0],
+        "velocity_m_s": [0.0, 0.0, 0.0]
+      }
+    ],
+    "oracle": "public-output-isotropic-packing-density-and-momentum"
+  },
+  "tolerances": {
+    "fixture_state_absolute": 1e-07,
+    "initial_density_relative_error_minimum": 5.0,
+    "density_error_reduction_fraction_minimum": 0.85,
+    "final_density_relative_error_maximum": 0.75,
+    "linear_momentum_absolute_kg_m_s": 1e-07,
+    "linear_momentum_relative": 5e-05,
+    "center_of_mass_drift_absolute_m": 1e-06,
+    "transverse_position_absolute_m": 1e-06,
+    "transverse_velocity_absolute_m_s": 1e-06,
+    "outward_relative_speed_minimum_m_s": 0.0001
+  }
+}

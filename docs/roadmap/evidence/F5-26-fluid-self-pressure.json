@@ -1,0 +1,128 @@
+{
+  "schema": "parallel-mater-roadmap-fluid-self-pressure-evidence/v1",
+  "task": "F5-26",
+  "source": {
+    "commit": "c6deaa06461eefe22cf9e165374ad8166e7e7037",
+    "dirty": false,
+    "branch": "work/F5-26/windows-gtx1080",
+    "lease_token": "fa7317e6-0c86-456a-86c9-524c13c47b3f"
+  },
+  "canonical_hash_normalization": "UTF-8 bytes with CRLF normalized to LF, matching conformance input verification",
+  "host": {
+    "hostname": "Thomas-Desktop",
+    "operating_system": "Microsoft Windows 10.0.26200.9711",
+    "architecture": "x86_64",
+    "cpu": "AMD Ryzen 5 5500",
+    "gpu": "NVIDIA GeForce GTX 1080",
+    "pci_device_id": "0x1B8010DE",
+    "nvidia_driver": "582.66"
+  },
+  "toolchain": {
+    "host_compiler": "MSVC 19.44.35228.0",
+    "cuda": "12.9.86",
+    "cmake": "4.4.2",
+    "slang": "2026.18",
+    "python": "3.12.9"
+  },
+  "capability": {
+    "first_family": "FLUID",
+    "second_family": "FLUID",
+    "scope": "SELF",
+    "mode": "PRESSURE",
+    "direction": "BIDIRECTIONAL",
+    "material_profile": "ENDPOINT_NATIVE"
+  },
+  "profile": {
+    "id": "fluid-self-pressure-v1",
+    "path": "conformance/v1/quality/fluid-self-pressure-v1.json",
+    "sha256": "4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b",
+    "oracle": "independent isotropic packing density, stable-ID ordering, momentum and symmetry checks over public fluid output",
+    "units": {
+      "density": "kg/m^3",
+      "distance": "m",
+      "velocity": "m/s",
+      "impulse": "kg*m/s"
+    },
+    "retained_thresholds": {
+      "minimum_initial_density_relative_error": 5.0,
+      "minimum_density_error_reduction_fraction": 0.85,
+      "maximum_final_density_relative_error": 0.75,
+      "linear_momentum_absolute_kg_m_s": 1e-07,
+      "linear_momentum_relative": 5e-05,
+      "maximum_center_of_mass_drift_m": 1e-06,
+      "maximum_transverse_position_m": 1e-06,
+      "maximum_transverse_velocity_m_s": 1e-06,
+      "minimum_outward_relative_speed_m_s": 0.0001
+    }
+  },
+  "qualification_obligations": {
+    "path": "conformance/v1/qualification/capability-obligations-v1.json",
+    "sha256": "f66bbe85ee5f472c8054324619daa66b5b221ce94236de43a010c18983c22452",
+    "exact_rule": "fluid-self-pressure",
+    "execution": "case:fluid-lifecycle",
+    "reference_regression": "case:fluid-lifecycle",
+    "lifecycle_invariants": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery",
+    "analytic_invariants": "quality:fluid-self-pressure-v1",
+    "viscosity_rule": "fluid-self-viscosity",
+    "viscosity_analytic_status": "missing_contract"
+  },
+  "runner": {
+    "path": "build-f5-26-windows/tests/api/Release/parallel-mater-fluid-pair-quality-tests.exe",
+    "sha256": "78143db2cc06983b0827b3601356b195387abe79ea4d68219dc9ef1b172f6936"
+  },
+  "drivers": {
+    "slang-cuda": {
+      "binary_sha256": "7b904860478bef16776f6387996d5ef67e776a37331dc3983e730d2763cfed5a",
+      "result": "docs/roadmap/evidence/F5-26-c6deaa0-cuda-result.json",
+      "result_sha256": "4c9236b62f20187d4d639c005358474ca688006ba248fa63bdbebde716f76853",
+      "report": "docs/roadmap/evidence/F5-26-c6deaa0-cuda-report.json",
+      "report_sha256": "d06dc10a5b2230e7207ce6ce8654108fb688db09adf3f6c0f9a3e484acfc5b84",
+      "passed": true
+    },
+    "slang-d3d12": {
+      "binary_sha256": "9e1410d3acba3b58e551751d27149e5ade2be66c4af9ea26f93922691470d240",
+      "result": "docs/roadmap/evidence/F5-26-c6deaa0-d3d12-result.json",
+      "result_sha256": "7af4e05e2297aa267fe6346891eccc3ebf747dfe6f6b392dae7b42b07e06b268",
+      "report": "docs/roadmap/evidence/F5-26-c6deaa0-d3d12-report.json",
+      "report_sha256": "b5fa5211afea14f65bff8863ebb033e9bb69b5cde5eb2d8613f217974f9cda44",
+      "passed": true
+    }
+  },
+  "observations": {
+    "both_drivers": {
+      "initial_density_kg_m3": 7999.999642372142,
+      "final_density_kg_m3": 1572.1888607632552,
+      "rest_density_kg_m3": 1000.0,
+      "density_error_reduction_fraction": 0.9182587300005414,
+      "exchange_impulse_kg_m_s": 14.399999618530273,
+      "net_internal_impulse_kg_m_s": 0.0,
+      "center_of_mass_drift_m": 0.0,
+      "maximum_transverse_position_m": 0.0,
+      "maximum_transverse_velocity_m_s": 0.0,
+      "outward_relative_speed_m_s": 1.7999999523162842
+    }
+  },
+  "validation": {
+    "physical_quality": "CUDA and D3D12 each passed 1/1 public-API samples on the physical GTX 1080",
+    "fluid_self_contact_regression": "CUDA and D3D12 each retained the F5-25 self-contact pass",
+    "existing_equal_fluid": "CUDA passed 18/18 existing separate-system samples; D3D12 retained unsupported",
+    "python_conformance_tests": "97/97 quality, qualification, manifest and evidence-index tests passed",
+    "evidence_index": "rebuilt with all 10 historical reports and 0/251 qualified records; failures retained",
+    "input_manifest": "passed"
+  },
+  "reproduction": [
+    "Configure a clean Windows source build with BUILD_TESTING=ON, PARALLEL_MATER_BUILD_CUDA=ON and PARALLEL_MATER_BUILD_D3D12=ON.",
+    "Build parallel-mater-fluid-pair-quality-tests in Release configuration.",
+    "Set PM_DRIVER_FILES to the selected slang-cuda or slang-d3d12 build manifest.",
+    "parallel-mater-fluid-pair-quality-tests --self-pressure --driver-name <driver> --output <result>.",
+    "python conformance/v1/quality.py --profile conformance/v1/quality/fluid-self-pressure-v1.json --actual <result> --report <report>.",
+    "python conformance/v1/evidence_index.py --check."
+  ],
+  "limitations": [
+    "This evidence qualifies only the analytic self-pressure behavior of the captured CUDA and D3D12 binaries on the named physical device.",
+    "The density oracle is independently derived from public stable particle positions and authored particle mass; it does not consume driver-private density state.",
+    "The unchanged capacity/replacement/rollback lifecycle contract remains independently required and is not substituted by this two-particle analytic fixture.",
+    "Historical and unrecaptured drivers remain unqualified; this capture does not promote them or erase their failures.",
+    "Fluid self viscosity retains its separate missing analytic contract under F5-27."
+  ]
+}
