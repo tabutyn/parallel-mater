@@ -1414,6 +1414,13 @@ if(BUILD_TESTING)
         tests/gallery/frame_timing_tests.cpp)
     add_test(NAME parallel-mater-gallery-deployment-tests
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/deployment_tests.py")
+    if(UNIX AND NOT APPLE)
+        add_test(NAME parallel-mater-linux-gallery-launcher-tests
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/linux_launcher_tests.py")
+        set_tests_properties(parallel-mater-linux-gallery-launcher-tests PROPERTIES
+            LABELS "gallery;linux;install")
+    endif()
     target_link_libraries(parallel-mater-gallery-frame-timing-tests PRIVATE
         parallel-mater-gallery-frame-timing)
     parallel_mater_enable_warnings(parallel-mater-gallery-frame-timing-tests)
