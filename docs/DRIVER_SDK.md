@@ -172,6 +172,13 @@ rejected. Applications configure diagnostics by chaining
 `PmValidationDiagnosticsCreateInfo` through instance creation; this is an
 application/loader contract and does not change the loader/driver interface.
 
+The relocated installed-SDK gate builds separate C layer fixtures for frozen
+ABI 1, ABI 2 and current ABI 3 prefixes, plus successful zero/999 negotiation
+negative controls for both drivers and layers. Separate public-C executables
+exercise API 0/default/old/future versions and instance/device extension
+discovery. These fixtures compile against installed headers only; private C++
+loader, layer and solver types are never present in the external source tree.
+
 For version compatibility, independently built consumers/drivers and install gates,
 see [SDK releases](SDK-RELEASES.md). Runtime qualification is scoped separately in
 the [qualification index](QUALIFICATION.md).
