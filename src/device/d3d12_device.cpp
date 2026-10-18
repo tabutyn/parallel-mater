@@ -193,9 +193,13 @@ class D3D12Services final : public Services {
         return context_.error(take);
     }
 
-    [[nodiscard]] PmResult memory_budget(PmDeviceSize &available,
-                                         PmDeviceSize &total) noexcept override {
-        return context_.memory_budget(available, total);
+    [[nodiscard]] PmResult memory_budget(
+        MemoryBudgetSnapshot &snapshot) noexcept override {
+        const auto result = context_.memory_budget(
+            snapshot.available, snapshot.total);
+        if (result == PM_SUCCESS)
+            snapshot.confidence = PM_MEMORY_BUDGET_CONFIDENCE_OS_REPORTED;
+        return result;
     }
 
   private:

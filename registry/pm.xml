@@ -1652,10 +1652,17 @@ PmResult pmGetSimulationStatus(
     PmFlags flags);</commands>
     </card>
     <card key="memory_budget" section="queries" extension="false" emit-header="true">
-      <types>typedef struct PmMemoryBudget {
+      <types>typedef enum PmMemoryBudgetConfidence {
+    PM_MEMORY_BUDGET_CONFIDENCE_UNKNOWN = 0,
+    PM_MEMORY_BUDGET_CONFIDENCE_IMPLEMENTATION_ESTIMATE = 1,
+    PM_MEMORY_BUDGET_CONFIDENCE_DRIVER_REPORTED = 2,
+    PM_MEMORY_BUDGET_CONFIDENCE_OS_REPORTED = 3
+} PmMemoryBudgetConfidence;
+typedef struct PmMemoryBudget {
     uint32_t heapCount;
     PmDeviceSize budget[16];
     PmDeviceSize usage[16];
+    PmMemoryBudgetConfidence confidence[16];
     PmDeviceSize applicationAllocationBytes;
     PmDeviceSize libraryDeviceBytes;
     PmDeviceSize libraryHostBytes;

@@ -1,4 +1,4 @@
-<!-- Generated from registry/pm.xml sha256:13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7 -->
+<!-- Generated from registry/pm.xml sha256:109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3 -->
 
 # Parallel Mater 0.2 — API Specification
 
@@ -2422,10 +2422,17 @@ A timestamp result is uint64_t; statistics use PmStepStatistics (88 bytes). WITH
 ### 15.5 Device budget & library accounting
 
 ```c
+typedef enum PmMemoryBudgetConfidence {
+    PM_MEMORY_BUDGET_CONFIDENCE_UNKNOWN = 0,
+    PM_MEMORY_BUDGET_CONFIDENCE_IMPLEMENTATION_ESTIMATE = 1,
+    PM_MEMORY_BUDGET_CONFIDENCE_DRIVER_REPORTED = 2,
+    PM_MEMORY_BUDGET_CONFIDENCE_OS_REPORTED = 3
+} PmMemoryBudgetConfidence;
 typedef struct PmMemoryBudget {
     uint32_t heapCount;
     PmDeviceSize budget[16];
     PmDeviceSize usage[16];
+    PmMemoryBudgetConfidence confidence[16];
     PmDeviceSize applicationAllocationBytes;
     PmDeviceSize libraryDeviceBytes;
     PmDeviceSize libraryHostBytes;
@@ -2438,9 +2445,11 @@ PmResult pmGetDeviceMemoryBudget(
     PmDevice device, PmMemoryBudget* pBudget);
 ```
 
-Requires enabled memoryBudget. Budget/usage are live driver estimates per heap, not guaranteed free space or a reservation. Application bytes sum owned pmAllocateMemory blocks. Library bytes cover queries, pipeline code and internal bookkeeping. Borrowed bytes sum imported buffer sizes, not physical residency or unique allocations. These accounting categories are not additive with heap usage. Resource requirements describe reservation; scratchHighWaterBytes describes use.
+Requires enabled memoryBudget. Physical heap size, returned by pmGetPhysicalDeviceMemoryProperties, is capacity and not a usable budget. budget and usage are a live per-heap snapshot; confidence identifies their source, not a guarantee or quality ordering. UNKNOWN entries have zero budget and usage and must never admit work. IMPLEMENTATION_ESTIMATE can omit other processes and driver-private allocations. DRIVER_REPORTED and OS_REPORTED can change immediately after the query and are not reservations.
 
-Related sections: [5.1](#spec-memory_types).
+Application bytes sum live owned pmAllocateMemory blocks. Library device/host bytes count only allocations tracked by the implementation; zero does not prove that the driver has no private allocations. Borrowed bytes sum live imported buffer ranges and can double-count aliases; they do not state physical residency or unique allocation size. Usage may include borrowed and otherwise untracked bytes, so accounting categories are not additive with each other or heap usage. Counter overflow fails the operation rather than wrapping. Resource requirements describe bytes an application must bind, not availability.
+
+Related sections: [5.1](#spec-memory_types), [5.2](#spec-requirements).
 
 <a id="spec-capabilities"></a>
 
@@ -2973,6 +2982,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmMemoryAllocateInfo | [5.3](#spec-allocation) |
 | PmMemoryBarrier | [13.2](#spec-barriers) |
 | PmMemoryBudget | [15.5](#spec-memory_budget) |
+| PmMemoryBudgetConfidence | [15.5](#spec-memory_budget) |
 | PmMemoryHeap | [5.1](#spec-memory_types) |
 | PmMemoryProperties | [5.1](#spec-memory_types) |
 | PmMemoryRequirements | [5.2](#spec-requirements) |

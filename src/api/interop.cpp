@@ -120,6 +120,11 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmImportNativeBuffer(
     created->native_pointer = reinterpret_cast<void *>(
         static_cast<std::uintptr_t>(info->buffer + info->offset));
     created->imported = true;
+    if (!parallel_mater::api::try_add_tracked_bytes(
+            device->borrowed_buffer_bytes, created->size)) {
+        parallel_mater::api::destroy_object(device, created);
+        return PM_ERROR_OUT_OF_DEVICE_MEMORY;
+    }
     *buffer = created;
     return PM_SUCCESS;
 #endif

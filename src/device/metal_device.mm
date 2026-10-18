@@ -87,10 +87,12 @@ public:
     PmResult last_error(bool take) noexcept override {
         return from_driver_error(context_.error(take));
     }
-    PmResult memory_budget(PmDeviceSize &available, PmDeviceSize &total) noexcept override {
+    PmResult memory_budget(MemoryBudgetSnapshot &snapshot) noexcept override {
         id<MTLDevice> gpu = (__bridge id<MTLDevice>)native_device_handle();
-        total = gpu.recommendedMaxWorkingSetSize;
-        available = total > gpu.currentAllocatedSize ? total - gpu.currentAllocatedSize : 0;
+        snapshot.total = gpu.recommendedMaxWorkingSetSize;
+        snapshot.available = snapshot.total > gpu.currentAllocatedSize
+            ? snapshot.total - gpu.currentAllocatedSize : 0;
+        snapshot.confidence = PM_MEMORY_BUDGET_CONFIDENCE_OS_REPORTED;
         return PM_SUCCESS;
     }
 private:
