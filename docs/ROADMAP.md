@@ -217,7 +217,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F6-09](roadmap/tasks/F6-09.json) | Qualify the retained hinge fixture candidate | done | F6-07 | — |
 | [F6-10](roadmap/tasks/F6-10.json) | Productize physics capture and substep replay | done | F6-07 | — |
 | [F6-11](roadmap/tasks/F6-11.json) | Adjudicate the retained rigid contact patch | done | F6-09, F6-10 | — |
-| [F6-99](roadmap/tasks/F6-99.json) | Review F6 exit evidence | ready | F6-01, F6-02, F6-03, F6-04, F6-05, F6-06, F6-07, F6-08, F6-09, F6-10, F6-11 | — |
+| [F6-12](roadmap/tasks/F6-12.json) | Keep installed corpus manifest synchronized | ready | F5-24, F6-04 | — |
+| [F6-99](roadmap/tasks/F6-99.json) | Review F6 exit evidence | waiting on dependencies | F6-01, F6-02, F6-03, F6-04, F6-05, F6-06, F6-07, F6-08, F6-09, F6-10, F6-11, F6-12 | — |
 
 ### F7. Shared Gallery application
 
