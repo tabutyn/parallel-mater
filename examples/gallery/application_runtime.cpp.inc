@@ -8,17 +8,6 @@
              source.angularVelocity[2]}};
 }
 
-[[nodiscard]] const GalleryEntry *entry_for_option(
-    std::string_view option) noexcept {
-    const auto found = std::find_if(
-        gallery_entries.begin(), gallery_entries.end(),
-        [&](const GalleryEntry &entry) {
-            return !entry.command_line_option.empty() &&
-                   entry.command_line_option == option;
-        });
-    return found == gallery_entries.end() ? nullptr : &*found;
-}
-
 struct FluidEscapeTrace {
     int first_frame{-1};
     int first_local_frame{-1};

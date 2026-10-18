@@ -17,19 +17,6 @@ namespace {
 using namespace parallel_mater;
 using namespace parallel_mater::gallery;
 
-constexpr std::array scene_files{
-    "RigidBody.glb", "ConstraintFixed.glb", "ConstraintPoint.glb",
-    "ConstraintHinge.glb", "ConstraintPiston.glb", "ConstraintGeneric.glb",
-    "ConstraintMotorSpring.glb", "DumpTruck.glb", "Fluid.glb",
-    "FluidRigid.glb", "Pegs.glb", "Cloth.glb", "ClothTear.glb",
-    "ClothPaint.glb", "ClothWater.glb", "Softbody.glb",
-    "SoftbodyRigidBody.glb", "SoftbodyCloth.glb", "SoftbodyFluid.glb",
-    "Rope.glb", "RopeFluid.glb", "RopeSoftbody.glb", "RopeCloth.glb",
-    "Smoke.glb", "SmokeWater.glb", "SmokeSoftbody.glb",
-    "SmokeCloth.glb", "SmokeRope.glb"};
-
-static_assert(scene_files.size() == gallery_entries.size());
-
 [[nodiscard]] bool finite(const PmRigidState &state) noexcept {
     for (float value : {state.position[0], state.position[1], state.position[2],
                         state.orientation[0], state.orientation[1],
@@ -510,11 +497,11 @@ int main(int argc, char **argv) {
     for (std::size_t index = 0U; index < gallery_entries.size(); ++index) {
         if (rigid_only && index > gallery_context_index(GalleryContext::dump))
             break;
-        if (!selected_scene.empty() && selected_scene != scene_files[index])
-            continue;
         const GalleryEntry &entry = gallery_entries[index];
+        if (!selected_scene.empty() && selected_scene != entry.asset_file)
+            continue;
         SceneDefinition authored;
-        if (!load_glb_scene(asset_root / scene_files[index], authored, error)) {
+        if (!load_glb_scene(asset_root / entry.asset_file, authored, error)) {
             std::cerr << entry.name << ": load failed: " << error << '\n';
             return 1;
         }
@@ -535,7 +522,8 @@ int main(int argc, char **argv) {
                 return 1;
             }
         }
-        if (entry.has_fluid) scene.fluid_options.capacity = 100U;
+        if (is_fluid_context(entry.context))
+            scene.fluid_options.capacity = 100U;
         std::vector<rigid_mesh_checks::MeshSamples> brick_geometry;
         float maximum_brick_penetration{};
         std::uint32_t maximum_brick_penetration_frame{};
