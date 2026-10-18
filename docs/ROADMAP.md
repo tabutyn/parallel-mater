@@ -193,7 +193,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-16](roadmap/tasks/F5-16.json) | Publish current Linux driver evidence | done | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
 | [F5-17](roadmap/tasks/F5-17.json) | Adjudicate rigid-direct reference drift | done | F5-04, F5-10 | — |
 | [F5-18](roadmap/tasks/F5-18.json) | Stabilize rigid-direct planar symmetry | done | F5-17 | — |
-| [F5-19](roadmap/tasks/F5-19.json) | Emit capacity recovery lifecycle checkpoints | ready | F5-03, F5-16 | — |
+| [F5-19](roadmap/tasks/F5-19.json) | Emit capacity recovery lifecycle checkpoints | leased | F5-03, F5-16 | codex-linux-evidence / thomas-laptop / 2026-10-19T19:03:41Z |
 | [F5-20](roadmap/tasks/F5-20.json) | Emit graph rollback lifecycle checkpoints | waiting on dependencies | F5-03, F5-19 | — |
 | [F5-21](roadmap/tasks/F5-21.json) | Make Gallery validation discovery hermetic | waiting on dependencies | F6-11 | — |
 | [F5-22](roadmap/tasks/F5-22.json) | Version rigid contact quality profiles | waiting on dependencies | F5-18, F6-11 | — |
