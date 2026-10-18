@@ -1,7 +1,7 @@
 {
   "id": "F3-09",
   "title": "Qualify portable host concurrency",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F3-06"
   ],
@@ -16,15 +16,31 @@
     "Repeated concurrent physical-device queries and independent-pool recording pass through the loader and validation layer.",
     "Evidence names each driver profile and keeps externally synchronized same-object access outside executable negative controls."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "0c3ff82a-3b24-4828-baa0-74b087c5846e",
-    "owner": "codex-windows-validation",
-    "machine": "windows-gtx1080",
-    "branch": "work/F3-09/windows-gtx1080",
-    "claimed_at": "2026-10-18T02:48:25Z",
-    "heartbeat_at": "2026-10-18T02:48:25Z",
-    "expires_at": "2026-10-18T10:48:25Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS Windows D3D12 validation profile NVIDIA GeForce GTX 1080: 20/20 repeated runs; eight threads each completed 256 query snapshots and 256 independent-pool record/reset cycles with zero diagnostics.",
+    "PASS Windows VS18 D3D12 command API plus host concurrency 2/2 and loader/layer regression slice 13/13.",
+    "PASS public fixture compilation with MSVC 14.51 headless SDK and GCC 13.3 WSL SDK; generated references and 19 roadmap unit tests passed."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "0c3ff82a-3b24-4828-baa0-74b087c5846e",
+        "owner": "codex-windows-validation",
+        "machine": "windows-gtx1080",
+        "branch": "work/F3-09/windows-gtx1080",
+        "claimed_at": "2026-10-18T02:48:25Z",
+        "heartbeat_at": "2026-10-18T02:48:25Z",
+        "expires_at": "2026-10-18T10:48:25Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T03:03:17Z",
+      "reason": "Added public native-driver concurrency coverage for physical-device queries and distinct command pools without undefined same-object races.",
+      "evidence": [
+        "PASS Windows D3D12 validation profile NVIDIA GeForce GTX 1080: 20/20 repeated runs; eight threads each completed 256 query snapshots and 256 independent-pool record/reset cycles with zero diagnostics.",
+        "PASS Windows VS18 D3D12 command API plus host concurrency 2/2 and loader/layer regression slice 13/13.",
+        "PASS public fixture compilation with MSVC 14.51 headless SDK and GCC 13.3 WSL SDK; generated references and 19 roadmap unit tests passed."
+      ]
+    }
+  ]
 }

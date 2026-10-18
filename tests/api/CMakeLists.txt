@@ -5,6 +5,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     include(CTest)
     find_package(ParallelMater CONFIG REQUIRED)
 endif()
+find_package(Threads REQUIRED)
 foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction-graph-lifecycle graph-validation geometry-lifecycle paint-lifecycle endpoint-lifecycle fluid-pair-graph-lifecycle)
     string(REPLACE "-" "_" source_name "${suite}")
     add_executable(parallel-mater-${suite}-tests ${source_name}_tests.cpp)
@@ -43,6 +44,28 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction
     if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
         add_test(NAME parallel-mater-external-${suite}-tests COMMAND parallel-mater-${suite}-tests)
         set_tests_properties(parallel-mater-external-${suite}-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    endif()
+endforeach()
+
+add_executable(parallel-mater-host-concurrency-tests
+    host_concurrency_tests.cpp)
+target_compile_features(parallel-mater-host-concurrency-tests PRIVATE cxx_std_20)
+target_link_libraries(parallel-mater-host-concurrency-tests PRIVATE
+    ParallelMater::parallel_mater Threads::Threads)
+foreach(backend cuda vulkan d3d12 metal)
+    if(TARGET parallel-mater-driver-slang-${backend} AND
+       TARGET parallel-mater-layer-validation)
+        add_dependencies(parallel-mater-host-concurrency-tests
+            parallel-mater-driver-slang-${backend}
+            parallel-mater-layer-validation)
+        add_test(NAME parallel-mater-${backend}-host-concurrency-tests
+            COMMAND parallel-mater-host-concurrency-tests ${backend})
+        set_tests_properties(
+            parallel-mater-${backend}-host-concurrency-tests PROPERTIES
+            LABELS "api;threading;validation;${backend}"
+            SKIP_RETURN_CODE 77 TIMEOUT 120
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
     endif()
 endforeach()
 
