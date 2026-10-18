@@ -44,6 +44,23 @@ struct FluidState {
     std::vector<float> foam_source;
 };
 
+struct AllocationRecord {
+    std::size_t element_size{};
+    std::size_t count{};
+    MemoryClass kind{};
+};
+
+struct RecordingVisitor {
+    static constexpr bool materialize = false;
+    std::vector<AllocationRecord> records;
+
+    template <typename T>
+    Status operator()(T *&, std::size_t count, MemoryClass kind) {
+        records.push_back({sizeof(T), count, kind});
+        return {};
+    }
+};
+
 void compute_self_forces(FluidState &state,
     FluidDispatchConstants constants) {
     const auto count = static_cast<std::uint32_t>(state.positions.size());
@@ -363,6 +380,22 @@ void test_bounded_storage_plan() {
     CHECK(plan.sort_workspace_size == radix_sort_scratch_bytes(8U));
     CHECK(planner.requirements.persistent == requirements.persistent);
     CHECK(planner.requirements.scratch == requirements.scratch);
+    FluidPairNeighborIndexPlan audited_plan{};
+    RecordingVisitor audit;
+    CHECK(visit_fluid_pair_neighbor_index_storage(
+        audited_plan, 3U, 5U, audit));
+    const auto matching_records = [&](std::size_t element_size,
+                                      std::size_t count, MemoryClass kind) {
+        return std::count_if(audit.records.begin(), audit.records.end(),
+            [&](const AllocationRecord &record) {
+                return record.element_size == element_size &&
+                    record.count == count && record.kind == kind;
+            });
+    };
+    CHECK(matching_records(sizeof(float), 3U, MemoryClass::scratch) == 1);
+    CHECK(matching_records(sizeof(float), 5U, MemoryClass::scratch) == 1);
+    CHECK(matching_records(sizeof(std::uint32_t), 1U,
+        MemoryClass::persistent) == 4);
     CHECK(!fluid_pair_neighbor_index_storage_requirements(
         0U, 5U, requirements));
     CHECK(!fluid_pair_neighbor_index_storage_requirements(
