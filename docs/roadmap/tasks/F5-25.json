@@ -1,7 +1,7 @@
 {
   "id": "F5-25",
   "title": "Qualify fluid self contact",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-23"
   ],
@@ -18,6 +18,14 @@
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "90d2b59c-2fbf-452c-a477-b87ca5365ade",
+    "owner": "codex-windows-qualification",
+    "machine": "windows-gtx1080",
+    "branch": "work/F5-25/windows-gtx1080",
+    "claimed_at": "2026-10-18T21:22:01Z",
+    "heartbeat_at": "2026-10-18T21:22:01Z",
+    "expires_at": "2026-10-19T21:22:01Z"
+  },
   "history": []
 }
