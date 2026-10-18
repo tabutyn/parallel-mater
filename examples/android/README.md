@@ -148,7 +148,9 @@ These tests enable the Parallel Mater command validation layer; they do not
 implicitly install or enable the Khronos Vulkan validation layer.
 
 Debug APKs accept `pm_scene` (0–27) and `pm_action` (`reset`, `pause`, `resume`,
-`focus`, `info`) extras for repeatable UI testing. Release builds ignore them.
+`focus`, `info`, `freeze`, `unfreeze`) extras for repeatable UI testing. Freeze
+stops presentation callbacks so Android accessibility can observe an idle
+window; it does not add or replace a physics control. Release builds ignore them.
 They invoke the same worker commands as the visible controls:
 
 ```sh

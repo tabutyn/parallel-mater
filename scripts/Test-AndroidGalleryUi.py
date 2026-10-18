@@ -117,6 +117,16 @@ class Device:
         if not data.startswith(b"\x89PNG\r\n\x1a\n"):
             raise RuntimeError(f"Android did not produce a PNG for {name}")
 
+    def set_frozen(self, frozen):
+        self.run("shell", "am", "start", "-f", "0x20000000", "-n", ACTIVITY,
+                 "--es", "pm_action", "freeze" if frozen else "unfreeze")
+        time.sleep(0.5)
+
+    def refresh_scene_image(self):
+        self.set_frozen(False)
+        time.sleep(1)
+        self.set_frozen(True)
+
     @staticmethod
     def audit(tree, context):
         missing = []
@@ -165,8 +175,9 @@ def main():
 
     device.run("shell", "am", "force-stop", PACKAGE)
     device.run("shell", "am", "start", "-n", ACTIVITY)
-    time.sleep(1)
+    time.sleep(3)
     device.maybe_tap("Got it")
+    device.set_frozen(True)
     _, initial = device.wait_node("Choose scene: RIGID BODY")
     ET.ElementTree(initial).write(
         args.output / "initial-rigid-body.xml", encoding="utf-8",
@@ -190,6 +201,7 @@ def main():
     device.wait_node("Pause")
     device.tap("Focus scene action")
     device.tap("Reset scene")
+    device.refresh_scene_image()
     device.screenshot("gravity-controls")
     records.append({"scene": "rigid-body", "actions": [
         "gravity", "focus", "pause", "resume", "reset"]})
@@ -208,6 +220,7 @@ def main():
     }, "motor and steering")
     device.tap("Drive forward")
     device.tap("Steer left")
+    device.refresh_scene_image()
     device.screenshot("motor-steering-controls")
     records.append({"scene": "constraint-motor-spring",
                     "actions": ["motor", "steering"]})
@@ -225,6 +238,7 @@ def main():
     require_controls(dump, {"Drive forward", "Steer left", "Raise bed"}, "dump")
     device.tap("Raise bed")
     device.wait_node("Lower bed")
+    device.refresh_scene_image()
     device.screenshot("dump-controls")
     device.tap("Lower bed")
     device.wait_node("Raise bed")

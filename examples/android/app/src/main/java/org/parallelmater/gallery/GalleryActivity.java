@@ -81,7 +81,8 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     private volatile long handle;
     // Lifecycle and presentation scheduling are UI-thread state. Simulation
     // admission and recovery remain in the shared native mobile session.
-    private boolean active, surfaceReady, failed, framePending, framePosted, qualifying;
+    private boolean active, surfaceReady, failed, framePending, framePosted, qualifying,
+        debugFrozen;
     private long lastStatus;
     private int backgrounds, foregrounds;
     private String diagnosticNonce = "";
@@ -115,7 +116,8 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     private final Runnable frameRequest = new Runnable() {
         @Override public void run() {
             framePosted = false;
-            if (!active || !surfaceReady || failed || qualifying || framePending || handle == 0) return;
+            if (!active || !surfaceReady || failed || qualifying || debugFrozen ||
+                framePending || handle == 0) return;
             framePending = true;
             worker.post(frame);
         }
@@ -371,6 +373,13 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
             command(2, "pause".equals(action) ? 1 : 0, 0);
         } else if ("focus".equals(action)) command(8, 0, 0);
         else if ("info".equals(action)) showInfo();
+        else if ("freeze".equals(action)) {
+            debugFrozen = true;
+            restartFrames();
+        } else if ("unfreeze".equals(action)) {
+            debugFrozen = false;
+            restartFrames();
+        }
         intent.removeExtra("pm_scene");
         intent.removeExtra("pm_action");
     }
@@ -497,7 +506,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         return manifest.toString().replace("\\/", "/").getBytes(StandardCharsets.UTF_8);
     }
     private void requestFrame() {
-        if (!active || !surfaceReady || failed || qualifying || framePending || framePosted ||
+        if (!active || !surfaceReady || failed || qualifying || debugFrozen || framePending || framePosted ||
             handle == 0 || surfaceView == null) return;
         framePosted = true;
         surfaceView.postOnAnimation(frameRequest);
