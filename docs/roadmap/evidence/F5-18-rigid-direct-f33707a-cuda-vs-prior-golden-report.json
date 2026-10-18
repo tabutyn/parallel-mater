@@ -1,0 +1,81 @@
+{
+  "cases": [
+    {
+      "differences": [
+        {
+          "actual": 195.3325653076172,
+          "expected": 195.3369140625,
+          "message": "absolute error 0.0043487548828125 > 0.0019633691406250003",
+          "path": "$.checkpoints[3].invariants.combined_momentum[0]"
+        },
+        {
+          "actual": 36.74271774291992,
+          "expected": 36.72294235229492,
+          "message": "absolute error 0.019775390625 > 0.00037742717742919927",
+          "path": "$.checkpoints[3].invariants.combined_momentum[1]"
+        },
+        {
+          "actual": -6.689204838039586e-06,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 1.7173608739540214e-05 > 1.0000104844039016e-05",
+          "path": "$.checkpoints[3].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 16.4688777923584,
+          "expected": 16.526390075683594,
+          "message": "absolute error 0.05751228332519531 > 0.00017526390075683595",
+          "path": "$.checkpoints[3].resources[0].angular_velocity[2]"
+        },
+        {
+          "actual": 97.6662826538086,
+          "expected": 97.66845703125,
+          "message": "absolute error 0.00217437744140625 > 0.0009866845703125002",
+          "path": "$.checkpoints[3].resources[0].linear_velocity[0]"
+        },
+        {
+          "actual": 18.37135887145996,
+          "expected": 18.36147117614746,
+          "message": "absolute error 0.0098876953125 > 0.00019371358871459962",
+          "path": "$.checkpoints[3].resources[0].linear_velocity[1]"
+        },
+        {
+          "actual": [
+            1.876974797809794e-09,
+            -2.0087263408186118e-07,
+            0.431763619184494,
+            -0.9019867777824402
+          ],
+          "expected": [
+            -1.9811290258076042e-05,
+            9.606825187802315e-06,
+            0.4231674075126648,
+            -0.906051516532898
+          ],
+          "message": "quaternion angular error 0.019017689379810725 > 0.002",
+          "path": "$.checkpoints[3].resources[0].orientation"
+        },
+        {
+          "actual": 32.37546157836914,
+          "expected": 32.376121520996094,
+          "message": "absolute error 0.000659942626953125 > 0.000333761215209961",
+          "path": "$.checkpoints[3].resources[0].position[0]"
+        },
+        {
+          "actual": 8.03528118133545,
+          "expected": 8.032442092895508,
+          "message": "absolute error 0.0028390884399414062 > 9.03528118133545e-05",
+          "path": "$.checkpoints[3].resources[0].position[1]"
+        }
+      ],
+      "id": "rigid-direct",
+      "passed": false,
+      "reason": "",
+      "status": "failed"
+    }
+  ],
+  "failed": 1,
+  "passed": 0,
+  "schema": "parallel-mater-conformance-report/v1",
+  "scope": "reference_regression",
+  "unsupported": 0
+}
