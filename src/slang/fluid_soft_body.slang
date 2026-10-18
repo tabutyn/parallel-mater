@@ -181,7 +181,7 @@ public FluidSoftNearest fluid_soft_nearest(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void fluid_soft_refit(
     uniform PMBuffer<Vec3> surface, uniform PMBuffer<Vec3> previous, uniform PMBuffer<uint> indices,
     uniform PMBuffer<uint> order, uniform PMBuffer<BvhNode> tree, uniform PMBuffer<uint> parents,
@@ -221,7 +221,7 @@ void fluid_soft_refit(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void fluid_soft_detect(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous,
     uniform PMBuffer<Vec3> velocities, uniform PMBuffer<uint> count, uniform PMBuffer<Vec3> surface,
@@ -278,7 +278,7 @@ void fluid_soft_detect(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void fluid_soft_solve(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> accelerations, uniform PMBuffer<float> foam, uniform PMBuffer<uint> count,
@@ -344,7 +344,7 @@ void fluid_soft_solve(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void fluid_soft_apply(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> inverse_masses, uniform PMBuffer<Vec3> position_deltas,
@@ -362,7 +362,7 @@ void fluid_soft_apply(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void fluid_soft_recover(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous, uniform PMBuffer<uint> count,
     uniform PMBuffer<Vec3> surface, uniform PMBuffer<Vec3> old_surface,
