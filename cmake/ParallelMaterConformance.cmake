@@ -17,6 +17,7 @@ target_compile_definitions(parallel-mater-conformance-runner PRIVATE
 if(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION)
     target_sources(parallel-mater-conformance-runner PRIVATE
         conformance/v1/src/device_fixtures.cpp
+        tests/api/capacity_recovery_tests.cpp
         tests/api/fluid_pair_quality_tests.cpp
         tests/api/interaction_graph_lifecycle_tests.cpp
         tests/api/resource_lifecycle_tests.cpp)

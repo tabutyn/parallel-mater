@@ -117,6 +117,24 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(report["case_count"], 2)
         self.assertEqual(report["checkpoint_count"], 9)
 
+    def test_selected_case_evaluation_keeps_full_suite_strict(self):
+        result = valid_result(self.profile)
+        result["cases"] = [result["cases"][0]]
+        full_report = self.evaluate(result)
+        self.assertFalse(full_report["passed"], full_report)
+        selected_report = lifecycle.evaluate(
+            self.profile, result, self.digest,
+            {"capacity-replacement-recovery"})
+        self.assertTrue(selected_report["passed"], selected_report)
+        self.assertEqual(selected_report["case_count"], 1)
+        self.assertEqual(selected_report["checkpoint_count"], 4)
+
+        unknown_report = lifecycle.evaluate(
+            self.profile, result, self.digest, {"missing-case"})
+        self.assertFalse(unknown_report["passed"], unknown_report)
+        self.assertTrue(any(failure["message"] == "unknown lifecycle case"
+                            for failure in unknown_report["failures"]))
+
     def test_profile_hash_is_checkout_line_ending_stable(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)

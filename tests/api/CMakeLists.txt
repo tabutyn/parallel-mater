@@ -181,6 +181,10 @@ add_executable(parallel-mater-capacity-recovery-tests
     capacity_recovery_tests.cpp)
 target_compile_features(parallel-mater-capacity-recovery-tests PRIVATE
     cxx_std_20)
+target_include_directories(parallel-mater-capacity-recovery-tests PRIVATE
+    "${CMAKE_CURRENT_LIST_DIR}/../../conformance/v1/include")
+target_compile_definitions(parallel-mater-capacity-recovery-tests PRIVATE
+    PM_LIFECYCLE_PROFILE_PATH="${CMAKE_CURRENT_LIST_DIR}/../../conformance/v1/lifecycle/adverse-capacity-three-family-v1.json")
 target_link_libraries(parallel-mater-capacity-recovery-tests PRIVATE
     ParallelMater::parallel_mater)
 foreach(backend cuda vulkan d3d12 metal)

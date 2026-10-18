@@ -7,6 +7,7 @@
 #include <parallel_mater_scene/scene.hpp>
 
 #include "../../../tests/gallery/rigid_mesh_checks.hpp"
+#include "../../../tests/api/capacity_lifecycle_fixture.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -84,6 +85,50 @@ Json missing_lifecycle_case(std::string id, Json families, Json unrelated,
     result["families"] = std::move(families);
     result["id"] = std::move(id);
     result["observations"] = Json::array();
+    result["unrelated_resources"] = std::move(unrelated);
+    return result;
+}
+
+Json capacity_lifecycle_case(
+    const test::CapacityLifecycleResult &fixture, int stress_status) {
+    Json families = Json::array();
+    families.push_back("liquid");
+    Json unrelated = Json::array();
+    unrelated.push_back("unrelated-fluid");
+    if (fixture.status != 0 || stress_status != 0) {
+        const int status = fixture.status == 77 || stress_status == 77 ? 77 : 2;
+        return missing_lifecycle_case(
+            "capacity-replacement-recovery", std::move(families),
+            std::move(unrelated), status, "capacity-recovery");
+    }
+
+    Json observations = Json::array();
+    for (const auto &checkpoint : fixture.observations) {
+        Json resources = Json::array();
+        for (const auto &resource : checkpoint.resources) {
+            Json value = Json::object();
+            value["id"] = resource.id;
+            value["active"] = resource.active;
+            value["generation"] = resource.generation;
+            value["state_sha256"] = resource.state_sha256;
+            resources.push_back(std::move(value));
+        }
+        Json value = Json::object();
+        value["id"] = checkpoint.id;
+        value["outcome"] = checkpoint.outcome;
+        value["resources"] = std::move(resources);
+        observations.push_back(std::move(value));
+    }
+    Json attempt = Json::object();
+    attempt["fixture"] = "capacity-recovery";
+    attempt["stress_fixture"] = "resource-lifecycle";
+    attempt["status"] = "completed";
+    Json result = Json::object();
+    result["attempt"] = std::move(attempt);
+    result["execution_status"] = "completed";
+    result["families"] = std::move(families);
+    result["id"] = "capacity-replacement-recovery";
+    result["observations"] = std::move(observations);
     result["unrelated_resources"] = std::move(unrelated);
     return result;
 }
@@ -178,29 +223,31 @@ std::string conformance_fluid_pair_quality(
 }
 
 std::string conformance_adverse_lifecycle(const std::filesystem::path &root) {
-    int capacity = 2, graph = 2;
-    try { capacity = parallel_mater_resource_lifecycle_fixture(); }
-    catch (const std::exception &) { capacity = 2; }
+    int capacity_stress = 2, graph = 2;
+    test::CapacityLifecycleResult capacity;
+    try {
+        capacity_stress = parallel_mater_resource_lifecycle_fixture();
+        (void)parallel_mater_capacity_recovery_fixture(&capacity);
+    } catch (const std::exception &) {
+        capacity.status = 2;
+        capacity_stress = 2;
+    }
     try { graph = parallel_mater_interaction_graph_lifecycle_fixture(); }
     catch (const std::exception &) { graph = 2; }
-    Json capacity_families = Json::array(); capacity_families.push_back("liquid");
-    Json capacity_unrelated = Json::array(); capacity_unrelated.push_back("unrelated-fluid");
     Json graph_families = Json::array();
     for (const char *family : {"liquid", "rope", "soft-body"})
         graph_families.push_back(family);
     Json graph_unrelated = Json::array();
     for (const char *family : {"smoke", "cloth"}) graph_unrelated.push_back(family);
     Json cases = Json::array();
-    cases.push_back(missing_lifecycle_case(
-        "capacity-replacement-recovery", std::move(capacity_families),
-        std::move(capacity_unrelated), capacity, "resource-lifecycle"));
+    cases.push_back(capacity_lifecycle_case(capacity, capacity_stress));
     cases.push_back(missing_lifecycle_case(
         "three-family-partial-rollback", std::move(graph_families),
         std::move(graph_unrelated), graph, "interaction-graph-lifecycle"));
     Json result = Json::object();
     result["schema"] = "parallel-mater-conformance-lifecycle-result/v1";
     result["profile_id"] = "adverse-capacity-three-family-v1";
-    result["profile_sha256"] = sha256_file(
+    result["profile_sha256"] = sha256_contract_file(
         root / "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json");
     result["execution_status"] = "completed";
     result["driver"] = selected_driver_json();
