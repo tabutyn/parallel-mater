@@ -1,7 +1,7 @@
 {
   "id": "P1-06",
   "title": "Exchange miscible pressure and contact",
-  "status": "deferred",
+  "status": "open",
   "dependencies": [
     "P1-05"
   ],
