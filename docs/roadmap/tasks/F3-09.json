@@ -1,7 +1,7 @@
 {
   "id": "F3-09",
   "title": "Qualify portable host concurrency",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F3-06"
   ],
@@ -17,6 +17,14 @@
     "Evidence names each driver profile and keeps externally synchronized same-object access outside executable negative controls."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "0c3ff82a-3b24-4828-baa0-74b087c5846e",
+    "owner": "codex-windows-validation",
+    "machine": "windows-gtx1080",
+    "branch": "work/F3-09/windows-gtx1080",
+    "claimed_at": "2026-10-18T02:48:25Z",
+    "heartbeat_at": "2026-10-18T02:48:25Z",
+    "expires_at": "2026-10-18T10:48:25Z"
+  },
   "history": []
 }
