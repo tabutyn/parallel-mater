@@ -68,6 +68,19 @@ void fluid_pair_pressure_contact(device::DispatchSize grid,
     std::uint32_t total_capacity,
     const FluidDispatchConstants &constants) noexcept;
 
+void fluid_miscible_pair_pressure_contact(device::DispatchSize grid,
+    device::DispatchSize block, device::ExecutionQueue stream,
+    const void *first_positions, const void *first_velocities,
+    const std::uint32_t *first_count, std::uint32_t first_capacity,
+    void *first_forces, const float *first_density_samples,
+    const void *second_positions, const void *second_velocities,
+    const std::uint32_t *second_count, std::uint32_t second_capacity,
+    void *second_forces, const float *second_density_samples,
+    const std::uint64_t *keys, const std::uint32_t *identities,
+    std::uint32_t total_capacity,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants) noexcept;
+
 void fluid_pair_viscosity(device::DispatchSize grid,
     device::DispatchSize block, device::ExecutionQueue stream,
     const void *first_positions, const void *first_velocities,

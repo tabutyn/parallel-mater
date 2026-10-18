@@ -105,6 +105,26 @@ void fluid_pair_viscosity(device::DispatchSize grid,
         second_capacity, second_forces, keys, identities, total_capacity,
         options(values));
 }
+void fluid_miscible_pair_pressure_contact(device::DispatchSize grid,
+    device::DispatchSize, device::ExecutionQueue stream,
+    const void *first_positions, const void *first_velocities,
+    const std::uint32_t *first_count, std::uint32_t first_capacity,
+    void *first_forces, const float *first_density_samples,
+    const void *second_positions, const void *second_velocities,
+    const std::uint32_t *second_count, std::uint32_t second_capacity,
+    void *second_forces, const float *second_density_samples,
+    const std::uint64_t *keys, const std::uint32_t *identities,
+    std::uint32_t total_capacity,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants) noexcept {
+    (void)metal::launch(stream,
+        "fluid_apply_miscible_pair_pressure_contact", grid,
+        first_positions, first_velocities, first_count, first_capacity,
+        first_forces, first_density_samples, second_positions,
+        second_velocities, second_count, second_capacity, second_forces,
+        second_density_samples, keys, identities, total_capacity,
+        options(first_constants), options(second_constants));
+}
 void fluid_forces(device::DispatchSize grid, device::DispatchSize, device::ExecutionQueue stream,
     void *positions, void *velocities, void *accelerations, float *foam,
     std::uint32_t *count, const FluidDispatchConstants &values,

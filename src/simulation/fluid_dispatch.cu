@@ -146,6 +146,33 @@ void fluid_pair_viscosity(device::DispatchSize grid,
         constants(values));
 }
 
+void fluid_miscible_pair_pressure_contact(device::DispatchSize grid,
+    device::DispatchSize block, device::ExecutionQueue stream,
+    const void *first_positions, const void *first_velocities,
+    const std::uint32_t *first_count, std::uint32_t first_capacity,
+    void *first_forces, const float *first_density_samples,
+    const void *second_positions, const void *second_velocities,
+    const std::uint32_t *second_count, std::uint32_t second_capacity,
+    void *second_forces, const float *second_density_samples,
+    const std::uint64_t *keys, const std::uint32_t *identities,
+    std::uint32_t total_capacity,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants) noexcept {
+    fluid_apply_miscible_pair_pressure_contact<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_velocities)),
+        const_cast<std::uint32_t *>(first_count), first_capacity,
+        as<Vec3_0>(first_forces), const_cast<float *>(first_density_samples),
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_velocities)),
+        const_cast<std::uint32_t *>(second_count), second_capacity,
+        as<Vec3_0>(second_forces), const_cast<float *>(second_density_samples),
+        reinterpret_cast<unsigned long long *>(
+            const_cast<std::uint64_t *>(keys)),
+        const_cast<std::uint32_t *>(identities), total_capacity,
+        constants(first_constants), constants(second_constants));
+}
+
 void fluid_forces(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
     void *positions, void *velocities, void *accelerations, float *foam,
     std::uint32_t *count, const FluidDispatchConstants &values,
