@@ -1,0 +1,23 @@
+{
+  "id": "F6-11",
+  "title": "Adjudicate the retained rigid contact patch",
+  "status": "open",
+  "dependencies": [
+    "F6-09",
+    "F6-10"
+  ],
+  "locks": [
+    "rigid-contact-solver"
+  ],
+  "requires": [
+    "CUDA reference device; second physical backend for shared-Slang parity"
+  ],
+  "scope": "Reproduce and independently review the retained closed-shell normals, swept triangle feature recovery, margin and constraint-break changes against the current common Slang solver.",
+  "acceptance": [
+    "Port only minimal hunks backed by a failing current-main reproduction; record why every remaining solver hunk is superseded or rejected.",
+    "Pass focused fast-impact, contact and conformance checks on CUDA and one other physical backend without a backend-specific physics fork or archived golden transplant."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
