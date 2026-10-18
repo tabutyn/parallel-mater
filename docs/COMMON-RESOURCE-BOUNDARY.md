@@ -281,7 +281,7 @@ without either generated host wrapper. This excludes binding generation from
 the crash. The supported setup selects the pinned layer without replacing the
 system package. See [F5-09 evidence](roadmap/evidence/F5-09-vulkan-validation-layer.json).
 
-## Remaining common contracts
+## Remaining platform work
 
 Resources now carry explicit owning-device/allocation identities, typed access
 ranges, range-derived dependencies and common completion ownership at the Metal
@@ -293,9 +293,18 @@ packages must still prove their API-specific imports and synchronization before
 advertising interoperability.
 
 Physical heap capacity, usable OS/driver budget, library/application allocation
-accounting and borrowed bytes are different quantities. Current budget queries
-do not provide a confidence/unknown flag; Vulkan's heap-minus-tracked-allocation
-estimate is not an OS admission guarantee. That distinction still needs an API
-contract and conservative workload admission. Device and timeline imports remain
+accounting and borrowed bytes remain different quantities. `PmMemoryBudget`
+now labels unknown, implementation-estimated, driver-reported and OS-reported
+snapshots and reports owned, library and borrowed counters separately. The
+shared Gallery policy rejects unknown/malformed snapshots, reserves all borrowed
+bytes and 30% additional headroom, and re-queries every decision. An estimate is
+still not an OS reservation guarantee. Device and timeline imports remain
 unadvertised by the current reference drivers; rendering on a library-created
 device does not qualify engine-owned device import.
+
+The F4 foundation exit intentionally qualifies the backend-neutral contract and
+engine-independent mock, matching its original exit criteria. P1-01 owns the
+remaining per-adapter/domain inventory. P2-01 owns the first native handoff
+fixture, followed by the Unity, Unreal and Godot packages in P2-02 through
+P2-04. These deferred platform tasks must preserve the contract above; their
+absence is not converted into an interoperability claim by closing F4.
