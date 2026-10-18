@@ -278,6 +278,7 @@ int main(int argc, char **argv) try {
     float maximum_slider_mesh_penetration = 0.0F;
     float slider_contact_impulse = 0.0F;
     float maximum_gear_mesh_penetration = 0.0F;
+    float maximum_locked_axis_contact_impulse = 0.0F;
     std::array<bool, 2U> saw_gear_contact{};
     std::array<bool, 2U> saw_opposite_rotation{};
     const rigid_mesh_checks::MeshSamples slider_mesh(scene, rod_index);
@@ -434,9 +435,15 @@ int main(int argc, char **argv) try {
             };
             if (matches(rod_index, gear_indices[2]))
                 slider_contact_impulse += contact.normalImpulse;
-            for (std::size_t pair = 0U; pair < saw_gear_contact.size(); ++pair)
-                saw_gear_contact[pair] = saw_gear_contact[pair] ||
-                    matches(gear_indices[pair], gear_indices[pair + 1U]);
+            for (std::size_t pair = 0U; pair < saw_gear_contact.size(); ++pair) {
+                if (!matches(gear_indices[pair], gear_indices[pair + 1U]))
+                    continue;
+                saw_gear_contact[pair] = true;
+                if (std::fabs(contact.normal.z) > 0.9999999F)
+                    maximum_locked_axis_contact_impulse = std::max(
+                        maximum_locked_axis_contact_impulse,
+                        contact.normalImpulse);
+            }
         }
         if (!candidate_fixture) {
             // Stop the accepted-fixture regression at its first physical
@@ -467,6 +474,8 @@ int main(int argc, char **argv) try {
               << " slider_mesh_penetration="
               << maximum_slider_mesh_penetration
               << " gear_mesh_penetration=" << maximum_gear_mesh_penetration
+              << " locked_axis_contact_impulse="
+              << maximum_locked_axis_contact_impulse
               << " driver_rotation=" << maximum_driver_rotation
               << " abrupt_speed_loss=" << maximum_abrupt_speed_loss
               << " cleared_top=" << cleared_top
@@ -506,6 +515,8 @@ int main(int argc, char **argv) try {
           "slider and gear meshes interpenetrated by more than 2 mm");
     check(maximum_gear_mesh_penetration < 0.002F,
           "gear meshes interpenetrated by more than 2 mm");
+    check(maximum_locked_axis_contact_impulse < 1.0e-5F,
+          "gear contact pushed along the hinges' locked axle direction");
     check(slider_contact_impulse > 0.1F,
           "slider and gear did not exchange contact impulse");
     check(std::all_of(saw_gear_contact.begin(), saw_gear_contact.end(),

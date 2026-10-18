@@ -928,6 +928,20 @@ bool rigid_contact_reaches_rest_offset(RigidBodyState body,
     return -speed * timestep + restOffset + 1.0e-5f >= distance;
 }
 
+Vec3 rigid_advect_triangle_point(Vec3 point, Vec3 from[3], Vec3 to[3])
+{
+    Vec3 ab = subtract(from[1], from[0]);
+    Vec3 ac = subtract(from[2], from[0]);
+    Vec3 normal = cross(ab, ac);
+    float squared = length_squared(normal);
+    if (squared <= 1.0e-20f) return to[0];
+    Vec3 relative = subtract(point, from[0]);
+    float v = dot(cross(relative, ac), normal) / squared;
+    float w = dot(cross(ab, relative), normal) / squared;
+    return add(to[0], add(multiply(subtract(to[1], to[0]), v),
+        multiply(subtract(to[2], to[0]), w)));
+}
+
 // Shell metadata certifies exterior faces of closed components and support
 // planes. Apply that sign to the actual (possibly swept) triangle.
 Vec3 rigid_shell_outward(__constref TriangleMeshResource mesh, uint triangle,
@@ -1025,7 +1039,6 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,
             // roundoff into spurious tangential impulses.
             Vec3 normal = (distance <= 1.0e-5f || onTriangleFace)
                 ? fallback : normalized_or(delta, fallback);
-            if (!rigid_shell_contact_facing(normal, outwardA, outwardB)) continue;
             if (onTriangleFace && length_squared(outwardA) < 0.01f &&
                 length_squared(outwardB) > 0.5f &&
                 pmBufferPresent(bMesh.solid_planes))
@@ -1069,11 +1082,87 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,
             contact.body_hinge = bodyHinge;
             contact.collider_hinge = colliderHinge;
             contact.penetration = restOffset - separation + 1.0e-5f;
+            bool recoveredFromPrevious = false;
+            if (!pmBufferPresent(aMesh.solid_planes) &&
+                !pmBufferPresent(bMesh.solid_planes) &&
+                distance <= 1.0e-5f)
+            {
+                Vec3 oldA[3];
+                Vec3 oldB[3];
+                Vec3 currentA[3] = {a0, a1, a2};
+                Vec3 currentB[3] = {b0, b1, b2};
+                for (uint vertex = 0u; vertex < 3u; ++vertex)
+                {
+                    oldA[vertex] = transform_point(aPreviousState,
+                        aMesh.vertices[aMesh.indices[3u * at + vertex]]);
+                    oldB[vertex] = transform_point(bPreviousState,
+                        bMesh.vertices[bMesh.indices[3u * bt + vertex]]);
+                }
+                Vec3 oldPointA;
+                Vec3 oldPointB;
+                rigid_closest_triangle_pair(oldA[0], oldA[1], oldA[2],
+                    oldB[0], oldB[1], oldB[2], oldPointA, oldPointB);
+                Vec3 oldDelta = subtract(oldPointA, oldPointB);
+                if (length_squared(oldDelta) > 1.0e-10f)
+                {
+                    Vec3 impactA[3];
+                    Vec3 impactB[3];
+                    float low = 0.0f;
+                    float high = 1.0f;
+                    float gap = min(restOffset,
+                        0.5f * sqrt(length_squared(oldDelta)));
+                    for (uint search = 0u; search < 10u; ++search)
+                    {
+                        float time = 0.5f * (low + high);
+                        for (uint vertex = 0u; vertex < 3u; ++vertex)
+                        {
+                            impactA[vertex] = add(oldA[vertex], multiply(
+                                subtract(currentA[vertex], oldA[vertex]), time));
+                            impactB[vertex] = add(oldB[vertex], multiply(
+                                subtract(currentB[vertex], oldB[vertex]), time));
+                        }
+                        Vec3 p;
+                        Vec3 q;
+                        rigid_closest_triangle_pair(impactA[0], impactA[1],
+                            impactA[2], impactB[0], impactB[1], impactB[2],
+                            p, q);
+                        if (length_squared(subtract(p, q)) > gap * gap)
+                            low = time;
+                        else high = time;
+                    }
+                    for (uint vertex = 0u; vertex < 3u; ++vertex)
+                    {
+                        impactA[vertex] = add(oldA[vertex], multiply(
+                            subtract(currentA[vertex], oldA[vertex]), low));
+                        impactB[vertex] = add(oldB[vertex], multiply(
+                            subtract(currentB[vertex], oldB[vertex]), low));
+                    }
+                    rigid_closest_triangle_pair(impactA[0], impactA[1],
+                        impactA[2], impactB[0], impactB[1], impactB[2],
+                        oldPointA, oldPointB);
+                    oldDelta = subtract(oldPointA, oldPointB);
+                    contact.normal = rigid_triangle_feature_normal(
+                        impactA[0], impactA[1], impactA[2],
+                        impactB[0], impactB[1], impactB[2],
+                        oldPointA, oldPointB, normalized_or(oldDelta, fallback));
+                    Vec3 currentPointA = rigid_advect_triangle_point(
+                        oldPointA, impactA, currentA);
+                    Vec3 currentPointB = rigid_advect_triangle_point(
+                        oldPointB, impactB, currentB);
+                    contact.point = multiply(add(currentPointA, currentPointB),
+                        0.5f);
+                    contact.penetration = restOffset - dot(
+                        subtract(currentPointA, currentPointB), contact.normal)
+                        + 1.0e-5f;
+                    recoveredFromPrevious = true;
+                }
+            }
             if (distance <= 1.0e-5f)
             {
-                if (bodyHinge.fixed_member != 0u ||
+                if (!recoveredFromPrevious &&
+                    (bodyHinge.fixed_member != 0u ||
                     colliderHinge.fixed_member != 0u ||
-                    onTriangleFace)
+                    onTriangleFace))
                 {
                     float intersectionDepth = max(0.0f, -min(
                         dot(subtract(a0, pointB), normal), min(
@@ -1082,11 +1171,14 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,
                     contact.penetration = min(margin,
                         intersectionDepth + restOffset) + 1.0e-5f;
                 }
-                else contact.penetration = margin + 1.0e-5f;
+                else if (!recoveredFromPrevious)
+                    contact.penetration = margin + 1.0e-5f;
             }
+            if (!rigid_shell_contact_facing(
+                    contact.normal, outwardA, outwardB)) continue;
             contact.impact_fraction = 1.0f;
             contact.initial_normal_speed = rigid_contact_normal_speed(
-                aState, bState, point, normal);
+                aState, bState, contact.point, contact.normal);
             rigid_add_contact(manifold, contact, max(2.0f * margin, 1.0e-4f));
         }
     }
@@ -1099,6 +1191,11 @@ bool rigid_requires_swept_pair_contact(__constref RigidBodyState previousA,
     __constref RigidBodyState currentB,
     __constref TriangleMeshResource meshB, float threshold)
 {
+    // A concave surface has no single recovery plane after a crossing. Begin
+    // continuous testing at its rest gap instead of the broad-phase margin.
+    if (!pmBufferPresent(meshA.solid_planes) ||
+        !pmBufferPresent(meshB.solid_planes))
+        threshold = min(threshold, 1.0e-3f);
     Vec3 relativeTranslation = subtract(
         subtract(currentA.position, previousA.position),
         subtract(currentB.position, previousB.position));
@@ -1353,7 +1450,7 @@ bool rigid_swept_convex_face_manifold(RigidBodyState previousBody,
     return true;
 }
 
-Vec3 rigid_guided_triangle_normal(Vec3 a0, Vec3 a1, Vec3 a2,
+Vec3 rigid_triangle_feature_normal(Vec3 a0, Vec3 a1, Vec3 a2,
     Vec3 b0, Vec3 b1, Vec3 b2, Vec3 pointA, Vec3 pointB, Vec3 fallback)
 {
     Vec3 delta = subtract(pointA, pointB);
@@ -1544,7 +1641,6 @@ void rigid_collide_triangle_ranges_swept(
                     startsNearContact = distance <= contactOffset + 5.0e-5f;
                 if (distance <= contactOffset + 1.0e-5f)
                 {
-                    if (iteration == 0u && !guided) break;
                     Vec3 colliderNormal = normalized_or(
                         cross(subtract(b[1], b[0]), subtract(b[2], b[0])),
                         {0.0f, 1.0f, 0.0f});
@@ -1570,18 +1666,9 @@ void rigid_collide_triangle_ranges_swept(
                         fallback = outwardB;
                     else if (length_squared(outwardA) > 0.5f)
                         fallback = multiply(outwardA, -1.0f);
-                    Vec3 planeProjection = subtract(pointA,
-                        multiply(colliderNormal,
-                            dot(subtract(pointA, b[0]), colliderNormal)));
-                    bool onFace = length_squared(subtract(planeProjection,
-                        rigid_closest_triangle(planeProjection, b[0], b[1],
-                            b[2]))) <= 1.0e-10f;
-                    Vec3 normal = guided
-                        ? rigid_guided_triangle_normal(a[0], a[1], a[2],
-                            b[0], b[1], b[2], pointA, pointB,
-                            haveSeparatingNormal ? separatingNormal : fallback)
-                        : (distance <= 1.0e-5f || onFace)
-                            ? fallback : normalized_or(delta, fallback);
+                    Vec3 normal = rigid_triangle_feature_normal(
+                        a[0], a[1], a[2], b[0], b[1], b[2], pointA, pointB,
+                        haveSeparatingNormal ? separatingNormal : fallback);
                     if (!rigid_shell_contact_facing(normal, outwardA, outwardB)) break;
                     Vec3 point = multiply(add(pointA, pointB), 0.5f);
                     float normalSpeed = rigid_contact_normal_speed(
@@ -1592,9 +1679,8 @@ void rigid_collide_triangle_ranges_swept(
                     Contact contact = {};
                     contact.normal = normal;
                     contact.point = point;
-                    contact.penetration = (guided
-                        ? max(0.0f, remaining + contactOffset)
-                        : max(0.0f, remaining) + restOffset) + 1.0e-5f;
+                    contact.penetration =
+                        max(0.0f, remaining + contactOffset) + 1.0e-5f;
                     contact.body_hinge = bodyHinge;
                     contact.collider_hinge = colliderHinge;
                     contact.impact_fraction = startsNearContact ? 0.0f : time;
@@ -1603,7 +1689,7 @@ void rigid_collide_triangle_ranges_swept(
                         max(margin * 2.0f, 1.0e-4f));
                     break;
                 }
-                separatingNormal = rigid_guided_triangle_normal(
+                separatingNormal = rigid_triangle_feature_normal(
                     a[0], a[1], a[2], b[0], b[1], b[2], pointA, pointB,
                     normalized_or(delta, {0.0f, 1.0f, 0.0f}));
                 haveSeparatingNormal = true;
@@ -1611,7 +1697,7 @@ void rigid_collide_triangle_ranges_swept(
                     (speedBound + kEpsilon) * 0.9f;
                 if (guided)
                 {
-                    Vec3 plane = rigid_guided_triangle_normal(
+                    Vec3 plane = rigid_triangle_feature_normal(
                         a[0], a[1], a[2], b[0], b[1], b[2], pointA,
                         pointB, separatingNormal);
                     float minimumAPlane = 3.402823466e+38f;
