@@ -39,6 +39,21 @@
       "sha256": "9e4249918ada6243353ef2f5885772672dc1741d552f58b01d7edeb9518637ea"
     },
     {
+      "id": "linux-rtx3050ti-slang-cuda-39e0ea6",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-39e0ea6-qualification.json",
+      "sha256": "ad4e300b3b71230375847280ad33abb414d4f778d643b4961f512573928b1324"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-vulkan-39e0ea6",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-39e0ea6-qualification.json",
+      "sha256": "e997315dbe7c8415b4082419087729029295852e16a0867a37a70e3587e4afcf"
+    },
+    {
+      "id": "linux-thomas-laptop-slang-cpu-39e0ea6",
+      "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-39e0ea6-qualification.json",
+      "sha256": "069530403d1602c2400d7139d438b248372e5905833716348650a0d7e963ae83"
+    },
+    {
       "id": "macos-m4-slang-metal-aac6d59",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json",
       "sha256": "4c8bacefffcaed67e300d2bdf90a683d46b0c12efeac14f6c83151ecac0bc9ef"
