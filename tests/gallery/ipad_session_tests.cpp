@@ -8,7 +8,7 @@ int main() {
     try {
         const auto root = std::filesystem::path(PM_IPAD_TEST_RESOURCES);
         GallerySession session({.assets = root / "assets", .profiles = root / "config/device-profiles.json",
-            .platform = "iPadOS", .model = "iPad13,8", .backend = "metal", .native_backend = PM_NATIVE_BACKEND_METAL});
+            .platform = "iPadOS", .model = "iPad13,8", .backend = "metal"});
         const auto &catalog = session.catalog();
         if (catalog.size() != 28) throw std::runtime_error("Scene catalog mismatch");
         session.resize(480, 360);
@@ -55,7 +55,7 @@ int main() {
         // Exercise Android budgets through the same catalog/session on the
         // available host GPU; this is not Android hardware qualification.
         GallerySession android({.assets = root / "assets", .profiles = root / "config/device-profiles.json",
-            .platform = "Android", .model = "Pixel 7", .backend = "metal", .native_backend = PM_NATIVE_BACKEND_METAL});
+            .platform = "Android", .model = "Pixel 7", .backend = "metal"});
         if (android.catalog().size() != catalog.size() ||
             android.limits.fluid_particles != 128)
             throw std::runtime_error("Android session profile/catalog changed");
@@ -64,7 +64,7 @@ int main() {
             android.select(i); android.frame(); android.validate_snapshot();
         }
         GallerySession gpu({.assets = root / "assets", .profiles = root / "config/device-profiles.json",
-            .platform = "iPadOS", .model = "iPad13,8", .backend = "metal", .native_backend = PM_NATIVE_BACKEND_METAL,
+            .platform = "iPadOS", .model = "iPad13,8", .backend = "metal",
             .gpu_rendering = true});
         gpu.resize(480, 360);
         const auto *requested = std::getenv("PM_GALLERY_QUALIFY_FRAMES");

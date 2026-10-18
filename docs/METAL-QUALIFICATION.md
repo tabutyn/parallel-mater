@@ -310,7 +310,8 @@ main; it does not waive the production gates above. Engine integration is
 explicitly deferred. Use `CMakePresets.json` for backend-specific builds and
 `scripts/Deploy-Gallery.py` for revision/backend-verified Apple deployment.
 The iPad app now packages the approved logo; Android and iPad consume one shared
-session and timer, including the same bounded qualification routine.
+mobile-session coordinator and timer, including the same bounded qualification
+routine, surface/lifecycle admission, controller view model and failure recovery.
 
 `CommandSceneInstance::render_buffers` uses the same `GpuSceneBuffers` contract
 as D3D12. It describes public output-buffer regions, consumed after the physics
@@ -339,6 +340,13 @@ shared control checks after fixing an Xcode ARC omission. See the
 reports for the distinction between sustained scene checks and full physics
 qualification. Android's updated bridge still needs the new mobile CI/device
 run; older Android results do not qualify this shared-session change.
+
+F7-07 clean revision `342997a9` later passed 28/28 catalog scenes × 120
+native-rendered frames on the physical Apple M1 iPad, plus shared surface,
+pause/background and presentation-failure recovery and a real OS lifecycle
+cycle. This remains Gallery integration evidence, not completion of the physics
+qualification gates above. The scoped record is
+[`F7-07-mobile-shells.json`](roadmap/evidence/F7-07-mobile-shells.json).
 
 ## Reproduce
 

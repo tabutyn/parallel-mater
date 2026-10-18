@@ -21,8 +21,9 @@ apps/gallery_game (not installed)
   scene selection, progression, save data, menus
 ```
 
-The current refactor has one shared mobile session, while desktop still owns a
-second session/runtime path. The target ownership, state transitions, and
+The current refactor has one shared `MobileGallerySession` for Android and
+iPad, while desktop still owns a second session/runtime path. The target
+ownership, state transitions, and
 characterization gates are tracked in the
 [common Gallery runtime contract](GALLERY-RUNTIME.md). F7 in the roadmap moves
 desktop and mobile onto that contract before Android scene coverage is called
@@ -70,17 +71,17 @@ See [Vulkan build and validation details](VULKAN.md).
 
 The [UIKit iPad app](../examples/ios/README.md) uses the same loader and Slang
 Metal physics backend as the macOS preview. It shares the scene builder,
-software renderer, workload catalog, and frame timing collector; only touch
-input, image presentation, and app lifecycle are native UIKit. It exposes 27
-existing scenes, excluding Dump Truck until vehicle touch controls are added.
-GPU physics is not GPU rendering: the image renderer remains CPU-based.
+workload catalog, mobile-session coordinator and frame timer; only UIKit
+lifecycle, semantic input translation, presentation and reporting remain in the
+shell. It exposes all 28 catalog scenes. A shared Metal renderer reads public
+GPU output buffers directly, without normal-frame image or position readback.
 
 ## First gallery sequence
 
-The ordered catalog metadata, scene lifecycle, scene construction, and semantic
-controllers are shared today. Remaining F7 work unifies availability, timing,
-presentation, and the thin platform adapters; the runtime contract records the
-current ownership split until that migration finishes.
+The ordered catalog metadata, scene lifecycle, scene construction, semantic
+controllers, timing, mobile surface admission and mobile recovery are shared
+today. Remaining F7 work unifies desktop ownership and renderer adapters; the
+runtime contract records the current split until that migration finishes.
 
 1. **Rigid body** — Blender-authored static, kinematic, and dynamic triangle
    meshes collide inside a concave bowl.
