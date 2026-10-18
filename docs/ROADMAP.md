@@ -192,7 +192,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-12](roadmap/tasks/F5-12.json) | Publish current macOS Metal driver evidence | done | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-10, F5-11 | — |
 | [F5-13](roadmap/tasks/F5-13.json) | Expose capability qualification on iPadOS | done | F5-01, F5-08 | — |
 | [F5-14](roadmap/tasks/F5-14.json) | Publish current iPadOS Metal driver evidence | done | F5-02, F5-03, F5-05, F5-06, F5-10, F5-11, F5-13 | — |
-| [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | ready | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
+| [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | leased | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | codex-linux-gallery / thomas-laptop / 2026-10-19T23:43:01Z |
 | [F5-16](roadmap/tasks/F5-16.json) | Publish current Linux driver evidence | done | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
 | [F5-17](roadmap/tasks/F5-17.json) | Adjudicate rigid-direct reference drift | done | F5-04, F5-10 | — |
 | [F5-18](roadmap/tasks/F5-18.json) | Stabilize rigid-direct planar symmetry | done | F5-17 | — |
@@ -299,8 +299,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-08](roadmap/tasks/P1-08.json) | Schedule miscible fluid pair graphs | done | P1-07 | — |
 | [P1-09](roadmap/tasks/P1-09.json) | Qualify and advertise miscible fluids | deferred | P1-08, F5-02, F5-03 | — |
 | [P1-10](roadmap/tasks/P1-10.json) | Reconstruct immiscible fluid interfaces | done | P1-05, P1-56 | — |
-| [P1-11](roadmap/tasks/P1-11.json) | Apply immiscible pressure and capillarity | leased | P1-10 | codex-immiscible-capillarity / thomas-laptop / 2026-10-19T23:25:03Z |
-| [P1-12](roadmap/tasks/P1-12.json) | Apply immiscible interfacial viscosity | deferred | P1-11 | — |
+| [P1-11](roadmap/tasks/P1-11.json) | Apply immiscible pressure and capillarity | done | P1-10 | — |
+| [P1-12](roadmap/tasks/P1-12.json) | Apply immiscible interfacial viscosity | leased | P1-11 | codex-immiscible-viscosity / thomas-laptop / 2026-10-19T23:40:06Z |
 | [P1-13](roadmap/tasks/P1-13.json) | Schedule immiscible fluid pair graphs | deferred | P1-12 | — |
 | [P1-14](roadmap/tasks/P1-14.json) | Qualify and advertise immiscible fluids | deferred | P1-13, F5-02, F5-03 | — |
 | [P1-15](roadmap/tasks/P1-15.json) | Add fluid caloric material state | deferred | P1-04 | — |
