@@ -19,12 +19,20 @@ jobs:
           - os: ubuntu-latest
             d3d12: 'OFF'
             cpu: 'ON'
+            metal: 'OFF'
+            driver_args: '--expect-driver-target ParallelMater::slang_cpu_driver'
           - os: windows-latest
             d3d12: 'ON'
             cpu: 'OFF'
+            metal: 'OFF'
+            driver_args: '--expect-driver-target ParallelMater::slang_d3d12_driver'
           - os: macos-26
             d3d12: 'OFF'
             cpu: 'ON'
+            metal: 'ON'
+            driver_args: >-
+              --expect-driver-target ParallelMater::slang_cpu_driver
+              --expect-driver-target ParallelMater::slang_metal_driver
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
@@ -32,6 +40,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+        with:
+          arch: x64
       - name: Ensure native Metal compiler is available
         if: runner.os == 'macOS'
         shell: bash
@@ -48,20 +60,25 @@ jobs:
           -DBUILD_TESTING=ON
           -DPARALLEL_MATER_BUILD_CUDA=OFF
           -DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=${{ matrix.cpu }}
+          -DPARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW=${{ matrix.metal }}
           -DPARALLEL_MATER_BUILD_D3D12=${{ matrix.d3d12 }}
           -DPARALLEL_MATER_BUILD_GALLERY=OFF
           -DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=ON
           -DPARALLEL_MATER_BUILD_SLANG_MIRRORS=ON
       # ALL includes the full manifest's CUDA/SPIR-V entries, the portable
       # AVBD core and reflection, Windows DXIL schedules, and every Metal
-      # entry (including native compilation on macOS). Runtime Metal tests
-      # skip explicitly when the runner has no GPU.
+      # entry (including native compilation on macOS). Hosted macOS runners do
+      # not expose a Metal device, so runtime Metal tests remain device gates.
       - name: Compile shaders and host contracts
         run: cmake --build build --config Release --parallel 2
       - name: Validate reflection and host contracts
         run: >-
           ctest --test-dir build -C Release --output-on-failure --no-tests=error
-          -E "^parallel-mater-d3d12-command-api-tests$"
+          -E "^parallel-mater-(d3d12-command-api-tests|slang-metal-.*)$"
+      - name: Validate installed package components
+        run: >-
+          python tools/check_sdk_components.py --build-dir build
+          --output out/sdk-components/ci ${{ matrix.driver_args }}
       - name: Retain reflection and test evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -70,6 +87,8 @@ jobs:
           path: |
             build/generated/slang/**/*.json
             build/Testing/Temporary/*.log
+            out/sdk-components/ci/report.json
+            out/sdk-components/ci/*.log
           if-no-files-found: warn
 
   shader-portability:

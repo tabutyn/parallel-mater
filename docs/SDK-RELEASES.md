@@ -27,12 +27,24 @@ for arbitrary future versions. See [API contract](API-CONTRACT.md).
 | `PARALLEL_MATER_BUILD_GALLERY` | Renderer/window/application client |
 | `PARALLEL_MATER_BUILD_BENCHMARKS` | Existing rendered/profiler benchmarks; still require Gallery/CUDA, not a portable SDK performance qualification gate |
 
-Build profiles select components before installation. Partial `cmake --install
---component` packages are not supported by the combined target export. Consumers
-can require CMake components `loader`, `scene`, `preparation`, and `validation`.
-Missing components fail configuration. Installed imported targets contain no
-private source include directories. Use `ParallelMater::api` (alias of
-`ParallelMater::parallel_mater`) for the public C interface.
+Build profiles select what can be installed. The package has independent CMake
+install/export components named `loader`, `validation`, `preparation`, `scene`,
+`driver`, `conformance`, and `benchmark`. Install `loader` first because it owns
+the public headers and package metadata, then install only the selected optional
+components into the same prefix. `scene` additionally requires `preparation`.
+Missing components and incomplete dependency combinations fail during
+`find_package`, before a dangling imported target can be used.
+
+Consumers request the same names with `find_package(ParallelMater 0.2 CONFIG
+REQUIRED COMPONENTS ...)`. Use `ParallelMater::api` for the public C interface,
+`ParallelMater::validation`, `ParallelMater::preparation`, and
+`ParallelMater::scene` for the corresponding libraries. The `driver` component
+sets `ParallelMater_DRIVER_TARGETS` to the imported drivers built by that SDK.
+The `conformance` and `benchmark` components publish
+`ParallelMater_CONFORMANCE_EXECUTABLE`, `ParallelMater_CONFORMANCE_DATA_ROOT`,
+and `ParallelMater_BENCHMARK_QUALIFICATION`. Installed imported targets contain
+no private source include directories. The optional C++ targets retain no stable
+binary ABI promise.
 
 ```bash
 cmake --preset sdk-ci
@@ -83,6 +95,13 @@ physics implementation is linked into the mock or application.
 configuration, the exact CMake C++ compiler identity, checks, exit codes and SDK
 file SHA-256 values. Windows reports also record the selected Windows SDK and
 resource compiler.
+
+`tools/check_sdk_components.py --build-dir build-sdk-ci --output
+out/sdk-components/new` independently installs each supported component
+combination into a relocated prefix and builds an external consumer. It also
+requires clean configuration failures for absent components and for `scene`
+without `preparation`. Backend builds can repeat `--expect-driver-target` to
+assert the exact imported CUDA, D3D12, Vulkan, CPU, or Metal targets they ship.
 Scope is `packaging_and_public_abi`; physical quality is explicitly
 `not_evaluated`. The installed-SDK CI workflow enforces these checks on Linux
 Apple Silicon macOS and Windows x64. Successful local checks do not imply that a

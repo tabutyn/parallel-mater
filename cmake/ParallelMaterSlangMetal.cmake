@@ -31,7 +31,12 @@ target_link_libraries(parallel-mater-driver-slang-metal PRIVATE
 set_target_properties(parallel-mater-driver-slang-metal PROPERTIES
     XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES
     OUTPUT_NAME parallel_mater_driver_slang_metal CXX_VISIBILITY_PRESET hidden
+    EXPORT_NAME slang_metal_driver
     VISIBILITY_INLINES_HIDDEN YES OBJCXX_STANDARD 20)
+add_library(ParallelMater::slang_metal_driver ALIAS
+    parallel-mater-driver-slang-metal)
+list(APPEND PARALLEL_MATER_DRIVER_INSTALL_TARGETS
+    parallel-mater-driver-slang-metal)
 file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-metal.json" CONTENT
 "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-metal>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/slang-metal.json" CONTENT

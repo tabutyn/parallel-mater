@@ -1,0 +1,78 @@
+{
+  "schema": "parallel-mater-roadmap-sdk-components-evidence/v1",
+  "task": "F6-03",
+  "scope": "Independent loader, validation, preparation, scene, driver, conformance and benchmark install/export boundaries",
+  "source": {
+    "base_main_commit": "03988e6f5d0d1da62df1758b64777a5de6ac012b",
+    "implementation_commit": "f859ef46813f45b72ce14fa590226c3b6ea4b8e9",
+    "branch": "work/F6-03/windows-gtx1080",
+    "dirty_before_evidence": false
+  },
+  "toolchain": {
+    "operating_system": "Windows 11 10.0.26200 x64",
+    "visual_studio": "Build Tools 18.9.1",
+    "windows_sdk": "10.0.26100.0",
+    "configuration": "Release"
+  },
+  "reports": [
+    {
+      "profile": "sdk-ci",
+      "available_components": [
+        "loader",
+        "validation",
+        "preparation",
+        "scene",
+        "conformance",
+        "benchmark"
+      ],
+      "checks": "44/44 passed",
+      "sha256": "4a3617888cc74812714f7edd0766d5edfb422817eba21dbb1c26cbda972869c1"
+    },
+    {
+      "profile": "D3D12 Slang driver",
+      "available_components": [
+        "loader",
+        "validation",
+        "preparation",
+        "scene",
+        "driver",
+        "conformance",
+        "benchmark"
+      ],
+      "required_imported_target": "ParallelMater::slang_d3d12_driver",
+      "checks": "49/49 passed",
+      "sha256": "294eb9239b5ae55c96a5a91c11215ae8b5b136340d0c755a68570a674a4e0845"
+    },
+    {
+      "profile": "legacy full SDK relocation",
+      "checks": "12/12 passed",
+      "sha256": "af8575670af1a11a94ad2f666bb2fd65af00e5ca2ec1ecd6fc8027384067f361"
+    }
+  ],
+  "verification": [
+    {
+      "check": "python tools/check_sdk_components.py --build-dir build-f6-03-sdk-windows --output out/sdk-components/f6-03-sdk-f859ef4 --config Release",
+      "result": "44/44 relocated supported-combination and clean rejection checks passed from a clean source revision"
+    },
+    {
+      "check": "python tools/check_sdk_components.py --build-dir build-d3d12-slang --output out/sdk-components/f6-03-d3d12-f859ef4 --config Release --expect-driver-target ParallelMater::slang_d3d12_driver",
+      "result": "49/49 checks passed, including isolated driver installation and the exact D3D12 imported target"
+    },
+    {
+      "check": "python tools/check_sdk_install.py --build-dir build-f6-03-sdk-windows --output out/sdk-evidence/f6-03-full-f859ef4 --config Release",
+      "result": "12/12 existing full-install, relocation, consumer, version, conformance and negative-path stages passed"
+    },
+    {
+      "check": "ctest --test-dir build-f6-03-sdk-windows --output-on-failure -C Release -j 2",
+      "result": "38/38 SDK, loader, ABI, conformance, Gallery-contract and host tests passed"
+    }
+  ],
+  "continuous_integration": {
+    "sdk_install": "Linux, Apple Silicon macOS and Windows run the driver-free selected-component matrix",
+    "shader_portability": "Linux requires the CPU driver target, Windows requires D3D12, and macOS requires both CPU and Metal driver targets"
+  },
+  "limitations": [
+    "This qualifies package composition, relocation and imported-target integrity only; it does not evaluate physics quality or capability coverage.",
+    "The optional preparation and scene libraries do not promise a stable C++ binary ABI."
+  ]
+}

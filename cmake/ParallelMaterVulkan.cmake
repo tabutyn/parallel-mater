@@ -77,7 +77,8 @@ add_library(ParallelMater::slang_vulkan_driver ALIAS parallel-mater-driver-slang
 if(TARGET parallel-mater-gallery)
     add_dependencies(parallel-mater-gallery parallel-mater-driver-slang-vulkan)
 endif()
-list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-driver-slang-vulkan)
+list(APPEND PARALLEL_MATER_DRIVER_INSTALL_TARGETS
+    parallel-mater-driver-slang-vulkan)
 file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json"
     CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-vulkan>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/slang-vulkan.json"

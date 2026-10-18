@@ -1,0 +1,3 @@
+set(ParallelMater_benchmark_FOUND TRUE)
+set(ParallelMater_BENCHMARK_QUALIFICATION
+    "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_DATADIR@/parallel-mater/benchmarks/qualification.py")

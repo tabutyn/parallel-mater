@@ -42,7 +42,9 @@ if(BUILD_TESTING)
     set_tests_properties(parallel-mater-conformance-command-inputs PROPERTIES
         LABELS "api;conformance")
 endif()
-install(TARGETS parallel-mater-conformance RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS parallel-mater-conformance
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    COMPONENT conformance)
 
 if(APPLE)
     set_target_properties(parallel-mater-conformance PROPERTIES
@@ -54,14 +56,14 @@ endif()
 set(corpus_install_root "${CMAKE_INSTALL_DATADIR}/parallel-mater")
 install(DIRECTORY conformance/v1/cases conformance/v1/lifecycle
     conformance/v1/quality conformance/v1/qualification conformance/v1/evidence
-    DESTINATION "${corpus_install_root}/conformance/v1")
+    DESTINATION "${corpus_install_root}/conformance/v1"
+    COMPONENT conformance)
 install(FILES conformance/v1/manifest.json conformance/v1/compare.py
     conformance/v1/lifecycle.py conformance/v1/quality.py
     conformance/v1/qualification.py
     conformance/v1/README.md conformance/v1/SCHEMA.md
-    DESTINATION "${corpus_install_root}/conformance/v1")
-install(FILES benchmarks/qualification.py
-    DESTINATION "${corpus_install_root}/benchmarks")
+    DESTINATION "${corpus_install_root}/conformance/v1"
+    COMPONENT conformance)
 # Install only the immutable assets named by this corpus manifest.
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/manifest.json" corpus_manifest)
 string(JSON corpus_asset_count LENGTH "${corpus_manifest}" glb_sha256)
@@ -70,5 +72,12 @@ foreach(index RANGE 0 ${corpus_last_asset})
     string(JSON asset MEMBER "${corpus_manifest}" glb_sha256 ${index})
     get_filename_component(asset_directory "${asset}" DIRECTORY)
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/${asset}"
-        DESTINATION "${corpus_install_root}/${asset_directory}")
+        DESTINATION "${corpus_install_root}/${asset_directory}"
+        COMPONENT conformance)
 endforeach()
+configure_file(cmake/ParallelMaterConformanceComponent.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/ParallelMaterConformanceComponent.cmake"
+    @ONLY)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ParallelMaterConformanceComponent.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ParallelMater
+    COMPONENT conformance)
