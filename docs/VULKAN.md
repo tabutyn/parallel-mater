@@ -6,10 +6,11 @@ manifest. The public loader and Gallery remain backend independent. CUDA,
 Vulkan, and D3D12 are selected by manifest; the desktop Gallery also accepts
 `--backend cuda|vulkan|d3d12|metal` for discovered drivers.
 
-The initial Vulkan qualification scope is rigid bodies, rigid constraints,
-liquids, liquid–rigid coupling, emitters, queries, and asynchronous public
-submission. Other particle domains remain unadvertised. The older standalone
-Vulkan `World` prototype is not used by this driver.
+The Vulkan qualification scope is rigid bodies, rigid constraints, liquids,
+cloth, liquid–rigid and liquid–cloth coupling, paint, emitters, queries, and
+asynchronous public submission. Rope, soft-body, smoke, and their couplings
+remain unadvertised. The older standalone Vulkan `World` prototype is not used
+by this driver.
 
 ## Architecture
 
@@ -27,10 +28,12 @@ No physics equations are generated or maintained in the Vulkan adapter.
 Buffers use coherent mapped Vulkan memory in this first implementation.
 Mesh preparation takes one contiguous copy into cached host memory before
 building acceleration data, avoiding repeated CPU reads across device mappings.
-Shader pointers are translated to `VkDeviceAddress`; nested mesh pointers use
-a typed, bounded translated table. Transfers and compute dispatches use an
-owned compute queue, barriers, and fences. Public submission uses the shared
-worker queue. GPU timestamps use Vulkan timestamp queries.
+Shader pointers are translated to `VkDeviceAddress`; nested mesh and paint-field
+pointers use typed, bounded translated tables. Paint-referenced render meshes
+also contribute to the translated mesh-table bound, even when no collision body
+references them. Transfers and compute dispatches use an owned compute queue,
+barriers, and fences. Public submission uses the shared worker queue. GPU
+timestamps use Vulkan timestamp queries.
 
 Vulkan specializes workgroup size to match each scheduler launch. The contact
 reduction uses eight workers and the AVBD preparation uses smaller caches to
@@ -86,7 +89,7 @@ The Linux validation scripts pin SDK 1.4.341.0 and its archive SHA-256 in
 its manifest, and `spirv-val` into ignored `out/toolchains/`, verifies installed
 file hashes on reuse, and leaves system packages untouched. The test wrapper
 sets both the layer search path and library search path to that installation.
-It validates all six production SPIR-V modules before running CTest serially.
+It validates all nine production SPIR-V modules before running CTest serially.
 
 ```sh
 ./scripts/Setup-VulkanValidation.sh
@@ -100,7 +103,23 @@ The scripts do not start a build. Use `--parallel 1` for builds on this laptop.
 
 Tests exercise transfers, rigid-body motion and contact, GPU timestamps,
 asynchronous completion, analytic liquid free fall across dispatch boundaries,
-bounded Fluid and FluidRigid gallery scenes, and reset.
+bounded Fluid and FluidRigid scenes, all four cloth Gallery scenes, paint, and
+reset.
+
+## Desktop cloth evidence (2026-10-17)
+
+On the RTX 3050 Ti laptop, SDK 1.4.341.0 validation accepts all nine production
+SPIR-V modules. The common-session rendered-image contract and 120-frame public
+command lifecycle tests pass for Cloth, Cloth Tear, Cloth Paint, and Water
+Cloth. Headless Gallery checks also report 2,288 painted texels for Cloth Paint
+and 777 painted texels for Peg Paint. The latter exposed and now guards the
+separate render-mesh bound required by paint fields.
+
+This desktop evidence enables exact `cloth`, `domainCouplings`, and `paint`
+capability advertising in the loadable Vulkan driver. Android uses the same
+modules and capability query, but the expanded cloth set still requires the
+separate Pixel device qualification before it becomes phone performance or
+stability evidence.
 
 ## Desktop evidence (2026-10-16)
 
@@ -126,8 +145,8 @@ the Vulkan library has no CUDA runtime dependency.
 Android Vulkan packaging builds, including native public-API qualification
 executables. Pixel 7 now passes command/API, asynchronous submission and bounded
 liquid/coupling/reset tests after the pointer declaration workaround below.
-All eight mobile scenes complete short runtime checks; performance remains below
-target. See [the qualification record](ANDROID-QUALIFICATION.md) and
+The earlier eight-scene mobile subset completes short runtime checks;
+performance remains below target. See [the qualification record](ANDROID-QUALIFICATION.md) and
 [Android status and reproduction](../examples/android/README.md#vulkan-status-2026-10-16).
 
 For opt-in diagnostics, `PM_VULKAN_TRACE=1` prints each newly created pipeline's
@@ -148,7 +167,8 @@ use and removes those redundant declarations before embedding each module.
 IDs, decorations, layouts and executable instructions are preserved. Recursive
 types or unfamiliar dependencies fail the build with a diagnostic. CMake keeps
 the compiler output as `generated/vulkan/*.raw.spv` and embeds the normalized
-`*.spv`; validate the latter. All six modules pass SDK 1.4.341.0 validation.
+`*.spv`; validate the latter. All nine modules pass SDK 1.4.341.0 validation on
+Linux; the previous Pixel run covered the original six-module subset.
 
 `tools/vulkan_pipeline_probe.cpp` isolates pipeline compilation without the
 Parallel Mater loader, scheduler or physics dispatch. Build with a host or

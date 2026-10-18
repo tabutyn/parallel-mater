@@ -8,7 +8,8 @@ file(GLOB_RECURSE vulkan_shader_dependencies CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slang" "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.slangh"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.inc")
 set(vulkan_sources)
-foreach(module geometry geometry_constraints primitives queries fluid geometry_fluid)
+foreach(module geometry geometry_constraints primitives queries fluid geometry_fluid
+               cloth geometry_cloth fluid_cloth)
     parallel_mater_slang_entry_arguments(${module} CUDA entries)
     parallel_mater_slang_definition_arguments(${module} CUDA definitions)
     set(wrapper "src/simulation/${module}_dispatch.cu")
@@ -44,9 +45,8 @@ foreach(module geometry geometry_constraints primitives queries fluid geometry_f
     endif()
 endforeach()
 set(vulkan_stub_headers
-    src/simulation/cloth_dispatch.hpp src/simulation/fluid_cloth_dispatch.hpp
     src/simulation/fluid_rope_dispatch.hpp src/simulation/fluid_smoke_dispatch.hpp
-    src/simulation/fluid_soft_body_dispatch.hpp src/simulation/geometry_cloth_dispatch.hpp
+    src/simulation/fluid_soft_body_dispatch.hpp
     src/simulation/geometry_smoke_dispatch.hpp src/simulation/geometry_soft_body_dispatch.hpp
     src/simulation/rope_coupling_dispatch.hpp src/simulation/rope_dispatch.hpp
     src/simulation/smoke_coupling_dispatch.hpp src/simulation/smoke_grid_dispatch.hpp
