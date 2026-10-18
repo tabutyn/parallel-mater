@@ -106,7 +106,7 @@ bool valid_interaction_key(const PmInteractionCapabilityKey &key) noexcept {
         key.scope < PM_INTERACTION_SCOPE_SELF ||
         key.scope > PM_INTERACTION_SCOPE_DISTINCT_FAMILY ||
         key.mode < PM_INTERACTION_MODE_CONTACT ||
-        key.mode > PM_INTERACTION_MODE_PHASE ||
+        key.mode > PM_INTERACTION_MODE_INTERFACE ||
         key.direction < PM_INTERACTION_DIRECTION_BIDIRECTIONAL ||
         key.direction > PM_INTERACTION_DIRECTION_EXTERNAL_TO_SECOND ||
         key.materialProfile < PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE ||

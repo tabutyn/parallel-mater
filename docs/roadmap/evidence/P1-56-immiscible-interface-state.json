@@ -1,0 +1,48 @@
+{
+  "schema": "parallel-mater-roadmap-immiscible-interface-state/v1",
+  "task": "P1-56",
+  "result": "passed",
+  "source": {
+    "revision": "1b543226ce65d1e1f98bf97b901ad0a4649762a1",
+    "branch": "work/P1-56/thomas-laptop",
+    "lease_token": "69313ef8-d46a-44b3-8fd3-f1300329f153",
+    "machine": "thomas-laptop"
+  },
+  "public_contract": {
+    "mode": "PM_INTERACTION_MODE_INTERFACE with PM_INTERACTION_MODE_INTERFACE_BIT",
+    "capability_identity": "fluid/fluid, separate-system, interface, bidirectional, immiscible-interface",
+    "typed_state": "PmFluidInterfaceState chained through PmCouplingStateInfo",
+    "surface_tension": "surfaceTension is finite and nonnegative in N/m; zero removes capillary traction while retaining the no-mixing boundary",
+    "normal": "The interface normal points from the first fluid endpoint to the second; endpoint reversal reverses the normal and pressure-jump sign",
+    "bundle": "Immiscible graph requests require contact, pressure and interface plus one PmFluidPairMaterialState and one PmFluidInterfaceState",
+    "advertisement": "No interaction capability record was added, so every production driver returns PM_ERROR_FEATURE_NOT_PRESENT"
+  },
+  "validation": [
+    {
+      "command": "cmake --build --preset sdk-ci -j2 && ctest --preset sdk-ci --output-on-failure",
+      "result": "47/47 SDK, ABI, generator, conformance, resource-plan and architecture tests passed after merging current main."
+    },
+    {
+      "command": "cmake --preset sdk-cpu -DPARALLEL_MATER_SLANG_CPU_LIQUIDS=ON && cmake --build --preset sdk-cpu --target parallel-mater-graph-validation-tests parallel-mater-driver-slang-cpu -j2 && ctest --test-dir build-sdk-cpu -R parallel-mater-cpu-graph-validation-tests --output-on-failure",
+      "result": "The Slang CPU runtime test passed all atomic replacement checks for missing, negative, infinite, NaN, duplicate, profile-inapplicable and well-formed unsupported interface state, including both recognized chain orders and the zero limit."
+    },
+    {
+      "command": "ctest --test-dir build-sdk-cpu -R parallel-mater-interaction-capability-tests --output-on-failure",
+      "result": "The interface identity was accepted as a valid query and remained unadvertised for miscible and immiscible profiles."
+    },
+    {
+      "command": "cmake --build build-desktop-switch --target parallel-mater-graph-validation-tests parallel-mater-driver-slang-cuda parallel-mater-driver-slang-vulkan -j2",
+      "result": "76/76 CUDA and Vulkan driver build steps passed; generated Slang CUDA deprecation warnings were unchanged."
+    },
+    {
+      "command": "python3 tools/reference/build.py --check-generated && python3 conformance/v1/evidence_index.py --check && python3 conformance/v1/update_manifest.py --check && python3 tools/roadmap.py check",
+      "result": "Generated API/specification, revisioned evidence metadata, conformance manifest and 211 roadmap cards passed."
+    }
+  ],
+  "boundaries": [
+    "No production or private driver advertises the interface mode.",
+    "Interface reconstruction remains P1-10; pressure and capillarity remain P1-11.",
+    "Interfacial viscosity, graph scheduling and physical qualification remain P1-12 through P1-14.",
+    "Interface thermal conductance remains P1-57."
+  ]
+}
