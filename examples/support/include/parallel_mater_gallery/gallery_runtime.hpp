@@ -56,6 +56,7 @@ struct GalleryControllerState {
     bool moves_kinematic{};
     float steering_angle{};
     float dump_bed_angle{};
+    bool dump_bed_raised{};
     Vec3 gravity{};
 };
 

@@ -7,6 +7,7 @@
 #include <vulkan/vulkan.h>
 #endif
 #include <parallel_mater_gallery/mobile_qualification.hpp>
+#include <parallel_mater_gallery/control_text.hpp>
 #include <android/native_window_jni.h>
 #include <android/log.h>
 #include <jni.h>
@@ -21,35 +22,13 @@
 #include <locale>
 #include <stdexcept>
 #include <sstream>
+#include <string>
+#include <string_view>
 #include <utility>
 
 namespace {
 using namespace parallel_mater::gallery;
 constexpr const char *backend_name = PM_ANDROID_VULKAN ? "vulkan" : "slang-cpu";
-
-std::string directional_label(GalleryControlPolicy policy) {
-    switch (policy) {
-    case GalleryControlPolicy::authored_force: return "Push objects";
-    case GalleryControlPolicy::motor_drive: return "Drive and steer";
-    case GalleryControlPolicy::none: return "Camera only";
-    case GalleryControlPolicy::rigid_gravity:
-    case GalleryControlPolicy::collector_gravity:
-    case GalleryControlPolicy::peg_gravity:
-    case GalleryControlPolicy::cloth_gravity: return "Tilt gravity";
-    }
-    return "Camera only";
-}
-
-std::string primary_action_label(const GalleryControllerState &controls) {
-    switch (controls.primary) {
-    case GalleryPrimaryAction::release_restore_constraints:
-        return controls.constraints_released ? "Restore" : "Release";
-    case GalleryPrimaryAction::toggle_dump_bed:
-        return controls.dump_bed_angle > 0.05F ? "Lower bed" : "Raise bed";
-    case GalleryPrimaryAction::none: return {};
-    }
-    return {};
-}
 
 std::string renderer_label(const GalleryPresentationState &state) {
     return state.renderer == GalleryRendererKind::native_gpu
@@ -82,7 +61,6 @@ std::string details_text(const GalleryPresentationState &state) {
     text.imbue(std::locale::classic());
     text << state.device << "\n" << state.platform << " · "
          << gallery_backend_label(state.backend)
-         << "\nScene: " << state.scene_name << " (" << state.scene_id << ")"
          << "\n" << state.scene_summary
          << "\nRequires: " << state.required_features
          << "\nRenderer: " << renderer_label(state)
@@ -104,8 +82,10 @@ std::string details_text(const GalleryPresentationState &state) {
     text << "\n\nDrag to orbit. Pinch to zoom.";
     if (state.controls.directional != GalleryControlPolicy::none)
         text << " Direction buttons: "
-             << directional_label(state.controls.directional) << '.';
-    const std::string primary = primary_action_label(state.controls);
+             << gallery_directional_control_text(
+                    state.controls.directional).label << '.';
+    const std::string_view primary =
+        gallery_primary_action_label(state.controls);
     if (!primary.empty()) text << " Use " << primary << " for the scene action.";
     text << "\n\nBuild " << state.build_revision;
     return text.str();
@@ -451,7 +431,8 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeFrame(JNIEnv *env, jclass, 
             s.logged_frames = 0;
         }
         const std::string status = status_text(state) + "\n" +
-            directional_label(state.presentation.controls.directional);
+            std::string(gallery_directional_control_text(
+                state.presentation.controls.directional).label);
         return env->NewStringUTF(status.c_str());
     } catch (const std::exception &error) { exception(env, error.what()); }
     catch (...) { exception(env, "Gallery frame failed"); }
@@ -500,12 +481,17 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeControlState(
     try {
         const auto state = session(handle).mobile->state();
         const auto &view = state.presentation;
-        const std::string primary = primary_action_label(view.controls);
-        const std::array<std::string, 7U> values{
+        const std::string_view primary =
+            gallery_primary_action_label(view.controls);
+        const auto directional =
+            gallery_directional_control_text(view.controls.directional);
+        const std::array<std::string, 11U> values{
             std::to_string(view.selection), view.paused ? "1" : "0",
             view.controls.primary != GalleryPrimaryAction::none ? "1" : "0",
-            primary, directional_label(view.controls.directional),
-            state.failed ? "1" : "0", state.failure};
+            std::string(primary), std::string(directional.label),
+            state.failed ? "1" : "0", state.failure,
+            std::string(directional.left), std::string(directional.forward),
+            std::string(directional.backward), std::string(directional.right)};
         auto result = env->NewObjectArray(static_cast<jsize>(values.size()),
             env->FindClass("java/lang/String"), nullptr);
         if (!result) return nullptr;
