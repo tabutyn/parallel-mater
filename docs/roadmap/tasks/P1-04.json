@@ -1,7 +1,7 @@
 {
   "id": "P1-04",
   "title": "Expose multi-material fluid pair state",
-  "status": "deferred",
+  "status": "open",
   "dependencies": [
     "P1-03"
   ],
@@ -12,10 +12,10 @@
   "requires": [
     "Any development host"
   ],
-  "scope": "Add versioned pair-combination, interface and caloric state plus exact capability identities; advertise nothing.",
+  "scope": "Add versioned pair-material selection and exact capability identities for miscible and immiscible mechanical profiles; advertise nothing.",
   "acceptance": [
-    "Registry, generated C API and specification expose units, validation and extension-chain compatibility.",
-    "Negative tests reject missing, invalid and unsupported profile state without mutating the graph."
+    "Registry, generated C API and specification distinguish the two mechanical profiles, their mode bundles, endpoint material inputs and extension-chain compatibility.",
+    "Negative tests reject missing, invalid and unsupported pair-material state without mutating the graph."
   ],
   "evidence": [],
   "lease": null,
