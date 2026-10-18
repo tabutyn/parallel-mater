@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -164,8 +165,10 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         scenes = button("Loading scenes…", this::chooseScene, false);
         scenes.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
         scenes.setTextSize(16);
+        scenes.setSingleLine(true);
+        scenes.setEllipsize(TextUtils.TruncateAt.END);
         toolbar.addView(scenes, new LinearLayout.LayoutParams(dp(
-            getResources().getConfiguration().screenWidthDp >= 720 ? 260 : 220), dp(48)));
+            getResources().getConfiguration().screenWidthDp >= 720 ? 320 : 240), dp(48)));
         toolbar.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
         pause = button("Pause", () -> command(10, 0, 0), true);
         addButton(toolbar, pause, 80);
