@@ -1,0 +1,774 @@
+{
+  "schema": "parallel-mater-roadmap-hunk-dispositions/v1",
+  "task": "F6-07",
+  "source_patch": {
+    "snapshot_head": "deb158aeb75cd9eae02d78acbc06d9417a958ade",
+    "snapshot_branch": "codex/linux-current-gallery-launcher",
+    "patch_bytes": 307002,
+    "patch_sha256": "92ee0582960390a72b954886daeb1b1cf6554378c0943d89667c1c299c1126b8"
+  },
+  "inventory": {
+    "total_items": 62,
+    "action_counts": {
+      "candidate": 57,
+      "quarantined": 1,
+      "superseded-review": 3,
+      "preserved-reproduction": 1
+    }
+  },
+  "policy": "Every item is content-addressed. Candidate means reproduce and review, not permission to transplant. Quarantined goldens are never copied.",
+  "items": [
+    {
+      "id": "CMakeLists.txt#h1",
+      "path": "CMakeLists.txt",
+      "kind": "text-hunk",
+      "header": "@@ -435,8 +435,17 @@ if(PARALLEL_MATER_BUILD_GALLERY)",
+      "patch_sha256": "62a45afc2753d54675bea0e2533ff06ef05b423de01a3229b24c5cf85bc4fef0",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09",
+        "F6-10"
+      ],
+      "reason": "Recreate scenario registration only after the fixture and replay paths are independently reviewed."
+    },
+    {
+      "id": "conformance/v1/golden/cuda/constraint-hinge.json#h1",
+      "path": "conformance/v1/golden/cuda/constraint-hinge.json",
+      "kind": "text-hunk",
+      "header": "@@ -1 +1 @@",
+      "patch_sha256": "cea006f00612cf6acb817b0cf0bb31d7b408a8a09d37b0232ae3d79ef8c65974",
+      "action": "quarantined",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Never transplant this golden; regenerate from a reviewed same-revision fixture and driver."
+    },
+    {
+      "id": "conformance/v1/manifest.json#h1",
+      "path": "conformance/v1/manifest.json",
+      "kind": "text-hunk",
+      "header": "@@ -20,7 +20,7 @@",
+      "patch_sha256": "efe7c12b64442b02b1b1c66b9c06448b16c1b48d15b7335887b9168ceff4f447",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Update the asset hash only with an accepted, freshly exported fixture."
+    },
+    {
+      "id": "conformance/v1/src/case_registry.cpp#h1",
+      "path": "conformance/v1/src/case_registry.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -197,7 +197,7 @@ const std::vector<CaseDefinition> &case_registry() {",
+      "patch_sha256": "f13438689d9201f93ec57002a6a6f9502b8743ef481ecc08acb753adf5cb1290",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Update the registered asset hash only with an accepted, freshly exported fixture."
+    },
+    {
+      "id": "docs/BLENDER_SCENES.md#h1",
+      "path": "docs/BLENDER_SCENES.md",
+      "kind": "text-hunk",
+      "header": "@@ -528,11 +528,21 @@ vector; loose spheres retain downward gravity until collected. Ground uses frict",
+      "patch_sha256": "57ac85556ab94c8a13ca929360c6ae6ae578795ecd33cfbe4e90735040a7c2c7",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Review against the authored five-body fixture and retain only verified scene semantics."
+    },
+    {
+      "id": "docs/BLENDER_SCENES.md#h2",
+      "path": "docs/BLENDER_SCENES.md",
+      "kind": "text-hunk",
+      "header": "@@ -543,18 +553,25 @@ rebounding; both followers use mass `1.0` and angular damping `0.01` so they",
+      "patch_sha256": "ae78eb56337493bb6ffcf8d39950d3fa6aa3b18cfc4fc1696559cb34e5b0e72d",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Review against the authored five-body fixture and retain only verified scene semantics."
+    },
+    {
+      "id": "docs/CONTACT_SOLVER.md#h1",
+      "path": "docs/CONTACT_SOLVER.md",
+      "kind": "text-hunk",
+      "header": "@@ -110,6 +110,20 @@ a joint target/frame must not invalidate every unrelated contact in the world.",
+      "patch_sha256": "4ed828ae7ec344253eccc32d2bf80ae6447740f7e628c25becb86c3e42b80dca",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Publish these claims only for solver behavior reproduced against current main."
+    },
+    {
+      "id": "docs/GALLERY.md#h1",
+      "path": "docs/GALLERY.md",
+      "kind": "text-hunk",
+      "header": "@@ -276,16 +276,19 @@ several equally slow steps before drawing. This protects input/render cadence",
+      "patch_sha256": "c052daac8379968fcdf373abc8716ca18997429a34a189cdcffa48179ce89e38",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Rewrite against the eventual versioned capture/replay contract."
+    },
+    {
+      "id": "examples/assets/ConstraintHinge.blend#binary",
+      "path": "examples/assets/ConstraintHinge.blend",
+      "kind": "binary-diff",
+      "patch_sha256": "3199871ebbb39147268328d6747ad8be81c9db5dbb1d16ce57815a25638a8217",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Preserved authored fixture; requires independent export and behavior qualification."
+    },
+    {
+      "id": "examples/assets/ConstraintHinge.glb#binary",
+      "path": "examples/assets/ConstraintHinge.glb",
+      "kind": "binary-diff",
+      "patch_sha256": "00118d158fc0b6d3602e8db174f0c095e19b679b385276624e11210ea375d4e5",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Preserved generated fixture; do not land without matching authored source and fresh export evidence."
+    },
+    {
+      "id": "examples/gallery/application.cpp#h1",
+      "path": "examples/gallery/application.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -512,7 +512,8 @@ int parallel_mater_gallery_application(int argc, char **argv) {",
+      "patch_sha256": "cde4681ad59fd7a37cf6022112c11a78db895d35aa011f5762d941917bae5b5e",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Move useful history plumbing behind the common capture/replay boundary."
+    },
+    {
+      "id": "examples/gallery/application.cpp#h2",
+      "path": "examples/gallery/application.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -1072,7 +1073,7 @@ int parallel_mater_gallery_application(int argc, char **argv) {",
+      "patch_sha256": "b41e487e63bd6359a70c4849b3491546a3af75372a5c8458e60640b437587136",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Move useful history plumbing behind the common capture/replay boundary."
+    },
+    {
+      "id": "examples/gallery/application_runtime.cpp.inc#h1",
+      "path": "examples/gallery/application_runtime.cpp.inc",
+      "kind": "text-hunk",
+      "header": "@@ -5,6 +5,7 @@ struct GalleryRuntime {",
+      "patch_sha256": "1005d4319a23d54f3083843fd99098c5c7c958bf30b5d0aaf27c94f6095fb940",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Review bounded history and contact collection as common runtime policy."
+    },
+    {
+      "id": "examples/gallery/application_runtime.cpp.inc#h2",
+      "path": "examples/gallery/application_runtime.cpp.inc",
+      "kind": "text-hunk",
+      "header": "@@ -60,7 +61,16 @@ struct GalleryRuntime {",
+      "patch_sha256": "9d6b55b7a126ca848bc9858ef7d1d6d6e512f26844fc6211171f238f736e4da4",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Review bounded history and contact collection as common runtime policy."
+    },
+    {
+      "id": "examples/support/include/parallel_mater_gallery/physics_debug.hpp#h1",
+      "path": "examples/support/include/parallel_mater_gallery/physics_debug.hpp",
+      "kind": "text-hunk",
+      "header": "@@ -1,21 +1,51 @@",
+      "patch_sha256": "2df4853301fa6242c7a92158cb60f82f94537dee203fb5eeb9f729a246a969e8",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Replace Gallery-private capture types with a versioned backend-neutral contract."
+    },
+    {
+      "id": "examples/support/physics_debug.cpp#h1",
+      "path": "examples/support/physics_debug.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -5,11 +5,57 @@",
+      "patch_sha256": "3cac17558ddacc165dbeabd4e132be4e4d52ca905fb0a1b12b670bc7c0846a44",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Reimplement only after capture provenance and compatibility behavior are specified."
+    },
+    {
+      "id": "examples/support/physics_debug.cpp#h2",
+      "path": "examples/support/physics_debug.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -31,9 +77,36 @@ namespace {",
+      "patch_sha256": "dbf49f028590848c0519150be0619ecc45b2bc983cba3ffc779586dd1f2181f2",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Reimplement only after capture provenance and compatibility behavior are specified."
+    },
+    {
+      "id": "examples/support/physics_debug.cpp#h3",
+      "path": "examples/support/physics_debug.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -41,8 +114,22 @@ bool write_physics_debug_capture(const CommandSceneFrame &frame,",
+      "patch_sha256": "b506895a0c83132dc420d5ec6773cea1cb028ae049334a52028bfe8f66c445a2",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Reimplement only after capture provenance and compatibility behavior are specified."
+    },
+    {
+      "id": "examples/support/physics_debug.cpp#h4",
+      "path": "examples/support/physics_debug.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -51,27 +138,8 @@ bool write_physics_debug_capture(const CommandSceneFrame &frame,",
+      "patch_sha256": "df0c09402dd4b580bf01f898e0b42e5cec0d15752c79e8e7d85278f92088d16f",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Reimplement only after capture provenance and compatibility behavior are specified."
+    },
+    {
+      "id": "examples/support/physics_debug.cpp#h5",
+      "path": "examples/support/physics_debug.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -82,15 +150,7 @@ bool write_physics_debug_capture(const CommandSceneFrame &frame,",
+      "patch_sha256": "526c320ed5855b73e7ddfce2658977b974b4f2d7277bf8ccbddee5f046d51c5d",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Reimplement only after capture provenance and compatibility behavior are specified."
+    },
+    {
+      "id": "examples/support/physics_debug.cpp#h6",
+      "path": "examples/support/physics_debug.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -111,10 +171,11 @@ bool write_physics_debug_capture(const CommandSceneFrame &frame,",
+      "patch_sha256": "5117d037429b0467968ec4a383cd7764015b98776cb08c32e89d02f35676d511",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Reimplement only after capture provenance and compatibility behavior are specified."
+    },
+    {
+      "id": "src/simulation/runtime_deformables.cu.inc#h1",
+      "path": "src/simulation/runtime_deformables.cu.inc",
+      "kind": "text-hunk",
+      "header": "@@ -190,7 +190,7 @@ Status SimulationRuntime::add_triangle_mesh(",
+      "patch_sha256": "c034c01826a45ff29eb2e04d3b1640277240e83b44cf207b9a0fd7e94d5805a1",
+      "action": "superseded-review",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Current main already calls a later closed_shell_normals implementation; verify parity before rejecting this older hunk."
+    },
+    {
+      "id": "src/simulation/runtime_domains.cu.inc#h1",
+      "path": "src/simulation/runtime_domains.cu.inc",
+      "kind": "text-hunk",
+      "header": "@@ -1046,10 +1046,10 @@ static std::vector<CollisionPlane> closed_convex_planes(",
+      "patch_sha256": "6dbcfca9fe64921ccdcb5c45e9e0b2e7f27ea5fb7e72a739b153bbf45cc201df",
+      "action": "superseded-review",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Current main contains an expanded closed-shell classifier; compare focused cases rather than transplanting this version."
+    },
+    {
+      "id": "src/simulation/runtime_domains.cu.inc#h2",
+      "path": "src/simulation/runtime_domains.cu.inc",
+      "kind": "text-hunk",
+      "header": "@@ -1094,10 +1094,47 @@ static std::vector<Vec3> convex_shell_normals(",
+      "patch_sha256": "fb7a2570168245ea85887f7612eda8ae6309657c00bb5c4867b6ecc74f48d20e",
+      "action": "superseded-review",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Current main contains an expanded closed-shell classifier; compare focused cases rather than transplanting this version."
+    },
+    {
+      "id": "src/slang/geometry.slang#h1",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -348,7 +348,10 @@ HingeContactFrame rigid_hinge_contact_frame(",
+      "patch_sha256": "0ec293dd72d0df4fc9ab305337167f06bec2e590c69b1b10e531f1675937168a",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "src/slang/geometry.slang#h2",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -781,6 +784,21 @@ Vec3 rigid_guide_direction(Contact contact)",
+      "patch_sha256": "b4e9788f3dea1913d34f1b4796b74a3dd92a6f45a29adfc2be2c6b1a25ba27e8",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "src/slang/geometry.slang#h3",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -860,6 +878,20 @@ bool rigid_contact_reaches_rest_offset(RigidBodyState body,",
+      "patch_sha256": "72a8e07c5a75bc3e90508503cd4257b918546e6ee9e6d6aac73eea4472abdc32",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "src/slang/geometry.slang#h4",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -893,7 +925,7 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,",
+      "patch_sha256": "5a9f44ba43a5e07e5d5c8bb2c573ef9711f94eaf4b05fc354b265a05f51aa39a",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "src/slang/geometry.slang#h5",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -903,6 +935,13 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,",
+      "patch_sha256": "819279d0e96db4e67aa0aa7b08670fbcf40bbfd6f565186464791175e1a67731",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "src/slang/geometry.slang#h6",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -914,7 +953,8 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,",
+      "patch_sha256": "d076cab603d9336154d67deda124f5270283a2d608aa32b348a933c360084da3",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "src/slang/geometry.slang#h7",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -972,12 +1012,90 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,",
+      "patch_sha256": "93d77a90836a7b8c8683b76530b78b027762529a5e9a56c617a9ffcc913e8ec9",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "src/slang/geometry.slang#h8",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -989,11 +1107,17 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,",
+      "patch_sha256": "b80c50275a1c2f0d734b6baa533594fc35af761f6c10c70dc7dba8eff84776c2",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "src/slang/geometry.slang#h9",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -1006,6 +1130,12 @@ bool rigid_requires_swept_pair_contact(__constref RigidBodyState previousA,",
+      "patch_sha256": "a760c34035c523db2cfd80644d12d56b7d3440d5ee308daeee7bf43985d7849c",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "src/slang/geometry.slang#h10",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -1152,7 +1282,7 @@ bool rigid_convex_face_manifold(RigidBodyState bodyState,",
+      "patch_sha256": "c4f7415019f9d7fcbd8d6d46a36f2a2b2b46f3b81f180254b2b1d5a5552f3a6e",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "src/slang/geometry.slang#h11",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -1324,7 +1454,7 @@ void rigid_collide_triangle_ranges_swept(",
+      "patch_sha256": "5ed1cfa694dca77d7acde0183c9a74cccfb12eec0b88fabcc62aacfef581baa7",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "src/slang/geometry.slang#h12",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -1343,7 +1473,8 @@ void rigid_collide_triangle_ranges_swept(",
+      "patch_sha256": "0b89763b773e5a817d37e4a3965fe90cb703dc4648ab501363d7c07acef3e5b5",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "src/slang/geometry.slang#h13",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -1368,26 +1499,36 @@ void rigid_collide_triangle_ranges_swept(",
+      "patch_sha256": "15c29db8921aee3b9aa0ed31722076ecc71c7168d10ba1f2b2ab2426f62b2497",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "src/slang/geometry.slang#h14",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -1397,9 +1538,11 @@ void rigid_collide_triangle_ranges_swept(",
+      "patch_sha256": "961143800e6ed6fd3e4624ff8dd67a87705988e53a97edddf164dbf43471dd03",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "src/slang/geometry.slang#h15",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -1408,7 +1551,7 @@ void rigid_collide_triangle_ranges_swept(",
+      "patch_sha256": "478db18869f0a28a8e4f3c7ad439f76cb011d6d741bbafbd347ed30ea0527d5f",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "src/slang/geometry.slang#h16",
+      "path": "src/slang/geometry.slang",
+      "kind": "text-hunk",
+      "header": "@@ -1416,7 +1559,7 @@ void rigid_collide_triangle_ranges_swept(",
+      "patch_sha256": "1d9eb3fb2df2f7625aafdecad96596b521b849992199b58637049e9ec30a0319",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Adjudicate each shared-Slang contact change from a current-main failure; never copy the solver patch wholesale."
+    },
+    {
+      "id": "tests/blender/export_scene_tests.py#h1",
+      "path": "tests/blender/export_scene_tests.py",
+      "kind": "text-hunk",
+      "header": "@@ -16,6 +16,7 @@ import tempfile",
+      "patch_sha256": "7cfdc5e8fd9585ebc01693c398967bde89f5d8fadcdf1a42046771df6f5e0096",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Recreate fixture topology and closed-shell checks with the reviewed asset."
+    },
+    {
+      "id": "tests/blender/export_scene_tests.py#h2",
+      "path": "tests/blender/export_scene_tests.py",
+      "kind": "text-hunk",
+      "header": "@@ -316,7 +317,8 @@ class ExportSceneTests(unittest.TestCase):",
+      "patch_sha256": "01ee07ae06f6a9e34adc889f3a37a3491cdc2cf33fa3a37e470c5453b2324a06",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Recreate fixture topology and closed-shell checks with the reviewed asset."
+    },
+    {
+      "id": "tests/blender/export_scene_tests.py#h3",
+      "path": "tests/blender/export_scene_tests.py",
+      "kind": "text-hunk",
+      "header": "@@ -377,7 +379,7 @@ class ExportSceneTests(unittest.TestCase):",
+      "patch_sha256": "32c2bc2512054a047dadbfb9c01e7f69ed9b245a50b3d6cb475f58a3d745815f",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Recreate fixture topology and closed-shell checks with the reviewed asset."
+    },
+    {
+      "id": "tests/blender/export_scene_tests.py#h4",
+      "path": "tests/blender/export_scene_tests.py",
+      "kind": "text-hunk",
+      "header": "@@ -398,17 +400,24 @@ class ExportSceneTests(unittest.TestCase):",
+      "patch_sha256": "23c46dcd91f7bbb8853ca7fedcb1c54fa311917ebd028c2fe16da28814e4c4c9",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Recreate fixture topology and closed-shell checks with the reviewed asset."
+    },
+    {
+      "id": "tests/blender/export_scene_tests.py#h5",
+      "path": "tests/blender/export_scene_tests.py",
+      "kind": "text-hunk",
+      "header": "@@ -429,8 +438,8 @@ class ExportSceneTests(unittest.TestCase):",
+      "patch_sha256": "94499fabf96e1a43a298505c8537c596efb8bb63a094462cebeedfd186a09397",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Recreate fixture topology and closed-shell checks with the reviewed asset."
+    },
+    {
+      "id": "tests/blender/export_scene_tests.py#h6",
+      "path": "tests/blender/export_scene_tests.py",
+      "kind": "text-hunk",
+      "header": "@@ -439,6 +448,8 @@ class ExportSceneTests(unittest.TestCase):",
+      "patch_sha256": "890fc41992cb8e922c382f7cbb7f0796ca9e594a56143a95676728e79e5128d2",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Recreate fixture topology and closed-shell checks with the reviewed asset."
+    },
+    {
+      "id": "tests/blender/export_scene_tests.py#h7",
+      "path": "tests/blender/export_scene_tests.py",
+      "kind": "text-hunk",
+      "header": "@@ -598,6 +609,21 @@ class ExportSceneTests(unittest.TestCase):",
+      "patch_sha256": "f0870aabdf89d7af62cfc0c03dd68d42e9089980950d040969fa781bb037f1bd",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Recreate fixture topology and closed-shell checks with the reviewed asset."
+    },
+    {
+      "id": "tests/gallery/physics_debug_tests.cpp#h1",
+      "path": "tests/gallery/physics_debug_tests.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -23,6 +23,25 @@ int main() try {",
+      "patch_sha256": "255bb7bf9bfed9f7f4dddbace7a98222e2e3d093b8884c6f4c2447e5fa288ed1",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Adapt the history checks to the versioned common capture/replay contract."
+    },
+    {
+      "id": "tests/gallery/physics_debug_tests.cpp#h2",
+      "path": "tests/gallery/physics_debug_tests.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -30,9 +49,8 @@ int main() try {",
+      "patch_sha256": "f99eac7650d7d85907fb18042be57edcdf0dad928137f967a685e93c197a0f76",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Adapt the history checks to the versioned common capture/replay contract."
+    },
+    {
+      "id": "tests/gallery/physics_debug_tests.cpp#h3",
+      "path": "tests/gallery/physics_debug_tests.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -40,7 +58,7 @@ int main() try {",
+      "patch_sha256": "ebeef1b4c5ad37d6a1a2f50f823e6df7a218d28f3d83da98a621c29474e53de6",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Adapt the history checks to the versioned common capture/replay contract."
+    },
+    {
+      "id": "tests/gallery/physics_debug_tests.cpp#h4",
+      "path": "tests/gallery/physics_debug_tests.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -50,6 +68,19 @@ int main() try {",
+      "patch_sha256": "49ff51a559866bb9cd6ed22ee6fd30b1aed186bcf4db8eba52b3ce15264f7539",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Adapt the history checks to the versioned common capture/replay contract."
+    },
+    {
+      "id": "tests/gallery/rigid_constraint_command_tests.cpp#h1",
+      "path": "tests/gallery/rigid_constraint_command_tests.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -1,7 +1,10 @@",
+      "patch_sha256": "f084e62180a1c31a4d9528f0af345f5dd1988ebfe4ac89da661ca5c932999db7",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09",
+        "F6-10"
+      ],
+      "reason": "Split this mixed scenario hunk across the listed fixture, replay and solver reviews; no direct transplant."
+    },
+    {
+      "id": "tests/gallery/rigid_constraint_command_tests.cpp#h2",
+      "path": "tests/gallery/rigid_constraint_command_tests.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -110,13 +113,19 @@ void check(bool condition, const char *message) {",
+      "patch_sha256": "ed2029b05bf02cb7d8b101bada81cd2b8517d443793b32b7630a0329fdc80551",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Split this mixed scenario hunk across the listed fixture, replay and solver reviews; no direct transplant."
+    },
+    {
+      "id": "tests/gallery/rigid_constraint_command_tests.cpp#h3",
+      "path": "tests/gallery/rigid_constraint_command_tests.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -144,8 +153,23 @@ int main() try {",
+      "patch_sha256": "4da1d81113f850d66d077afa0f375389161fa77512ce9ffbd19ea0b904381d58",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09"
+      ],
+      "reason": "Split this mixed scenario hunk across the listed fixture, replay and solver reviews; no direct transplant."
+    },
+    {
+      "id": "tests/gallery/rigid_constraint_command_tests.cpp#h4",
+      "path": "tests/gallery/rigid_constraint_command_tests.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -171,10 +195,18 @@ int main() try {",
+      "patch_sha256": "1c1bf138e09f767a75e77d7b9f6140d123d3a76bdac961c642331684f5fd8c37",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09",
+        "F6-10"
+      ],
+      "reason": "Split this mixed scenario hunk across the listed fixture, replay and solver reviews; no direct transplant."
+    },
+    {
+      "id": "tests/gallery/rigid_constraint_command_tests.cpp#h5",
+      "path": "tests/gallery/rigid_constraint_command_tests.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -192,17 +224,77 @@ int main() try {",
+      "patch_sha256": "e20d3a7ef919b5dbc438f9b03a8c01e5be41d0e0fafdbc00087f329b65cfca43",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09",
+        "F6-10",
+        "F6-11"
+      ],
+      "reason": "Split this mixed scenario hunk across the listed fixture, replay and solver reviews; no direct transplant."
+    },
+    {
+      "id": "tests/gallery/rigid_constraint_command_tests.cpp#h6",
+      "path": "tests/gallery/rigid_constraint_command_tests.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -241,14 +333,32 @@ int main() try {",
+      "patch_sha256": "7a33cf5d839593444001f722ea47dadb2da1c13cf439000b6c736cd398439f48",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09",
+        "F6-11"
+      ],
+      "reason": "Split this mixed scenario hunk across the listed fixture, replay and solver reviews; no direct transplant."
+    },
+    {
+      "id": "tests/gallery/rigid_constraint_command_tests.cpp#h7",
+      "path": "tests/gallery/rigid_constraint_command_tests.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -262,9 +372,17 @@ int main() try {",
+      "patch_sha256": "3b52754c19b52d2ad1fd9b15cbe13451b06c9e86a5c4bc9a99eeb8339b6c95c1",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-11"
+      ],
+      "reason": "Split this mixed scenario hunk across the listed fixture, replay and solver reviews; no direct transplant."
+    },
+    {
+      "id": "tests/gallery/rigid_constraint_command_tests.cpp#h8",
+      "path": "tests/gallery/rigid_constraint_command_tests.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -273,8 +391,15 @@ int main() try {",
+      "patch_sha256": "d5cebdc7f1c6dcfc24010703e89883c6e9bacd34d2fb6b3eadcbf2b0294edea1",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09",
+        "F6-10",
+        "F6-11"
+      ],
+      "reason": "Split this mixed scenario hunk across the listed fixture, replay and solver reviews; no direct transplant."
+    },
+    {
+      "id": "tests/gallery/rigid_constraint_command_tests.cpp#h9",
+      "path": "tests/gallery/rigid_constraint_command_tests.cpp",
+      "kind": "text-hunk",
+      "header": "@@ -286,10 +411,25 @@ int main() try {",
+      "patch_sha256": "d5c9eb6f23f7fa25a07a877e3c84dace0bbdcfe7a9afe5213110214b7b769440",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09",
+        "F6-10",
+        "F6-11"
+      ],
+      "reason": "Split this mixed scenario hunk across the listed fixture, replay and solver reviews; no direct transplant."
+    },
+    {
+      "id": "tests/gallery/rigid_mesh_checks.hpp#h1",
+      "path": "tests/gallery/rigid_mesh_checks.hpp",
+      "kind": "text-hunk",
+      "header": "@@ -84,6 +84,18 @@ class MeshSamples {",
+      "patch_sha256": "1eb72e0afb3bf04772d7b8a4da3ebd059f740c892b2658ea6adc3b3373b2f308",
+      "action": "candidate",
+      "follow_up_tasks": [
+        "F6-09",
+        "F6-11"
+      ],
+      "reason": "Retain projected-bounds checks only where the fixture or solver reproduction requires them."
+    },
+    {
+      "id": "tests/gallery/hinge_top_capture.hpp#untracked",
+      "path": "tests/gallery/hinge_top_capture.hpp",
+      "kind": "untracked-file",
+      "content_sha256": "ade073e0efed54b75b520b77263530e454f738ae1938e4fe9eb1037db1841328",
+      "action": "preserved-reproduction",
+      "follow_up_tasks": [
+        "F6-10"
+      ],
+      "reason": "Keep as immutable raw input; the production replay schema must carry equivalent provenance and state."
+    }
+  ]
+}
