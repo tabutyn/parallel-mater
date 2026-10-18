@@ -118,19 +118,7 @@ class RendererHandle {
     }
 
   private:
-    friend bool create_renderer(const SceneDefinition &,
-                                const CommandSceneInstance &,
-                                std::uint32_t, std::uint32_t,
-                                RendererHandle &, std::string &);
     std::unique_ptr<Renderer> implementation_;
 };
-
-// Implemented by the renderer adapter selected by the gallery target.
-[[nodiscard]] bool create_renderer(const SceneDefinition &scene,
-                                   const CommandSceneInstance &instance,
-                                   std::uint32_t width,
-                                   std::uint32_t height,
-                                   RendererHandle &output,
-                                   std::string &error);
 
 } // namespace parallel_mater::gallery

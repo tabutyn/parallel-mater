@@ -117,8 +117,9 @@ bool GalleryRuntime::replace(GalleryRuntimeCreateInfo info,
     }
     next.lifetime_ = std::make_unique<LifetimeToken>();
     if (info.create_host_renderer &&
-        !create_renderer(next.scene, next.instance, info.width, info.height,
-                         next.renderer, error)) {
+        !RendererAdapterFactory::create_host(
+            next.scene, next.instance, info.width, info.height,
+            next.renderer, error)) {
         error = "renderer creation failed: " + error;
         retain_retry();
         return false;

@@ -31,9 +31,10 @@ add_custom_command(OUTPUT "${pm_gallery_shader_dir}/gallery_shaders.hpp"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/EmbedGalleryShaders.cmake"
     DEPENDS "${pm_gallery_shader_dir}/vertex.dxil" "${pm_gallery_shader_dir}/fragment.dxil" ${pm_surface_dxil}
         cmake/EmbedGalleryShaders.cmake VERBATIM)
-target_sources(parallel-mater-gallery-renderer PRIVATE
+target_sources(parallel-mater-gallery-renderer-adapters PRIVATE
     examples/support/d3d12_renderer.cpp "${pm_gallery_shader_dir}/gallery_shaders.hpp")
-target_include_directories(parallel-mater-gallery-renderer PRIVATE "${pm_gallery_shader_dir}")
-target_compile_definitions(parallel-mater-gallery-renderer PRIVATE
-    PARALLEL_MATER_GALLERY_D3D12_RENDERER=1 NOMINMAX WIN32_LEAN_AND_MEAN)
-target_link_libraries(parallel-mater-gallery-renderer PRIVATE d3d12 dxgi)
+target_include_directories(parallel-mater-gallery-renderer-adapters PRIVATE
+    "${pm_gallery_shader_dir}")
+target_compile_definitions(parallel-mater-gallery-renderer-adapters PRIVATE
+    PM_GALLERY_HOST_RENDERER_D3D12=1 NOMINMAX WIN32_LEAN_AND_MEAN)
+target_link_libraries(parallel-mater-gallery-renderer-adapters PRIVATE d3d12 dxgi)

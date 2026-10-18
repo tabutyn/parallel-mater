@@ -168,9 +168,4 @@ class GpuGalleryRenderer {
     virtual void detach_target() noexcept {}
 };
 
-// Implemented by the native graphics adapter selected by the Gallery target.
-[[nodiscard]] std::unique_ptr<GpuGalleryRenderer> create_gpu_gallery_renderer(
-    GpuRendererDevice device, const SceneDefinition &scene,
-    const CommandSceneInstance &instance, std::string &error);
-
 } // namespace parallel_mater::gallery

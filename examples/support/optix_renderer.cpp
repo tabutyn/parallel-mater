@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-#include <parallel_mater_gallery/optix_renderer.hpp>
+#include "optix_renderer.hpp"
 #include <render/render_scene.hpp>
 #include <scene_builder.hpp>
 
+#include "renderer_backends.hpp"
 #include "renderer_shared.hpp"
 #include "fluid_surface.hpp"
 #include "foam_visuals.hpp"
@@ -1173,33 +1174,14 @@ bool OptixRenderer::create(const SceneDefinition &scene,
     }
 }
 
-#if defined(_WIN32) && defined(PARALLEL_MATER_GALLERY_D3D12_RENDERER)
-// Implemented by the thin graphics adapter; no CUDA allocation is involved.
-std::unique_ptr<Renderer> create_d3d12_renderer(const SceneDefinition &, const GpuSceneBuffers &,
-    std::uint32_t, std::uint32_t, std::string &);
-#endif
-
-bool create_renderer(const SceneDefinition &scene,
-                     const CommandSceneInstance &instance,
-                     std::uint32_t width, std::uint32_t height,
-                     RendererHandle &output, std::string &error) {
-#if defined(_WIN32) && defined(PARALLEL_MATER_GALLERY_D3D12_RENDERER)
-    PmNativeDeviceInfo native{};
-    if (instance.render_buffers.device &&
-        pmGetNativeDevice(instance.render_buffers.device, &native) == PM_SUCCESS &&
-        native.backend == PM_NATIVE_BACKEND_D3D12) {
-        auto renderer = create_d3d12_renderer(scene, instance.render_buffers, width, height, error);
-        if (!renderer) return false;
-        output = RendererHandle(std::move(renderer));
-        return true;
-    }
-#endif
+std::unique_ptr<Renderer> create_optix_renderer(
+    const SceneDefinition &scene, const CommandSceneInstance &instance,
+    std::uint32_t width, std::uint32_t height, std::string &error) {
     auto renderer = std::make_unique<OptixRenderer>();
     if (!OptixRenderer::create(scene, instance, PARALLEL_MATER_OPTIX_PTX_PATH,
                                width, height, *renderer, error))
-        return false;
-    output.implementation_ = std::move(renderer);
-    return true;
+        return {};
+    return renderer;
 }
 
 bool OptixRenderer::render(const RenderSceneFrame &frame,

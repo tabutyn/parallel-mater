@@ -2,7 +2,7 @@
 #include "support.hpp"
 
 #include <parallel_mater_gallery/gallery_context.hpp>
-#include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/renderer_adapter.hpp>
 #include <render/render_scene.hpp>
 #include <scene_builder.hpp>
 
@@ -56,7 +56,8 @@ int main(int argc, char **argv) {
     // 960x720 render/readback; window upload/presentation is excluded.
     if (!load_glb_scene(argv[1], scene, error) ||
         !CommandScene::create(scene, 30U, simulation, instance, error) ||
-        !create_renderer(scene, instance, 960U, 720U, renderer, error)) {
+        !RendererAdapterFactory::create_host(
+            scene, instance, 960U, 720U, renderer, error)) {
         std::cerr << error << '\n';
         return 1;
     }

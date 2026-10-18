@@ -16,9 +16,6 @@
 #include <parallel_mater_gallery/scene.hpp>
 #include <parallel_mater_gallery/surface_query.hpp>
 #include <parallel_mater_gallery/window.hpp>
-#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
-#include <parallel_mater_gallery/gpu_renderer.hpp>
-#endif
 #include "scene_builder.hpp"
 #include "render/render_scene.hpp"
 

@@ -55,19 +55,14 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     set_source_files_properties(${pm_vulkan_gallery_renderer_source} PROPERTIES
         COMPILE_OPTIONS -Wno-missing-field-initializers)
 endif()
-target_sources(parallel-mater-gallery-session PRIVATE
+target_sources(parallel-mater-gallery-renderer-adapters PRIVATE
     ${pm_vulkan_gallery_renderer_source}
     "${pm_vulkan_gallery_header}")
-target_include_directories(parallel-mater-gallery-session PRIVATE
+target_include_directories(parallel-mater-gallery-renderer-adapters PRIVATE
     "${pm_vulkan_gallery_shader_dir}")
-target_compile_definitions(parallel-mater-gallery-session PRIVATE
-    PM_GALLERY_NATIVE_GPU_RENDERER=1 PM_GALLERY_VULKAN_RENDERER=1)
-target_link_libraries(parallel-mater-gallery-session PRIVATE Vulkan::Vulkan)
-
-if(TARGET parallel-mater-gallery-application)
-    target_compile_definitions(parallel-mater-gallery-application PRIVATE
-        PM_GALLERY_NATIVE_GPU_RENDERER=1)
-endif()
+target_compile_definitions(parallel-mater-gallery-renderer-adapters PRIVATE
+    PM_GALLERY_NATIVE_RENDERER_VULKAN=1 PM_GALLERY_VULKAN_RENDERER=1)
+target_link_libraries(parallel-mater-gallery-renderer-adapters PRIVATE Vulkan::Vulkan)
 if(TARGET parallel-mater-gallery-window)
     target_compile_definitions(parallel-mater-gallery-window PRIVATE
         PM_GALLERY_VULKAN_WINDOW=1)
