@@ -1,7 +1,7 @@
 {
   "id": "F6-08",
   "title": "Retire reconciled old worktrees",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F6-06",
     "F6-07",
@@ -21,6 +21,14 @@
     "Active build rules, launchers and toolchains contain no retired paths."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "81a04807-a30e-4b4e-b248-ca0a90645a0c",
+    "owner": "codex-linux-cleanup",
+    "machine": "thomas-laptop",
+    "branch": "work/F6-08/thomas-laptop",
+    "claimed_at": "2026-10-18T20:20:49Z",
+    "heartbeat_at": "2026-10-18T20:20:49Z",
+    "expires_at": "2026-10-19T20:20:49Z"
+  },
   "history": []
 }

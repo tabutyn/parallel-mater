@@ -213,7 +213,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F6-05](roadmap/tasks/F6-05.json) | Regenerate and verify release reference artifacts | done | F3-06 | — |
 | [F6-06](roadmap/tasks/F6-06.json) | Reconcile legacy launcher and branding patches | done | — | — |
 | [F6-07](roadmap/tasks/F6-07.json) | Reconcile legacy hinge and contact patches | done | — | — |
-| [F6-08](roadmap/tasks/F6-08.json) | Retire reconciled old worktrees | ready | F6-06, F6-07, F6-09, F6-10, F6-11 | — |
+| [F6-08](roadmap/tasks/F6-08.json) | Retire reconciled old worktrees | leased | F6-06, F6-07, F6-09, F6-10, F6-11 | codex-linux-cleanup / thomas-laptop / 2026-10-19T20:20:49Z |
 | [F6-09](roadmap/tasks/F6-09.json) | Qualify the retained hinge fixture candidate | done | F6-07 | — |
 | [F6-10](roadmap/tasks/F6-10.json) | Productize physics capture and substep replay | done | F6-07 | — |
 | [F6-11](roadmap/tasks/F6-11.json) | Adjudicate the retained rigid contact patch | done | F6-09, F6-10 | — |
