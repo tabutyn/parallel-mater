@@ -10,10 +10,13 @@ software renderer. This is not yet native GPU-renderer interoperability.
 An explicit `-PphysicsBackend=cpu` build retains the experimental Slang CPU
 preview. There is no silent CPU fallback when the Vulkan driver is unavailable.
 
-Available scenes: Rigid Body, Fixed/Collector, Point/Celestial, Hinge/Slider,
-Piston, Generic, Fluid, and Fluid + Rigid. Cloth, rope, soft bodies, smoke, and
-their couplings are not exposed by this preview. Their presence in the shared
-asset catalog does not imply runtime support.
+The picker always shows the common 28-scene catalog and annotates unsupported
+records with the exact missing backend feature. The current Vulkan driver
+advertises the first 15 records: rigid bodies and constraints, Dump, Fluid,
+Fluid + Rigid, Peg Paint, Cloth, Cloth Tear, Cloth Paint, and Water Cloth. Rope,
+soft bodies, smoke, and their couplings remain unavailable. The new cloth set
+has desktop Vulkan evidence; Pixel qualification remains a separate roadmap
+gate.
 
 ## Device workload resource
 
@@ -39,9 +42,11 @@ samples the authored initial population down to capacity, and emitters retain
 that capacity. Lower counts change the physical amount and sampling of liquid;
 this is not a quality-equivalent benchmark against the full desktop workload.
 Solver timestep, material parameters and contact iteration quality are retained.
-One update advances 1/target_fps seconds with approximately 240 substeps/second;
-if execution is slower than the target, simulation slows rather than skipping
-physics or allowing unbounded queued frames.
+The common Gallery clock advances fixed 1/target_fps steps with approximately
+240 solver substeps/second. Slow display frames may catch up by at most four
+steps and only within the shared 8 ms physics-work budget; excess whole steps
+are discarded so rendering and input cannot accumulate an unbounded queue.
+Pause, backgrounding, surface loss, and profile changes reset elapsed time.
 
 ## Build and install
 
@@ -122,7 +127,7 @@ Logs and results are saved in ignored `out/android/native-vulkan-tests/`.
 These tests enable the Parallel Mater command validation layer; they do not
 implicitly install or enable the Khronos Vulkan validation layer.
 
-Debug APKs accept `pm_scene` (0–7) and `pm_action` (`reset`, `pause`, `resume`,
+Debug APKs accept `pm_scene` (0–27) and `pm_action` (`reset`, `pause`, `resume`,
 `focus`, `info`) extras for repeatable UI testing. Release builds ignore them.
 They invoke the same worker commands as the visible controls:
 
@@ -151,13 +156,15 @@ the failure. Ordering acyclic pointer types before use resolves it without
 changing physics instructions or memory layouts; see the
 [Vulkan workaround](../../docs/VULKAN.md#mali-pointer-declaration-workaround).
 
-With normalized shaders, Pixel 7 now passes all three native suites: command/API,
-asynchronous submission, and analytic liquid free fall plus bounded Fluid and
-FluidRigid scenes/reset. All six modules pass SPIR-V validation. All eight mobile
-scenes now complete short Vulkan rendering/frame checks, and scene replacement
-releases the old GPU simulation first to avoid overlapping memory footprints.
-Performance remains below target; see the [qualification record](../../docs/ANDROID-QUALIFICATION.md)
-for scene timings, memory observations and remaining gates.
+With normalized shaders, Pixel 7 passes the earlier three native suites:
+command/API, asynchronous submission, and analytic liquid free fall plus bounded
+Fluid and FluidRigid scenes/reset. That run covered six modules and eight scenes.
+The driver now builds nine modules and advertises cloth, paint, and liquid–cloth
+coupling after desktop qualification. The expanded set still needs the F7-18
+Pixel run. Scene replacement releases the old GPU simulation first to avoid
+overlapping memory footprints. Performance remains below target; see the
+[qualification record](../../docs/ANDROID-QUALIFICATION.md) for prior scene
+timings, memory observations and remaining gates.
 
 ## Earlier CPU validation
 

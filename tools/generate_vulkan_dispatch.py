@@ -85,7 +85,15 @@ def generate(args):
                         # exact immutable mesh table with its explicit body count.
                         body, count = 'nullptr', '0U'
                     if not body or not count: raise ValueError(name + ': mesh bounds missing')
-                    value = f'execution->translated_meshes({variable}, {body}, {count}, {lookup.get("mesh_capacity", "0U")})'
+                    paint_fields = lookup.get('paint_fields')
+                    paint_capacity = lookup.get('field_capacity', lookup.get('paint_field_capacity'))
+                    paint_arguments = (f', {paint_fields}, {paint_capacity}'
+                                       if paint_fields and paint_capacity else '')
+                    value = f'execution->translated_meshes({variable}, {body}, {count}, {lookup.get("mesh_capacity", "0U")}{paint_arguments})'
+                elif pointee == 'PaintFieldResource':
+                    count = lookup.get('field_capacity', lookup.get('paint_field_capacity'))
+                    if not count: raise ValueError(name + ': paint field bounds missing')
+                    value = f'execution->translated_paint_fields({variable}, {count})'
                 else: value = f'execution->address({variable})'
             elif typ.get('scalarType') == 'bool': value = f'std::uint32_t({variable})'
             else:

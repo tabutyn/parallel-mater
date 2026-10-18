@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/session.hpp>
 
+#include <algorithm>
+#include <chrono>
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
@@ -104,6 +106,62 @@ int main() {
             require(session.selection() == selected && session.frames == 0U &&
                         !session.timing.latest(),
                     "Reset changed selection or retained frame state");
+
+            // Real platform adapters pass monotonic timestamps. The first
+            // timestamp establishes a baseline; only elapsed fixed intervals
+            // become submissions, and pause time is never caught up.
+            using FrameClock = gallery::GallerySession::FrameClock;
+            auto timestamp = FrameClock::time_point{};
+            const auto interval = std::chrono::duration_cast<FrameClock::duration>(
+                std::chrono::duration<double>(
+                    1.0 / static_cast<double>(session.limits.target_fps)));
+            session.frame_at(timestamp);
+            require(session.frames == 0U && session.timing.latest() &&
+                        session.timing.latest()->physics_steps == 0U,
+                    "Timestamp baseline advanced physics");
+            timestamp += interval;
+            session.frame_at(timestamp);
+            require(session.frames == 1U &&
+                        session.timing.latest()->physics_steps == 1U,
+                    "Timestamp interval did not advance physics");
+            session.set_paused(true);
+            timestamp += std::chrono::seconds(10);
+            session.frame_at(timestamp);
+            require(session.frames == 1U &&
+                        session.timing.latest()->physics_steps == 0U,
+                    "Timestamp trace caught up paused time");
+            session.set_paused(false);
+            timestamp += std::chrono::seconds(10);
+            session.frame_at(timestamp);
+            require(session.frames == 1U,
+                    "Resume timestamp caught up paused time");
+            timestamp += interval;
+            session.frame_at(timestamp);
+            require(session.frames == 2U,
+                    "Resumed timestamp trace did not advance");
+
+            if (session.backend_name() == "vulkan") {
+                for (const gallery::GalleryContext context : {
+                         gallery::GalleryContext::cloth,
+                         gallery::GalleryContext::cloth_tear,
+                         gallery::GalleryContext::cloth_paint,
+                         gallery::GalleryContext::water_cloth}) {
+                    const auto item = std::find_if(
+                        session.catalog().begin(), session.catalog().end(),
+                        [context](const auto &candidate) {
+                            return candidate.scene.context == context;
+                        });
+                    require(item != session.catalog().end() && item->available,
+                            "Vulkan cloth scene was not advertised");
+                    session.select(static_cast<unsigned>(
+                        item - session.catalog().begin()));
+                    (void)session.qualify(3U);
+                    require(session.ready() && session.selection() ==
+                                static_cast<unsigned>(
+                                    item - session.catalog().begin()),
+                            "Vulkan cloth qualification lost its scene");
+                }
+            }
 
             std::cout << "Gallery session contract passed on "
                       << session.backend_name() << '\n';

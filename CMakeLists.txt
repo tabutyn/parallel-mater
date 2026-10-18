@@ -201,9 +201,10 @@ if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_D3D12 OR PARALLEL_MATER_BUI
 endif()
 
 if(PARALLEL_MATER_BUILD_GALLERY OR BUILD_TESTING)
-    # One portable wall-clock collector and CSV serializer for all Gallery paths.
+    # One portable clock policy, wall-time collector, and CSV serializer.
     add_library(parallel-mater-gallery-frame-timing STATIC
-        examples/support/frame_timing.cpp)
+        examples/support/frame_timing.cpp
+        examples/support/frame_policy.cpp)
     target_compile_features(parallel-mater-gallery-frame-timing PUBLIC cxx_std_20)
     set_target_properties(parallel-mater-gallery-frame-timing PROPERTIES POSITION_INDEPENDENT_CODE YES)
     target_include_directories(parallel-mater-gallery-frame-timing
@@ -1241,7 +1242,25 @@ if(BUILD_TESTING)
                 LABELS "gallery;runtime;contract" TIMEOUT 120
                 SKIP_RETURN_CODE 77
                 ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/${gallery_session_test_manifest};PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+            if(gallery_session_test_backend STREQUAL "vulkan")
+                set_tests_properties(parallel-mater-gallery-session-contract-tests
+                    PROPERTIES TIMEOUT 600 RUN_SERIAL TRUE)
+            endif()
         endif()
+    endif()
+    if(TARGET parallel-mater-command-gallery-tests AND
+       TARGET parallel-mater-driver-slang-vulkan)
+        add_dependencies(parallel-mater-command-gallery-tests
+                         parallel-mater-driver-slang-vulkan)
+        foreach(scene Cloth ClothTear ClothPaint ClothWater)
+            add_test(NAME parallel-mater-vulkan-gallery-${scene}
+                COMMAND parallel-mater-command-gallery-tests --backend vulkan
+                    --scene ${scene}.glb --frames 120)
+            set_tests_properties(parallel-mater-vulkan-gallery-${scene} PROPERTIES
+                LABELS "api;gallery;vulkan;cloth" SKIP_RETURN_CODE 77 TIMEOUT 300
+                RUN_SERIAL TRUE
+                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+        endforeach()
     endif()
     if(PARALLEL_MATER_BUILD_GALLERY AND PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER AND
        PARALLEL_MATER_SLANG_CPU_LIQUIDS)
@@ -1312,6 +1331,14 @@ if(BUILD_TESTING)
         PRIVATE include examples/support/include)
     add_test(NAME parallel-mater-physics-frame-budget-tests
         COMMAND parallel-mater-physics-frame-budget-tests)
+
+    add_executable(parallel-mater-gallery-frame-policy-tests
+        tests/gallery/frame_policy_tests.cpp)
+    target_link_libraries(parallel-mater-gallery-frame-policy-tests PRIVATE
+        parallel-mater-gallery-frame-timing)
+    parallel_mater_enable_warnings(parallel-mater-gallery-frame-policy-tests)
+    add_test(NAME parallel-mater-gallery-frame-policy-tests
+        COMMAND parallel-mater-gallery-frame-policy-tests)
 
     add_executable(parallel-mater-gallery-registry-tests
         tests/gallery/gallery_registry_contract_tests.cpp)

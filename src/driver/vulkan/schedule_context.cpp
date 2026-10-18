@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "schedule_context.hpp"
 #include "simulation/geometry_storage.hpp"
+#include "simulation/paint_storage.hpp"
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -139,6 +140,7 @@ struct ScheduleContext::Impl {
     std::vector<Buffer> temporary;
     std::map<const void *, std::pair<std::uint32_t, VkDeviceAddress>> meshes;
     std::map<const void *, std::uint32_t> mesh_capacities;
+    std::map<const void *, std::pair<std::uint32_t, VkDeviceAddress>> paint_fields;
     Buffer globals{};
     std::uint32_t global_offset{};
     std::uint32_t global_stride{256};
@@ -341,6 +343,7 @@ struct ScheduleContext::Impl {
             destroy(b);
         temporary.clear();
         meshes.clear();
+        paint_fields.clear();
         global_offset = 0;
         VkCommandBufferBeginInfo info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
         info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -520,7 +523,9 @@ std::uint64_t ScheduleContext::address(const void *pointer) noexcept {
 std::uint64_t ScheduleContext::translated_meshes(const void *pointer,
                                                  const void *parameters,
                                                  std::uint32_t count,
-                                                 std::uint32_t capacity) noexcept {
+                                                 std::uint32_t capacity,
+                                                 const void *paint_fields,
+                                                 std::uint32_t paint_field_capacity) noexcept {
     std::lock_guard lock(impl_->mutex);
     if (!pointer)
         return 0;
@@ -538,6 +543,16 @@ std::uint64_t ScheduleContext::translated_meshes(const void *pointer,
             throw std::runtime_error("mesh body range");
         for (std::uint32_t n = 0; n < count; ++n)
             capacity = std::max(capacity, bodies[n].mesh.index + 1);
+        using Field = simulation::PaintFieldResource;
+        const auto *fields = static_cast<const Field *>(paint_fields);
+        if (paint_field_capacity &&
+            (!fields || !i.find(fields, std::size_t(paint_field_capacity) *
+                                     sizeof(*fields))))
+            throw std::runtime_error("mesh paint field range");
+        for (std::uint32_t n = 0; n < paint_field_capacity; ++n)
+            if (fields[n].alive && fields[n].options.mesh.generation != 0U)
+                capacity = std::max(capacity,
+                                    fields[n].options.mesh.index + 1U);
         capacity = std::max(1U, capacity);
         i.mesh_capacities[pointer] = capacity;
         auto found = i.meshes.find(pointer);
@@ -568,6 +583,45 @@ std::uint64_t ScheduleContext::translated_meshes(const void *pointer,
                 reinterpret_cast<decltype(m.shell_normals)>(address(m.shell_normals));
         }
         i.meshes[pointer] = {capacity, b.address};
+        return b.address;
+    } catch (...) {
+        impl_->last_error = cudaErrorInvalidValue;
+        return 0;
+    }
+}
+std::uint64_t ScheduleContext::translated_paint_fields(
+    const void *pointer, std::uint32_t capacity) noexcept {
+    std::lock_guard lock(impl_->mutex);
+    if (!pointer || capacity == 0U)
+        return 0;
+    try {
+        auto &i = *impl_;
+        i.begin();
+        auto found = i.paint_fields.find(pointer);
+        if (found != i.paint_fields.end() && found->second.first >= capacity)
+            return found->second.second;
+        using Field = simulation::PaintFieldResource;
+        if (!i.find(pointer, std::size_t(capacity) * sizeof(Field)))
+            throw std::runtime_error("paint field range");
+        auto b = i.make_buffer(std::size_t(capacity) * sizeof(Field));
+        try {
+            i.temporary.push_back(b);
+        } catch (...) {
+            i.destroy(b);
+            throw;
+        }
+        auto *target = static_cast<Field *>(b.host);
+        std::memcpy(target, pointer, b.size);
+        for (std::uint32_t n = 0; n < capacity; ++n) {
+            auto &field = target[n];
+            field.options.vertex_uvs.data =
+                reinterpret_cast<decltype(field.options.vertex_uvs.data)>(
+                    address(field.options.vertex_uvs.data));
+            field.uvs = reinterpret_cast<decltype(field.uvs)>(address(field.uvs));
+            field.pixels =
+                reinterpret_cast<decltype(field.pixels)>(address(field.pixels));
+        }
+        i.paint_fields[pointer] = {capacity, b.address};
         return b.address;
     } catch (...) {
         impl_->last_error = cudaErrorInvalidValue;
