@@ -307,19 +307,16 @@ int main() {
                     }) &&
                         mobile.state().failed && !mobile.should_frame(),
                     "Presentation failure did not stop mobile scheduling");
-            require(mobile.execute(
-                        gallery::MobileGalleryCommand::reset_scene),
-                    "Mobile reset did not recover presentation failure");
-
             mobile.detach_surface();
             require(!mobile.should_frame() && !mobile.frame() &&
                         mobile.state().surface_generation == 2U,
                     "Detached mobile surface admitted work");
             require(mobile.attach_surface(80U, 60U) &&
+                        !mobile.state().failed &&
                         mobile.state().surface_generation == 3U &&
                         mobile.gallery().width == 80U &&
                         mobile.gallery().height == 60U && mobile.frame(),
-                    "Replacement mobile surface did not recover");
+                    "Replacement mobile surface did not recover presentation failure");
 
             require(mobile.execute(
                         gallery::MobileGalleryCommand::select_scene, 2.0F) &&

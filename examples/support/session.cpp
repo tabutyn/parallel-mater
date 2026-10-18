@@ -390,7 +390,16 @@ void GallerySession::frame_at(
             if (runtime_.native_renderer) {
                 pixels.clear();
                 GpuRenderTarget target = render_target_;
-                if (diagnostics_) target.handle = 0U;
+                if (diagnostics_) {
+                    // Qualification may reset the scene several times. Each
+                    // reset can replace the native device, while a platform
+                    // presentation target remains tied to the retired device.
+                    // Request a renderer-owned target and let the current
+                    // public interop device fill these fields.
+                    target.backend = static_cast<PmNativeBackend>(0);
+                    target.device = 0U;
+                    target.handle = 0U;
+                }
                 require(render_native(target, {},
                     diagnostics_ ? &pixels : nullptr, error), error);
             } else

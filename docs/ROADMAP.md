@@ -229,7 +229,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-13](roadmap/tasks/F7-13.json) | Enable Vulkan smoke Gallery domains | ready | F7-03 | — |
 | [F7-14](roadmap/tasks/F7-14.json) | Enable Vulkan cross-deformable Gallery couplings | waiting on dependencies | F7-10, F7-11, F7-12, F7-13 | — |
 | [F7-15](roadmap/tasks/F7-15.json) | Expose capability-driven Android catalog | done | F7-02, F7-07 | — |
-| [F7-16](roadmap/tasks/F7-16.json) | Use native Vulkan rendering on Android | leased | F7-07, F7-09 | codex-linux-gallery / thomas-laptop / 2026-10-18T15:43:21Z |
+| [F7-16](roadmap/tasks/F7-16.json) | Use native Vulkan rendering on Android | done | F7-07, F7-09 | — |
 | [F7-17](roadmap/tasks/F7-17.json) | Complete Android Gallery controls and help | leased | F7-04, F7-07, F7-15, F7-20, F7-21 | codex-windows-sdk / windows-gtx1080 / 2026-10-19T13:00:32Z |
 | [F7-18](roadmap/tasks/F7-18.json) | Qualify complete Android Gallery | waiting on dependencies | F5-15, F7-05, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17, F7-22 | — |
 | [F7-19](roadmap/tasks/F7-19.json) | Close common Gallery runtime boundary | done | F7-06, F7-08 | — |
