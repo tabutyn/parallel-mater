@@ -222,7 +222,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-08](roadmap/tasks/F7-08.json) | Define common Gallery GPU renderer contract | done | F7-01 | — |
 | [F7-09](roadmap/tasks/F7-09.json) | Implement native Vulkan Gallery rendering | done | F7-08 | — |
 | [F7-10](roadmap/tasks/F7-10.json) | Enable Vulkan cloth Gallery domains | done | F7-03 | — |
-| [F7-11](roadmap/tasks/F7-11.json) | Enable Vulkan soft-body Gallery domains | ready | F7-03 | — |
+| [F7-11](roadmap/tasks/F7-11.json) | Enable Vulkan soft-body Gallery domains | leased | F7-03 | codex-linux-gallery / thomas-laptop / 2026-10-19T04:29:18Z |
 | [F7-12](roadmap/tasks/F7-12.json) | Enable Vulkan rope Gallery domains | ready | F7-03 | — |
 | [F7-13](roadmap/tasks/F7-13.json) | Enable Vulkan smoke Gallery domains | ready | F7-03 | — |
 | [F7-14](roadmap/tasks/F7-14.json) | Enable Vulkan cross-deformable Gallery couplings | waiting on dependencies | F7-10, F7-11, F7-12, F7-13 | — |
