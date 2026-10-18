@@ -32,7 +32,7 @@ promoting those results to capability certification.
 | SDK/loader/host contracts (F6) | API/package 0.2.0. Clean Linux source `3407259` passes 47/47 `sdk-ci` CTests, all 12 relocated-install stages, 44/44 component checks and 87/87 conformance metadata tests. Windows F6-01 passes 38/38 tests plus 18/18 external C/C++/ABI cases and all 30 then-current conformance inputs; macOS ARM64 and Linux CI pass the same 12-stage relocation gate. F6-03 separates loader, validation, preparation, scene, driver, conformance and benchmark exports. Latest tracked two-build Linux evidence has matching 173-file installed artifact sets and no required workstation paths. | This qualifies packaging and public ABI behavior only. Physical quality and the optional C++ preparation/scene ABI are not certified. Bit-identical output is not established: one installed ELF and ten build-tree manifests differ between the recorded isolated Linux builds. Gallery is an opt-in public-API example application under F7, not an installed SDK component. |
 | Interaction graph lifecycle (F2-04) | Linux RTX 3050 Ti and current Windows GTX 1080 CUDA plus Apple M4 Metal execute all 12 implemented pairs through create/update/clear, endpoint replacement, three-family mutation and partial-create rollback. | Current CUDA and Metal console evidence lacks required F5-03 checkpoint fingerprints; D3D12 reports the complete three-family case unsupported because it does not advertise rope, soft-body or smoke. Unsupported/missing never passes the lifecycle evaluator. |
 | Native Vulkan validation (F5-09) | A standalone shader-module/pipeline probe pins the layer, fluid SPIR-V and probe hashes. Debian layer 1.3.239 exits 139 inside `vkCreateShaderModule`; pinned SDK layer 1.4.341 completes the same probe and the unchanged 4,096-replacement validated lifecycle case on the RTX 3050 Ti. | This isolates a host validation-tool defect and supplies a working validation setup. It does not qualify Vulkan physics, other drivers or imported engine devices. |
-| Vendor-neutral physical quality (F5-02, F5-05, F5-25) | Hashed `core-conservation-stability-v1`, `rigid-brick-penetration-v1` and `fluid-self-contact-v1` profiles independently evaluate fluid conservation/stability, rigid surface separation and fluid self-contact exclusion. Current Windows CUDA passes all 18 equal-fluid samples; CUDA and D3D12 pass both the fixed eight-brick gate and the public-API two-particle self-contact gate. Apple M4 Metal passes the brick gate. | D3D12 and Metal do not advertise separate-system equal-fluid modes. Historical and unrecaptured builds remain unqualified, and brick or fluid analytic quality does not override failed reference regression or missing exact lifecycle evidence. Fluid self pressure, viscosity and remaining modes still need their own fixtures. |
+| Vendor-neutral physical quality (F5-02, F5-05, F5-25, F5-26) | Hashed `core-conservation-stability-v1`, `rigid-brick-penetration-v1`, `fluid-self-contact-v1` and `fluid-self-pressure-v1` profiles independently evaluate fluid conservation/stability, rigid surface separation, fluid self-contact exclusion and self-pressure density relaxation. Current Windows CUDA passes all 18 equal-fluid samples; CUDA and D3D12 pass the fixed eight-brick gate and both public-API two-particle self gates. Apple M4 Metal passes the brick gate. | D3D12 and Metal do not advertise separate-system equal-fluid modes. Historical and unrecaptured builds remain unqualified, and brick or fluid analytic quality does not override failed reference regression or missing exact lifecycle evidence. Fluid self viscosity and remaining modes still need their own fixtures. |
 | Capability evidence obligations (F5-01) | Hashed `capability-obligations-v1` rules cover all 49 API 0.2 interaction records exactly once and keep compilation, execution, regression, lifecycle, analytic and timing evidence separate. Current physical results register 49 CUDA and 10 D3D12 records on GTX 1080 plus 46 Metal records on Apple M4. | Qualification remains 0/49 for current Windows CUDA, 0/10 D3D12 and 0/46 Metal. Reference failures, process crashes, missing exact lifecycle captures and rule-level analytic gaps stay explicit. |
 | iPadOS development qualification runner (F5-13) | The opt-in, development-only app channel reuses the canonical 30-case public-API runner, rigid penetration oracle, equal-fluid fixture and adverse lifecycle operations. Collection pins a fresh nonce, source, app/driver hashes, public device/OS/Metal and toolchain metadata and rejects stale, partial, mismatched and Gallery-only reports. | This runner is not enabled by default in ordinary iOS builds. Equal-fluid remains unsupported on Metal and the existing lifecycle fixtures still lack F5-03 checkpoint fingerprints; device execution and evidence publication remain separate gates. |
 | Quality-gated performance (F5-07) | Independent headless gate computes throughput, median/p95 timing and public memory peaks from raw samples; every metric carries the fixed quality-profile hash and exact source/binary/device/toolchain tuple | This defines score admission but publishes no production benchmark. Missing, failed, unsupported, stale or mismatched physical-quality evidence leaves measurements unqualified. |
@@ -527,6 +527,33 @@ pins the profile, source, runner, driver binaries, raw public output and reports
 The obligation matrix binds the analytic profile only to
 `FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE`. The existing fluid
 lifecycle trajectory and adverse capacity/replacement contract remain separate
-requirements. Pressure and viscosity keep explicit missing analytic contracts;
-the rebuilt index retains all historical failures and leaves every unrecaptured
-driver unqualified.
+requirements. Pressure and viscosity keep separate exact rules; pressure is
+qualified by F5-26 while viscosity retains an explicit missing analytic
+contract. The rebuilt index retains all historical failures and leaves every
+unrecaptured driver unqualified.
+
+### F5-26 fluid self-pressure quality
+
+Clean source `c6deaa06461eefe22cf9e165374ad8166e7e7037` adds the immutable
+`fluid-self-pressure-v1` profile without adding a solver or backend path. Its
+public-API fixture places two equal particles at half their isotropic rest
+spacing with zero gravity, viscosity and damping. Because the API deliberately
+does not expose driver-private density, the independent evaluator derives SI
+density as authored particle mass divided by the cube of public pair spacing.
+It also requires stable identity and ordering, non-vacuous outward response,
+balanced internal impulse, fixed center of mass and bounded transverse leakage.
+
+Physical GTX 1080 CUDA and D3D12 runs each pass the single sample. Both move the
+independent density estimate from `7999.999642372142 kg/m^3` to
+`1572.1888607632552 kg/m^3` toward the authored `1000 kg/m^3` rest density,
+reducing relative density error by `0.9182587300005414`. Both report zero net
+internal impulse, center-of-mass drift and transverse leakage. The
+[versioned F5-26 evidence](roadmap/evidence/F5-26-fluid-self-pressure.json)
+pins the profile, source, runner, driver binaries, raw public output and reports.
+
+The obligation matrix binds the analytic profile only to
+`FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE`. The exact fluid
+lifecycle trajectory and adverse capacity/replacement/rollback contract remain
+independent requirements; this analytic fixture cannot substitute for them.
+Self-viscosity retains a separate missing analytic contract under F5-27, and
+historical or unrecaptured drivers remain unqualified.
