@@ -298,6 +298,253 @@ def _check_split_combined(profile: dict[str, Any], sample: dict[str, Any],
                                         error, limit))
 
 
+def _evaluate_fluid_self_contact(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definition = profile.get("fixture")
+    actual = result.get("fixture")
+    if not isinstance(definition, dict):
+        failures.append(Failure("$.profile.fixture", "expected an object", definition))
+        definition = {}
+    if not isinstance(actual, dict):
+        failures.append(Failure("$.fixture", "expected an object", actual))
+        actual = {}
+    tolerances = profile.get("tolerances")
+    if not isinstance(tolerances, dict):
+        failures.append(Failure("$.profile.tolerances", "expected an object",
+                                tolerances))
+        tolerances = {}
+
+    exact_fields = ("id", "particle_count", "substeps", "density_iterations",
+                    "oracle")
+    for field in exact_fields:
+        if actual.get(field) != definition.get(field):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "fixture setting does not match profile",
+                                    actual.get(field), definition.get(field)))
+
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+    scalar_fields = (
+        "timestep_seconds", "particle_radius_m", "support_radius_m",
+        "rest_density_kg_m3", "rest_particle_volume_m3",
+        "pressure_stiffness", "kinematic_viscosity_m2_s", "normal_damping",
+        "maximum_speed_m_s", "maximum_pair_acceleration_m_s2",
+    )
+    for field in scalar_fields:
+        value = _scalar(actual.get(field), f"$.fixture.{field}", failures)
+        expected = _scalar(definition.get(field),
+                           f"$.profile.fixture.{field}", failures)
+        if (value is not None and expected is not None and
+                abs(value - expected) > state_tolerance):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "fixture setting differs from profile",
+                                    value, expected))
+    gravity = _vector(actual.get("gravity_m_s2"),
+                      "$.fixture.gravity_m_s2", failures)
+    expected_gravity = _vector(definition.get("gravity_m_s2"),
+                               "$.profile.fixture.gravity_m_s2", failures)
+    if gravity is not None and expected_gravity is not None:
+        error = max(abs(a - b) for a, b in zip(gravity, expected_gravity))
+        if error > state_tolerance:
+            failures.append(Failure("$.fixture.gravity_m_s2",
+                                    "fixture setting differs from profile",
+                                    list(gravity), list(expected_gravity)))
+
+    def particle_map(value: Any, path: str) -> dict[int, dict[str, Any]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a particle array", value))
+            return {}
+        mapped: dict[int, dict[str, Any]] = {}
+        for index, particle in enumerate(value):
+            item_path = f"{path}[{index}]"
+            if not isinstance(particle, dict):
+                failures.append(Failure(item_path, "expected an object", particle))
+                continue
+            identity = particle.get("stable_id")
+            if (not isinstance(identity, int) or isinstance(identity, bool) or
+                    identity in mapped):
+                failures.append(Failure(item_path + ".stable_id",
+                                        "stable ID must be a unique integer",
+                                        identity))
+                continue
+            mapped[identity] = particle
+        if set(mapped) != {0, 1}:
+            failures.append(Failure(path,
+                                    "fixture must preserve stable IDs 0 and 1",
+                                    sorted(mapped), [0, 1]))
+        return mapped
+
+    expected_initial = particle_map(definition.get("initial_particles"),
+                                    "$.profile.fixture.initial_particles")
+    initial = particle_map(actual.get("initial_particles"),
+                           "$.fixture.initial_particles")
+    final = particle_map(actual.get("final_particles"),
+                         "$.fixture.final_particles")
+
+    initial_states: dict[int, tuple[tuple[float, float, float],
+                                    tuple[float, float, float]]] = {}
+    final_states: dict[int, tuple[tuple[float, float, float],
+                                  tuple[float, float, float]]] = {}
+    for identity in (0, 1):
+        expected_particle = expected_initial.get(identity)
+        initial_particle = initial.get(identity)
+        if expected_particle is not None and initial_particle is not None:
+            expected_position = _vector(
+                expected_particle.get("position_m"),
+                f"$.profile.fixture.initial_particles[{identity}].position_m",
+                failures)
+            expected_velocity = _vector(
+                expected_particle.get("velocity_m_s"),
+                f"$.profile.fixture.initial_particles[{identity}].velocity_m_s",
+                failures)
+            position = _vector(initial_particle.get("position_m"),
+                               f"$.fixture.initial_particles[{identity}].position_m",
+                               failures)
+            velocity = _vector(initial_particle.get("velocity_m_s"),
+                               f"$.fixture.initial_particles[{identity}].velocity_m_s",
+                               failures)
+            if position is not None and velocity is not None:
+                initial_states[identity] = position, velocity
+            for name, value, expected in (
+                    ("position_m", position, expected_position),
+                    ("velocity_m_s", velocity, expected_velocity)):
+                if value is not None and expected is not None:
+                    error = max(abs(a - b) for a, b in zip(value, expected))
+                    if error > state_tolerance:
+                        failures.append(Failure(
+                            f"$.fixture.initial_particles[{identity}].{name}",
+                            "initial public state differs from profile",
+                            list(value), list(expected)))
+        final_particle = final.get(identity)
+        if final_particle is not None:
+            position = _vector(final_particle.get("position_m"),
+                               f"$.fixture.final_particles[{identity}].position_m",
+                               failures)
+            velocity = _vector(final_particle.get("velocity_m_s"),
+                               f"$.fixture.final_particles[{identity}].velocity_m_s",
+                               failures)
+            if position is not None and velocity is not None:
+                final_states[identity] = position, velocity
+
+    observations: dict[str, Any] = {}
+    if len(initial_states) == 2 and len(final_states) == 2:
+        initial_separation = _subtract(initial_states[1][0], initial_states[0][0])
+        final_separation = _subtract(final_states[1][0], final_states[0][0])
+        separation = _norm(final_separation)
+        radius = float(definition.get("particle_radius_m", 0.0))
+        exclusion = (2.0 * radius *
+                     float(tolerances.get("exclusion_distance_fraction", 0.0)))
+        observations["final_separation_m"] = separation
+        observations["minimum_separation_m"] = exclusion
+        if separation < exclusion:
+            failures.append(Failure("$.fixture.final_particles",
+                                    "fluid particles violate exclusion distance",
+                                    separation, exclusion))
+        if sum(a * b for a, b in zip(initial_separation, final_separation)) <= 0.0:
+            failures.append(Failure("$.fixture.final_particles",
+                                    "fluid particles crossed stable-ID ordering"))
+
+        mass = (float(definition.get("rest_density_kg_m3", 0.0)) *
+                float(definition.get("rest_particle_volume_m3", 0.0)))
+        velocity_changes = [
+            _subtract(final_states[identity][1], initial_states[identity][1])
+            for identity in (0, 1)
+        ]
+        impulses = [tuple(mass * component for component in change)
+                    for change in velocity_changes]
+        activity = sum(_norm(impulse) for impulse in impulses)
+        residual = _norm(_sum(impulses))
+        momentum_limit = max(
+            float(tolerances.get("linear_momentum_absolute_kg_m_s", 0.0)),
+            float(tolerances.get("linear_momentum_relative", 0.0)) * activity)
+        observations["exchange_impulse_kg_m_s"] = activity
+        observations["net_internal_impulse_kg_m_s"] = residual
+        if activity < float(tolerances.get(
+                "exchange_impulse_minimum_kg_m_s", 0.0)):
+            failures.append(Failure("$.fixture.final_particles",
+                                    "self-contact impulse activity is too small",
+                                    activity, tolerances.get(
+                                        "exchange_impulse_minimum_kg_m_s")))
+        if residual > momentum_limit:
+            failures.append(Failure("$.fixture.final_particles",
+                                    "net internal impulse exceeds profile",
+                                    residual, momentum_limit))
+
+        initial_center = tuple(
+            0.5 * (initial_states[0][0][axis] + initial_states[1][0][axis])
+            for axis in range(3))
+        final_center = tuple(
+            0.5 * (final_states[0][0][axis] + final_states[1][0][axis])
+            for axis in range(3))
+        center_drift = _norm(_subtract(final_center, initial_center))
+        observations["center_of_mass_drift_m"] = center_drift
+        center_limit = float(tolerances.get(
+            "center_of_mass_drift_absolute_m", 0.0))
+        if center_drift > center_limit:
+            failures.append(Failure("$.fixture.final_particles",
+                                    "center-of-mass drift exceeds profile",
+                                    center_drift, center_limit))
+
+        transverse_position = max(
+            abs(final_states[identity][0][component])
+            for identity in (0, 1) for component in (1, 2))
+        transverse_velocity = max(
+            abs(final_states[identity][1][component])
+            for identity in (0, 1) for component in (1, 2))
+        observations["maximum_transverse_position_m"] = transverse_position
+        observations["maximum_transverse_velocity_m_s"] = transverse_velocity
+        transverse_position_limit = float(tolerances.get(
+            "transverse_position_absolute_m", 0.0))
+        transverse_velocity_limit = float(tolerances.get(
+            "transverse_velocity_absolute_m_s", 0.0))
+        if (transverse_position > transverse_position_limit or
+                transverse_velocity > transverse_velocity_limit):
+            failures.append(Failure("$.fixture.final_particles",
+                                    "transverse symmetry leakage exceeds profile",
+                                    {
+                                        "position_m": transverse_position,
+                                        "velocity_m_s": transverse_velocity,
+                                    }, {
+                                        "position_m": transverse_position_limit,
+                                        "velocity_m_s": transverse_velocity_limit,
+                                    }))
+
+        direction = _unit(final_separation)
+        relative_velocity = _subtract(final_states[1][1], final_states[0][1])
+        outward_speed = (sum(a * b for a, b in zip(relative_velocity, direction))
+                         if direction is not None else 0.0)
+        observations["outward_relative_speed_m_s"] = outward_speed
+        outward_minimum = float(tolerances.get(
+            "outward_relative_speed_minimum_m_s", 0.0))
+        if outward_speed < outward_minimum:
+            failures.append(Failure("$.fixture.final_particles",
+                                    "self-contact response is not outward",
+                                    outward_speed, outward_minimum))
+
+        maximum_speed = max(_norm(final_states[identity][1])
+                            for identity in (0, 1))
+        observations["maximum_speed_m_s"] = maximum_speed
+        if maximum_speed > float(definition.get("maximum_speed_m_s", 0.0)):
+            failures.append(Failure("$.fixture.final_particles",
+                                    "fluid speed exceeds declared fixture bound",
+                                    maximum_speed,
+                                    definition.get("maximum_speed_m_s")))
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": 1 if actual else 0,
+        "sample_count": 1 if len(final_states) == 2 else 0,
+        "failure_count": len(failures),
+        "observations": observations,
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def _evaluate_penetration(profile: dict[str, Any], result: dict[str, Any],
                           expected_hash: str, driver: Any,
                           failures: list[Failure]) -> dict[str, Any]:
@@ -782,6 +1029,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
         return _evaluate_penetration(profile, result, expected_hash, driver, failures)
     if evaluation == "rigid_attachment":
         return _evaluate_rigid_attachment(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "fluid_self_contact":
+        return _evaluate_fluid_self_contact(
             profile, result, expected_hash, driver, failures)
     if evaluation != "system_exchange":
         failures.append(Failure("$.profile.evaluation",
