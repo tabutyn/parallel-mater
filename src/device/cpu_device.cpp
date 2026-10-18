@@ -162,12 +162,14 @@ class CpuServices final : public Services {
         if (size != 0U) std::memset(destination, value, static_cast<std::size_t>(size));
         return PM_SUCCESS;
     }
-    [[nodiscard]] PmResult memory_budget(PmDeviceSize &available,
-                                         PmDeviceSize &total) noexcept override {
-        total = installed_memory();
+    [[nodiscard]] PmResult memory_budget(
+        MemoryBudgetSnapshot &snapshot) noexcept override {
+        snapshot.total = installed_memory();
         // The serial driver uses pageable process memory.  Report a conservative
         // budget rather than pretending all unified memory is available.
-        available = total / 2U;
+        snapshot.available = snapshot.total / 2U;
+        snapshot.confidence =
+            PM_MEMORY_BUDGET_CONFIDENCE_IMPLEMENTATION_ESTIMATE;
         return PM_SUCCESS;
     }
 

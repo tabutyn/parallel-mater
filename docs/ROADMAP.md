@@ -164,8 +164,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F4-02](roadmap/tasks/F4-02.json) | Retain resources through completion | done | F4-01 | — |
 | [F4-03](roadmap/tasks/F4-03.json) | Schedule common resource dependencies | done | F4-01, F4-02 | — |
 | [F4-04](roadmap/tasks/F4-04.json) | Remove generated-source ABI parsing | done | F4-01 | — |
-| [F4-05](roadmap/tasks/F4-05.json) | Specify memory-budget confidence | leased | — | codex-windows-sdk / windows-gtx1080 / 2026-10-19T18:01:04Z |
-| [F4-06](roadmap/tasks/F4-06.json) | Apply conservative workload admission | waiting on dependencies | F4-05 | — |
+| [F4-05](roadmap/tasks/F4-05.json) | Specify memory-budget confidence | done | — | — |
+| [F4-06](roadmap/tasks/F4-06.json) | Apply conservative workload admission | ready | F4-05 | — |
 | [F4-07](roadmap/tasks/F4-07.json) | Specify borrowed device and queue handoff | done | F4-02, F3-04 | — |
 | [F4-08](roadmap/tasks/F4-08.json) | Qualify engine handoff with a mock adapter | done | F4-03, F4-07 | — |
 | [F4-99](roadmap/tasks/F4-99.json) | Review F4 exit evidence | waiting on dependencies | F4-01, F4-02, F4-03, F4-04, F4-05, F4-06, F4-07, F4-08 | — |

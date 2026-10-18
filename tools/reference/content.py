@@ -1471,10 +1471,17 @@ SECTIONS += [
                 PmFlags flags);
         """, text="A timestamp result is uint64_t; statistics use PmStepStatistics (88 bytes). WITH_AVAILABILITY appends uint64_t, zero/unavailable or one/available, after each result. stride is an eight-byte multiple large enough for a record; pData is eight-byte aligned; dataSize covers all records. Without WAIT, unavailable result bytes remain untouched and NOT_READY is returned; availability fields are still written. WAIT has no timeout: use a fence or semaphore wait first for bounded waiting."),
         c("memory_budget", "Device budget & library accounting", types="""
+            typedef enum PmMemoryBudgetConfidence {
+                PM_MEMORY_BUDGET_CONFIDENCE_UNKNOWN = 0,
+                PM_MEMORY_BUDGET_CONFIDENCE_IMPLEMENTATION_ESTIMATE = 1,
+                PM_MEMORY_BUDGET_CONFIDENCE_DRIVER_REPORTED = 2,
+                PM_MEMORY_BUDGET_CONFIDENCE_OS_REPORTED = 3
+            } PmMemoryBudgetConfidence;
             typedef struct PmMemoryBudget {
                 uint32_t heapCount;
                 PmDeviceSize budget[16];
                 PmDeviceSize usage[16];
+                PmMemoryBudgetConfidence confidence[16];
                 PmDeviceSize applicationAllocationBytes;
                 PmDeviceSize libraryDeviceBytes;
                 PmDeviceSize libraryHostBytes;
@@ -1483,7 +1490,7 @@ SECTIONS += [
         """, functions="""
             PmResult pmGetDeviceMemoryBudget(
                 PmDevice device, PmMemoryBudget* pBudget);
-        """, text="Requires enabled memoryBudget. Budget/usage are live driver estimates per heap, not guaranteed free space or a reservation. Application bytes sum owned pmAllocateMemory blocks. Library bytes cover queries, pipeline code and internal bookkeeping. Borrowed bytes sum imported buffer sizes, not physical residency or unique allocations. These accounting categories are not additive with heap usage. Resource requirements describe reservation; scratchHighWaterBytes describes use.", links=("memory_types",)),
+        """, text="Requires enabled memoryBudget. Physical heap size, returned by pmGetPhysicalDeviceMemoryProperties, is capacity and not a usable budget. budget and usage are a live per-heap snapshot; confidence identifies their source, not a guarantee or quality ordering. UNKNOWN entries have zero budget and usage and must never admit work. IMPLEMENTATION_ESTIMATE can omit other processes and driver-private allocations. DRIVER_REPORTED and OS_REPORTED can change immediately after the query and are not reservations.<br/><br/>Application bytes sum live owned pmAllocateMemory blocks. Library device/host bytes count only allocations tracked by the implementation; zero does not prove that the driver has no private allocations. Borrowed bytes sum live imported buffer ranges and can double-count aliases; they do not state physical residency or unique allocation size. Usage may include borrowed and otherwise untracked bytes, so accounting categories are not additive with each other or heap usage. Counter overflow fails the operation rather than wrapping. Resource requirements describe bytes an application must bind, not availability.", links=("memory_types", "requirements")),
     ]),
     Section("capabilities", "Features, limits & formats", "Capability decisions are made before allocation and pipeline creation", [
         c("interaction_capabilities", "Interaction capabilities", text="Enumerate records to discover exact supported family, scope, mode, direction and material-profile combinations. Family order is canonical: equal families for SELF, SAME_DOMAIN and SEPARATE_SYSTEM; increasing family values for DISTINCT_FAMILY. A key that violates this shape or contains an unknown enum returns INVALID_ARGUMENT. A well-formed but unsupported combination returns FEATURE_NOT_PRESENT.<br/><br/>maxGraphEdgesPerSimulation is a driver limit for that exact record. NOT_APPLICABLE means the mode is intrinsic and has no graph edge. SIMULATION_CAPACITY means no narrower device limit is imposed beyond PmSimulationCreateInfo::couplingCapacity. A finite value is an additional per-simulation ceiling. Enumerators return only supported records; broad feature bits never imply a missing record.<br/><br/>Smoke particle and grid profiles are independent records. Thermal and phase modes identify the fixed API 0.2 transfer law; their smoke profile still identifies the representation. EXTERNAL_TO_FIRST/SECOND identifies an external source such as the current fluid-smoke heater. TRANSFER directions consume membership from one family and create it in the other.", links=("features", "coupling", "limits")),

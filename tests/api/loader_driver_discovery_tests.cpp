@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
@@ -10,6 +11,18 @@
     std::fprintf(stderr, "line %d: %s\n", __LINE__, #expression);          \
     return 1;                                                               \
 } } while (false)
+
+namespace {
+bool set_budget_mode(const char *mode) {
+#if defined(_WIN32)
+    return _putenv_s("PM_TEST_MOCK_MEMORY_BUDGET", mode) == 0;
+#else
+    return mode[0] == '\0'
+        ? unsetenv("PM_TEST_MOCK_MEMORY_BUDGET") == 0
+        : setenv("PM_TEST_MOCK_MEMORY_BUDGET", mode, 1) == 0;
+#endif
+}
+}
 
 int main(int argc, char **argv) {
     const char *mode = argc > 1 ? argv[1] : "normal";
@@ -95,6 +108,49 @@ int main(int argc, char **argv) {
     CHECK(pmGetPhysicalDeviceInteractionCapability(
               mock_physical, &malformed, &queried) ==
           PM_ERROR_INVALID_ARGUMENT);
+
+    const float priority = 1.0F;
+    const PmDeviceQueueCreateInfo queue_info{0U, 1U, &priority};
+    PmDeviceCreateInfo device_info{};
+    device_info.sType = PM_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    device_info.queueCreateInfoCount = 1U;
+    device_info.pQueueInfos = &queue_info;
+    device_info.enabledFeatures.memoryBudget = PM_TRUE;
+    PmDevice device{};
+    CHECK(pmCreateDevice(mock_physical, &device_info, &device) == PM_SUCCESS);
+
+    PmMemoryBudget budget{};
+    CHECK(set_budget_mode(""));
+    std::memset(&budget, 0xff, sizeof budget);
+    CHECK(pmGetDeviceMemoryBudget(device, &budget) == PM_SUCCESS);
+    CHECK(budget.heapCount == 1U);
+    CHECK(budget.confidence[0] == PM_MEMORY_BUDGET_CONFIDENCE_UNKNOWN);
+    CHECK(budget.budget[0] == 0U && budget.usage[0] == 0U);
+    CHECK(budget.applicationAllocationBytes == 0U);
+    CHECK(budget.libraryDeviceBytes == 0U);
+    CHECK(budget.libraryHostBytes == 0U);
+    CHECK(budget.borrowedBufferBytes == 0U);
+
+    CHECK(set_budget_mode("estimated"));
+    CHECK(pmGetDeviceMemoryBudget(device, &budget) == PM_SUCCESS);
+    CHECK(budget.confidence[0] ==
+          PM_MEMORY_BUDGET_CONFIDENCE_IMPLEMENTATION_ESTIMATE);
+    CHECK(budget.budget[0] == 1024U && budget.usage[0] == 256U);
+    CHECK(budget.applicationAllocationBytes == 64U);
+    CHECK(budget.libraryDeviceBytes == 32U);
+    CHECK(budget.libraryHostBytes == 16U);
+    CHECK(budget.borrowedBufferBytes == 128U);
+
+    CHECK(set_budget_mode("overflow"));
+    std::memset(&budget, 0xff, sizeof budget);
+    CHECK(pmGetDeviceMemoryBudget(device, &budget) == PM_ERROR_INVALID_STATE);
+    CHECK(budget.heapCount == 0U && budget.budget[0] == 0U);
+    CHECK(set_budget_mode("failure"));
+    std::memset(&budget, 0xff, sizeof budget);
+    CHECK(pmGetDeviceMemoryBudget(device, &budget) == PM_ERROR_DEVICE_LOST);
+    CHECK(budget.heapCount == 0U && budget.budget[0] == 0U);
+    CHECK(set_budget_mode(""));
+    pmDestroyDevice(device);
     pmDestroyInstance(instance);
     // Zero remains the documented default; the legacy layer spelling is accepted
     // but enumeration must advertise the project-owned name.

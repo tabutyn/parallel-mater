@@ -43,6 +43,25 @@ def compiler_metadata(build_dir):
     return result
 
 
+def generator_arguments(build_dir):
+    """Reuse the tested build generator when Ninja is unavailable."""
+    if shutil.which("ninja"):
+        return ["-G", "Ninja"]
+    values = {}
+    for line in (build_dir / "CMakeCache.txt").read_text(
+            encoding="utf-8").splitlines():
+        match = re.match(r"^(CMAKE_GENERATOR(?:_PLATFORM)?):INTERNAL=(.*)$", line)
+        if match:
+            values[match.group(1)] = match.group(2)
+    generator = values.get("CMAKE_GENERATOR")
+    if not generator:
+        raise RuntimeError("could not identify a CMake generator")
+    arguments = ["-G", generator]
+    if values.get("CMAKE_GENERATOR_PLATFORM"):
+        arguments += ["-A", values["CMAKE_GENERATOR_PLATFORM"]]
+    return arguments
+
+
 def windows_sdk_metadata(build_dir):
     """Read the Windows SDK selected by CMake for this build."""
     if os.name != "nt":
@@ -60,9 +79,23 @@ def windows_sdk_metadata(build_dir):
         resource_compiler,
         re.IGNORECASE,
     )
-    if not match:
-        raise RuntimeError("could not identify the Windows SDK from CMAKE_RC_COMPILER")
-    return {"version": match.group(1), "resource_compiler": resource_compiler}
+    if match:
+        version = match.group(1)
+    else:
+        # Visual Studio generators can cache the compiler as bare `rc` even
+        # though every generated project records the selected SDK version.
+        project = build_dir / "ZERO_CHECK.vcxproj"
+        project_text = (project.read_text(encoding="utf-8")
+                        if project.is_file() else "")
+        project_match = re.search(
+            r"<WindowsTargetPlatformVersion>([^<]+)</WindowsTargetPlatformVersion>",
+            project_text,
+        )
+        if not project_match:
+            raise RuntimeError(
+                "could not identify the Windows SDK from the compiler or project")
+        version = project_match.group(1)
+    return {"version": version, "resource_compiler": resource_compiler}
 
 
 def main():
@@ -86,6 +119,7 @@ def main():
         environment.pop(key, None)
     environment["PM_LAYER_FILES"] = str(sdk / "share/parallel-mater/layers.d/parallel_mater_validation.json")
     environment["PATH"] = str(sdk / "bin") + os.pathsep + environment.get("PATH", "")
+    generator = generator_arguments(args.build_dir.resolve())
 
     def run(name, command, expected=0, env=None):
         log = output / (name + ".log")
@@ -99,6 +133,12 @@ def main():
         print(f"{'PASS' if passed else 'FAIL'} {name}", flush=True)
         if not passed:
             raise RuntimeError(f"{name}: see {log}")
+
+    def configured_output(build, name):
+        direct = build / name
+        if direct.exists():
+            return direct
+        return build / args.config / name
 
     try:
         report["architecture"] = platform.machine()
@@ -129,15 +169,16 @@ def main():
                      root / "examples/sdk/devices.c"):
             shutil.copy2(path, source / path.name)
         build = output / "external-build"
-        run("consumer-configure", ["cmake", "-S", source, "-B", build, "-G", "Ninja",
-            f"-DCMAKE_BUILD_TYPE={args.config}", f"-DCMAKE_PREFIX_PATH={sdk}"])
+        run("consumer-configure", ["cmake", "-S", source, "-B", build,
+            *generator, f"-DCMAKE_BUILD_TYPE={args.config}",
+            f"-DCMAKE_PREFIX_PATH={sdk}"])
         run("consumer-build", ["cmake", "--build", build, "--config", args.config,
                                "--parallel", "1"])
         run("consumer-tests", ["ctest", "--test-dir", build, "--output-on-failure",
                                 "--no-tests=error", "-C", args.config, "-j1"])
         for version in ("0.1", "0.3"):
             run("reject-version-" + version, ["cmake", "-S", source, "-B",
-                output / ("version-" + version), "-G", "Ninja",
+                output / ("version-" + version), *generator,
                 f"-DCMAKE_PREFIX_PATH={sdk}", f"-DPM_REQUIRED_VERSION={version}"], expected=1)
         # Only conformance's own sources/headers; no repository src/ or examples/.
         suite = output / "conformance-source"
@@ -147,7 +188,8 @@ def main():
         shutil.copy2(root / "conformance/v1/CMakeLists.txt", suite / "CMakeLists.txt")
         data = sdk / "share/parallel-mater"
         suite_build = output / "conformance-build"
-        run("conformance-configure", ["cmake", "-S", suite, "-B", suite_build, "-G", "Ninja",
+        run("conformance-configure", ["cmake", "-S", suite, "-B", suite_build,
+            *generator,
             f"-DCMAKE_BUILD_TYPE={args.config}", f"-DCMAKE_PREFIX_PATH={sdk}",
             f"-DPARALLEL_MATER_CONFORMANCE_DATA_ROOT={data}",
             f"-DPARALLEL_MATER_CONFORMANCE_REVISION={report['source_revision']}"])
@@ -158,8 +200,12 @@ def main():
         suffix = ".exe" if os.name == "nt" else ""
         run("installed-runner-inputs", [sdk / "bin" / ("parallel-mater-conformance" + suffix),
                                         "--check-inputs", "--root", data])
-        runner = suite_build / ("parallel-mater-conformance" + suffix)
-        selected = dict(environment, PM_DRIVER_FILES=str(build / "mock.json"))
+        runner = configured_output(
+            suite_build, "parallel-mater-conformance" + suffix)
+        selected = dict(
+            environment,
+            PM_DRIVER_FILES=str(configured_output(build, "mock.json")),
+        )
         run("unsupported-case", [runner, "--case", "cloth-core", "--output",
                                  output / "unsupported"], expected=77, env=selected)
         result = json.loads((output / "unsupported/cloth-core.json").read_text())
