@@ -1,15 +1,13 @@
 {
   "id": "P1-03",
   "title": "Plan multi-material fluid operators",
-  "status": "deferred",
+  "status": "leased",
   "dependencies": [
     "F1-99",
     "F2-99",
     "F3-99",
     "F4-99",
-    "F5-99",
-    "F6-99",
-    "F7-99"
+    "F6-99"
   ],
   "locks": [
     "interaction-spec"
@@ -22,6 +20,14 @@
     "Each mode has contract, implementation and public-API physical gate tasks."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "8c9682ca-9b52-4a25-8276-53e75d727cc9",
+    "owner": "codex-fluid-planning",
+    "machine": "thomas-laptop",
+    "branch": "work/P1-03/thomas-laptop",
+    "claimed_at": "2026-10-18T21:13:23Z",
+    "heartbeat_at": "2026-10-18T21:13:23Z",
+    "expires_at": "2026-10-19T21:13:23Z"
+  },
   "history": []
 }

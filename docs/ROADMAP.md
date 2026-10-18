@@ -91,6 +91,9 @@ F1 has the highest priority. Independent ready tasks in F2–F7 may proceed in
 parallel when dependencies and locks permit. Platform expansion, engine plugins
 and shader performance work remain deferred until the seven `*-99` foundation
 review gates close and a planning PR activates the selected follow-up task.
+Platform-neutral planning may start when its own API, interaction, resource and
+package prerequisites have closed; each resulting implementation and
+qualification leaf still requires separate activation and lease review.
 
 The lease check must be required with up-to-date branches for race-safe
 automated merges. Each merge candidate permits one lease operation. Until configured, serialize claim/renew/reclaim/
@@ -288,7 +291,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 |---|---|---|---|---|
 | [P1-01](roadmap/tasks/P1-01.json) | Plan remaining driver/domain qualification | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
 | [P1-02](roadmap/tasks/P1-02.json) | Plan remaining same-family operators | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
-| [P1-03](roadmap/tasks/P1-03.json) | Plan multi-material fluid operators | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
+| [P1-03](roadmap/tasks/P1-03.json) | Plan multi-material fluid operators | leased | F1-99, F2-99, F3-99, F4-99, F6-99 | codex-fluid-planning / thomas-laptop / 2026-10-19T21:13:23Z |
 | [P1-04](roadmap/tasks/P1-04.json) | Expose multi-material fluid pair state | deferred | P1-03 | — |
 | [P1-05](roadmap/tasks/P1-05.json) | Build heterogeneous fluid pair sampling | deferred | P1-04 | — |
 | [P1-06](roadmap/tasks/P1-06.json) | Exchange miscible pressure and contact | deferred | P1-05 | — |
