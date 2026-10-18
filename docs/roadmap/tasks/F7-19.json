@@ -1,0 +1,31 @@
+{
+  "id": "F7-19",
+  "title": "Close common Gallery runtime boundary",
+  "status": "leased",
+  "dependencies": [
+    "F7-06",
+    "F7-08"
+  ],
+  "locks": [
+    "gallery-runtime-boundary"
+  ],
+  "requires": [
+    "Linux desktop with one Gallery backend"
+  ],
+  "scope": "Remove the remaining desktop-private frame coordinator and mutable runtime escape hatch so desktop and mobile ordinary frames use one GallerySession orchestration contract.",
+  "acceptance": [
+    "Desktop and mobile ordinary interactive frames use the same GallerySession stepping, timing and renderer handoff; platform shells do not own a second fixed-step policy or call controlled_step directly.",
+    "Platform clients cannot mutate GalleryRuntime internals through GallerySession; typed rendering, capture, calibration and diagnostic interfaces retain current desktop behavior and pass common-session plus desktop backend tests."
+  ],
+  "evidence": [],
+  "lease": {
+    "token": "5fbc7a8b-3970-4b45-8e75-19d758087ff0",
+    "owner": "codex-linux-gallery",
+    "machine": "thomas-laptop",
+    "branch": "work/F7-19/thomas-laptop",
+    "claimed_at": "2026-10-18T03:59:37Z",
+    "heartbeat_at": "2026-10-18T03:59:37Z",
+    "expires_at": "2026-10-19T03:59:37Z"
+  },
+  "history": []
+}
