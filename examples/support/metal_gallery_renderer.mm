@@ -4,6 +4,7 @@
 #endif
 #include <parallel_mater_gallery/gpu_renderer.hpp>
 #include <parallel_mater_gallery/frame_timing.hpp>
+#include "renderer_backends.hpp"
 #include "scene_builder.hpp"
 #include "vector_math.hpp"
 #include "metal_gallery_shaders.hpp"
@@ -258,7 +259,7 @@ struct MetalGalleryRenderer final : GpuGalleryRenderer {
     }
 };
 
-std::unique_ptr<GpuGalleryRenderer> create_gpu_gallery_renderer(
+std::unique_ptr<GpuGalleryRenderer> create_metal_gallery_renderer(
     GpuRendererDevice device, const SceneDefinition &scene,
     const CommandSceneInstance &instance, std::string &error) {
     error.clear();

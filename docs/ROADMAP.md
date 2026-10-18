@@ -236,7 +236,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-20](roadmap/tasks/F7-20.json) | Consolidate the common Gallery scene descriptor | done | F7-12, F7-19 | — |
 | [F7-21](roadmap/tasks/F7-21.json) | Make Gallery presentation state backend-neutral | done | F7-19, F7-20 | — |
 | [F7-22](roadmap/tasks/F7-22.json) | Unify mobile Gallery qualification orchestration | ready | F7-07, F7-19, F7-21 | — |
-| [F7-23](roadmap/tasks/F7-23.json) | Normalize Gallery renderer adapter ownership | leased | F7-08, F7-09, F7-19 | codex-windows-sdk / windows-gtx1080 / 2026-10-19T11:29:51Z |
+| [F7-23](roadmap/tasks/F7-23.json) | Normalize Gallery renderer adapter ownership | done | F7-08, F7-09, F7-19 | — |
 | [F7-99](roadmap/tasks/F7-99.json) | Review shared Gallery exit evidence | waiting on dependencies | F7-01, F7-02, F7-03, F7-04, F7-05, F7-06, F7-07, F7-08, F7-09, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17, F7-18, F7-19, F7-20, F7-21, F7-22, F7-23 | — |
 
 ### P1. Deferred domain and interaction coverage

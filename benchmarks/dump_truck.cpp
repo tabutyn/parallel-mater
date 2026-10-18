@@ -2,7 +2,7 @@
 #include "support.hpp"
 #include <parallel_mater_gallery/dump_truck.hpp>
 #include <parallel_mater_gallery/gallery_context.hpp>
-#include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/renderer_adapter.hpp>
 #include <render/render_scene.hpp>
 #include <scene_builder.hpp>
 #include <cuda_profiler_api.h>
@@ -72,8 +72,8 @@ int main(int argc, char **argv) {
         return 1;
     }
     RendererHandle renderer;
-    if (render && !create_renderer(scene, instance, 960U, 720U,
-                                   renderer, error)) {
+    if (render && !RendererAdapterFactory::create_host(
+                      scene, instance, 960U, 720U, renderer, error)) {
         std::cerr << error << '\n'; return 1;
     }
     CameraController camera;

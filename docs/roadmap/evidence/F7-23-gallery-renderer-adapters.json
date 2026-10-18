@@ -1,0 +1,108 @@
+{
+  "schema": "parallel-mater-roadmap-gallery-renderer-adapters-evidence/v1",
+  "task": "F7-23",
+  "scope": "One public Gallery renderer factory, private backend implementations and CMake ownership that matches the runtime boundary",
+  "source": {
+    "implementation_commit": "bca8e426a0724429542040b6025f98b2d24db036",
+    "base_main_commit": "77fa409cae758eb83e8702febf3ceade9b2ac9d8",
+    "branch": "work/F7-23/windows-gtx1080",
+    "lease_token": "66912376-f2b7-411a-99d6-c892f428f838"
+  },
+  "contract": {
+    "public_factory": "parallel_mater_gallery::RendererAdapterFactory",
+    "public_header": "examples/support/include/parallel_mater_gallery/renderer_adapter.hpp",
+    "private_backend_seam": "examples/support/renderer_backends.hpp",
+    "public_backend_headers": [],
+    "common_clients": [
+      "GallerySession",
+      "GalleryRuntime",
+      "software renderer tests",
+      "rigid frame benchmark",
+      "dump truck benchmark"
+    ],
+    "factory_backends": [
+      "software host",
+      "OptiX host",
+      "D3D12 native",
+      "Vulkan native",
+      "Metal native"
+    ],
+    "cmake_targets": {
+      "parallel-mater-gallery-renderer-contract": "backend-neutral renderer interfaces and frame-contract implementation",
+      "parallel-mater-gallery-renderer-adapters": "factory plus selected host and native backend implementations",
+      "parallel-mater-gallery-session": "public dependency on the contract and private dependency on adapters",
+      "parallel-mater-gallery-application": "depends on the common session, not a backend adapter"
+    },
+    "target_graph": {
+      "acyclic": true,
+      "edges": [
+        "renderer-adapters -> renderer-contract",
+        "renderer-contract -> gallery-scene",
+        "gallery-session -> renderer-contract",
+        "gallery-session -private-> renderer-adapters",
+        "gallery-application -> gallery-session"
+      ],
+      "application_direct_backend_edge": false
+    }
+  },
+  "devices": [
+    {
+      "machine": "windows-gtx1080",
+      "operating_system": "Windows",
+      "gpu": "NVIDIA GeForce GTX 1080",
+      "compiler": "MSVC 19.44.35228",
+      "windows_sdk": "10.0.26100",
+      "graphics_api": "Direct3D 12"
+    },
+    {
+      "machine": "windows-gtx1080-wsl",
+      "operating_system": "Ubuntu 24.04 under WSL2",
+      "compiler": "GCC 13.3.0",
+      "graphics_api": "software host and Vulkan compile contract"
+    }
+  ],
+  "verification": [
+    {
+      "check": "Build renderer contract, adapters, session, application, final Gallery and GPU-renderer contract tests in build-cuda-slang-vs2022",
+      "result": "passed with the D3D12 and OptiX adapter sources on MSVC"
+    },
+    {
+      "check": "parallel-mater-gallery-gpu-renderer-contract-tests and parallel-mater-slang-architecture",
+      "result": "2/2 passed on Windows"
+    },
+    {
+      "check": "parallel-mater-software-renderer-tests in build-f7-23-cuda-session",
+      "result": "passed on MSVC, proving the host adapter factory contract"
+    },
+    {
+      "check": "Parallel-Mater.exe --backend d3d12 --frames 3 --headless build-cuda-slang-vs2022/f7-23-d3d12-final.ppm",
+      "result": "passed on the physical GTX 1080; 6220817-byte PPM; sha256 350adabbe8709f46fb75c636320b45bff6edce11f382d43314603ed6882d5cb4"
+    },
+    {
+      "check": "Build common renderer contract, software adapters, session and application in build-f7-23-linux; run GPU-renderer contract, software-renderer and Slang-architecture tests",
+      "result": "3/3 passed under WSL with GCC"
+    },
+    {
+      "check": "Build renderer contract, Vulkan adapters, session, Vulkan driver and parallel-mater-vulkan-gallery-renderer-tests in build-f7-23-linux-vulkan",
+      "result": "passed; the physical Vulkan runtime test was not run because WSL exposed no Parallel Mater qualifying physical device"
+    },
+    {
+      "check": "Generated CMake graph for build-cuda-slang-vs2022",
+      "result": "the contract/adapters/session/application dependency chain is acyclic and the application has no direct adapter edge"
+    },
+    {
+      "check": "tools/roadmap.py check and tests/test_roadmap.py",
+      "result": "166 task cards valid and 19/19 roadmap tests passed"
+    }
+  ],
+  "continuous_coverage": {
+    "host": ".github/workflows/shader-portability.yml builds host contracts on Ubuntu, Windows and macOS",
+    "vulkan": ".github/workflows/mobile-gallery.yml builds the Android Vulkan Gallery and shared session/adapters target",
+    "metal": ".github/workflows/mobile-gallery.yml uses the ipad-ci preset, which enables the Gallery and Slang Metal preview and builds parallel-mater-ipad-gallery through the shared session/adapters target"
+  },
+  "limitations": [
+    "The local Vulkan evidence is a compiler and link contract only because this WSL environment exposes no qualifying Parallel Mater Vulkan device; physical Vulkan Gallery qualification remains in its device-specific roadmap gates.",
+    "Hosted iPad CI compiles the Metal adapter and application but cannot provide a physical-device Metal runtime gate.",
+    "parallel-mater-gallery-session-contract-tests currently reaches the pre-existing physics-prime failure 'submit commands: invalid state' on CUDA and D3D12 before host renderer construction; the physical D3D12 Gallery smoke succeeds and the lifecycle failure is not hidden by this renderer-ownership task."
+  ]
+}
