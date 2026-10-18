@@ -1,7 +1,7 @@
 {
   "id": "F6-99",
   "title": "Review F6 exit evidence",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F6-01",
     "F6-02",
@@ -30,7 +30,15 @@
     "Update the qualification index with exact scope and unresolved limitations; an implementation/demo alone cannot close the gate."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "c4094f67-1ed1-4818-9ed8-a349721604e9",
+    "owner": "codex-linux-release-review",
+    "machine": "thomas-laptop",
+    "branch": "work/F6-99/thomas-laptop",
+    "claimed_at": "2026-10-18T21:05:36Z",
+    "heartbeat_at": "2026-10-18T21:05:36Z",
+    "expires_at": "2026-10-19T21:05:36Z"
+  },
   "history": [
     {
       "lease": {
