@@ -10,8 +10,9 @@ file(GLOB_RECURSE vulkan_shader_dependencies CONFIGURE_DEPENDS
 set(vulkan_sources)
 foreach(module geometry geometry_constraints primitives queries fluid geometry_fluid
                cloth geometry_cloth fluid_cloth soft_body geometry_soft_body
-               fluid_soft_body rope fluid_rope geometry_smoke smoke_grid
-               fluid_smoke)
+               fluid_soft_body soft_body_cloth rope fluid_rope cloth_rope
+               soft_body_rope geometry_smoke smoke_grid fluid_smoke cloth_smoke
+               soft_body_smoke rope_smoke)
     parallel_mater_slang_entry_arguments(${module} CUDA entries)
     parallel_mater_slang_definition_arguments(${module} CUDA definitions)
     set(wrapper "src/simulation/${module}_dispatch.cu")
@@ -47,22 +48,13 @@ foreach(module geometry geometry_constraints primitives queries fluid geometry_f
                 --target-env vulkan1.3 --scalar-block-layout "${base}.spv")
     endif()
 endforeach()
-set(vulkan_stub_headers
-    src/simulation/rope_coupling_dispatch.hpp
-    src/simulation/smoke_coupling_dispatch.hpp
-    src/simulation/soft_body_cloth_dispatch.hpp)
-add_custom_command(OUTPUT "${vulkan_generated}/unadvertised.cpp"
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_cpu_dispatch_stubs.py"
-        --output "${vulkan_generated}/unadvertised.cpp" ${vulkan_stub_headers}
-    DEPENDS tools/generate_cpu_dispatch_stubs.py ${vulkan_stub_headers}
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" VERBATIM)
 add_library(parallel-mater-driver-slang-vulkan SHARED
     src/api/instance.cpp src/api/device.cpp src/api/memory.cpp src/api/resources.cpp
     src/api/domains.cpp src/api/pipeline.cpp src/api/commands.cpp src/api/synchronization.cpp
     src/api/queries.cpp src/api/interop.cpp src/driver/slang/entry.cpp
     src/driver/vulkan/schedule_context.cpp src/device/vulkan_device.cpp
     src/device/submission.cpp src/simulation/runtime.cpp src/simulation/memory_arena.cpp
-    ${vulkan_sources} "${vulkan_generated}/unadvertised.cpp")
+    ${vulkan_sources})
 target_compile_features(parallel-mater-driver-slang-vulkan PRIVATE cxx_std_20)
 target_compile_definitions(parallel-mater-driver-slang-vulkan PRIVATE
     PARALLEL_MATER_DRIVER_IMPLEMENTATION=1 PARALLEL_MATER_VULKAN_DRIVER=1)

@@ -17,11 +17,9 @@ preview. There is no silent CPU fallback when the Vulkan driver is unavailable.
 
 The picker always shows the common 28-scene catalog and annotates unsupported
 records with the exact missing backend interaction. The current Vulkan driver
-qualifies 22 records: rigid bodies and constraints, Dump, Fluid, Fluid + Rigid,
-Peg Paint, all four cloth scenes, three soft-body scenes, Rope, RopeFluid,
-Smoke, and SmokeWater. Six cross-deformable scenes remain unavailable until
-F7-14: Soft Body Cloth, Rope Soft Body, Rope Cloth, Smoke Soft Body, Smoke Cloth,
-and Smoke Rope.
+advertises all 28 records, including Soft Body Cloth, Rope Soft Body, Rope
+Cloth, Smoke Soft Body, Smoke Cloth and Smoke Rope. Each record is admitted
+from exact runtime capability queries; Android keeps no parallel scene list.
 
 ## Device workload resource
 
@@ -186,18 +184,19 @@ the failure. Ordering acyclic pointer types before use resolves it without
 changing physics instructions or memory layouts; see the
 [Vulkan workaround](../../docs/VULKAN.md#mali-pointer-declaration-workaround).
 
-The driver packages seventeen shared Slang modules. Smoke kernels whose
+The driver packages 23 shared Slang modules. Smoke kernels whose
 reflected entry blocks exceed 256 bytes use a dynamic uniform parameter buffer;
-existing modules retain their push-constant pipeline layout. All seventeen
+smaller modules retain their push-constant pipeline layout. All 23
 normalized modules pass SDK 1.4.341.0 static validation on Linux.
 
-A revision-pinned Pixel 7 run passed the common 28-scene sweep with 22 supported
-scenes. Smoke and SmokeWater both passed visible-output and reset checks. The
-same run verified direct Vulkan presentation without ordinary-frame readback,
-pause/reset, background recovery, resize, rotation, and native teardown. The
-remaining six scenes were skipped with the exact unadvertised cross-deformable
-interactions. This three-frame-per-scene run is correctness and lifecycle
-evidence; F7-18 still owns sustained runtime, thermal and performance evidence.
+A revision-pinned F7-13 Pixel 7 run passed the common 28-scene sweep with the 22
+scenes then advertised. Smoke and SmokeWater both passed visible-output and
+reset checks. That run verified direct Vulkan presentation without
+ordinary-frame readback, pause/reset, background recovery, resize, rotation,
+and native teardown. The current F7-14 APK packages the six cross-deformable
+modules and advertises all 28 scenes after desktop qualification; a fresh Pixel
+sweep remains required. F7-18 owns sustained runtime, thermal and performance
+evidence.
 Scene replacement releases the old GPU simulation first to avoid overlapping
 memory footprints. See the [qualification record](../../docs/ANDROID-QUALIFICATION.md)
 for earlier native-suite evidence and remaining gates.

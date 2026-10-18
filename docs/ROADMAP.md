@@ -183,7 +183,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-06](roadmap/tasks/F5-06.json) | Classify CUDA/D3D12 comparison failures | done | — | — |
 | [F5-07](roadmap/tasks/F5-07.json) | Gate performance on physical quality | done | F5-01, F5-02 | — |
 | [F5-08](roadmap/tasks/F5-08.json) | Publish per-driver evidence indexes | done | F5-01 | — |
-| [F5-09](roadmap/tasks/F5-09.json) | Isolate native Vulkan validation crash | ready | — | — |
+| [F5-09](roadmap/tasks/F5-09.json) | Isolate native Vulkan validation crash | leased | — | codex-linux-gallery / thomas-laptop / 2026-10-19T15:17:51Z |
 | [F5-10](roadmap/tasks/F5-10.json) | Correct shared contacts and CUDA/D3D12 drift | done | — | — |
 | [F5-11](roadmap/tasks/F5-11.json) | Publish current Windows driver evidence | done | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-10 | — |
 | [F5-12](roadmap/tasks/F5-12.json) | Publish current macOS Metal driver evidence | done | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-10, F5-11 | — |
@@ -227,7 +227,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-11](roadmap/tasks/F7-11.json) | Enable Vulkan soft-body Gallery domains | done | F7-03 | — |
 | [F7-12](roadmap/tasks/F7-12.json) | Enable Vulkan rope Gallery domains | done | F7-03 | — |
 | [F7-13](roadmap/tasks/F7-13.json) | Enable Vulkan smoke Gallery domains | done | F7-03 | — |
-| [F7-14](roadmap/tasks/F7-14.json) | Enable Vulkan cross-deformable Gallery couplings | leased | F7-10, F7-11, F7-12, F7-13 | codex-linux-gallery / thomas-laptop / 2026-10-19T14:37:12Z |
+| [F7-14](roadmap/tasks/F7-14.json) | Enable Vulkan cross-deformable Gallery couplings | done | F7-10, F7-11, F7-12, F7-13 | — |
 | [F7-15](roadmap/tasks/F7-15.json) | Expose capability-driven Android catalog | done | F7-02, F7-07 | — |
 | [F7-16](roadmap/tasks/F7-16.json) | Use native Vulkan rendering on Android | done | F7-07, F7-09 | — |
 | [F7-17](roadmap/tasks/F7-17.json) | Complete Android Gallery controls and help | done | F7-04, F7-07, F7-15, F7-20, F7-21 | — |

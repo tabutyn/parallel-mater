@@ -1,4 +1,5 @@
 #include "dispatch_entry.slang"
+#include "dispatch_shape.slangh"
 // SPDX-License-Identifier: MIT
 // Shared soft-body/cloth coupling kernels.
 
@@ -9,7 +10,7 @@ import geometry_fluid;
 import graphics_resources;
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void soft_cloth_detect(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous,
     uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> inverse_masses,
@@ -126,7 +127,7 @@ float soft_cloth_relaxation(SoftClothContact contact, PMBuffer<uint> counts)
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void soft_cloth_apply_soft(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> forces, uniform PMBuffer<float> inverse_masses,
@@ -147,7 +148,7 @@ void soft_cloth_apply_soft(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void soft_cloth_apply_cloth(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> forces, uniform PMBuffer<float> inverse_masses,
