@@ -84,8 +84,15 @@ def parse_cache(build_dir):
     return values
 
 
+def path_spellings(path):
+    path = Path(path)
+    candidates = (path, path.absolute(), path.resolve())
+    return {spelling for candidate in candidates
+            for spelling in (str(candidate), candidate.as_posix())}
+
+
 def replace_path(value, path, marker):
-    for spelling in (str(path.resolve()), path.resolve().as_posix()):
+    for spelling in path_spellings(path):
         value = value.replace(spelling, marker)
         value = value.replace(spelling.lower(), marker)
     return value
@@ -352,7 +359,7 @@ def normalize_archive_headers(data):
 def normalize_embedded_paths(data, paths):
     normalized = data
     for path in paths:
-        for spelling in {str(path.resolve()), path.resolve().as_posix()}:
+        for spelling in path_spellings(path):
             normalized = normalized.replace(spelling.encode("utf-8"), b"<build-path>")
             normalized = normalized.replace(
                 spelling.encode("utf-16-le"), "<build-path>".encode("utf-16-le"))
@@ -417,7 +424,7 @@ def audit_runtime_paths(install_dir, forbidden):
     binary_mentions = []
     encodings = []
     for value in forbidden:
-        for spelling in {str(value.resolve()), value.resolve().as_posix()}:
+        for spelling in path_spellings(value):
             encodings.append((spelling, spelling.encode("utf-8")))
             encodings.append((spelling, spelling.encode("utf-16-le")))
     for path in sorted(item for item in install_dir.rglob("*") if item.is_file()):
@@ -480,9 +487,10 @@ def capture_manifest(root, build_dir, install_dir, source, preset, configuration
             install_dir, [root, build_dir, install_dir]),
     }
     serialized = json.dumps(manifest, sort_keys=True)
-    for forbidden in (str(root.resolve()), root.resolve().as_posix(),
-                      str(build_dir.resolve()), build_dir.resolve().as_posix(),
-                      str(install_dir.resolve()), install_dir.resolve().as_posix()):
+    forbidden_spellings = set()
+    for path in (root, build_dir, install_dir):
+        forbidden_spellings.update(path_spellings(path))
+    for forbidden in forbidden_spellings:
         if forbidden in serialized:
             raise RuntimeError("release manifest retained a workstation path")
     return manifest
