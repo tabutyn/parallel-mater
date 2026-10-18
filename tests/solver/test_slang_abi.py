@@ -34,8 +34,12 @@ class ReflectedABITest(unittest.TestCase):
         self.assertIn('unsigned char pm_padding_1[3];', text)
         self.assertIn('offsetof(PmShader_Record, count) == 4U', text)
         self.assertEqual(abi.signature(abi.entries['execute']), 'PmShader_Record* arg_records')
-        self.assertEqual(abi.normalize_legacy_wrapper('Record_17 r; r.count_4 = 1; keep_9();'),
-                         'PmShader_Record r; r.count = 1; keep_9();')
+        self.assertEqual(
+            abi.normalize_legacy_wrapper(
+                'Record_17 r; r.count_4 = 1; r.values_2.m_data[0] = 2; '
+                'reinterpret_cast<ulonglong *>(p); keep_9();'),
+            'PmShader_Record r; r.count = 1; r.values_2.data[0] = 2; '
+            'reinterpret_cast<unsigned long long *>(p); keep_9();')
 
     def test_unknown_type_fails(self):
         abi = ReflectedABI(fixture())

@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Order acyclic SPIR-V pointer types before use for affected Mali compilers.
+"""Normalize SPIR-V transport details for portable Vulkan execution.
 
 Slang 2026.18 emits OpTypeForwardPointer even for nonrecursive structures.
 On Pixel 7 (Mali-G710), a 1496-byte capture-only shader crashes in the vendor
 compiler's apply_decorations; defining its pointer types before use fixes it.
-This transport-only pass preserves IDs, decorations and executable instructions.
-It hoists only type/constant dependencies and removes redundant declarations.
-Recursive or unfamiliar dependencies fail closed rather than changing semantics.
+Slang also emits entry-point parameters as push constants. Some shared physics
+kernels exceed Vulkan's portable 128-byte minimum and common 256-byte device
+limit, so those blocks are moved to dynamic uniform-buffer binding 1 in set 0.
+These transport-only passes preserve IDs, layouts, and executable instructions.
 
 Operand layouts: https://registry.khronos.org/SPIR-V/specs/unified1/SPIRV.html
 """
 import argparse
+import json
 from pathlib import Path
 import struct
 
@@ -106,12 +108,70 @@ def normalize(data):
     return struct.pack(f"<{len(output)}I", *output)
 
 
+def bind_entry_parameters(data, descriptor_set=0, binding=1):
+    """Move Slang entry-point blocks from push constants to one UBO binding."""
+    words = list(struct.unpack(f"<{len(data) // 4}I", data))
+    code = list(instructions(words))
+    variables = []
+    decorated = {}
+    changed = False
+    for inst in code:
+        op = inst[0] & 0xffff
+        if op == 71 and len(inst) >= 3:  # OpDecorate
+            decorated.setdefault(inst[1], set()).add(inst[2])
+        elif op == 32 and len(inst) == 4 and inst[2] == 9:  # OpTypePointer
+            inst[2] = 2  # PushConstant -> Uniform
+            changed = True
+        elif op == 39 and len(inst) == 3 and inst[2] == 9:  # OpTypeForwardPointer
+            inst[2] = 2
+            changed = True
+        elif op == 59 and len(inst) >= 4 and inst[3] == 9:  # OpVariable
+            if 33 in decorated.get(inst[2], ()) or 34 in decorated.get(inst[2], ()):
+                raise ValueError(f"push-constant variable %{inst[2]} already has a binding")
+            inst[3] = 2
+            variables.append(inst[2])
+            changed = True
+    if not changed:
+        return data
+    if not variables:
+        raise ValueError("push-constant pointer type has no variable")
+    first_type = next(
+        (n for n, inst in enumerate(code) if 19 <= (inst[0] & 0xffff) <= 39),
+        None)
+    if first_type is None:
+        raise ValueError("parameter block has no type section")
+    annotations = []
+    for variable in variables:
+        annotations.extend((
+            [(4 << 16) | 71, variable, 34, descriptor_set],
+            [(4 << 16) | 71, variable, 33, binding],
+        ))
+    code[first_type:first_type] = annotations
+    output = words[:5] + [word for inst in code for word in inst]
+    return struct.pack(f"<{len(output)}I", *output)
+
+
+def needs_parameter_buffer(reflection, push_constant_limit=256):
+    for entry in reflection["entryPoints"]:
+        parameters = [p for p in entry["parameters"]
+                      if p.get("binding", {}).get("kind") == "uniform"]
+        size = max((p["binding"]["offset"] + p["binding"]["size"]
+                    for p in parameters), default=0)
+        if size > push_constant_limit:
+            return True
+    return False
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--reflection", type=Path, required=True)
     args = parser.parse_args()
-    args.output.write_bytes(normalize(args.input.read_bytes()))
+    result = normalize(args.input.read_bytes())
+    if needs_parameter_buffer(json.loads(args.reflection.read_text())):
+        result = bind_entry_parameters(result)
+    args.output.write_bytes(result)
 
 
 if __name__ == "__main__":

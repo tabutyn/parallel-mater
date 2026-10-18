@@ -179,4 +179,8 @@ class ReflectedABI:
             if name in fields:
                 return name
             return match[0]
-        return re.sub(r'\b(\w+)_\d+\b', replace, source)
+        source = re.sub(r'\b(\w+)_\d+\b', replace, source)
+        # Slang's CUDA emitter wraps fixed-size arrays in a helper exposing
+        # m_data. The neutral reflected declaration uses PmShaderArray::data.
+        source = source.replace('.m_data', '.data')
+        return re.sub(r'\bulonglong\b', 'unsigned long long', source)
