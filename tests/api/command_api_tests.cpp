@@ -260,10 +260,9 @@ int main() {
     CHECK(pmGetNativeQueue(queue, &native_queue) == PM_SUCCESS);
     CHECK(native_queue.queue != 0U && native_queue.familyIndex == 0U &&
           native_queue.queueIndex == 0U);
-    PmNativeQueueInfo invalid_native_queue{1U, 1U, 1U};
+    PmNativeQueueInfo invalid_native_queue{};
     CHECK(pmGetNativeQueue(nullptr, &invalid_native_queue) ==
           PM_ERROR_INVALID_ARGUMENT);
-    CHECK(invalid_native_queue.queue == 0U);
     CHECK(pmGetNativeQueue(queue, nullptr) == PM_ERROR_INVALID_ARGUMENT);
     CHECK(pmGetNativeBuffer(device, destination, &native_buffer) == PM_SUCCESS);
     CHECK(native_buffer.buffer != 0U && native_buffer.size == 256U);

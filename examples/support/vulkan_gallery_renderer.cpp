@@ -1109,10 +1109,9 @@ class VulkanGalleryRenderer final : public GpuGalleryRenderer {
             readback.rgba->resize(static_cast<std::size_t>(width_) * height_);
             const auto *source = static_cast<const std::uint32_t *>(
                 frame.readback.mapped);
-            for (std::uint32_t y = 0U; y < height_; ++y)
-                std::copy_n(source + static_cast<std::size_t>(y) * width_, width_,
-                            readback.rgba->data() +
-                                static_cast<std::size_t>(height_ - 1U - y) * width_);
+            std::copy_n(source,
+                        static_cast<std::size_t>(width_) * height_,
+                        readback.rgba->data());
         }
         return true;
     }
@@ -1247,10 +1246,17 @@ class VulkanGalleryRenderer final : public GpuGalleryRenderer {
         create_pipelines();
     }
 
-    ~VulkanGalleryRenderer() override {
+    void detach_target() noexcept override {
         if (!device_) return;
         (void)vkDeviceWaitIdle(device_);
         destroy_swapchain();
+        surface_ = {};
+        swapchain_stale_ = false;
+    }
+
+    ~VulkanGalleryRenderer() override {
+        if (!device_) return;
+        detach_target();
         for (Frame &frame : frames_) {
             destroy_frame_targets(frame);
             destroy(frame.uniforms);

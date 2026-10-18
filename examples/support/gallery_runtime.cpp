@@ -69,7 +69,17 @@ struct GalleryRuntime::LifetimeToken {
 GalleryRuntime::GalleryRuntime() noexcept = default;
 GalleryRuntime::~GalleryRuntime() = default;
 GalleryRuntime::GalleryRuntime(GalleryRuntime &&) noexcept = default;
-GalleryRuntime &GalleryRuntime::operator=(GalleryRuntime &&) noexcept = default;
+GalleryRuntime &GalleryRuntime::operator=(GalleryRuntime &&other) noexcept {
+    if (this == &other) return *this;
+
+    // Default member-wise assignment would release simulation before the
+    // renderer and scene instance declared after it. Native renderers borrow
+    // the simulation device, queue, and output buffers, so preserve normal
+    // reverse-declaration destruction order before reconstructing the runtime.
+    std::destroy_at(this);
+    std::construct_at(this, std::move(other));
+    return *this;
+}
 
 std::size_t GalleryRuntime::live_runtime_count() noexcept {
     return live_runtimes.load();

@@ -493,8 +493,8 @@ static int run_gallery_application(
         options, options.initial_context));
     GalleryRuntime &runtime = session.runtime();
     const GalleryCatalog &scene_catalog = session.catalog();
-    // Declare presentation after the session so native surfaces are destroyed
-    // before their borrowed Vulkan instance or Metal device.
+    // The target-detach guard below releases swapchains before this platform
+    // surface, while the session keeps its borrowed native instance alive.
     GalleryWindow presentation;
     if (interactive &&
         !GalleryWindow::create(1280U, 720U, options.width, options.height,
@@ -503,6 +503,13 @@ static int run_gallery_application(
         std::cerr << error << '\n';
         return 1;
     }
+    struct NativeTargetDetach {
+        GalleryRuntime &runtime;
+        ~NativeTargetDetach() {
+            if (runtime.native_renderer)
+                runtime.native_renderer->detach_target();
+        }
+    } native_target_detach{runtime};
     std::cout << "Gallery scene ready index=" << session.selection()
               << " revision=" << session.revision() << '\n' << std::flush;
     PmPhysicalDeviceProperties physics_device{};
@@ -1356,8 +1363,15 @@ static int run_gallery_application(
         ++displayed_frames;
         if (!options.interactive_smoke_output.empty() && displayed_frames == static_cast<unsigned>(options.frames)) {
             if (!write_ppm(options.interactive_smoke_output, pixels, options.width, options.height)) return 1;
-            std::cout << "Interactive smoke: " << displayed_frames << " frames, renderer="
-                      << (gpu_frame ? "metal-direct-fenced" : "software") << '\n';
+            std::cout << "Interactive smoke: " << displayed_frames
+                      << " frames, renderer=";
+            if (gpu_frame)
+                std::cout << gallery_backend_name(
+                    runtime.native_renderer->renderer_device().native.backend)
+                          << "-direct-fenced";
+            else
+                std::cout << "software";
+            std::cout << '\n';
             return 0;
         }
     }

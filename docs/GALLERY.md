@@ -21,20 +21,21 @@ apps/gallery_game (not installed)
   scene selection, progression, save data, menus
 ```
 
-The current refactor has one shared `MobileGallerySession` for Android and
-iPad, while desktop still owns a second session/runtime path. The target
-ownership, state transitions, and
-characterization gates are tracked in the
-[common Gallery runtime contract](GALLERY-RUNTIME.md). F7 in the roadmap moves
-desktop and mobile onto that contract before Android scene coverage is called
-complete.
+Desktop, Android, and iPad use one `GallerySession` and `GalleryRuntime` for
+catalog, scene lifecycle, workload, controls, camera, physics resources, and
+render handoff. Android and iPad add one shared `MobileGallerySession` around
+it. Desktop retains a richer frame coordinator for debug overlays, capture, and
+calibration; its ordinary frame path is the remaining coordination cleanup.
+Ownership, state transitions, and characterization gates are tracked in the
+[common Gallery runtime contract](GALLERY-RUNTIME.md).
 
-Renderers consume the backend-neutral `RenderSceneFrame` copied through the
-public command API. The default software adapter rasterizes that frame without
-CUDA or OptiX; native window adapters only present its CPU RGBA image. The
-optional OptiX adapter ray traces the same scene/frame contract and is isolated
-in its own target. Headless physics builds remain free of window and renderer
-dependencies.
+Host renderers consume the backend-neutral `RenderSceneFrame` copied through
+the public command API. Native Metal and Vulkan adapters instead consume public
+GPU output buffers through the common `GpuGalleryRenderer` contract; ordinary
+frames remain on the selected physics device. Vulkan compiles the same
+`gallery.slang` graphics source used for D3D12 to SPIR-V. The optional OptiX
+adapter remains isolated in its own target. Headless physics builds remain free
+of window and renderer dependencies.
 
 ## Backend selection
 
@@ -79,9 +80,10 @@ GPU output buffers directly, without normal-frame image or position readback.
 ## First gallery sequence
 
 The ordered catalog metadata, scene lifecycle, scene construction, semantic
-controllers, timing, mobile surface admission and mobile recovery are shared
-today. Remaining F7 work unifies desktop ownership and renderer adapters; the
-runtime contract records the current split until that migration finishes.
+controllers, timing policy, mobile surface admission, mobile recovery, and
+native renderer handoff are shared today. Remaining F7 work connects Android to
+the Vulkan renderer, completes mobile controls and qualification, and removes
+the desktop coordinator's duplicate ordinary-frame scheduling.
 
 1. **Rigid body** — Blender-authored static, kinematic, and dynamic triangle
    meshes collide inside a concave bowl.

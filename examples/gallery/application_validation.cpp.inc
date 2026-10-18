@@ -102,7 +102,10 @@
         .rigid_body_asset = gallery_resource_path(options, options.scene),
         .replacement = GalleryReplacementPolicy::preserve_until_ready,
         .create_host_renderer = true,
-        .prime_scene = false,
+        // Direct renderers need one completed output generation before the
+        // window can present its first frame. Headless/software desktop paths
+        // retain their existing explicit stepping behavior.
+        .prime_scene = create_native_renderer,
     };
     const auto backend = options.backend;
     config.validate_scene =

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Common raster drawing of public pm* output records. No physics lives here.
 #include "gallery_uniforms.slangh"
+#ifndef PM_GALLERY_VULKAN
+#define PM_GALLERY_VULKAN 0
+#endif
 #if PM_GALLERY_VULKAN
 #define GALLERY_VERTEX_ID SV_VulkanVertexID
 #define GALLERY_INSTANCE_ID SV_VulkanInstanceID

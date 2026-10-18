@@ -47,8 +47,16 @@ add_custom_command(OUTPUT "${pm_vulkan_gallery_header}"
     COMMENT "Embedding Gallery Vulkan shaders"
     VERBATIM)
 
+set(pm_vulkan_gallery_renderer_source
+    examples/support/vulkan_gallery_renderer.cpp)
+# Vulkan create-info aggregate initialization deliberately supplies sType and
+# zero-initializes every remaining member before setting the required fields.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    set_source_files_properties(${pm_vulkan_gallery_renderer_source} PROPERTIES
+        COMPILE_OPTIONS -Wno-missing-field-initializers)
+endif()
 target_sources(parallel-mater-gallery-session PRIVATE
-    examples/support/vulkan_gallery_renderer.cpp
+    ${pm_vulkan_gallery_renderer_source}
     "${pm_vulkan_gallery_header}")
 target_include_directories(parallel-mater-gallery-session PRIVATE
     "${pm_vulkan_gallery_shader_dir}")
@@ -84,4 +92,24 @@ if(BUILD_TESTING)
         FAIL_REGULAR_EXPRESSION "Validation Error;VUID-"
         ENVIRONMENT
             "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR};PM_VULKAN_VALIDATION=1")
+
+    if(TARGET parallel-mater-gallery-window)
+        add_executable(parallel-mater-vulkan-gallery-surface-tests
+            tests/gallery/vulkan_gallery_surface_tests.cpp)
+        target_compile_features(parallel-mater-vulkan-gallery-surface-tests
+            PRIVATE cxx_std_20)
+        target_compile_definitions(parallel-mater-vulkan-gallery-surface-tests
+            PRIVATE PM_GALLERY_TEST_ROOT="${CMAKE_CURRENT_SOURCE_DIR}")
+        target_link_libraries(parallel-mater-vulkan-gallery-surface-tests PRIVATE
+            parallel-mater-gallery-session parallel-mater-gallery-window)
+        add_dependencies(parallel-mater-vulkan-gallery-surface-tests
+            parallel-mater-driver-slang-vulkan parallel-mater-layer-validation)
+        add_test(NAME parallel-mater-vulkan-gallery-surface-tests
+            COMMAND parallel-mater-vulkan-gallery-surface-tests)
+        set_tests_properties(parallel-mater-vulkan-gallery-surface-tests PROPERTIES
+            SKIP_RETURN_CODE 77 TIMEOUT 240
+            FAIL_REGULAR_EXPRESSION "Validation Error;VUID-"
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR};PM_VULKAN_VALIDATION=1")
+    endif()
 endif()
