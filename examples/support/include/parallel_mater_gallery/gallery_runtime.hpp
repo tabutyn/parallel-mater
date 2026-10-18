@@ -6,8 +6,7 @@
 #include <parallel_mater_gallery/dump_truck.hpp>
 #include <parallel_mater_gallery/fixed_collector.hpp>
 #include <parallel_mater_gallery/gallery_context.hpp>
-#include <parallel_mater_gallery/gpu_renderer.hpp>
-#include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/renderer_adapter.hpp>
 #include <parallel_mater_gallery/render_scene.hpp>
 #include <parallel_mater_gallery/scene.hpp>
 

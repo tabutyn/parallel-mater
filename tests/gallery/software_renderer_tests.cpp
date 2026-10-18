@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-#include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/renderer_adapter.hpp>
 #include <parallel_mater_gallery/scene.hpp>
 
 #include <render/render_scene.hpp>
@@ -27,7 +27,8 @@ int main() {
 
     RendererHandle renderer;
     CommandSceneInstance instance;
-    if (!create_renderer(scene, instance, 320U, 180U, renderer, error)) {
+    if (!RendererAdapterFactory::create_host(
+            scene, instance, 320U, 180U, renderer, error)) {
         std::cerr << error << '\n';
         return 1;
     }
@@ -61,8 +62,9 @@ int main() {
     orientation_frame.rigid_states.push_back({});
     orientation_frame.previous_rigid_states = orientation_frame.rigid_states;
     RendererHandle orientation_renderer;
-    if (!create_renderer(orientation_scene, instance, 96U, 96U,
-                         orientation_renderer, error) ||
+    if (!RendererAdapterFactory::create_host(
+            orientation_scene, instance, 96U, 96U,
+            orientation_renderer, error) ||
         !orientation_renderer.render(
             orientation_frame,
             Camera{{0.0F, 0.0F, 5.0F}, {0.0F, 0.0F, 0.0F},
@@ -103,7 +105,8 @@ int main() {
     quad_frame.rigid_states.push_back({});
     const Camera camera{{0.0F, 0.0F, 5.0F}, {}, {0.0F, 1.0F, 0.0F}, 48.0F};
     std::vector<std::uint32_t> expected;
-    if (!create_renderer(quad, instance, 96U, 96U, rigid_renderer, error) ||
+    if (!RendererAdapterFactory::create_host(
+            quad, instance, 96U, 96U, rigid_renderer, error) ||
         !rigid_renderer.render(quad_frame, camera, expected, error)) return 1;
     quad.rigid_bodies.clear();
     quad.cloths.resize(1);
@@ -112,7 +115,8 @@ int main() {
     quad_frame.cloth_surface_vertices.resize(1);
     for (auto index : quad.meshes[0].indices)
         quad_frame.cloth_surface_vertices[0].push_back(quad.meshes[0].vertices[index].position);
-    if (!create_renderer(quad, instance, 96U, 96U, cloth_renderer, error) ||
+    if (!RendererAdapterFactory::create_host(
+            quad, instance, 96U, 96U, cloth_renderer, error) ||
         !cloth_renderer.render(quad_frame, camera, pixels, error) || pixels != expected) {
         std::cerr << "software renderer misindexed the cloth's triangle-corner surface\n";
         return 1;
@@ -123,7 +127,8 @@ int main() {
         {0U, 1U, 2U}, {1.0F, 0.1F, 0.0F}});
     crossing.rigid_bodies.push_back(body);
     RendererHandle crossing_renderer;
-    if (!create_renderer(crossing, instance, 96U, 96U, crossing_renderer, error) ||
+    if (!RendererAdapterFactory::create_host(
+            crossing, instance, 96U, 96U, crossing_renderer, error) ||
         !crossing_renderer.render(quad_frame, camera, pixels, error)) return 1;
     const auto center = pixels[48U * 96U + 48U];
     if ((center & 255U) <= ((center >> 16U) & 255U) + 25U) {

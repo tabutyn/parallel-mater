@@ -4,11 +4,8 @@
 #include "scene_builder.hpp"
 #include "render/render_scene.hpp"
 #include <parallel_mater_gallery/dump_truck.hpp>
-#include <parallel_mater_gallery/renderer.hpp>
+#include <parallel_mater_gallery/renderer_adapter.hpp>
 #include <parallel_mater_gallery/runtime_platform.hpp>
-#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
-#include <parallel_mater_gallery/gpu_renderer.hpp>
-#endif
 #include <parallel_mater_gallery/gallery_context.hpp>
 #include <algorithm>
 #include <cmath>
@@ -32,9 +29,9 @@ const GalleryCatalogItem &GallerySession::catalog_item(unsigned index) const {
     return catalog_[index];
 }
 GallerySession::GallerySession(GallerySessionConfig config) : config_(std::move(config)) {
-#ifndef PM_GALLERY_NATIVE_GPU_RENDERER
-    if (config_.gpu_rendering) throw std::runtime_error("Native GPU Gallery renderer is not built");
-#endif
+    if (config_.gpu_rendering &&
+        !RendererAdapterFactory::native_gpu_available())
+        throw std::runtime_error("Native GPU Gallery renderer is not built");
     if (config_.workload_limits) {
         limits = *config_.workload_limits;
     } else {
@@ -155,18 +152,14 @@ void GallerySession::select(unsigned index) {
                 return false;
             }
         }
-#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
         if (gpu_rendering) {
-            GpuRendererDevice device;
+            GpuRendererDevice renderer_device;
             if (!resolve_gpu_renderer_device(next.instance.render_buffers,
-                                             device, failure)) return false;
-            next.native_renderer = create_gpu_gallery_renderer(
-                device, next.scene, next.instance, failure);
+                                             renderer_device, failure)) return false;
+            next.native_renderer = RendererAdapterFactory::create_native(
+                renderer_device, next.scene, next.instance, failure);
             if (!next.native_renderer) return false;
         }
-#else
-        (void)gpu_rendering;
-#endif
         if (prime_scene && !next.step({.gravity = {0.0F,
                 -9.81F * next.scene.gravity_scale, 0.0F}}, failure)) {
             return false;
@@ -233,8 +226,9 @@ void GallerySession::resize(unsigned w, unsigned h) {
     std::string error;
     RendererHandle renderer;
     if (runtime_.ready() && !config_.gpu_rendering) {
-        require(create_renderer(runtime_.scene, runtime_.instance, w, h,
-                                renderer, error), error);
+        require(RendererAdapterFactory::create_host(
+                    runtime_.scene, runtime_.instance, w, h, renderer, error),
+                error);
         runtime_.renderer = std::move(renderer);
     }
     width = w; height = h;
@@ -393,7 +387,6 @@ void GallerySession::frame_at(
         if (render) {
             render(*this, frame_policy_.interpolation_alpha());
         } else {
-#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
             if (runtime_.native_renderer) {
                 pixels.clear();
                 GpuRenderTarget target = render_target_;
@@ -410,7 +403,6 @@ void GallerySession::frame_at(
                 require(render_native(target, {},
                     diagnostics_ ? &pixels : nullptr, error), error);
             } else
-#endif
                 require(render_host(pixels, error, nullptr,
                                     FluidRenderMode::particles), error);
         }
@@ -490,7 +482,6 @@ bool GallerySession::render_host(
 bool GallerySession::render_native(
     GpuRenderTarget target, std::span<const std::uint32_t> overlay,
     std::vector<std::uint32_t> *readback, std::string &error) {
-#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
     if (!runtime_.native_renderer) {
         error = "native Gallery renderer is not initialized";
         return false;
@@ -505,13 +496,6 @@ bool GallerySession::render_native(
             request, error))
         return false;
     return runtime_.native_renderer->render(request, error);
-#else
-    (void)target;
-    (void)overlay;
-    (void)readback;
-    error = "native Gallery renderer is not built";
-    return false;
-#endif
 }
 bool GallerySession::read_host_image(
     std::vector<std::uint32_t> &rgba, std::string &error) {
