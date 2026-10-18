@@ -389,7 +389,8 @@ UIImage *frame_image(const GallerySession &session) {
                 dispatch_sync(dispatch_get_main_queue(), ^{
                     [self installCatalog:catalogSnapshot];
                 });
-                NSLog(@"ParallelMater: %@", text(self->_session->details()));
+                NSLog(@"ParallelMater: %@",
+                      text(details_text(self->_session->presentation())));
                 const auto native = self->_session->native_render_device();
                 id<MTLDevice> gpu = (__bridge id<MTLDevice>)(
                     reinterpret_cast<void *>(native.device));
