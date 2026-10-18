@@ -3,13 +3,13 @@
 #include <parallel_mater_gallery/arrow_forces.hpp>
 #include <parallel_mater_gallery/dump_truck.hpp>
 #include <parallel_mater_gallery/fixed_collector.hpp>
+#include <parallel_mater_gallery/frame_policy.hpp>
 #include <parallel_mater_gallery/frame_timing.hpp>
 #include <parallel_mater_gallery/gallery_debug.hpp>
 #include <parallel_mater_gallery/gallery_input.hpp>
 #include <parallel_mater_gallery/gallery_runtime.hpp>
 #include <parallel_mater_gallery/overlay.hpp>
 #include <parallel_mater_gallery/physics_debug.hpp>
-#include <parallel_mater_gallery/physics_frame_budget.hpp>
 #include <parallel_mater_gallery/renderer.hpp>
 #include <parallel_mater_gallery/runtime_platform.hpp>
 #include <parallel_mater_gallery/scene.hpp>
@@ -65,6 +65,7 @@ using parallel_mater::gallery::GalleryRuntime;
 using parallel_mater::gallery::GalleryRuntimeCreateInfo;
 using parallel_mater::gallery::GalleryStepOptions;
 using parallel_mater::gallery::GalleryDebugState;
+using parallel_mater::gallery::GalleryFramePolicy;
 using parallel_mater::gallery::GalleryInputState;
 using parallel_mater::gallery::GalleryKey;
 using parallel_mater::gallery::GallerySceneSource;
@@ -101,9 +102,8 @@ using parallel_mater::gallery::validate_brick_config;
 // UI frame input; translated by the common runtime into public commands.
 using StepOptions = GalleryStepOptions;
 
-constexpr float k_timestep = 1.0F / 60.0F;
-constexpr std::uint32_t k_maximum_catch_up_steps = 4U;
-constexpr double k_maximum_frame_delta = 0.25;
+constexpr float k_timestep =
+    1.0F / static_cast<float>(GalleryFramePolicy::default_target_fps);
 constexpr float k_gravity = 9.81F;
 constexpr float k_pi = 3.14159265358979323846F;
 constexpr std::uint32_t k_default_dump_spheres =
@@ -115,11 +115,6 @@ parallel_mater::gallery::CameraPreset camera_preset_for(
     return context == GalleryContext::rigid_body
         ? parallel_mater::gallery::brick_camera_preset(bricks)
         : gallery_entry(context).camera;
-}
-
-[[nodiscard]] constexpr std::uint32_t scene_substeps(
-    GalleryContext context) noexcept {
-    return context == GalleryContext::dump ? 8U : 4U;
 }
 
 struct Options {
@@ -492,6 +487,8 @@ static int run_gallery_application(
         return 1;
     }
     FrameTimingCollector frame_timings;
+    GalleryFramePolicy frame_policy(
+        options.workload_limits ? &*options.workload_limits : nullptr);
     // Backend-specific workload profiles may change the render resolution.
     // Create the simulation presentation after those limits are selected.
     if (interactive &&
@@ -515,8 +512,8 @@ static int run_gallery_application(
     std::uint32_t &fluid_particles = session.fluid_particles;
     std::optional<CalibrationResult> last_calibration;
 
-    const StepOptions step_options{.timestep = k_timestep,
-                                   .substeps = scene_substeps(runtime.context),
+    const StepOptions step_options{.timestep = frame_policy.timestep(),
+                                   .substeps = frame_policy.substeps(),
                                    .gravity = initial_scene_gravity(
                                        runtime.context,
                                        runtime.scene.gravity_scale),
@@ -860,19 +857,13 @@ static int run_gallery_application(
     std::string capture_status;
     bool capture_status_failure = false;
     FrameClock::time_point capture_status_until{};
-    auto previous_frame_time = FrameClock::now();
-    double physics_accumulator = 0.0;
+    frame_policy.reset(FrameClock::now());
     std::uint64_t observed_session_revision = session.revision;
     float rigid_interpolation_alpha = 1.0F;
     unsigned displayed_frames = 0;
     while (glfwWindowShouldClose(window) == GLFW_FALSE) {
         const auto frame_time = FrameClock::now();
         frame_timings.begin_frame(frame_time);
-        const double frame_delta = std::min(
-            k_maximum_frame_delta,
-            std::chrono::duration<double>(
-                frame_time - previous_frame_time).count());
-        previous_frame_time = frame_time;
         glfwPollEvents();
         keys.update();
         if (!options.interactive_smoke_output.empty() && displayed_frames == 1)
@@ -914,9 +905,9 @@ static int run_gallery_application(
                 // Calibration has its own collector. Do not report its entire
                 // run as a playback frame or catch up that elapsed time.
                 frame_timings.clear_history();
-                previous_frame_time = FrameClock::now();
-                frame_timings.begin_frame(previous_frame_time);
-                physics_accumulator = 0.0;
+                const auto calibration_finished = FrameClock::now();
+                frame_timings.begin_frame(calibration_finished);
+                frame_policy.reset(calibration_finished);
             }
             if (input_state.brick_dialog &&
                 keys.pressed(KeyAction::primary_debug)) {
@@ -1112,72 +1103,60 @@ static int run_gallery_application(
         if (session.revision != observed_session_revision) {
             observed_session_revision = session.revision;
             frame_timings.clear_history();
-            physics_accumulator = 0.0;
-            rigid_interpolation_alpha = 1.0F;
-        } else if (input_state.shared.parameters_visible ||
-                   input_state.shared.catalog_visible) {
-            physics_accumulator = 0.0;
+            frame_policy.reset(frame_time);
             rigid_interpolation_alpha = 1.0F;
         } else {
-            physics_accumulator += frame_delta;
-            const GalleryEntry &entry = gallery_entry(runtime.context);
-            auto directional = input_state.shared.catalog_visible
-                ? parallel_mater::gallery::GalleryControlInput{}
-                : directional_input(
-                      window, entry.controls != GalleryControlPolicy::motor_drive);
-            directional.camera = input_state.shared.camera.camera();
-            if (entry.controls == GalleryControlPolicy::peg_gravity &&
-                !input_state.shared.catalog_visible) {
-                directional.right +=
-                    static_cast<float>(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) -
-                    static_cast<float>(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS);
-                directional.forward +=
-                    static_cast<float>(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) -
-                    static_cast<float>(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS);
-            }
-            parallel_mater::gallery::PhysicsFrameBudget physics_budget(k_maximum_catch_up_steps);
+            const bool simulation_enabled =
+                !input_state.shared.parameters_visible &&
+                !input_state.shared.catalog_visible;
+            frame_policy.begin_frame(frame_time, simulation_enabled);
             bool step_failed = false;
-            while (physics_accumulator >= k_timestep &&
-                   physics_budget.can_step()) {
-                frame_timings.begin_phase(FramePhase::physics);
-                StepOptions interactive_step = step_options;
-                interactive_step.substeps = scene_substeps(runtime.context);
-                interactive_step.collect_rigid_contacts =
-                    debug.rigid_contacts;
-                interactive_step.collect_fluid_contacts =
-                    debug.rigid_contacts;
-                const bool host_diagnostics = capture_requested || debug.structure || debug.cloth_bonds ||
-                    debug.rigid_contacts || debug.vectors_visible() || debug.smoke_mode != SmokeDebugMode::none;
-                bool native_render = runtime.renderer.native_image().handle != 0U;
-                bool read_host = true;
-#ifdef PM_GALLERY_METAL_RENDERER
-                native_render = native_render || bool(runtime.native_renderer);
-                read_host = !runtime.native_renderer ||
-                    entry.controls == GalleryControlPolicy::collector_gravity ||
-                    host_diagnostics;
-#endif
-                interactive_step.read_deformables =
-                    !native_render || host_diagnostics;
-                interactive_step.read_host = read_host;
-                if (!runtime.controlled_step(
-                        directional, interactive_step, error)) {
-                    std::cerr << "step gallery failed: " << error << '\n';
-                    step_failed = true;
-                    break;
+            if (simulation_enabled) {
+                const GalleryEntry &entry = gallery_entry(runtime.context);
+                auto directional = directional_input(
+                    window, entry.controls != GalleryControlPolicy::motor_drive);
+                directional.camera = input_state.shared.camera.camera();
+                if (entry.controls == GalleryControlPolicy::peg_gravity) {
+                    directional.right +=
+                        static_cast<float>(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) -
+                        static_cast<float>(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS);
+                    directional.forward +=
+                        static_cast<float>(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) -
+                        static_cast<float>(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS);
                 }
-                physics_accumulator -= k_timestep;
-                physics_budget.record_step(frame_timings.end_phase() / 1000.0);
+                while (frame_policy.can_step()) {
+                    frame_timings.begin_phase(FramePhase::physics);
+                    StepOptions interactive_step = step_options;
+                    interactive_step.collect_rigid_contacts =
+                        debug.rigid_contacts;
+                    interactive_step.collect_fluid_contacts =
+                        debug.rigid_contacts;
+                    const bool host_diagnostics = capture_requested || debug.structure || debug.cloth_bonds ||
+                        debug.rigid_contacts || debug.vectors_visible() || debug.smoke_mode != SmokeDebugMode::none;
+                    bool native_render = runtime.renderer.native_image().handle != 0U;
+                    bool read_host = true;
+#ifdef PM_GALLERY_METAL_RENDERER
+                    native_render = native_render || bool(runtime.native_renderer);
+                    read_host = !runtime.native_renderer ||
+                        entry.controls == GalleryControlPolicy::collector_gravity ||
+                        host_diagnostics;
+#endif
+                    interactive_step.read_deformables =
+                        !native_render || host_diagnostics;
+                    interactive_step.read_host = read_host;
+                    if (!runtime.controlled_step(
+                            directional, interactive_step, error)) {
+                        std::cerr << "step gallery failed: " << error << '\n';
+                        step_failed = true;
+                        break;
+                    }
+                    frame_policy.record_step(
+                        frame_timings.end_phase() / 1000.0);
+                }
             }
             if (step_failed) break;
-            if (!physics_budget.can_step() &&
-                physics_accumulator >= k_timestep) {
-                physics_accumulator = std::fmod(
-                    physics_accumulator, static_cast<double>(k_timestep));
-            }
-            rigid_interpolation_alpha = static_cast<float>(std::clamp(
-                physics_accumulator / static_cast<double>(k_timestep),
-                0.0, 1.0));
-
+            frame_policy.finish_frame();
+            rigid_interpolation_alpha = frame_policy.interpolation_alpha();
         }
 
         // Debug toggles/capture can arrive while paused. Read the last GPU

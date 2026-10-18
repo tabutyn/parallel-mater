@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 #include <parallel_mater_gallery/device_profiles.hpp>
+#include <parallel_mater_gallery/frame_policy.hpp>
 #include <parallel_mater_gallery/frame_timing.hpp>
 #include <parallel_mater_gallery/gallery_catalog.hpp>
 #include <parallel_mater_gallery/gallery_runtime.hpp>
@@ -20,10 +21,13 @@ struct GallerySessionConfig {
     bool gpu_rendering{};
 };
 
-// One worker owns the session. Platform clients supply paths, input and an
-// optional presentation callback; no platform solver, controller or clock.
+// One worker owns the session. Platform clients supply paths, input, monotonic
+// frame timestamps, and an optional presentation callback; no platform solver,
+// controller, or timing policy.
 class GallerySession {
 public:
+    using FrameClock = GalleryFramePolicy::Clock;
+
     explicit GallerySession(GallerySessionConfig config);
     ~GallerySession();
     void select(unsigned index);
@@ -35,6 +39,8 @@ public:
     GalleryActionOutcome primary_action();
     void release();
     void frame(const std::function<void(const GallerySession &)> &present = {});
+    void frame_at(FrameClock::time_point timestamp,
+                  const std::function<void(const GallerySession &)> &present = {});
     void set_paused(bool value);
     void set_active(bool value);
     void steer(float right, float up);
@@ -81,6 +87,7 @@ private:
     std::string device_;
     void *presentation_layer_{};
     bool diagnostics_{};
+    GalleryFramePolicy frame_policy_{};
     const GalleryCatalogItem &catalog_item(unsigned index) const;
     const GalleryEntry &entry(unsigned index) const {
         return catalog_item(index).scene;
