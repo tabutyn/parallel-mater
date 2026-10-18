@@ -4,7 +4,7 @@
 #include <parallel_mater_conformance/runner.hpp>
 #include <parallel_mater_conformance/sha256.hpp>
 
-#include "../../../tests/api/lifecycle_fixture.hpp"
+#include "lifecycle_fixture.hpp"
 
 #include <cstdint>
 #include <filesystem>

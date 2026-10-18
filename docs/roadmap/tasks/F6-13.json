@@ -1,0 +1,43 @@
+{
+  "id": "F6-13",
+  "title": "Package the conformance runner source closure",
+  "status": "done",
+  "dependencies": [
+    "F6-12"
+  ],
+  "locks": [
+    "conformance-runner-packaging"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Remove repository-test source dependencies from the conformance component so its declared source tree can configure and build solely against a relocated installed SDK.",
+  "acceptance": [
+    "The conformance component has an explicit self-contained source closure with no parent-relative dependency on tests/api or other unshipped repository internals.",
+    "A contract test rejects future source references that escape the copied conformance component.",
+    "The full SDK install checker passes configure, build, corpus input, installed-runner, unsupported-case and missing-driver checks after relocating a clean install."
+  ],
+  "evidence": [
+    "docs/roadmap/evidence/F6-13-conformance-source-closure.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "9c9ee686-192f-407d-aa3e-de797a8d3be9",
+        "owner": "codex-linux-release",
+        "machine": "thomas-laptop",
+        "branch": "work/F6-13/thomas-laptop",
+        "claimed_at": "2026-10-18T20:41:34Z",
+        "heartbeat_at": "2026-10-18T20:41:34Z",
+        "expires_at": "2026-10-19T20:41:34Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T20:45:05Z",
+      "reason": "Conformance owns its fixture source closure and the complete relocated installed-SDK checker passes from a clean revision.",
+      "evidence": [
+        "docs/roadmap/evidence/F6-13-conformance-source-closure.json"
+      ]
+    }
+  ]
+}

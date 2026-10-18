@@ -8,7 +8,13 @@ endif()
 find_package(Threads REQUIRED)
 foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction-graph-lifecycle graph-validation geometry-lifecycle paint-lifecycle endpoint-lifecycle fluid-pair-graph-lifecycle)
     string(REPLACE "-" "_" source_name "${suite}")
-    add_executable(parallel-mater-${suite}-tests ${source_name}_tests.cpp)
+    set(suite_source ${source_name}_tests.cpp)
+    if(suite STREQUAL "resource-lifecycle")
+        set(suite_source ../../conformance/v1/src/resource_lifecycle_fixture.cpp)
+    elseif(suite STREQUAL "interaction-graph-lifecycle")
+        set(suite_source ../../conformance/v1/src/interaction_graph_lifecycle_fixture.cpp)
+    endif()
+    add_executable(parallel-mater-${suite}-tests ${suite_source})
     target_compile_features(parallel-mater-${suite}-tests PRIVATE cxx_std_20)
     target_link_libraries(parallel-mater-${suite}-tests PRIVATE ParallelMater::parallel_mater)
     foreach(backend cpu cuda vulkan d3d12 metal)
@@ -200,7 +206,7 @@ if(TARGET parallel-mater-test-driver-slang-cpu-resources AND
 endif()
 
 add_executable(parallel-mater-capacity-recovery-tests
-    capacity_recovery_tests.cpp)
+    ../../conformance/v1/src/capacity_recovery_fixture.cpp)
 target_compile_features(parallel-mater-capacity-recovery-tests PRIVATE
     cxx_std_20)
 target_include_directories(parallel-mater-capacity-recovery-tests PRIVATE

@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_conformance/json.hpp>
+#include <parallel_mater_conformance/rigid_mesh_checks.hpp>
 #include <parallel_mater_conformance/runner.hpp>
 #include <parallel_mater_conformance/sha256.hpp>
 #include <parallel_mater_scene/command_scene.hpp>
 #include <parallel_mater_scene/scene.hpp>
-
-#include "../../../tests/gallery/rigid_mesh_checks.hpp"
 
 #include <algorithm>
 #include <cmath>

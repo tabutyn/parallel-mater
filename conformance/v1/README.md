@@ -56,6 +56,18 @@ and comparator with:
 ctest --test-dir <build> -R parallel-mater-conformance
 ```
 
+When a file already named by `manifest.json` changes, refresh all pinned hashes
+with the same JSON/XML line-ending normalization used by the installed runner:
+
+```text
+python3 conformance/v1/update_manifest.py
+python3 conformance/v1/update_manifest.py --check
+```
+
+Review the manifest diff with the input change. The tool does not add files,
+change provenance, regenerate the evidence index or update trajectory goldens;
+those remain explicit review steps. A second refresh must produce no diff.
+
 Record the selected driver's public identity and exact advertised interaction
 keys with `--provenance` and `--capabilities`. The capability output uses the
 same canonical names and graph-limit representation as qualification results.
