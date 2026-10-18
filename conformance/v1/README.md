@@ -154,6 +154,25 @@ The existing 2 mm threshold is unchanged. A driver-contact depth is diagnostic;
 it cannot replace the independent mesh measurement. The original CUDA/D3D12
 failures and corrected observations remain in the revisioned Windows report.
 
+The `rigid-kinematic-sweep-v1` profile independently adjudicates the
+`rigid-direct` frame-21 kinematic impact. Capture all frames, then evaluate the
+raw trajectory directly:
+
+```text
+parallel-mater-conformance --case rigid-direct --every-frame \
+  --output /path/to/results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/rigid-kinematic-sweep-v1.json \
+  --actual /path/to/results/rigid-direct.json \
+  --report /path/to/rigid-kinematic-sweep-report.json
+```
+
+The profile pins the unchanged case hash and requires checkpoints 0 through
+60. It derives expected contact direction and torque sign from the declared
+0.2 m-half-extent collider and off-centre sweep, enforces the Coulomb cone, and
+bounds out-of-plane leakage from the fixture's mirror symmetry. It reads no
+trajectory golden and does not weaken the `direct` comparison tolerance.
+
 Run the capacity and graph-lifecycle gate with:
 
 ```text
