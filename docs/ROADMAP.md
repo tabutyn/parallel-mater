@@ -148,7 +148,11 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F3-05](roadmap/tasks/F3-05.json) | Expose structured validation diagnostics | done | F3-01 | — |
 | [F3-06](roadmap/tasks/F3-06.json) | Close threading and deferred-error contract gaps | leased | F1-06, F3-04 | codex-windows-validation / windows-gtx1080 / 2026-10-19T01:37:47Z |
 | [F3-07](roadmap/tasks/F3-07.json) | Test independent compatibility combinations | ready | F3-05 | — |
-| [F3-99](roadmap/tasks/F3-99.json) | Review F3 exit evidence | waiting on dependencies | F3-01, F3-02, F3-03, F3-04, F3-05, F3-06, F3-07 | — |
+| [F3-08](roadmap/tasks/F3-08.json) | Qualify portable host concurrency | waiting on dependencies | F3-06 | — |
+| [F3-09](roadmap/tasks/F3-09.json) | Qualify descriptor snapshot coverage | waiting on dependencies | F3-06 | — |
+| [F3-10](roadmap/tasks/F3-10.json) | Qualify destruction wait profiles | waiting on dependencies | F3-06 | — |
+| [F3-11](roadmap/tasks/F3-11.json) | Qualify runtime capacity recovery | waiting on dependencies | F3-06 | — |
+| [F3-99](roadmap/tasks/F3-99.json) | Review F3 exit evidence | waiting on dependencies | F3-01, F3-02, F3-03, F3-04, F3-05, F3-06, F3-07, F3-08, F3-09, F3-10, F3-11 | — |
 
 ### F4. Common resources and engine ownership
 

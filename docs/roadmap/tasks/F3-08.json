@@ -1,0 +1,22 @@
+{
+  "id": "F3-08",
+  "title": "Qualify portable host concurrency",
+  "status": "open",
+  "dependencies": [
+    "F3-06"
+  ],
+  "locks": [
+    "sdk-contract-tests"
+  ],
+  "requires": [
+    "Host thread runtime; one advertised native driver"
+  ],
+  "scope": "Add public-API concurrency cases for physical-device queries, distinct command pools and independent mutable objects without executing undefined same-object races.",
+  "acceptance": [
+    "Repeated concurrent physical-device queries and independent-pool recording pass through the loader and validation layer.",
+    "Evidence names each driver profile and keeps externally synchronized same-object access outside executable negative controls."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
