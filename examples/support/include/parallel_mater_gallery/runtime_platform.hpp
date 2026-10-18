@@ -49,7 +49,7 @@ platform_gallery_features(
     std::optional<PmNativeBackend> backend = std::nullopt);
 [[nodiscard]] HardwareIdentity platform_hardware_identity(
     std::optional<PmNativeBackend> backend = std::nullopt);
-[[nodiscard]] std::uint64_t platform_available_device_memory(
+[[nodiscard]] PmMemoryBudget platform_device_memory_budget(
     std::optional<PmNativeBackend> backend = std::nullopt) noexcept;
 
 } // namespace parallel_mater::gallery

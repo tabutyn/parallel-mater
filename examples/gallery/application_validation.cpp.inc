@@ -112,13 +112,14 @@
         [backend](GalleryContext selected, const SceneDefinition &scene,
                   std::string &failure) {
         if (selected != GalleryContext::rigid_body) return true;
-        const std::uint64_t free_bytes =
-            parallel_mater::gallery::platform_available_device_memory(backend);
-        if (free_bytes != 0U &&
-            parallel_mater::gallery::estimated_rigid_contact_bytes(
-                static_cast<std::uint32_t>(scene.rigid_bodies.size())) >
-                free_bytes * 7U / 10U) {
-            failure = "brick scene exceeds the available GPU memory budget";
+        const auto admission =
+            parallel_mater::gallery::assess_workload_admission(
+                parallel_mater::gallery::platform_device_memory_budget(backend),
+                parallel_mater::gallery::estimated_rigid_contact_bytes(
+                    static_cast<std::uint32_t>(scene.rigid_bodies.size())));
+        if (!admission.accepted()) {
+            failure = parallel_mater::gallery::workload_admission_message(
+                admission.status);
             return false;
         }
         return true;

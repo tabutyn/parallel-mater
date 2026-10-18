@@ -215,16 +215,15 @@ HardwareIdentity platform_hardware_identity(
     return result;
 }
 
-std::uint64_t platform_available_device_memory(
+PmMemoryBudget platform_device_memory_budget(
     std::optional<PmNativeBackend> backend) noexcept {
-    SelectedDevice selected;
-    if (!open_selected_device(selected, backend)) return 0U;
     PmMemoryBudget budget{};
+    SelectedDevice selected;
+    if (!open_selected_device(selected, backend)) return budget;
     if (pmGetDeviceMemoryBudget(selected.device, &budget) != PM_SUCCESS ||
         budget.heapCount == 0U)
-        return 0U;
-    return budget.budget[0] > budget.usage[0]
-        ? budget.budget[0] - budget.usage[0] : 0U;
+        return {};
+    return budget;
 }
 
 } // namespace parallel_mater::gallery

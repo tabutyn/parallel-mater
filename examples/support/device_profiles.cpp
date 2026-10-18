@@ -514,6 +514,66 @@ std::uint64_t estimated_rigid_contact_bytes(std::uint32_t rigid_body_count) noex
     return pairs * 1'024U + count * count * 4U + count * 512U;
 }
 
+WorkloadAdmission assess_workload_admission(
+    const PmMemoryBudget &budget, std::uint64_t required_bytes) noexcept {
+    WorkloadAdmission result;
+    result.required_bytes = required_bytes;
+    if (budget.heapCount == 0U) return result;
+    if (budget.heapCount > 16U) {
+        result.status = WorkloadAdmissionStatus::invalid_budget;
+        return result;
+    }
+
+    bool found_known_heap = false;
+    std::uint64_t largest_headroom = 0U;
+    for (std::uint32_t index = 0U; index < budget.heapCount; ++index) {
+        const auto confidence = budget.confidence[index];
+        if (confidence == PM_MEMORY_BUDGET_CONFIDENCE_UNKNOWN) continue;
+        if (confidence != PM_MEMORY_BUDGET_CONFIDENCE_IMPLEMENTATION_ESTIMATE &&
+            confidence != PM_MEMORY_BUDGET_CONFIDENCE_DRIVER_REPORTED &&
+            confidence != PM_MEMORY_BUDGET_CONFIDENCE_OS_REPORTED) {
+            result.status = WorkloadAdmissionStatus::invalid_budget;
+            return result;
+        }
+        if (budget.usage[index] > budget.budget[index]) {
+            result.status = WorkloadAdmissionStatus::invalid_budget;
+            return result;
+        }
+        const std::uint64_t headroom =
+            budget.budget[index] - budget.usage[index];
+        if (!found_known_heap || headroom > largest_headroom) {
+            found_known_heap = true;
+            largest_headroom = headroom;
+            result.confidence = confidence;
+        }
+    }
+    if (!found_known_heap) return result;
+
+    result.available_bytes = largest_headroom > budget.borrowedBufferBytes
+        ? largest_headroom - budget.borrowedBufferBytes
+        : 0U;
+    // floor(available * 7 / 10), arranged to avoid multiplication overflow.
+    result.limit_bytes = (result.available_bytes / 10U) * 7U +
+        ((result.available_bytes % 10U) * 7U) / 10U;
+    result.status = required_bytes <= result.limit_bytes
+        ? WorkloadAdmissionStatus::admitted
+        : WorkloadAdmissionStatus::insufficient_budget;
+    return result;
+}
+
+const char *workload_admission_message(WorkloadAdmissionStatus status) noexcept {
+    switch (status) {
+    case WorkloadAdmissionStatus::admitted: return "workload admitted";
+    case WorkloadAdmissionStatus::budget_unknown:
+        return "GPU memory budget is unavailable";
+    case WorkloadAdmissionStatus::invalid_budget:
+        return "GPU memory budget is invalid";
+    case WorkloadAdmissionStatus::insufficient_budget:
+        return "workload exceeds the conservative GPU memory budget";
+    }
+    return "GPU memory admission failed";
+}
+
 const std::array<BrickSceneConfig, 12> &brick_calibration_presets() noexcept {
     static constexpr std::array values{
         BrickSceneConfig{1U, 2.0F, 1U}, BrickSceneConfig{8U, 2.0F, 1U},
