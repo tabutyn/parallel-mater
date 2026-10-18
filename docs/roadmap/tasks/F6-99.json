@@ -1,7 +1,7 @@
 {
   "id": "F6-99",
   "title": "Review F6 exit evidence",
-  "status": "leased",
+  "status": "open",
   "dependencies": [
     "F6-01",
     "F6-02",
@@ -27,14 +27,22 @@
     "Update the qualification index with exact scope and unresolved limitations; an implementation/demo alone cannot close the gate."
   ],
   "evidence": [],
-  "lease": {
-    "token": "4b8d88e7-faaa-4898-8703-ffdd0375f961",
-    "owner": "codex-linux-release-review",
-    "machine": "thomas-laptop",
-    "branch": "work/F6-99/thomas-laptop",
-    "claimed_at": "2026-10-18T20:28:33Z",
-    "heartbeat_at": "2026-10-18T20:28:33Z",
-    "expires_at": "2026-10-19T20:28:33Z"
-  },
-  "history": []
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "4b8d88e7-faaa-4898-8703-ffdd0375f961",
+        "owner": "codex-linux-release-review",
+        "machine": "thomas-laptop",
+        "branch": "work/F6-99/thomas-laptop",
+        "claimed_at": "2026-10-18T20:28:33Z",
+        "heartbeat_at": "2026-10-18T20:28:33Z",
+        "expires_at": "2026-10-19T20:28:33Z"
+      },
+      "outcome": "released",
+      "at": "2026-10-18T20:33:39Z",
+      "reason": "Exit review found current sdk-ci and relocated corpus validation blocked by stale manifest hashes; retain work/F6-99/thomas-laptop and add a bounded synchronization task before resuming.",
+      "evidence": []
+    }
+  ]
 }
