@@ -50,7 +50,7 @@ Vec3 cross(Vec3 left, Vec3 right) {
 
 void check_close(float left, float right, float relative_tolerance) {
     CHECK(std::fabs(left - right) <= relative_tolerance *
-        std::max(1.0F, std::max(std::fabs(left), std::fabs(right))));
+        std::max(1.0e-6F, std::max(std::fabs(left), std::fabs(right))));
 }
 
 void check_close(Vec3 left, Vec3 right, float tolerance) {
