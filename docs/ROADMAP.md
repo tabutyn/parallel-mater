@@ -168,7 +168,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F4-06](roadmap/tasks/F4-06.json) | Apply conservative workload admission | done | F4-05 | — |
 | [F4-07](roadmap/tasks/F4-07.json) | Specify borrowed device and queue handoff | done | F4-02, F3-04 | — |
 | [F4-08](roadmap/tasks/F4-08.json) | Qualify engine handoff with a mock adapter | done | F4-03, F4-07 | — |
-| [F4-99](roadmap/tasks/F4-99.json) | Review F4 exit evidence | ready | F4-01, F4-02, F4-03, F4-04, F4-05, F4-06, F4-07, F4-08 | — |
+| [F4-99](roadmap/tasks/F4-99.json) | Review F4 exit evidence | leased | F4-01, F4-02, F4-03, F4-04, F4-05, F4-06, F4-07, F4-08 | codex-windows-sdk / windows-gtx1080 / 2026-10-19T18:42:10Z |
 
 ### F5. Independent conformance and quality
 
