@@ -1,7 +1,7 @@
 {
   "id": "F3-03",
   "title": "Validate object dependencies and query state",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F3-01",
     "F1-03",
@@ -18,15 +18,29 @@
     "Destroy/reset/rebind cannot silently retain stale tracked dependencies.",
     "Cross-device, bad query range/state and failed creation leave consistent validation state."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "305ef2d9-1c4c-4d97-9dd5-ad848fb9095e",
-    "owner": "codex-windows-validation",
-    "machine": "windows-gtx1080",
-    "branch": "work/F3-03/windows-gtx1080",
-    "claimed_at": "2026-10-18T01:02:04Z",
-    "heartbeat_at": "2026-10-18T01:02:04Z",
-    "expires_at": "2026-10-19T01:02:04Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: Windows GTX 1080; validation/plain loader and ABI regression slice passed 13/13 after merging current main.",
+    "PASS: Windows GTX 1080 D3D12; command API and validation-enabled lifecycle tests passed 2/2, and the full command/query executable passed with validation enabled."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "305ef2d9-1c4c-4d97-9dd5-ad848fb9095e",
+        "owner": "codex-windows-validation",
+        "machine": "windows-gtx1080",
+        "branch": "work/F3-03/windows-gtx1080",
+        "claimed_at": "2026-10-18T01:02:04Z",
+        "heartbeat_at": "2026-10-18T01:02:04Z",
+        "expires_at": "2026-10-19T01:02:04Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T01:24:53Z",
+      "reason": "Implemented common validation-layer dependency, ownership, query-state, submission, and failure tracking.",
+      "evidence": [
+        "PASS: Windows GTX 1080; validation/plain loader and ABI regression slice passed 13/13 after merging current main.",
+        "PASS: Windows GTX 1080 D3D12; command API and validation-enabled lifecycle tests passed 2/2, and the full command/query executable passed with validation enabled."
+      ]
+    }
+  ]
 }
