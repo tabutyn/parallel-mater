@@ -1,0 +1,22 @@
+{
+  "id": "F6-09",
+  "title": "Qualify the retained hinge fixture candidate",
+  "status": "open",
+  "dependencies": [
+    "F6-07"
+  ],
+  "locks": [
+    "hinge-fixture"
+  ],
+  "requires": [
+    "Blender exporter toolchain; CUDA reference device"
+  ],
+  "scope": "Recreate the retained five-body functional hinge asset from authored source and qualify the export through the public API without importing its archived golden.",
+  "acceptance": [
+    "Record reviewed .blend and exported .glb hashes, topology, material and constraint semantics; verify the export with the Blender scene tests.",
+    "Run settling, steering and complete-rotation behavior on CUDA; generate a fresh same-revision golden only if the reviewed fixture remains a valid conformance case."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

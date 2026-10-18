@@ -4,7 +4,10 @@
   "status": "open",
   "dependencies": [
     "F6-06",
-    "F6-07"
+    "F6-07",
+    "F6-09",
+    "F6-10",
+    "F6-11"
   ],
   "locks": [
     "legacy-patch-review"
