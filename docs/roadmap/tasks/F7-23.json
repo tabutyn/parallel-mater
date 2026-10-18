@@ -1,7 +1,7 @@
 {
   "id": "F7-23",
   "title": "Normalize Gallery renderer adapter ownership",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-08",
     "F7-09",
@@ -18,15 +18,27 @@
     "Gallery clients select rendering through the common adapter contract and platform applications do not construct or reach through private backend renderer types.",
     "The CMake target graph separates the common renderer contract from backend adapters without cyclic or private-backend leakage, and host, Vulkan and Metal contract builds remain covered."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "66912376-f2b7-411a-99d6-c892f428f838",
-    "owner": "codex-windows-sdk",
-    "machine": "windows-gtx1080",
-    "branch": "work/F7-23/windows-gtx1080",
-    "claimed_at": "2026-10-18T11:29:51Z",
-    "heartbeat_at": "2026-10-18T11:29:51Z",
-    "expires_at": "2026-10-19T11:29:51Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F7-23-gallery-renderer-adapters.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "66912376-f2b7-411a-99d6-c892f428f838",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F7-23/windows-gtx1080",
+        "claimed_at": "2026-10-18T11:29:51Z",
+        "heartbeat_at": "2026-10-18T11:29:51Z",
+        "expires_at": "2026-10-19T11:29:51Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T12:10:59Z",
+      "reason": "Common factory and private backend seam now own host, D3D12, Vulkan, Metal, and OptiX renderer selection; CMake contract/adapters targets are acyclic and covered by Windows, Linux, Android, and iPad build gates.",
+      "evidence": [
+        "docs/roadmap/evidence/F7-23-gallery-renderer-adapters.json"
+      ]
+    }
+  ]
 }
