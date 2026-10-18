@@ -36,7 +36,7 @@
     {
       "id": "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
       "path": "conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17.json",
-      "sha256": "9e4249918ada6243353ef2f5885772672dc1741d552f58b01d7edeb9518637ea"
+      "sha256": "b4385464d8f2c702ed851c6323c610bf3b22ccfe528b89cb4290b1a54e5b4150"
     },
     {
       "id": "linux-rtx3050ti-slang-cuda-eed669e",

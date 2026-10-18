@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import json
 import pathlib
+import re
 import sys
 import tempfile
 import unittest
@@ -80,6 +81,17 @@ class EvidenceIndexTests(unittest.TestCase):
     def setUpClass(cls):
         cls.profile = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
         cls.profile_hash = evidence_index._sha256(PROFILE_PATH)
+
+    def test_installed_text_evidence_uses_canonical_paths(self):
+        workstation_path = re.compile(
+            r"(?:/(?:home|Users)/|[A-Za-z]:[\\/](?:Users|Documents and Settings)[\\/])"
+        )
+        for path in sorted((ROOT / "evidence").glob("*.txt")):
+            with self.subTest(path=path.name):
+                self.assertIsNone(
+                    workstation_path.search(path.read_text(encoding="utf-8")),
+                    f"{path}: replace capture-host paths with a canonical placeholder",
+                )
 
     def build(self, result: dict) -> dict:
         with tempfile.TemporaryDirectory() as directory:
