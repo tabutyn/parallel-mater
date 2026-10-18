@@ -23,18 +23,11 @@ enum class MobileGalleryCommand : std::uint8_t {
 };
 
 struct MobileGalleryState {
-    unsigned selection{};
-    bool paused{};
-    bool active{};
+    GalleryPresentationState presentation{};
     bool foreground{};
     bool surface_ready{};
     bool failed{};
-    bool primary_action_available{};
-    bool primary_action_active{};
     std::uint64_t surface_generation{};
-    std::string primary_action_label;
-    std::string directional_label;
-    std::string status;
     std::string failure;
 };
 

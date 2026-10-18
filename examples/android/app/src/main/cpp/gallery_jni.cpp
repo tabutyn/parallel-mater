@@ -10,12 +10,98 @@
 #include <cstring>
 #include <cmath>
 #include <memory>
+#include <locale>
 #include <stdexcept>
 #include <sstream>
 
 namespace {
 using namespace parallel_mater::gallery;
 constexpr const char *backend_name = PM_ANDROID_VULKAN ? "vulkan" : "slang-cpu";
+
+std::string directional_label(GalleryControlPolicy policy) {
+    switch (policy) {
+    case GalleryControlPolicy::authored_force: return "Push objects";
+    case GalleryControlPolicy::motor_drive: return "Drive and steer";
+    case GalleryControlPolicy::none: return "Camera only";
+    case GalleryControlPolicy::rigid_gravity:
+    case GalleryControlPolicy::collector_gravity:
+    case GalleryControlPolicy::peg_gravity:
+    case GalleryControlPolicy::cloth_gravity: return "Tilt gravity";
+    }
+    return "Camera only";
+}
+
+std::string primary_action_label(const GalleryControllerState &controls) {
+    switch (controls.primary) {
+    case GalleryPrimaryAction::release_restore_constraints:
+        return controls.constraints_released ? "Restore" : "Release";
+    case GalleryPrimaryAction::toggle_dump_bed:
+        return controls.dump_bed_angle > 0.05F ? "Lower bed" : "Raise bed";
+    case GalleryPrimaryAction::none: return {};
+    }
+    return {};
+}
+
+std::string renderer_label(const GalleryPresentationState &state) {
+    return state.renderer == GalleryRendererKind::native_gpu
+        ? std::string(gallery_backend_label(state.backend)) + " GPU renderer"
+        : "Software image renderer";
+}
+
+std::string readback_label(GalleryReadbackMode mode) {
+    return mode == GalleryReadbackMode::diagnostic_only
+        ? "Diagnostic captures only" : "Host image each frame";
+}
+
+std::string status_text(const MobileGalleryState &state) {
+    if (state.failed) return state.failure;
+    const auto &view = state.presentation;
+    if (!view.ready) return "Gallery unavailable";
+    std::ostringstream text;
+    text << (view.paused ? "Paused · " : "")
+         << gallery_backend_label(view.backend) << " · " << view.steps
+         << " steps · "
+         << (view.renderer == GalleryRendererKind::native_gpu
+                 ? "GPU graphics" : "software graphics");
+    if (view.particle_count != 0U)
+        text << " · " << view.particle_count << " particles";
+    return text.str();
+}
+
+std::string details_text(const GalleryPresentationState &state) {
+    std::ostringstream text;
+    text.imbue(std::locale::classic());
+    text << state.device << "\n" << state.platform << " · "
+         << gallery_backend_label(state.backend)
+         << "\nScene: " << state.scene_name << " (" << state.scene_id << ")"
+         << "\n" << state.scene_summary
+         << "\nRequires: " << state.required_features
+         << "\nRenderer: " << renderer_label(state)
+         << "\nReadback: " << readback_label(state.readback)
+         << "\n\nProfile: " << state.workload_profile
+         << "\n" << state.fluid_particle_limit << " liquid particles · "
+         << state.coupled_body_limit << " coupled bodies"
+         << "\n" << state.width << " × " << state.height << " · target "
+         << state.target_updates_per_second << " updates/s"
+         << "\nHost work: " << state.host_work_frames_per_second << " frames/s";
+    if (state.latest_timing) {
+        const auto &sample = *state.latest_timing;
+        text << "\nFrame work: " << sample.total_ms << " ms"
+             << "\nPhysics: " << sample.physics_ms << " ms · render: "
+             << sample.render_ms << " ms";
+        if (sample.present_ms)
+            text << " · present callback: " << *sample.present_ms << " ms";
+    }
+    text << "\n\nDrag to orbit. Pinch to zoom.";
+    if (state.controls.directional != GalleryControlPolicy::none)
+        text << " Direction buttons: "
+             << directional_label(state.controls.directional) << '.';
+    const std::string primary = primary_action_label(state.controls);
+    if (!primary.empty()) text << " Use " << primary << " for the scene action.";
+    text << "\n\nBuild " << state.build_revision;
+    return text.str();
+}
+
 struct Session {
     std::unique_ptr<MobileGallerySession> mobile;
     ANativeWindow *window{};
@@ -41,12 +127,16 @@ struct Session {
     void log_scene() {
         logged_frames = 0;
         const auto &g = gallery();
+        const auto view = g.presentation();
         __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
             "Physics buffers: %llu bytes (excludes driver-private allocations)",
             static_cast<unsigned long long>(g.allocated_bytes()));
         __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
-            "Scene ready: %s; backend=%s; device=%s; bodies=%zu; particles=%zu",
-            g.scene_file().c_str(), backend_name, g.device_name().c_str(), g.moving_bodies(), g.particle_count());
+            "Scene ready: %s; backend=%.*s; device=%.*s; bodies=%zu; particles=%zu",
+            g.scene_file().c_str(), static_cast<int>(view.backend.size()),
+            view.backend.data(), static_cast<int>(view.device.size()),
+            view.device.data(),
+            view.moving_body_count, view.particle_count);
     }
 };
 Session &session(jlong handle) {
@@ -79,7 +169,7 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeSceneCatalog(
             const auto &item = catalog[i];
             const std::array<std::string, fields> values{
                 std::string(item.id), std::string(item.scene.name),
-                std::string(item.scene.help), item.required_feature_names,
+                std::string(item.scene.summary), item.required_feature_names,
                 item.available ? "1" : "0", item.unavailable_reason};
             for (std::size_t field = 0; field < fields; ++field) {
                 auto value = env->NewStringUTF(values[field].c_str());
@@ -113,11 +203,14 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeRuntimeInfo(JNIEnv *env, jclass, jlong handle) {
     try {
         const auto &g = session(handle).gallery();
+        const auto view = g.presentation();
         std::ostringstream info;
         info.imbue(std::locale::classic());
-        info << "{\"revision\":\"" << GallerySession::build_revision() << "\",\"backend\":\"" << backend_name
-             << "\",\"frames\":" << g.frames << ",\"active\":" << (g.active() ? "true" : "false")
-             << ",\"paused\":" << (g.is_paused() ? "true" : "false") << "}";
+        info << "{\"revision\":\"" << view.build_revision
+             << "\",\"backend\":\"" << view.backend
+             << "\",\"frames\":" << view.steps
+             << ",\"active\":" << (view.active ? "true" : "false")
+             << ",\"paused\":" << (view.paused ? "true" : "false") << "}";
         return env->NewStringUTF(info.str().c_str());
     } catch (const std::exception &error) { exception(env, error.what()); return nullptr; }
 }
@@ -189,7 +282,8 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeFrame(JNIEnv *env, jclass, 
                 stats.present_ms, stats.cadence_fps, g.particle_count(), g.moving_bodies());
             s.logged_frames = 0;
         }
-        const std::string status = state.status + "\n" + state.directional_label;
+        const std::string status = status_text(state) + "\n" +
+            directional_label(state.presentation.controls.directional);
         return env->NewStringUTF(status.c_str());
     } catch (const std::exception &error) { exception(env, error.what()); }
     catch (...) { exception(env, "Gallery frame failed"); }
@@ -197,7 +291,11 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeFrame(JNIEnv *env, jclass, 
 }
 extern "C" JNIEXPORT jstring JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeDetails(JNIEnv *env, jclass, jlong handle) {
-    try { return env->NewStringUTF(session(handle).gallery().details().c_str()); }
+    try {
+        const std::string details = details_text(
+            session(handle).gallery().presentation());
+        return env->NewStringUTF(details.c_str());
+    }
     catch (const std::exception &error) { exception(env, error.what()); }
     return nullptr;
 }
@@ -233,10 +331,12 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeControlState(
     JNIEnv *env, jclass, jlong handle) {
     try {
         const auto state = session(handle).mobile->state();
+        const auto &view = state.presentation;
+        const std::string primary = primary_action_label(view.controls);
         const std::array<std::string, 7U> values{
-            std::to_string(state.selection), state.paused ? "1" : "0",
-            state.primary_action_available ? "1" : "0",
-            state.primary_action_label, state.directional_label,
+            std::to_string(view.selection), view.paused ? "1" : "0",
+            view.controls.primary != GalleryPrimaryAction::none ? "1" : "0",
+            primary, directional_label(view.controls.directional),
             state.failed ? "1" : "0", state.failure};
         auto result = env->NewObjectArray(static_cast<jsize>(values.size()),
             env->FindClass("java/lang/String"), nullptr);

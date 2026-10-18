@@ -75,7 +75,8 @@ void draw_physics_debug_overlay(
 void draw_context_overlay(std::vector<std::uint32_t> &rgba,
                           std::uint32_t width, std::uint32_t height,
                           GalleryContext selection,
-                          std::span<const GalleryCatalogItem> catalog);
+                          std::span<const GalleryCatalogItem> catalog,
+                          std::span<const std::string> action_help = {});
 
 void draw_backend_overlay(
     std::vector<std::uint32_t> &rgba, std::uint32_t width,

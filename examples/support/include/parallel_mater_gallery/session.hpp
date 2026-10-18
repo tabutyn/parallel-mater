@@ -5,6 +5,7 @@
 #include <parallel_mater_gallery/frame_timing.hpp>
 #include <parallel_mater_gallery/gallery_catalog.hpp>
 #include <parallel_mater_gallery/gallery_runtime.hpp>
+#include <parallel_mater_gallery/presentation.hpp>
 #include <parallel_mater/parallel_mater.h>
 #include <filesystem>
 #include <functional>
@@ -92,8 +93,7 @@ public:
     // Destructive diagnostic: exercise current scene, then reset it. The caller
     // supplies scheduling/reporting; all platforms run these same checks.
     FrameTimingStatistics qualify(unsigned frame_count);
-    std::string details() const;
-    std::string status() const;
+    [[nodiscard]] GalleryPresentationState presentation() const;
     [[nodiscard]] const GalleryCatalog &catalog() const noexcept {
         return catalog_;
     }

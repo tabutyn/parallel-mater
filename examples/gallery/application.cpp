@@ -62,7 +62,11 @@ using parallel_mater::gallery::GalleryCountKind;
 using parallel_mater::gallery::GalleryContext;
 using parallel_mater::gallery::GalleryCatalog;
 using parallel_mater::gallery::GalleryEntry;
+using parallel_mater::gallery::GalleryPresentationState;
+using parallel_mater::gallery::GalleryPrimaryAction;
+using parallel_mater::gallery::GalleryReadbackMode;
 using parallel_mater::gallery::GalleryReplacementPolicy;
+using parallel_mater::gallery::GalleryRendererKind;
 using parallel_mater::gallery::GallerySceneParameters;
 using parallel_mater::gallery::GallerySession;
 using parallel_mater::gallery::GallerySessionConfig;
@@ -79,6 +83,7 @@ using parallel_mater::gallery::gallery_entry;
 using parallel_mater::gallery::gallery_entry_for_option;
 using parallel_mater::gallery::gallery_context_index;
 using parallel_mater::gallery::gallery_backend_name;
+using parallel_mater::gallery::gallery_backend_label;
 using parallel_mater::gallery::is_fluid_context;
 using parallel_mater::gallery::is_cloth_context;
 using parallel_mater::gallery::is_soft_body_context;
@@ -267,13 +272,50 @@ class KeyEdges {
 };
 
 [[nodiscard]] std::string backend_title(PmNativeBackend backend) {
-    switch (backend) {
-    case PM_NATIVE_BACKEND_CUDA: return "CUDA";
-    case PM_NATIVE_BACKEND_D3D12: return "DIRECT3D 12";
-    case PM_NATIVE_BACKEND_VULKAN: return "VULKAN";
-    case PM_NATIVE_BACKEND_METAL: return "METAL";
+    return std::string(gallery_backend_label(gallery_backend_name(backend)));
+}
+
+[[nodiscard]] std::string desktop_action_help(const GalleryEntry &entry) {
+    std::string result;
+    switch (entry.controls) {
+    case GalleryControlPolicy::rigid_gravity:
+    case GalleryControlPolicy::collector_gravity:
+    case GalleryControlPolicy::peg_gravity:
+    case GalleryControlPolicy::cloth_gravity: result = "ARROWS GRAVITY"; break;
+    case GalleryControlPolicy::motor_drive: result = "ARROWS DRIVE / STEER"; break;
+    case GalleryControlPolicy::authored_force: result = "ARROWS FORCE"; break;
+    case GalleryControlPolicy::none: result = "VIEW"; break;
     }
-    return "UNKNOWN";
+    switch (entry.primary_action) {
+    case GalleryPrimaryAction::release_restore_constraints:
+        result += "  SPACE RELEASE / RESTORE";
+        break;
+    case GalleryPrimaryAction::toggle_dump_bed:
+        result += "  SPACE RAISE / LOWER";
+        break;
+    case GalleryPrimaryAction::none: break;
+    }
+    switch (entry.count_kind) {
+    case GalleryCountKind::brick_scene: result += "  P WALLS"; break;
+    case GalleryCountKind::dump_spheres: result += "  P PAYLOAD"; break;
+    case GalleryCountKind::fluid_particles: result += "  P PARTICLES"; break;
+    case GalleryCountKind::none: break;
+    }
+    result += "  R RESET";
+    return result;
+}
+
+[[nodiscard]] std::string desktop_renderer_label(
+    const GalleryPresentationState &state) {
+    return state.renderer == GalleryRendererKind::native_gpu
+        ? std::string(gallery_backend_label(state.backend)) + " GPU renderer"
+        : "Software image renderer";
+}
+
+[[nodiscard]] std::string desktop_readback_label(
+    GalleryReadbackMode mode) {
+    return mode == GalleryReadbackMode::diagnostic_only
+        ? "diagnostic captures only" : "host image each frame";
 }
 
 [[nodiscard]] std::string build_revision_label() {
@@ -489,6 +531,10 @@ static int run_gallery_application(
     GallerySession session(desktop_session_config(
         options, options.initial_context));
     const GalleryCatalog &scene_catalog = session.catalog();
+    std::vector<std::string> scene_action_help;
+    scene_action_help.reserve(scene_catalog.size());
+    for (const auto &item : scene_catalog)
+        scene_action_help.push_back(desktop_action_help(item.scene));
     // The target-detach guard below releases swapchains before this platform
     // surface, while the session keeps its borrowed native instance alive.
     GalleryWindow presentation;
@@ -503,10 +549,21 @@ static int run_gallery_application(
         GallerySession &session;
         ~NativeTargetDetach() { session.detach_render_target(); }
     } native_target_detach{session};
-    std::cout << "Gallery scene ready index=" << session.selection()
+    const GalleryPresentationState startup = session.presentation();
+    std::cout << "Gallery scene ready index=" << startup.selection
               << " revision=" << session.revision() << '\n' << std::flush;
-    std::cout << "Physics device: " << session.device_name() << '\n';
-    std::cout << "Build revision: " << PARALLEL_MATER_GALLERY_GIT_COMMIT << '\n';
+    std::cout << startup.platform << " · "
+              << gallery_backend_label(startup.backend) << " · "
+              << startup.device << '\n';
+    std::cout << "Renderer: " << desktop_renderer_label(startup)
+              << " · readback: " << desktop_readback_label(startup.readback)
+              << '\n';
+    std::cout << "Scene: " << startup.scene_name << " · "
+              << startup.scene_summary << '\n';
+    std::cout << "Controls: "
+              << desktop_action_help(scene_catalog[startup.selection].scene)
+              << '\n';
+    std::cout << "Build revision: " << startup.build_revision << '\n';
     std::uint32_t dump_spheres = options.dump_spheres;
     std::uint32_t fluid_particles = options.fluid_particles;
     std::optional<CalibrationResult> last_calibration;
@@ -1243,7 +1300,7 @@ static int run_gallery_application(
                             pixels, frame.width, frame.height,
                             scene_catalog[input_state.shared.selected]
                                 .scene.context,
-                            scene_catalog);
+                            scene_catalog, scene_action_help);
                     }
                     if (input_state.shared.parameters_visible) {
                         if (input_state.brick_dialog) {
