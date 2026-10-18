@@ -11,6 +11,7 @@ from PIL import Image
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.pdfdoc import PDFArray, PDFDictionary, PDFName, PDFString
 from reportlab.pdfbase.ttfonts import TTFont
@@ -535,7 +536,8 @@ def draw_wordmark(pdf, x, top):
     clip = pdf.beginPath()
     clip.rect(x, top-29, INNER, 29)
     pdf.clipPath(clip, stroke=0)
-    pdf.drawImage(str(path), x+(INNER-(c-a)*scale)/2-a*scale, top-3+(b-height)*scale,
+    pdf.drawImage(ImageReader(str(path)),
+                  x+(INNER-(c-a)*scale)/2-a*scale, top-3+(b-height)*scale,
                   width=width*scale, height=height*scale, mask="auto")
     pdf.restoreState()
 

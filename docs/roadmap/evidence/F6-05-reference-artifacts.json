@@ -24,7 +24,7 @@
   },
   "artifacts": {
     "manifest": "docs/reference/release-artifacts.json",
-    "manifest_sha256": "0fbc8c5f8c5f127ad3eb0a42d4ec5513ccb0ec7689a70add7377f04f8811f78d",
+    "manifest_sha256": "53a1b9e4b2ebee891c9b7db2f14416cc9b4bf4c99605ce193bb6c10a1b69acb6",
     "count": 10,
     "classes": {
       "public_header_copies": 4,

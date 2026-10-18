@@ -57,11 +57,11 @@
       "size": 17519
     },
     "docs/reference/parallel-mater-reference.pdf": {
-      "sha256": "1ad9c99a9151c16c1d87ba0ccf6b6a6ab1f2b2868e444d1d6362b17aa14010a0",
-      "size": 544553
+      "sha256": "2309293fe30ed50dc1982c13a88d6e1344af2e5d0b04c59683a3deb71f427da8",
+      "size": 544552
     },
     "docs/reference/parallel-mater-reference.layout.json": {
-      "sha256": "2ce0b9e0182be227ddc547c9a608deaabb7c0977f7f72dd53930f9c683f80c6c",
+      "sha256": "13cf0f70895b4458f73b00e670aaafc2f2fae97e1923bb915e29e973127ca24c",
       "size": 206639
     }
   },
