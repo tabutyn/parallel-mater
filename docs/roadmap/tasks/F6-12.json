@@ -1,7 +1,7 @@
 {
   "id": "F6-12",
   "title": "Keep installed corpus manifest synchronized",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-24",
     "F6-04"
@@ -19,6 +19,14 @@
     "The current sdk-ci suite and relocated installed-SDK input check pass from a clean revision."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "bd56f181-3b62-422f-82c3-fe65569dd38e",
+    "owner": "codex-linux-release",
+    "machine": "thomas-laptop",
+    "branch": "work/F6-12/thomas-laptop",
+    "claimed_at": "2026-10-18T20:35:23Z",
+    "heartbeat_at": "2026-10-18T20:35:23Z",
+    "expires_at": "2026-10-19T20:35:23Z"
+  },
   "history": []
 }
