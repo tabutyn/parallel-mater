@@ -1,7 +1,7 @@
 {
   "id": "P1-04",
   "title": "Expose multi-material fluid pair state",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "P1-03"
   ],
@@ -18,6 +18,14 @@
     "Negative tests reject missing, invalid and unsupported pair-material state without mutating the graph."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "3a7105eb-4e3f-4a4f-b26b-417ae462f879",
+    "owner": "codex-fluid-api",
+    "machine": "thomas-laptop",
+    "branch": "work/P1-04/thomas-laptop",
+    "claimed_at": "2026-10-18T21:19:06Z",
+    "heartbeat_at": "2026-10-18T21:19:06Z",
+    "expires_at": "2026-10-19T21:19:06Z"
+  },
   "history": []
 }
