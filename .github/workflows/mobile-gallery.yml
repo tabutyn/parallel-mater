@@ -50,3 +50,39 @@ jobs:
         with:
           name: android-vulkan-preview
           path: examples/android/app/build/outputs/apk/debug/app-debug.apk
+  android-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - run: sdkmanager 'platforms;android-36' 'ndk;29.0.14206865' 'cmake;4.1.2'
+      - name: Build x86_64 Slang CPU Gallery for UI evidence
+        env:
+          ANDROID_ABIS: x86_64
+        run: bash scripts/Build-AndroidGallery.sh -PphysicsBackend=cpu
+      - name: Exercise phone controls and capture accessibility evidence
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            adb install -r examples/android/app/build/outputs/apk/debug/app-debug.apk
+            python3 scripts/Test-AndroidGalleryUi.py --serial emulator-5554 --revision "$GITHUB_SHA"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-gallery-ui-evidence
+          path: out/android/gallery-ui

@@ -5,6 +5,7 @@
         android:allowBackup="false" android:hasCode="true"
         android:icon="@drawable/ic_gallery">
         <activity android:name=".GalleryActivity" android:exported="true"
+            android:launchMode="singleTop"
             android:screenOrientation="sensorLandscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

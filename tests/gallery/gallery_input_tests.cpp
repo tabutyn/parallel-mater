@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/gallery_input.hpp>
+#include <parallel_mater_gallery/control_text.hpp>
 #include <parallel_mater_gallery/runtime_platform.hpp>
 
 #include <cstdlib>
@@ -29,6 +30,56 @@ int main() {
             "DX12 backend alias must parse");
     require(!gallery::gallery_backend_from_name("directcompute"),
             "retired DirectCompute backend must not parse");
+
+    const auto force = gallery::gallery_directional_control_text(
+        gallery::GalleryControlPolicy::authored_force);
+    require(force.label == "Push objects" && force.left == "Push left" &&
+                force.forward == "Push forward" && force.backward == "Push back" &&
+                force.right == "Push right",
+            "Authored-force controls must expose common user-facing semantics");
+    const auto motor = gallery::gallery_directional_control_text(
+        gallery::GalleryControlPolicy::motor_drive);
+    require(motor.label == "Drive and steer" && motor.left == "Steer left" &&
+                motor.forward == "Drive forward" && motor.backward == "Drive reverse" &&
+                motor.right == "Steer right",
+            "Motor controls must expose steering and drive semantics");
+    for (const auto policy : {gallery::GalleryControlPolicy::rigid_gravity,
+             gallery::GalleryControlPolicy::collector_gravity,
+             gallery::GalleryControlPolicy::peg_gravity,
+             gallery::GalleryControlPolicy::cloth_gravity}) {
+        const auto gravity = gallery::gallery_directional_control_text(policy);
+        require(gravity.label == "Tilt gravity" &&
+                    gravity.left == "Tilt gravity left" &&
+                    gravity.forward == "Tilt gravity forward" &&
+                    gravity.backward == "Tilt gravity back" &&
+                    gravity.right == "Tilt gravity right",
+                "Gravity controls must expose common directional semantics");
+    }
+    const auto camera = gallery::gallery_directional_control_text(
+        gallery::GalleryControlPolicy::none);
+    require(camera.label == "Camera only" && camera.left.empty() &&
+                camera.forward.empty() && camera.backward.empty() &&
+                camera.right.empty(),
+            "Scenes without directional actions must not expose action buttons");
+    require(gallery::gallery_primary_action_label(
+                gallery::GalleryPrimaryAction::none, false, 0.0F).empty(),
+            "Scenes without a primary action must not expose one");
+    require(gallery::gallery_primary_action_label(
+                gallery::GalleryPrimaryAction::release_restore_constraints,
+                false, 0.0F) == "Release",
+            "Constraint action must initially offer release");
+    require(gallery::gallery_primary_action_label(
+                gallery::GalleryPrimaryAction::release_restore_constraints,
+                true, 0.0F) == "Restore",
+            "Released constraints must offer restore");
+    require(gallery::gallery_primary_action_label(
+                gallery::GalleryPrimaryAction::toggle_dump_bed,
+                false, 0.0F) == "Raise bed",
+            "Lowered dump bed must offer raise");
+    require(gallery::gallery_primary_action_label(
+                gallery::GalleryPrimaryAction::toggle_dump_bed,
+                false, 0.1F) == "Lower bed",
+            "Raised dump bed must offer lower");
 
     require(gallery::gallery_backend_from_name("vulkan") == PM_NATIVE_BACKEND_VULKAN,
             "Vulkan backend option must parse");
