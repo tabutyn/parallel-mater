@@ -13,6 +13,7 @@ physics accuracy result.
 | PM-CMD-001 | Rejected argument validation enqueues no command. Recording can continue. Host descriptors are snapshots; referenced resources remain borrowed. | SDK resource lifecycle (rejected capacity/range then valid work); coupling lifecycle (descriptor mutation) |
 | PM-SYNC-001 | Submission is asynchronous. Completion reports deferred errors. Failed submissions drain issued work; a later valid submission can recover. | async submission and submission queue tests; resource lifecycle NaN failure/recovery |
 | PM-GRAPH-001 | Explicit simulation graph survives pipeline changes, rebinds replaced endpoints, and can be cleared. Graph failure retires partial edges. | SDK coupling lifecycle tests |
+| PM-DIAG-001 | Validation failures deliver stable rule IDs, application-object context and callback-scoped typed arguments. Delivery is concurrent, independently reentrant and allocation-free; bookkeeping OOM disables stateful tracking without changing the API result. | permissive-driver validation diagnostics tests, paired with no-layer controls |
 
 ## Lifetime and error boundaries
 
@@ -32,8 +33,9 @@ remain valid and a later replacement can recover. See
 
 ## Remaining qualification
 
-Layer ABI 2 supplies registry-generated typed arguments to generated forwarding
-commands and the handwritten loader paths listed below. The canonical
+Layer ABI 3 supplies registry-generated typed arguments, application-visible
+dispatch-object context, and the immutable per-instance diagnostic sink to
+generated forwarding commands and the handwritten loader paths listed below. The canonical
 classification in `tools/registry/generate.py` emits
 `manual_layer_inventory.inc`, which makes additions to the handwritten set an
 explicit generated/tested decision.
@@ -58,16 +60,28 @@ explicit generated/tested decision.
 | `pmEnumerateInstanceExtensionProperties` | excluded | global call with no enabled layer chain |
 | `pmCreateInstance` | excluded | selects the layer chain that later calls use |
 
-Memory/buffer validation tracks allocation,
-queried requirements, binding, mapping, ownership and retirement. It includes
-native buffer import tracking. Old v1 layers receive their unchanged prefix;
-this v2 layer rejects old loaders that cannot supply arguments.
+Memory/buffer validation tracks allocation, queried requirements, binding,
+mapping, ownership and retirement. Command-buffer, fence, submission and
+timeline state are tracked through precise completion boundaries. Native buffer
+and semaphore imports participate in ownership checks. Old v1/v2 layers receive
+their unchanged prefix; this v3 validation layer rejects old loaders that cannot
+supply diagnostics and application-object context.
 
-Coverage is intentionally explicit: command-buffer transitions, submit/fence
-state, geometry/simulation memory dependencies, query state and interop handoff
-are not yet validated by this layer. Driver validation remains required. Invalid
-void calls are suppressed; the layer has no structured diagnostic callback yet.
-Host bookkeeping exhaustion reports a diagnostic on stderr and disables state
-tracking, preserving already-created driver objects and stateless checks. The table above maps implemented tests, not comprehensive proof of
-all specification clauses. Geometry/paint ownership, every synchronization
-interleaving, all coupling modes and physical accuracy remain separate gates.
+Structured diagnostics use stable IDs. `PM-VAL-0001` reports a malformed
+loader/layer payload, `PM-VAL-0002` invalid arguments or ownership,
+`PM-VAL-0003` invalid tracked state, and `PM-VAL-0004` loss of stateful tracking
+after host-bookkeeping exhaustion. Each callback receives the API result,
+severity, command, application-visible dispatch object, and callback-scoped
+typed arguments. The create-info callback is copied per instance. Delivery may
+be concurrent, occurs outside the validation state mutex, and therefore permits
+independent reentrant API reads. The application must keep its callback target
+and user data alive through instance destruction and synchronize its own state.
+
+Coverage is intentionally explicit: geometry/simulation memory dependencies,
+query state and interop handoff are not yet validated by this layer. Driver
+validation remains required. Invalid void calls are suppressed after delivering
+a diagnostic. Host-bookkeeping exhaustion delivers `PM-VAL-0004` without
+allocation, disables stateful tracking, and preserves already-created driver
+objects and stateless checks. The table above maps implemented tests, not
+comprehensive proof of all specification clauses. Geometry/paint ownership,
+all coupling modes and physical accuracy remain separate gates.

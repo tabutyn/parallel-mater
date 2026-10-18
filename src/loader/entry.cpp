@@ -11,6 +11,11 @@
 
 namespace {
 
+struct StructureHeader {
+    PmStructureType sType;
+    const void *pNext;
+};
+
 template <typename T>
 PmResult enumerate_values(const std::vector<T> &available, std::uint32_t *count,
                           T *values) {
@@ -148,7 +153,19 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateInstance(
         return PM_ERROR_INVALID_ARGUMENT;
     if (info->apiVersion != 0U && info->apiVersion != PM_API_VERSION_0_2)
         return PM_ERROR_INCOMPATIBLE_VERSION;
-    bool validation_enabled = info->enableValidation == PM_TRUE;
+    const PmValidationDiagnosticsCreateInfo *diagnostics{};
+    if (info->pNext) {
+        const auto *header = static_cast<const StructureHeader *>(info->pNext);
+        if (header->sType !=
+                PM_STRUCTURE_TYPE_VALIDATION_DIAGNOSTICS_CREATE_INFO ||
+            header->pNext != nullptr)
+            return PM_ERROR_INVALID_ARGUMENT;
+        diagnostics = static_cast<
+            const PmValidationDiagnosticsCreateInfo *>(info->pNext);
+        if (!diagnostics->pfnDiagnostic)
+            return PM_ERROR_INVALID_ARGUMENT;
+    }
+    bool validation_enabled = info->enableValidation == PM_TRUE || diagnostics;
     for (std::uint32_t index = 0U; index < info->enabledLayerCount; ++index) {
         const char *name = info->ppEnabledLayerNames[index];
         if (!validation_layer_name(name))
@@ -165,11 +182,14 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateInstance(
     try {
         auto created = std::make_unique<PmInstance_T>();
         created->dispatch = &parallel_mater::loader::loader_dispatch;
-        created->layers =
-            parallel_mater::loader::load_validation_layers(validation_enabled);
-        if (validation_enabled && created->layers->empty())
+        created->layers = parallel_mater::loader::load_validation_layers(
+            validation_enabled,
+            diagnostics ? diagnostics->pfnDiagnostic : nullptr,
+            diagnostics ? diagnostics->pUserData : nullptr);
+        if (validation_enabled && created->layers->entries.empty())
             return PM_ERROR_LAYER_NOT_PRESENT;
         PmInstanceCreateInfo driver_info = *info;
+        driver_info.pNext = nullptr;
         driver_info.enableValidation = PM_FALSE;
         driver_info.enabledLayerCount = 0U;
         driver_info.ppEnabledLayerNames = nullptr;

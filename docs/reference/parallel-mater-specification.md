@@ -76,7 +76,7 @@ pmCreate*/pmDestroy* own objects; pmGet* queries; pmCmd* records work. Counts pr
 
 ### 1.4 Validity & availability
 
-Set sType to its matching PM_STRUCTURE_TYPE_* value; pNext = NULL in core 0.2. Unknown chains and reserved flags are errors. Initialize required nonzero fields. Null handles are allowed only where specified. Physics domains and couplings require their corresponding features or extensions. This reference specifies the behavior required of conforming implementations.
+Set sType to its matching PM_STRUCTURE_TYPE_* value. pNext is NULL unless a section explicitly permits a chained structure; unknown chains and reserved flags are errors. Initialize required nonzero fields. Null handles are allowed only where specified. Physics domains and couplings require their corresponding features or extensions. This reference specifies the behavior required of conforming implementations.
 
 <a id="spec-units"></a>
 
@@ -195,11 +195,62 @@ void pmDestroyInstance(PmInstance instance);
 
 pmEnumerateInstanceVersion reports the highest supported API version; pApiVersion must be non-NULL. Set apiVersion = PM_API_VERSION_0_2 to use this reference; zero selects 0.2. Other versions are unsupported, including older pre-stable versions. Unsupported versions return PM_ERROR_INCOMPATIBLE_VERSION. Destroy every logical device before its instance. Validation is a host-side diagnostic request, not permission to omit required synchronization.
 
-Related sections: [3.3](#spec-allocator), [4](#spec-discovery).
+Related sections: [3.4](#spec-allocator), [4](#spec-discovery).
+
+<a id="spec-validation_diagnostics"></a>
+
+### 3.3 Structured validation diagnostics
+
+```c
+#define PM_VALIDATION_RULE_INVALID_LAYER_CALL "PM-VAL-0001"
+#define PM_VALIDATION_RULE_INVALID_ARGUMENT "PM-VAL-0002"
+#define PM_VALIDATION_RULE_INVALID_STATE "PM-VAL-0003"
+#define PM_VALIDATION_RULE_TRACKING_UNAVAILABLE "PM-VAL-0004"
+typedef enum PmValidationSeverity {
+    PM_VALIDATION_SEVERITY_WARNING = 1,
+    PM_VALIDATION_SEVERITY_ERROR = 2
+} PmValidationSeverity;
+typedef enum PmValidationObjectType {
+    PM_VALIDATION_OBJECT_UNKNOWN = 0,
+    PM_VALIDATION_OBJECT_INSTANCE = 1,
+    PM_VALIDATION_OBJECT_PHYSICAL_DEVICE = 2,
+    PM_VALIDATION_OBJECT_DEVICE = 3,
+    PM_VALIDATION_OBJECT_QUEUE = 4,
+    PM_VALIDATION_OBJECT_COMMAND_BUFFER = 5
+} PmValidationObjectType;
+typedef struct PmValidationDiagnostic {
+    const char* pRuleId;
+    PmValidationSeverity severity;
+    PmResult result;
+    const char* pCommandName;
+    PmValidationObjectType objectType;
+    const void* object;
+    uint32_t argumentSize;
+    const void* pArguments;
+    const char* pMessage;
+} PmValidationDiagnostic;
+typedef void (PMAPI_CALL *PmValidationDiagnosticFn)(
+    void* pUserData,
+    const PmValidationDiagnostic* pDiagnostic);
+typedef struct PmValidationDiagnosticsCreateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    PmValidationDiagnosticFn pfnDiagnostic;
+    void* pUserData;
+} PmValidationDiagnosticsCreateInfo;
+```
+
+Chain exactly one PmValidationDiagnosticsCreateInfo through PmInstanceCreateInfo::pNext to enable validation and receive diagnostics. pfnDiagnostic must be non-NULL; the loader copies the function and user-data pointers before pmCreateInstance returns. Keep the callback target and user data valid until pmDestroyInstance returns.
+
+Rule-ID strings and enum values are stable and only extended. object is the application-visible dispatch object named by objectType. pCommandName, pArguments, and pMessage remain valid only for the callback duration; cast pArguments to the matching registry-generated PmLayerArgs_pmCommand after checking argumentSize. Callbacks may arrive concurrently and must externally synchronize their own state. A callback may make independent Parallel Mater calls, but must not destroy or mutate the originating object while its call is active.
+
+Delivery performs no allocation and occurs outside validation bookkeeping locks. If validation bookkeeping exhausts host memory, PM-VAL-0004 is delivered once for the triggering call, tracked state is discarded, and stateful validation is disabled while stateless argument checks and driver execution continue. Diagnostics never replace the API result. Applications must not throw or long-jump through the callback.
+
+Related sections: [3.2](#spec-instance), [1.4](#spec-validity).
 
 <a id="spec-allocator"></a>
 
-### 3.3 Host allocation callbacks
+### 3.4 Host allocation callbacks
 
 ```c
 typedef void* (PMAPI_CALL *PmAllocateFn)(
@@ -2724,6 +2775,7 @@ typedef enum PmStructureType {
     PM_STRUCTURE_TYPE_SUBMIT_INFO = 11,
     PM_STRUCTURE_TYPE_NATIVE_DEVICE_IMPORT_INFO = 12,
     PM_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO = 13,
+    PM_STRUCTURE_TYPE_VALIDATION_DIAGNOSTICS_CREATE_INFO = 14,
 } PmStructureType;
 ```
 
@@ -2738,9 +2790,9 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PFN_pmVoidFunction | [3.1](#spec-function_pointers) |
 | PmAccessFlags | [18.1](#spec-base_types) |
 | pmAllocateCommandBuffers | [11.2](#spec-command_buffers) |
-| PmAllocateFn | [3.3](#spec-allocator) |
+| PmAllocateFn | [3.4](#spec-allocator) |
 | pmAllocateMemory | [5.3](#spec-allocation) |
-| PmAllocationCallbacks | [3.3](#spec-allocator) |
+| PmAllocationCallbacks | [3.4](#spec-allocator) |
 | PmAttachmentCouplingState | [9.3](#spec-coupling) |
 | PmAxisLimit | [8.2](#spec-axis_control) |
 | PmAxisMotor | [8.2](#spec-axis_control) |
@@ -2859,7 +2911,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmFormat | [6.3](#spec-format_enum) |
 | PmFormatProperties | [16.3](#spec-formats) |
 | pmFreeCommandBuffers | [11.2](#spec-command_buffers) |
-| PmFreeFn | [3.3](#spec-allocator) |
+| PmFreeFn | [3.4](#spec-allocator) |
 | pmFreeMemory | [5.3](#spec-allocation) |
 | PmGeometry | [18.1](#spec-base_types) |
 | PmGeometryCreateInfo | [6.4](#spec-geometry) |
@@ -2988,6 +3040,11 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmSubmitInfo | [13.4](#spec-submission) |
 | PmThermalCouplingState | [9.3](#spec-coupling) |
 | pmUnmapMemory | [5.4](#spec-mapping) |
+| PmValidationDiagnostic | [3.3](#spec-validation_diagnostics) |
+| PmValidationDiagnosticFn | [3.3](#spec-validation_diagnostics) |
+| PmValidationDiagnosticsCreateInfo | [3.3](#spec-validation_diagnostics) |
+| PmValidationObjectType | [3.3](#spec-validation_diagnostics) |
+| PmValidationSeverity | [3.3](#spec-validation_diagnostics) |
 | PmVulkanBufferImportInfo | [14.7](#spec-vulkan_buffer) |
 | PmVulkanDeviceImportInfo | [14.6](#spec-vulkan_device) |
 | PmVulkanDeviceInfo | [14.6](#spec-vulkan_device) |

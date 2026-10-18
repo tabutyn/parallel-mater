@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define PM_LAYER_INTERFACE_VERSION 2u
+#define PM_LAYER_INTERFACE_VERSION 3u
 
 typedef struct PmLayerCallInfo {
     const char* pCommandName;
@@ -19,6 +19,12 @@ typedef struct PmLayerCallInfo {
      * checking argumentSize. The version 1 prefix remains unchanged. */
     uint32_t argumentSize;
     const void* pArguments;
+    /* Version 3: application-visible dispatch context and the immutable
+     * per-instance diagnostic sink. These pointers are callback-scoped. */
+    PmValidationObjectType primaryObjectType;
+    const void* primaryObject;
+    PmValidationDiagnosticFn pfnDiagnostic;
+    void* pDiagnosticUserData;
 } PmLayerCallInfo;
 
 typedef PmResult (PMAPI_CALL *PFN_pmLayerNegotiateLoaderInterfaceVersion)(
