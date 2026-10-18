@@ -3,7 +3,7 @@
   "task": "F7-07",
   "scope": "Shared Android/iPad Gallery session ownership and physical iPad shell lifecycle integration",
   "source": {
-    "commit": "342997a9a2bc9cfc7a0c09a91799ed2ca77cc667",
+    "commit": "712d1a1c2a895726bea364bcc2b6681913e705f8",
     "dirty": false
   },
   "device": {
@@ -13,8 +13,8 @@
     "graphics_api": "Metal"
   },
   "binary_identity": {
-    "app_executable_sha256": "92d03f6e4aeba34cd39c23cb1ecc7e9a233e5784fcd07a5497bcf19fe3240af2",
-    "embedded_driver_sha256": "7c1820147668bb7ce3bf75c7147e7a392ecbdf8c5e19a7746ba020cf329baa71"
+    "app_executable_sha256": "b1d980b854a13f2f1e9da5c18f5b47146d5d1570ea013884c1521b863c641127",
+    "embedded_driver_sha256": "5c954ec47c0a81c49634c20ed4238eff426874fed604b81ec335c00770abbf4f"
   },
   "collection": {
     "command": "python3 scripts/Deploy-Gallery.py ipad --device <paired-device> --qualify 120 --timeout 1800",
@@ -26,7 +26,7 @@
     "available_entries": 28,
     "passed_entries": 28,
     "frames_per_scene": 120,
-    "report_sha256": "63336e5818951ec0f6e46d3b18f54ff4187df744015497b3480bff7d4daa8cad"
+    "report_sha256": "42c96abd5c01ac99a896a6bdfd4611086c0734fd220a3a65dde863a976f99db7"
   },
   "mobile_session_contract": {
     "shell_recreation": "passed twice in the host contract test",
