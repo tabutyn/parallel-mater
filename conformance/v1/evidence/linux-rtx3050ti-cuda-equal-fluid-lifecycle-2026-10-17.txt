@@ -1,14 +1,14 @@
 [OUTPUT]
-Internal ctest changing into directory: /home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch
+Internal ctest changing into directory: <repo>/build-desktop-switch
 
 [HANDLER_VERBOSE_OUTPUT]
-UpdateCTestConfiguration  from :/home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/DartConfiguration.tcl
+UpdateCTestConfiguration  from :<repo>/build-desktop-switch/DartConfiguration.tcl
 
-Parse Config file:/home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/DartConfiguration.tcl
-UpdateCTestConfiguration  from :/home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/DartConfiguration.tcl
-Parse Config file:/home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/DartConfiguration.tcl
+Parse Config file:<repo>/build-desktop-switch/DartConfiguration.tcl
+UpdateCTestConfiguration  from :<repo>/build-desktop-switch/DartConfiguration.tcl
+Parse Config file:<repo>/build-desktop-switch/DartConfiguration.tcl
 [HANDLER_OUTPUT]
-Test project /home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch
+Test project <repo>/build-desktop-switch
 
 [HANDLER_VERBOSE_OUTPUT]
 Constructing a list of tests
@@ -24,11 +24,11 @@ test 57
 
 [HANDLER_VERBOSE_OUTPUT]
 
-57: Test command: /home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/tests/api/parallel-mater-resource-lifecycle-tests
+57: Test command: <repo>/build-desktop-switch/tests/api/parallel-mater-resource-lifecycle-tests
 
-57: Working Directory: /home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/tests/api
+57: Working Directory: <repo>/build-desktop-switch/tests/api
 57: Environment variables:
-57:  PM_DRIVER_FILES=/home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/Release/manifests/slang-cuda.json
+57:  PM_DRIVER_FILES=<repo>/build-desktop-switch/Release/manifests/slang-cuda.json
 57: Test timeout computed to be: 120
 57: PASS: exact queried storage, capacity sweep and 4096 fluid replacements
 [HANDLER_OUTPUT]
@@ -42,11 +42,11 @@ test 65
 
 [HANDLER_VERBOSE_OUTPUT]
 
-65: Test command: /home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/tests/api/parallel-mater-interaction-graph-lifecycle-tests
+65: Test command: <repo>/build-desktop-switch/tests/api/parallel-mater-interaction-graph-lifecycle-tests
 
-65: Working Directory: /home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/tests/api
+65: Working Directory: <repo>/build-desktop-switch/tests/api
 65: Environment variables:
-65:  PM_DRIVER_FILES=/home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/Release/manifests/slang-cuda.json
+65:  PM_DRIVER_FILES=<repo>/build-desktop-switch/Release/manifests/slang-cuda.json
 65: Test timeout computed to be: 120
 65: PASS: all 12 interaction pairs rebind; three-family rollback recovers
 [HANDLER_OUTPUT]
@@ -60,11 +60,11 @@ test 75
 
 [HANDLER_VERBOSE_OUTPUT]
 
-75: Test command: /home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/tests/api/parallel-mater-fluid-pair-graph-lifecycle-tests
+75: Test command: <repo>/build-desktop-switch/tests/api/parallel-mater-fluid-pair-graph-lifecycle-tests
 
-75: Working Directory: /home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/tests/api
+75: Working Directory: <repo>/build-desktop-switch/tests/api
 75: Environment variables:
-75:  PM_DRIVER_FILES=/home/thomas/Repos/ballroller-2026/parallel-mater-portability/build-desktop-switch/Release/manifests/slang-cuda.json
+75:  PM_DRIVER_FILES=<repo>/build-desktop-switch/Release/manifests/slang-cuda.json
 75: Test timeout computed to be: 120
 75: PASS: bounded generation-safe fluid pair graph lifecycle
 [HANDLER_OUTPUT]
