@@ -1,7 +1,7 @@
 {
   "id": "P1-03",
   "title": "Plan multi-material fluid operators",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F1-99",
     "F2-99",
@@ -19,15 +19,31 @@
   "acceptance": [
     "Each mode has contract, implementation and public-API physical gate tasks."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "8c9682ca-9b52-4a25-8276-53e75d727cc9",
-    "owner": "codex-fluid-planning",
-    "machine": "thomas-laptop",
-    "branch": "work/P1-03/thomas-laptop",
-    "claimed_at": "2026-10-18T21:13:23Z",
-    "heartbeat_at": "2026-10-18T21:13:23Z",
-    "expires_at": "2026-10-19T21:13:23Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/roadmap/evidence/P1-03-multi-material-fluid-plan.json maps all three profiles to nonempty contract, operator, scheduling/lifecycle and public-API quality-gate task sets",
+    "PLAN: P1-04 owns mechanical pair profiles; P1-56 owns capillary interface ABI; P1-15 owns endpoint caloric state; P1-57 owns interface thermal conductance; all remain deferred for separate activation",
+    "PASS: 180-card roadmap validation and 25/25 roadmap workflow tests"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "8c9682ca-9b52-4a25-8276-53e75d727cc9",
+        "owner": "codex-fluid-planning",
+        "machine": "thomas-laptop",
+        "branch": "work/P1-03/thomas-laptop",
+        "claimed_at": "2026-10-18T21:13:23Z",
+        "heartbeat_at": "2026-10-18T21:13:23Z",
+        "expires_at": "2026-10-19T21:13:23Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T21:17:28Z",
+      "reason": "Mapped miscible, immiscible-interface and thermal fluid work to distinct contract, operator, scheduling and public qualification leaves, splitting overlapping interface and caloric API ownership",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/P1-03-multi-material-fluid-plan.json maps all three profiles to nonempty contract, operator, scheduling/lifecycle and public-API quality-gate task sets",
+        "PLAN: P1-04 owns mechanical pair profiles; P1-56 owns capillary interface ABI; P1-15 owns endpoint caloric state; P1-57 owns interface thermal conductance; all remain deferred for separate activation",
+        "PASS: 180-card roadmap validation and 25/25 roadmap workflow tests"
+      ]
+    }
+  ]
 }
