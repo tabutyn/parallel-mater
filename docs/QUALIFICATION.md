@@ -86,7 +86,7 @@ not qualify physical accuracy or release readiness.
 ## F2 interaction graph lifecycle
 
 The public SDK-only
-[interaction graph lifecycle suite](../tests/api/interaction_graph_lifecycle_tests.cpp)
+[interaction graph lifecycle suite](../conformance/v1/src/interaction_graph_lifecycle_fixture.cpp)
 constructs one endpoint from every implemented family and installs all 12
 implemented non-fluid-fluid pair types. It exercises pipeline and explicit
 graph create, parameter update, clear and recreation. It then replaces fluid,
