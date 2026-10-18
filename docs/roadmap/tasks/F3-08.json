@@ -1,7 +1,7 @@
 {
   "id": "F3-08",
   "title": "Restore repeated statistics-query validation",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F3-03"
   ],
@@ -17,6 +17,14 @@
     "The installed macOS Metal Gallery interactive smoke passes with validation enabled and proves the expected revision and direct renderer."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "d0c38a8a-ca96-47bb-98b0-71d5b374d40f",
+    "owner": "codex-macos-gallery",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F3-08/thomass-macbook-air",
+    "claimed_at": "2026-10-18T01:54:48Z",
+    "heartbeat_at": "2026-10-18T01:54:48Z",
+    "expires_at": "2026-10-19T01:54:48Z"
+  },
   "history": []
 }
