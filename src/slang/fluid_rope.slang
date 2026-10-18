@@ -13,7 +13,7 @@ public void atomic_add(PMBuffer<Vec3> destination, Vec3 value)
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void fluid_rope_contacts(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<uint> particle_count, uniform float particle_mass,
@@ -79,7 +79,7 @@ void fluid_rope_contacts(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(128, 1, 1)]
 void fluid_rope_apply(
     uniform PMBuffer<Vec3> rope_velocities, uniform PMBuffer<Vec3> fluid_contact_forces,
     uniform uint rope_count, uniform float rope_mass,

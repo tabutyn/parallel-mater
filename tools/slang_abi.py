@@ -112,7 +112,8 @@ class ReflectedABI:
             if typ.get('uniformStride', stride) != stride or layout(typ)[0] != size:
                 raise ValueError('padded array stride requires an explicit storage adapter')
             return size
-        return layout(typ)[0]
+        size, alignment = layout(typ)
+        return (size + alignment - 1) & ~(alignment - 1)
 
     def declarations(self):
         lines = ['template<class T, unsigned N> struct PmShaderArray { T data[N]; };',
@@ -134,20 +135,21 @@ class ReflectedABI:
             typ = self.types[name]
             for field in typ['fields']:
                 dependency(field['type'])
-            size, alignment = layout(typ)
+            reflected_size, alignment = layout(typ)
+            size = self.host_size(typ)
             lines.append(f'struct alignas({alignment}) PmShader_{name} {{')
             cursor = 0
             for n, field in enumerate(typ['fields']):
                 field_name = identifier(field['name'])
                 offset, field_size = field['binding']['offset'], self.host_size(field['type'])
-                if offset < cursor or offset + field_size > size:
+                if offset < cursor or offset + field_size > reflected_size:
                     raise ValueError(f'{name}.{field_name}: overlapping/out-of-bounds layout')
                 if offset > cursor:
                     lines.append(f'    unsigned char pm_padding_{n}[{offset - cursor}];')
                 lines.append(f'    {self.cpp_type(field["type"])} {field_name};')
                 cursor = offset + field_size
-            if size > cursor:
-                lines.append(f'    unsigned char pm_padding_tail[{size - cursor}];')
+            if reflected_size > cursor:
+                lines.append(f'    unsigned char pm_padding_tail[{reflected_size - cursor}];')
             lines.extend(['};', f'static_assert(sizeof(PmShader_{name}) == {size}U);',
                       f'static_assert(alignof(PmShader_{name}) == {alignment}U);'])
             for field in typ['fields']:

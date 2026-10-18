@@ -153,7 +153,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F3-10](roadmap/tasks/F3-10.json) | Qualify descriptor snapshot coverage | done | F3-06 | — |
 | [F3-11](roadmap/tasks/F3-11.json) | Qualify destruction wait profiles | done | F3-06 | — |
 | [F3-12](roadmap/tasks/F3-12.json) | Qualify runtime capacity recovery | done | F3-06 | — |
-| [F3-99](roadmap/tasks/F3-99.json) | Review F3 exit evidence | leased | F3-01, F3-02, F3-03, F3-04, F3-05, F3-06, F3-07, F3-08, F3-09, F3-10, F3-11, F3-12 | codex-windows-review / windows-gtx1080 / 2026-10-19T04:49:17Z |
+| [F3-99](roadmap/tasks/F3-99.json) | Review F3 exit evidence | done | F3-01, F3-02, F3-03, F3-04, F3-05, F3-06, F3-07, F3-08, F3-09, F3-10, F3-11, F3-12 | — |
 
 ### F4. Common resources and engine ownership
 
@@ -178,7 +178,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-01](roadmap/tasks/F5-01.json) | Map advertised modes to conformance cases | done | F2-02 | — |
 | [F5-02](roadmap/tasks/F5-02.json) | Add vendor-neutral conservation and stability cases | done | — | — |
 | [F5-03](roadmap/tasks/F5-03.json) | Add capacity and three-family corpus cases | done | F1-06, F2-04 | — |
-| [F5-04](roadmap/tasks/F5-04.json) | Isolate CPU rigid-direct divergence | ready | — | — |
+| [F5-04](roadmap/tasks/F5-04.json) | Isolate CPU rigid-direct divergence | leased | — | codex-windows-sdk / windows-gtx1080 / 2026-10-19T07:51:39Z |
 | [F5-05](roadmap/tasks/F5-05.json) | Isolate shared brick penetration failure | done | — | — |
 | [F5-06](roadmap/tasks/F5-06.json) | Classify CUDA/D3D12 comparison failures | done | — | — |
 | [F5-07](roadmap/tasks/F5-07.json) | Gate performance on physical quality | done | F5-01, F5-02 | — |
@@ -198,11 +198,11 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [F6-00](roadmap/tasks/F6-00.json) | Versioned SDK and release baseline | done | — | — |
-| [F6-01](roadmap/tasks/F6-01.json) | Qualify Windows SDK installation | ready | — | — |
+| [F6-01](roadmap/tasks/F6-01.json) | Qualify Windows SDK installation | done | — | — |
 | [F6-02](roadmap/tasks/F6-02.json) | Qualify macOS SDK installation | done | — | — |
-| [F6-03](roadmap/tasks/F6-03.json) | Separate optional package exports | ready | F5-07 | — |
-| [F6-04](roadmap/tasks/F6-04.json) | Record reproducible release inputs | ready | — | — |
-| [F6-05](roadmap/tasks/F6-05.json) | Regenerate and verify release reference artifacts | ready | F3-06 | — |
+| [F6-03](roadmap/tasks/F6-03.json) | Separate optional package exports | done | F5-07 | — |
+| [F6-04](roadmap/tasks/F6-04.json) | Record reproducible release inputs | done | — | — |
+| [F6-05](roadmap/tasks/F6-05.json) | Regenerate and verify release reference artifacts | done | F3-06 | — |
 | [F6-06](roadmap/tasks/F6-06.json) | Reconcile legacy launcher and branding patches | ready | — | — |
 | [F6-07](roadmap/tasks/F6-07.json) | Reconcile legacy hinge and contact patches | ready | — | — |
 | [F6-08](roadmap/tasks/F6-08.json) | Retire reconciled old worktrees | waiting on dependencies | F6-06, F6-07 | — |
@@ -223,15 +223,19 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-09](roadmap/tasks/F7-09.json) | Implement native Vulkan Gallery rendering | done | F7-08 | — |
 | [F7-10](roadmap/tasks/F7-10.json) | Enable Vulkan cloth Gallery domains | done | F7-03 | — |
 | [F7-11](roadmap/tasks/F7-11.json) | Enable Vulkan soft-body Gallery domains | done | F7-03 | — |
-| [F7-12](roadmap/tasks/F7-12.json) | Enable Vulkan rope Gallery domains | ready | F7-03 | — |
+| [F7-12](roadmap/tasks/F7-12.json) | Enable Vulkan rope Gallery domains | done | F7-03 | — |
 | [F7-13](roadmap/tasks/F7-13.json) | Enable Vulkan smoke Gallery domains | ready | F7-03 | — |
 | [F7-14](roadmap/tasks/F7-14.json) | Enable Vulkan cross-deformable Gallery couplings | waiting on dependencies | F7-10, F7-11, F7-12, F7-13 | — |
 | [F7-15](roadmap/tasks/F7-15.json) | Expose capability-driven Android catalog | done | F7-02, F7-07 | — |
 | [F7-16](roadmap/tasks/F7-16.json) | Use native Vulkan rendering on Android | leased | F7-07, F7-09 | codex-linux-gallery / thomas-laptop / 2026-10-18T15:43:21Z |
-| [F7-17](roadmap/tasks/F7-17.json) | Complete Android Gallery controls and help | ready | F7-04, F7-07, F7-15 | — |
-| [F7-18](roadmap/tasks/F7-18.json) | Qualify complete Android Gallery | waiting on dependencies | F5-15, F7-05, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17 | — |
+| [F7-17](roadmap/tasks/F7-17.json) | Complete Android Gallery controls and help | ready | F7-04, F7-07, F7-15, F7-20, F7-21 | — |
+| [F7-18](roadmap/tasks/F7-18.json) | Qualify complete Android Gallery | waiting on dependencies | F5-15, F7-05, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17, F7-22 | — |
 | [F7-19](roadmap/tasks/F7-19.json) | Close common Gallery runtime boundary | done | F7-06, F7-08 | — |
-| [F7-99](roadmap/tasks/F7-99.json) | Review shared Gallery exit evidence | waiting on dependencies | F7-01, F7-02, F7-03, F7-04, F7-05, F7-06, F7-07, F7-08, F7-09, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17, F7-18, F7-19 | — |
+| [F7-20](roadmap/tasks/F7-20.json) | Consolidate the common Gallery scene descriptor | done | F7-12, F7-19 | — |
+| [F7-21](roadmap/tasks/F7-21.json) | Make Gallery presentation state backend-neutral | done | F7-19, F7-20 | — |
+| [F7-22](roadmap/tasks/F7-22.json) | Unify mobile Gallery qualification orchestration | ready | F7-07, F7-19, F7-21 | — |
+| [F7-23](roadmap/tasks/F7-23.json) | Normalize Gallery renderer adapter ownership | ready | F7-08, F7-09, F7-19 | — |
+| [F7-99](roadmap/tasks/F7-99.json) | Review shared Gallery exit evidence | waiting on dependencies | F7-01, F7-02, F7-03, F7-04, F7-05, F7-06, F7-07, F7-08, F7-09, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17, F7-18, F7-19, F7-20, F7-21, F7-22, F7-23 | — |
 
 ### P1. Deferred domain and interaction coverage
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Mobile behavior follows Android: bounded work, shared budgets, touch camera.
+// Shared Gallery behavior: bounded work, shared budgets, semantic controls.
 #include <parallel_mater_gallery/session.hpp>
 #include "scene_builder.hpp"
 #include "render/render_scene.hpp"
@@ -12,7 +12,6 @@
 #include <parallel_mater_gallery/gallery_context.hpp>
 #include <algorithm>
 #include <cmath>
-#include <sstream>
 #include <stdexcept>
 
 namespace parallel_mater::gallery {
@@ -93,7 +92,8 @@ void GallerySession::select(unsigned index) {
     };
     const auto pending_device = std::make_shared<PendingDevice>();
     request.configure_scene =
-        [context = selected.context, has_fluid = selected.has_fluid,
+        [context = selected.context,
+         has_fluid = is_fluid_context(selected.context),
          parameters, selected_limits,
          validate = config_.validate_scene](SceneDefinition &scene,
                                             std::string &failure) {
@@ -126,10 +126,26 @@ void GallerySession::select(unsigned index) {
         [pending_device, gpu_rendering, native_backend, prime_scene]
         (GalleryRuntime &next, std::string &failure) {
         PmPhysicalDeviceProperties device{};
-        pmGetPhysicalDeviceProperties(next.simulation.physical_device(), &device);
+        const PmPhysicalDevice physical = next.simulation.physical_device();
+        pmGetPhysicalDeviceProperties(physical, &device);
         PmPhysicalDeviceFeatures features{};
-        pmGetPhysicalDeviceFeatures(next.simulation.physical_device(), &features);
-        pending_device->catalog = make_gallery_catalog(&features);
+        pmGetPhysicalDeviceFeatures(physical, &features);
+        std::uint32_t interaction_count{};
+        if (pmEnumeratePhysicalDeviceInteractionCapabilities(
+                physical, &interaction_count, nullptr) != PM_SUCCESS) {
+            failure = "Could not enumerate Gallery interaction capabilities";
+            return false;
+        }
+        std::vector<PmInteractionCapability> interactions(interaction_count);
+        if (interaction_count != 0U &&
+            pmEnumeratePhysicalDeviceInteractionCapabilities(
+                physical, &interaction_count, interactions.data()) !=
+                PM_SUCCESS) {
+            failure = "Could not read Gallery interaction capabilities";
+            return false;
+        }
+        interactions.resize(interaction_count);
+        pending_device->catalog = make_gallery_catalog(&features, interactions);
         if (native_backend) {
             PmNativeDeviceInfo native{};
             if (pmGetNativeDevice(next.simulation.device(), &native) != PM_SUCCESS ||
@@ -533,14 +549,48 @@ std::uint64_t GallerySession::allocated_bytes() const {
         pmGetDeviceMemoryBudget(runtime_.simulation.device(), &budget) == PM_SUCCESS
         ? budget.applicationAllocationBytes : 0;
 }
-std::string GallerySession::status() const {
-    require_scene();
-    std::ostringstream text;
-    text << (paused_ ? "Paused · " : "") << config_.backend << " · " << frames << " steps";
-    if (config_.gpu_rendering) text << " · GPU graphics";
-    else if (!runtime_.frame.fluid_particles.empty())
-        text << " · " << runtime_.frame.fluid_particles.size() << " particles";
-    return text.str();
+GalleryPresentationState GallerySession::presentation() const {
+    const auto &selected = catalog_item(selected_);
+    GalleryControllerState controls{
+        .directional = selected.scene.controls,
+        .primary = selected.scene.primary_action,
+        .moves_kinematic = selected.scene.moves_kinematic,
+    };
+    if (runtime_.ready()) controls = runtime_.controller_state();
+    return {
+        .platform = config_.platform,
+        .backend = config_.backend,
+        .device = device_,
+        .renderer = config_.gpu_rendering
+            ? GalleryRendererKind::native_gpu
+            : GalleryRendererKind::software_image,
+        .readback = config_.gpu_rendering
+            ? GalleryReadbackMode::diagnostic_only
+            : GalleryReadbackMode::host_frame,
+        .ready = runtime_.ready(),
+        .active = active_,
+        .paused = paused_,
+        .selection = selected_,
+        .steps = frames,
+        .scene_id = selected.id,
+        .scene_name = selected.scene.name,
+        .scene_summary = selected.scene.summary,
+        .required_features = selected.required_feature_names,
+        .required_interactions = selected.required_interaction_names,
+        .controls = controls,
+        .count_kind = selected.scene.count_kind,
+        .workload_profile = limits.name,
+        .fluid_particle_limit = limits.fluid_particles,
+        .coupled_body_limit = limits.coupled_bodies,
+        .width = width,
+        .height = height,
+        .target_updates_per_second = limits.target_fps,
+        .particle_count = particle_count(),
+        .moving_body_count = moving_bodies(),
+        .host_work_frames_per_second = timing.fps(),
+        .latest_timing = timing.latest(),
+        .build_revision = PM_GALLERY_BUILD_REVISION,
+    };
 }
 void GallerySession::validate_snapshot() const {
     require_scene();
@@ -572,7 +622,8 @@ void GallerySession::validate_snapshot() const {
         vector(particle.position); vector(particle.velocity); vector(particle.vorticity);
         finite(particle.age); finite(particle.numberDensity); finite(particle.pressure);
     }
-    if ((entry(selected_).has_fluid && output.fluid_particles.empty()) ||
+    if ((is_fluid_context(entry(selected_).context) &&
+         output.fluid_particles.empty()) ||
         (runtime_.scene.has_smoke && output.smoke_particles.empty()) ||
         output.rigid_states.size() != runtime_.scene.rigid_bodies.size() ||
         output.cloth_vertices.size() != runtime_.scene.cloths.size() ||
@@ -583,30 +634,5 @@ void GallerySession::validate_snapshot() const {
         throw std::runtime_error("Invalid rendered image size");
     if (std::all_of(pixels.begin(), pixels.end(), [&](auto pixel) { return pixel == pixels.front(); }))
         throw std::runtime_error("Rendered image has no visible scene");
-}
-std::string GallerySession::details() const {
-    require_scene();
-    std::ostringstream text;
-    const auto &selected = catalog_item(selected_);
-    text << device_ << "\nScene: " << selected.id << " · available"
-         << "\nRequires: " << selected.required_feature_names
-         << (config_.gpu_rendering
-        ? "\nShared Slang physics; direct Metal GPU graphics (fenced preview).\n\nProfile: "
-        : "\nShared Slang physics; software image renderer.\n\nProfile: ") << limits.name
-         << "\n" << limits.fluid_particles << " liquid particles · " << limits.coupled_bodies
-         << " coupled bodies\n" << width << " × " << height << " · target " << limits.target_fps
-         << " updates/s\nHost work throughput: " << timing.fps() << " frames/s";
-    if (timing.latest()) {
-        const auto &sample = *timing.latest();
-        text << "\nFrame work: " << sample.total_ms << " ms\nPhysics: " << sample.physics_ms
-             << " ms · render: " << sample.render_ms << " ms";
-    }
-    text << (timing.latest() && timing.latest()->present_ms
-        ? "\nPresentation callback included; display scan-out excluded."
-        : "\nUI handoff/display time excluded.")
-         << "\n\nDrag to orbit. Pinch to zoom. Hold arrows for the scene's directional action."
-         << "\n\nPreview only: workloads are provisional. Slow updates slow simulation. Missing roadmap interactions and full qualification remain pending."
-         << "\n\nBuild " PM_GALLERY_BUILD_REVISION;
-    return text.str();
 }
 }

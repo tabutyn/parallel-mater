@@ -10,7 +10,7 @@ file(GLOB_RECURSE vulkan_shader_dependencies CONFIGURE_DEPENDS
 set(vulkan_sources)
 foreach(module geometry geometry_constraints primitives queries fluid geometry_fluid
                cloth geometry_cloth fluid_cloth soft_body geometry_soft_body
-               fluid_soft_body)
+               fluid_soft_body rope fluid_rope)
     parallel_mater_slang_entry_arguments(${module} CUDA entries)
     parallel_mater_slang_definition_arguments(${module} CUDA definitions)
     set(wrapper "src/simulation/${module}_dispatch.cu")
@@ -46,9 +46,9 @@ foreach(module geometry geometry_constraints primitives queries fluid geometry_f
     endif()
 endforeach()
 set(vulkan_stub_headers
-    src/simulation/fluid_rope_dispatch.hpp src/simulation/fluid_smoke_dispatch.hpp
+    src/simulation/fluid_smoke_dispatch.hpp
     src/simulation/geometry_smoke_dispatch.hpp
-    src/simulation/rope_coupling_dispatch.hpp src/simulation/rope_dispatch.hpp
+    src/simulation/rope_coupling_dispatch.hpp
     src/simulation/smoke_coupling_dispatch.hpp src/simulation/smoke_grid_dispatch.hpp
     src/simulation/soft_body_cloth_dispatch.hpp)
 add_custom_command(OUTPUT "${vulkan_generated}/unadvertised.cpp"
@@ -77,7 +77,8 @@ add_library(ParallelMater::slang_vulkan_driver ALIAS parallel-mater-driver-slang
 if(TARGET parallel-mater-gallery)
     add_dependencies(parallel-mater-gallery parallel-mater-driver-slang-vulkan)
 endif()
-list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-driver-slang-vulkan)
+list(APPEND PARALLEL_MATER_DRIVER_INSTALL_TARGETS
+    parallel-mater-driver-slang-vulkan)
 file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json"
     CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-vulkan>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/slang-vulkan.json"
@@ -110,6 +111,18 @@ if(BUILD_TESTING)
     add_test(NAME parallel-mater-vulkan-soft-body-capability-tests
         COMMAND parallel-mater-vulkan-soft-body-capability-tests)
     set_tests_properties(parallel-mater-vulkan-soft-body-capability-tests PROPERTIES
+        TIMEOUT 180
+        ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json")
+    add_executable(parallel-mater-vulkan-rope-capability-tests
+        tests/api/vulkan_rope_capability_tests.cpp)
+    target_compile_features(parallel-mater-vulkan-rope-capability-tests PRIVATE cxx_std_20)
+    target_link_libraries(parallel-mater-vulkan-rope-capability-tests PRIVATE
+        ParallelMater::parallel_mater)
+    add_dependencies(parallel-mater-vulkan-rope-capability-tests
+        parallel-mater-driver-slang-vulkan)
+    add_test(NAME parallel-mater-vulkan-rope-capability-tests
+        COMMAND parallel-mater-vulkan-rope-capability-tests)
+    set_tests_properties(parallel-mater-vulkan-rope-capability-tests PROPERTIES
         TIMEOUT 180
         ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json")
     if(PARALLEL_MATER_BUILD_GALLERY)

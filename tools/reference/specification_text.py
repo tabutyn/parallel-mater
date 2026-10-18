@@ -2,6 +2,7 @@
 import html
 from content import SECTIONS
 from model import SPEC_NUMBERS, example_fragment, symbols
+from provenance import registry_notice
 
 NUMBERS = {**SPEC_NUMBERS, "symbol_index": "A"}
 SCOPE = (
@@ -24,7 +25,9 @@ def plain(text):
 
 
 def render_markdown():
-    markdown = ["# Parallel Mater 0.2 — API Specification", SCOPE, NORMATIVE, "## Contents"]
+    markdown = [f"<!-- Generated from {registry_notice()} -->",
+                "# Parallel Mater 0.2 — API Specification", SCOPE, NORMATIVE,
+                "## Contents"]
     markdown.extend(f"- [{NUMBERS[s.key]} {s.title}](#spec-{s.key})" for s in SECTIONS)
     markdown.append("- [A Symbol index](#spec-symbol_index)")
     for section in SECTIONS:

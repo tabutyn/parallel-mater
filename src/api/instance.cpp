@@ -57,8 +57,16 @@ bool driver_supports_interaction(
     // Vulkan enables domain schedules incrementally. Feature bits describe
     // available families, while this exact interaction list must not expose a
     // pair until its dispatch module has been compiled and qualified.
-    if (key.firstFamily == PM_INTERACTION_FAMILY_CLOTH &&
-        key.secondFamily == PM_INTERACTION_FAMILY_SOFT_BODY)
+    const bool cloth_soft =
+        key.firstFamily == PM_INTERACTION_FAMILY_CLOTH &&
+        key.secondFamily == PM_INTERACTION_FAMILY_SOFT_BODY;
+    const bool cloth_rope =
+        key.firstFamily == PM_INTERACTION_FAMILY_CLOTH &&
+        key.secondFamily == PM_INTERACTION_FAMILY_ROPE;
+    const bool soft_rope =
+        key.firstFamily == PM_INTERACTION_FAMILY_SOFT_BODY &&
+        key.secondFamily == PM_INTERACTION_FAMILY_ROPE;
+    if (cloth_soft || cloth_rope || soft_rope)
         return false;
 #else
     (void)key;
@@ -133,6 +141,7 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
 #endif
 #if defined(PARALLEL_MATER_VULKAN_DRIVER)
     features.cloth = PM_TRUE;
+    features.rope = PM_TRUE;
     features.softBodies = PM_TRUE;
     features.domainCouplings = PM_TRUE;
     features.paint = PM_TRUE;

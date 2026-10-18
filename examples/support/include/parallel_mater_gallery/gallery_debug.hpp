@@ -30,10 +30,11 @@ struct GalleryDebugState {
     }
 
     void toggle_primary(GalleryContext context) noexcept {
-        const GalleryEntry &entry = gallery_entry(context);
-        if (entry.has_cloth || entry.has_soft_body || entry.has_rope) structure = !structure;
-        if (entry.has_fluid) particle_view = !particle_view;
-        if (!entry.has_cloth && !entry.has_fluid && !entry.has_soft_body && !entry.has_rope)
+        const bool deformable = is_cloth_context(context) ||
+            is_soft_body_context(context) || is_rope_context(context);
+        if (deformable) structure = !structure;
+        if (is_fluid_context(context)) particle_view = !particle_view;
+        if (!deformable && !is_fluid_context(context))
             rigid_contacts = !rigid_contacts;
     }
 

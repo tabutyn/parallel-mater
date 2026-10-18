@@ -45,8 +45,9 @@ performs explicit readbacks for emission, phase transfer, diagnostics, and
 some resource metadata. It does not yet overlap independent GPU schedules.
 Current storage remains pointer-oriented; descriptor resource mapping and
 full native adapters for other graphics APIs remain separate work. The
-[Vulkan preview](VULKAN.md) now binds this schedule for rigid bodies, constraints,
-liquids, and liquid–rigid coupling.
+[Vulkan preview](VULKAN.md) now binds this schedule for rigid bodies,
+constraints, liquids, cloth, ropes, soft bodies, and their qualified rigid and
+liquid couplings.
 
 The Windows D3D12 driver embeds DXIL generated from the common kernel manifest.
 Its public command path binds and dispatches the shared rigid-body,

@@ -25,6 +25,11 @@ if(BUILD_TESTING)
     add_test(NAME parallel-mater-reflected-abi-tests
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/solver/test_slang_abi.py")
     set_tests_properties(parallel-mater-reflected-abi-tests PROPERTIES LABELS "slang;abi")
+    add_test(NAME parallel-mater-release-reproducibility-tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/release/test_release_reproducibility.py")
+    set_tests_properties(parallel-mater-release-reproducibility-tests PROPERTIES
+        LABELS "release;reproducibility")
 endif()
 
 function(parallel_mater_enable_warnings target)
@@ -242,7 +247,11 @@ if(PARALLEL_MATER_BUILD_CONFORMANCE OR BUILD_TESTING OR
 
 endif()
 
-set(PARALLEL_MATER_INSTALL_TARGETS)
+set(PARALLEL_MATER_LOADER_INSTALL_TARGETS)
+set(PARALLEL_MATER_VALIDATION_INSTALL_TARGETS)
+set(PARALLEL_MATER_PREPARATION_INSTALL_TARGETS)
+set(PARALLEL_MATER_SCENE_INSTALL_TARGETS)
+set(PARALLEL_MATER_DRIVER_INSTALL_TARGETS)
 
 include(cmake/ParallelMaterLoader.cmake)
 
@@ -267,7 +276,8 @@ if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER OR
     set_target_properties(parallel-mater-host-preparation PROPERTIES
         EXPORT_NAME preparation POSITION_INDEPENDENT_CODE ON)
     add_library(ParallelMater::preparation ALIAS parallel-mater-host-preparation)
-    list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-host-preparation)
+    list(APPEND PARALLEL_MATER_PREPARATION_INSTALL_TARGETS
+        parallel-mater-host-preparation)
     parallel_mater_enable_warnings(parallel-mater-host-preparation)
 endif()
 
@@ -344,7 +354,8 @@ add_library(
     src/simulation/smoke_storage.hpp
     ${PARALLEL_MATER_SLANG_CUDA_SOURCES})
 
-list(APPEND PARALLEL_MATER_INSTALL_TARGETS parallel-mater-driver-slang-cuda)
+list(APPEND PARALLEL_MATER_DRIVER_INSTALL_TARGETS
+    parallel-mater-driver-slang-cuda)
 set_target_properties(
     parallel-mater-driver-slang-cuda
     PROPERTIES
@@ -1112,7 +1123,7 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
         add_dependencies(parallel-mater-gallery
                          parallel-mater-driver-slang-d3d12)
     endif()
-    list(APPEND PARALLEL_MATER_INSTALL_TARGETS
+    list(APPEND PARALLEL_MATER_DRIVER_INSTALL_TARGETS
          parallel-mater-driver-slang-d3d12)
     file(GENERATE
         OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json"
@@ -1287,6 +1298,15 @@ if(BUILD_TESTING)
                 RUN_SERIAL TRUE
                 ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
         endforeach()
+        foreach(scene Rope RopeFluid)
+            add_test(NAME parallel-mater-vulkan-gallery-${scene}
+                COMMAND parallel-mater-command-gallery-tests --backend vulkan
+                    --scene ${scene}.glb --frames 120)
+            set_tests_properties(parallel-mater-vulkan-gallery-${scene} PROPERTIES
+                LABELS "api;gallery;vulkan;rope" SKIP_RETURN_CODE 77 TIMEOUT 300
+                RUN_SERIAL TRUE
+                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+        endforeach()
     endif()
     if(PARALLEL_MATER_BUILD_GALLERY AND PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER AND
        PARALLEL_MATER_SLANG_CPU_LIQUIDS)
@@ -1412,6 +1432,28 @@ if(BUILD_TESTING)
 
 endif()
 
+if(PARALLEL_MATER_BUILD_CONFORMANCE OR PARALLEL_MATER_BUILD_BENCHMARKS)
+    configure_file(cmake/ParallelMaterBenchmarkComponent.cmake.in
+        "${CMAKE_CURRENT_BINARY_DIR}/ParallelMaterBenchmarkComponent.cmake"
+        @ONLY)
+    install(FILES benchmarks/qualification.py
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/benchmarks
+        COMPONENT benchmark)
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/ParallelMaterBenchmarkComponent.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ParallelMater
+        COMPONENT benchmark)
+endif()
+if(TARGET parallel-mater-dump-truck-benchmark)
+    install(TARGETS parallel-mater-dump-truck-benchmark
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        COMPONENT benchmark)
+endif()
+if(TARGET parallel-mater-rigid-frame-benchmark)
+    install(TARGETS parallel-mater-rigid-frame-benchmark
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        COMPONENT benchmark)
+endif()
+
 configure_package_config_file(
     cmake/ParallelMaterConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/ParallelMaterConfig.cmake
@@ -1448,6 +1490,12 @@ if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
     configure_file(config/driver-manifest.json.in
         ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cpu.json @ONLY)
 endif()
+if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
+    set(PARALLEL_MATER_INSTALLED_DRIVER_PATH
+        "../../../${PARALLEL_MATER_SHARED_INSTALL_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}parallel_mater_driver_slang_metal${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    configure_file(config/driver-manifest.json.in
+        ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_metal.json @ONLY)
+endif()
 
 if(PARALLEL_MATER_BUILD_VULKAN)
     set(PARALLEL_MATER_INSTALLED_DRIVER_PATH
@@ -1455,17 +1503,42 @@ if(PARALLEL_MATER_BUILD_VULKAN)
     configure_file(config/driver-manifest.json.in
         ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_vulkan.json @ONLY)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_vulkan.json
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d)
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d
+        COMPONENT driver)
 endif()
 
-install(
-    TARGETS ${PARALLEL_MATER_INSTALL_TARGETS}
-    EXPORT ParallelMaterTargets
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    FRAMEWORK DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+function(parallel_mater_install_export component export_name)
+    set(targets ${ARGN})
+    if(NOT targets)
+        return()
+    endif()
+    install(
+        TARGETS ${targets}
+        EXPORT ${export_name}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${component}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${component}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT ${component}
+        FRAMEWORK DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${component}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    install(
+        EXPORT ${export_name}
+        FILE ${export_name}.cmake
+        NAMESPACE ParallelMater::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ParallelMater
+        COMPONENT ${component})
+endfunction()
+
+parallel_mater_install_export(loader ParallelMaterLoaderTargets
+    ${PARALLEL_MATER_LOADER_INSTALL_TARGETS})
+parallel_mater_install_export(validation ParallelMaterValidationTargets
+    ${PARALLEL_MATER_VALIDATION_INSTALL_TARGETS})
+parallel_mater_install_export(preparation ParallelMaterPreparationTargets
+    ${PARALLEL_MATER_PREPARATION_INSTALL_TARGETS})
+parallel_mater_install_export(scene ParallelMaterSceneTargets
+    ${PARALLEL_MATER_SCENE_INSTALL_TARGETS})
+parallel_mater_install_export(driver ParallelMaterDriverTargets
+    ${PARALLEL_MATER_DRIVER_INSTALL_TARGETS})
+
 install(
     FILES
         include/parallel_mater/parallel_mater.h
@@ -1473,42 +1546,59 @@ install(
         include/parallel_mater/pm_driver.h
         include/parallel_mater/pm_layer.h
         ${PARALLEL_MATER_API_GENERATED_DIR}/parallel_mater/pm_layer_args.h
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/parallel_mater)
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/parallel_mater
+    COMPONENT loader)
 if(TARGET parallel-mater-host-preparation)
-    install(DIRECTORY include/parallel_mater_scene DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    install(DIRECTORY include/parallel_mater_scene
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        COMPONENT preparation)
 endif()
 if(TARGET parallel-mater-scene)
     install(FILES third_party/cgltf/LICENSE third_party/cgltf/README.parallel-mater.md
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/licenses/cgltf)
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/licenses/cgltf
+        COMPONENT scene)
 endif()
 if(PARALLEL_MATER_BUILD_CUDA)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cuda.json
-            DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d)
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d
+            COMPONENT driver)
     if(WIN32)
         install(FILES "${PARALLEL_MATER_CUDART_RUNTIME}"
-                DESTINATION ${CMAKE_INSTALL_BINDIR})
+                DESTINATION ${CMAKE_INSTALL_BINDIR}
+                COMPONENT driver)
     endif()
 endif()
 if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_d3d12.json
-            DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d)
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d
+            COMPONENT driver)
 endif()
 if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_cpu.json
-            DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d)
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d
+            COMPONENT driver)
+endif()
+if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_slang_metal.json
+            DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/drivers.d
+            COMPONENT driver)
+    if(NOT PARALLEL_MATER_IOS)
+        install(DIRECTORY "${metal_resource_directory}/"
+                DESTINATION ${PARALLEL_MATER_SHARED_INSTALL_DIR}/slang-metal
+                COMPONENT driver)
+    endif()
 endif()
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/parallel_mater_validation.json
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/layers.d)
-install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/licenses)
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/layers.d
+        COMPONENT validation)
+install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/licenses
+        COMPONENT loader)
 install(FILES tools/blender/export_parallel_mater_scene.py
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/blender)
-install(
-    EXPORT ParallelMaterTargets
-    FILE ParallelMaterTargets.cmake
-    NAMESPACE ParallelMater::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ParallelMater)
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/parallel-mater/blender
+        COMPONENT scene)
 install(
     FILES
         ${CMAKE_CURRENT_BINARY_DIR}/ParallelMaterConfig.cmake
         ${CMAKE_CURRENT_BINARY_DIR}/ParallelMaterConfigVersion.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ParallelMater)
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/ParallelMater
+    COMPONENT loader)
