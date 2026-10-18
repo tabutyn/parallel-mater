@@ -65,14 +65,11 @@ int main() {
         {
             gallery::GallerySession session(configuration());
             session.resize(96U, 72U);
-            PmNativeDeviceInfo public_device{};
-            PmNativeQueueInfo public_queue{};
-            require(pmGetNativeDevice(session.runtime().simulation.device(),
-                                      &public_device) == PM_SUCCESS,
-                    "Vulkan test could not query public native device");
-            require(pmGetNativeQueue(session.runtime().simulation.queue(),
-                                     &public_queue) == PM_SUCCESS &&
-                        public_queue.queue != 0U,
+            const PmNativeDeviceInfo public_device =
+                session.native_physics_device();
+            const PmNativeQueueInfo public_queue =
+                session.native_render_queue();
+            require(public_queue.queue != 0U,
                     "Vulkan test could not query public native queue");
             const PmNativeDeviceInfo renderer_device =
                 session.native_render_device();
@@ -93,19 +90,11 @@ int main() {
             constexpr std::uint32_t overlay_color = 0xffff00ffU;
             std::vector<std::uint32_t> overlay(96U * 72U, 0U);
             std::fill_n(overlay.begin(), 96U * 8U, overlay_color);
-            gallery::GpuRenderRequest overlay_request;
             std::string overlay_error;
-            require(gallery::make_gpu_render_request(
-                        session.runtime().instance.render_buffers,
-                        session.runtime().gpu_frame_generation,
-                        session.camera().camera(),
+            require(session.render_native(
                         {PM_NATIVE_BACKEND_VULKAN, public_device.device, 0U,
                          96U, 72U},
-                        {&session.pixels}, nullptr, overlay, overlay_request,
-                        overlay_error),
-                    "Vulkan overlay request creation failed");
-            require(session.runtime().native_renderer->render(
-                        overlay_request, overlay_error),
+                        overlay, &session.pixels, overlay_error),
                     "Vulkan overlay readback failed");
             require(session.pixels.front() == overlay_color &&
                         session.pixels[71U * 96U] != overlay_color,

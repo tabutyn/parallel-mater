@@ -11,16 +11,19 @@ Every shell delegates scene lifecycle to
 `parallel_mater::gallery::GallerySession`. The session resolves workload and
 scene parameters, selects scenes, resets them, applies semantic actions,
 advances controlled steps, owns camera focus, and reports lifecycle revisions.
-Its `GalleryRuntime` owns GLB loading, physics resources, host-renderer
-creation, frame assembly, and teardown. Desktop reads the runtime only for
-rendering, capture, calibration, and diagnostics; it has no parallel scene
-lifecycle wrapper. Android and iPad wrap the same session in
+Its private `GalleryRuntime` owns GLB loading, physics resources, host-renderer
+creation, frame assembly, and teardown. Platform code cannot obtain or mutate
+that runtime. Desktop uses typed session views and rendering, capture,
+calibration, and diagnostic operations. Android and iPad wrap the same session in
 `MobileGallerySession`, which owns surface admission, foreground/pause commands,
 controller presentation, and failure recovery. Scene metadata and backend
 availability come from one
 ordered `GalleryCatalog`; platform shells only choose how to display its
-records. `GalleryFramePolicy` supplies the same profiled fixed-step clock and
-catch-up behavior to desktop scheduling and the session-managed mobile loop.
+records. `GallerySession::frame_at` owns `GalleryFramePolicy`, profiled
+fixed-step cadence, readback admission, render/present ordering, failure
+cancellation, and timing publication for desktop and mobile frames. Desktop
+supplies semantic input plus render and presentation callbacks; mobile uses the
+session's default renderer path.
 Native rendering uses a common device, buffer, synchronization, target,
 readback, and draw-semantics contract. Metal and Vulkan implement that contract.
 Desktop Vulkan uses it now; F7-16 attaches Android's native surface to the same
@@ -35,14 +38,14 @@ Vulkan adapter.
 | Asset loading and scene construction | `GallerySession`/`GalleryRuntime` | `GallerySession`/`GalleryRuntime` | Common runtime catalog and workload policy (done) |
 | Physics device, resources, command submission, scene replacement, reset, and teardown | `GallerySession`/`GalleryRuntime` | `MobileGallerySession` around `GallerySession`/`GalleryRuntime` | Common runtime (done) |
 | Fixed, point, motor, steering, dump-bed, kinematic, gravity, force, paint, and deformable controllers | Semantic input adapter around `GallerySession`/`GalleryRuntime` | `MobileGallerySession` semantic commands around `GallerySession`/`GalleryRuntime` | Common runtime semantic commands (done) |
-| Fixed-step accumulation, catch-up limits, substeps, pause, and foreground recovery | `GalleryFramePolicy` in the rich desktop frame coordinator | `GalleryFramePolicy` through `MobileGallerySession` | Common policy implementation; the remaining desktop coordinator should delegate its ordinary frame path to `GallerySession` |
+| Fixed-step accumulation, catch-up limits, substeps, pause, foreground recovery, and timing publication | `GallerySession::frame_at` with desktop render/present callbacks | `GallerySession::frame_at` through `MobileGallerySession` | Common session (done) |
 | Camera state and focus policy | `GallerySession::camera()`, driven by desktop input | `MobileGallerySession` touch commands | Common runtime, driven by semantic pointer/zoom commands |
 | Host render-frame assembly | `GalleryRuntime::step` | `GalleryRuntime::step` | Common runtime (done) |
 | Software, native GPU, or external-engine drawing | Desktop renderer/window path, including direct Vulkan | Android software renderer or iPad Metal renderer | Renderer adapter |
 | Graphics API resources, swapchain/layer binding, upload, and presentation | Desktop window adapter | Android surface/ANativeWindow or Apple presentation layer | Renderer adapter, with the platform shell supplying the native surface |
 | Keyboard, touch, gamepad, lifecycle, window, intent, and accessibility events | GLFW/native desktop glue | Java/JNI or UIKit glue | Platform shell translating events into common commands |
 | Catalog, parameter, timing, status, and error view models | Shared catalog plus desktop overlays | `MobileGalleryState` plus Java/UIKit widgets | Common runtime data; platform shell chooses widgets and layout |
-| Physics capture, validation snapshots, and qualification sequencing | Desktop application and shared debug helpers | `GallerySession` qualification helpers | Common runtime diagnostics; shell chooses destination and presentation |
+| Physics capture, validation snapshots, and qualification sequencing | Typed `GallerySession` diagnostics and shared debug helpers | `GallerySession` qualification helpers | Common runtime diagnostics; shell chooses destination and presentation |
 | Filesystem writes, share sheets, logs, and platform telemetry | Desktop platform helpers | Java/UIKit | Platform shell |
 
 ## Runtime boundary
@@ -103,10 +106,12 @@ steer a vehicle unless the catalog explicitly declares that combination.
 `forward` values are camera-relative semantics rather than key or widget codes;
 an optional gravity override supports deterministic scripted/headless runs.
 `GallerySession::primary_action` interprets the catalog's declared primary
-action and performs any requested reset. `GallerySession::controlled_step`
-applies every controller before and after the shared physics step. Each
-successful selection, reset, or restore increments the session revision so a
-shell can clear presentation counters without duplicating lifecycle state.
+action and performs any requested reset. `GallerySession::frame_at` applies
+every controller before and after each due shared physics step. Explicit
+headless and calibration tools use `diagnostic_step`; interactive shells cannot
+invoke the private step operation. Each successful selection, reset, or restore
+increments the session revision and resets the session-owned scheduler and
+timing history.
 
 ## Observable behavior
 
@@ -128,7 +133,8 @@ fixed-step policy used on every shell.
 
 Each workload profile's `target_fps` selects both the fixed timestep and enough
 solver substeps to retain an approximately 240 Hz solver cadence. Interactive
-adapters pass monotonic timestamps into `GalleryFramePolicy`. A display frame
+adapters pass monotonic timestamps and `GalleryFramePlan` records into
+`GallerySession::frame_at`. A display frame
 may submit at most four due physics steps, and additional catch-up is admitted
 only while the previous step predicts that the 8 ms physics budget remains.
 A wall-clock delta is clamped to 250 ms; work still due after either limit is
@@ -161,7 +167,7 @@ These tests protect behavior while later F7 tasks move ownership:
 
 | Behavior | Test |
 |---|---|
-| Common-session recreation, surface replacement, selection, reset, pause/background, presentation failure recovery, and point release/restore | `parallel-mater-gallery-session-contract-tests` |
+| Common-session recreation, desktop render/present callback ordering, shared scheduling, surface replacement, selection, reset, pause/background, presentation failure recovery, and point release/restore | `parallel-mater-gallery-session-contract-tests` |
 | Shared catalog ordering, stable unique identities, required features, and precise backend rejection reasons | `parallel-mater-gallery-registry-tests` |
 | Catalog selection, modal reset/action gating, and held-input clearing | `parallel-mater-gallery-input-tests` |
 | Camera, gravity/force policies, motor/dump classification, and four-wheel steering math | `parallel-mater-camera-controller-tests` |
