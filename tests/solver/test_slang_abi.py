@@ -82,6 +82,19 @@ class ReflectedABITest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'recursive by-value'):
             ReflectedABI(data).declarations()
 
+    def test_cpp_storage_rounds_reflected_record_size_to_alignment(self):
+        record = {'kind': 'struct', 'name': 'Record', 'fields': [
+            field('address', {'kind': 'pointer', 'valueType': scalar('float32', 4),
+                              'sizes': [{'kind': 'uniform', 'value': 8, 'alignment': 8}]},
+                  0, 8),
+            field('enabled', scalar('bool', 4), 8, 4)],
+            'sizes': [{'kind': 'uniform', 'value': 12, 'alignment': 8}]}
+        data = {'entryPoints': [{'name': 'execute', 'parameters': [
+            field('record', record, 0, 12)]}]}
+        text = '\n'.join(ReflectedABI(data).declarations())
+        self.assertIn('static_assert(sizeof(PmShader_Record) == 16U);', text)
+        self.assertIn('offsetof(PmShader_Record, enabled) == 8U', text)
+
 
 if __name__ == '__main__':
     unittest.main()

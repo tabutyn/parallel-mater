@@ -1,7 +1,7 @@
 {
   "id": "F7-12",
   "title": "Enable Vulkan rope Gallery domains",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-03"
   ],
@@ -16,15 +16,27 @@
     "Rope and rope-water scenes pass bounded lifecycle and visible-output checks on Vulkan.",
     "Vulkan advertises only the exact rope and fluid-coupling capabilities supported by passing public-API contracts."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "0c289e6a-e872-4c24-9ad7-d428db72dc54",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F7-12/thomas-laptop",
-    "claimed_at": "2026-10-18T05:14:33Z",
-    "heartbeat_at": "2026-10-18T05:14:33Z",
-    "expires_at": "2026-10-19T05:14:33Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F7-12-vulkan-rope.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "0c289e6a-e872-4c24-9ad7-d428db72dc54",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-12/thomas-laptop",
+        "claimed_at": "2026-10-18T05:14:33Z",
+        "heartbeat_at": "2026-10-18T05:14:33Z",
+        "expires_at": "2026-10-19T05:14:33Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T06:27:44Z",
+      "reason": "Vulkan now compiles, binds and qualifies the shared rope, rigid-rope and fluid-rope Slang schedules; exact advertised capabilities and common Gallery availability are backed by physical public-API contracts",
+      "evidence": [
+        "docs/roadmap/evidence/F7-12-vulkan-rope.json"
+      ]
+    }
+  ]
 }

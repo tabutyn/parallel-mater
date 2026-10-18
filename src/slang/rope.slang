@@ -1091,17 +1091,38 @@ void rope_project_velocities(RopeData rope, float dt, int first, int last,
     pmGroupBarrier();
 }
 
+#ifndef PM_TARGET_VULKAN
+#define PM_TARGET_VULKAN 0
+#endif
+
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void rope_advance(
-    uniform RopeData rope, uniform float dt, uniform Vec3 gravity,
+#if PM_TARGET_VULKAN
+    uniform PMBuffer<RopeData> rope_buffer,
+#else
+    uniform RopeData rope,
+#endif
+    uniform float dt, uniform Vec3 gravity,
     uniform int first, uniform int last, uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> states, uniform PMBuffer<RigidBodyState> old_states,
     uniform PMBuffer<TriangleMeshResource> meshes, uniform uint body_count,
-    uniform bool first_substep, uniform RopeSoftTarget soft_a,
+    uniform bool first_substep,
+#if PM_TARGET_VULKAN
+    uniform PMBuffer<RopeSoftTarget> soft_a_buffer,
+    uniform PMBuffer<RopeSoftTarget> soft_b_buffer)
+#else
+    uniform RopeSoftTarget soft_a,
     uniform RopeSoftTarget soft_b PM_D3D12_DISPATCH_PARAMETER)
+#endif
 {
+#if PM_TARGET_VULKAN
+    RopeData rope = rope_buffer[0];
+    RopeSoftTarget soft_a = soft_a_buffer[0];
+    RopeSoftTarget soft_b = soft_b_buffer[0];
+#else
     PM_D3D12_DISPATCH_PROLOGUE();
+#endif
     uint lane = pmGroupThreadIndex().x;
     if (lane == 0u) ropeConverged = 0u;
     if (lane == 0u)

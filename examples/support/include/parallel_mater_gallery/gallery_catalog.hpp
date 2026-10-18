@@ -7,6 +7,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -39,6 +41,7 @@ struct GalleryCatalogItem {
     GalleryFeatureSet required_features{};
     bool available{};
     std::string required_feature_names{};
+    std::string required_interaction_names{};
     std::string unavailable_reason{};
 };
 
@@ -189,8 +192,200 @@ inline constexpr std::array gallery_features{
     GalleryFeature::paint,
 };
 
+[[nodiscard]] constexpr bool gallery_interaction_key_equal(
+    const PmInteractionCapabilityKey &left,
+    const PmInteractionCapabilityKey &right) noexcept {
+    return left.firstFamily == right.firstFamily &&
+        left.secondFamily == right.secondFamily && left.scope == right.scope &&
+        left.mode == right.mode && left.direction == right.direction &&
+        left.materialProfile == right.materialProfile;
+}
+
+[[nodiscard]] constexpr std::string_view gallery_interaction_family_name(
+    PmInteractionFamily family) noexcept {
+    switch (family) {
+    case PM_INTERACTION_FAMILY_FLUID: return "fluid";
+    case PM_INTERACTION_FAMILY_CLOTH: return "cloth";
+    case PM_INTERACTION_FAMILY_SOFT_BODY: return "soft-body";
+    case PM_INTERACTION_FAMILY_ROPE: return "rope";
+    case PM_INTERACTION_FAMILY_SMOKE: return "smoke";
+    case PM_INTERACTION_FAMILY_RIGID_BODY: return "rigid-body";
+    }
+    return "unknown";
+}
+
+[[nodiscard]] constexpr std::string_view gallery_interaction_mode_name(
+    PmInteractionMode mode) noexcept {
+    switch (mode) {
+    case PM_INTERACTION_MODE_CONTACT: return "contact";
+    case PM_INTERACTION_MODE_ATTACHMENT: return "attachment";
+    case PM_INTERACTION_MODE_DRAG: return "drag";
+    case PM_INTERACTION_MODE_CONTAINMENT: return "containment";
+    case PM_INTERACTION_MODE_PRESSURE: return "pressure";
+    case PM_INTERACTION_MODE_VISCOSITY: return "viscosity";
+    case PM_INTERACTION_MODE_THERMAL: return "thermal";
+    case PM_INTERACTION_MODE_PHASE: return "phase";
+    }
+    return "unknown";
+}
+
+[[nodiscard]] inline std::string gallery_interaction_name(
+    const PmInteractionCapabilityKey &key) {
+    std::string result{gallery_interaction_family_name(key.firstFamily)};
+    if (key.firstFamily == key.secondFamily)
+        result += " self ";
+    else {
+        result += '-';
+        result += gallery_interaction_family_name(key.secondFamily);
+        result += ' ';
+    }
+    result += gallery_interaction_mode_name(key.mode);
+    return result;
+}
+
+// Derive the exact public interaction inventory used by the scene builder from
+// the same domain flags that drive scene construction. Broad feature bits admit
+// a family; every listed interaction must also be advertised by the driver.
+template <typename Visitor>
+inline void visit_gallery_interaction_requirements(
+    GalleryContext context, Visitor &&visit) {
+    const GalleryEntry &entry = gallery_entry(context);
+    const auto add = [&](PmInteractionFamily first,
+                         PmInteractionFamily second,
+                         PmInteractionScope scope, PmInteractionMode mode,
+                         PmInteractionDirection direction =
+                             PM_INTERACTION_DIRECTION_BIDIRECTIONAL,
+                         PmInteractionMaterialProfile profile =
+                             PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE) {
+        visit(PmInteractionCapabilityKey{
+            first, second, scope, mode, direction, profile});
+    };
+
+    add(PM_INTERACTION_FAMILY_RIGID_BODY,
+        PM_INTERACTION_FAMILY_RIGID_BODY,
+        PM_INTERACTION_SCOPE_SAME_DOMAIN, PM_INTERACTION_MODE_CONTACT);
+    if (context >= GalleryContext::constraint_fixed &&
+        context <= GalleryContext::dump)
+        add(PM_INTERACTION_FAMILY_RIGID_BODY,
+            PM_INTERACTION_FAMILY_RIGID_BODY,
+            PM_INTERACTION_SCOPE_SAME_DOMAIN,
+            PM_INTERACTION_MODE_ATTACHMENT);
+
+    if (entry.has_fluid) {
+        for (const auto mode : {PM_INTERACTION_MODE_CONTACT,
+                                PM_INTERACTION_MODE_PRESSURE,
+                                PM_INTERACTION_MODE_VISCOSITY})
+            add(PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_FLUID,
+                PM_INTERACTION_SCOPE_SELF, mode);
+        for (const auto mode : {PM_INTERACTION_MODE_CONTACT,
+                                PM_INTERACTION_MODE_CONTAINMENT})
+            add(PM_INTERACTION_FAMILY_FLUID,
+                PM_INTERACTION_FAMILY_RIGID_BODY,
+                PM_INTERACTION_SCOPE_DISTINCT_FAMILY, mode);
+    }
+    if (entry.has_cloth)
+        add(PM_INTERACTION_FAMILY_CLOTH,
+            PM_INTERACTION_FAMILY_RIGID_BODY,
+            PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
+            PM_INTERACTION_MODE_CONTACT);
+    if (entry.has_soft_body)
+        add(PM_INTERACTION_FAMILY_SOFT_BODY,
+            PM_INTERACTION_FAMILY_RIGID_BODY,
+            PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
+            PM_INTERACTION_MODE_CONTACT);
+    if (entry.has_rope) {
+        add(PM_INTERACTION_FAMILY_ROPE, PM_INTERACTION_FAMILY_ROPE,
+            PM_INTERACTION_SCOPE_SELF, PM_INTERACTION_MODE_CONTACT);
+        for (const auto mode : {PM_INTERACTION_MODE_CONTACT,
+                                PM_INTERACTION_MODE_ATTACHMENT})
+            add(PM_INTERACTION_FAMILY_ROPE,
+                PM_INTERACTION_FAMILY_RIGID_BODY,
+                PM_INTERACTION_SCOPE_DISTINCT_FAMILY, mode);
+    }
+
+    constexpr auto smoke_profile = PM_INTERACTION_MATERIAL_SMOKE_GRID;
+    if (is_smoke_context(context)) {
+        for (const auto mode : {PM_INTERACTION_MODE_PRESSURE,
+                                PM_INTERACTION_MODE_VISCOSITY})
+            add(PM_INTERACTION_FAMILY_SMOKE, PM_INTERACTION_FAMILY_SMOKE,
+                PM_INTERACTION_SCOPE_SELF, mode,
+                PM_INTERACTION_DIRECTION_BIDIRECTIONAL, smoke_profile);
+        for (const auto mode : {PM_INTERACTION_MODE_CONTACT,
+                                PM_INTERACTION_MODE_DRAG})
+            add(PM_INTERACTION_FAMILY_SMOKE,
+                PM_INTERACTION_FAMILY_RIGID_BODY,
+                PM_INTERACTION_SCOPE_DISTINCT_FAMILY, mode,
+                PM_INTERACTION_DIRECTION_BIDIRECTIONAL, smoke_profile);
+    }
+
+    if (entry.has_fluid && entry.has_cloth)
+        for (const auto mode : {PM_INTERACTION_MODE_CONTACT,
+                                PM_INTERACTION_MODE_CONTAINMENT})
+            add(PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_CLOTH,
+                PM_INTERACTION_SCOPE_DISTINCT_FAMILY, mode);
+    if (entry.has_fluid && entry.has_soft_body)
+        add(PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_SOFT_BODY,
+            PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
+            PM_INTERACTION_MODE_CONTACT);
+    if (entry.has_fluid && entry.has_rope)
+        add(PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_ROPE,
+            PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
+            PM_INTERACTION_MODE_CONTACT);
+    if (entry.has_cloth && entry.has_soft_body)
+        add(PM_INTERACTION_FAMILY_CLOTH, PM_INTERACTION_FAMILY_SOFT_BODY,
+            PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
+            PM_INTERACTION_MODE_CONTACT);
+    if (entry.has_cloth && entry.has_rope)
+        add(PM_INTERACTION_FAMILY_CLOTH, PM_INTERACTION_FAMILY_ROPE,
+            PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
+            PM_INTERACTION_MODE_ATTACHMENT);
+    if (entry.has_soft_body && entry.has_rope)
+        for (const auto mode : {PM_INTERACTION_MODE_CONTACT,
+                                PM_INTERACTION_MODE_ATTACHMENT})
+            add(PM_INTERACTION_FAMILY_SOFT_BODY,
+                PM_INTERACTION_FAMILY_ROPE,
+                PM_INTERACTION_SCOPE_DISTINCT_FAMILY, mode);
+
+    if (entry.has_fluid && is_smoke_context(context)) {
+        add(PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_SMOKE,
+            PM_INTERACTION_SCOPE_DISTINCT_FAMILY, PM_INTERACTION_MODE_DRAG,
+            PM_INTERACTION_DIRECTION_SECOND_TO_FIRST, smoke_profile);
+        add(PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_SMOKE,
+            PM_INTERACTION_SCOPE_DISTINCT_FAMILY, PM_INTERACTION_MODE_THERMAL,
+            PM_INTERACTION_DIRECTION_EXTERNAL_TO_FIRST, smoke_profile);
+        add(PM_INTERACTION_FAMILY_FLUID, PM_INTERACTION_FAMILY_SMOKE,
+            PM_INTERACTION_SCOPE_DISTINCT_FAMILY, PM_INTERACTION_MODE_PHASE,
+            PM_INTERACTION_DIRECTION_FIRST_TO_SECOND_TRANSFER, smoke_profile);
+    }
+    const auto add_smoke_deformable = [&](PmInteractionFamily family) {
+        add(family, PM_INTERACTION_FAMILY_SMOKE,
+            PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
+            PM_INTERACTION_MODE_CONTACT,
+            PM_INTERACTION_DIRECTION_FIRST_TO_SECOND, smoke_profile);
+        add(family, PM_INTERACTION_FAMILY_SMOKE,
+            PM_INTERACTION_SCOPE_DISTINCT_FAMILY, PM_INTERACTION_MODE_DRAG,
+            PM_INTERACTION_DIRECTION_SECOND_TO_FIRST, smoke_profile);
+    };
+    if (entry.has_cloth && is_smoke_context(context))
+        add_smoke_deformable(PM_INTERACTION_FAMILY_CLOTH);
+    if (entry.has_soft_body && is_smoke_context(context))
+        add_smoke_deformable(PM_INTERACTION_FAMILY_SOFT_BODY);
+    if (entry.has_rope && is_smoke_context(context))
+        add_smoke_deformable(PM_INTERACTION_FAMILY_ROPE);
+}
+
+[[nodiscard]] inline bool gallery_interaction_supported(
+    const PmInteractionCapabilityKey &required,
+    std::span<const PmInteractionCapability> capabilities) noexcept {
+    for (const auto &capability : capabilities)
+        if (gallery_interaction_key_equal(required, capability.key))
+            return true;
+    return false;
+}
+
 [[nodiscard]] inline GalleryCatalog make_gallery_catalog(
-    const PmPhysicalDeviceFeatures *features = nullptr) {
+    const PmPhysicalDeviceFeatures *features = nullptr,
+    std::span<const PmInteractionCapability> interactions = {}) {
     GalleryCatalog result{};
     for (std::size_t index = 0U; index < gallery_entries.size(); ++index) {
         auto &item = result[index];
@@ -214,9 +409,30 @@ inline constexpr std::array gallery_features{
                 item.unavailable_reason += name;
             }
         }
-        if (!item.available)
+        std::string missing_interactions;
+        visit_gallery_interaction_requirements(item.scene.context,
+            [&](const PmInteractionCapabilityKey &required) {
+                const std::string name = gallery_interaction_name(required);
+                if (!item.required_interaction_names.empty())
+                    item.required_interaction_names += ", ";
+                item.required_interaction_names += name;
+                if (features != nullptr &&
+                    !gallery_interaction_supported(required, interactions)) {
+                    item.available = false;
+                    if (!missing_interactions.empty())
+                        missing_interactions += ", ";
+                    missing_interactions += name;
+                }
+            });
+        if (!item.available && !item.unavailable_reason.empty())
             item.unavailable_reason =
                 "Missing backend features: " + item.unavailable_reason;
+        if (!missing_interactions.empty()) {
+            if (!item.unavailable_reason.empty())
+                item.unavailable_reason += "; ";
+            item.unavailable_reason +=
+                "Missing backend interactions: " + missing_interactions;
+        }
     }
     return result;
 }
