@@ -1,7 +1,7 @@
 {
   "id": "P1-07",
   "title": "Exchange miscible viscosity",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "P1-06"
   ],
@@ -17,6 +17,14 @@
     "Zero and unequal viscosity limits plus endpoint reversal pass shared Slang tests."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "485b3d0b-02f9-42d7-9107-6a2fd6cf82b2",
+    "owner": "codex-fluid-viscosity",
+    "machine": "thomas-laptop",
+    "branch": "work/P1-07/thomas-laptop",
+    "claimed_at": "2026-10-18T22:22:15Z",
+    "heartbeat_at": "2026-10-18T22:22:15Z",
+    "expires_at": "2026-10-19T22:22:15Z"
+  },
   "history": []
 }
