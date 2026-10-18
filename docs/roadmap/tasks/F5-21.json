@@ -1,7 +1,7 @@
 {
   "id": "F5-21",
   "title": "Make Gallery validation discovery hermetic",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F6-11"
   ],
@@ -17,7 +17,31 @@
     "Add a focused test or inspection check that fails when a validation-enabled physical test omits its local layer manifest and proves discovery uses the intended build artifact.",
     "Run the affected CPU/CUDA/Vulkan Gallery tests available on the host; layer-not-present is not accepted as a skip or physics result."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: 27/27 configured physical Gallery CTests select the intended build-tree validation manifest and library; docs/roadmap/evidence/F5-21-gallery-validation-manifests.json",
+    "PASS: CPU mobile liquid 1/1 and Vulkan Gallery 20/20 executed with zero skips on ThomasLaptop; NVIDIA GeForce RTX 3050 Ti; docs/roadmap/evidence/F5-21-gallery-validation-manifests.json",
+    "PASS: 6/6 contract unit tests reject missing PM_LAYER_FILES, PM_LAYER_PATH discovery, and wrong manifests; CUDA executed 4/5 with zero skips and one previously documented device-profile stability failure."
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "c2b33901-6042-4769-a6ac-7d1220deb9b3",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F5-21/thomas-laptop",
+        "claimed_at": "2026-10-18T20:01:17Z",
+        "heartbeat_at": "2026-10-18T20:01:17Z",
+        "expires_at": "2026-10-19T20:01:17Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T20:18:45Z",
+      "reason": "Gallery physical CTests now pin the generated validation manifest and a catalog guard rejects omitted, directory-discovered, or foreign layer artifacts.",
+      "evidence": [
+        "PASS: 27/27 configured physical Gallery CTests select the intended build-tree validation manifest and library; docs/roadmap/evidence/F5-21-gallery-validation-manifests.json",
+        "PASS: CPU mobile liquid 1/1 and Vulkan Gallery 20/20 executed with zero skips on ThomasLaptop; NVIDIA GeForce RTX 3050 Ti; docs/roadmap/evidence/F5-21-gallery-validation-manifests.json",
+        "PASS: 6/6 contract unit tests reject missing PM_LAYER_FILES, PM_LAYER_PATH discovery, and wrong manifests; CUDA executed 4/5 with zero skips and one previously documented device-profile stability failure."
+      ]
+    }
+  ]
 }

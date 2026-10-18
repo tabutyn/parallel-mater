@@ -30,7 +30,8 @@ struct CaseExecution {
 [[nodiscard]] std::string conformance_fluid_pair_quality(
     const std::filesystem::path &temporary_output);
 [[nodiscard]] std::string conformance_adverse_lifecycle(
-    const std::filesystem::path &root);
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
 
 int conformance_command_main(int argc, char **argv);
 

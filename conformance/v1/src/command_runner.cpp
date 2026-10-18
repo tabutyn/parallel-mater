@@ -1235,7 +1235,8 @@ void copy_particle_state(const std::vector<State> &states,
 }
 
 void write_file(const std::filesystem::path &path, const std::string &contents) {
-    std::filesystem::create_directories(path.parent_path());
+    if (!path.parent_path().empty())
+        std::filesystem::create_directories(path.parent_path());
     std::ofstream output(path, std::ios::binary | std::ios::trunc);
     output.write(contents.data(), static_cast<std::streamsize>(contents.size()));
     if (!output) throw std::runtime_error("cannot write " + path.string());
@@ -1246,6 +1247,7 @@ struct Arguments {
     bool check{};
     bool provenance{};
     bool capabilities{};
+    bool lifecycle{};
     bool every_frame{};
     std::string case_id{};
     std::string quality_id{};
@@ -1261,6 +1263,7 @@ struct Arguments {
         else if (argument == "--check-inputs") result.check = true;
         else if (argument == "--provenance") result.provenance = true;
         else if (argument == "--capabilities") result.capabilities = true;
+        else if (argument == "--lifecycle") result.lifecycle = true;
         else if (argument == "--every-frame") result.every_frame = true;
         else if (argument == "--case" && index + 1 < argc)
             result.case_id = argv[++index];
@@ -1276,15 +1279,19 @@ struct Arguments {
         static_cast<unsigned>(result.check) +
         static_cast<unsigned>(result.provenance) +
         static_cast<unsigned>(result.capabilities) +
+        static_cast<unsigned>(result.lifecycle) +
         static_cast<unsigned>(!result.case_id.empty()) +
         static_cast<unsigned>(!result.quality_id.empty());
     if (modes != 1U)
         throw std::runtime_error("choose exactly one of --list, --check-inputs, "
-                                 "--provenance, --capabilities, --case, or "
-                                 "--quality");
-    if ((!result.case_id.empty() || !result.quality_id.empty()) &&
-        result.output.empty())
-        throw std::runtime_error("--case and --quality require --output");
+                                 "--provenance, --capabilities, --lifecycle, "
+                                 "--case, or --quality");
+    if (result.lifecycle && result.output.empty())
+        throw std::runtime_error("--lifecycle requires --output");
+    if (!result.case_id.empty() && result.output.empty())
+        throw std::runtime_error("--case requires --output");
+    if (!result.quality_id.empty() && result.output.empty())
+        throw std::runtime_error("--quality requires --output");
     if (result.every_frame &&
         (result.case_id.empty() || result.case_id == "all"))
         throw std::runtime_error("--every-frame requires one named --case");
@@ -1356,6 +1363,13 @@ int conformance_command_main(int argc, char **argv) {
         if (arguments.capabilities) {
             std::cout << conformance_advertised_capabilities(root);
             return 0;
+        }
+        if (arguments.lifecycle) {
+            ExecutionStatus status{};
+            write_file(arguments.output,
+                       conformance_adverse_lifecycle(root, &status));
+            return status == ExecutionStatus::failed ? 2
+                : status == ExecutionStatus::unsupported ? 77 : 0;
         }
         if (!arguments.quality_id.empty()) {
             const bool brick = arguments.quality_id ==

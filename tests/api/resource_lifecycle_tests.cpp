@@ -139,7 +139,7 @@ int parallel_mater_resource_lifecycle_fixture() {
 int main() {
 #endif
     // Include the rigid storage strategy boundary and radix tile boundary.
-    for (const auto [rigid, particles] : std::array<std::pair<std::uint32_t, std::uint32_t>, 4>{{
+    for (const auto &[rigid, particles] : std::array<std::pair<std::uint32_t, std::uint32_t>, 4>{{
             {1, 2}, {2, 2}, {17, 63}, {65, 257}}}) {
         if (run(rigid, particles) == 77) return 77;
     }

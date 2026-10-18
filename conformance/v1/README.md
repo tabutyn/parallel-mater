@@ -196,22 +196,40 @@ The profile pins the unchanged case hash and requires checkpoints 0 through
 bounds out-of-plane leakage from the fixture's mirror symmetry. It reads no
 trajectory golden and does not weaken the `direct` comparison tolerance.
 
-Run the capacity and graph-lifecycle gate with:
+Capture the complete capacity and graph-lifecycle suite through the same
+installed command used for trajectory conformance, then run its independent
+gate:
 
 ```text
+PM_DRIVER_FILES=<build>/manifests/slang-cuda.json \
+  <build>/parallel-mater-conformance --lifecycle \
+  --output /path/to/adverse-capacity-three-family-v1.json
+
 python3 conformance/v1/lifecycle.py \
   --actual /path/to/adverse-capacity-three-family-v1.json \
   --report /path/to/lifecycle-report.json
 ```
 
+For an installed SDK, pass its installed corpus root explicitly:
+
+```text
+PM_DRIVER_FILES=/path/to/slang-cuda.json \
+  /path/to/sdk/bin/parallel-mater-conformance --lifecycle \
+  --root /path/to/sdk/share/parallel-mater \
+  --output /path/to/adverse-capacity-three-family-v1.json
+```
+
 An individual producer can be checked while the other case is still absent by
 adding `--case capacity-replacement-recovery` or
 `--case three-family-partial-rollback`. Omitting `--case` always requires the
-complete suite. The standalone capacity fixture writes its revisioned input
+complete suite. The lower-level standalone capacity fixture writes its revisioned input
 with `parallel-mater-capacity-recovery-tests --output <path> --driver-name
 <driver>`. The graph fixture uses the same options on
-`parallel-mater-interaction-graph-lifecycle-tests`; embedded qualification uses
-the same operation sequences and reporting structures.
+`parallel-mater-interaction-graph-lifecycle-tests`. The installed CLI and
+embedded qualification compile the same operation sequences and one lifecycle
+result serializer; they do not merge standalone result files.
+The CLI writes the result before returning 2 for a failed fixture or 77 when a
+required fixture is unsupported, so either outcome remains reviewable.
 
 The result records canonical public resource-state SHA-256 fingerprints and
 harness write ordinals at every required checkpoint; ordinals are never private

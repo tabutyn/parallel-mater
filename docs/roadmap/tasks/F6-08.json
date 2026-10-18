@@ -1,7 +1,7 @@
 {
   "id": "F6-08",
   "title": "Retire reconciled old worktrees",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F6-06",
     "F6-07",
@@ -20,7 +20,31 @@
     "Verified archives and disposition records remain accessible.",
     "Active build rules, launchers and toolchains contain no retired paths."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: 31/31 live changed files plus both binary diffs, status records, branches and HEADs matched out/worktree-backups/2026-10-16 before cleanup; docs/roadmap/evidence/F6-08-retired-worktrees.json",
+    "PASS: F6-07/F6-09/F6-10 archive and disposition tests 6/6; tracked F6-06 through F6-11 decisions remain accessible.",
+    "PASS: both active CMake trees regenerate; launcher/deployment/architecture CTests 3/3; installed Vulkan launcher rendered a 6220817-byte frame on RTX 3050 Ti; no retired Slang-worktree path remains."
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "81a04807-a30e-4b4e-b248-ca0a90645a0c",
+        "owner": "codex-linux-cleanup",
+        "machine": "thomas-laptop",
+        "branch": "work/F6-08/thomas-laptop",
+        "claimed_at": "2026-10-18T20:20:49Z",
+        "heartbeat_at": "2026-10-18T20:20:49Z",
+        "expires_at": "2026-10-19T20:20:49Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T20:26:52Z",
+      "reason": "Verified both legacy snapshots and all dispositions, removed the reconciled Slang worktree, and repurposed the shared-Git root as a clean current-main checkout with no legacy build dependency.",
+      "evidence": [
+        "PASS: 31/31 live changed files plus both binary diffs, status records, branches and HEADs matched out/worktree-backups/2026-10-16 before cleanup; docs/roadmap/evidence/F6-08-retired-worktrees.json",
+        "PASS: F6-07/F6-09/F6-10 archive and disposition tests 6/6; tracked F6-06 through F6-11 decisions remain accessible.",
+        "PASS: both active CMake trees regenerate; launcher/deployment/architecture CTests 3/3; installed Vulkan launcher rendered a 6220817-byte frame on RTX 3050 Ti; no retired Slang-worktree path remains."
+      ]
+    }
+  ]
 }
