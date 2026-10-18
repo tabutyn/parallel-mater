@@ -1,7 +1,7 @@
 {
   "id": "F4-99",
   "title": "Review F4 exit evidence",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F4-01",
     "F4-02",
@@ -23,15 +23,29 @@
     "All dependency tasks are merged done with reviewable evidence.",
     "Update the qualification index with exact scope and unresolved limitations; an implementation/demo alone cannot close the gate."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "6084a4df-5b34-4c87-885f-8ff1891fa1ce",
-    "owner": "codex-windows-sdk",
-    "machine": "windows-gtx1080",
-    "branch": "work/F4-99/windows-gtx1080",
-    "claimed_at": "2026-10-18T18:42:10Z",
-    "heartbeat_at": "2026-10-18T18:42:10Z",
-    "expires_at": "2026-10-19T18:42:10Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: F4-01 through F4-08 are merged done with reviewable evidence and completed lease histories; docs/roadmap/evidence/F4-99-common-resource-review.md",
+    "PASS: 10 host/ABI/admission tests, 12/12 strict portable tests and native D3D12 command API on GTX 1080; qualification limits updated"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "6084a4df-5b34-4c87-885f-8ff1891fa1ce",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F4-99/windows-gtx1080",
+        "claimed_at": "2026-10-18T18:42:10Z",
+        "heartbeat_at": "2026-10-18T18:42:10Z",
+        "expires_at": "2026-10-19T18:42:10Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T18:46:33Z",
+      "reason": "Reviewed and closed the common-resource and engine-ownership foundation with explicit deferred native limits",
+      "evidence": [
+        "PASS: F4-01 through F4-08 are merged done with reviewable evidence and completed lease histories; docs/roadmap/evidence/F4-99-common-resource-review.md",
+        "PASS: 10 host/ABI/admission tests, 12/12 strict portable tests and native D3D12 command API on GTX 1080; qualification limits updated"
+      ]
+    }
+  ]
 }
