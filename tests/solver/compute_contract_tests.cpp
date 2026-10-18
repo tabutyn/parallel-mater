@@ -19,10 +19,31 @@ template<class Function> void rejects(Function &&function) {
 }
 class TestBuffer final : public compute::Buffer {
 public:
-    std::size_t size() const noexcept override { return 128; }
+    explicit TestBuffer(compute::ResourceIdentity identity = {7, 11},
+                        std::size_t size = 128, std::uint64_t address = 0x1000)
+        : identity_(identity), size_(size), address_(address) {}
+    compute::ResourceIdentity identity() const noexcept override { return identity_; }
+    std::size_t size() const noexcept override { return size_; }
     void *host_address() const noexcept override { return nullptr; }
-    std::uint64_t device_address() const noexcept override { return 0x1000; }
+    std::uint64_t device_address() const noexcept override { return address_; }
     void *native_handle() const noexcept override { return nullptr; }
+private:
+    compute::ResourceIdentity identity_;
+    std::size_t size_;
+    std::uint64_t address_;
+};
+class RecordingCommandList final : public compute::CommandList {
+public:
+    void dispatch(const compute::Arguments &arguments, compute::Extent) override {
+        arguments.validate();
+        observed = arguments.bindings();
+    }
+    void copy(const compute::BufferPtr &, std::size_t, const compute::BufferPtr &,
+              std::size_t, std::size_t) override {}
+    void fill(const compute::BufferPtr &, std::size_t, std::size_t, std::uint8_t) override {}
+    void upload(const compute::BufferPtr &, std::size_t, std::span<const std::byte>) override {}
+    compute::SubmissionPtr submit() override { return {}; }
+    std::vector<compute::ResourceBinding> observed;
 };
 void arguments_and_records() {
     auto kernel = std::make_shared<compute::Kernel>();
@@ -47,15 +68,57 @@ void arguments_and_records() {
     rejects([&] { args.bind("values", buffer, 1); });
     rejects([&] { args.bind("values", buffer, 128); });
     rejects([&] { args.bind("values", nullptr, 1); });
+    rejects([&] { args.bind("values", nullptr, 0, 4); });
+    rejects([&] { args.bind("values", buffer, 4, 2); });
+    rejects([&] { args.bind("values", buffer, 4, 125); });
+    rejects([&] { args.bind("values", buffer, 4, 4,
+        static_cast<compute::ResourceAccess>(0)); });
     args.set("count", 31U);
-    args.bind("values", buffer, 4);
+    args.bind("values", buffer, 4, 32, compute::ResourceAccess::read);
     args.validate();
     std::uint64_t encoded;
     std::memcpy(&encoded, args.bytes().data() + 8, 8);
     require(encoded == 0x1004, "device address offset lost");
     require(args.resources().size() == 1, "buffer residency lost");
+    const auto direct = args.bindings();
+    require(direct.size() == 1 && direct[0].name == "values" &&
+        direct[0].kind == compute::ResourceBindingKind::parameter &&
+        direct[0].range.offset == 4 && direct[0].range.size == 32 &&
+        direct[0].range.access == compute::ResourceAccess::read,
+        "typed parameter range lost");
     args.bind("values", nullptr);
     require(args.resources().empty(), "rebound pointer retained stale buffer");
+
+    args.bind("values", buffer, 4, 32, compute::ResourceAccess::read);
+    auto alias = std::make_shared<TestBuffer>(buffer->identity(), buffer->size(), buffer->device_address());
+    auto other_device = std::make_shared<TestBuffer>(compute::ResourceIdentity{8, 11}, 128, 0x1000);
+    args.reference("table.output", alias, 16, 16, compute::ResourceAccess::write);
+    args.reference("other.input", other_device, 16, 16, compute::ResourceAccess::read);
+    rejects([&] { args.reference("", buffer, 0, 4); });
+    rejects([&] { args.reference("bad.range", buffer, 127, 2); });
+    RecordingCommandList mock;
+    mock.dispatch(args, {1});
+    require(mock.observed.size() == 3, "mock adapter missed a resource binding");
+    require(mock.observed[0].name == "table.output" &&
+        mock.observed[0].kind == compute::ResourceBindingKind::indirect &&
+        mock.observed[0].range.offset == 16 && mock.observed[0].range.size == 16 &&
+        mock.observed[0].range.access == compute::ResourceAccess::write,
+        "mock adapter lost complete indirect resource metadata");
+    const auto parameter = mock.observed[2];
+    require(compute::aliases(parameter.range, mock.observed[0].range) &&
+        compute::overlaps(parameter.range, mock.observed[0].range),
+        "same-allocation overlapping aliases not identified");
+    require(!compute::aliases(parameter.range, mock.observed[1].range),
+        "allocation values on different devices incorrectly alias");
+    require(!compute::overlaps(compute::resource_range(buffer, 0, 4),
+        compute::resource_range(alias, 4, 4)), "adjacent half-open ranges overlap");
+
+    compute::Arguments inconsistent(kernel);
+    inconsistent.set("count", 1U);
+    inconsistent.bind("values", buffer, 0, 4);
+    inconsistent.reference("bad.alias",
+        std::make_shared<TestBuffer>(buffer->identity(), 64, buffer->device_address()), 0, 4);
+    rejects([&] { (void)inconsistent.bindings(); });
 
     struct Host { std::uint32_t flag, padding; std::uint64_t pointers[2]; } host{1, 0, {0xdead, 0xbeef}};
     compute::Field layout;
@@ -72,7 +135,7 @@ void arguments_and_records() {
     layout.fields.emplace("pointers", array);
     compute::Record record(layout, host);
     rejects([&] { (void)record.bytes(); });
-    record.bind("pointers[0]", buffer, 4);
+    record.bind("pointers[0]", buffer, 4, 32, compute::ResourceAccess::read);
     rejects([&] { (void)record.bytes(); });
     record.bind("pointers[1]", nullptr);
     Host relocated{};
@@ -87,6 +150,12 @@ void arguments_and_records() {
     nested.record("record", record);
     nested.validate();
     require(nested.resources().size() == 1, "record residency lost");
+    const auto record_bindings = nested.bindings();
+    require(record_bindings.size() == 1 && record_bindings[0].name == "record.pointers[0]" &&
+        record_bindings[0].kind == compute::ResourceBindingKind::record_pointer &&
+        record_bindings[0].range.offset == 4 && record_bindings[0].range.size == 32 &&
+        record_bindings[0].range.access == compute::ResourceAccess::read,
+        "typed record-pointer range lost");
     auto wrong_layout = layout;
     wrong_layout.fields.at("pointers").offset = 0;
     compute::Record wrong(wrong_layout, host);

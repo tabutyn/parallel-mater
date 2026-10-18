@@ -108,7 +108,9 @@ void ScheduleContext::bind(compute::Arguments &arguments, const std::string &nam
             const auto record = relocate_record(field, host);
             const auto bytes = record.bytes();
             std::memcpy(output + i * stride, bytes.data(), bytes.size());
-            for (const auto &resource : record.resources()) arguments.reference(resource);
+            for (const auto &binding : record.bindings())
+                arguments.reference(name + "[]." + binding.name, binding.range.buffer,
+                    binding.range.offset, binding.range.size, binding.range.access);
         }
         arguments.bind(name, translated);
     } else {

@@ -10,6 +10,7 @@
 #include <map>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -23,9 +24,31 @@ struct Extent {
     std::uint32_t x{1}, y{1}, z{1};
 };
 
+// Allocation identities are meaningful only together: two native APIs may
+// reuse the same allocation value on different devices. Values are opaque to
+// common code and stable for the lifetime of the owning allocation.
+struct ResourceIdentity {
+    std::uint64_t device{}, allocation{};
+    [[nodiscard]] bool valid() const noexcept { return device != 0 && allocation != 0; }
+    friend bool operator==(const ResourceIdentity &, const ResourceIdentity &) = default;
+};
+
+enum class ResourceAccess : std::uint8_t {
+    read = 1,
+    write = 2,
+    read_write = 3,
+};
+
+enum class ResourceBindingKind : std::uint8_t {
+    parameter,
+    record_pointer,
+    indirect,
+};
+
 class Buffer {
 public:
     virtual ~Buffer() = default;
+    [[nodiscard]] virtual ResourceIdentity identity() const noexcept = 0;
     [[nodiscard]] virtual std::size_t size() const noexcept = 0;
     // Explicit host access; caller must wait for conflicting GPU work first.
     // Device-only allocations return nullptr. Never encode this as a GPU pointer.
@@ -34,6 +57,75 @@ public:
     [[nodiscard]] virtual void *native_handle() const noexcept = 0;
 };
 using BufferPtr = std::shared_ptr<Buffer>;
+
+inline constexpr std::size_t remaining_resource = std::numeric_limits<std::size_t>::max();
+
+struct ResourceRange {
+    BufferPtr buffer;
+    std::size_t offset{}, size{};
+    ResourceAccess access{ResourceAccess::read_write};
+
+    [[nodiscard]] ResourceIdentity identity() const noexcept {
+        return buffer ? buffer->identity() : ResourceIdentity{};
+    }
+};
+
+struct ResourceBinding {
+    std::string name;
+    ResourceBindingKind kind{ResourceBindingKind::parameter};
+    ResourceRange range;
+};
+
+[[nodiscard]] inline bool valid(ResourceAccess access) noexcept {
+    return access == ResourceAccess::read || access == ResourceAccess::write ||
+        access == ResourceAccess::read_write;
+}
+[[nodiscard]] inline bool valid(ResourceBindingKind kind) noexcept {
+    return kind == ResourceBindingKind::parameter ||
+        kind == ResourceBindingKind::record_pointer ||
+        kind == ResourceBindingKind::indirect;
+}
+
+[[nodiscard]] inline ResourceRange resource_range(BufferPtr buffer, std::size_t offset = 0,
+    std::size_t size = remaining_resource, ResourceAccess access = ResourceAccess::read_write) {
+    if (!buffer || !buffer->identity().valid())
+        throw std::invalid_argument("null or unidentified compute resource");
+    if (!valid(access)) throw std::invalid_argument("invalid compute resource access");
+    if (offset > buffer->size()) throw std::invalid_argument("compute resource range out of bounds");
+    if (size == remaining_resource) size = buffer->size() - offset;
+    if (size == 0 || size > buffer->size() - offset)
+        throw std::invalid_argument("compute resource range out of bounds");
+    return {std::move(buffer), offset, size, access};
+}
+
+// Aliases are allocation-identity based, never address-only. Half-open byte
+// ranges may overlap; dispatch metadata preserves every use and leaves hazard
+// scheduling to the adapter rather than silently merging access intent.
+[[nodiscard]] inline bool aliases(const ResourceRange &left, const ResourceRange &right) noexcept {
+    return left.identity().valid() && left.identity() == right.identity();
+}
+[[nodiscard]] inline bool overlaps(const ResourceRange &left, const ResourceRange &right) noexcept {
+    if (!aliases(left, right) || left.size == 0 || right.size == 0) return false;
+    return left.offset <= right.offset ? right.offset - left.offset < left.size
+                                       : left.offset - right.offset < right.size;
+}
+
+inline void validate_resource_bindings(std::span<const ResourceBinding> bindings) {
+    for (std::size_t i = 0; i < bindings.size(); ++i) {
+        const auto &left = bindings[i].range;
+        if (bindings[i].name.empty() || !valid(bindings[i].kind) || !left.buffer ||
+            !left.identity().valid() || !valid(left.access) || left.size == 0 ||
+            left.offset > left.buffer->size() || left.size > left.buffer->size() - left.offset)
+            throw std::invalid_argument("invalid compute resource binding");
+        for (std::size_t j = 0; j < i; ++j) {
+            const auto &right = bindings[j].range;
+            if (aliases(left, right) &&
+                (left.buffer->size() != right.buffer->size() ||
+                 left.buffer->device_address() != right.buffer->device_address()))
+                throw std::invalid_argument("inconsistent aliased compute resource");
+        }
+    }
+}
 
 struct Field {
     std::size_t offset{}, size{}, alignment{1};
@@ -110,12 +202,22 @@ public:
         : Record(std::move(layout), std::as_bytes(std::span{&host, 1})) {
         static_assert(std::is_trivially_copyable_v<T>);
     }
-    void bind(std::string_view path, BufferPtr buffer, std::size_t offset = 0) {
+    void bind(std::string_view path, BufferPtr buffer, std::size_t offset = 0,
+              std::size_t size = remaining_resource,
+              ResourceAccess access = ResourceAccess::read_write) {
         const auto found = pointers_.find(path);
         if (found == pointers_.end()) throw std::invalid_argument("unknown record pointer: " + std::string(path));
+        std::optional<ResourceRange> resource;
+        if (buffer) {
+            resource = resource_range(buffer, offset, size, access);
+            if (resource->size < found->second.pointee_size)
+                throw std::invalid_argument("record resource range smaller than pointee");
+        } else if (offset != 0 || size != remaining_resource) {
+            throw std::invalid_argument("null device pointer with explicit range");
+        }
         const auto address = address_for(found->second, buffer, offset);
         std::memcpy(bytes_.data() + found->second.offset, &address, sizeof(address));
-        resources_[std::string(path)] = std::move(buffer);
+        resources_[std::string(path)] = std::move(resource);
     }
     [[nodiscard]] std::span<const std::byte> bytes() const {
         if (resources_.size() != pointers_.size())
@@ -123,13 +225,18 @@ public:
         return bytes_;
     }
     [[nodiscard]] bool matches(const Field &field) const { return same_storage(layout_, field); }
-    [[nodiscard]] std::vector<BufferPtr> resources() const {
+    [[nodiscard]] std::vector<ResourceBinding> bindings() const {
         (void)bytes();
-        std::vector<BufferPtr> result;
-        for (const auto &[name, buffer] : resources_) {
-            (void)name;
-            if (buffer) result.push_back(buffer);
+        std::vector<ResourceBinding> result;
+        for (const auto &[name, resource] : resources_) {
+            if (resource) result.push_back({name, ResourceBindingKind::record_pointer, *resource});
         }
+        validate_resource_bindings(result);
+        return result;
+    }
+    [[nodiscard]] std::vector<BufferPtr> resources() const {
+        std::vector<BufferPtr> result;
+        for (const auto &binding : bindings()) result.push_back(binding.range.buffer);
         return result;
     }
 private:
@@ -152,7 +259,7 @@ private:
     Field layout_;
     std::vector<std::byte> bytes_;
     std::map<std::string, Field, std::less<>> pointers_;
-    std::map<std::string, BufferPtr, std::less<>> resources_;
+    std::map<std::string, std::optional<ResourceRange>, std::less<>> resources_;
 };
 
 class Kernel {
@@ -187,11 +294,21 @@ public:
         write(field, &value, sizeof(value));
         initialized_[std::string(name)] = true;
     }
-    void bind(std::string_view name, const BufferPtr &buffer, std::size_t offset = 0) {
+    void bind(std::string_view name, const BufferPtr &buffer, std::size_t offset = 0,
+              std::size_t size = remaining_resource,
+              ResourceAccess access = ResourceAccess::read_write) {
         const auto &field = kernel_->parameter(name);
+        std::optional<ResourceRange> resource;
+        if (buffer) {
+            resource = resource_range(buffer, offset, size, access);
+            if (resource->size < field.pointee_size)
+                throw std::invalid_argument("parameter resource range smaller than pointee");
+        } else if (offset != 0 || size != remaining_resource) {
+            throw std::invalid_argument("null device pointer with explicit range");
+        }
         const auto address = address_for(field, buffer, offset);
         write(field, &address, sizeof(address));
-        pointers_[std::string(name)] = buffer;
+        pointers_[std::string(name)] = std::move(resource);
         initialized_[std::string(name)] = true;
     }
     void record(std::string_view name, const Record &value) {
@@ -200,14 +317,18 @@ public:
             throw std::invalid_argument("record() requires a by-value record parameter");
         const auto bytes = value.bytes();
         write(field, bytes.data(), bytes.size());
-        records_[std::string(name)] = value.resources();
+        records_[std::string(name)] = value.bindings();
         initialized_[std::string(name)] = true;
     }
-    // Register all allocations reachable through pointers embedded in records.
-    // Native adapters use these for residency, hazards and lifetime retention.
-    void reference(BufferPtr buffer) {
-        if (!buffer) throw std::invalid_argument("null indirect resource");
-        indirect_.push_back(std::move(buffer));
+    // Register allocations reached through device-memory records. The caller
+    // supplies the complete range because reflection cannot inspect records
+    // that are already resident on the device.
+    void reference(std::string_view name, BufferPtr buffer, std::size_t offset = 0,
+                   std::size_t size = remaining_resource,
+                   ResourceAccess access = ResourceAccess::read_write) {
+        if (name.empty()) throw std::invalid_argument("unnamed indirect resource");
+        indirect_.push_back({std::string(name), ResourceBindingKind::indirect,
+                             resource_range(std::move(buffer), offset, size, access)});
     }
     void validate() const {
         for (const auto &[name, field] : kernel_->parameters) {
@@ -218,16 +339,24 @@ public:
     }
     [[nodiscard]] const KernelPtr &kernel() const noexcept { return kernel_; }
     [[nodiscard]] std::span<const std::byte> bytes() const noexcept { return bytes_; }
-    [[nodiscard]] std::vector<BufferPtr> resources() const {
+    [[nodiscard]] std::vector<ResourceBinding> bindings() const {
         auto result = indirect_;
-        for (const auto &[name, buffers] : records_) {
-            (void)name;
-            result.insert(result.end(), buffers.begin(), buffers.end());
+        for (const auto &[name, bindings] : records_) {
+            for (auto binding : bindings) {
+                binding.name = name + "." + binding.name;
+                binding.kind = ResourceBindingKind::record_pointer;
+                result.push_back(std::move(binding));
+            }
         }
-        for (const auto &[name, buffer] : pointers_) {
-            (void)name;
-            if (buffer) result.push_back(buffer);
+        for (const auto &[name, resource] : pointers_) {
+            if (resource) result.push_back({name, ResourceBindingKind::parameter, *resource});
         }
+        validate_resource_bindings(result);
+        return result;
+    }
+    [[nodiscard]] std::vector<BufferPtr> resources() const {
+        std::vector<BufferPtr> result;
+        for (const auto &binding : bindings()) result.push_back(binding.range.buffer);
         return result;
     }
 private:
@@ -240,9 +369,9 @@ private:
     KernelPtr kernel_;
     std::vector<std::byte> bytes_;
     std::map<std::string, bool, std::less<>> initialized_;
-    std::map<std::string, BufferPtr, std::less<>> pointers_;
-    std::map<std::string, std::vector<BufferPtr>, std::less<>> records_;
-    std::vector<BufferPtr> indirect_;
+    std::map<std::string, std::optional<ResourceRange>, std::less<>> pointers_;
+    std::map<std::string, std::vector<ResourceBinding>, std::less<>> records_;
+    std::vector<ResourceBinding> indirect_;
 };
 
 class Submission {
