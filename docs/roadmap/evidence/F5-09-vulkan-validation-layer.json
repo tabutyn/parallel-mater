@@ -1,0 +1,61 @@
+{
+  "schema": "parallel-mater-roadmap-vulkan-validation-layer-evidence/v1",
+  "task": "F5-09",
+  "source": {
+    "tested_commit": "a6300ed2d20f72dd60fa974543804f4271bfba9b",
+    "branch": "work/F5-09/thomas-laptop",
+    "tested_at": "2026-10-18T15:23:21Z"
+  },
+  "device": {
+    "machine": "thomas-laptop",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "driver": "590.44.01",
+    "vulkan_api": "1.4.325",
+    "operating_system": "Linux 6.1.0-53-amd64 x86_64",
+    "compiler": "GCC 12.2.0"
+  },
+  "reproduction": {
+    "script": "scripts/Probe-VulkanValidationLayer.sh",
+    "source": "tools/vulkan_pipeline_probe.cpp",
+    "shader": "build-desktop-switch/generated/vulkan/fluid.spv",
+    "shader_sha256": "51396d52522ab957d816e56defda051ef65984c1aba7686a8ddc2e07b84fb8fc",
+    "shader_bytes": 71688,
+    "entry_point": "fluid_emit_cells",
+    "workgroup_size": 256,
+    "probe_sha256": "7697f9c2b62c6663c3b50bf20e9fc9f60327ecec19cc40a99232cf20c11a4fd0",
+    "boundary": "The probe uses Vulkan directly, compiles no Parallel Mater driver or generated host binding, and dispatches no physics."
+  },
+  "binding_generator_control": {
+    "legacy_cuda_derived_commit": "a973248054a79582f274e8485c792f8d6537e4b0",
+    "reflection_derived_commit": "5adeee1bf0178210f40ce1628d8e78cfca60f10a",
+    "source_control": "No src/slang file or tools/normalize_vulkan_spirv.py changed between the two commits.",
+    "result": "The independent probe consumes the same normalized SPIR-V without either generated host wrapper, excluding binding generation from the crash."
+  },
+  "system_layer": {
+    "package": "vulkan-validationlayers 1.3.239.0-2",
+    "api_version": "1.3.239",
+    "implementation_version": 1,
+    "manifest_sha256": "ff99f660d94f1bf197c54dadf158805c9325260f4980194e99e5ab24fe4a5c78",
+    "library_sha256": "d696fada8c9ab5b5638e6bdc1d31b93c8259e52745634a8777cbfd0f771a4d72",
+    "probe_result": "exit 139 after descriptor and pipeline layouts completed and shader_module_create=begin was printed",
+    "lifecycle_result": "parallel-mater-vulkan-validated-lifecycle-tests exited with SIGSEGV"
+  },
+  "corrected_setup": {
+    "selection": "scripts/Setup-VulkanValidation.sh pins and hash-verifies an isolated SDK layer without replacing the system package.",
+    "sdk_version": "1.4.341.0",
+    "layer_api_version": "1.4.341",
+    "implementation_version": 1,
+    "archive_sha256": "ed66477d587a5587dc3601b1c2cdcc1fab5529c505f53a00171876cecd9b4fbe",
+    "manifest_sha256": "9c1ad32382836d329a4bdfcd54ef408c777cef7969c50f891816003f3e942449",
+    "library_sha256": "d532be81a907ac464e281209b3334e1b4f15e49c8eea8a632c23750488820a2c",
+    "probe_result": "PIPELINE_OK after shader_module_create=complete and pipeline_create=complete",
+    "lifecycle_result": "scripts/Test-Vulkan.sh validated all 23 production SPIR-V modules and parallel-mater-vulkan-validated-lifecycle-tests passed in 2.22 seconds"
+  },
+  "limitations": [
+    "The pinned layer emits a warning when the NVIDIA driver exposes an instance-level video encode function through vkGetDeviceProcAddr; the probe and lifecycle test still complete.",
+    "This is validation-tool isolation and lifecycle evidence, not Vulkan physical-quality or performance qualification."
+  ],
+  "privacy": {
+    "private_device_identifiers_recorded": false
+  }
+}

@@ -337,7 +337,8 @@ Windows F5-10 evidence passes the selected 17 CUDA/D3D12 comparisons and the
 independent shared-brick penetration gate without changing inputs, tolerances
 or historical goldens. Current limits include shared rigid-direct reference
 drift pending independent adjudication, remaining driver/domain qualification,
-native Vulkan validation failure and unqualified engine handoff. Do not promote
+and unqualified engine handoff. Native Vulkan validation uses the isolated,
+pinned F5-09 setup. Do not promote
 execution to physical correctness to complete a lease.
 
 The detailed [2026-10-16 roadmap snapshot](history/ROADMAP-2026-10-16.md) preserves

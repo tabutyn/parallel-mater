@@ -125,15 +125,22 @@ int main(int argc, char **argv) {
         VkDescriptorSetLayoutBinding binding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr};
         VkDescriptorSetLayoutCreateInfo descriptors{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
         descriptors.bindingCount = 1; descriptors.pBindings = &binding;
+        std::fprintf(stderr, "descriptor_layout_create=begin\n");
         check(vkCreateDescriptorSetLayout(r.device, &descriptors, nullptr, &r.descriptors), "descriptor layout");
+        std::fprintf(stderr, "descriptor_layout_create=complete\n");
         VkPushConstantRange push{VK_SHADER_STAGE_COMPUTE_BIT, 0, 256};
         VkPipelineLayoutCreateInfo layout{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
         layout.setLayoutCount = 1; layout.pSetLayouts = &r.descriptors;
         layout.pushConstantRangeCount = 1; layout.pPushConstantRanges = &push;
+        std::fprintf(stderr, "pipeline_layout_create=begin\n");
         check(vkCreatePipelineLayout(r.device, &layout, nullptr, &r.layout), "pipeline layout");
+        std::fprintf(stderr, "pipeline_layout_create=complete\n");
         VkShaderModuleCreateInfo shader{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};
         shader.codeSize = code.size() * 4; shader.pCode = code.data();
+        std::fprintf(stderr, "shader_module_create=begin\n");
+        std::fflush(stderr);
         check(vkCreateShaderModule(r.device, &shader, nullptr, &r.shader), "shader module");
+        std::fprintf(stderr, "shader_module_create=complete\n");
         VkSpecializationMapEntry entry{0, 0, sizeof(block)};
         VkSpecializationInfo specialization{1, &entry, sizeof(block), &block};
         VkComputePipelineCreateInfo pipeline{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO};
@@ -143,7 +150,10 @@ int main(int argc, char **argv) {
         pipeline.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
         pipeline.stage.module = r.shader; pipeline.stage.pName = argv[2];
         pipeline.stage.pSpecializationInfo = &specialization;
+        std::fprintf(stderr, "pipeline_create=begin\n");
+        std::fflush(stderr);
         check(vkCreateComputePipelines(r.device, VK_NULL_HANDLE, 1, &pipeline, nullptr, &r.pipeline), "compute pipeline");
+        std::fprintf(stderr, "pipeline_create=complete\n");
         if (statistics) {
             auto properties = reinterpret_cast<PFN_vkGetPipelineExecutablePropertiesKHR>(
                 vkGetDeviceProcAddr(r.device, "vkGetPipelineExecutablePropertiesKHR"));
