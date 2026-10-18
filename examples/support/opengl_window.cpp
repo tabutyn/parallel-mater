@@ -69,6 +69,10 @@ bool GalleryWindow::create(std::uint32_t window_width,
     }
 #endif
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+#if defined(__linux__) && defined(GLFW_X11_CLASS_NAME)
+    glfwWindowHintString(GLFW_X11_CLASS_NAME, "parallel-mater");
+    glfwWindowHintString(GLFW_X11_INSTANCE_NAME, "parallel-mater");
+#endif
     const std::string window_title(title);
     implementation->window = glfwCreateWindow(
         static_cast<int>(window_width), static_cast<int>(window_height),

@@ -63,7 +63,9 @@ that was tested in the build tree.
 
 On Linux, `scripts/Run-DesktopGallery.sh` starts the prepared
 `build-desktop-switch` build with both driver manifests. Install its single canonical
-**Parallel Mater** app entry with `scripts/Install-DesktopGallery.sh`.
+**Parallel Mater** app entry and `~/.local/bin/parallel-mater` command with
+`scripts/Install-DesktopGallery.sh`. The installer migrates only launchers with
+Parallel Mater ownership markers and refuses to overwrite unrelated entries.
 It does not build at launch. Vulkan uses conservative startup limits from the
 shared device-profile resource and labels its smaller scene scope in the picker.
 See [Vulkan build and validation details](VULKAN.md).

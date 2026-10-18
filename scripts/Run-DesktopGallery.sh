@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: MIT
 set -euo pipefail
-source_directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+script_path="${BASH_SOURCE[0]}"
+while [[ -L "$script_path" ]]; do
+    script_directory="$(cd -P -- "$(dirname -- "$script_path")" && pwd)"
+    link_target="$(readlink -- "$script_path")"
+    if [[ "$link_target" = /* ]]; then
+        script_path="$link_target"
+    else
+        script_path="${script_directory}/${link_target}"
+    fi
+done
+source_directory="$(cd -P -- "$(dirname -- "$script_path")/.." && pwd)"
 build_directory="${PM_GALLERY_BUILD_DIR:-${source_directory}/build-desktop-switch}"
 gallery="${build_directory}/parallel-mater-gallery"
 export PM_VULKAN_CACHE_DIR="${PM_VULKAN_CACHE_DIR:-${build_directory}/vulkan-cache}"
