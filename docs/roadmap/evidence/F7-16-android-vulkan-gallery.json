@@ -3,10 +3,10 @@
   "task": "F7-16",
   "scope": "Direct Vulkan presentation for the common Gallery runtime on a physical Android device",
   "source": {
-    "tested_commit": "0f406871d6e144b274a8a0e6cc579e9b0d061a8a",
+    "tested_commit": "1dc636364d01c4cf160ede1c21a0ac5776834acb",
     "surface_rebinding_commit": "73c9f502eef9e2212175411e523489a436be86ac",
     "branch": "work/F7-16/thomas-laptop",
-    "tested_at": "2026-10-18T12:45:29Z"
+    "tested_at": "2026-10-18T13:15:14Z"
   },
   "device": {
     "model": "Pixel 7",
@@ -20,8 +20,8 @@
   "artifact": {
     "path": "examples/android/app/build/outputs/apk/debug/app-debug.apk",
     "abi": "arm64-v8a",
-    "sha256": "12eccafff58aa54aecc5bc4708f466b9671f6e81ef16dc0ce3b859f27256bd45",
-    "embedded_revision": "0f406871d6e144b274a8a0e6cc579e9b0d061a8a"
+    "sha256": "44fa68c36fd5cd84fca0519c94b99f5c2a94e2b21216d3bb75fe96351935d21e",
+    "embedded_revision": "1dc636364d01c4cf160ede1c21a0ac5776834acb"
   },
   "acceptance": {
     "direct_gpu_presentation": {
@@ -33,10 +33,10 @@
     "physical_lifecycle": {
       "background_frames_before": 16,
       "background_frames_after": 16,
-      "surface_generation_initial": 45,
-      "surface_generation_resized": 49,
-      "surface_generation_resize_restored": 51,
-      "surface_generation_rotated": 53,
+      "surface_generation_initial": 8,
+      "surface_generation_resized": 10,
+      "surface_generation_resize_restored": 14,
+      "surface_generation_rotated": 16,
       "rotation_from": 1,
       "rotation_to": 3,
       "native_teardown_observed": true,
@@ -47,12 +47,20 @@
       "supported_passed": 20,
       "unsupported_skipped_with_reasons": 8,
       "steps_per_supported_scene": 30
+    },
+    "shared_mobile_qualification": {
+      "schema": "parallel-mater-mobile-gallery-qualification/v1",
+      "renderer": "native-gpu",
+      "readback": "diagnostic-only",
+      "lifecycle_checks_passed": 6,
+      "control_checks_passed": 6,
+      "failures": 0
     }
   },
   "verification": [
     {
       "check": "python3 scripts/Test-AndroidGallery.py --adb <adb> --serial <physical-device> --frames 30",
-      "result": "PASS: 28 catalog scenes (20 supported), direct presentation, pause/reset, background, resize, rotation, and teardown; revision and backend matched 0f40687/Vulkan after merging the F7-23 renderer-adapter refactor"
+      "result": "PASS: 28 catalog scenes (20 supported), common mobile lifecycle/control schema, direct presentation, background, resize, rotation, and teardown; revision and backend matched 1dc6363/Vulkan after merging F7-22 shared qualification and F7-23 renderer adapters"
     },
     {
       "check": "ctest --test-dir build-linux-vulkan-preview --output-on-failure -R '^parallel-mater-(gallery-session-contract-tests|vulkan-gallery-renderer-tests|vulkan-gallery-surface-tests)$'",
@@ -68,10 +76,10 @@
     }
   ],
   "runtime_report_hashes": {
-    "qualification.json": "605ab3f6881c84ca014cf315cdae0774a7fc9760941de3b00c18a5810c2e296d",
-    "lifecycle.json": "5ad6b489542a31d4679b44e3d2bfbed7ec4409ddd5c4e26e75e0bdbb91420a54",
-    "surface-lifecycle.json": "72cda44a7835f8650fc2197f8cb22b3aed9c0799c4534c758a70a6d9b19c536e",
-    "device.log": "4c102075b27ceea3505c28c14be55e77f5e8895f12c653183011a6ed7f590890"
+    "qualification.json": "0529139ebdbf8f6a5863792ad81770fbdbe926fc6a6def53b0fee96393052d2d",
+    "lifecycle.json": "6c7bf90a47be296381ee137fd7c32a01e63c2604a1d9f3ce2e719a2f2c3fed32",
+    "surface-lifecycle.json": "47a16e8d73f00bf01b565f0af279ff8216baf3237c7f7a0aacf08bf7eed97555",
+    "device.log": "6fe10927a707df9be88806a8e80c81815b8f0bd7bc600b8e9782e4272354c7e7"
   },
   "privacy": {
     "private_device_identifiers_recorded": false
