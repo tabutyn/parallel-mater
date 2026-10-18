@@ -143,9 +143,9 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F3-00](roadmap/tasks/F3-00.json) | Version and typed validation baseline | done | — | — |
 | [F3-01](roadmap/tasks/F3-01.json) | Finish manual command interception | done | — | — |
 | [F3-02](roadmap/tasks/F3-02.json) | Validate command recording state | done | F3-01 | — |
-| [F3-03](roadmap/tasks/F3-03.json) | Validate object dependencies and query state | ready | F3-01, F1-03, F1-04 | — |
+| [F3-03](roadmap/tasks/F3-03.json) | Validate object dependencies and query state | waiting on lock | F3-01, F1-03, F1-04 | — |
 | [F3-04](roadmap/tasks/F3-04.json) | Validate synchronization state | done | F3-02 | — |
-| [F3-05](roadmap/tasks/F3-05.json) | Expose structured validation diagnostics | ready | F3-01 | — |
+| [F3-05](roadmap/tasks/F3-05.json) | Expose structured validation diagnostics | leased | F3-01 | codex-windows-validation / windows-gtx1080 / 2026-10-19T00:19:48Z |
 | [F3-06](roadmap/tasks/F3-06.json) | Close threading and deferred-error contract gaps | ready | F1-06, F3-04 | — |
 | [F3-07](roadmap/tasks/F3-07.json) | Test independent compatibility combinations | waiting on dependencies | F3-05 | — |
 | [F3-99](roadmap/tasks/F3-99.json) | Review F3 exit evidence | waiting on dependencies | F3-01, F3-02, F3-03, F3-04, F3-05, F3-06, F3-07 | — |
@@ -159,7 +159,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F4-02](roadmap/tasks/F4-02.json) | Retain resources through completion | waiting on dependencies | F4-01 | — |
 | [F4-03](roadmap/tasks/F4-03.json) | Schedule common resource dependencies | waiting on dependencies | F4-01, F4-02 | — |
 | [F4-04](roadmap/tasks/F4-04.json) | Remove generated-source ABI parsing | waiting on dependencies | F4-01 | — |
-| [F4-05](roadmap/tasks/F4-05.json) | Specify memory-budget confidence | ready | — | — |
+| [F4-05](roadmap/tasks/F4-05.json) | Specify memory-budget confidence | waiting on lock | — | — |
 | [F4-06](roadmap/tasks/F4-06.json) | Apply conservative workload admission | waiting on dependencies | F4-05 | — |
 | [F4-07](roadmap/tasks/F4-07.json) | Specify borrowed device and queue handoff | waiting on dependencies | F4-02, F3-04 | — |
 | [F4-08](roadmap/tasks/F4-08.json) | Qualify engine handoff with a mock adapter | waiting on dependencies | F4-03, F4-07 | — |
