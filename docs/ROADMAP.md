@@ -204,7 +204,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-24](roadmap/tasks/F5-24.json) | Expose lifecycle qualification through the installed CLI | done | F5-19, F5-20 | — |
 | [F5-25](roadmap/tasks/F5-25.json) | Qualify fluid self contact | done | F5-23 | — |
 | [F5-26](roadmap/tasks/F5-26.json) | Qualify fluid self pressure | done | F5-23 | — |
-| [F5-27](roadmap/tasks/F5-27.json) | Qualify fluid self viscosity | ready | F5-23 | — |
+| [F5-27](roadmap/tasks/F5-27.json) | Qualify fluid self viscosity | leased | F5-23 | codex-windows-qualification / windows-gtx1080 / 2026-10-19T22:21:43Z |
 | [F5-28](roadmap/tasks/F5-28.json) | Qualify sampled rope self contact | ready | F5-23 | — |
 | [F5-29](roadmap/tasks/F5-29.json) | Qualify smoke self pressure | ready | F5-23 | — |
 | [F5-30](roadmap/tasks/F5-30.json) | Qualify smoke self viscosity | ready | F5-23 | — |
