@@ -1,0 +1,142 @@
+{
+  "driver": {
+    "device": "not-reported",
+    "name": "slang-cpu"
+  },
+  "failure_count": 5,
+  "failures": [
+    {
+      "actual": [
+        1.201608657836914,
+        1.7415181398391724,
+        0.2499997466802597
+      ],
+      "limit": {
+        "absolute": 0.005,
+        "center": [
+          1.0,
+          1.5,
+          0.0
+        ],
+        "half_extents": [
+          0.2,
+          0.2,
+          0.2
+        ]
+      },
+      "message": "contact point lies outside the declared collider",
+      "path": "$.checkpoints[21].contacts.rigid_contacts[0].position"
+    },
+    {
+      "actual": [
+        1.2016087770462036,
+        1.741518259048462,
+        -0.25
+      ],
+      "limit": {
+        "absolute": 0.005,
+        "center": [
+          1.0,
+          1.5,
+          0.0
+        ],
+        "half_extents": [
+          0.2,
+          0.2,
+          0.2
+        ]
+      },
+      "message": "contact point lies outside the declared collider",
+      "path": "$.checkpoints[21].contacts.rigid_contacts[1].position"
+    },
+    {
+      "actual": [
+        1.2260268926620483,
+        1.458612084388733,
+        0.2499999850988388
+      ],
+      "limit": {
+        "absolute": 0.005,
+        "center": [
+          1.0,
+          1.5,
+          0.0
+        ],
+        "half_extents": [
+          0.2,
+          0.2,
+          0.2
+        ]
+      },
+      "message": "contact point lies outside the declared collider",
+      "path": "$.checkpoints[21].contacts.rigid_contacts[2].position"
+    },
+    {
+      "actual": [
+        1.2260273694992065,
+        1.4586066007614136,
+        -0.03719158470630646
+      ],
+      "limit": {
+        "absolute": 0.005,
+        "center": [
+          1.0,
+          1.5,
+          0.0
+        ],
+        "half_extents": [
+          0.2,
+          0.2,
+          0.2
+        ]
+      },
+      "message": "contact point lies outside the declared collider",
+      "path": "$.checkpoints[21].contacts.rigid_contacts[3].position"
+    },
+    {
+      "actual": [
+        1.2260277271270752,
+        1.4586025476455688,
+        -0.24999482929706573
+      ],
+      "limit": {
+        "absolute": 0.005,
+        "center": [
+          1.0,
+          1.5,
+          0.0
+        ],
+        "half_extents": [
+          0.2,
+          0.2,
+          0.2
+        ]
+      },
+      "message": "contact point lies outside the declared collider",
+      "path": "$.checkpoints[21].contacts.rigid_contacts[4].position"
+    }
+  ],
+  "fixture_count": 1,
+  "observations": {
+    "active_contact_count": 2,
+    "angular_response_rad_s": 12.887697219848633,
+    "normal_alignment_cosine": 0.9974474043486933,
+    "normal_impulse_vector": [
+      46.84414405523967,
+      8.210624339299244,
+      8.976505009840536e-06
+    ],
+    "planar_leakage": {
+      "angular_velocity_xy": 4.268147677066736e-06,
+      "linear_velocity_z": 8.977774541563122e-07,
+      "orientation_xy": 9.642467375670094e-06,
+      "position_z": 4.5057441866447334e-07
+    }
+  },
+  "passed": false,
+  "profile_id": "rigid-kinematic-sweep-v1",
+  "profile_sha256": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc",
+  "sample_count": 61,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

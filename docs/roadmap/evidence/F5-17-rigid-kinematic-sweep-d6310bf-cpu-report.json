@@ -1,0 +1,31 @@
+{
+  "driver": {
+    "device": "Parallel Mater Slang CPU (Slang CPU reference)",
+    "name": "slang-cpu"
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 1,
+  "observations": {
+    "active_contact_count": 2,
+    "angular_response_rad_s": 16.526384353637695,
+    "normal_alignment_cosine": 0.9996616258422548,
+    "normal_impulse_vector": [
+      46.91613199223184,
+      10.440311944321223,
+      -6.241117356882604e-06
+    ],
+    "planar_leakage": {
+      "angular_velocity_xy": 3.457767525105737e-05,
+      "linear_velocity_z": 5.969784524495481e-06,
+      "orientation_xy": 2.1784815544378944e-05,
+      "position_z": 1.5676755538152065e-06
+    }
+  },
+  "passed": true,
+  "profile_id": "rigid-kinematic-sweep-v1",
+  "profile_sha256": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc",
+  "sample_count": 61,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}
