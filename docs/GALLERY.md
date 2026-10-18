@@ -375,6 +375,32 @@ scene; the legacy `--water-cloth-debug` also selects Water Cloth. Wireframe and
 normals follow the API's separated triangle surface after tearing; broken
 bonds are omitted rather than drawn across detached fragments. Force vectors
 remain attached to physical nodes.
+
+### Physics capture and replay
+
+The current text schema is `parallel_mater_physics_capture 5`. It records the
+scene name, selected backend, physical device, build revision, and one stable
+identity for every captured rigid body. A unique Blender `source_name` is the
+primary identity; generated bodies that share a source use their unique scene
+names. Backend and device fields describe where a capture originated but do
+not restrict replay.
+
+Each retained history sample contains the public `PmRigidState`, constraint
+state, contact events, and exact `PmStepInfo` that produced it. History has a
+32 MiB bound. `history_complete 0` explicitly reports capacity eviction, a
+GPU-only step without host readback, or an imported isolated state. This flag
+describes time continuity; a sample may separately omit bodies. Complete
+replay requires every scene body exactly once. Partial replay must be opted
+into and applies only known, unique body identities. Validation finishes
+before the first state is changed.
+
+The reader accepts v3 snapshots and v4 rolling histories for diagnostics.
+Those formats have no stable resource identities, so they cannot be replayed.
+Unknown schema versions, truncated records, duplicate identities, and unknown
+scene bodies fail closed. Replay applies state with `CommandScene` public API
+calls and advances with the captured timestep, substeps, and gravity; it never
+reads or restores driver-private caches.
+
 The gallery supplies cloth UVs through `pmCreatePaintField` and registers a
 rigid-to-cloth paint rule. Collision and mask stamping happen in the selected
 physics driver; renderer adapters merely filter and display the copied

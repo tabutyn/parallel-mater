@@ -774,8 +774,10 @@ static int run_gallery_application(
                       << session.output().smoke_particles.size() << '\n';
         }
         if (!options.physics_capture_output.empty()) {
+            const auto provenance = session.physics_capture_provenance();
             if (!write_physics_debug_capture(
-                    session.output(), options.physics_capture_output, error)) {
+                    session.output(), options.physics_capture_output, error,
+                    &session.physics_history(), &provenance)) {
                 std::cerr << "Physics capture failed: " << error << '\n';
                 return 1;
             }
@@ -1192,8 +1194,11 @@ static int run_gallery_application(
                         !frame.output().smoke_particles.empty();
                     if (capture_requested && capture_frame_ready) {
                         std::filesystem::path capture_path;
+                        const auto provenance =
+                            frame.physics_capture_provenance();
                         if (save_physics_debug_capture(
-                                frame.output(), capture_path, error)) {
+                                frame.output(), capture_path, error,
+                                &frame.physics_history(), &provenance)) {
                             capture_status = "CAPTURED " + capture_path.string();
                             capture_status_failure = false;
                             std::cout << "Physics capture " << capture_path << '\n';

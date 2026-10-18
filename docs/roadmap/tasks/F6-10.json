@@ -1,7 +1,7 @@
 {
   "id": "F6-10",
   "title": "Productize physics capture and substep replay",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F6-07"
   ],
@@ -16,15 +16,35 @@
     "Specify capture provenance, resource identity, partial-data behavior and schema versioning; use the public API or common support code rather than driver internals.",
     "Round-trip the archived over-top rigid state and reproduce its 1/240-second check on current CUDA with focused negative and compatibility tests."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "778a2598-b878-412f-b13d-08799b09fba7",
-    "owner": "codex-linux-replay",
-    "machine": "thomas-laptop",
-    "branch": "work/F6-10/thomas-laptop",
-    "claimed_at": "2026-10-18T17:58:22Z",
-    "heartbeat_at": "2026-10-18T17:58:22Z",
-    "expires_at": "2026-10-19T17:58:22Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: v5 schema records provenance, stable resource identities, exact PmStepInfo, bounded-history completeness and explicit body-subset policy; v3/v4 remain diagnostic-readable; docs/GALLERY.md and docs/roadmap/evidence/F6-10-physics-capture-replay.json",
+    "PASS: exact archived frame 2073 state round-trips; compatibility, truncation, duplicate/unknown identity and partial-policy tests pass; parallel-mater-physics-debug-tests",
+    "PASS: end-to-end three-frame CUDA Gallery capture on NVIDIA GeForce RTX 3050 Ti Laptop GPU wrote six identities and history_complete 1; tracked in docs/roadmap/evidence/F6-10-physics-capture-replay.json",
+    "RESULT: public API replay ran 448 substeps at 1/240 s and cleared the top; unchanged current solver reproduced F6-11 quality failures (7.70263 rad/s abrupt loss, 0.127161 m gear overlap); no solver, fixture, or golden changes included",
+    "PASS: python3 -m unittest discover -s tests/roadmap -p 'test_*.py' -v passed 25/25; evidence pins capture and retained candidate hashes"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "778a2598-b878-412f-b13d-08799b09fba7",
+        "owner": "codex-linux-replay",
+        "machine": "thomas-laptop",
+        "branch": "work/F6-10/thomas-laptop",
+        "claimed_at": "2026-10-18T17:58:22Z",
+        "heartbeat_at": "2026-10-18T17:58:22Z",
+        "expires_at": "2026-10-19T17:58:22Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T18:17:14Z",
+      "reason": "Productized backend-neutral v5 physics capture and public rigid replay, round-tripped the retained over-top state, and reproduced the current CUDA contact failure for F6-11 without importing solver or fixture changes.",
+      "evidence": [
+        "PASS: v5 schema records provenance, stable resource identities, exact PmStepInfo, bounded-history completeness and explicit body-subset policy; v3/v4 remain diagnostic-readable; docs/GALLERY.md and docs/roadmap/evidence/F6-10-physics-capture-replay.json",
+        "PASS: exact archived frame 2073 state round-trips; compatibility, truncation, duplicate/unknown identity and partial-policy tests pass; parallel-mater-physics-debug-tests",
+        "PASS: end-to-end three-frame CUDA Gallery capture on NVIDIA GeForce RTX 3050 Ti Laptop GPU wrote six identities and history_complete 1; tracked in docs/roadmap/evidence/F6-10-physics-capture-replay.json",
+        "RESULT: public API replay ran 448 substeps at 1/240 s and cleared the top; unchanged current solver reproduced F6-11 quality failures (7.70263 rad/s abrupt loss, 0.127161 m gear overlap); no solver, fixture, or golden changes included",
+        "PASS: python3 -m unittest discover -s tests/roadmap -p 'test_*.py' -v passed 25/25; evidence pins capture and retained candidate hashes"
+      ]
+    }
+  ]
 }

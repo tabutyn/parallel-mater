@@ -1,0 +1,56 @@
+{
+  "schema": "parallel-mater-roadmap-physics-capture-replay/v1",
+  "task": "F6-10",
+  "result": "capture-replay-pass-current-solver-quality-fail",
+  "capture_schema": {
+    "version": 5,
+    "provenance": ["scene", "backend", "device", "build_revision"],
+    "resource_identity": "unique Blender source_name, with unique scene name used for generated bodies sharing one source",
+    "partial_behavior": "time gaps are explicit; resource subsets require allow_partial; all identities validate before mutation",
+    "legacy": "v3 and v4 remain readable for diagnostics but cannot replay without identities",
+    "driver_private_access": false
+  },
+  "hardware": {
+    "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "backend": "slang-cuda"
+  },
+  "fixtures": {
+    "capture": "tests/gallery/assets/hinge_over_top_v5.pmcapture",
+    "capture_sha256": "7aadaaa5ec552be42d1194229114129d0982d5918b46f58e3bcac4150d8400dc",
+    "capture_source_frame": 2073,
+    "candidate_scene_archive": "docs/roadmap/evidence/F6-07/snapshot-working-files.tar.gz",
+    "candidate_scene_sha256": "80a5f22de8c7662397d7405eff6720232389e5163fd12dc586b39deb9f784e7b",
+    "resource_subset": ["Gear", "Gear.001", "Gear.002", "Ground.002"]
+  },
+  "verification": [
+    {
+      "check": "parallel-mater-physics-debug-tests",
+      "exit_code": 0,
+      "result": "PASS: exact archived float state and PmStepInfo round trip; v3/v4 compatibility; truncation, identity, unknown-resource and partial-policy negatives"
+    },
+    {
+      "check": "parallel-mater-gallery --backend cuda --constraint-hinge --frames 3 --physics-capture <output> --headless <image>",
+      "exit_code": 0,
+      "result": "PASS: common Gallery runtime wrote v5 provenance, six stable body identities, three chronological frames, exact step options, contacts and history_complete 1"
+    },
+    {
+      "check": "parallel-mater-rigid-constraint-command-tests --backend cuda --scene <F6-07 candidate.glb> --scenario replay",
+      "exit_code": 1,
+      "result": "PASS replay path; EXPECTED F6-11 quality failure on the unchanged current solver",
+      "metrics": {
+        "substeps": 448,
+        "timestep_seconds": 0.00416666688,
+        "cleared_top": true,
+        "driver_rotation_radians": 2.19593,
+        "maximum_abrupt_speed_loss_radians_per_second": 7.70263,
+        "maximum_gear_mesh_penetration_meters": 0.127161,
+        "maximum_slider_mesh_penetration_meters": 0.0143353
+      }
+    }
+  ],
+  "disposition": {
+    "capture_replay_ready": true,
+    "solver_or_fixture_changes_included": false,
+    "next_task": "F6-11 uses this independent replay to adjudicate the retained shared-Slang contact patch"
+  }
+}
