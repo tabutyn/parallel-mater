@@ -1,0 +1,59 @@
+{
+  "schema": "parallel-mater-roadmap-retired-worktrees/v1",
+  "task": "F6-08",
+  "lease_token": "81a04807-a30e-4b4e-b248-ca0a90645a0c",
+  "machine": "thomas-laptop",
+  "base_commit": "69ae2ab05ca4cbd68a1c8a2d4f666a4da90db0b4",
+  "archive": {
+    "local_root": "out/worktree-backups/2026-10-16",
+    "desktop": {
+      "head": "3143a5323b9cd07df14a57d673e766389685f110",
+      "branch": "codex/linux-desktop-install-20261009",
+      "changed_files_verified": 10,
+      "metadata_sha256": "2419e8c8337a71765e910e3d7c5eaeaedbb2f912260b47f8686d466ac5ba88b7",
+      "unstaged_patch_sha256": "b14ec7096a2fb4a3d46f969147f1de020052c7beb5ba4cfc5f0283917d27263b",
+      "status_sha256": "7b81da638e315625bb73276ed1d8a3fbd0995605c297c9bca5f094d0ab37e04c",
+      "working_files_archive_sha256": "38ff115fcf8f012ae9335371189559b1e29f02cd62231581daf2f949e5ffb623"
+    },
+    "slang_kernels": {
+      "head": "deb158aeb75cd9eae02d78acbc06d9417a958ade",
+      "branch": "codex/linux-current-gallery-launcher",
+      "changed_files_verified": 21,
+      "metadata_sha256": "8c05fa9de938aaeb2c1a6f894bc71e7da5c1f21c25641a8e5b832a81b07a8824",
+      "unstaged_patch_sha256": "92ee0582960390a72b954886daeb1b1cf6554378c0943d89667c1c299c1126b8",
+      "status_sha256": "d1f561716b8b0c6f8dcfd19416a1625ff3edb1a7868d9051797c02c2779753db",
+      "working_files_archive_sha256": "2a1a4bdea3d8632cd9cfaf2064693a392ddce54bddc60d3dbf858bd3faad0eff"
+    },
+    "verification": "Every live changed file hash, staged patch, unstaged binary patch, porcelain status record, branch and HEAD matched the preserved archive before cleanup."
+  },
+  "dispositions": {
+    "launcher_and_branding": "docs/roadmap/evidence/F6-06-legacy-launcher-reconciliation.json",
+    "hinge_and_contact_inventory": "docs/roadmap/evidence/F6-07/hunk-dispositions.json",
+    "tracked_hinge_archive": "docs/roadmap/evidence/F6-07/",
+    "fixture_decision": "docs/roadmap/evidence/F6-09-hinge-fixture-qualification.json",
+    "capture_replay_decision": "docs/roadmap/evidence/F6-10-physics-capture-replay.json",
+    "solver_decision": "docs/roadmap/evidence/F6-11-rigid-contact-adjudication.json",
+    "integrity_tests": "PASS: 6/6 F6-07, F6-09 and F6-10 evidence tests"
+  },
+  "retirement": {
+    "slang_kernel_worktree": "Removed; path absent from git worktree list and filesystem",
+    "slang_kernel_branch": "Retained at deb158aeb75cd9eae02d78acbc06d9417a958ade",
+    "desktop_legacy_state": "Archived dirty changes and obsolete ignored builds removed",
+    "desktop_repository_root": "Repurposed as clean main at 69ae2ab05ca4cbd68a1c8a2d4f666a4da90db0b4 because its .git directory is the common database for linked worktrees",
+    "stale_temporary_main_worktree": "Removed before assigning main to the repository root",
+    "disk_usage": "Legacy desktop path reduced from 678 MiB to 122 MiB; 296 MiB Slang-kernel worktree removed"
+  },
+  "active_path_validation": {
+    "process_scan": "No process cwd, executable or open file referenced either legacy checkout before removal",
+    "desktop_cmake": "PASS: cmake -S . -B build-desktop-switch",
+    "cpu_cmake": "PASS: cmake -S . -B build-foundations",
+    "retired_path_scan": "PASS: no parallel-mater-slang-kernels path in active CMake cache, build rules, scripts or installed launcher",
+    "launcher_contracts": "PASS: Gallery deployment, Linux launcher and Slang architecture CTests 3/3",
+    "physical_launch": "PASS: installed command selected Vulkan on NVIDIA GeForce RTX 3050 Ti Laptop GPU, rendered 6220817-byte frame with sha256 2a02ee98055403a49244133d7918fce91c9235ec77e68e384ff2b4d12225d5d9",
+    "final_status": "Primary main checkout and active F6-08 worktree are clean"
+  },
+  "limitations": [
+    "The parallel-mater directory remains intentionally as the clean main checkout and common Git database; only its reconciled legacy working state was retired.",
+    "Unrelated temporary worktrees with dirty or unmerged branches were left untouched because F6-08 does not establish their disposition."
+  ]
+}
