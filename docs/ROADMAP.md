@@ -195,8 +195,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-18](roadmap/tasks/F5-18.json) | Stabilize rigid-direct planar symmetry | done | F5-17 | — |
 | [F5-19](roadmap/tasks/F5-19.json) | Emit capacity recovery lifecycle checkpoints | done | F5-03, F5-16 | — |
 | [F5-20](roadmap/tasks/F5-20.json) | Emit graph rollback lifecycle checkpoints | leased | F5-03, F5-19 | codex-linux-evidence / thomas-laptop / 2026-10-19T19:15:45Z |
-| [F5-21](roadmap/tasks/F5-21.json) | Make Gallery validation discovery hermetic | waiting on dependencies | F6-11 | — |
-| [F5-22](roadmap/tasks/F5-22.json) | Version rigid contact quality profiles | waiting on dependencies | F5-18, F6-11 | — |
+| [F5-21](roadmap/tasks/F5-21.json) | Make Gallery validation discovery hermetic | ready | F6-11 | — |
+| [F5-22](roadmap/tasks/F5-22.json) | Version rigid contact quality profiles | ready | F5-18, F6-11 | — |
 | [F5-23](roadmap/tasks/F5-23.json) | Split advertised qualification gaps | waiting on dependencies | F5-19, F5-20, F5-22 | — |
 | [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17, F5-18, F5-19, F5-20, F5-21, F5-22, F5-23 | — |
 
@@ -212,10 +212,10 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F6-05](roadmap/tasks/F6-05.json) | Regenerate and verify release reference artifacts | done | F3-06 | — |
 | [F6-06](roadmap/tasks/F6-06.json) | Reconcile legacy launcher and branding patches | done | — | — |
 | [F6-07](roadmap/tasks/F6-07.json) | Reconcile legacy hinge and contact patches | done | — | — |
-| [F6-08](roadmap/tasks/F6-08.json) | Retire reconciled old worktrees | waiting on dependencies | F6-06, F6-07, F6-09, F6-10, F6-11 | — |
+| [F6-08](roadmap/tasks/F6-08.json) | Retire reconciled old worktrees | ready | F6-06, F6-07, F6-09, F6-10, F6-11 | — |
 | [F6-09](roadmap/tasks/F6-09.json) | Qualify the retained hinge fixture candidate | done | F6-07 | — |
 | [F6-10](roadmap/tasks/F6-10.json) | Productize physics capture and substep replay | done | F6-07 | — |
-| [F6-11](roadmap/tasks/F6-11.json) | Adjudicate the retained rigid contact patch | leased | F6-09, F6-10 | codex-windows-sdk / windows-gtx1080 / 2026-10-19T18:48:11Z |
+| [F6-11](roadmap/tasks/F6-11.json) | Adjudicate the retained rigid contact patch | done | F6-09, F6-10 | — |
 | [F6-99](roadmap/tasks/F6-99.json) | Review F6 exit evidence | waiting on dependencies | F6-01, F6-02, F6-03, F6-04, F6-05, F6-06, F6-07, F6-08, F6-09, F6-10, F6-11 | — |
 
 ### F7. Shared Gallery application
