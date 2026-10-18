@@ -29,7 +29,7 @@ class DeploymentTests(unittest.TestCase):
             {"path": "physics-qualification/quality/fluid.json", "kind": "physical-quality",
              "status": "unsupported", "sha256": "e" * 64},
             {"path": "physics-qualification/lifecycle/adverse.json", "kind": "adverse-lifecycle",
-             "status": "missing-checkpoints", "sha256": "f" * 64},
+             "status": "captured", "sha256": "f" * 64},
         ]
         return {
             "schema": "parallel-mater-ipados-qualification-run/v1",
