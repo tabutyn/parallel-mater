@@ -53,7 +53,16 @@ bool requirements_supported(std::uint32_t requirements,
 
 bool driver_supports_interaction(
     const PmInteractionCapabilityKey &key) noexcept {
-    (void)key;
+    if (key.materialProfile == PM_INTERACTION_MATERIAL_MISCIBLE) {
+#if defined(PARALLEL_MATER_TEST_RESOURCE_DRIVER) || \
+    defined(PARALLEL_MATER_QUALIFIED_MISCIBLE_FLUID)
+        return true;
+#else
+        // The registry identity exists for private lifecycle coverage. P1-09
+        // will enable it only on adapters that pass physical qualification.
+        return false;
+#endif
+    }
     return true;
 }
 

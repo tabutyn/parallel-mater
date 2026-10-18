@@ -1615,9 +1615,21 @@ PmResult install_couplings(
                 (result = require_slot(simulation->fluid_ids, source.second,
                                        second)) != PM_SUCCESS)
                 return rollback(result);
+            FluidPairMaterialProfile profile{};
+            switch (source.materialProfile) {
+            case PM_INTERACTION_MATERIAL_EQUAL:
+                profile = FluidPairMaterialProfile::equal;
+                break;
+            case PM_INTERACTION_MATERIAL_MISCIBLE:
+                profile = FluidPairMaterialProfile::miscible;
+                break;
+            default:
+                return rollback(PM_ERROR_FEATURE_NOT_PRESENT);
+            }
             FluidPairCouplingId created{};
             result = from_status(simulation->runtime->add_fluid_pair_coupling(
-                {.first = first, .second = second, .enabled = true}, created));
+                {.first = first, .second = second,
+                 .material_profile = profile, .enabled = true}, created));
             if (result == PM_SUCCESS)
                 simulation->active_couplings.emplace_back(created);
             break;

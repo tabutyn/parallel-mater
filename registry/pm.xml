@@ -92,6 +92,9 @@ typedef struct PmQueryPool_T* PmQueryPool;
     <capability first="FLUID" second="FLUID" scope="SEPARATE_SYSTEM" mode="CONTACT" direction="BIDIRECTIONAL" profile="EQUAL" graph="simulation-capacity" requires="particleLiquids liquidLiquidCoupling" />
     <capability first="FLUID" second="FLUID" scope="SEPARATE_SYSTEM" mode="PRESSURE" direction="BIDIRECTIONAL" profile="EQUAL" graph="simulation-capacity" requires="particleLiquids liquidLiquidCoupling" />
     <capability first="FLUID" second="FLUID" scope="SEPARATE_SYSTEM" mode="VISCOSITY" direction="BIDIRECTIONAL" profile="EQUAL" graph="simulation-capacity" requires="particleLiquids liquidLiquidCoupling" />
+    <capability first="FLUID" second="FLUID" scope="SEPARATE_SYSTEM" mode="CONTACT" direction="BIDIRECTIONAL" profile="MISCIBLE" graph="simulation-capacity" requires="particleLiquids liquidLiquidCoupling" />
+    <capability first="FLUID" second="FLUID" scope="SEPARATE_SYSTEM" mode="PRESSURE" direction="BIDIRECTIONAL" profile="MISCIBLE" graph="simulation-capacity" requires="particleLiquids liquidLiquidCoupling" />
+    <capability first="FLUID" second="FLUID" scope="SEPARATE_SYSTEM" mode="VISCOSITY" direction="BIDIRECTIONAL" profile="MISCIBLE" graph="simulation-capacity" requires="particleLiquids liquidLiquidCoupling" />
     <capability first="ROPE" second="ROPE" scope="SELF" mode="CONTACT" direction="BIDIRECTIONAL" profile="ENDPOINT_NATIVE" graph="none" requires="rope" />
     <capability first="SMOKE" second="SMOKE" scope="SELF" mode="PRESSURE" direction="BIDIRECTIONAL" profile="SMOKE_PARTICLE" graph="none" requires="smoke" />
     <capability first="SMOKE" second="SMOKE" scope="SELF" mode="VISCOSITY" direction="BIDIRECTIONAL" profile="SMOKE_PARTICLE" graph="none" requires="smoke" />

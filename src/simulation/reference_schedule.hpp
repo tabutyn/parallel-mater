@@ -1939,22 +1939,45 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                 impl_->fluid_neighbor_overflow,
                 impl_->fluid_maximum_neighbor_count,
                 impl_->fluid_maximum_neighbor_count);
-            backend.fluid_pair_pressure_contact(
-                pair_blocks, block_size, stream,
-                first.positions, first.velocities, first.count,
-                first.options.capacity, first.forces,
-                second.positions, second.velocities, second.count,
-                second.options.capacity, second.forces,
-                pair.index.keys[1], pair.index.identities[1],
-                pair.index.total_capacity, first_constants);
-            backend.fluid_pair_viscosity(
-                pair_blocks, block_size, stream,
-                first.positions, first.velocities, first.count,
-                first.options.capacity, first.forces,
-                second.positions, second.velocities, second.count,
-                second.options.capacity, second.forces,
-                pair.index.keys[1], pair.index.identities[1],
-                pair.index.total_capacity, first_constants);
+            if (pair.options.material_profile ==
+                FluidPairMaterialProfile::miscible) {
+                backend.fluid_miscible_pair_pressure_contact(
+                    pair_blocks, block_size, stream,
+                    first.positions, first.velocities, first.count,
+                    first.options.capacity, first.forces,
+                    pair.index.density_samples[0], second.positions,
+                    second.velocities, second.count,
+                    second.options.capacity, second.forces,
+                    pair.index.density_samples[1], pair.index.keys[1],
+                    pair.index.identities[1], pair.index.total_capacity,
+                    first_constants, second_constants);
+                backend.fluid_miscible_pair_viscosity(
+                    pair_blocks, block_size, stream,
+                    first.positions, first.velocities, first.count,
+                    first.options.capacity, first.forces,
+                    second.positions, second.velocities, second.count,
+                    second.options.capacity, second.forces,
+                    pair.index.keys[1], pair.index.identities[1],
+                    pair.index.total_capacity, first_constants,
+                    second_constants);
+            } else {
+                backend.fluid_pair_pressure_contact(
+                    pair_blocks, block_size, stream,
+                    first.positions, first.velocities, first.count,
+                    first.options.capacity, first.forces,
+                    second.positions, second.velocities, second.count,
+                    second.options.capacity, second.forces,
+                    pair.index.keys[1], pair.index.identities[1],
+                    pair.index.total_capacity, first_constants);
+                backend.fluid_pair_viscosity(
+                    pair_blocks, block_size, stream,
+                    first.positions, first.velocities, first.count,
+                    first.options.capacity, first.forces,
+                    second.positions, second.velocities, second.count,
+                    second.options.capacity, second.forces,
+                    pair.index.keys[1], pair.index.identities[1],
+                    pair.index.total_capacity, first_constants);
+            }
             status = record_timing_stage(
                 TimingStage::fluid_neighbor_forces, 3U);
             if (!status) return status;
