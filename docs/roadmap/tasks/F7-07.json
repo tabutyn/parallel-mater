@@ -1,16 +1,33 @@
 {
   "id": "F7-07",
   "title": "Make mobile Gallery shells thin adapters",
-  "status": "open",
-  "dependencies": ["F7-02", "F7-03", "F7-04", "F7-05"],
-  "locks": ["gallery-mobile-shells"],
-  "requires": ["Android or Apple mobile build toolchain"],
+  "status": "leased",
+  "dependencies": [
+    "F7-02",
+    "F7-03",
+    "F7-04",
+    "F7-05"
+  ],
+  "locks": [
+    "gallery-mobile-shells"
+  ],
+  "requires": [
+    "Android or Apple mobile build toolchain"
+  ],
   "scope": "Reduce Android JNI/Java and iPad UIKit code to OS lifecycle, semantic input translation, surface presentation and reporting around the common runtime.",
   "acceptance": [
     "Neither mobile shell owns scene descriptions, controller rules, simulation timing or physics fallback policy.",
     "Host and device tests cover shell recreation, surface replacement, pause/background and failure recovery."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "ad2f533e-019f-4043-8360-96ae0437c335",
+    "owner": "codex-macos-gallery",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F7-07/thomass-macbook-air",
+    "claimed_at": "2026-10-18T00:32:51Z",
+    "heartbeat_at": "2026-10-18T00:32:51Z",
+    "expires_at": "2026-10-19T00:32:51Z"
+  },
   "history": []
 }
