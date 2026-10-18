@@ -31,6 +31,7 @@ promoting those results to capability certification.
 | Runtime-generated capacity recovery (F3-12) | Public API profile fixes four colocated particles, one allowed neighbor and one isolated control population. D3D12 on the Windows GTX 1080 and the independent WSL Slang C++ host fixture each pass 20/20: acceptance succeeds; completion, status and statistics report exactly four generated overflows; invalid output is not published; selective reinitialization recovers while preserving the control. | This qualifies only the named shared-Slang neighbor-overflow profile and lifecycle contract. It is not physical-quality, performance or blanket driver-capacity evidence. |
 | SDK/loader/host contracts | Windows x64 Release passes 38/38 `sdk-ci` CTests and all 12 relocated-install stages, including 18/18 external C/C++/ABI cases and all 30 conformance inputs. F6-03 additionally passes 44/44 driver-free and 49/49 D3D12 relocated component checks across separate loader, validation, preparation, scene, driver, conformance and benchmark exports. Linux, Apple Silicon macOS and Windows CI repeat the selected-component matrix and assert each built driver target. | This gate qualifies packaging and public ABI behavior only; physics quality and a stable optional C++ ABI are not claimed. A driver export check proves package integrity, not the driver's physical correctness or capability coverage. |
 | Interaction graph lifecycle (F2-04) | Linux RTX 3050 Ti and current Windows GTX 1080 CUDA plus Apple M4 Metal execute all 12 implemented pairs through create/update/clear, endpoint replacement, three-family mutation and partial-create rollback. | Current CUDA and Metal console evidence lacks required F5-03 checkpoint fingerprints; D3D12 reports the complete three-family case unsupported because it does not advertise rope, soft-body or smoke. Unsupported/missing never passes the lifecycle evaluator. |
+| Native Vulkan validation (F5-09) | A standalone shader-module/pipeline probe pins the layer, fluid SPIR-V and probe hashes. Debian layer 1.3.239 exits 139 inside `vkCreateShaderModule`; pinned SDK layer 1.4.341 completes the same probe and the unchanged 4,096-replacement validated lifecycle case on the RTX 3050 Ti. | This isolates a host validation-tool defect and supplies a working validation setup. It does not qualify Vulkan physics, other drivers or imported engine devices. |
 | Vendor-neutral physical quality (F5-02, F5-05) | Hashed `core-conservation-stability-v1` and `rigid-brick-penetration-v1` profiles independently evaluate fluid conservation/stability and rigid surface separation. Current Windows CUDA passes all 18 equal-fluid samples; CUDA and D3D12 pass the fixed eight-brick gate at 0.205278 mm and Apple M4 Metal passes at 0.146627 mm, all against 2 mm. | D3D12 and Metal do not advertise separate-system equal-fluid modes. Brick quality does not override failed reference regression or missing lifecycle/interaction-specific analytic evidence; remaining modes still need fixtures. |
 | Capability evidence obligations (F5-01) | Hashed `capability-obligations-v1` rules cover all 49 API 0.2 interaction records exactly once and keep compilation, execution, regression, lifecycle, analytic and timing evidence separate. Current physical results register 49 CUDA and 10 D3D12 records on GTX 1080 plus 46 Metal records on Apple M4. | Qualification remains 0/49 for current Windows CUDA, 0/10 D3D12 and 0/46 Metal. Reference failures, process crashes, missing exact lifecycle captures and rule-level analytic gaps stay explicit. |
 | iPadOS development qualification runner (F5-13) | The opt-in, development-only app channel reuses the canonical 30-case public-API runner, rigid penetration oracle, equal-fluid fixture and adverse lifecycle operations. Collection pins a fresh nonce, source, app/driver hashes, public device/OS/Metal and toolchain metadata and rejects stale, partial, mismatched and Gallery-only reports. | This runner is not enabled by default in ordinary iOS builds. Equal-fluid remains unsupported on Metal and the existing lifecycle fixtures still lack F5-03 checkpoint fingerprints; device execution and evidence publication remain separate gates. |
@@ -78,8 +79,8 @@ that is not a new execution pass.
 The review found no uncovered F1 leaf. F2-04 now records the separate coupling
 rebinding lifecycle evidence below. Memory-budget confidence remains F4-05.
 Per-driver results for the F5-03 capacity and three-family profile remain open;
-the remaining driver/domain matrix is P1-01. The native Vulkan validation failure and
-production CPU domain limits remain open in the table above. Closing F1 does
+the remaining driver/domain matrix is P1-01. Native Vulkan validation now uses
+the F5-09 pinned-layer setup; production CPU domain limits remain open. Closing F1 does
 not qualify physical accuracy or release readiness.
 
 ## F2 interaction graph lifecycle
@@ -202,8 +203,8 @@ The review preserves these boundaries:
   for the named shared-Slang neighbor profile on D3D12 and the host fixture.
 - Validation does not yet qualify imported native-device/queue handoff; F4-07
   and F4-08 own that contract and mock-adapter evidence. Physical accuracy,
-  every driver/domain combination and native Vulkan validation remain F5 and
-  P1 work rather than being inferred from F3 lifecycle passes.
+  every driver/domain combination and production evidence remain F5 and P1
+  work rather than being inferred from F3 lifecycle passes.
 - The broader Windows SDK verifier originally exposed a Debug/Release mismatch
   in its independent conformance consumer. F6-01 now applies the requested
   configuration consistently and separately qualifies the complete relocated
