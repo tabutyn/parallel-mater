@@ -14,10 +14,26 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction
     foreach(backend cpu cuda vulkan d3d12 metal)
         if(TARGET parallel-mater-driver-slang-${backend})
             add_dependencies(parallel-mater-${suite}-tests parallel-mater-driver-slang-${backend})
-            add_test(NAME parallel-mater-${backend}-${suite}-tests COMMAND parallel-mater-${suite}-tests)
+            set(suite_arguments)
+            set(suite_environment
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json")
+            if(suite STREQUAL "interaction-graph-lifecycle")
+                list(APPEND suite_arguments
+                    --output "${CMAKE_CURRENT_BINARY_DIR}/${backend}-graph-lifecycle.json"
+                    --driver-name "slang-${backend}")
+                if(TARGET parallel-mater-layer-validation)
+                    add_dependencies(parallel-mater-${suite}-tests
+                        parallel-mater-layer-validation)
+                    list(APPEND suite_environment
+                        "PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json"
+                        "PM_TEST_VALIDATION=1")
+                endif()
+            endif()
+            add_test(NAME parallel-mater-${backend}-${suite}-tests
+                COMMAND parallel-mater-${suite}-tests ${suite_arguments})
             set_tests_properties(parallel-mater-${backend}-${suite}-tests PROPERTIES
                 LABELS "api;lifecycle;${backend}" SKIP_RETURN_CODE 77 TIMEOUT 120
-                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json")
+                ENVIRONMENT "${suite_environment}")
             if(suite STREQUAL "resource-lifecycle")
                 add_test(NAME parallel-mater-${backend}-validated-lifecycle-tests
                     COMMAND parallel-mater-${suite}-tests)
@@ -46,6 +62,12 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction
         set_tests_properties(parallel-mater-external-${suite}-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
     endif()
 endforeach()
+
+target_include_directories(parallel-mater-interaction-graph-lifecycle-tests
+    PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../../conformance/v1/include")
+target_compile_definitions(parallel-mater-interaction-graph-lifecycle-tests
+    PRIVATE
+    PM_LIFECYCLE_PROFILE_PATH="${CMAKE_CURRENT_LIST_DIR}/../../conformance/v1/lifecycle/adverse-capacity-three-family-v1.json")
 
 add_executable(parallel-mater-host-concurrency-tests
     host_concurrency_tests.cpp)

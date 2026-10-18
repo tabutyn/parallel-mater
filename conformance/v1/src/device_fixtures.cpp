@@ -7,7 +7,7 @@
 #include <parallel_mater_scene/scene.hpp>
 
 #include "../../../tests/gallery/rigid_mesh_checks.hpp"
-#include "../../../tests/api/capacity_lifecycle_fixture.hpp"
+#include "../../../tests/api/lifecycle_fixture.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -17,7 +17,6 @@
 #include <string>
 
 int parallel_mater_resource_lifecycle_fixture();
-int parallel_mater_interaction_graph_lifecycle_fixture();
 int parallel_mater_fluid_pair_quality_fixture(int argc, char **argv);
 
 namespace parallel_mater::conformance {
@@ -132,6 +131,48 @@ Json capacity_lifecycle_case(
     result["unrelated_resources"] = std::move(unrelated);
     return result;
 }
+
+Json graph_lifecycle_case(const test::GraphLifecycleResult &fixture) {
+    Json families = Json::array();
+    for (const char *family : {"liquid", "rope", "soft-body"})
+        families.push_back(family);
+    Json unrelated = Json::array();
+    for (const char *family : {"smoke", "cloth"}) unrelated.push_back(family);
+    if (fixture.status != 0)
+        return missing_lifecycle_case(
+            "three-family-partial-rollback", std::move(families),
+            std::move(unrelated), fixture.status, "interaction-graph-lifecycle");
+
+    Json observations = Json::array();
+    for (const auto &checkpoint : fixture.observations) {
+        Json resources = Json::array();
+        for (const auto &resource : checkpoint.resources) {
+            Json value = Json::object();
+            value["id"] = resource.id;
+            value["active"] = resource.active;
+            value["generation"] = resource.generation;
+            value["state_sha256"] = resource.state_sha256;
+            resources.push_back(std::move(value));
+        }
+        Json value = Json::object();
+        value["id"] = checkpoint.id;
+        value["outcome"] = checkpoint.outcome;
+        value["active_graph_sha256"] = checkpoint.active_graph_sha256;
+        value["resources"] = std::move(resources);
+        observations.push_back(std::move(value));
+    }
+    Json attempt = Json::object();
+    attempt["fixture"] = "interaction-graph-lifecycle";
+    attempt["status"] = "completed";
+    Json result = Json::object();
+    result["attempt"] = std::move(attempt);
+    result["execution_status"] = "completed";
+    result["families"] = std::move(families);
+    result["id"] = "three-family-partial-rollback";
+    result["observations"] = std::move(observations);
+    result["unrelated_resources"] = std::move(unrelated);
+    return result;
+}
 } // namespace
 
 std::string conformance_rigid_brick_quality(const std::filesystem::path &root) {
@@ -223,8 +264,9 @@ std::string conformance_fluid_pair_quality(
 }
 
 std::string conformance_adverse_lifecycle(const std::filesystem::path &root) {
-    int capacity_stress = 2, graph = 2;
+    int capacity_stress = 2;
     test::CapacityLifecycleResult capacity;
+    test::GraphLifecycleResult graph;
     try {
         capacity_stress = parallel_mater_resource_lifecycle_fixture();
         (void)parallel_mater_capacity_recovery_fixture(&capacity);
@@ -232,18 +274,11 @@ std::string conformance_adverse_lifecycle(const std::filesystem::path &root) {
         capacity.status = 2;
         capacity_stress = 2;
     }
-    try { graph = parallel_mater_interaction_graph_lifecycle_fixture(); }
-    catch (const std::exception &) { graph = 2; }
-    Json graph_families = Json::array();
-    for (const char *family : {"liquid", "rope", "soft-body"})
-        graph_families.push_back(family);
-    Json graph_unrelated = Json::array();
-    for (const char *family : {"smoke", "cloth"}) graph_unrelated.push_back(family);
+    try { (void)parallel_mater_interaction_graph_lifecycle_fixture(&graph); }
+    catch (const std::exception &) { graph.status = 2; }
     Json cases = Json::array();
     cases.push_back(capacity_lifecycle_case(capacity, capacity_stress));
-    cases.push_back(missing_lifecycle_case(
-        "three-family-partial-rollback", std::move(graph_families),
-        std::move(graph_unrelated), graph, "interaction-graph-lifecycle"));
+    cases.push_back(graph_lifecycle_case(graph));
     Json result = Json::object();
     result["schema"] = "parallel-mater-conformance-lifecycle-result/v1";
     result["profile_id"] = "adverse-capacity-three-family-v1";

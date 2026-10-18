@@ -186,15 +186,22 @@ adding `--case capacity-replacement-recovery` or
 `--case three-family-partial-rollback`. Omitting `--case` always requires the
 complete suite. The standalone capacity fixture writes its revisioned input
 with `parallel-mater-capacity-recovery-tests --output <path> --driver-name
-<driver>`; embedded qualification uses the same operation sequence.
+<driver>`. The graph fixture uses the same options on
+`parallel-mater-interaction-graph-lifecycle-tests`; embedded qualification uses
+the same operation sequences and reporting structures.
 
 The result records canonical public resource-state SHA-256 fingerprints and
 harness write ordinals at every required checkpoint; ordinals are never private
-driver handles. Each command completes and state is read before any physics
-step. Replacement must advance the target ordinal and change its observable
-state. `active: false` at the capacity checkpoint means the failed step has no
-valid published target output; it does not infer destruction of driver-private
-storage or forbid retrying the prior input. The unrelated fluid must remain
+driver handles. Each checkpoint completes and state is read before any
+following physics step. Replacement must advance the target ordinal and change
+its observable state. Graph resource fingerprints cover active count, capacity,
+stable liquid identities and public positions canonicalized to 0.1 mm; this
+keeps the lifecycle identity independent of no-force solver roundoff. Active
+graph fingerprints cover every public coupling descriptor field without that
+position canonicalization. `active: false` at the capacity checkpoint means the
+failed step has no valid published target output; it does not infer destruction
+of driver-private storage or forbid retrying the prior input. The unrelated
+fluid must remain
 publicly readable and unchanged before recovery. The mixed graph contains a
 liquid/rope/soft-body component plus an unrelated smoke/cloth edge; a rejected
 partial update must restore the prior complete graph and preserve every
