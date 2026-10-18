@@ -34,6 +34,10 @@ private:
 };
 class RecordingCommandList final : public compute::CommandEncoder {
 public:
+    compute::QueueIdentity queue_identity() const noexcept override {
+        return {compute::NativeApi::mock, 1, 1};
+    }
+    void wait(std::span<const compute::SubmissionPtr>) override {}
     void barrier(std::span<const compute::ResourceDependency>) override {}
     void dispatch(const compute::Arguments &arguments, compute::Extent) override {
         arguments.validate();

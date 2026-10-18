@@ -33,12 +33,19 @@ public:
     void wait() const override { done_ = true; }
     double elapsed_seconds() const override { return 0; }
     void *native_handle() const noexcept override { return nullptr; }
+    compute::QueueIdentity queue_identity() const noexcept override {
+        return {compute::NativeApi::mock, 1, 1};
+    }
 private:
     mutable bool done_{};
 };
 class Encoder final : public compute::CommandEncoder {
 public:
     explicit Encoder(State &state) : state_(state) { ++state_.encoders; }
+    compute::QueueIdentity queue_identity() const noexcept override {
+        return {compute::NativeApi::mock, 1, 1};
+    }
+    void wait(std::span<const compute::SubmissionPtr>) override {}
     void barrier(std::span<const compute::ResourceDependency>) override {}
     void dispatch(const compute::Arguments &, compute::Extent) override {}
     void copy(const compute::BufferPtr &, std::size_t, const compute::BufferPtr &,
@@ -67,11 +74,18 @@ public:
     compute::KernelPtr load_kernel(const std::string &, const std::string &, const std::string &) override {
         throw std::logic_error("mock does not execute shaders");
     }
-    std::unique_ptr<compute::CommandList> commands() override {
-        return queue_.commands(std::make_unique<Encoder>(state_));
+    std::unique_ptr<compute::CommandList> commands(
+        std::span<const compute::SubmissionPtr> prior = {}) override {
+        return queue_.commands(std::make_unique<Encoder>(state_), prior);
     }
-    void *native_device() const noexcept override { return nullptr; }
-    void *native_queue() const noexcept override { return nullptr; }
+    compute::NativeObject native_device() const override {
+        return compute::NativeObject::borrowed(compute::NativeApi::mock,
+            compute::NativeObjectKind::device, reinterpret_cast<std::uintptr_t>(this));
+    }
+    compute::NativeObject native_queue() const override {
+        return compute::NativeObject::borrowed(compute::NativeApi::mock,
+            compute::NativeObjectKind::queue, reinterpret_cast<std::uintptr_t>(&queue_));
+    }
 private:
     State &state_;
     compute::SubmissionQueue queue_;

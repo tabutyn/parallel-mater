@@ -1,7 +1,7 @@
 {
   "id": "F4-07",
   "title": "Specify borrowed device and queue handoff",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F4-02",
     "F3-04"
@@ -18,15 +18,31 @@
     "Borrowed device/queue/buffer handles are never destroyed by the library.",
     "Import/export compatibility, error paths and prior/next completion are explicit."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "4d3de35b-769c-4bdf-9358-099ddd6f2e89",
-    "owner": "codex-windows-sdk",
-    "machine": "windows-gtx1080",
-    "branch": "work/F4-07/windows-gtx1080",
-    "claimed_at": "2026-10-18T17:30:31Z",
-    "heartbeat_at": "2026-10-18T17:30:31Z",
-    "expires_at": "2026-10-19T17:30:31Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: portable solver and architecture suite, 11/11 tests.",
+    "PASS: Windows D3D12 focused integration, 6/6 tests including native GTX 1080 command path.",
+    "PASS: MSVC strict-warning common suite, 4/4 tests; handoff stress, 100/100 executions."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "4d3de35b-769c-4bdf-9358-099ddd6f2e89",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F4-07/windows-gtx1080",
+        "claimed_at": "2026-10-18T17:30:31Z",
+        "heartbeat_at": "2026-10-18T17:30:31Z",
+        "expires_at": "2026-10-19T17:30:31Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T17:48:00Z",
+      "reason": "Defined backend-scoped borrowed native objects and explicit prior/next GPU queue handoff in the common compute boundary.",
+      "evidence": [
+        "PASS: portable solver and architecture suite, 11/11 tests.",
+        "PASS: Windows D3D12 focused integration, 6/6 tests including native GTX 1080 command path.",
+        "PASS: MSVC strict-warning common suite, 4/4 tests; handoff stress, 100/100 executions."
+      ]
+    }
+  ]
 }

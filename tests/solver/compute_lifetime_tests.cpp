@@ -71,6 +71,9 @@ public:
         return 0.125;
     }
     void *native_handle() const noexcept override { return state_.get(); }
+    compute::QueueIdentity queue_identity() const noexcept override {
+        return {compute::NativeApi::mock, 1, 1};
+    }
 private:
     std::shared_ptr<State> state_;
 };
@@ -78,6 +81,10 @@ class Encoder final : public compute::CommandEncoder {
 public:
     explicit Encoder(std::shared_ptr<State> state) : state_(std::move(state)) {}
     ~Encoder() override { ++state_->destroyed; }
+    compute::QueueIdentity queue_identity() const noexcept override {
+        return {compute::NativeApi::mock, 1, 1};
+    }
+    void wait(std::span<const compute::SubmissionPtr>) override {}
     void barrier(std::span<const compute::ResourceDependency>) override {}
     void dispatch(const compute::Arguments &args, compute::Extent) override {
         state_->observe(args.kernel());
