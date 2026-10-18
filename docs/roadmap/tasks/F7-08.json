@@ -1,7 +1,7 @@
 {
   "id": "F7-08",
   "title": "Define common Gallery GPU renderer contract",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-01"
   ],
@@ -16,15 +16,33 @@
     "A mock renderer consumes public native-interoperability records and rejects foreign devices, stale buffers and unsafe ownership transitions.",
     "Shared graphics shader inputs and draw semantics cover every current Gallery domain without embedding physics equations."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "d78e4819-b1f1-46de-be96-f2607654e93b",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F7-08/thomas-laptop",
-    "claimed_at": "2026-10-18T01:18:39Z",
-    "heartbeat_at": "2026-10-18T01:18:39Z",
-    "expires_at": "2026-10-19T01:18:39Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: cmake --build build-desktop-switch -j1; 96 build steps; GCC/Linux host",
+    "PASS: ./build-desktop-switch/parallel-mater-gallery-gpu-renderer-contract-tests; mock rejects foreign devices/targets, stale resource/frame generations, and unsafe/overlapping ownership; tests/gallery/gpu_renderer_contract_tests.cpp",
+    "PASS: slangc gallery.slang vertex+fragment -target spirv -profile glsl_460; Slang 2026.18; explicit Vulkan bindings and shared named draw inputs",
+    "PASS: parallel-mater-gallery-session-contract-tests and frame_timing_headless.py with public Slang Vulkan driver plus validation; NVIDIA GeForce RTX 3050 Ti Laptop GPU; driver 590.44.01"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "d78e4819-b1f1-46de-be96-f2607654e93b",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-08/thomas-laptop",
+        "claimed_at": "2026-10-18T01:18:39Z",
+        "heartbeat_at": "2026-10-18T01:18:39Z",
+        "expires_at": "2026-10-19T01:18:39Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T01:31:18Z",
+      "reason": "Backend-neutral Gallery GPU renderer contract, common draw semantics, Metal consumer, and hostile mock coverage implemented",
+      "evidence": [
+        "PASS: cmake --build build-desktop-switch -j1; 96 build steps; GCC/Linux host",
+        "PASS: ./build-desktop-switch/parallel-mater-gallery-gpu-renderer-contract-tests; mock rejects foreign devices/targets, stale resource/frame generations, and unsafe/overlapping ownership; tests/gallery/gpu_renderer_contract_tests.cpp",
+        "PASS: slangc gallery.slang vertex+fragment -target spirv -profile glsl_460; Slang 2026.18; explicit Vulkan bindings and shared named draw inputs",
+        "PASS: parallel-mater-gallery-session-contract-tests and frame_timing_headless.py with public Slang Vulkan driver plus validation; NVIDIA GeForce RTX 3050 Ti Laptop GPU; driver 590.44.01"
+      ]
+    }
+  ]
 }
