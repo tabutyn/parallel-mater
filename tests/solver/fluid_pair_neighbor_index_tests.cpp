@@ -1091,5 +1091,5 @@ int main() {
     test_viscosity_matches_combined_population();
     test_viscosity_analytic_and_isolated_limits();
     test_viscosity_timestep_and_population_mass_ratio_sweeps();
-    std::puts("PASS: heterogeneous fluid pair sampling and balanced force exchange");
+    std::puts("PASS: heterogeneous fluid sampling and balanced pair operators");
 }
