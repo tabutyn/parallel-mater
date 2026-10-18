@@ -240,6 +240,15 @@ capture (maximum absolute difference about 0.000256 versus about 0.0000102
 allowed). CPU `cloth-core` produced unsupported/exit 77. No tolerance or golden
 was changed by this separation.
 
+The tracked [F5-04 isolation](../../docs/roadmap/evidence/F5-04-rigid-direct-divergence.json)
+reproduces that result at its exact `603fee5` revision and retains same-revision
+CPU/CUDA outputs for all 61 frames. Frame 20 is identical and contact-free; the
+first contract failure appears on frame 21, in the first kinematic-box contact
+submission, including dynamic-box angular velocity. Current `3acb413` CPU and
+CUDA outputs pass the unchanged every-frame comparison, while both drift from
+the old CUDA golden. F5-17 therefore tracks independent adjudication of the
+shared response/reference instead of treating the remaining issue as CPU-only.
+
 Subsequent [Windows GTX 1080 evidence](evidence/windows-gtx1080-physics-2026-10-16.json)
 resolves the ten failing comparisons: the same-build SDK runner passes all 17
 selected CUDA/D3D12 cases with zero unsupported results. Independent eight-brick,

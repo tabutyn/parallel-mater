@@ -178,7 +178,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-01](roadmap/tasks/F5-01.json) | Map advertised modes to conformance cases | done | F2-02 | — |
 | [F5-02](roadmap/tasks/F5-02.json) | Add vendor-neutral conservation and stability cases | done | — | — |
 | [F5-03](roadmap/tasks/F5-03.json) | Add capacity and three-family corpus cases | done | F1-06, F2-04 | — |
-| [F5-04](roadmap/tasks/F5-04.json) | Isolate CPU rigid-direct divergence | leased | — | codex-windows-sdk / windows-gtx1080 / 2026-10-19T07:51:39Z |
+| [F5-04](roadmap/tasks/F5-04.json) | Isolate CPU rigid-direct divergence | done | — | — |
 | [F5-05](roadmap/tasks/F5-05.json) | Isolate shared brick penetration failure | done | — | — |
 | [F5-06](roadmap/tasks/F5-06.json) | Classify CUDA/D3D12 comparison failures | done | — | — |
 | [F5-07](roadmap/tasks/F5-07.json) | Gate performance on physical quality | done | F5-01, F5-02 | — |
@@ -191,7 +191,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-14](roadmap/tasks/F5-14.json) | Publish current iPadOS Metal driver evidence | done | F5-02, F5-03, F5-05, F5-06, F5-10, F5-11, F5-13 | — |
 | [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
 | [F5-16](roadmap/tasks/F5-16.json) | Publish current Linux driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
-| [F5-17](roadmap/tasks/F5-17.json) | Adjudicate rigid-direct reference drift | waiting on dependencies | F5-04, F5-10 | — |
+| [F5-17](roadmap/tasks/F5-17.json) | Adjudicate rigid-direct reference drift | ready | F5-04, F5-10 | — |
 | [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17 | — |
 
 ### F6. SDK releases and repository ownership

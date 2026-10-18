@@ -44,6 +44,10 @@
     "configuration": "Release",
     "cuda_architecture": "61"
   },
+  "portability": {
+    "raw_capture_hashing": "byte-exact SHA-256 with repository-enforced LF line endings",
+    "gitattributes": "/docs/roadmap/evidence/F5-04-rigid-direct-*.json text eol=lf"
+  },
   "historical_same_revision_capture": {
     "cpu": {
       "raw": "docs/roadmap/evidence/F5-04-rigid-direct-603fee-cpu.json",
