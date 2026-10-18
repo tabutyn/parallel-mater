@@ -310,8 +310,8 @@ def _evaluate_penetration(profile: dict[str, Any], result: dict[str, Any],
         failures.append(Failure("$.fixture", "expected an object", actual))
         actual = {}
 
-    exact_fields = ("id", "scene", "body_count", "frames", "substeps",
-                    "timestep_seconds", "oracle")
+    exact_fields = ("id", "scene", "scene_sha256", "body_count", "frames",
+                    "substeps", "timestep_seconds", "oracle")
     for field in exact_fields:
         if actual.get(field) != definition.get(field):
             failures.append(Failure(f"$.fixture.{field}",
@@ -350,6 +350,88 @@ def _evaluate_penetration(profile: dict[str, Any], result: dict[str, Any],
         "passed": not failures,
         "fixture_count": 1 if actual else 0,
         "sample_count": 1 if penetration is not None else 0,
+        "failure_count": len(failures),
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
+def _evaluate_rigid_attachment(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definition = profile.get("fixture")
+    actual = result.get("fixture")
+    if not isinstance(definition, dict):
+        failures.append(Failure("$.profile.fixture", "expected an object", definition))
+        definition = {}
+    if not isinstance(actual, dict):
+        failures.append(Failure("$.fixture", "expected an object", actual))
+        actual = {}
+
+    exact_fields = ("id", "scene", "scene_sha256", "body_count",
+                    "constraint_count", "frames", "substeps",
+                    "timestep_seconds", "oracle")
+    for field in exact_fields:
+        if actual.get(field) != definition.get(field):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "fixture setting does not match profile",
+                                    actual.get(field), definition.get(field)))
+
+    maximum_metrics = (
+        "maximum_hinge_anchor_error_m",
+        "maximum_hinge_axis_error",
+        "maximum_slider_sideways_drift_m",
+        "maximum_slider_axis_error",
+        "maximum_slider_travel_m",
+    )
+    measurements: dict[str, float] = {}
+    tolerances = profile.get("tolerances", {})
+    if not isinstance(tolerances, dict):
+        failures.append(Failure("$.profile.tolerances", "expected an object",
+                                tolerances))
+        tolerances = {}
+    for name in maximum_metrics:
+        value = _scalar(actual.get(name), f"$.fixture.{name}", failures)
+        limit = tolerances.get(name)
+        if not _number(limit) or float(limit) < 0.0:
+            failures.append(Failure(f"$.profile.tolerances.{name}",
+                                    "expected a nonnegative finite limit", limit))
+        elif value is not None:
+            measurements[name] = value
+            if value < 0.0:
+                failures.append(Failure(f"$.fixture.{name}",
+                                        "attachment measurement cannot be negative",
+                                        value, 0.0))
+            elif value >= float(limit):
+                failures.append(Failure(f"$.fixture.{name}",
+                                        "attachment maximum reaches or exceeds profile",
+                                        value, float(limit)))
+
+    travel = measurements.get("maximum_slider_travel_m")
+    minimum_travel = tolerances.get("minimum_slider_travel_m")
+    if not _number(minimum_travel) or float(minimum_travel) < 0.0:
+        failures.append(Failure(
+            "$.profile.tolerances.minimum_slider_travel_m",
+            "expected a nonnegative finite limit", minimum_travel))
+    elif travel is not None and travel <= float(minimum_travel):
+        failures.append(Failure("$.fixture.maximum_slider_travel_m",
+                                "slider travel does not exceed profile minimum",
+                                travel, float(minimum_travel)))
+
+    for field in ("constraints_enabled", "constraints_unbroken"):
+        if actual.get(field) is not True:
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "all authored constraints must remain active",
+                                    actual.get(field), True))
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": 1 if actual else 0,
+        "sample_count": len(measurements),
         "failure_count": len(failures),
         "failures": [asdict(failure) for failure in failures],
     }
@@ -698,6 +780,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
 
     if evaluation == "maximum_pairwise_penetration":
         return _evaluate_penetration(profile, result, expected_hash, driver, failures)
+    if evaluation == "rigid_attachment":
+        return _evaluate_rigid_attachment(
+            profile, result, expected_hash, driver, failures)
     if evaluation != "system_exchange":
         failures.append(Failure("$.profile.evaluation",
                                 "unsupported quality evaluation", evaluation))

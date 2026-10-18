@@ -32,6 +32,7 @@
     "examples/assets/RopeCloth.glb": "2f4218e89236187421fd8c35c6d53088ee0d0e0ecbd83cb8afde6350dfeae645",
     "examples/assets/RopeFluid.glb": "b4ee8129d9a660ba004075cc0edaf03f1f2ceec79f07ebcf98037b9da90a476d",
     "examples/assets/RopeSoftbody.glb": "9d625cd29ae031f9e62d149db1f3aea9d274ae0d5ec4d1a3c96f5d1a39e0d0fe",
+    "examples/assets/RigidBody.glb": "0167a7f3f91ca57703e74996c9c99051c0ed8793fd50aa59adaab3c304b7dd09",
     "examples/assets/Smoke.glb": "0b2d2a482c2c34f219e9656fea907fd522821b37feb1960a49f670a285aa8ad8",
     "examples/assets/SmokeCloth.glb": "6256953f47d53504bc3c90dcef2f63447439e989b9eb23a0259f7c35dee8c79d",
     "examples/assets/SmokeRope.glb": "09687092f7e5abf234f4c041fd2f5e02a452f4db7ce531c590f7ff7c539d750e",
@@ -47,14 +48,16 @@
   },
   "quality_profile_sha256": {
     "conformance/v1/quality/core-conservation-v1.json": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
-    "conformance/v1/quality/rigid-brick-penetration-v1.json": "59f42d2fc20434552f053aaea3df08c9a12165763e9c0d33d7bcfc693d462659"
+    "conformance/v1/quality/rigid-attachment-v1.json": "570add4a6e74539f46513a5baa8168bd2b81dd2ef95ff2a7f6bbb407f3afd108",
+    "conformance/v1/quality/rigid-brick-penetration-v1.json": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da",
+    "conformance/v1/quality/rigid-kinematic-sweep-v1.json": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc"
   },
   "qualification_profile_sha256": {
-    "conformance/v1/qualification/capability-obligations-v1.json": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e"
+    "conformance/v1/qualification/capability-obligations-v1.json": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625"
   },
   "evidence_index_sha256": {
-    "conformance/v1/evidence/evidence-sources-v1.json": "c6dacf7d7dbbb1512522c1138d50b0dc96c0a493788f039d996edc64200f560a",
-    "conformance/v1/evidence/index-v1.json": "730a61d3200b0d785ef7612d10e7267baddef2adba12929420d442138b286b46"
+    "conformance/v1/evidence/evidence-sources-v1.json": "63155d9f79a35104d39979f2492963e826f473ae44eca8d08d724519a43f65d5",
+    "conformance/v1/evidence/index-v1.json": "bf1a223dbfc81fcc19184b8cd0027c308bfb2be33ecede34bea249a5d6c2a647"
   },
   "quality_result_schema": "parallel-mater-conformance-quality-result/v1",
   "result_schema": "parallel-mater-conformance-result/v1",

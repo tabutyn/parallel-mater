@@ -1,0 +1,30 @@
+{
+  "schema": "parallel-mater-conformance-quality-profile/v1",
+  "id": "rigid-attachment-v1",
+  "title": "Rigid authored hinge and slider attachment retention",
+  "evaluation": "rigid_attachment",
+  "sources": {
+    "fixture": "tests/gallery/rigid_constraint_command_tests.cpp: accepted ConstraintHinge.glb settling regression",
+    "oracle": "Authored local frames are transformed from public rigid outputs; constraint enabled/broken state comes from public output.",
+    "limits": "tests/gallery/rigid_constraint_command_tests.cpp: unchanged accepted-fixture attachment and travel gates"
+  },
+  "fixture": {
+    "id": "hinge-slider-settling",
+    "scene": "ConstraintHinge.glb",
+    "scene_sha256": "db5447b00a33d29990e2f0d441d154c0509dee99689fc940261c1c92c2fe2a20",
+    "body_count": 6,
+    "constraint_count": 5,
+    "frames": 2400,
+    "substeps": 4,
+    "timestep_seconds": 0.016666666666666666,
+    "oracle": "authored-frame-public-state-invariants"
+  },
+  "tolerances": {
+    "maximum_hinge_anchor_error_m": 0.002,
+    "maximum_hinge_axis_error": 0.014,
+    "maximum_slider_sideways_drift_m": 0.002,
+    "maximum_slider_axis_error": 0.001,
+    "minimum_slider_travel_m": 0.01,
+    "maximum_slider_travel_m": 1.0
+  }
+}
