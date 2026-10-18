@@ -23,7 +23,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -72,7 +72,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -121,7 +121,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -215,7 +215,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -309,7 +309,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -403,7 +403,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -501,7 +501,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -595,7 +595,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -693,7 +693,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -787,7 +787,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -881,7 +881,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -975,7 +975,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -1073,7 +1073,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -1171,7 +1171,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -1321,7 +1321,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -1471,7 +1471,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -1621,7 +1621,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -1719,7 +1719,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -1813,7 +1813,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -1907,7 +1907,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -2005,7 +2005,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -2099,7 +2099,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -2193,7 +2193,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -2287,7 +2287,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -2381,7 +2381,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -2475,7 +2475,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -2569,7 +2569,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -2667,7 +2667,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -2765,7 +2765,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -2863,7 +2863,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -2961,7 +2961,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -3059,7 +3059,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -3157,7 +3157,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -3251,7 +3251,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -3345,7 +3345,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -3439,7 +3439,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -3533,7 +3533,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -3627,7 +3627,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -3721,7 +3721,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -3815,7 +3815,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -3909,7 +3909,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -4003,7 +4003,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -4097,7 +4097,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -4191,7 +4191,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -4285,7 +4285,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -4379,7 +4379,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -4477,7 +4477,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -4575,7 +4575,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -4669,7 +4669,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -4763,7 +4763,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -4857,7 +4857,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -9811,7 +9811,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -9858,7 +9858,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -9905,7 +9905,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -9952,7 +9952,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10001,7 +10001,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10048,7 +10048,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10097,7 +10097,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10144,7 +10144,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10191,7 +10191,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10238,7 +10238,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10287,7 +10287,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10336,7 +10336,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10385,7 +10385,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10432,7 +10432,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10479,7 +10479,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10528,7 +10528,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10575,7 +10575,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10622,7 +10622,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10669,7 +10669,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10716,7 +10716,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10763,7 +10763,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10810,7 +10810,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10859,7 +10859,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10908,7 +10908,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -10957,7 +10957,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11006,7 +11006,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11055,7 +11055,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11104,7 +11104,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11151,7 +11151,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11198,7 +11198,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11245,7 +11245,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11292,7 +11292,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11339,7 +11339,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11386,7 +11386,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11433,7 +11433,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11480,7 +11480,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11527,7 +11527,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11574,7 +11574,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11621,7 +11621,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11668,7 +11668,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11715,7 +11715,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11764,7 +11764,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11813,7 +11813,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11860,7 +11860,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11907,7 +11907,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -11954,7 +11954,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "execution": {
           "contracts": [
@@ -12067,12 +12067,48 @@
       "report": "linux-thomas-laptop-slang-cpu-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cpu",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[0].compilation",
+      "report": "linux-thomas-laptop-slang-cpu-39e0ea6"
+    },
+    {
       "actual": "No vendor-neutral rigid attachment quality case is registered.",
       "driver": "slang-cpu",
       "expected": null,
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[1].analytic_invariants",
+      "report": "linux-thomas-laptop-slang-cpu-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cpu",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[1].compilation",
+      "report": "linux-thomas-laptop-slang-cpu-39e0ea6"
+    },
+    {
+      "actual": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
+      "driver": "slang-cpu",
+      "expected": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[0].contract_sha256",
+      "report": "linux-thomas-laptop-slang-cpu-39e0ea6"
+    },
+    {
+      "actual": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
+      "driver": "slang-cpu",
+      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
       "report": "linux-thomas-laptop-slang-cpu-39e0ea6"
     },
     {
@@ -12197,6 +12233,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[0].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[0].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -12234,6 +12279,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[10].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[10].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -12287,6 +12341,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[11].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[11].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -12323,6 +12386,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[12].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[12].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -12342,6 +12414,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[13].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[13].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -12395,6 +12476,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[14].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[14].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -12432,6 +12522,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[15].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[15].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -12495,6 +12594,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[16].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[16].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -12575,6 +12683,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[17].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[17].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -12638,6 +12755,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[18].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[18].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -12693,6 +12819,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[19].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[19].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -12773,6 +12908,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[1].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[1].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -12810,6 +12954,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[20].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[20].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -12881,6 +13034,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[21].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[21].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -12936,6 +13098,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[22].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[22].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -13007,6 +13178,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[23].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[23].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13062,6 +13242,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[24].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[24].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -13133,6 +13322,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[25].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[25].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13170,6 +13368,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[26].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[26].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -13241,6 +13448,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[27].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[27].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13286,6 +13502,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[28].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[28].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13323,6 +13548,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[29].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[29].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -13385,6 +13619,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[2].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[2].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13430,6 +13673,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[30].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[30].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13467,6 +13719,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[31].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[31].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -13530,6 +13791,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[32].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[32].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -13610,6 +13880,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[33].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[33].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13682,6 +13961,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[34].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[34].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13719,6 +14007,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[35].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[35].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -13772,6 +14069,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[36].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[36].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13817,6 +14123,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[37].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[37].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13854,6 +14169,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[38].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[38].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -13925,6 +14249,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[39].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[39].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -13944,6 +14277,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[39].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[3].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -14015,6 +14357,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[40].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[40].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14052,6 +14403,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[41].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[41].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -14105,6 +14465,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[42].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[42].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14142,6 +14511,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[43].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[43].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -14195,6 +14573,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[44].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[44].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14232,6 +14619,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[45].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[45].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -14285,6 +14681,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[46].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[46].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14322,6 +14727,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[47].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[47].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -14375,6 +14789,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[48].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[48].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14394,6 +14817,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[48].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[4].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -14439,6 +14871,15 @@
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[4].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[5].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -14510,6 +14951,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[6].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[6].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14547,6 +14997,15 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[7].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[7].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -14600,6 +15059,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[8].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[8].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14645,6 +15113,15 @@
       "kind": "qualification_failure",
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[9].compilation",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[9].compilation",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
@@ -14668,16 +15145,25 @@
     {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-cuda",
-      "expected": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
+      "expected": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
       "report": "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17"
     },
     {
+      "actual": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
+      "driver": "slang-cuda",
+      "expected": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[0].contract_sha256",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-cuda",
-      "expected": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
+      "expected": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[2].contract_sha256",
@@ -14686,16 +15172,25 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
+      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17"
     },
     {
+      "actual": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
+      "driver": "slang-cuda",
+      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "linux-rtx3050ti-slang-cuda-39e0ea6"
+    },
+    {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
+      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15080,7 +15575,7 @@
     {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-d3d12",
-      "expected": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
+      "expected": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
@@ -15089,7 +15584,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
+      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -17695,7 +18190,7 @@
     {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-metal",
-      "expected": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
+      "expected": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
@@ -17704,7 +18199,7 @@
     {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-metal",
-      "expected": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
+      "expected": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
@@ -17713,7 +18208,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
+      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -17722,7 +18217,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
+      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -17735,6 +18230,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[0].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[0].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -17756,6 +18260,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[10].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact fluid-cloth adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -17771,6 +18284,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[11].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[11].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -17792,6 +18314,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[12].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "missing",
       "driver": "slang-vulkan",
       "expected": "passed",
@@ -17807,6 +18338,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[13].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[13].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -17828,6 +18368,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[14].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -17843,6 +18392,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[15].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[15].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -17864,6 +18422,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[16].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -17879,6 +18446,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[17].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[17].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -17900,6 +18476,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[18].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -17915,6 +18500,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[19].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[19].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -17936,6 +18530,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[1].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "missing",
       "driver": "slang-vulkan",
       "expected": "passed",
@@ -17951,6 +18554,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[20].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[20].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -17981,6 +18593,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[21].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact fluid-rigid adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -18008,6 +18629,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[22].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact cloth-soft-body adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -18023,6 +18653,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[23].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[23].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -18044,6 +18683,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[24].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "missing",
       "driver": "slang-vulkan",
       "expected": "passed",
@@ -18059,6 +18707,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[25].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[25].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -18080,6 +18737,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[26].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -18098,6 +18764,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[27].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -18113,6 +18788,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[28].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[28].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -18143,6 +18827,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[29].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "missing",
       "driver": "slang-vulkan",
       "expected": "passed",
@@ -18170,6 +18863,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[2].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "missing",
       "driver": "slang-vulkan",
       "expected": "passed",
@@ -18185,6 +18887,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[30].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[30].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -18215,6 +18926,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[31].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact soft-body-smoke adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -18230,6 +18950,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[32].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[32].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -18251,6 +18980,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[33].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact soft-body-smoke adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -18269,6 +19007,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[34].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact soft-body-smoke adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -18284,6 +19031,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[35].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[35].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -18314,6 +19070,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[36].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact rope-smoke adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -18329,6 +19094,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[37].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[37].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -18350,6 +19124,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[38].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact rope-smoke adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -18365,6 +19148,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[39].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[39].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -18386,6 +19178,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[3].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "failed",
       "driver": "slang-vulkan",
       "expected": "passed",
@@ -18401,6 +19202,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[40].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[40].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -18422,6 +19232,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[41].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "failed",
       "driver": "slang-vulkan",
       "expected": "passed",
@@ -18437,6 +19256,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[42].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[42].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -18458,6 +19286,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[43].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact smoke-rigid adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -18473,6 +19310,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[44].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[44].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -18494,6 +19340,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[45].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact smoke-rigid adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -18509,6 +19364,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[4].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[4].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -18530,6 +19394,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[5].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact smoke self-system replacement/capacity case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -18545,6 +19418,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[6].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[6].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
@@ -18566,6 +19448,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[7].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No exact smoke self-system replacement/capacity case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -18584,6 +19475,15 @@
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     },
     {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[8].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
       "actual": "No vendor-neutral rigid attachment quality case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -18591,10 +19491,37 @@
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[9].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "registry:interaction-capabilities",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[9].compilation",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7",
+      "driver": "slang-vulkan",
+      "expected": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[0].contract_sha256",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
+    },
+    {
+      "actual": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
+      "driver": "slang-vulkan",
+      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "linux-rtx3050ti-slang-vulkan-39e0ea6"
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "b70181bdd6bb90ec497eaf3e3b4e25bca2aeec2d86d5a9c9f87a0a7d8d117ffe",
+  "obligations_sha256": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
   "qualification_complete": true,
   "qualified_capability_count": 0,
   "report_count": 10,
@@ -18671,7 +19598,7 @@
         "name": "slang-cuda",
         "version": "0.2.0+39e0ea6"
       },
-      "failure_count": 103,
+      "failure_count": 154,
       "id": "linux-rtx3050ti-slang-cuda-39e0ea6",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-39e0ea6-qualification.json",
@@ -18700,7 +19627,7 @@
         "name": "slang-vulkan",
         "version": "0.2.0+39e0ea6"
       },
-      "failure_count": 96,
+      "failure_count": 144,
       "id": "linux-rtx3050ti-slang-vulkan-39e0ea6",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-39e0ea6-qualification.json",
@@ -18729,7 +19656,7 @@
         "name": "slang-cpu",
         "version": "0.2.0+39e0ea6"
       },
-      "failure_count": 2,
+      "failure_count": 6,
       "id": "linux-thomas-laptop-slang-cpu-39e0ea6",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-39e0ea6-qualification.json",
@@ -18903,7 +19830,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "a4650d60af118ef2972abc641d7ed33607e924846cb4878a7e9ac822dce071bb",
+  "sources_sha256": "8341b30c01ca92c9b476b2ebe3f3e20ad97ec4ee76ca9a56c4ed827de77e66ce",
   "valid": true,
   "validation_failures": []
 }
