@@ -47,6 +47,7 @@
     {"id": "quality:rigid-brick-penetration-v1", "path": "conformance/v1/quality/rigid-brick-penetration-v1.json", "sha256": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da"},
     {"id": "quality:rigid-attachment-v1", "path": "conformance/v1/quality/rigid-attachment-v1.json", "sha256": "570add4a6e74539f46513a5baa8168bd2b81dd2ef95ff2a7f6bbb407f3afd108"},
     {"id": "quality:fluid-self-contact-v1", "path": "conformance/v1/quality/fluid-self-contact-v1.json", "sha256": "21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2"},
+    {"id": "quality:fluid-self-pressure-v1", "path": "conformance/v1/quality/fluid-self-pressure-v1.json", "sha256": "4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b"},
     {"id": "quality:core-conservation-stability-v1#equal-material-pressure-contact", "path": "conformance/v1/quality/core-conservation-v1.json", "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"},
     {"id": "quality:core-conservation-stability-v1#equal-material-viscosity", "path": "conformance/v1/quality/core-conservation-v1.json", "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"},
     {"id": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery", "path": "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json", "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"},
@@ -64,11 +65,21 @@
       "missing": {}
     },
     {
-      "id": "fluid-self-pressure-viscosity",
-      "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SELF"], "mode": ["PRESSURE", "VISCOSITY"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "id": "fluid-self-pressure",
+      "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SELF"], "mode": ["PRESSURE"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:fluid-lifecycle",
+      "required": {
+        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"],
+        "analytic_invariants": ["quality:fluid-self-pressure-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "fluid-self-viscosity",
+      "match": {"first_family": ["FLUID"], "second_family": ["FLUID"], "scope": ["SELF"], "mode": ["VISCOSITY"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:fluid-lifecycle",
       "required": {"lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"]},
-      "missing": {"analytic_invariants": "No vendor-neutral fluid self pressure or viscosity quality case is registered."}
+      "missing": {"analytic_invariants": "No vendor-neutral fluid self viscosity quality case is registered."}
     },
     {
       "id": "fluid-pair-equal-pressure-contact",

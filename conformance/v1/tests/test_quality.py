@@ -23,6 +23,8 @@ ATTACHMENT_PROFILE_PATH = ROOT / "quality" / "rigid-attachment-v1.json"
 SWEEP_PROFILE_PATH = ROOT / "quality" / "rigid-kinematic-sweep-v1.json"
 FLUID_SELF_CONTACT_PROFILE_PATH = (
     ROOT / "quality" / "fluid-self-contact-v1.json")
+FLUID_SELF_PRESSURE_PROFILE_PATH = (
+    ROOT / "quality" / "fluid-self-pressure-v1.json")
 
 
 def particle(identity: int) -> dict:
@@ -383,6 +385,102 @@ class FluidSelfContactQualityTests(unittest.TestCase):
         result["fixture"]["final_particles"][1]["velocity_m_s"][0] = -1.1
         self.assert_rejected(result, "crossed stable-ID ordering")
 
+        result = self.valid_result()
+        result["fixture"]["final_particles"][0]["position_m"][0] = float("nan")
+        self.assert_rejected(result, "expected three finite components")
+
+        result = self.valid_result()
+        result["execution_status"] = "failed"
+        self.assert_rejected(result, "must be completed")
+
+
+class FluidSelfPressureQualityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.profile = json.loads(
+            FLUID_SELF_PRESSURE_PROFILE_PATH.read_text(encoding="utf-8"))
+        cls.digest = quality.profile_sha256(FLUID_SELF_PRESSURE_PROFILE_PATH)
+
+    def valid_result(self) -> dict:
+        fixture = copy.deepcopy(self.profile["fixture"])
+        fixture["final_particles"] = [
+            {
+                "stable_id": 0,
+                "position_m": [-0.086, 0.0, 0.0],
+                "velocity_m_s": [-0.9, 0.0, 0.0],
+            },
+            {
+                "stable_id": 1,
+                "position_m": [0.086, 0.0, 0.0],
+                "velocity_m_s": [0.9, 0.0, 0.0],
+            },
+        ]
+        return {
+            "schema": quality.RESULT_SCHEMA,
+            "profile_id": self.profile["id"],
+            "profile_sha256": self.digest,
+            "execution_status": "completed",
+            "driver": {"name": "test-driver", "device": "test-device"},
+            "fixture": fixture,
+        }
+
+    def evaluate(self, result: dict) -> dict:
+        return quality.evaluate(self.profile, result, self.digest)
+
+    def assert_rejected(self, result: dict, message: str) -> None:
+        report = self.evaluate(result)
+        self.assertFalse(report["passed"])
+        self.assertTrue(any(message in failure["message"]
+                            for failure in report["failures"]), report)
+
+    def test_public_state_density_relaxation_and_balance_pass(self):
+        report = self.evaluate(self.valid_result())
+        self.assertTrue(report["passed"], report)
+        observations = report["observations"]
+        self.assertGreater(observations["initial_density_kg_m3"], 1000.0)
+        self.assertLess(observations["final_density_relative_error"],
+                        observations["initial_density_relative_error"])
+        self.assertGreater(observations[
+            "density_error_reduction_fraction"], 0.85)
+        self.assertEqual(observations["net_internal_impulse_kg_m_s"], 0.0)
+
+    def test_fixture_inputs_estimator_and_stable_ids_are_exact(self):
+        result = self.valid_result()
+        result["fixture"]["density_estimator"] = "driver-private-density"
+        self.assert_rejected(result, "fixture setting does not match profile")
+
+        result = self.valid_result()
+        result["fixture"]["initial_particles"][0]["position_m"][0] = -0.06
+        self.assert_rejected(result, "initial public state differs from profile")
+
+        result = self.valid_result()
+        result["fixture"]["final_particles"][1]["stable_id"] = 0
+        self.assert_rejected(result, "stable ID must be a unique integer")
+
+    def test_static_or_wrong_direction_density_response_fails(self):
+        result = self.valid_result()
+        result["fixture"]["final_particles"] = copy.deepcopy(
+            result["fixture"]["initial_particles"])
+        self.assert_rejected(result, "did not move density sufficiently")
+        self.assert_rejected(result, "response is not outward")
+
+        result = self.valid_result()
+        result["fixture"]["final_particles"][0]["position_m"][0] = -0.045
+        result["fixture"]["final_particles"][1]["position_m"][0] = 0.045
+        self.assert_rejected(result, "final density remains too far from rest")
+        self.assert_rejected(result, "did not move density sufficiently")
+
+    def test_unbalanced_or_asymmetric_response_fails(self):
+        result = self.valid_result()
+        result["fixture"]["final_particles"][1]["velocity_m_s"][0] = 1.0
+        self.assert_rejected(result, "net internal impulse exceeds profile")
+
+        result = self.valid_result()
+        result["fixture"]["final_particles"][1]["position_m"][1] = 0.001
+        self.assert_rejected(result, "center-of-mass drift exceeds profile")
+        self.assert_rejected(result, "transverse symmetry leakage")
+
+    def test_nonfinite_and_incomplete_results_fail(self):
         result = self.valid_result()
         result["fixture"]["final_particles"][0]["position_m"][0] = float("nan")
         self.assert_rejected(result, "expected three finite components")
