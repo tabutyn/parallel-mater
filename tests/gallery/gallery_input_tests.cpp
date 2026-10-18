@@ -62,24 +62,24 @@ int main() {
                 camera.right.empty(),
             "Scenes without directional actions must not expose action buttons");
     require(gallery::gallery_primary_action_label(
-                gallery::GalleryPrimaryAction::none, false, 0.0F).empty(),
+                gallery::GalleryPrimaryAction::none, false, false).empty(),
             "Scenes without a primary action must not expose one");
     require(gallery::gallery_primary_action_label(
                 gallery::GalleryPrimaryAction::release_restore_constraints,
-                false, 0.0F) == "Release",
+                false, false) == "Release",
             "Constraint action must initially offer release");
     require(gallery::gallery_primary_action_label(
                 gallery::GalleryPrimaryAction::release_restore_constraints,
-                true, 0.0F) == "Restore",
+                true, false) == "Restore",
             "Released constraints must offer restore");
     require(gallery::gallery_primary_action_label(
                 gallery::GalleryPrimaryAction::toggle_dump_bed,
-                false, 0.0F) == "Raise bed",
-            "Lowered dump bed must offer raise");
+                false, false) == "Raise bed",
+            "Lowered dump target must offer raise");
     require(gallery::gallery_primary_action_label(
                 gallery::GalleryPrimaryAction::toggle_dump_bed,
-                false, 0.1F) == "Lower bed",
-            "Raised dump bed must offer lower");
+                false, true) == "Lower bed",
+            "Raised dump target must offer lower before the next simulation step");
 
     require(gallery::gallery_backend_from_name("vulkan") == PM_NATIVE_BACKEND_VULKAN,
             "Vulkan backend option must parse");

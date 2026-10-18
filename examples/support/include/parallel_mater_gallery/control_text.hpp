@@ -40,12 +40,12 @@ gallery_directional_control_text(GalleryControlPolicy policy) noexcept {
 
 [[nodiscard]] constexpr std::string_view gallery_primary_action_label(
     GalleryPrimaryAction primary, bool constraints_released,
-    float dump_bed_angle) noexcept {
+    bool dump_bed_raised) noexcept {
     switch (primary) {
     case GalleryPrimaryAction::release_restore_constraints:
         return constraints_released ? "Restore" : "Release";
     case GalleryPrimaryAction::toggle_dump_bed:
-        return dump_bed_angle > 0.05F ? "Lower bed" : "Raise bed";
+        return dump_bed_raised ? "Lower bed" : "Raise bed";
     case GalleryPrimaryAction::none:
         return {};
     }
@@ -56,7 +56,7 @@ template <typename ControlState>
 [[nodiscard]] constexpr std::string_view gallery_primary_action_label(
     const ControlState &controls) noexcept {
     return gallery_primary_action_label(controls.primary,
-        controls.constraints_released, controls.dump_bed_angle);
+        controls.constraints_released, controls.dump_bed_raised);
 }
 
 } // namespace parallel_mater::gallery
