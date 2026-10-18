@@ -1,7 +1,7 @@
 {
   "id": "P1-06",
   "title": "Exchange miscible pressure and contact",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "P1-05"
   ],
@@ -17,6 +17,14 @@
     "Pressure/contact fixtures cover density, radius and particle-volume ratios without an ownership seam."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "a70d9e39-71ad-43a3-898b-9dbbb6ccda5a",
+    "owner": "codex-fluid-pressure",
+    "machine": "thomas-laptop",
+    "branch": "work/P1-06/thomas-laptop",
+    "claimed_at": "2026-10-18T22:04:43Z",
+    "heartbeat_at": "2026-10-18T22:04:43Z",
+    "expires_at": "2026-10-19T22:04:43Z"
+  },
   "history": []
 }
