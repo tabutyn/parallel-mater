@@ -19,7 +19,11 @@ namespace parallel_mater::loader {
 
 struct Driver;
 struct Layer;
-using LayerChain = std::vector<std::shared_ptr<Layer>>;
+struct LayerChain {
+    std::vector<std::shared_ptr<Layer>> entries;
+    PmValidationDiagnosticFn diagnostic{};
+    void *diagnostic_user{};
+};
 struct LoaderDispatch final {};
 extern const LoaderDispatch loader_dispatch;
 
@@ -30,6 +34,8 @@ struct Route {
     void *native{};
     void *context{};
     Scope scope{Scope::device};
+    PmValidationObjectType object_type{PM_VALIDATION_OBJECT_UNKNOWN};
+    const void *object{};
     std::shared_ptr<LayerChain> layers;
 
     explicit operator bool() const noexcept {
@@ -80,7 +86,9 @@ struct Driver {
 };
 
 std::vector<std::shared_ptr<Driver>> discover_drivers();
-std::shared_ptr<LayerChain> load_validation_layers(bool enabled);
+std::shared_ptr<LayerChain> load_validation_layers(
+    bool enabled, PmValidationDiagnosticFn diagnostic = nullptr,
+    void *diagnostic_user = nullptr);
 PFN_pmVoidFunction lookup_loader_proc(const char *name) noexcept;
 PmResult pre_call(const Route &route, const char *command,
                   std::uint32_t size, const void *arguments) noexcept;

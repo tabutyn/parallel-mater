@@ -3,7 +3,7 @@
 #include <parallel_mater/pm_layer_args.h>
 
 #include <algorithm>
-#include <cstdio>
+#include <atomic>
 #include <cstring>
 #include <map>
 #include <mutex>
@@ -78,6 +78,34 @@ std::unordered_map<std::uint64_t, Submission> submissions;
 std::unordered_map<PmSemaphore, Semaphore> semaphores;
 std::uint64_t next_submission = 1U;
 bool tracking_available = true;
+#if defined(PARALLEL_MATER_VALIDATION_TESTING)
+std::atomic_bool fail_next_tracking_allocation{};
+#endif
+
+void emit_diagnostic(const PmLayerCallInfo &call, const char *rule,
+                     PmValidationSeverity severity, PmResult result,
+                     const char *message) noexcept {
+    if (!call.pfnDiagnostic) return;
+    const PmValidationDiagnostic diagnostic{
+        rule, severity, result, call.pCommandName, call.primaryObjectType,
+        call.primaryObject, call.argumentSize, call.pArguments, message};
+    try {
+        call.pfnDiagnostic(call.pDiagnosticUserData, &diagnostic);
+    } catch (...) {
+        // User callbacks must not unwind through the C ABI. Keep validation
+        // and driver execution usable if a C++ callback violates that rule.
+    }
+}
+const char *rule_for(PmResult result) noexcept {
+    return result == PM_ERROR_INVALID_STATE
+        ? PM_VALIDATION_RULE_INVALID_STATE
+        : PM_VALIDATION_RULE_INVALID_ARGUMENT;
+}
+const char *message_for(PmResult result) noexcept {
+    return result == PM_ERROR_INVALID_STATE
+        ? "call is invalid for the tracked object state"
+        : "call arguments or object ownership are invalid";
+}
 
 bool fits(PmDeviceSize offset, PmDeviceSize size, PmDeviceSize capacity) {
     return offset <= capacity && size <= capacity - offset;
@@ -750,52 +778,90 @@ PmResult dispatch(const PmLayerCallInfo &call, Function function) {
 PM_LAYER_EXPORT PmResult PMAPI_CALL
 pm_layerNegotiateLoaderInterfaceVersion(uint32_t *version) {
     if (!version) return PM_ERROR_INVALID_ARGUMENT;
-    // A v1 loader cannot supply the typed payload required by this layer.
-    if (*version < 2U) return PM_ERROR_INCOMPATIBLE_VERSION;
+    // A v1/v2 loader cannot supply diagnostic and application-object context.
+    if (*version < 3U) return PM_ERROR_INCOMPATIBLE_VERSION;
     *version = PM_LAYER_INTERFACE_VERSION;
     return PM_SUCCESS;
 }
 
+#if defined(PARALLEL_MATER_VALIDATION_TESTING)
+PM_LAYER_EXPORT void PMAPI_CALL pm_layerTestFailNextTrackingAllocation() {
+    fail_next_tracking_allocation.store(true);
+}
+#endif
+
 PM_LAYER_EXPORT PmResult PMAPI_CALL pm_layerPreCall(const PmLayerCallInfo *call) {
     if (!call) return PM_ERROR_INVALID_ARGUMENT;
-    std::lock_guard lock(mutex);
-    if (tracking_available && call->pCommandName &&
-        std::strncmp(call->pCommandName, "pmCmd", 5U) == 0) {
-        if (!call->pArguments || call->argumentSize < sizeof(PmCommandBuffer))
-            return PM_ERROR_INVALID_ARGUMENT;
-        PmCommandBuffer handle{};
-        // Every typed pmCmd* payload begins with its application-visible
-        // command buffer. primaryHandle is the loader's native dispatch key.
-        std::memcpy(&handle, call->pArguments, sizeof handle);
-        const auto *buffer = command_buffer(handle);
-        if (!buffer) return PM_ERROR_INVALID_ARGUMENT;
-        if (buffer->state != CommandState::recording)
-            return PM_ERROR_INVALID_STATE;
+    if (!call->pCommandName || !call->pCommandName[0] ||
+        !call->primaryHandle || !call->pArguments) {
+        emit_diagnostic(*call, PM_VALIDATION_RULE_INVALID_LAYER_CALL,
+                        PM_VALIDATION_SEVERITY_ERROR,
+                        PM_ERROR_INVALID_ARGUMENT,
+                        "loader supplied an invalid layer call payload");
+        return PM_ERROR_INVALID_ARGUMENT;
     }
-    return dispatch(*call, [](const auto &a) { return validate(a); });
+    PmResult result = PM_SUCCESS;
+    {
+        std::lock_guard lock(mutex);
+        if (tracking_available &&
+            std::strncmp(call->pCommandName, "pmCmd", 5U) == 0) {
+            if (call->argumentSize < sizeof(PmCommandBuffer)) {
+                result = PM_ERROR_INVALID_ARGUMENT;
+            } else {
+                PmCommandBuffer handle{};
+                // Every typed pmCmd* payload begins with its
+                // application-visible command buffer.
+                std::memcpy(&handle, call->pArguments, sizeof handle);
+                const auto *buffer = command_buffer(handle);
+                if (!buffer) result = PM_ERROR_INVALID_ARGUMENT;
+                else if (buffer->state != CommandState::recording)
+                    result = PM_ERROR_INVALID_STATE;
+            }
+        }
+        if (result == PM_SUCCESS)
+            result = dispatch(*call,
+                [](const auto &a) { return validate(a); });
+    }
+    if (result != PM_SUCCESS)
+        emit_diagnostic(*call, rule_for(result),
+                        PM_VALIDATION_SEVERITY_ERROR, result,
+                        message_for(result));
+    return result;
 }
 
 PM_LAYER_EXPORT void PMAPI_CALL pm_layerPostCall(
     const PmLayerCallInfo *call, PmResult result) {
     if (!call) return;
-    std::lock_guard lock(mutex);
-    if (!tracking_available) return;
-    try {
-        (void)dispatch(*call, [result](const auto &a) {
-            record_result(a, result);
-            return PM_SUCCESS;
-        });
-    } catch (const std::bad_alloc &) {
-        // A diagnostic must not unwind across the C ABI or turn a successful
-        // resource creation into a failure that leaks the driver's resource.
-        devices.clear();
-        command_pools.clear();
-        command_buffers.clear();
-        queues.clear();
-        fences.clear();
-        submissions.clear();
-        semaphores.clear();
-        tracking_available = false;
-        std::fputs("Parallel Mater validation: host memory exhausted; object tracking disabled\n", stderr);
+    bool exhausted = false;
+    {
+        std::lock_guard lock(mutex);
+        if (!tracking_available) return;
+        try {
+#if defined(PARALLEL_MATER_VALIDATION_TESTING)
+            if (fail_next_tracking_allocation.exchange(false))
+                throw std::bad_alloc{};
+#endif
+            (void)dispatch(*call, [result](const auto &a) {
+                record_result(a, result);
+                return PM_SUCCESS;
+            });
+        } catch (const std::bad_alloc &) {
+            // Do not turn a successful driver call into a failure. Drop state
+            // and retain stateless validation.
+            devices.clear();
+            command_pools.clear();
+            command_buffers.clear();
+            queues.clear();
+            fences.clear();
+            submissions.clear();
+            semaphores.clear();
+            tracking_available = false;
+            exhausted = true;
+        }
     }
+    if (exhausted)
+        emit_diagnostic(*call, PM_VALIDATION_RULE_TRACKING_UNAVAILABLE,
+                        PM_VALIDATION_SEVERITY_WARNING,
+                        PM_ERROR_OUT_OF_HOST_MEMORY,
+                        "host bookkeeping exhausted; stateful validation disabled");
 }

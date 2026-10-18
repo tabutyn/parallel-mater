@@ -24,3 +24,16 @@ CHECK(offsetof(PmStepStatistics, earlyExitCount) == 84);
 /* Function pointer assignment checks the complete submission signature. */
 PmResult (PMAPI_CALL *const checked_submit)(
     PmQueue, const PmSubmitInfo*, PmFence) = pmQueueSubmit;
+
+void PMAPI_CALL checked_diagnostic_callback(
+    void* user, const PmValidationDiagnostic* diagnostic) {
+    (void)user;
+    (void)diagnostic;
+}
+
+const PmValidationDiagnosticsCreateInfo checked_diagnostics = {
+    PM_STRUCTURE_TYPE_VALIDATION_DIAGNOSTICS_CREATE_INFO,
+    NULL,
+    checked_diagnostic_callback,
+    NULL
+};

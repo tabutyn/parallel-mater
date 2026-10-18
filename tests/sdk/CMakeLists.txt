@@ -9,6 +9,8 @@ find_package(ParallelMater ${PM_REQUIRED_VERSION} CONFIG REQUIRED
 add_library(external-mock SHARED mock_driver.cpp)
 target_include_directories(external-mock PRIVATE
     $<TARGET_PROPERTY:ParallelMater::api,INTERFACE_INCLUDE_DIRECTORIES>)
+target_compile_definitions(external-mock PRIVATE
+    PARALLEL_MATER_DRIVER_IMPLEMENTATION=1)
 target_compile_features(external-mock PRIVATE cxx_std_20)
 set_target_properties(external-mock PROPERTIES CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES)
@@ -18,13 +20,16 @@ file(GENERATE OUTPUT "$<TARGET_FILE_DIR:external-mock>/mock.json"
 add_executable(c-consumer devices.c)
 target_compile_features(c-consumer PRIVATE c_std_11)
 target_link_libraries(c-consumer PRIVATE ParallelMater::api)
+add_executable(diagnostics-consumer diagnostics.c)
+target_compile_features(diagnostics-consumer PRIVATE c_std_11)
+target_link_libraries(diagnostics-consumer PRIVATE ParallelMater::api)
 add_executable(cpp-consumer loader_driver_discovery_tests.cpp)
 target_compile_features(cpp-consumer PRIVATE cxx_std_20)
 target_link_libraries(cpp-consumer PRIVATE ParallelMater::api)
 add_executable(scene-consumer scene_consumer.cpp)
 target_compile_features(scene-consumer PRIVATE cxx_std_20)
 target_link_libraries(scene-consumer PRIVATE ParallelMater::scene)
-foreach(consumer c-consumer cpp-consumer scene-consumer)
+foreach(consumer c-consumer diagnostics-consumer cpp-consumer scene-consumer)
     add_test(NAME ${consumer} COMMAND ${consumer})
     set_tests_properties(${consumer} PROPERTIES ENVIRONMENT
         "PM_DRIVER_FILES=$<TARGET_FILE_DIR:external-mock>/mock.json")
