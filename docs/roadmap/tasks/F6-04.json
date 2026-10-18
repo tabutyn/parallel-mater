@@ -1,7 +1,7 @@
 {
   "id": "F6-04",
   "title": "Record reproducible release inputs",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "release-tooling"
@@ -15,6 +15,14 @@
     "No claim of bit-identical output without evidence; no workstation paths required at runtime."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "7f39acd4-7f31-461f-89dc-af372a410e40",
+    "owner": "codex-windows-sdk",
+    "machine": "windows-gtx1080",
+    "branch": "work/F6-04/windows-gtx1080",
+    "claimed_at": "2026-10-18T06:38:18Z",
+    "heartbeat_at": "2026-10-18T06:38:18Z",
+    "expires_at": "2026-10-19T06:38:18Z"
+  },
   "history": []
 }
