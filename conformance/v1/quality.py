@@ -300,7 +300,7 @@ def _check_split_combined(profile: dict[str, Any], sample: dict[str, Any],
 
 def _evaluate_fluid_self_pair(
         profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
-        driver: Any, failures: list[Failure], *, pressure: bool) -> dict[str, Any]:
+        driver: Any, failures: list[Failure], *, mode: str) -> dict[str, Any]:
     definition = profile.get("fixture")
     actual = result.get("fixture")
     if not isinstance(definition, dict):
@@ -317,7 +317,7 @@ def _evaluate_fluid_self_pair(
 
     exact_fields = ("id", "particle_count", "substeps", "density_iterations",
                     "oracle")
-    if pressure:
+    if mode == "pressure":
         exact_fields += ("density_estimator",)
     for field in exact_fields:
         if actual.get(field) != definition.get(field):
@@ -434,7 +434,7 @@ def _evaluate_fluid_self_pair(
         final_separation = _subtract(final_states[1][0], final_states[0][0])
         separation = _norm(final_separation)
         observations["final_separation_m"] = separation
-        if not pressure:
+        if mode == "contact":
             radius = float(definition.get("particle_radius_m", 0.0))
             exclusion = (2.0 * radius * float(tolerances.get(
                 "exclusion_distance_fraction", 0.0)))
@@ -450,7 +450,7 @@ def _evaluate_fluid_self_pair(
 
         mass = (float(definition.get("rest_density_kg_m3", 0.0)) *
                 float(definition.get("rest_particle_volume_m3", 0.0)))
-        if pressure:
+        if mode == "pressure":
             initial_spacing = _norm(initial_separation)
             rest_density = float(definition.get("rest_density_kg_m3", 0.0))
             if initial_spacing <= 0.0 or separation <= 0.0 or rest_density <= 0.0:
@@ -498,6 +498,64 @@ def _evaluate_fluid_self_pair(
                         "$.fixture.final_particles",
                         "pressure did not move density sufficiently toward rest",
                         error_reduction, reduction_minimum))
+        if mode == "viscosity":
+            initial_relative_velocity = _subtract(
+                initial_states[1][1], initial_states[0][1])
+            final_relative_velocity = _subtract(
+                final_states[1][1], final_states[0][1])
+            initial_relative_speed = _norm(initial_relative_velocity)
+            final_relative_speed = _norm(final_relative_velocity)
+            initial_energy = 0.5 * mass * sum(
+                component * component
+                for identity in (0, 1)
+                for component in initial_states[identity][1])
+            final_energy = 0.5 * mass * sum(
+                component * component
+                for identity in (0, 1)
+                for component in final_states[identity][1])
+            speed_reduction = (1.0 - final_relative_speed /
+                               initial_relative_speed
+                               if initial_relative_speed > 0.0 else 0.0)
+            energy_reduction = (1.0 - final_energy / initial_energy
+                                if initial_energy > 0.0 else 0.0)
+            observations.update({
+                "initial_relative_speed_m_s": initial_relative_speed,
+                "final_relative_speed_m_s": final_relative_speed,
+                "relative_speed_reduction_fraction": speed_reduction,
+                "initial_kinetic_energy_j": initial_energy,
+                "final_kinetic_energy_j": final_energy,
+                "kinetic_energy_reduction_fraction": energy_reduction,
+            })
+            initial_speed_minimum = float(tolerances.get(
+                "initial_relative_speed_minimum_m_s", 0.0))
+            if initial_relative_speed < initial_speed_minimum:
+                failures.append(Failure(
+                    "$.fixture.initial_particles",
+                    "initial relative speed is too small for viscosity",
+                    initial_relative_speed, initial_speed_minimum))
+            speed_reduction_minimum = float(tolerances.get(
+                "relative_speed_reduction_fraction_minimum", 0.0))
+            if speed_reduction < speed_reduction_minimum:
+                failures.append(Failure(
+                    "$.fixture.final_particles",
+                    "viscosity did not dissipate relative motion",
+                    speed_reduction, speed_reduction_minimum))
+            energy_increase_maximum = float(tolerances.get(
+                "kinetic_energy_relative_increase_maximum", 0.0))
+            energy_limit = initial_energy * (1.0 + energy_increase_maximum)
+            if final_energy > energy_limit:
+                failures.append(Failure(
+                    "$.fixture.final_particles",
+                    "viscosity increased kinetic energy",
+                    final_energy, energy_limit))
+            energy_reduction_minimum = float(tolerances.get(
+                "kinetic_energy_reduction_fraction_minimum", 0.0))
+            if energy_reduction < energy_reduction_minimum:
+                failures.append(Failure(
+                    "$.fixture.final_particles",
+                    "viscosity did not dissipate sufficient kinetic energy",
+                    energy_reduction, energy_reduction_minimum))
+
         velocity_changes = [
             _subtract(final_states[identity][1], initial_states[identity][1])
             for identity in (0, 1)
@@ -511,7 +569,7 @@ def _evaluate_fluid_self_pair(
             float(tolerances.get("linear_momentum_relative", 0.0)) * activity)
         observations["exchange_impulse_kg_m_s"] = activity
         observations["net_internal_impulse_kg_m_s"] = residual
-        if (not pressure and activity < float(tolerances.get(
+        if (mode == "contact" and activity < float(tolerances.get(
                 "exchange_impulse_minimum_kg_m_s", 0.0))):
             failures.append(Failure("$.fixture.final_particles",
                                     "self-contact impulse activity is too small",
@@ -561,17 +619,19 @@ def _evaluate_fluid_self_pair(
                                         "velocity_m_s": transverse_velocity_limit,
                                     }))
 
-        direction = _unit(final_separation)
-        relative_velocity = _subtract(final_states[1][1], final_states[0][1])
-        outward_speed = (sum(a * b for a, b in zip(relative_velocity, direction))
-                         if direction is not None else 0.0)
-        observations["outward_relative_speed_m_s"] = outward_speed
-        outward_minimum = float(tolerances.get(
-            "outward_relative_speed_minimum_m_s", 0.0))
-        if outward_speed < outward_minimum:
-            failures.append(Failure("$.fixture.final_particles",
-                                    "self-contact response is not outward",
-                                    outward_speed, outward_minimum))
+        if mode in ("contact", "pressure"):
+            direction = _unit(final_separation)
+            relative_velocity = _subtract(
+                final_states[1][1], final_states[0][1])
+            outward_speed = (sum(a * b for a, b in zip(
+                relative_velocity, direction)) if direction is not None else 0.0)
+            observations["outward_relative_speed_m_s"] = outward_speed
+            outward_minimum = float(tolerances.get(
+                "outward_relative_speed_minimum_m_s", 0.0))
+            if outward_speed < outward_minimum:
+                failures.append(Failure("$.fixture.final_particles",
+                                        "self response is not outward",
+                                        outward_speed, outward_minimum))
 
         maximum_speed = max(_norm(final_states[identity][1])
                             for identity in (0, 1))
@@ -1082,10 +1142,11 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
     if evaluation == "rigid_attachment":
         return _evaluate_rigid_attachment(
             profile, result, expected_hash, driver, failures)
-    if evaluation in ("fluid_self_contact", "fluid_self_pressure"):
+    if evaluation in ("fluid_self_contact", "fluid_self_pressure",
+                      "fluid_self_viscosity"):
         return _evaluate_fluid_self_pair(
             profile, result, expected_hash, driver, failures,
-            pressure=evaluation == "fluid_self_pressure")
+            mode=evaluation.removeprefix("fluid_self_"))
     if evaluation != "system_exchange":
         failures.append(Failure("$.profile.evaluation",
                                 "unsupported quality evaluation", evaluation))

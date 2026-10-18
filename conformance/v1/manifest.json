@@ -50,16 +50,17 @@
     "conformance/v1/quality/core-conservation-v1.json": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
     "conformance/v1/quality/fluid-self-contact-v1.json": "21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2",
     "conformance/v1/quality/fluid-self-pressure-v1.json": "4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b",
+    "conformance/v1/quality/fluid-self-viscosity-v1.json": "9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c",
     "conformance/v1/quality/rigid-attachment-v1.json": "570add4a6e74539f46513a5baa8168bd2b81dd2ef95ff2a7f6bbb407f3afd108",
     "conformance/v1/quality/rigid-brick-penetration-v1.json": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da",
     "conformance/v1/quality/rigid-kinematic-sweep-v1.json": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc"
   },
   "qualification_profile_sha256": {
-    "conformance/v1/qualification/capability-obligations-v1.json": "f66bbe85ee5f472c8054324619daa66b5b221ce94236de43a010c18983c22452"
+    "conformance/v1/qualification/capability-obligations-v1.json": "1630b7fd29c8f569069205c0d3476b5e96b75e3919c8a364c96929a85be44472"
   },
   "evidence_index_sha256": {
-    "conformance/v1/evidence/evidence-sources-v1.json": "d4db756c0a2795a0b3240efc3ed9e837235d070b20345a5a1288650b0c703e7a",
-    "conformance/v1/evidence/index-v1.json": "eb31ef3bed9347b1a5261040fc6290a5492b4fd76e8d49be93f0cae12173d9b3"
+    "conformance/v1/evidence/evidence-sources-v1.json": "022e0aa7a337e726724342ebfa12c2b2516dbefb76a49cc9919c6243b2dfdba9",
+    "conformance/v1/evidence/index-v1.json": "07d14404cc349f615296d1752dfb79840077fa111519bd90195eb75be0faf084"
   },
   "quality_result_schema": "parallel-mater-conformance-quality-result/v1",
   "result_schema": "parallel-mater-conformance-result/v1",
