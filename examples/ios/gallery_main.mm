@@ -628,7 +628,7 @@ UIImage *frame_image(const GallerySession &session) {
          @"physical-quality", @"unsupported");
     save(@"physics-qualification/lifecycle/adverse-capacity-three-family-v1.json",
          parallel_mater::conformance::conformance_adverse_lifecycle(root),
-         @"adverse-lifecycle", @"missing-checkpoints");
+         @"adverse-lifecycle", @"captured");
 
     NSUInteger completed = 0, unsupported = 0, failed = 0;
     for (const std::string &caseId :
@@ -682,8 +682,8 @@ UIImage *frame_image(const GallerySession &session) {
         @"rigid_brick":@"completed",
         @"equal_fluid":@"unsupported-not-advertised"};
     summary[@"adverse_lifecycle"] = @{
-        @"status":@"executed-missing-checkpoints",
-        @"reason":@"Public-API adverse fixtures execute, but do not yet emit F5-03 checkpoint fingerprints."};
+        @"status":@"captured-pending-host-evaluation",
+        @"reason":@"The artifact contains exact checkpoints; lifecycle.py determines qualification."};
     summary[@"completed"] = @YES;
     write_report(@"physics-qualification.json", summary);
     NSLog(@"ParallelMater public-API qualification complete: %lu completed, %lu unsupported, %lu failed",

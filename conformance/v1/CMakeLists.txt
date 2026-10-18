@@ -10,10 +10,18 @@ set(PARALLEL_MATER_CONFORMANCE_DATA_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.."
     CACHE PATH "Root containing conformance/v1 and examples/assets (override at runtime with --root)")
 set(PARALLEL_MATER_CONFORMANCE_REVISION "unknown" CACHE STRING "Conformance source revision")
 add_library(parallel-mater-conformance-runner STATIC
-    src/command_runner.cpp src/case_registry.cpp)
+    src/command_runner.cpp
+    src/case_registry.cpp
+    src/lifecycle_fixtures.cpp
+    ../../tests/api/capacity_recovery_tests.cpp
+    ../../tests/api/interaction_graph_lifecycle_tests.cpp
+    ../../tests/api/resource_lifecycle_tests.cpp)
 target_compile_features(parallel-mater-conformance-runner PUBLIC cxx_std_20)
-target_include_directories(parallel-mater-conformance-runner PUBLIC include)
+target_include_directories(parallel-mater-conformance-runner
+    PUBLIC include
+    PRIVATE ../../tests/api)
 target_compile_definitions(parallel-mater-conformance-runner PRIVATE
+    PM_CONFORMANCE_EMBEDDED=1
     PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${PARALLEL_MATER_CONFORMANCE_DATA_ROOT}"
     PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CONFORMANCE_REVISION}")
 target_link_libraries(parallel-mater-conformance-runner PRIVATE ParallelMater::scene)
@@ -24,5 +32,10 @@ target_link_libraries(parallel-mater-conformance PRIVATE
 if(BUILD_TESTING)
     add_test(NAME parallel-mater-conformance-command-inputs
         COMMAND parallel-mater-conformance --check-inputs)
+    add_test(NAME parallel-mater-conformance-lifecycle-output-required
+        COMMAND parallel-mater-conformance --lifecycle)
+    set_tests_properties(
+        parallel-mater-conformance-lifecycle-output-required PROPERTIES
+        WILL_FAIL TRUE)
 endif()
 install(TARGETS parallel-mater-conformance RUNTIME DESTINATION bin)
