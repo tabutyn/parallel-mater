@@ -94,7 +94,8 @@
                              output.fluid_particles)) return false;
             if (!is_fluid_context(output.initial_context))
                 output.initial_context = GalleryContext::fluid;
-        } else if (const GalleryEntry *entry = entry_for_option(argument)) {
+        } else if (const GalleryEntry *entry =
+                       gallery_entry_for_option(argument)) {
             output.initial_context = entry->context;
         } else if (argument == "--cloth-tilt-degrees" && index + 1 < argc) {
             if (!parse_count(argv[++index], 1U, 45U,

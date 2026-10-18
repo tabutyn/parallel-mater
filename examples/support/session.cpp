@@ -93,7 +93,8 @@ void GallerySession::select(unsigned index) {
     };
     const auto pending_device = std::make_shared<PendingDevice>();
     request.configure_scene =
-        [context = selected.context, has_fluid = selected.has_fluid,
+        [context = selected.context,
+         has_fluid = is_fluid_context(selected.context),
          parameters, selected_limits,
          validate = config_.validate_scene](SceneDefinition &scene,
                                             std::string &failure) {
@@ -588,7 +589,8 @@ void GallerySession::validate_snapshot() const {
         vector(particle.position); vector(particle.velocity); vector(particle.vorticity);
         finite(particle.age); finite(particle.numberDensity); finite(particle.pressure);
     }
-    if ((entry(selected_).has_fluid && output.fluid_particles.empty()) ||
+    if ((is_fluid_context(entry(selected_).context) &&
+         output.fluid_particles.empty()) ||
         (runtime_.scene.has_smoke && output.smoke_particles.empty()) ||
         output.rigid_states.size() != runtime_.scene.rigid_bodies.size() ||
         output.cloth_vertices.size() != runtime_.scene.cloths.size() ||

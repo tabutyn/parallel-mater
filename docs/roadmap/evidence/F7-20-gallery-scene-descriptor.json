@@ -1,0 +1,65 @@
+{
+  "schema": "parallel-mater-roadmap-gallery-scene-descriptor-evidence/v1",
+  "task": "F7-20",
+  "scope": "One immutable common Gallery scene descriptor supplies scene identity, assets, presentation metadata, workload policy and backend capability requirements to the session, CLI, desktop and mobile shells",
+  "source": {
+    "implementation_commit": "7887201ed98740499f9795a966b7e9a9055cfacc",
+    "base_main_commit": "97c203516e17606b837bed80f423fdd0f132ef7c",
+    "branch": "work/F7-20/thomas-laptop",
+    "lease_token": "87e4e3ed-f60c-4e0f-a774-c7d5259cb85d",
+    "dirty_before_evidence": false
+  },
+  "device": {
+    "machine": "thomas-laptop",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "driver": "590.44.01",
+    "operating_system": "Linux 6.1.0-53-amd64 x86_64",
+    "compiler": "GCC 12.2.0",
+    "slang": "2026.18",
+    "graphics_api": "Vulkan"
+  },
+  "contract": {
+    "scene_count": 28,
+    "exact_interaction_count": 33,
+    "single_descriptor_fields": [
+      "stable ID",
+      "asset file",
+      "display name and help",
+      "control and count policy",
+      "colors and camera",
+      "broad backend features",
+      "exact interaction requirements",
+      "kinematic and primary-action workload flags"
+    ],
+    "removed_parallel_mappings": [
+      "GallerySceneSource enum and asset switch",
+      "GalleryContext stable-ID switch",
+      "context-derived broad-feature switch logic",
+      "domain-derived exact-interaction switch logic",
+      "desktop-only CLI option search",
+      "command Gallery test asset array"
+    ]
+  },
+  "verification": [
+    {
+      "check": "cmake --build build-f7-20 --target parallel-mater-gallery parallel-mater-gallery-registry-tests parallel-mater-gallery-input-tests parallel-mater-camera-controller-tests parallel-mater-command-gallery-tests -j2",
+      "result": "passed; common session, desktop CLI, catalog, input, camera and command Gallery consumers compiled from the descriptor"
+    },
+    {
+      "check": "ctest --test-dir build-f7-20 --output-on-failure -R 'parallel-mater-(gallery-registry|gallery-input|camera-controller)-tests'",
+      "result": "3/3 passed; compile-time contracts cover descriptor order, identity/asset/CLI uniqueness, completeness, workload-feature consistency and exact-interaction inventory uniqueness"
+    },
+    {
+      "check": "ctest --test-dir build-f7-20 --output-on-failure -R '^parallel-mater-gallery-session-contract-tests$'",
+      "result": "1/1 passed in 57.82 seconds on the physical Vulkan GPU; all common session selection, scene reset and exact capability-filtering checks passed"
+    },
+    {
+      "check": "build-f7-20/parallel-mater-gallery --help",
+      "result": "passed; generated CLI help lists all 27 non-default scene options directly from the common descriptor"
+    }
+  ],
+  "limitations": [
+    "The descriptor unifies existing scene metadata and capability policy; it does not add new physics domains or qualify new backend interactions.",
+    "Windows, macOS and mobile compilation remains covered by the completion pull request's platform CI matrix."
+  ]
+}
