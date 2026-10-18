@@ -740,64 +740,91 @@ if(PARALLEL_MATER_BUILD_GALLERY)
                 examples/gallery/render/fluid_surface_field.slang
             VERBATIM)
         set_source_files_properties("${pm_surface_cuda}" PROPERTIES HEADER_FILE_ONLY TRUE)
-        add_library(parallel-mater-gallery-renderer STATIC
-                    examples/support/optix_renderer.cpp
-                    examples/support/foam_visuals.cpp
-                    examples/support/fluid_surface.cu "${pm_surface_cuda}")
-        add_dependencies(parallel-mater-gallery-renderer
+        set(pm_gallery_host_renderer_sources
+            examples/support/optix_renderer.cpp
+            examples/support/foam_visuals.cpp
+            examples/support/fluid_surface.cu "${pm_surface_cuda}")
+        set(pm_gallery_host_renderer_optix ON)
+    else()
+        set(pm_gallery_host_renderer_sources
+            examples/support/software_renderer.cpp)
+        set(pm_gallery_host_renderer_optix OFF)
+    endif()
+
+    add_library(parallel-mater-gallery-renderer-contract STATIC
+                examples/support/gpu_renderer.cpp)
+    set_target_properties(parallel-mater-gallery-renderer-contract PROPERTIES
+        POSITION_INDEPENDENT_CODE YES)
+    target_include_directories(parallel-mater-gallery-renderer-contract
+        PUBLIC include examples/support/include
+        PRIVATE examples/support examples/gallery)
+    target_link_libraries(parallel-mater-gallery-renderer-contract
+        PUBLIC parallel-mater-gallery-scene)
+    target_compile_features(parallel-mater-gallery-renderer-contract
+        PUBLIC cxx_std_20)
+    parallel_mater_enable_warnings(parallel-mater-gallery-renderer-contract)
+
+    add_library(parallel-mater-gallery-renderer-adapters STATIC
+                examples/support/renderer_adapter.cpp
+                ${pm_gallery_host_renderer_sources})
+    set_target_properties(parallel-mater-gallery-renderer-adapters PROPERTIES
+        POSITION_INDEPENDENT_CODE YES)
+    target_include_directories(parallel-mater-gallery-renderer-adapters
+        PUBLIC include examples/support/include
+        PRIVATE examples/support examples/gallery)
+    target_link_libraries(parallel-mater-gallery-renderer-adapters
+        PUBLIC parallel-mater-gallery-renderer-contract)
+    target_compile_features(parallel-mater-gallery-renderer-adapters
+        PUBLIC cxx_std_20)
+    if(pm_gallery_host_renderer_optix)
+        add_dependencies(parallel-mater-gallery-renderer-adapters
                          parallel-mater-optix-ptx)
         target_include_directories(
-            parallel-mater-gallery-renderer
-            PUBLIC include examples/support/include
+            parallel-mater-gallery-renderer-adapters
             PRIVATE
                 examples/support
                 "${CMAKE_CURRENT_BINARY_DIR}/generated/gallery"
                 ${pm_optix_SOURCE_DIR}/include)
         target_link_libraries(
-            parallel-mater-gallery-renderer
-            PUBLIC parallel-mater-gallery-scene
+            parallel-mater-gallery-renderer-adapters
             PRIVATE CUDA::cuda_driver CUDA::cudart ${CMAKE_DL_LIBS})
-        target_compile_definitions(parallel-mater-gallery-renderer
+        target_compile_definitions(parallel-mater-gallery-renderer-adapters
             PRIVATE
+                PM_GALLERY_HOST_RENDERER_OPTIX=1
                 PARALLEL_MATER_OPTIX_PTX_PATH="${PARALLEL_MATER_OPTIX_PTX}"
                 $<$<PLATFORM_ID:Windows>:NOMINMAX>)
-    else()
-        add_library(parallel-mater-gallery-renderer STATIC
-                    examples/support/software_renderer.cpp)
-        target_include_directories(parallel-mater-gallery-renderer
-            PUBLIC include examples/support/include
-            PRIVATE examples/support examples/gallery)
-        target_link_libraries(parallel-mater-gallery-renderer
-            PUBLIC parallel-mater-gallery-scene)
     endif()
-    target_sources(parallel-mater-gallery-renderer PRIVATE
-                   examples/support/gpu_renderer.cpp)
-    target_compile_features(parallel-mater-gallery-renderer PUBLIC cxx_std_20)
     if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
         include(cmake/ParallelMaterD3D12Renderer.cmake)
     endif()
-    parallel_mater_enable_warnings(parallel-mater-gallery-renderer)
+    parallel_mater_enable_warnings(parallel-mater-gallery-renderer-adapters)
 
     add_library(parallel-mater-gallery-session STATIC
                 examples/support/gallery_runtime.cpp
                 examples/support/mobile_session.cpp
                 examples/support/session.cpp)
     set_target_properties(parallel-mater-gallery-session PROPERTIES POSITION_INDEPENDENT_CODE YES)
-    target_link_libraries(parallel-mater-gallery-session PUBLIC
-        parallel-mater-gallery-renderer parallel-mater-gallery-frame-timing)
+    target_link_libraries(parallel-mater-gallery-session
+        PUBLIC parallel-mater-gallery-renderer-contract
+               parallel-mater-gallery-frame-timing
+        PRIVATE parallel-mater-gallery-renderer-adapters)
     target_include_directories(parallel-mater-gallery-session PRIVATE examples/gallery examples/support)
     target_compile_definitions(parallel-mater-gallery-session PRIVATE
         PM_GALLERY_BUILD_REVISION="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
     parallel_mater_enable_warnings(parallel-mater-gallery-session)
     if(APPLE AND PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
-        target_sources(parallel-mater-gallery-session PRIVATE examples/support/metal_gallery_renderer.mm)
+        target_sources(parallel-mater-gallery-renderer-adapters PRIVATE
+            examples/support/metal_gallery_renderer.mm)
         # Xcode does not distinguish CXX/OBJCXX target flags in mixed targets.
         # Keep ARC explicit there as well as for Makefiles/Ninja generators.
-        set_target_properties(parallel-mater-gallery-session PROPERTIES
+        set_target_properties(parallel-mater-gallery-renderer-adapters PROPERTIES
             XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES)
-        target_compile_options(parallel-mater-gallery-session PRIVATE "$<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>")
-        target_compile_definitions(parallel-mater-gallery-session PRIVATE PM_GALLERY_NATIVE_GPU_RENDERER=1)
-        target_link_libraries(parallel-mater-gallery-session PRIVATE "-framework Metal" "-framework QuartzCore" "-framework Foundation")
+        target_compile_options(parallel-mater-gallery-renderer-adapters PRIVATE
+            "$<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>")
+        target_compile_definitions(parallel-mater-gallery-renderer-adapters
+            PRIVATE PM_GALLERY_NATIVE_RENDERER_METAL=1)
+        target_link_libraries(parallel-mater-gallery-renderer-adapters PRIVATE
+            "-framework Metal" "-framework QuartzCore" "-framework Foundation")
     endif()
 
     if(ANDROID)
@@ -832,14 +859,14 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     if(PARALLEL_MATER_BUILD_BENCHMARKS)
         add_executable(parallel-mater-dump-truck-benchmark benchmarks/dump_truck.cpp)
         target_link_libraries(parallel-mater-dump-truck-benchmark
-                              PRIVATE parallel-mater-gallery-renderer
+                              PRIVATE parallel-mater-gallery-renderer-adapters
                                       CUDA::cudart)
         target_compile_definitions(parallel-mater-dump-truck-benchmark PRIVATE
             PARALLEL_MATER_DUMP_TRUCK_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/DumpTruck.glb")
         parallel_mater_enable_warnings(parallel-mater-dump-truck-benchmark)
         add_executable(parallel-mater-rigid-frame-benchmark benchmarks/rigid_frame.cpp)
         target_link_libraries(parallel-mater-rigid-frame-benchmark
-                              PRIVATE parallel-mater-gallery-renderer)
+                              PRIVATE parallel-mater-gallery-renderer-adapters)
         parallel_mater_enable_warnings(parallel-mater-rigid-frame-benchmark)
     endif()
 
@@ -854,15 +881,11 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     target_compile_features(parallel-mater-gallery-application PUBLIC cxx_std_20)
     target_link_libraries(
         parallel-mater-gallery-application
-        PUBLIC parallel-mater-gallery-renderer
         PRIVATE glfw parallel-mater-gallery-window
                 parallel-mater-gallery-frame-timing
                 parallel-mater-gallery-session)
 
     if(APPLE)
-        if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
-            target_compile_definitions(parallel-mater-gallery-application PRIVATE PM_GALLERY_NATIVE_GPU_RENDERER=1)
-        endif()
         include(cmake/ParallelMaterMacOSGallery.cmake)
     else()
         add_executable(parallel-mater-gallery examples/gallery/main.cpp)
@@ -1183,12 +1206,12 @@ if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)
 endif()
 
 if(BUILD_TESTING)
-    if(TARGET parallel-mater-gallery-renderer)
+    if(TARGET parallel-mater-gallery-renderer-contract)
         add_executable(parallel-mater-gallery-gpu-renderer-contract-tests
             tests/gallery/gpu_renderer_contract_tests.cpp)
         target_link_libraries(
             parallel-mater-gallery-gpu-renderer-contract-tests PRIVATE
-            parallel-mater-gallery-renderer)
+            parallel-mater-gallery-renderer-contract)
         parallel_mater_enable_warnings(
             parallel-mater-gallery-gpu-renderer-contract-tests)
         add_test(NAME parallel-mater-gallery-gpu-renderer-contract-tests
@@ -1197,6 +1220,22 @@ if(BUILD_TESTING)
             parallel-mater-gallery-gpu-renderer-contract-tests PROPERTIES
             LABELS "gallery;renderer;contract")
     endif()
+    if(TARGET parallel-mater-gallery-renderer-adapters AND
+       PARALLEL_MATER_GALLERY_RENDERER STREQUAL "SOFTWARE")
+        add_executable(parallel-mater-software-renderer-tests
+            tests/gallery/software_renderer_tests.cpp)
+        target_compile_features(parallel-mater-software-renderer-tests
+            PRIVATE cxx_std_20)
+        target_compile_definitions(parallel-mater-software-renderer-tests PRIVATE
+            PARALLEL_MATER_TEST_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Celestial.glb")
+        target_link_libraries(parallel-mater-software-renderer-tests PRIVATE
+            parallel-mater-gallery-renderer-adapters)
+        parallel_mater_enable_warnings(parallel-mater-software-renderer-tests)
+        add_test(NAME parallel-mater-software-renderer-tests
+            COMMAND parallel-mater-software-renderer-tests)
+        set_tests_properties(parallel-mater-software-renderer-tests PROPERTIES
+            LABELS "gallery;renderer;host")
+    endif()
     add_executable(parallel-mater-gallery-workload-tests
         tests/gallery/workload_profile_tests.cpp examples/support/device_profiles.cpp)
     target_compile_features(parallel-mater-gallery-workload-tests PRIVATE cxx_std_20)
@@ -1204,7 +1243,8 @@ if(BUILD_TESTING)
     target_compile_definitions(parallel-mater-gallery-workload-tests PRIVATE
         PM_PROFILE_CATALOG="${CMAKE_CURRENT_SOURCE_DIR}/config/device-profiles.json")
     add_test(NAME parallel-mater-gallery-workload-tests COMMAND parallel-mater-gallery-workload-tests)
-    if(NOT CMAKE_CROSSCOMPILING AND TARGET parallel-mater-driver-slang-metal AND TARGET parallel-mater-gallery-renderer)
+    if(NOT CMAKE_CROSSCOMPILING AND TARGET parallel-mater-driver-slang-metal AND
+       TARGET parallel-mater-gallery-renderer-adapters)
         set(ipad_test_resources "${CMAKE_CURRENT_BINARY_DIR}/ipad-test-resources")
         file(MAKE_DIRECTORY "${ipad_test_resources}/config")
         configure_file(config/device-profiles.json "${ipad_test_resources}/config/device-profiles.json" COPYONLY)

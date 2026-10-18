@@ -3,6 +3,7 @@
 #include <parallel_mater_gallery/gpu_renderer.hpp>
 #include <parallel_mater_scene/command_scene.hpp>
 
+#include "renderer_backends.hpp"
 #include "vector_math.hpp"
 #include "vulkan_gallery_shaders.hpp"
 
@@ -1307,7 +1308,7 @@ class VulkanGalleryRenderer final : public GpuGalleryRenderer {
 
 } // namespace
 
-std::unique_ptr<GpuGalleryRenderer> create_gpu_gallery_renderer(
+std::unique_ptr<GpuGalleryRenderer> create_vulkan_gallery_renderer(
     GpuRendererDevice device, const SceneDefinition &scene,
     const CommandSceneInstance &instance, std::string &error) {
     error.clear();

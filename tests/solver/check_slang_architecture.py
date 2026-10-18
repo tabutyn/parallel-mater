@@ -438,6 +438,69 @@ if "OptixRenderer" in renderer_interface:
     failures.append(
         "examples/support/include/parallel_mater_gallery/renderer.hpp: "
         "drawing interface exposes the OptiX adapter")
+renderer_adapter_interface = (
+    ROOT / "examples" / "support" / "include" /
+    "parallel_mater_gallery" / "renderer_adapter.hpp"
+)
+if not renderer_adapter_interface.exists():
+    failures.append(
+        "examples/support/include/parallel_mater_gallery/renderer_adapter.hpp: "
+        "common renderer factory missing")
+elif "class RendererAdapterFactory" not in \
+        renderer_adapter_interface.read_text(encoding="utf-8"):
+    failures.append(
+        "examples/support/include/parallel_mater_gallery/renderer_adapter.hpp: "
+        "common renderer factory missing")
+public_optix_renderer = (
+    ROOT / "examples" / "support" / "include" /
+    "parallel_mater_gallery" / "optix_renderer.hpp"
+)
+if public_optix_renderer.exists():
+    failures.append(
+        "examples/support/include/parallel_mater_gallery/optix_renderer.hpp: "
+        "private backend type remains on the common include surface")
+gallery_session = (
+    ROOT / "examples" / "support" / "session.cpp"
+).read_text(encoding="utf-8")
+for private_renderer_detail in (
+    "PM_GALLERY_NATIVE_GPU_RENDERER",
+    "create_gpu_gallery_renderer",
+    "create_vulkan_gallery_renderer",
+    "create_metal_gallery_renderer",
+):
+    if private_renderer_detail in gallery_session:
+        failures.append(
+            "examples/support/session.cpp: common session reaches through "
+            f"renderer adapter boundary with {private_renderer_detail}")
+for required_renderer_target in (
+    "add_library(parallel-mater-gallery-renderer-contract STATIC",
+    "add_library(parallel-mater-gallery-renderer-adapters STATIC",
+):
+    if required_renderer_target not in cmake:
+        failures.append(
+            "CMakeLists.txt: renderer ownership target missing "
+            f"{required_renderer_target}")
+if "target_sources(parallel-mater-gallery-session PRIVATE\n" \
+        "            examples/support/metal_gallery_renderer.mm)" in cmake:
+    failures.append(
+        "CMakeLists.txt: Metal renderer remains owned by the common session "
+        "target")
+if "target_sources(parallel-mater-gallery-renderer-adapters PRIVATE\n" \
+        "            examples/support/metal_gallery_renderer.mm)" not in cmake:
+    failures.append(
+        "CMakeLists.txt: Metal renderer adapter target ownership missing")
+vulkan_gallery_cmake = (
+    ROOT / "cmake" / "ParallelMaterVulkanGallery.cmake"
+).read_text(encoding="utf-8")
+if "target_sources(parallel-mater-gallery-session" in vulkan_gallery_cmake:
+    failures.append(
+        "cmake/ParallelMaterVulkanGallery.cmake: Vulkan renderer remains "
+        "owned by the common session target")
+if "target_sources(parallel-mater-gallery-renderer-adapters" not in \
+        vulkan_gallery_cmake:
+    failures.append(
+        "cmake/ParallelMaterVulkanGallery.cmake: Vulkan renderer adapter "
+        "target ownership missing")
 legacy_cuda_gallery_platform = (
     ROOT / "examples" / "support" / "cuda_runtime_platform.cpp"
 )

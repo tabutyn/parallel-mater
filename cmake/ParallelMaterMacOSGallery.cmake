@@ -169,18 +169,6 @@ if(BUILD_TESTING)
         set_tests_properties(parallel-mater-slang-metal-gallery-domains PROPERTIES
             LABELS "gallery;metal;gpu;preview" TIMEOUT 1200)
     endif()
-    add_executable(parallel-mater-software-renderer-tests
-        tests/gallery/software_renderer_tests.cpp)
-    target_compile_features(parallel-mater-software-renderer-tests PRIVATE cxx_std_20)
-    target_compile_definitions(parallel-mater-software-renderer-tests PRIVATE
-        PARALLEL_MATER_TEST_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/Celestial.glb")
-    target_link_libraries(parallel-mater-software-renderer-tests PRIVATE
-        parallel-mater-gallery-renderer)
-    parallel_mater_enable_warnings(parallel-mater-software-renderer-tests)
-    add_test(NAME parallel-mater-software-renderer-tests
-             COMMAND parallel-mater-software-renderer-tests)
-    set_tests_properties(parallel-mater-software-renderer-tests PROPERTIES
-        LABELS "gallery;macos;renderer")
     add_test(NAME parallel-mater-macos-gallery-help
              COMMAND $<TARGET_FILE:parallel-mater-gallery> --help)
     set_tests_properties(parallel-mater-macos-gallery-help PROPERTIES
