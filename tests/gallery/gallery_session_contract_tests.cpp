@@ -184,21 +184,24 @@ int main() {
                          gallery::GalleryContext::cloth,
                          gallery::GalleryContext::cloth_tear,
                          gallery::GalleryContext::cloth_paint,
-                         gallery::GalleryContext::water_cloth}) {
+                         gallery::GalleryContext::water_cloth,
+                         gallery::GalleryContext::soft_body,
+                         gallery::GalleryContext::soft_body_rigid,
+                         gallery::GalleryContext::soft_body_fluid}) {
                     const auto item = std::find_if(
                         session.catalog().begin(), session.catalog().end(),
                         [context](const auto &candidate) {
                             return candidate.scene.context == context;
                         });
                     require(item != session.catalog().end() && item->available,
-                            "Vulkan cloth scene was not advertised");
+                            "Vulkan cloth/soft-body scene was not advertised");
                     session.select(static_cast<unsigned>(
                         item - session.catalog().begin()));
                     (void)session.qualify(3U);
                     require(session.ready() && session.selection() ==
                                 static_cast<unsigned>(
                                     item - session.catalog().begin()),
-                            "Vulkan cloth qualification lost its scene");
+                            "Vulkan cloth/soft-body qualification lost its scene");
                 }
             }
 

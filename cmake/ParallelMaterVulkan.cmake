@@ -9,7 +9,8 @@ file(GLOB_RECURSE vulkan_shader_dependencies CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/slang/*.inc")
 set(vulkan_sources)
 foreach(module geometry geometry_constraints primitives queries fluid geometry_fluid
-               cloth geometry_cloth fluid_cloth)
+               cloth geometry_cloth fluid_cloth soft_body geometry_soft_body
+               fluid_soft_body)
     parallel_mater_slang_entry_arguments(${module} CUDA entries)
     parallel_mater_slang_definition_arguments(${module} CUDA definitions)
     set(wrapper "src/simulation/${module}_dispatch.cu")
@@ -46,11 +47,10 @@ foreach(module geometry geometry_constraints primitives queries fluid geometry_f
 endforeach()
 set(vulkan_stub_headers
     src/simulation/fluid_rope_dispatch.hpp src/simulation/fluid_smoke_dispatch.hpp
-    src/simulation/fluid_soft_body_dispatch.hpp
-    src/simulation/geometry_smoke_dispatch.hpp src/simulation/geometry_soft_body_dispatch.hpp
+    src/simulation/geometry_smoke_dispatch.hpp
     src/simulation/rope_coupling_dispatch.hpp src/simulation/rope_dispatch.hpp
     src/simulation/smoke_coupling_dispatch.hpp src/simulation/smoke_grid_dispatch.hpp
-    src/simulation/soft_body_cloth_dispatch.hpp src/simulation/soft_body_dispatch.hpp)
+    src/simulation/soft_body_cloth_dispatch.hpp)
 add_custom_command(OUTPUT "${vulkan_generated}/unadvertised.cpp"
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_cpu_dispatch_stubs.py"
         --output "${vulkan_generated}/unadvertised.cpp" ${vulkan_stub_headers}
@@ -99,6 +99,18 @@ if(BUILD_TESTING)
     add_dependencies(parallel-mater-vulkan-async-tests parallel-mater-driver-slang-vulkan)
     add_test(NAME parallel-mater-vulkan-async-tests COMMAND parallel-mater-vulkan-async-tests)
     set_tests_properties(parallel-mater-vulkan-async-tests PROPERTIES TIMEOUT 180
+        ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json")
+    add_executable(parallel-mater-vulkan-soft-body-capability-tests
+        tests/api/vulkan_soft_body_capability_tests.cpp)
+    target_compile_features(parallel-mater-vulkan-soft-body-capability-tests PRIVATE cxx_std_20)
+    target_link_libraries(parallel-mater-vulkan-soft-body-capability-tests PRIVATE
+        ParallelMater::parallel_mater)
+    add_dependencies(parallel-mater-vulkan-soft-body-capability-tests
+        parallel-mater-driver-slang-vulkan)
+    add_test(NAME parallel-mater-vulkan-soft-body-capability-tests
+        COMMAND parallel-mater-vulkan-soft-body-capability-tests)
+    set_tests_properties(parallel-mater-vulkan-soft-body-capability-tests PROPERTIES
+        TIMEOUT 180
         ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json")
     if(PARALLEL_MATER_BUILD_GALLERY)
         add_executable(parallel-mater-vulkan-liquid-tests tests/gallery/mobile_liquid_tests.cpp)
