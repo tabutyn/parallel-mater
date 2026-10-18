@@ -1,0 +1,23 @@
+{
+  "id": "F5-43",
+  "title": "Qualify smoke-to-cloth drag",
+  "status": "open",
+  "dependencies": [
+    "F5-23"
+  ],
+  "locks": [
+    "quality-f5-43"
+  ],
+  "requires": [
+    "Any development host and one physical production driver advertising the exact capability tuple"
+  ],
+  "scope": "Publish and bind vendor-neutral qualification for exactly CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID; CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE. The single physical behavior is: Particle and grid smoke flow applies bounded velocity-dependent one-way loading to cloth without requiring contact.",
+  "acceptance": [
+    "Publish one immutable analytic profile for the listed tuple or representation variants, with canonical public-API inputs, SI units, bounded tolerances and an oracle independent of driver-private state.",
+    "Add exact bounded capacity, replacement, removal and rollback lifecycle checks for the grid tuple; retain the particle tuple's existing lifecycle binding, and prove rejected mutations preserve the last usable state.",
+    "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
