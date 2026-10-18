@@ -1,7 +1,7 @@
 {
   "id": "F6-11",
   "title": "Adjudicate the retained rigid contact patch",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F6-09",
     "F6-10"
@@ -18,6 +18,14 @@
     "Pass focused fast-impact, contact and conformance checks on CUDA and one other physical backend without a backend-specific physics fork or archived golden transplant."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "3bdd2aeb-e8aa-46f7-b3a3-57f6123bd753",
+    "owner": "codex-windows-sdk",
+    "machine": "windows-gtx1080",
+    "branch": "work/F6-11/windows-gtx1080",
+    "claimed_at": "2026-10-18T18:48:11Z",
+    "heartbeat_at": "2026-10-18T18:48:11Z",
+    "expires_at": "2026-10-19T18:48:11Z"
+  },
   "history": []
 }
