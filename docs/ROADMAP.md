@@ -296,7 +296,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-05](roadmap/tasks/P1-05.json) | Build heterogeneous fluid pair sampling | done | P1-04 | — |
 | [P1-06](roadmap/tasks/P1-06.json) | Exchange miscible pressure and contact | done | P1-05 | — |
 | [P1-07](roadmap/tasks/P1-07.json) | Exchange miscible viscosity | done | P1-06 | — |
-| [P1-08](roadmap/tasks/P1-08.json) | Schedule miscible fluid pair graphs | deferred | P1-07 | — |
+| [P1-08](roadmap/tasks/P1-08.json) | Schedule miscible fluid pair graphs | ready | P1-07 | — |
 | [P1-09](roadmap/tasks/P1-09.json) | Qualify and advertise miscible fluids | deferred | P1-08, F5-02, F5-03 | — |
 | [P1-10](roadmap/tasks/P1-10.json) | Reconstruct immiscible fluid interfaces | deferred | P1-05, P1-56 | — |
 | [P1-11](roadmap/tasks/P1-11.json) | Apply immiscible pressure and capillarity | deferred | P1-10 | — |

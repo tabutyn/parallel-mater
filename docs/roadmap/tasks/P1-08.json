@@ -1,7 +1,7 @@
 {
   "id": "P1-08",
   "title": "Schedule miscible fluid pair graphs",
-  "status": "deferred",
+  "status": "open",
   "dependencies": [
     "P1-07"
   ],
