@@ -1,7 +1,7 @@
 {
   "id": "P1-56",
   "title": "Expose immiscible interface state",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "P1-04"
   ],
@@ -18,6 +18,14 @@
     "Negative tests atomically reject interface state on other material profiles plus missing, negative, nonfinite, duplicate and unsupported state."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "69313ef8-d46a-44b3-8fd3-f1300329f153",
+    "owner": "codex-immiscible-interface",
+    "machine": "thomas-laptop",
+    "branch": "work/P1-56/thomas-laptop",
+    "claimed_at": "2026-10-18T22:45:26Z",
+    "heartbeat_at": "2026-10-18T22:45:26Z",
+    "expires_at": "2026-10-19T22:45:26Z"
+  },
   "history": []
 }
