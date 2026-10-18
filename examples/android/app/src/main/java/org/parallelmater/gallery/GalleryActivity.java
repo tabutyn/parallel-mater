@@ -180,7 +180,8 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         overlay.addView(top, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
 
         movement = column();
-        steering = label("Push objects", 11, INK);
+        movement.setVisibility(View.GONE);
+        steering = label("Scene controls", 11, INK);
         steering.setPadding(dp(10), dp(4), dp(10), dp(4));
         steering.setBackground(panel(false));
         LinearLayout.LayoutParams steeringLayout = new LinearLayout.LayoutParams(-2, -2);
@@ -188,10 +189,10 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         steeringLayout.leftMargin = dp(6);
         movement.addView(steering, steeringLayout);
         LinearLayout arrows = row();
-        left = direction("←", "Move left", -1, 0);
-        forward = direction("↑", "Move forward", 0, 1);
-        backward = direction("↓", "Move back", 0, -1);
-        right = direction("→", "Move right", 1, 0);
+        left = direction("←", "", -1, 0);
+        forward = direction("↑", "", 0, 1);
+        backward = direction("↓", "", 0, -1);
+        right = direction("→", "", 1, 0);
         addButton(arrows, left, 48);
         addButton(arrows, forward, 48);
         addButton(arrows, backward, 48);

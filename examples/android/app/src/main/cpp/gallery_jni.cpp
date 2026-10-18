@@ -14,6 +14,8 @@
 #include <locale>
 #include <stdexcept>
 #include <sstream>
+#include <string>
+#include <string_view>
 #include <utility>
 
 namespace {
