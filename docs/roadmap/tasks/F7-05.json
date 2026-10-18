@@ -1,7 +1,7 @@
 {
   "id": "F7-05",
   "title": "Unify Gallery clock and workload policy",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-03"
   ],
@@ -16,15 +16,31 @@
     "Equal action/time traces produce equal physics submissions across platform adapters within explicit catch-up limits.",
     "Slow frames, pause, backgrounding and changing workload limits have deterministic tested behavior."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "dffed067-6bbd-4086-bfeb-e3803ba45fd5",
-    "owner": "codex-macos-gallery",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F7-05/thomass-macbook-air",
-    "claimed_at": "2026-10-17T23:52:03Z",
-    "heartbeat_at": "2026-10-17T23:52:03Z",
-    "expires_at": "2026-10-18T23:52:03Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: ctest --test-dir build-macos-metal-preview -R 'parallel-mater-(gallery-session-contract-tests|gallery-frame-policy-tests|ipad-session-tests|physics-frame-budget-tests|gallery-frame-timing-tests)$' --output-on-failure (5/5); Apple M4 Metal host; deterministic equal-trace, slow-frame, pause, background, modal, and profile-change coverage in tracked tests",
+    "PASS: cmake --build build-ipad-gallery --config Debug --target parallel-mater-ipad-gallery -j2; signed arm64 iPadOS Gallery app; shared frame policy and UIKit adapter compiled successfully",
+    "PASS: JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=/Users/thomasbutyn/Android/Sdk ./scripts/Build-AndroidGallery.sh; arm64-v8a Vulkan debug APK; JNI adapter linked against shared frame policy"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "dffed067-6bbd-4086-bfeb-e3803ba45fd5",
+        "owner": "codex-macos-gallery",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F7-05/thomass-macbook-air",
+        "claimed_at": "2026-10-17T23:52:03Z",
+        "heartbeat_at": "2026-10-17T23:52:03Z",
+        "expires_at": "2026-10-18T23:52:03Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T00:12:58Z",
+      "reason": "Desktop, Android, and iPad Gallery adapters now use one profiled fixed-step clock with bounded catch-up and lifecycle resets.",
+      "evidence": [
+        "PASS: ctest --test-dir build-macos-metal-preview -R 'parallel-mater-(gallery-session-contract-tests|gallery-frame-policy-tests|ipad-session-tests|physics-frame-budget-tests|gallery-frame-timing-tests)$' --output-on-failure (5/5); Apple M4 Metal host; deterministic equal-trace, slow-frame, pause, background, modal, and profile-change coverage in tracked tests",
+        "PASS: cmake --build build-ipad-gallery --config Debug --target parallel-mater-ipad-gallery -j2; signed arm64 iPadOS Gallery app; shared frame policy and UIKit adapter compiled successfully",
+        "PASS: JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home ANDROID_HOME=/Users/thomasbutyn/Android/Sdk ./scripts/Build-AndroidGallery.sh; arm64-v8a Vulkan debug APK; JNI adapter linked against shared frame policy"
+      ]
+    }
+  ]
 }

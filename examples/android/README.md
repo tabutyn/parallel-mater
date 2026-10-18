@@ -39,9 +39,11 @@ samples the authored initial population down to capacity, and emitters retain
 that capacity. Lower counts change the physical amount and sampling of liquid;
 this is not a quality-equivalent benchmark against the full desktop workload.
 Solver timestep, material parameters and contact iteration quality are retained.
-One update advances 1/target_fps seconds with approximately 240 substeps/second;
-if execution is slower than the target, simulation slows rather than skipping
-physics or allowing unbounded queued frames.
+The common Gallery clock advances fixed 1/target_fps steps with approximately
+240 solver substeps/second. Slow display frames may catch up by at most four
+steps and only within the shared 8 ms physics-work budget; excess whole steps
+are discarded so rendering and input cannot accumulate an unbounded queue.
+Pause, backgrounding, surface loss, and profile changes reset elapsed time.
 
 ## Build and install
 

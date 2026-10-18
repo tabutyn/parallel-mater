@@ -313,7 +313,7 @@ UIImage *frame_image(const GallerySession &session) {
                 if (release) (void)session.primary_action();
                 session.orbit(x * session.height / height, y * session.height / height);
                 session.zoom(z); session.steer(right, up); session.set_paused(paused);
-                session.frame();
+                session.frame_at(GallerySession::FrameClock::now());
                 NSString *status = text(session.status());
                 NSString *details = text(session.details());
                 dispatch_async(dispatch_get_main_queue(), ^{

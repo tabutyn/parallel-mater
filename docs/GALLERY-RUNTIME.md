@@ -15,19 +15,21 @@ assembly, and teardown. Android and iPad reach it through the reusable
 calibration data. `GalleryRuntime` also owns semantic scene actions and all
 per-step controllers. Scene metadata and backend availability come from one
 ordered `GalleryCatalog`; platform shells only choose how to display its
-records. Timing policy and native renderers remain partly shell-specific and
-move behind common contracts in the remaining F7 tasks.
+records. `GalleryFramePolicy` supplies the same profiled fixed-step clock,
+catch-up budget, pause, and lifecycle behavior to the desktop loop and
+`GallerySession`. Native renderers remain partly shell-specific and move behind
+a common contract in the remaining F7 tasks.
 
 | Responsibility | Current desktop owner | Current mobile owner | Required owner |
 |---|---|---|---|
 | Ordered scene identity, name, help, source, control policy, feature requirements, availability, and rejection reason | `GalleryCatalog` | `GallerySession::catalog()` | Common runtime catalog (done) |
 | Driver discovery, explicit backend choice, and capability query | Desktop startup and backend picker | Platform startup configuration; Android fixes Vulkan | Platform shell requests a backend; common runtime reports devices and scene availability |
 | Asset and device-profile paths | Desktop options and compile-time resource paths | Android/iPad shell configuration | Platform shell supplies paths once |
-| Workload limits and user-adjustable counts | Desktop options, calibration, and local profile logic | `GallerySession` device-profile selection | Common runtime policy; shell edits declared parameters |
+| Workload limits and user-adjustable counts | Shared frame policy plus desktop calibration/options | `GallerySession` profile selection and shared frame policy | Common runtime policy; shell edits declared parameters |
 | Asset loading and scene construction | `GalleryRuntime`, configured by desktop | `GalleryRuntime`, configured by `GallerySession` | Common runtime catalog and workload policy |
 | Physics device, resources, command submission, scene replacement, reset, and teardown | `GalleryRuntime` through `DesktopGalleryState` | `GalleryRuntime` through `GallerySession` | Common runtime (done) |
 | Fixed, point, motor, steering, dump-bed, kinematic, gravity, force, paint, and deformable controllers | Semantic input adapter around `GalleryRuntime` | Semantic input adapter around `GallerySession`/`GalleryRuntime` | Common runtime semantic commands (done) |
-| Fixed-step accumulation, catch-up limits, substeps, pause, and foreground recovery | Desktop application loop | One profiled step per `GallerySession::frame` | Common runtime clock and workload policy |
+| Fixed-step accumulation, catch-up limits, substeps, pause, and foreground recovery | `GalleryFramePolicy` | `GalleryFramePolicy` through `GallerySession` | Common runtime clock and workload policy (done) |
 | Camera state and focus policy | `GalleryRuntime::camera`, driven by desktop input | `GalleryRuntime::camera`, driven by `GallerySession` touch methods | Common runtime, driven by semantic pointer/zoom commands |
 | Host render-frame assembly | `GalleryRuntime::step` | `GalleryRuntime::step` | Common runtime (done) |
 | Software, native GPU, or external-engine drawing | Desktop renderer/window path; optional Metal path | Software renderer or iPad Metal renderer | Renderer adapter |
@@ -88,6 +90,16 @@ Activation resets the wall-clock baseline so elapsed background time cannot
 become catch-up work. The next unpaused frame advances according to the same
 fixed-step policy used on every shell.
 
+Each workload profile's `target_fps` selects both the fixed timestep and enough
+solver substeps to retain an approximately 240 Hz solver cadence. Interactive
+adapters pass monotonic timestamps into `GalleryFramePolicy`. A display frame
+may submit at most four due physics steps, and additional catch-up is admitted
+only while the previous step predicts that the 8 ms physics budget remains.
+A wall-clock delta is clamped to 250 ms; work still due after either limit is
+discarded while its fractional remainder is retained. Modal UI, reset, profile
+changes, pause, and background transitions clear accumulated elapsed time.
+Scripted qualification uses the same policy with exact one-interval timestamps.
+
 Each successful physics step publishes one coherent output generation.
 Renderer adapters receive that generation, camera, dimensions, visual/debug
 mode, and timing sink. A host adapter consumes `RenderSceneFrame`; a native GPU
@@ -118,7 +130,8 @@ These tests protect behavior while later F7 tasks move ownership:
 | Catalog selection, modal reset/action gating, and held-input clearing | `parallel-mater-gallery-input-tests` |
 | Camera, gravity/force policies, motor/dump classification, and four-wheel steering math | `parallel-mater-camera-controller-tests` |
 | Full mobile session scene loop, presentation failure, and qualification lifecycle on Metal | `parallel-mater-ipad-session-tests` |
-| Desktop fixed-step timing and headless render behavior | `parallel-mater-gallery-frame-timing-tests` and `parallel-mater-gallery-frame-timing-headless` |
+| Cross-adapter fixed-step traces, catch-up limits, stalls, pause/background, modal UI, and profile changes | `parallel-mater-gallery-frame-policy-tests` |
+| Frame measurement and headless render behavior | `parallel-mater-gallery-frame-timing-tests` and `parallel-mater-gallery-frame-timing-headless` |
 
 F7-02 through F7-07 may change types and file layout only while these observable
 contracts remain covered. F7-08 defines the renderer interface in detail; F7-09

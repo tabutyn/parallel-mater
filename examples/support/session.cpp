@@ -33,6 +33,7 @@ GallerySession::GallerySession(GallerySessionConfig config) : config_(std::move(
     const auto *profile = select_workload_limits(catalog, config_.platform, config_.model, config_.backend);
     if (!profile) throw std::runtime_error("Gallery workload profile missing");
     limits = *profile;
+    frame_policy_.apply_workload(&limits);
     bricks_ = limits.brick_count;
     width = limits.render_width;
     height = limits.render_height;
@@ -128,6 +129,7 @@ void GallerySession::select(unsigned index) {
             frames = 0;
             pixels.clear();
             timing.clear_history();
+            frame_policy_.reset();
             right_ = up_ = 0;
             released_ = false;
         }
@@ -141,6 +143,7 @@ void GallerySession::select(unsigned index) {
     frames = 0;
     pixels.clear();
     timing.clear_history();
+    frame_policy_.reset();
     right_ = up_ = 0;
     released_ = false;
     focus();
@@ -152,6 +155,7 @@ void GallerySession::reset() {
             frames = 0;
             pixels.clear();
             timing.clear_history();
+            frame_policy_.reset();
             right_ = up_ = 0;
             released_ = false;
         }
@@ -160,6 +164,7 @@ void GallerySession::reset() {
     frames = 0;
     pixels.clear();
     timing.clear_history();
+    frame_policy_.reset();
     right_ = up_ = 0;
     released_ = false;
     focus();
@@ -231,10 +236,15 @@ GalleryActionOutcome GallerySession::primary_action() {
 void GallerySession::release() { (void)primary_action(); }
 void GallerySession::set_paused(bool value) {
     if (paused_ == value) return;
-    paused_ = value; timing.clear_history();
+    paused_ = value;
+    frame_policy_.set_paused(value);
+    timing.clear_history();
 }
 void GallerySession::set_active(bool value) {
-    active_ = value; right_ = up_ = 0; timing.clear_history();
+    active_ = value;
+    frame_policy_.set_active(value);
+    right_ = up_ = 0;
+    timing.clear_history();
 }
 void GallerySession::steer(float right, float up) {
     right_ = std::clamp(right, -1.0F, 1.0F); up_ = std::clamp(up, -1.0F, 1.0F);
@@ -244,12 +254,18 @@ void GallerySession::set_bricks(unsigned count) {
     if (entry(selected_).context == GalleryContext::rigid_body) select(selected_);
 }
 void GallerySession::frame(const std::function<void(const GallerySession &)> &present) {
+    frame_at(frame_policy_.next_fixed_frame_time(), present);
+}
+void GallerySession::frame_at(
+    FrameClock::time_point timestamp,
+    const std::function<void(const GallerySession &)> &present) {
     if (!active_) return;
     require_scene();
+    frame_policy_.begin_frame(timestamp);
     timing.begin_frame();
     try {
         std::string error;
-        if (!paused_) {
+        while (frame_policy_.can_step()) {
             timing.begin_phase(FramePhase::physics);
             const auto controls = runtime_.controller_state();
             const bool read_host = !config_.gpu_rendering || diagnostics_ ||
@@ -259,14 +275,15 @@ void GallerySession::frame(const std::function<void(const GallerySession &)> &pr
                 .forward = up_,
                 .camera = runtime_.camera.camera(),
             }, {
-                .timestep = 1.0F / limits.target_fps,
-                .substeps = (240U + limits.target_fps - 1) / limits.target_fps,
+                .timestep = frame_policy_.timestep(),
+                .substeps = frame_policy_.substeps(),
                 .read_deformables = read_host,
                 .read_host = read_host,
             }, error), error);
             ++frames;
-            timing.end_phase();
+            frame_policy_.record_step(timing.end_phase() / 1000.0);
         }
+        frame_policy_.finish_frame();
         timing.begin_phase(FramePhase::render);
 #ifdef PM_GALLERY_METAL_RENDERER
         if (runtime_.native_renderer) {
@@ -286,7 +303,11 @@ void GallerySession::frame(const std::function<void(const GallerySession &)> &pr
             timing.end_phase();
         }
         timing.finish_frame(); // No scan-out claim. UI handoff excluded unless supplied above.
-    } catch (...) { timing.cancel_frame(); throw; }
+    } catch (...) {
+        frame_policy_.reset();
+        timing.cancel_frame();
+        throw;
+    }
 }
 std::string GallerySession::scene_file() const {
     return std::string(catalog_item(selected_).asset_file);

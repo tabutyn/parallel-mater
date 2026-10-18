@@ -201,9 +201,10 @@ if(PARALLEL_MATER_BUILD_CUDA OR PARALLEL_MATER_BUILD_D3D12 OR PARALLEL_MATER_BUI
 endif()
 
 if(PARALLEL_MATER_BUILD_GALLERY OR BUILD_TESTING)
-    # One portable wall-clock collector and CSV serializer for all Gallery paths.
+    # One portable clock policy, wall-time collector, and CSV serializer.
     add_library(parallel-mater-gallery-frame-timing STATIC
-        examples/support/frame_timing.cpp)
+        examples/support/frame_timing.cpp
+        examples/support/frame_policy.cpp)
     target_compile_features(parallel-mater-gallery-frame-timing PUBLIC cxx_std_20)
     set_target_properties(parallel-mater-gallery-frame-timing PROPERTIES POSITION_INDEPENDENT_CODE YES)
     target_include_directories(parallel-mater-gallery-frame-timing
@@ -1312,6 +1313,14 @@ if(BUILD_TESTING)
         PRIVATE include examples/support/include)
     add_test(NAME parallel-mater-physics-frame-budget-tests
         COMMAND parallel-mater-physics-frame-budget-tests)
+
+    add_executable(parallel-mater-gallery-frame-policy-tests
+        tests/gallery/frame_policy_tests.cpp)
+    target_link_libraries(parallel-mater-gallery-frame-policy-tests PRIVATE
+        parallel-mater-gallery-frame-timing)
+    parallel_mater_enable_warnings(parallel-mater-gallery-frame-policy-tests)
+    add_test(NAME parallel-mater-gallery-frame-policy-tests
+        COMMAND parallel-mater-gallery-frame-policy-tests)
 
     add_executable(parallel-mater-gallery-registry-tests
         tests/gallery/gallery_registry_contract_tests.cpp)
