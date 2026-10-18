@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -75,12 +76,14 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     private final HandlerThread thread = new HandlerThread("ParallelMaterGallery");
     private Handler worker;
     private TextView status, steering;
-    private Button pause, release, scenes;
+    private Button pause, release, scenes, left, forward, backward, right;
+    private LinearLayout movement;
     private SurfaceView surfaceView;
     private volatile long handle;
     // Lifecycle and presentation scheduling are UI-thread state. Simulation
     // admission and recovery remain in the shared native mobile session.
-    private boolean active, surfaceReady, failed, framePending, framePosted, qualifying;
+    private boolean active, surfaceReady, failed, framePending, framePosted, qualifying,
+        debugFrozen;
     private long lastStatus, lastRuntimeInfo;
     private int backgrounds, foregrounds;
     private String diagnosticNonce = "";
@@ -118,7 +121,8 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     private final Runnable frameRequest = new Runnable() {
         @Override public void run() {
             framePosted = false;
-            if (!active || !surfaceReady || failed || qualifying || framePending || handle == 0) return;
+            if (!active || !surfaceReady || failed || qualifying || debugFrozen ||
+                framePending || handle == 0) return;
             framePending = true;
             worker.post(frame);
         }
@@ -132,6 +136,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Color.rgb(11, 20, 29));
         surfaceView = new SurfaceView(this);
+        surfaceView.setContentDescription("Simulation viewport. Drag to orbit and pinch to zoom.");
         surfaceView.getHolder().addCallback(this);
         root.addView(surfaceView, new FrameLayout.LayoutParams(-1, -1));
         FrameLayout overlay = new FrameLayout(this);
@@ -160,15 +165,22 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         scenes = button("Loading scenes…", this::chooseScene, false);
         scenes.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
         scenes.setTextSize(16);
+        scenes.setSingleLine(true);
+        scenes.setEllipsize(TextUtils.TruncateAt.END);
         toolbar.addView(scenes, new LinearLayout.LayoutParams(dp(
-            getResources().getConfiguration().screenWidthDp >= 720 ? 260 : 220), dp(48)));
+            getResources().getConfiguration().screenWidthDp >= 720 ? 320 : 240), dp(48)));
         toolbar.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
         pause = button("Pause", () -> command(10, 0, 0), true);
         addButton(toolbar, pause, 80);
-        addButton(toolbar, button("Reset", this::resetScene, false), 72);
-        addButton(toolbar, button("Info", this::showInfo, false), 60);
+        Button reset = button("Reset", this::resetScene, false);
+        reset.setContentDescription("Reset scene");
+        addButton(toolbar, reset, 72);
+        Button info = button("Info", this::showInfo, false);
+        info.setContentDescription("Scene information");
+        addButton(toolbar, info, 60);
         top.addView(toolbar);
         status = label("Loading scene…", 12, INK);
+        status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         status.setPadding(dp(12), dp(5), dp(12), dp(5));
         status.setBackground(panel(false));
         LinearLayout.LayoutParams statusLayout = new LinearLayout.LayoutParams(-2, -2);
@@ -176,8 +188,9 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         top.addView(status, statusLayout);
         overlay.addView(top, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
 
-        LinearLayout movement = column();
-        steering = label("Push objects", 11, INK);
+        movement = column();
+        movement.setVisibility(View.GONE);
+        steering = label("Scene controls", 11, INK);
         steering.setPadding(dp(10), dp(4), dp(10), dp(4));
         steering.setBackground(panel(false));
         LinearLayout.LayoutParams steeringLayout = new LinearLayout.LayoutParams(-2, -2);
@@ -185,10 +198,14 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         steeringLayout.leftMargin = dp(6);
         movement.addView(steering, steeringLayout);
         LinearLayout arrows = row();
-        addButton(arrows, direction("←", "Steer left", -1, 0), 48);
-        addButton(arrows, direction("↑", "Steer forward", 0, 1), 48);
-        addButton(arrows, direction("↓", "Steer back", 0, -1), 48);
-        addButton(arrows, direction("→", "Steer right", 1, 0), 48);
+        left = direction("←", "", -1, 0);
+        forward = direction("↑", "", 0, 1);
+        backward = direction("↓", "", 0, -1);
+        right = direction("→", "", 1, 0);
+        addButton(arrows, left, 48);
+        addButton(arrows, forward, 48);
+        addButton(arrows, backward, 48);
+        addButton(arrows, right, 48);
         // The wrapping column must measure the row's buttons, not only its label.
         movement.addView(arrows, new LinearLayout.LayoutParams(-2, -2));
         overlay.addView(movement, new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.START));
@@ -197,7 +214,9 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         release = button("Release", () -> command(6, 0, 0), false);
         release.setVisibility(View.GONE);
         addButton(camera, release, 84);
-        addButton(camera, button("Focus", () -> command(8, 0, 0), false), 72);
+        Button focus = button("Focus", () -> command(8, 0, 0), false);
+        focus.setContentDescription("Focus scene action");
+        addButton(camera, focus, 72);
         Button zoomOut = button("−", () -> command(5, -1, 0), false);
         zoomOut.setContentDescription("Zoom out");
         Button zoomIn = button("+", () -> command(5, 1, 0), false);
@@ -259,7 +278,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                 catalog = parseCatalog(nativeSceneCatalog(handle));
                 String[] controls = nativeControlState(handle);
                 runOnUiThread(() -> {
-                    status.setText("Ready");
+                    status.setText("Ready: " + catalog[0].name);
                     applyControlState(controls);
                     applyDebugRequest(getIntent());
                 });
@@ -339,7 +358,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
             status.setText(items[index].unavailableReason);
             return;
         }
-        status.setText("Loading scene…");
+        status.setText("Loading " + items[index].name + "…");
         command(0, index, 0);
     }
     // Repeatable device qualification uses the same commands as the UI.
@@ -361,6 +380,13 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
             command(2, "pause".equals(action) ? 1 : 0, 0);
         } else if ("focus".equals(action)) command(8, 0, 0);
         else if ("info".equals(action)) showInfo();
+        else if ("freeze".equals(action)) {
+            debugFrozen = true;
+            restartFrames();
+        } else if ("unfreeze".equals(action)) {
+            debugFrozen = false;
+            restartFrames();
+        }
         intent.removeExtra("pm_scene");
         intent.removeExtra("pm_action");
     }
@@ -413,6 +439,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     private void showInfo() {
         command(3, 0, 0);
         int sceneIndex = selected;
+        if (sceneIndex < 0 || sceneIndex >= catalog.length) return;
         SceneInfo item = catalog[sceneIndex];
         worker.post(() -> {
             if (handle == 0) return;
@@ -421,9 +448,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                 runOnUiThread(() -> {
                     if (isFinishing() || isDestroyed()) return;
                     AlertDialog dialog = new AlertDialog.Builder(this).setTitle(item.name)
-                        .setMessage(item.description + "\nRequires: " + item.requirements + "\n\n" + details +
-                            "\n\nDrag to orbit · Pinch to zoom\nFocus reframes the current action.\nHold arrows to " +
-                            steering.getText().toString().toLowerCase(java.util.Locale.ROOT) + ".")
+                        .setMessage(details)
                         .setPositiveButton("Done", null).show();
                     styleDialog(dialog);
                 });
@@ -445,14 +470,25 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         });
     }
     private void applyControlState(String[] state) {
-        if (state == null || state.length != 7)
+        if (state == null || state.length != 11)
             throw new IllegalStateException("Invalid shared Gallery control state");
         selected = Integer.parseInt(state[0]);
         paused = "1".equals(state[1]);
         pause.setText(paused ? "Resume" : "Pause");
         release.setVisibility("1".equals(state[2]) ? View.VISIBLE : View.GONE);
-        if (!state[3].isEmpty()) release.setText(state[3]);
+        if (!state[3].isEmpty()) {
+            release.setText(state[3]);
+            release.setContentDescription(state[3]);
+        }
         steering.setText(state[4]);
+        boolean directional = !state[7].isEmpty();
+        movement.setVisibility(directional ? View.VISIBLE : View.GONE);
+        if (directional) {
+            left.setContentDescription(state[7]);
+            forward.setContentDescription(state[8]);
+            backward.setContentDescription(state[9]);
+            right.setContentDescription(state[10]);
+        }
         failed = "1".equals(state[5]);
         if (selected >= 0 && selected < catalog.length) {
             String name = catalog[selected].name;
@@ -477,7 +513,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         return manifest.toString().replace("\\/", "/").getBytes(StandardCharsets.UTF_8);
     }
     private void requestFrame() {
-        if (!active || !surfaceReady || failed || qualifying || framePending || framePosted ||
+        if (!active || !surfaceReady || failed || qualifying || debugFrozen || framePending || framePosted ||
             handle == 0 || surfaceView == null) return;
         framePosted = true;
         surfaceView.postOnAnimation(frameRequest);

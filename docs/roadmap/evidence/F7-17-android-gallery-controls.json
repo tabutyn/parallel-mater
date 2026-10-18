@@ -1,0 +1,130 @@
+{
+  "schema": "parallel-mater-roadmap-android-gallery-controls-evidence/v1",
+  "task": "F7-17",
+  "scope": "Android touch controls and help derived from the common Gallery semantic metadata",
+  "source": {
+    "implementation_commit": "5c7876be783380fe7539f14315d9d58892ce9112",
+    "tested_merge_commit": "af7df1350235e38ff688dccc86204f8dbac0f005",
+    "base_main_commit": "236158f8c23a0a63ee3399d28a4cca03a6a80d64",
+    "latest_merged_main_commit": "11049bc6b4ad701e397e029a6f181407518f7b46",
+    "branch": "work/F7-17/windows-gtx1080",
+    "lease_token": "360d7348-52d9-4134-af4f-e60838c67f2c",
+    "claim_pr": "https://github.com/tabutyn/parallel-mater/pull/228",
+    "completion_pr": "https://github.com/tabutyn/parallel-mater/pull/229",
+    "tested_at": "2026-10-18T14:34:37Z"
+  },
+  "contract": {
+    "common_control_text": "parallel_mater::gallery::gallery_directional_control_text and gallery_primary_action_label",
+    "platform_specific_control_semantics": 0,
+    "directional_policies": [
+      "authored force",
+      "motor and steering",
+      "rigid gravity",
+      "collector gravity",
+      "peg gravity",
+      "cloth gravity",
+      "camera only"
+    ],
+    "primary_actions": [
+      "release",
+      "restore",
+      "raise bed",
+      "lower bed"
+    ],
+    "global_actions": [
+      "focus",
+      "pause",
+      "resume",
+      "reset",
+      "scene information",
+      "zoom"
+    ],
+    "status_loading_errors_and_info_use_common_state": true,
+    "android_adapter_responsibilities": [
+      "touch layout",
+      "accessibility projection",
+      "window and lifecycle delivery"
+    ]
+  },
+  "emulator_evidence": {
+    "workflow_run": "https://github.com/tabutyn/parallel-mater/actions/runs/39135936264",
+    "job": "https://github.com/tabutyn/parallel-mater/actions/runs/39135936264/job/117700599372",
+    "artifact": "https://github.com/tabutyn/parallel-mater/actions/runs/39135936264/artifacts/12140141754",
+    "artifact_name": "android-gallery-ui-evidence",
+    "device_profile": "Pixel 6",
+    "api_level": 35,
+    "reported_device": "Android SDK built for x86_64",
+    "backend": "slang-cpu",
+    "resolution_pixels": [
+      2400,
+      1080
+    ],
+    "result": "pass",
+    "actions_exercised": [
+      "gravity",
+      "authored force",
+      "motor",
+      "steering",
+      "release",
+      "restore",
+      "raise bed",
+      "lower bed",
+      "focus",
+      "pause",
+      "resume",
+      "reset",
+      "info"
+    ],
+    "accessibility": {
+      "enabled_clickable_controls_named": true,
+      "internal_roadmap_language_absent": true,
+      "common_info_sections_not_duplicated": true,
+      "camera_only_directional_controls_hidden": true
+    },
+    "visual_review": {
+      "controls_readable": true,
+      "long_scene_title_single_line": true,
+      "info_readable_and_not_duplicated": true,
+      "dump_target_visible_as_lower_bed": true
+    }
+  },
+  "verification": [
+    {
+      "check": "ctest --test-dir build-f7-17 -C Release -R 'parallel-mater-(gallery-input-tests|slang-architecture)' --output-on-failure",
+      "result": "PASS: 2/2 common control text and no-platform-physics architecture tests"
+    },
+    {
+      "check": "python -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS: 19/19 roadmap workflow tests"
+    },
+    {
+      "check": "Mobile Gallery builds / android-ui",
+      "result": "PASS: Pixel 6/API 35 emulator exercised every declared Android control family, checked accessibility and captured four screenshots plus UI hierarchies",
+      "url": "https://github.com/tabutyn/parallel-mater/actions/runs/39135936264/job/117700599372"
+    },
+    {
+      "check": "Mobile Gallery builds / android",
+      "result": "PASS: qualification-enabled Android Vulkan APK compiled the common control metadata and thin JNI adapter",
+      "url": "https://github.com/tabutyn/parallel-mater/actions/runs/39135936264/job/117700599298"
+    },
+    {
+      "check": "Mobile Gallery builds / ipad",
+      "result": "PASS: unsigned iPad Metal app compiled against the same common control-text contract",
+      "url": "https://github.com/tabutyn/parallel-mater/actions/runs/39135936264/job/117700599131"
+    }
+  ],
+  "artifact_hashes": {
+    "summary.json": "a65ea44c2d76bb767ea174e62c49e3254681f39630b87694ea4d3ae61a5f8123",
+    "apk_sha256": "1fb6eee632e64fd31edd385c0f747f82a9f2103332b45b56851c734c82ee8dd4",
+    "runner_sha256": "f3575673d43127c64f7019aeea8a81c8b9c5cf79999d038e3eee791678b80c9d",
+    "gravity-controls.png": "9b6962d1154bfb82308de3f912a9bf3a69a144b5980596a389ca6b6b4ee8d620",
+    "motor-steering-controls.png": "e807ac22897222041263b39e41c233ac437b5f36cdba36f82ce3c5b1f605500e",
+    "dump-controls.png": "806318a8b34bd637c873286aa2cebafd1329f99557792f5125d8c4d2aae1f902",
+    "common-info.png": "4819cbc2a5433c94e5ec3cc142a9e68ee6cf06ddbea87666279c0b5aa16dc4ef"
+  },
+  "limitations": [
+    "The emulator uses the Slang CPU backend to qualify Android control reachability, presentation and accessibility; it is not physical-device Vulkan performance, thermal or physics-quality evidence.",
+    "Physical Android Vulkan direct-presentation and lifecycle evidence remains recorded by F7-16.",
+    "Debug freeze and unfreeze intents only stabilize accessibility capture; release APKs ignore them and all visible controls dispatch the normal shared mobile commands."
+  ]
+}
