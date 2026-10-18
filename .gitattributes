@@ -5,3 +5,4 @@
 /registry/pm.xml text eol=lf
 /tools/reference/*.json text eol=lf
 /tools/reference/*.txt text eol=lf
+/docs/roadmap/evidence/F5-04-rigid-direct-*.json text eol=lf
