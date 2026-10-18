@@ -25,7 +25,8 @@ if(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION)
         conformance/v1/src/device_fixtures.cpp
         tests/api/fluid_pair_quality_tests.cpp)
     target_compile_definitions(parallel-mater-conformance-runner PRIVATE
-        PM_QUALITY_PROFILE_SHA256="a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326")
+        PM_QUALITY_PROFILE_SHA256="a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"
+        PM_FLUID_SELF_CONTACT_PROFILE_SHA256="21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2")
 endif()
 parallel_mater_enable_warnings(parallel-mater-conformance-runner)
 
