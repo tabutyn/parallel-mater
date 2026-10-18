@@ -106,8 +106,9 @@ surface loss. Android presents through this same renderer without ordinary-frame
 image readback.
 
 Use a recent Vulkan SDK validator. On this laptop the system 1.3.239 layer
-crashes while inspecting the liquid shader; the isolated SDK 1.4.341.0 layer
-passes. No system driver or validation package was replaced.
+crashes in `vkCreateShaderModule` while inspecting the liquid shader; the
+isolated SDK 1.4.341.0 layer passes the same standalone probe and unchanged
+lifecycle case. No system driver or validation package was replaced.
 
 The Linux validation scripts pin SDK 1.4.341.0 and its archive SHA-256 in
 `config/vulkan-validation-sdk.json`. Setup extracts only the validation layer,
@@ -119,7 +120,14 @@ It validates all 23 production SPIR-V modules before running CTest serially.
 ```sh
 ./scripts/Setup-VulkanValidation.sh
 ./scripts/Test-Vulkan.sh
+./scripts/Probe-VulkanValidationLayer.sh --pinned
 ```
+
+`./scripts/Probe-VulkanValidationLayer.sh --system` selects only the Debian
+layer and reproduces exit 139 on affected installations. The probe compiles no
+physics adapter and dispatches no work; it isolates instance/device setup,
+descriptor and pipeline layouts, shader-module inspection and pipeline
+compilation. Its printed hashes identify the layer, shader and probe binaries.
 
 `PM_VULKAN_SDK_ARCHIVE` can supply an already downloaded archive; the same
 pinned checksum is required. `PM_GALLERY_BUILD_DIR` selects an existing build.
@@ -274,7 +282,8 @@ the compiler output as `generated/vulkan/*.raw.spv` and embeds the normalized
 `*.spv`; validate the latter. All 23 modules pass SDK 1.4.341.0 validation on
 Linux; the previous Pixel run covered the original six-module subset.
 
-`tools/vulkan_pipeline_probe.cpp` isolates pipeline compilation without the
+`tools/vulkan_pipeline_probe.cpp` isolates shader inspection and pipeline
+compilation without the
 Parallel Mater loader, scheduler or physics dispatch. Build with a host or
 Android NDK C++ compiler using `-std=c++20 -O2 -lvulkan` (add
 `-static-libstdc++` for a standalone Android executable), then run:
