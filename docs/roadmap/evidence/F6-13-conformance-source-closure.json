@@ -1,0 +1,31 @@
+{
+  "schema": "parallel-mater-roadmap-conformance-source-closure/v1",
+  "task": "F6-13",
+  "result": "passed",
+  "source_revision": "79b8b7cf6057a4f6a3f6ef8e5346a61746ab2913",
+  "source_dirty": false,
+  "change": {
+    "fixture_ownership": "capacity recovery, interaction graph lifecycle and resource lifecycle sources now live under conformance/v1/src",
+    "support_ownership": "lifecycle result types and the public-SDK-only test context now live beside the conformance sources",
+    "api_test_reuse": "API test executables compile the owned conformance fixtures; the remaining API suites use one forwarding test-context header",
+    "standalone_boundary": "conformance/v1/CMakeLists.txt names only sources inside the copied conformance component"
+  },
+  "verification": [
+    {
+      "check": "python3 -m unittest conformance/v1/tests/test_source_closure.py -v",
+      "result": "3/3 passed; all runner sources and local includes are present inside the component, and a parent-relative source is rejected"
+    },
+    {
+      "check": "python3 -m unittest discover -s conformance/v1/tests -p test_*.py -v",
+      "result": "82/82 passed"
+    },
+    {
+      "check": "cmake --preset sdk-ci && cmake --build --preset sdk-ci --parallel 2 && ctest --preset sdk-ci",
+      "result": "configured, built and passed 47/47 tests"
+    },
+    {
+      "check": "python3 tools/check_sdk_install.py --build-dir build-sdk-ci --output /tmp/f6-13-sdk-79b8b7c",
+      "result": "12/12 stages passed after install relocation: consumer configure/build/tests, version rejection, standalone conformance configure/build/input, installed runner input, unsupported case and missing driver"
+    }
+  ]
+}
