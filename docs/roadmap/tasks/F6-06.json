@@ -1,7 +1,7 @@
 {
   "id": "F6-06",
   "title": "Reconcile legacy launcher and branding patches",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "legacy-patch-review"
@@ -15,6 +15,14 @@
     "Do not restore retired World/compiler shims; verify the active launcher identity."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "2bb95bd8-8a2f-448e-8fbf-479ff1c4bda2",
+    "owner": "codex-linux-cleanup",
+    "machine": "thomas-laptop",
+    "branch": "work/F6-06/thomas-laptop",
+    "claimed_at": "2026-10-18T17:06:16Z",
+    "heartbeat_at": "2026-10-18T17:06:16Z",
+    "expires_at": "2026-10-19T17:06:16Z"
+  },
   "history": []
 }
