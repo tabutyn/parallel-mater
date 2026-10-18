@@ -1,0 +1,65 @@
+{
+  "schema": "parallel-mater-roadmap-miscible-graph-schedule/v1",
+  "task": "P1-08",
+  "result": "passed",
+  "source": {
+    "revision": "88217c5ea7156aacd231fc2d8c7fb99105fbd122",
+    "branch": "work/P1-08/thomas-laptop",
+    "lease_token": "c9860e5f-f240-44aa-b72c-9a4161973f8c",
+    "machine": "thomas-laptop"
+  },
+  "schedule": {
+    "profile_storage": "Each bounded fluid-pair graph slot retains an explicit equal or miscible material profile with its generation-safe endpoints and pair-private index storage.",
+    "sampling": "Both profiles build the same combined-capacity heterogeneous neighbor index and endpoint density samples using the maximum endpoint support.",
+    "miscible_pressure_contact": "The portable reference schedule dispatches fluid_apply_miscible_pair_pressure_contact with both endpoint constants and endpoint density samples.",
+    "miscible_viscosity": "The portable reference schedule dispatches fluid_apply_miscible_pair_viscosity with both endpoint constants.",
+    "equal_regression": "Equal-material edges retain their established pressure/contact and viscosity dispatch path.",
+    "overflow": "Pair-neighbor overflow contributes to the asynchronous frame result and returns PM_ERROR_CAPACITY_EXCEEDED; replacing the populations with a bounded graph recovers on the next submission."
+  },
+  "public_lifecycle": {
+    "fixture": "A private, non-installed Slang CPU resource driver exposes the three miscible mechanical records only to the public-API lifecycle fixture.",
+    "coverage": [
+      "pipeline and command graph creation with unequal endpoint materials",
+      "explicit graph removal and pipeline graph restoration after reset",
+      "32 alternating endpoint replacements without coupling-capacity growth",
+      "failed equal-profile installation over unequal endpoints with restoration of the prior miscible graph",
+      "pair-neighbor overflow followed by successful smaller-population recovery"
+    ],
+    "production_gate": "The public registry and every production driver continue to return PM_ERROR_FEATURE_NOT_PRESENT for miscible contact, pressure and viscosity."
+  },
+  "validation": [
+    {
+      "command": "ctest --test-dir build-foundations --output-on-failure -R 'parallel-mater-(host-fluid-pair-graph-lifecycle|interaction-capability)-tests'",
+      "result": "2/2 passed; the public miscible lifecycle passed through the private fixture and production capability queries remained rejected."
+    },
+    {
+      "command": "ctest --test-dir build-foundations -R 'parallel-mater-(fluid-pair-neighbor-index|slang-architecture)' --output-on-failure",
+      "result": "2/2 pair-index and shared-Slang architecture tests passed."
+    },
+    {
+      "command": "cmake --build build-linux-vulkan-preview --target parallel-mater-slang-kernel-mirrors parallel-mater-driver-slang-vulkan parallel-mater-fluid-pair-graph-lifecycle-tests -j2",
+      "result": "283/283 build steps passed; shared kernels compiled to CUDA, Vulkan SPIR-V and Metal and the Vulkan reference schedule compiled."
+    },
+    {
+      "command": "cmake --build build-desktop-switch --target parallel-mater-driver-slang-cuda parallel-mater-driver-slang-vulkan -j2",
+      "result": "70/70 CUDA and Vulkan native-driver build steps passed with the profile-aware shared schedule."
+    },
+    {
+      "command": "python3 -m unittest tests.solver.test_dxil_bindings",
+      "result": "4/4 DirectCompute DXIL binding generator tests passed."
+    },
+    {
+      "command": "cmake --build build-sdk-ci -j2 && ctest --test-dir build-sdk-ci --output-on-failure",
+      "result": "47/47 SDK, ABI, generator, conformance, resource-plan and architecture tests passed."
+    },
+    {
+      "command": "python3 tools/reference/build.py --check-generated && python3 conformance/v1/evidence_index.py --check && python3 conformance/v1/update_manifest.py --check",
+      "result": "Public generated files, evidence index and conformance manifest remained current."
+    }
+  ],
+  "boundaries": [
+    "Physical GPU qualification and public miscible capability advertisement remain P1-09.",
+    "The public interaction registry intentionally has no miscible records before P1-09.",
+    "Immiscible interface operators, scheduling and qualification remain P1-10 through P1-14."
+  ]
+}

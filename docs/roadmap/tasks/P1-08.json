@@ -1,7 +1,7 @@
 {
   "id": "P1-08",
   "title": "Schedule miscible fluid pair graphs",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "P1-07"
   ],
@@ -18,15 +18,33 @@
     "Creation, removal, replacement, reset, overflow and failed-update rollback pass through the public API.",
     "Reference adapters compile the shared schedule or explicitly reject the profile."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "c9860e5f-f240-44aa-b72c-9a4161973f8c",
-    "owner": "codex-miscible-graph",
-    "machine": "thomas-laptop",
-    "branch": "work/P1-08/thomas-laptop",
-    "claimed_at": "2026-10-18T22:30:44Z",
-    "heartbeat_at": "2026-10-18T22:30:44Z",
-    "expires_at": "2026-10-19T22:30:44Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: private public-API fixture covers miscible creation, removal, 32 endpoint replacements, reset, failed-update rollback, overflow and recovery.",
+    "PASS: shared Slang mirrors and CPU, CUDA and Vulkan reference schedules compile; DirectCompute DXIL generator tests pass 4/4.",
+    "PASS: SDK CI passes 47/47 tests and production miscible capability queries remain PM_ERROR_FEATURE_NOT_PRESENT.",
+    "PASS: tracked report docs/roadmap/evidence/P1-08-miscible-graph-schedule.json."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "c9860e5f-f240-44aa-b72c-9a4161973f8c",
+        "owner": "codex-miscible-graph",
+        "machine": "thomas-laptop",
+        "branch": "work/P1-08/thomas-laptop",
+        "claimed_at": "2026-10-18T22:30:44Z",
+        "heartbeat_at": "2026-10-18T22:30:44Z",
+        "expires_at": "2026-10-19T22:30:44Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T22:42:59Z",
+      "reason": "Scheduled bounded miscible fluid pair graphs through the portable runtime with public lifecycle recovery while keeping production capability reporting gated.",
+      "evidence": [
+        "PASS: private public-API fixture covers miscible creation, removal, 32 endpoint replacements, reset, failed-update rollback, overflow and recovery.",
+        "PASS: shared Slang mirrors and CPU, CUDA and Vulkan reference schedules compile; DirectCompute DXIL generator tests pass 4/4.",
+        "PASS: SDK CI passes 47/47 tests and production miscible capability queries remain PM_ERROR_FEATURE_NOT_PRESENT.",
+        "PASS: tracked report docs/roadmap/evidence/P1-08-miscible-graph-schedule.json."
+      ]
+    }
+  ]
 }
