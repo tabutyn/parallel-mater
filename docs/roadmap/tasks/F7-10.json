@@ -1,7 +1,7 @@
 {
   "id": "F7-10",
   "title": "Enable Vulkan cloth Gallery domains",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-03"
   ],
@@ -16,15 +16,33 @@
     "Cloth, tear, paint and cloth-water scenes pass bounded lifecycle and visible-output checks on Vulkan.",
     "Vulkan advertises only the exact cloth and coupling capabilities supported by passing public-API contracts."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "838a3832-3d85-42cd-ae70-e4e53a01b477",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F7-10/thomas-laptop",
-    "claimed_at": "2026-10-17T23:56:58Z",
-    "heartbeat_at": "2026-10-17T23:56:58Z",
-    "expires_at": "2026-10-18T23:56:58Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: ./scripts/Test-Vulkan.sh -R 'vulkan-|gallery-input|gallery-workload|^parallel-mater-command-api-tests$|^parallel-mater-gallery-session-contract-tests$'; 32/32 selected tests passed on NVIDIA RTX 3050 Ti with SDK 1.4.341.0 validation; docs/VULKAN.md",
+    "PASS: 120-frame public-command lifecycle checks for Cloth, ClothTear, ClothPaint, and ClothWater, including non-empty cloth paint; tests/gallery/command_gallery_tests.cpp and CMakeLists.txt",
+    "PASS: bounded common-session rendered-image qualification for all four Vulkan cloth scenes; tests/gallery/gallery_session_contract_tests.cpp",
+    "PASS: headless Vulkan Peg Paint reported 777 painted texels and Cloth Paint reported 2288 painted texels; docs/VULKAN.md"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "838a3832-3d85-42cd-ae70-e4e53a01b477",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-10/thomas-laptop",
+        "claimed_at": "2026-10-17T23:56:58Z",
+        "heartbeat_at": "2026-10-17T23:56:58Z",
+        "expires_at": "2026-10-18T23:56:58Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T00:36:34Z",
+      "reason": "Vulkan compiles and binds shared cloth, rigid-cloth, and fluid-cloth schedules; exact cloth, domain-coupling, and paint capabilities are backed by desktop lifecycle and visible-output contracts",
+      "evidence": [
+        "PASS: ./scripts/Test-Vulkan.sh -R 'vulkan-|gallery-input|gallery-workload|^parallel-mater-command-api-tests$|^parallel-mater-gallery-session-contract-tests$'; 32/32 selected tests passed on NVIDIA RTX 3050 Ti with SDK 1.4.341.0 validation; docs/VULKAN.md",
+        "PASS: 120-frame public-command lifecycle checks for Cloth, ClothTear, ClothPaint, and ClothWater, including non-empty cloth paint; tests/gallery/command_gallery_tests.cpp and CMakeLists.txt",
+        "PASS: bounded common-session rendered-image qualification for all four Vulkan cloth scenes; tests/gallery/gallery_session_contract_tests.cpp",
+        "PASS: headless Vulkan Peg Paint reported 777 painted texels and Cloth Paint reported 2288 painted texels; docs/VULKAN.md"
+      ]
+    }
+  ]
 }
