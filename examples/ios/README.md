@@ -72,8 +72,10 @@ Only one worker frame can be pending. Backgrounding stops scheduling and clears
 held input. A completed worker frame can still finish during the transition.
 Android and iPad use one C++ `MobileGallerySession`, including controls,
 scene/reset logic, surface admission, failure recovery, workload selection and
-`FrameTimingCollector`. Native adapters own only lifecycle, semantic input
-translation, presentation and reporting. Metal drawable acquisition/presentation is
+`FrameTimingCollector`. They also use one qualification coordinator and the
+`parallel-mater-mobile-gallery-qualification/v1` report schema. Native adapters
+own only lifecycle, semantic input translation, presentation, native surface
+configuration and atomic report storage. Metal drawable acquisition/presentation is
 recorded under presentation; GPU command completion is render work. These are
 host wall-clock measurements, neither GPU-kernel durations nor scan-out FPS.
 Physics and graphics are explicitly fenced before the shared output buffer is
@@ -111,15 +113,16 @@ For an on-device diagnostic run:
 python3 scripts/Deploy-Gallery.py ipad --device DEVICE_ID --qualify 120
 ```
 
-The app records all 28 catalog entries, runs 120 frames for each available
-scene, records exact capability reasons for unavailable scenes, validates
-output/images, and checks shared surface replacement, pause, inactive/resume,
-presentation-failure recovery and reset behavior. The host then backgrounds Gallery
+The common Android/iPad scenario records all 28 catalog entries, runs 120 frames
+for each available scene, records exact capability reasons for unavailable
+scenes, validates output/images, and checks attach, resize, surface replacement,
+pause, controls, selection, inactive/resume, and failure recovery. The host then backgrounds Gallery
 using Settings and returns to Gallery, checking actual OS lifecycle counters and
 that simulation did not advance while inactive. Reports are nonce-bound and
 saved under `out/gallery-deployment/`. `--smoke-test` remains a short three-frame
 variant. The app writes `Documents/smoke-report.json`, `runtime-info.json` and
-`last-smoke-frame.png`; report schema now includes identity and a `scenes` array.
+`last-smoke-frame.png`; the common report includes identity, renderer/readback,
+lifecycle, controls, failures and scenes using the same fields as Android.
 These bounded sustained/control checks do not qualify touch accuracy, thermal
 behavior, numerical agreement or all missing interactions.
 

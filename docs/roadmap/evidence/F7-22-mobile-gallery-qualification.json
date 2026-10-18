@@ -1,0 +1,97 @@
+{
+  "schema": "parallel-mater-roadmap-mobile-gallery-qualification-evidence/v1",
+  "task": "F7-22",
+  "scope": "One common Android/iOS Gallery qualification scenario and versioned report contract, with platform shells limited to surfaces, OS lifecycle and report storage",
+  "source": {
+    "implementation_commit": "08f597395b82c6a92c65a958af3d6df2999c0b7a",
+    "base_main_commit": "ad4a810ac94095e0d46702963447f01c796be1cc",
+    "branch": "work/F7-22/windows-gtx1080",
+    "lease_token": "448e7c76-9ee3-41a6-9970-476b9b434bcc",
+    "claim_pr": "https://github.com/tabutyn/parallel-mater/pull/226",
+    "completion_pr": "https://github.com/tabutyn/parallel-mater/pull/227"
+  },
+  "contract": {
+    "coordinator": "parallel_mater::gallery::qualify_mobile_gallery",
+    "schema": "parallel-mater-mobile-gallery-qualification/v1",
+    "common_lifecycle_checks": [
+      "attach",
+      "resize",
+      "background",
+      "foreground",
+      "failure_recovery",
+      "invalid_scene_recovery"
+    ],
+    "common_control_checks": [
+      "scene_selection",
+      "pause_resume",
+      "camera",
+      "directional",
+      "count",
+      "primary_action"
+    ],
+    "common_report_fields": [
+      "schema",
+      "revision",
+      "platform",
+      "backend",
+      "device",
+      "renderer",
+      "nonce",
+      "frames_per_scene",
+      "completed",
+      "passed",
+      "lifecycle",
+      "controls",
+      "failures",
+      "scenes"
+    ],
+    "platform_responsibilities": [
+      "native surface configuration",
+      "OS lifecycle delivery",
+      "atomic report storage"
+    ],
+    "platform_scenario_loops": 0
+  },
+  "verification": [
+    {
+      "check": "cmake --build build-cuda-slang-vs2022 --config Release --target parallel-mater-gallery-session parallel-mater-gallery-session-contract-tests parallel-mater-gallery -j 2",
+      "result": "PASS: MSVC compiled the common coordinator and contract executable, linked the final D3D12/CUDA Gallery, and refreshed the installed Windows application"
+    },
+    {
+      "check": "ctest --test-dir build-cuda-slang-vs2022 -C Release --output-on-failure -R 'parallel-mater-(mobile-qualification-schema|slang-architecture)'",
+      "result": "PASS: 2/2 versioned-schema and no-platform-duplication contracts passed on Windows"
+    },
+    {
+      "check": "cmake --build build-f7-23-linux --target parallel-mater-gallery-session-contract-tests -j2 and focused CTest under Ubuntu 24.04 WSL2",
+      "result": "PASS: GCC 13.3 compiled and linked the common coordinator; 2/2 mobile-schema and Slang-architecture contracts passed"
+    },
+    {
+      "check": "python -m unittest discover -s tests/gallery -p deployment_tests.py and -p test_mobile_qualification_report.py",
+      "result": "PASS: 8/8 deployment and 2/2 shared report validation tests passed, including stale, incomplete, failed and platform-specific report rejection"
+    },
+    {
+      "check": "python -m unittest discover -s tests/roadmap -p test_*.py",
+      "result": "PASS: 19/19 roadmap lease tests passed"
+    },
+    {
+      "check": "PR #227 Mobile Gallery builds / android",
+      "result": "PASS: qualification-enabled Android Vulkan APK compiled the common coordinator and JNI adapter",
+      "url": "https://github.com/tabutyn/parallel-mater/actions/runs/39128405671/job/117678320176"
+    },
+    {
+      "check": "PR #227 Mobile Gallery builds / ipad",
+      "result": "PASS: unsigned iPad Metal application compiled the common coordinator and Objective-C++ adapter",
+      "url": "https://github.com/tabutyn/parallel-mater/actions/runs/39128405671/job/117678320292"
+    },
+    {
+      "check": "PR #227 Windows loader and shared gallery contracts / loader",
+      "result": "PASS: the Windows CI contract set includes and passes the new versioned mobile qualification schema gate",
+      "url": "https://github.com/tabutyn/parallel-mater/actions/runs/39128405687/job/117678320283"
+    }
+  ],
+  "limitations": [
+    "Hosted Android and iPad jobs are compile/link gates and do not substitute for physical-device Gallery qualification; those results remain owned by the device-specific roadmap tasks.",
+    "The broader parallel-mater-gallery-session-contract-tests executable still reaches the pre-existing physics-prime failure 'submit commands: invalid state' before its mobile assertions on this Windows host and under WSL; F7-23 recorded the same CUDA/D3D12 failure and F7-22 does not hide it.",
+    "This evidence qualifies common orchestration and report shape only; it makes no numerical physics, visual fidelity, thermal or performance claim."
+  ]
+}

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-#include <parallel_mater_gallery/mobile_session.hpp>
+#include <parallel_mater_gallery/mobile_qualification.hpp>
 
 #include <algorithm>
 #include <chrono>
@@ -263,6 +263,13 @@ int main() {
                         mobile.state().surface_generation == 1U &&
                         mobile.should_frame(),
                     "Mobile surface attachment did not admit frames");
+            require(mobile.resize_surface(88U, 66U) &&
+                        mobile.gallery().width == 88U &&
+                        mobile.gallery().height == 66U &&
+                        mobile.resize_surface(96U, 72U) &&
+                        mobile.gallery().width == 96U &&
+                        mobile.gallery().height == 72U,
+                    "Shared mobile resize did not update and restore the surface");
             require(mobile.frame() && mobile.gallery().frames == 1U,
                     "Mobile surface did not produce a frame");
 
@@ -323,6 +330,38 @@ int main() {
         }
         require(gallery::GalleryRuntime::live_runtime_count() == 0U,
                 "Mobile shell recreation leaked a runtime");
+
+        gallery::MobileGalleryQualificationReport mobile_report{
+            .revision = "contract-revision",
+            .platform = "ContractTest",
+            .backend = PM_GALLERY_SESSION_TEST_BACKEND,
+            .device = "contract-device",
+            .renderer = "software-image",
+            .readback = "host-frame",
+            .nonce = "quote-\"-and-newline-\n",
+            .frames_per_scene = 3U,
+            .completed = true,
+            .passed = true,
+            .lifecycle = {
+                {.id = "attach", .passed = true},
+                {.id = "resize", .passed = true},
+                {.id = "background", .passed = true},
+                {.id = "failure_recovery", .passed = true},
+            },
+            .controls = {
+                {.id = "scene_selection", .passed = true},
+                {.id = "pause_resume", .passed = true},
+            },
+        };
+        const std::string mobile_json = mobile_report.json();
+        require(mobile_json.find(std::string(gallery::mobile_gallery_qualification_schema)) !=
+                        std::string::npos &&
+                    mobile_json.find("\\\"") != std::string::npos &&
+                    mobile_json.find("\\n") != std::string::npos &&
+                    mobile_json.find("\"renderer\":{\"kind\":\"software-image\"") !=
+                        std::string::npos &&
+                    mobile_json.find("\"failures\":[]") != std::string::npos,
+                "Unified mobile qualification report schema changed");
 
         // Desktop supplies resolved limits and exact scene parameters instead
         // of making the common session select a mobile device profile.

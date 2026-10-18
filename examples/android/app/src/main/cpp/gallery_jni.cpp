@@ -6,7 +6,7 @@
 #endif
 #include <vulkan/vulkan.h>
 #endif
-#include <parallel_mater_gallery/mobile_session.hpp>
+#include <parallel_mater_gallery/mobile_qualification.hpp>
 #include <android/native_window_jni.h>
 #include <android/log.h>
 #include <jni.h>
@@ -21,6 +21,7 @@
 #include <locale>
 #include <stdexcept>
 #include <sstream>
+#include <utility>
 
 namespace {
 using namespace parallel_mater::gallery;
@@ -277,26 +278,68 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeSceneCatalog(
         return result;
     } catch (const std::exception &error) { exception(env, error.what()); return nullptr; }
 }
-extern "C" JNIEXPORT jdoubleArray JNICALL
-Java_org_parallelmater_gallery_GalleryActivity_nativeQualifyScene(JNIEnv *env, jclass, jlong handle, jint index, jint count) {
+extern "C" JNIEXPORT jstring JNICALL
+Java_org_parallelmater_gallery_GalleryActivity_nativeQualify(
+    JNIEnv *env, jclass, jlong handle, jint count, jstring nonce) {
     try {
         auto &s = session(handle);
         auto &g = s.gallery();
-        if (index < 0 || count < 1 || count > 100000) throw std::runtime_error("Invalid qualification arguments");
+        if (count < 1 || count > 100000)
+            throw std::runtime_error("Invalid qualification arguments");
+        if (!s.window)
+            throw std::runtime_error("Qualification requires an attached surface");
 #if PM_ANDROID_VULKAN
-        if (s.window) s.detach_render_target();
+        // The common qualification sweep replaces physics runtimes. A
+        // VkSurfaceKHR belongs to the VkInstance that created it, so qualify
+        // against the public offscreen target and bind a fresh Android surface
+        // to the final runtime afterward.
+        s.detach_render_target();
 #endif
-        if (!s.mobile->execute(MobileGalleryCommand::select_scene,
-                               static_cast<float>(index)))
-            throw std::runtime_error(s.mobile->state().failure);
-        const auto stats = g.qualify(static_cast<unsigned>(count));
+        MobileGalleryQualificationConfig config{
+            .frames_per_scene = static_cast<unsigned>(count),
+            .width = std::max(g.width, 1U),
+            .height = std::max(g.height, 1U),
+            .nonce = string(env, nonce),
+#if !PM_ANDROID_VULKAN
+            .configure_surface = [&s](unsigned width, unsigned height,
+                                      std::string &error) {
+                if (!s.window) {
+                    error = "Android qualification surface was detached";
+                    return false;
+                }
+                if (ANativeWindow_setBuffersGeometry(
+                        s.window, static_cast<int>(width),
+                        static_cast<int>(height), WINDOW_FORMAT_RGBA_8888) != 0) {
+                    error = "Cannot configure Android qualification surface";
+                    return false;
+                }
+                return true;
+            },
+#else
+            .configure_surface = {},
+#endif
+            .memory_footprint = [&g] { return g.allocated_bytes(); },
+            .checkpoint = {},
+        };
+        MobileGalleryQualificationReport report;
+        try {
+            report = qualify_mobile_gallery(*s.mobile, std::move(config));
 #if PM_ANDROID_VULKAN
-        if (s.window) s.attach_render_target();
+            s.mobile->detach_surface();
+            s.attach_render_target();
 #endif
-        const jdouble values[]{stats.mean_ms, stats.p95_ms, static_cast<double>(stats.count)};
-        auto result = env->NewDoubleArray(3);
-        if (result) env->SetDoubleArrayRegion(result, 0, 3, values);
-        return result;
+        } catch (...) {
+#if PM_ANDROID_VULKAN
+            try {
+                s.mobile->detach_surface();
+                if (s.window) s.attach_render_target();
+            } catch (...) {
+            }
+#endif
+            throw;
+        }
+        const std::string serialized = report.json();
+        return env->NewStringUTF(serialized.c_str());
     } catch (const std::exception &error) { exception(env, error.what()); return nullptr; }
 }
 extern "C" JNIEXPORT jstring JNICALL
