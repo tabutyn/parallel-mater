@@ -122,6 +122,7 @@ struct NativeScheduleBackend {
     PM_SCHEDULE_DISPATCH(fluid_cell_keys)
     PM_SCHEDULE_DISPATCH(fluid_pair_cell_keys)
     PM_SCHEDULE_DISPATCH(fluid_miscible_pair_pressure_contact)
+    PM_SCHEDULE_DISPATCH(fluid_miscible_pair_viscosity)
     PM_SCHEDULE_DISPATCH(fluid_pair_neighbor_counts)
     PM_SCHEDULE_DISPATCH(fluid_pair_pressure_contact)
     PM_SCHEDULE_DISPATCH(fluid_pair_viscosity)
