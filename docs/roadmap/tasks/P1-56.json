@@ -1,7 +1,7 @@
 {
   "id": "P1-56",
   "title": "Expose immiscible interface state",
-  "status": "deferred",
+  "status": "open",
   "dependencies": [
     "P1-04"
   ],
