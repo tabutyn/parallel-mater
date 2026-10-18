@@ -24,8 +24,10 @@ namespace {
 struct Result {
     std::vector<std::uint32_t> first_total;
     std::vector<std::uint32_t> first_cross;
+    std::vector<float> first_density;
     std::vector<std::uint32_t> second_total;
     std::vector<std::uint32_t> second_cross;
+    std::vector<float> second_density;
     std::vector<std::uint32_t> sorted_identities;
     std::uint32_t first_overflow{};
     std::uint32_t second_overflow{};
@@ -89,10 +91,12 @@ void check_close(Vec3 left, Vec3 right, float tolerance) {
     CHECK(std::fabs(left.z - right.z) <= tolerance);
 }
 
-Result count_neighbors(const std::vector<Vec3> &first,
+Result sample_neighbors(const std::vector<Vec3> &first,
     std::uint32_t first_count, std::uint32_t first_limit,
     const std::vector<Vec3> &second, std::uint32_t second_count,
-    std::uint32_t second_limit, float radius) {
+    std::uint32_t second_limit,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants) {
     const auto first_capacity = static_cast<std::uint32_t>(first.size());
     const auto second_capacity = static_cast<std::uint32_t>(second.size());
     const auto total = first_capacity + second_capacity;
@@ -105,7 +109,9 @@ Result count_neighbors(const std::vector<Vec3> &first,
     fluid_pair_cell_keys((total + 127U) / 128U, 128U, {},
         first.data(), &first_count, first_capacity,
         second.data(), &second_count, second_capacity,
-        1.0F / radius, keys[0].data(), identities[0].data());
+        1.0F / std::max(first_constants.support_radius,
+            second_constants.support_radius),
+        keys[0].data(), identities[0].data());
     std::vector<std::byte> workspace(radix_sort_scratch_bytes(total));
     CHECK(radix_sort_pairs_u64_u32({}, keys[0].data(), keys[1].data(),
         identities[0].data(), identities[1].data(), total,
@@ -114,18 +120,58 @@ Result count_neighbors(const std::vector<Vec3> &first,
     Result result;
     result.first_total.assign(first_capacity, 99U);
     result.first_cross.assign(first_capacity, 99U);
+    result.first_density.assign(first_capacity, 99.0F);
     result.second_total.assign(second_capacity, 99U);
     result.second_cross.assign(second_capacity, 99U);
+    result.second_density.assign(second_capacity, 99.0F);
     result.sorted_identities = identities[1];
     fluid_pair_neighbor_counts((total + 127U) / 128U, 128U, {},
         first.data(), &first_count, first_capacity, first_limit,
         second.data(), &second_count, second_capacity, second_limit,
-        keys[1].data(), identities[1].data(), total, radius,
+        keys[1].data(), identities[1].data(), total,
+        first_constants, second_constants,
         result.first_total.data(), result.first_cross.data(),
+        result.first_density.data(),
         result.second_total.data(), result.second_cross.data(),
+        result.second_density.data(),
         &result.first_overflow, &result.second_overflow,
         &result.first_maximum, &result.second_maximum);
     return result;
+}
+
+Result count_neighbors(const std::vector<Vec3> &first,
+    std::uint32_t first_count, std::uint32_t first_limit,
+    const std::vector<Vec3> &second, std::uint32_t second_count,
+    std::uint32_t second_limit, float radius) {
+    FluidDispatchConstants constants{};
+    constants.particle_radius = radius * 0.25F;
+    constants.support_radius = radius;
+    constants.rest_density = 1'000.0F;
+    constants.maximum_neighbors = std::max(first_limit, second_limit);
+    return sample_neighbors(first, first_count, first_limit, second,
+        second_count, second_limit, constants, constants);
+}
+
+float density_kernel(float squared_distance, float support_radius) {
+    const float support_squared = support_radius * support_radius;
+    if (squared_distance >= support_squared) return 0.0F;
+    const float q_squared = std::max(
+        0.0F, 1.0F - squared_distance / support_squared);
+    return 1.56668147106F * q_squared * q_squared * q_squared /
+        (support_radius * support_squared);
+}
+
+float particle_mass(const FluidDispatchConstants &constants) {
+    const float diameter = 2.0F * constants.particle_radius;
+    return constants.rest_density *
+        (constants.rest_particle_volume > 0.0F
+            ? constants.rest_particle_volume
+            : diameter * diameter * diameter);
+}
+
+void check_close(float left, float right, float relative_tolerance) {
+    CHECK(std::fabs(left - right) <= relative_tolerance *
+        std::max(1.0F, std::max(std::fabs(left), std::fabs(right))));
 }
 
 void apply_pair_viscosity(FluidState &first, FluidState &second,
@@ -232,19 +278,84 @@ void test_empty_live_populations() {
     CHECK((result.first_total == std::vector<std::uint32_t>{0U, 0U}));
     CHECK((result.second_total == std::vector<std::uint32_t>{0U, 0U}));
     CHECK(result.first_overflow == 0U && result.second_overflow == 0U);
+    CHECK((result.first_density == std::vector<float>{0.0F, 0.0F}));
+    CHECK(result.second_density[0] > 0.0F);
+    CHECK(result.second_density[1] == 0.0F);
     result = count_neighbors(first, 1U, 1U, second, 0U, 1U, 1.0F);
     CHECK((result.first_total == std::vector<std::uint32_t>{0U, 0U}));
     CHECK((result.second_total == std::vector<std::uint32_t>{0U, 0U}));
+    CHECK(result.first_density[0] > 0.0F);
+    CHECK(result.first_density[1] == 0.0F);
+    CHECK((result.second_density == std::vector<float>{0.0F, 0.0F}));
     result = count_neighbors(first, 0U, 1U, second, 0U, 1U, 1.0F);
     CHECK((result.first_cross == std::vector<std::uint32_t>{0U, 0U}));
     CHECK((result.second_cross == std::vector<std::uint32_t>{0U, 0U}));
+}
+
+void test_heterogeneous_sampling_is_symmetric() {
+    const std::vector<Vec3> first{{0.0F, 0.0F, 0.0F},
+        {20.0F, 0.0F, 0.0F}, {30.0F, 0.0F, 0.0F}};
+    const std::vector<Vec3> second{{0.6F, 0.0F, 0.0F},
+        {1.2F, 0.0F, 0.0F}};
+    FluidDispatchConstants first_material{};
+    first_material.particle_radius = 0.1F;
+    first_material.support_radius = 0.5F;
+    first_material.rest_density = 800.0F;
+    first_material.rest_particle_volume = 0.001F;
+    first_material.maximum_neighbors = 0U;
+    FluidDispatchConstants second_material{};
+    second_material.particle_radius = 0.2F;
+    second_material.support_radius = 1.0F;
+    second_material.rest_density = 1'200.0F;
+    second_material.maximum_neighbors = 1U;
+
+    const auto forward = sample_neighbors(first, 1U, 0U, second, 2U, 1U,
+        first_material, second_material);
+    CHECK((forward.first_total == std::vector<std::uint32_t>{1U, 0U, 0U}));
+    CHECK((forward.first_cross == std::vector<std::uint32_t>{1U, 0U, 0U}));
+    CHECK((forward.second_total == std::vector<std::uint32_t>{2U, 1U}));
+    CHECK((forward.second_cross == std::vector<std::uint32_t>{1U, 0U}));
+    CHECK(forward.first_overflow == 1U);
+    CHECK(forward.second_overflow == 1U);
+    CHECK(forward.first_maximum == 1U);
+    CHECK(forward.second_maximum == 2U);
+
+    const float first_mass = particle_mass(first_material);
+    const float second_mass = particle_mass(second_material);
+    check_close(forward.first_density[0],
+        first_mass * density_kernel(0.0F, 0.5F) +
+            second_mass * density_kernel(0.36F, 1.0F),
+        2.0e-6F);
+    check_close(forward.second_density[0],
+        second_mass * density_kernel(0.0F, 1.0F) +
+            first_mass * density_kernel(0.36F, 1.0F) +
+            second_mass * density_kernel(0.36F, 1.0F),
+        2.0e-6F);
+    check_close(forward.second_density[1],
+        second_mass * density_kernel(0.0F, 1.0F) +
+            second_mass * density_kernel(0.36F, 1.0F),
+        2.0e-6F);
+
+    const auto reversed = sample_neighbors(second, 2U, 1U, first, 1U, 0U,
+        second_material, first_material);
+    CHECK(reversed.first_total == forward.second_total);
+    CHECK(reversed.first_cross == forward.second_cross);
+    CHECK(reversed.second_total[0] == forward.first_total[0]);
+    CHECK(reversed.second_cross[0] == forward.first_cross[0]);
+    CHECK(reversed.first_overflow == forward.second_overflow);
+    CHECK(reversed.second_overflow == forward.first_overflow);
+    for (std::size_t index = 0U; index < second.size(); ++index)
+        check_close(reversed.first_density[index],
+            forward.second_density[index], 2.0e-6F);
+    check_close(reversed.second_density[0], forward.first_density[0], 2.0e-6F);
 }
 
 void test_bounded_storage_plan() {
     StorageRequirements requirements{};
     CHECK(fluid_pair_neighbor_index_storage_requirements(3U, 5U, requirements));
     CHECK(requirements.persistent != 0U);
-    CHECK(requirements.scratch >= radix_sort_scratch_bytes(8U));
+    CHECK(requirements.scratch >= radix_sort_scratch_bytes(8U) +
+        8U * sizeof(float));
     FluidPairNeighborIndexPlan plan{};
     StoragePlanner planner;
     CHECK(visit_fluid_pair_neighbor_index_storage(plan, 3U, 5U, planner));
@@ -495,10 +606,11 @@ int main() {
     test_mixed_populations_and_limits();
     test_cell_and_support_boundaries();
     test_empty_live_populations();
+    test_heterogeneous_sampling_is_symmetric();
     test_bounded_storage_plan();
     test_pressure_contact_matches_combined_and_balances_momentum();
     test_viscosity_matches_combined_population();
     test_viscosity_analytic_and_isolated_limits();
     test_viscosity_timestep_and_population_mass_ratio_sweeps();
-    std::puts("PASS: two-fluid neighbor index and balanced force exchange");
+    std::puts("PASS: heterogeneous fluid pair sampling and balanced force exchange");
 }

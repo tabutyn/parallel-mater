@@ -127,6 +127,7 @@ FluidOptions constants(const FluidDispatchConstants &value) noexcept {
     result.maximum_speed = value.maximum_speed;
     result.maximum_pair_acceleration = value.maximum_pair_acceleration;
     result.rest_density = value.rest_density;
+    result.rest_particle_volume = value.rest_particle_volume;
     result.maximum_neighbors = value.maximum_neighbors;
     return result;
 }

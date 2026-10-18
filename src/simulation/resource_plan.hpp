@@ -268,6 +268,7 @@ struct FluidPairNeighborIndexPlan {
     std::uint32_t *identities[2]{};
     std::uint32_t *total_neighbors[2]{};
     std::uint32_t *cross_neighbors[2]{};
+    float *density_samples[2]{};
     std::uint32_t *neighbor_overflow[2]{};
     std::uint32_t *maximum_neighbor_count[2]{};
     std::uint8_t *sort_workspace{};
@@ -303,6 +304,9 @@ Status visit_fluid_pair_neighbor_index_storage(
     PM_STORAGE(total_neighbors[1], second_capacity, persistent);
     PM_STORAGE(cross_neighbors[0], first_capacity, persistent);
     PM_STORAGE(cross_neighbors[1], second_capacity, persistent);
+    // Density is an intermediate consumed by pair operators in the same step.
+    PM_STORAGE(density_samples[0], first_capacity, scratch);
+    PM_STORAGE(density_samples[1], second_capacity, scratch);
     PM_STORAGE(neighbor_overflow[0], 1U, persistent);
     PM_STORAGE(neighbor_overflow[1], 1U, persistent);
     PM_STORAGE(maximum_neighbor_count[0], 1U, persistent);

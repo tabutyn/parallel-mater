@@ -29,6 +29,7 @@ FluidOptions_0 constants(const FluidDispatchConstants &value) noexcept {
     result.maximum_speed_0 = value.maximum_speed;
     result.maximum_pair_acceleration_0 = value.maximum_pair_acceleration;
     result.rest_density_0 = value.rest_density;
+    result.rest_particle_volume_0 = value.rest_particle_volume;
     result.maximum_neighbors_0 = value.maximum_neighbors;
     return result;
 }
@@ -65,11 +66,15 @@ void fluid_pair_neighbor_counts(device::DispatchSize grid,
     const void *second_positions, const std::uint32_t *second_count,
     std::uint32_t second_capacity, std::uint32_t second_maximum_neighbors,
     const std::uint64_t *keys, const std::uint32_t *identities,
-    std::uint32_t total_capacity, float support_radius,
+    std::uint32_t total_capacity,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants,
     std::uint32_t *first_total_neighbors,
     std::uint32_t *first_cross_neighbors,
+    float *first_density_samples,
     std::uint32_t *second_total_neighbors,
     std::uint32_t *second_cross_neighbors,
+    float *second_density_samples,
     std::uint32_t *first_neighbor_overflow,
     std::uint32_t *second_neighbor_overflow,
     std::uint32_t *first_maximum_neighbor_count,
@@ -84,8 +89,9 @@ void fluid_pair_neighbor_counts(device::DispatchSize grid,
         reinterpret_cast<unsigned long long *>(
             const_cast<std::uint64_t *>(keys)),
         const_cast<std::uint32_t *>(identities), total_capacity,
-        support_radius, first_total_neighbors, first_cross_neighbors,
-        second_total_neighbors, second_cross_neighbors,
+        constants(first_constants), constants(second_constants),
+        first_total_neighbors, first_cross_neighbors, first_density_samples,
+        second_total_neighbors, second_cross_neighbors, second_density_samples,
         first_neighbor_overflow, second_neighbor_overflow,
         first_maximum_neighbor_count, second_maximum_neighbor_count);
 }
