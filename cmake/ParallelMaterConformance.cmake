@@ -7,6 +7,7 @@ endif()
 add_library(parallel-mater-conformance-runner STATIC
     conformance/v1/src/command_runner.cpp
     conformance/v1/src/rigid_quality.cpp
+    conformance/v1/src/rope_quality.cpp
     conformance/v1/src/lifecycle_fixtures.cpp
     conformance/v1/src/capacity_recovery_fixture.cpp
     conformance/v1/src/interaction_graph_lifecycle_fixture.cpp

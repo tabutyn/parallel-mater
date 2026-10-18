@@ -1,7 +1,7 @@
 {
   "id": "F5-28",
   "title": "Qualify sampled rope self contact",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,15 +17,27 @@
     "Retain the existing exact lifecycle binding and prove the new analytic fixture does not broaden or substitute for its capacity, replacement and rollback obligations.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "9026eafc-49a2-438a-9d99-d71203462c0e",
-    "owner": "codex-windows-qualification",
-    "machine": "windows-gtx1080",
-    "branch": "work/F5-28/windows-gtx1080",
-    "claimed_at": "2026-10-18T22:47:22Z",
-    "heartbeat_at": "2026-10-18T22:47:22Z",
-    "expires_at": "2026-10-19T22:47:22Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F5-28-rope-self-contact.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "9026eafc-49a2-438a-9d99-d71203462c0e",
+        "owner": "codex-windows-qualification",
+        "machine": "windows-gtx1080",
+        "branch": "work/F5-28/windows-gtx1080",
+        "claimed_at": "2026-10-18T22:47:22Z",
+        "heartbeat_at": "2026-10-18T22:47:22Z",
+        "expires_at": "2026-10-19T22:47:22Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T23:17:03Z",
+      "reason": "qualified-sampled-rope-self-contact-on-windows-cuda",
+      "evidence": [
+        "docs/roadmap/evidence/F5-28-rope-self-contact.json"
+      ]
+    }
+  ]
 }
