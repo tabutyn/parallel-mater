@@ -1492,6 +1492,9 @@ typedef PmResult (PMAPI_CALL *PFN_pmImportNativeDevice)(
 typedef PmResult (PMAPI_CALL *PFN_pmGetNativeDevice)(PmDevice device,
     PmNativeDeviceInfo* pNativeDevice);
 
+typedef PmResult (PMAPI_CALL *PFN_pmGetNativeQueue)(PmQueue queue,
+    PmNativeQueueInfo* pNativeQueue);
+
 typedef PmResult (PMAPI_CALL *PFN_pmImportNativeBuffer)(PmDevice device,
     const PmNativeBufferInfo* pInfo,
     PmBuffer* pBuffer);
@@ -1887,6 +1890,8 @@ PMAPI_ATTR PmResult PMAPI_CALL pmImportNativeDevice(
     PmDevice* pDevice);
 PMAPI_ATTR PmResult PMAPI_CALL pmGetNativeDevice(PmDevice device,
     PmNativeDeviceInfo* pNativeDevice);
+PMAPI_ATTR PmResult PMAPI_CALL pmGetNativeQueue(PmQueue queue,
+    PmNativeQueueInfo* pNativeQueue);
 
 PMAPI_ATTR PmResult PMAPI_CALL pmImportNativeBuffer(PmDevice device,
     const PmNativeBufferInfo* pInfo,

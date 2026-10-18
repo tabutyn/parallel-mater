@@ -57,6 +57,12 @@ class CudaServices final : public Services {
     [[nodiscard]] void *native_queue_handle() const noexcept override {
         return stream_;
     }
+    void describe_native_queue(PmNativeQueueInfo &info) const noexcept override {
+        info.queue = static_cast<PmNativeHandle>(
+            reinterpret_cast<std::uintptr_t>(stream_));
+        info.familyIndex = 0U;
+        info.queueIndex = 0U;
+    }
 
     [[nodiscard]] Event epoch() const noexcept override {
         return to_event(epoch_);

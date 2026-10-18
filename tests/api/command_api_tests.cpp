@@ -252,10 +252,18 @@ int main() {
         CHECK(static_cast<std::uint32_t *>(mapped_destination)[index] == index * 17U);
 
     PmNativeDeviceInfo native_device{};
+    PmNativeQueueInfo native_queue{};
     PmNativeBufferInfo native_buffer{};
     CHECK(pmGetNativeDevice(device, &native_device) == PM_SUCCESS);
     CHECK(native_device.backend == PM_NATIVE_BACKEND_CUDA);
     CHECK(native_device.device != 0U);
+    CHECK(pmGetNativeQueue(queue, &native_queue) == PM_SUCCESS);
+    CHECK(native_queue.queue != 0U && native_queue.familyIndex == 0U &&
+          native_queue.queueIndex == 0U);
+    PmNativeQueueInfo invalid_native_queue{};
+    CHECK(pmGetNativeQueue(nullptr, &invalid_native_queue) ==
+          PM_ERROR_INVALID_ARGUMENT);
+    CHECK(pmGetNativeQueue(queue, nullptr) == PM_ERROR_INVALID_ARGUMENT);
     CHECK(pmGetNativeBuffer(device, destination, &native_buffer) == PM_SUCCESS);
     CHECK(native_buffer.buffer != 0U && native_buffer.size == 256U);
     CHECK(native_buffer.offset == 0U && native_buffer.nativeUsage == 0U);

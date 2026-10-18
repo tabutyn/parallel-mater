@@ -22,8 +22,9 @@ ordered `GalleryCatalog`; platform shells only choose how to display its
 records. `GalleryFramePolicy` supplies the same profiled fixed-step clock and
 catch-up behavior to desktop scheduling and the session-managed mobile loop.
 Native rendering uses a common device, buffer, synchronization, target,
-readback, and draw-semantics contract. Metal implements that contract today;
-F7-09 adds the Vulkan adapter used by desktop and Android.
+readback, and draw-semantics contract. Metal and Vulkan implement that contract.
+Desktop Vulkan uses it now; F7-16 attaches Android's native surface to the same
+Vulkan adapter.
 
 | Responsibility | Current desktop owner | Current mobile owner | Required owner |
 |---|---|---|---|
@@ -34,10 +35,10 @@ F7-09 adds the Vulkan adapter used by desktop and Android.
 | Asset loading and scene construction | `GallerySession`/`GalleryRuntime` | `GallerySession`/`GalleryRuntime` | Common runtime catalog and workload policy (done) |
 | Physics device, resources, command submission, scene replacement, reset, and teardown | `GallerySession`/`GalleryRuntime` | `MobileGallerySession` around `GallerySession`/`GalleryRuntime` | Common runtime (done) |
 | Fixed, point, motor, steering, dump-bed, kinematic, gravity, force, paint, and deformable controllers | Semantic input adapter around `GallerySession`/`GalleryRuntime` | `MobileGallerySession` semantic commands around `GallerySession`/`GalleryRuntime` | Common runtime semantic commands (done) |
-| Fixed-step accumulation, catch-up limits, substeps, pause, and foreground recovery | `GalleryFramePolicy` through `GallerySession` | `GalleryFramePolicy` through `MobileGallerySession` | Common runtime clock and workload policy (done) |
+| Fixed-step accumulation, catch-up limits, substeps, pause, and foreground recovery | `GalleryFramePolicy` in the rich desktop frame coordinator | `GalleryFramePolicy` through `MobileGallerySession` | Common policy implementation; the remaining desktop coordinator should delegate its ordinary frame path to `GallerySession` |
 | Camera state and focus policy | `GallerySession::camera()`, driven by desktop input | `MobileGallerySession` touch commands | Common runtime, driven by semantic pointer/zoom commands |
 | Host render-frame assembly | `GalleryRuntime::step` | `GalleryRuntime::step` | Common runtime (done) |
-| Software, native GPU, or external-engine drawing | Desktop renderer/window path; optional Metal path | Software renderer or iPad Metal renderer | Renderer adapter |
+| Software, native GPU, or external-engine drawing | Desktop renderer/window path, including direct Vulkan | Android software renderer or iPad Metal renderer | Renderer adapter |
 | Graphics API resources, swapchain/layer binding, upload, and presentation | Desktop window adapter | Android surface/ANativeWindow or Apple presentation layer | Renderer adapter, with the platform shell supplying the native surface |
 | Keyboard, touch, gamepad, lifecycle, window, intent, and accessibility events | GLFW/native desktop glue | Java/JNI or UIKit glue | Platform shell translating events into common commands |
 | Catalog, parameter, timing, status, and error view models | Shared catalog plus desktop overlays | `MobileGalleryState` plus Java/UIKit widgets | Common runtime data; platform shell chooses widgets and layout |
@@ -67,9 +68,14 @@ successful physics submission advances a frame generation. The shared contract
 state permits a paused frame to be drawn again, but rejects an older frame, an
 old scene allocation, a foreign device or target, overlapping graphics
 ownership, and a handoff that does not return the buffer to physics. The
-current Metal adapter uses a queue-idle handoff and completes drawing before it
-returns ownership. Timeline semaphore fields are part of the same contract for
-the pipelined Vulkan adapter.
+current Metal and Vulkan adapters use a queue-idle handoff and complete drawing
+before returning ownership. Vulkan keeps two graphics frame slots and explicit
+fences, while the timeline semaphore fields reserve the common contract for a
+later asynchronous handoff.
+
+`detach_target()` releases swapchain or layer resources before the platform
+shell destroys or replaces its native surface. The physics device and borrowed
+instance remain alive until the renderer and platform target have both detached.
 
 `GpuSceneDrawList` describes rigid meshes with current/previous poses, cloth
 and soft-body surfaces, liquid/smoke/rope particles, fracture corner indexing,
@@ -162,6 +168,8 @@ These tests protect behavior while later F7 tasks move ownership:
 | Full mobile session scene loop, presentation failure, and qualification lifecycle on Metal | `parallel-mater-ipad-session-tests` |
 | Cross-adapter fixed-step traces, catch-up limits, stalls, pause/background, modal UI, and profile changes | `parallel-mater-gallery-frame-policy-tests` |
 | Native interop identity, stale generations, ownership transitions, target matching, and all-domain draw semantics | `parallel-mater-gallery-gpu-renderer-contract-tests` |
+| Vulkan direct output, diagnostic orientation, resize, frame slots, and resource teardown | `parallel-mater-vulkan-gallery-renderer-tests` |
+| Vulkan surface attach, detach, offscreen fallback, replacement, resize, and teardown | `parallel-mater-vulkan-gallery-surface-tests` |
 | Frame measurement and headless render behavior | `parallel-mater-gallery-frame-timing-tests` and `parallel-mater-gallery-frame-timing-headless` |
 
 F7-02 through F7-07 may change types and file layout only while these observable

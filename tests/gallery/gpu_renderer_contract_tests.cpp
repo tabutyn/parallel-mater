@@ -86,6 +86,7 @@ void validate_interop_and_ownership() {
         views.device,
         views.queue,
         {PM_NATIVE_BACKEND_VULKAN, 11U, 12U, 13U},
+        {14U, 2U, 0U},
         views.resource_generation,
     };
     MockGpuRenderer renderer(device);

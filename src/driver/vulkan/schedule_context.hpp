@@ -49,6 +49,8 @@ class ScheduleContext {
     VkDevice device() const noexcept;
     VkInstance instance() const noexcept;
     VkPhysicalDevice physical() const noexcept;
+    VkQueue queue() const noexcept;
+    std::uint32_t queue_family() const noexcept;
     VkBuffer buffer(const void *pointer) const noexcept;
 
   private:

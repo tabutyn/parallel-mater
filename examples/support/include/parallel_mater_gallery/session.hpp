@@ -96,9 +96,7 @@ public:
     bool is_paused() const { return paused_; }
     unsigned selection() const { return selected_; }
     std::uint64_t revision() const noexcept { return revision_; }
-    void set_render_target(GpuRenderTarget target) noexcept {
-        render_target_ = target;
-    }
+    void set_render_target(GpuRenderTarget target) noexcept;
     PmNativeDeviceInfo native_render_device() const;
     GalleryWorkloadLimits limits;
     unsigned width{}, height{};
