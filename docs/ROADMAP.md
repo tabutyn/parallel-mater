@@ -201,7 +201,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F6-01](roadmap/tasks/F6-01.json) | Qualify Windows SDK installation | done | — | — |
 | [F6-02](roadmap/tasks/F6-02.json) | Qualify macOS SDK installation | done | — | — |
 | [F6-03](roadmap/tasks/F6-03.json) | Separate optional package exports | done | F5-07 | — |
-| [F6-04](roadmap/tasks/F6-04.json) | Record reproducible release inputs | leased | — | codex-windows-sdk / windows-gtx1080 / 2026-10-19T06:38:18Z |
+| [F6-04](roadmap/tasks/F6-04.json) | Record reproducible release inputs | done | — | — |
 | [F6-05](roadmap/tasks/F6-05.json) | Regenerate and verify release reference artifacts | ready | F3-06 | — |
 | [F6-06](roadmap/tasks/F6-06.json) | Reconcile legacy launcher and branding patches | ready | — | — |
 | [F6-07](roadmap/tasks/F6-07.json) | Reconcile legacy hinge and contact patches | ready | — | — |
