@@ -1,7 +1,7 @@
 {
   "id": "F3-10",
   "title": "Qualify descriptor snapshot coverage",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F3-06"
   ],
@@ -16,15 +16,31 @@
     "Caller storage mutation after successful recording cannot change later execution for every descriptor-shape class.",
     "Rejected or allocation-failed recording retains no caller pointer, and command-buffer reset releases owned snapshots."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "a248e11c-86b6-4125-b026-c5716db7d4a4",
-    "owner": "codex-windows-validation",
-    "machine": "windows-gtx1080",
-    "branch": "work/F3-10/windows-gtx1080",
-    "claimed_at": "2026-10-18T03:05:32Z",
-    "heartbeat_at": "2026-10-18T03:05:32Z",
-    "expires_at": "2026-10-18T11:05:32Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS Windows D3D12 NVIDIA GeForce GTX 1080 descriptor profile 20/20: flat transfer arrays and nested cloth descriptor/vertex/index/mass arrays survived caller mutation and free; rejection and reset preserved prior state.",
+    "PASS WSL GCC 13.3 host fixture 20/20: deterministic nested recording OOM latched, retained no caller storage and recovered after command-buffer reset; adjacent host lifecycle slice passed 5/5.",
+    "PASS Visual Studio 18 and GCC 13.3 builds; D3D12 lifecycle slice passed 3 with 3 capability skips; generated API references and 19 roadmap unit tests passed."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "a248e11c-86b6-4125-b026-c5716db7d4a4",
+        "owner": "codex-windows-validation",
+        "machine": "windows-gtx1080",
+        "branch": "work/F3-10/windows-gtx1080",
+        "claimed_at": "2026-10-18T03:05:32Z",
+        "heartbeat_at": "2026-10-18T03:05:32Z",
+        "expires_at": "2026-10-18T11:05:32Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T03:26:31Z",
+      "reason": "Qualified record-time ownership for flat and nested host descriptor arrays through the public loader API.",
+      "evidence": [
+        "PASS Windows D3D12 NVIDIA GeForce GTX 1080 descriptor profile 20/20: flat transfer arrays and nested cloth descriptor/vertex/index/mass arrays survived caller mutation and free; rejection and reset preserved prior state.",
+        "PASS WSL GCC 13.3 host fixture 20/20: deterministic nested recording OOM latched, retained no caller storage and recovered after command-buffer reset; adjacent host lifecycle slice passed 5/5.",
+        "PASS Visual Studio 18 and GCC 13.3 builds; D3D12 lifecycle slice passed 3 with 3 capability skips; generated API references and 19 roadmap unit tests passed."
+      ]
+    }
+  ]
 }

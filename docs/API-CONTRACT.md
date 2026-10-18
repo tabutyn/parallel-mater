@@ -20,7 +20,7 @@ in one profile never silently qualifies another profile or backend.
 | PM-QUERY-001 | Query pools belong to one device. Slots are reset before use, statistics scopes are matched around a step, in-flight or unread results are not reset, and result ranges, alignment, stride and flags are validated without overflow. Failed creation publishes no tracked object. | permissive-driver validation tests, paired with no-layer negative controls |
 | PM-ABI-001 | A successful driver/layer negotiation returns a nonzero version no greater than requested. | installed C ABI 1/2/3 layer fixtures and independent driver/layer zero/999 rejection libraries |
 | PM-LIFE-001 | Retired domain storage is reusable within the queried allocation; unrelated live slots survive replacement. | SDK resource/domain/coupling lifecycle tests; arena tests |
-| PM-CMD-001 | Rejected argument validation enqueues no command. Recording can continue. Host descriptors are snapshots; referenced resources remain borrowed. | SDK resource lifecycle (rejected capacity/range then valid work); coupling lifecycle (descriptor mutation) |
+| PM-CMD-001 | Rejected argument validation enqueues no command. Recording can continue. Host descriptors are snapshots; referenced resources remain borrowed. | SDK descriptor-snapshot qualification (flat and nested mutation/free, rejection, reset and recording OOM); resource and coupling lifecycle tests |
 | PM-SYNC-001 | Submission is asynchronous. Completion reports deferred errors. Failed submissions drain issued work; a later valid submission can recover. | async submission and submission queue tests; resource lifecycle NaN failure/recovery |
 | PM-GRAPH-001 | Explicit simulation graph survives pipeline changes, rebinds replaced endpoints, and can be cleared. Graph failure retires partial edges. | SDK coupling lifecycle tests |
 | PM-DIAG-001 | Validation failures deliver stable rule IDs, application-object context and callback-scoped typed arguments. Delivery is concurrent, independently reentrant and allocation-free; bookkeeping OOM disables stateful tracking without changing the API result. | permissive-driver validation diagnostics tests, paired with no-layer controls |
@@ -40,7 +40,7 @@ coverage must validate safe API boundaries rather than manufacture a data race.
 | Clause / rule | Normative anchors | Profile and positive case | Negative / recovery case | Disposition |
 |---|---|---|---|---|
 | Threading · PM-THREAD-001 | [diagnostic callback](reference/parallel-mater-specification.md#spec-validation_diagnostics), [command pools](reference/parallel-mater-specification.md#spec-command_pool), [threading](reference/parallel-mater-specification.md#spec-threading) | advertised native driver + validation layer: [`host_concurrency_tests.cpp`](../tests/api/host_concurrency_tests.cpp) repeats physical-device snapshots and records/resets one distinct pool per thread; [`layer_validation_tests.cpp`](../tests/api/layer_validation_tests.cpp) delivers concurrent callbacks outside bookkeeping locks | same-object races remain externally synchronized and are deliberately absent; teardown begins only after all worker threads join | covered |
-| Host snapshots · PM-CMD-001 | [calling conventions](reference/parallel-mater-specification.md#spec-conventions), [command buffers](reference/parallel-mater-specification.md#spec-command_buffers) | reference solver: [`coupling_lifecycle_tests.cpp`](../tests/api/coupling_lifecycle_tests.cpp) mutates a graph descriptor after recording and execution uses the snapshot | host-fixture: [`failure_lifecycle_tests.cpp`](../tests/api/failure_lifecycle_tests.cpp) proves rejected recording is not enqueued and reset recovers; other nested descriptor families lack mutation cases | [F3-10](roadmap/tasks/F3-10.json) |
+| Host snapshots · PM-CMD-001 | [calling conventions](reference/parallel-mater-specification.md#spec-conventions), [command buffers](reference/parallel-mater-specification.md#spec-command_buffers) | host fixture + advertised native driver: [`descriptor_snapshot_tests.cpp`](../tests/api/descriptor_snapshot_tests.cpp) mutates and frees flat transfer arrays plus nested cloth descriptor/vertex/index/mass arrays before execution | rejected nested recording leaves existing state unchanged; reset discards successful flat and nested snapshots; deterministic recording OOM is latched, retains no caller storage and recovers after reset | covered |
 | Destruction / wait · PM-DESTROY-001 | [lifetime](reference/parallel-mater-specification.md#spec-units), [command lifetime](reference/parallel-mater-specification.md#spec-lifecycle), [submission](reference/parallel-mater-specification.md#spec-submission) | reference runtime: [`submission_queue_tests.cpp`](../tests/api/submission_queue_tests.cpp) drains accepted work in the queue destructor; validation layer: [`layer_validation_tests.cpp`](../tests/api/layer_validation_tests.cpp) clears accepted-submission ownership before device-handle reuse | no public-API test yet distinguishes explicit completion from implicit teardown wait on an advertised driver | [F3-11](roadmap/tasks/F3-11.json) |
 | Deferred completion · PM-SYNC-001 | [return codes](reference/parallel-mater-specification.md#spec-results), [command lifetime](reference/parallel-mater-specification.md#spec-lifecycle), [submission](reference/parallel-mater-specification.md#spec-submission), [statistics](reference/parallel-mater-specification.md#spec-step_stats) | reference solver: [`async_submission_tests.cpp`](../tests/api/async_submission_tests.cpp) covers wait-before-signal, pending state, ordered submissions and completion channels | host fixture: [`failure_lifecycle_tests.cpp`](../tests/api/failure_lifecycle_tests.cpp) separates rejection before acceptance from deferred failure and recovery; [`submission_queue_tests.cpp`](../tests/api/submission_queue_tests.cpp) proves a consumed error does not poison later waits | covered |
 | Capacity · PM-CAP-001 | [return codes](reference/parallel-mater-specification.md#spec-results), [pipeline bounds](reference/parallel-mater-specification.md#spec-pipeline_validity), [statistics](reference/parallel-mater-specification.md#spec-step_stats) | host fixture / advertised reference solver: [`resource_lifecycle_tests.cpp`](../tests/api/resource_lifecycle_tests.cpp), [`domain_lifecycle_tests.cpp`](../tests/api/domain_lifecycle_tests.cpp), [`coupling_lifecycle_tests.cpp`](../tests/api/coupling_lifecycle_tests.cpp), [`owner_slot_tests.cpp`](../tests/solver/owner_slot_tests.cpp) cover declared-capacity rejection and unrelated-state survival | no reference-solver test deliberately generates contact/neighbor overflow and proves statistics/status plus reset recovery | [F3-12](roadmap/tasks/F3-12.json) |
@@ -60,6 +60,23 @@ The test is registered for each built CUDA, D3D12, Metal and Vulkan Slang driver
 It does not race a queue, pool, command buffer, fence, mapped range, resource or
 destruction against another access. Such same-object cases require application
 synchronization and remain outside executable negative testing.
+
+### F3-10 descriptor-snapshot profile
+
+The public-only descriptor fixture covers the two record-time host-array shapes.
+It records a flat `PmBufferCopy[]`, then mutates and frees the caller array before
+submission. It also records an outer `PmClothInfo[]` whose vertex, triangle-index
+and inverse-mass members each point to separate nested arrays, then mutates and
+frees every caller allocation before copying the resulting cloth state. Execution
+must reproduce the original recorded values in both cases.
+
+Separate cases reject an invalid nested descriptor, reset successful flat and
+nested recordings before submission, and use the deterministic host fixture to
+fail command retention after the nested arrays have been copied. Rejection leaves
+the prior cloth untouched; reset discards owned snapshots; recording OOM is
+latched until reset and the next valid submission succeeds. The same success,
+rejection and reset cases run on every built native Slang driver that advertises
+cloth; the allocation-failure case runs only on the private host fixture.
 
 ## Lifetime and error boundaries
 

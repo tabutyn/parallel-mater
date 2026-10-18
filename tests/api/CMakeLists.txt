@@ -69,6 +69,38 @@ foreach(backend cuda vulkan d3d12 metal)
     endif()
 endforeach()
 
+add_executable(parallel-mater-descriptor-snapshot-tests
+    descriptor_snapshot_tests.cpp)
+target_compile_features(parallel-mater-descriptor-snapshot-tests PRIVATE
+    cxx_std_20)
+target_link_libraries(parallel-mater-descriptor-snapshot-tests PRIVATE
+    ParallelMater::parallel_mater)
+foreach(backend cuda vulkan d3d12 metal)
+    if(TARGET parallel-mater-driver-slang-${backend})
+        add_dependencies(parallel-mater-descriptor-snapshot-tests
+            parallel-mater-driver-slang-${backend})
+        add_test(NAME parallel-mater-${backend}-descriptor-snapshot-tests
+            COMMAND parallel-mater-descriptor-snapshot-tests)
+        set_tests_properties(
+            parallel-mater-${backend}-descriptor-snapshot-tests PROPERTIES
+            LABELS "api;lifecycle;snapshot;${backend}"
+            SKIP_RETURN_CODE 77 TIMEOUT 120
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json")
+    endif()
+endforeach()
+
+if(TARGET parallel-mater-test-driver-slang-cpu-resources)
+    add_dependencies(parallel-mater-descriptor-snapshot-tests
+        parallel-mater-test-driver-slang-cpu-resources)
+    add_test(NAME parallel-mater-host-descriptor-snapshot-tests
+        COMMAND parallel-mater-descriptor-snapshot-tests --failure-fixture)
+    set_tests_properties(parallel-mater-host-descriptor-snapshot-tests PROPERTIES
+        LABELS "api;lifecycle;snapshot;failure;host-fixture" TIMEOUT 120
+        ENVIRONMENT
+            "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-slang-cpu-resources.json")
+endif()
+
 add_executable(parallel-mater-fluid-pair-quality-tests
     fluid_pair_quality_tests.cpp)
 target_compile_features(parallel-mater-fluid-pair-quality-tests PRIVATE cxx_std_20)
