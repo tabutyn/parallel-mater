@@ -8,15 +8,6 @@
              source.angularVelocity[2]}};
 }
 
-[[nodiscard]] bool step_runtime(GalleryRuntime &runtime,
-                                const StepOptions &options,
-                                std::string &error, bool read_deformables = true, bool read_host = true) {
-    StepOptions request = options;
-    request.read_deformables = read_deformables;
-    request.read_host = read_host;
-    return runtime.step(request, error);
-}
-
 [[nodiscard]] const GalleryEntry *entry_for_option(
     std::string_view option) noexcept {
     const auto found = std::find_if(

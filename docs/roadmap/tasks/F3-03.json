@@ -1,7 +1,7 @@
 {
   "id": "F3-03",
   "title": "Validate object dependencies and query state",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F3-01",
     "F1-03",
@@ -19,6 +19,14 @@
     "Cross-device, bad query range/state and failed creation leave consistent validation state."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "305ef2d9-1c4c-4d97-9dd5-ad848fb9095e",
+    "owner": "codex-windows-validation",
+    "machine": "windows-gtx1080",
+    "branch": "work/F3-03/windows-gtx1080",
+    "claimed_at": "2026-10-18T01:02:04Z",
+    "heartbeat_at": "2026-10-18T01:02:04Z",
+    "expires_at": "2026-10-19T01:02:04Z"
+  },
   "history": []
 }

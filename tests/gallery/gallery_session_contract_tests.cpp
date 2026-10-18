@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string_view>
 
@@ -247,6 +248,75 @@ int main() {
         }
         require(gallery::GalleryRuntime::live_runtime_count() == 0U,
                 "Mobile shell recreation leaked a runtime");
+
+        // Desktop supplies resolved limits and exact scene parameters instead
+        // of making the common session select a mobile device profile.
+        bool validated_scene = false;
+        gallery::GallerySessionConfig desktop_config{
+            .assets = root / "examples/assets",
+            .profiles = root / "missing-device-profiles.json",
+            .platform = "Desktop",
+            .model = "test-host",
+            .backend = PM_GALLERY_SESSION_TEST_BACKEND,
+#ifdef PM_GALLERY_SESSION_TEST_NATIVE_BACKEND
+            .native_backend = PM_GALLERY_SESSION_TEST_NATIVE_BACKEND,
+#endif
+            .workload_limits = gallery::GalleryWorkloadLimits{
+                .name = "desktop-contract",
+                .platform = "Desktop",
+                .machine_model = "*",
+                .backend = PM_GALLERY_SESSION_TEST_BACKEND,
+                .brick_count = 4U,
+                .fluid_particles = 64U,
+                .coupled_bodies = std::numeric_limits<std::uint32_t>::max(),
+                .smoke_particles = std::numeric_limits<std::uint32_t>::max(),
+                .dump_spheres = 13U,
+                .render_width = 96U,
+                .render_height = 72U,
+                .target_fps = 60U,
+            },
+            .bricks = gallery::BrickSceneConfig{4U, 1.5F, 2U},
+            .dump_spheres = 13U,
+            .fluid_particles = 64U,
+            .initial_scene = static_cast<unsigned>(gallery::gallery_context_index(
+                gallery::GalleryContext::fluid)),
+            .replacement = gallery::GalleryReplacementPolicy::preserve_until_ready,
+            .create_host_renderer = false,
+            .prime_scene = false,
+        };
+        desktop_config.validate_scene =
+            [&](gallery::GalleryContext, const gallery::SceneDefinition &,
+                std::string &) {
+                validated_scene = true;
+                return true;
+            };
+        {
+            gallery::GallerySession desktop(std::move(desktop_config));
+            require(validated_scene && desktop.ready() &&
+                        desktop.runtime().context == gallery::GalleryContext::fluid &&
+                        desktop.runtime().scene.fluid_options.capacity == 64U &&
+                        desktop.revision() == 1U,
+                    "Explicit desktop session configuration was not applied");
+            auto parameters = desktop.scene_parameters();
+            parameters.fluid_particles = 96U;
+            desktop.set_scene_parameters(parameters);
+            desktop.select(static_cast<unsigned>(gallery::gallery_context_index(
+                gallery::GalleryContext::fluid)));
+            require(desktop.runtime().scene.fluid_options.capacity == 96U &&
+                        desktop.revision() == 2U,
+                    "Desktop fluid parameter did not survive common selection");
+            desktop.select(static_cast<unsigned>(gallery::gallery_context_index(
+                gallery::GalleryContext::dump)));
+            require(gallery::dump_payload_count(desktop.runtime().scene) == 13U &&
+                        desktop.revision() == 3U,
+                    "Desktop dump parameter did not survive common selection");
+            desktop.reset();
+            require(gallery::dump_payload_count(desktop.runtime().scene) == 13U &&
+                        desktop.revision() == 4U,
+                    "Common reset lost desktop scene parameters");
+        }
+        require(gallery::GalleryRuntime::live_runtime_count() == 0U,
+                "Explicit desktop session leaked its runtime");
 
         gallery::GalleryRuntimeCreateInfo valid;
         valid.asset = root / "examples/assets/RigidBody.glb";

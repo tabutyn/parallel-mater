@@ -1,7 +1,7 @@
 {
   "id": "F7-06",
   "title": "Adopt common runtime in desktop Gallery",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-02",
     "F7-03",
@@ -19,15 +19,37 @@
     "Interactive, headless, replay and benchmark paths use the common runtime for scene lifecycle and controls.",
     "Existing supported desktop scene, input, rendering and calibration suites pass without parallel legacy lifecycle code."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "f7a92037-497a-4e1b-b1d8-cbe4a36858b3",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F7-06/thomas-laptop",
-    "claimed_at": "2026-10-18T00:38:17Z",
-    "heartbeat_at": "2026-10-18T00:38:17Z",
-    "expires_at": "2026-10-19T00:38:17Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: cmake --build build-desktop-switch -j1; Linux Release build completed 72/72 targets.",
+    "PASS: physical Vulkan CTest #38 Gallery session contract plus #39-42 Cloth/ClothTear/ClothPaint/ClothWater; NVIDIA GeForce RTX 3050 Ti Laptop GPU; common selection/reset/action/parameter contract and scene paths.",
+    "PASS: PM_DRIVER_FILES=slang-vulkan.json PM_LAYER_FILES=validation.json ./scripts/Test-Vulkan.sh -R ^parallel-mater-gallery-frame-timing-headless$; headless render/timing 1/1.",
+    "PASS: ./scripts/Run-DesktopGallery.sh --backend cuda --constraint-point --frames 3 --constraint-action-after-frames 1 --headless /tmp/f7-06-cuda.ppm; CUDA rendered on NVIDIA GeForce RTX 3050 Ti Laptop GPU.",
+    "PASS: ./scripts/Run-DesktopGallery.sh --backend vulkan --constraint-point --frames 3 --constraint-action-after-frames 1 --frame-timings /tmp/f7-06-vulkan.csv --headless /tmp/f7-06-vulkan.ppm; Vulkan rendered and recorded timings on NVIDIA GeForce RTX 3050 Ti Laptop GPU.",
+    "PASS: command Gallery, Gallery scene, workload, deployment, frame timing/overlay, camera, frame budget/policy, registry and input tests (11 relevant tests); BASELINE: unchanged device-profile target still fails quiet-wall stability on CUDA and Vulkan and links none of the modified F7-06 modules."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "f7a92037-497a-4e1b-b1d8-cbe4a36858b3",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-06/thomas-laptop",
+        "claimed_at": "2026-10-18T00:38:17Z",
+        "heartbeat_at": "2026-10-18T00:38:17Z",
+        "expires_at": "2026-10-19T00:38:17Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T00:56:36Z",
+      "reason": "Desktop interactive, headless and calibration clients now use GallerySession for lifecycle, controls, camera and revision tracking; the private DesktopGalleryState/build_runtime path is removed.",
+      "evidence": [
+        "PASS: cmake --build build-desktop-switch -j1; Linux Release build completed 72/72 targets.",
+        "PASS: physical Vulkan CTest #38 Gallery session contract plus #39-42 Cloth/ClothTear/ClothPaint/ClothWater; NVIDIA GeForce RTX 3050 Ti Laptop GPU; common selection/reset/action/parameter contract and scene paths.",
+        "PASS: PM_DRIVER_FILES=slang-vulkan.json PM_LAYER_FILES=validation.json ./scripts/Test-Vulkan.sh -R ^parallel-mater-gallery-frame-timing-headless$; headless render/timing 1/1.",
+        "PASS: ./scripts/Run-DesktopGallery.sh --backend cuda --constraint-point --frames 3 --constraint-action-after-frames 1 --headless /tmp/f7-06-cuda.ppm; CUDA rendered on NVIDIA GeForce RTX 3050 Ti Laptop GPU.",
+        "PASS: ./scripts/Run-DesktopGallery.sh --backend vulkan --constraint-point --frames 3 --constraint-action-after-frames 1 --frame-timings /tmp/f7-06-vulkan.csv --headless /tmp/f7-06-vulkan.ppm; Vulkan rendered and recorded timings on NVIDIA GeForce RTX 3050 Ti Laptop GPU.",
+        "PASS: command Gallery, Gallery scene, workload, deployment, frame timing/overlay, camera, frame budget/policy, registry and input tests (11 relevant tests); BASELINE: unchanged device-profile target still fails quiet-wall stability on CUDA and Vulkan and links none of the modified F7-06 modules."
+      ]
+    }
+  ]
 }
