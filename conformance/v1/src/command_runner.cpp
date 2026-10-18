@@ -219,6 +219,7 @@ struct Aggregate {
     SceneDefinition scene{};
     scene.meshes.push_back(box_mesh("dynamic", {0.25F, 0.25F, 0.25F}));
     scene.meshes.push_back(box_mesh("ground", {3.0F, 0.05F, 3.0F}));
+    scene.meshes.push_back(box_mesh("kinematic", {0.2F, 0.2F, 0.2F}));
     RigidBodyDefinition dynamic{};
     dynamic.name = "dynamic-box";
     dynamic.source_name = dynamic.name;
@@ -238,7 +239,7 @@ struct Aggregate {
     RigidBodyDefinition kinematic{};
     kinematic.name = "kinematic-box";
     kinematic.source_name = kinematic.name;
-    kinematic.mesh_indices = {0U};
+    kinematic.mesh_indices = {2U};
     kinematic.options.motion = MotionType::kinematic;
     kinematic.options.initial_state.position = {-1.0F, 1.0F, 0.0F};
     scene.rigid_bodies = {dynamic, ground, kinematic};
@@ -940,6 +941,16 @@ void copy_particle_state(const std::vector<State> &states,
     Json provenance = Json::object();
     provenance["deterministic"] = true;
     provenance["device_ordinal"] = static_cast<std::int64_t>(0);
+    PmPhysicalDeviceProperties properties{};
+    pmGetPhysicalDeviceProperties(runtime.command_scene.physical_device(),
+                                  &properties);
+    provenance["device_id"] = static_cast<std::uint64_t>(properties.deviceId);
+    provenance["device_name"] = properties.deviceName;
+    provenance["driver_version"] =
+        static_cast<std::uint64_t>(properties.driverVersion);
+    provenance["host_compiler"] = host_compiler();
+    provenance["source_commit"] = PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT;
+    provenance["vendor_id"] = static_cast<std::uint64_t>(properties.vendorId);
     Json result = Json::object();
     PmNativeDeviceInfo native{};
     const PmResult native_result = pmGetNativeDevice(runtime.command_scene.device(), &native);

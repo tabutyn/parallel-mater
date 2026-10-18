@@ -63,6 +63,15 @@ bricks, 300 frames, four substeps, timestep and an independent closed-mesh
 sampling oracle. Its measured maximum pairwise surface penetration must remain
 at or below the unchanged 2 mm limit.
 
+The rigid kinematic-sweep profile consumes the every-frame `rigid-direct`
+trajectory directly. It pins the exact case hash and requires all 61
+checkpoints. Its independent geometry oracle checks that frame-21 contact
+points lie on the declared 0.2 m-half-extent collider, active contact reaction
+aligns with the left-to-right sweep, Coulomb friction remains bounded, and the
+off-centre impact creates positive z angular response while preserving the
+fixture's z-plane symmetry. These analytic checks do not replace or relax the
+case's `direct` reference-regression tolerances.
+
 ## Quality result: `parallel-mater-conformance-quality-result/v1`
 
 A result names the profile ID and exact SHA-256, reports completed execution,
@@ -80,6 +89,13 @@ For a maximum-pairwise-penetration profile, `fixture` repeats every fixed run
 setting and reports `maximum_penetration_m` plus its zero-based frame. Setting
 changes, an out-of-range frame, nonfinite/negative depth, incomplete execution,
 or a depth above the profile limit fail.
+
+For a rigid kinematic-sweep profile, the quality evaluator accepts the raw
+`parallel-mater-conformance-result/v1` trajectory instead of a derived quality
+result. The report records the active contact count, impulse-weighted normal
+alignment, angular response and planar leakage. Missing frames, a different
+case hash, wrong collider geometry, vacuous or misdirected response, friction
+cone violation, or excessive out-of-plane state fail.
 
 ## Quality report: `parallel-mater-conformance-quality-report/v1`
 

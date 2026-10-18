@@ -15,6 +15,7 @@ from typing import Any
 PROFILE_SCHEMA = "parallel-mater-conformance-quality-profile/v1"
 RESULT_SCHEMA = "parallel-mater-conformance-quality-result/v1"
 REPORT_SCHEMA = "parallel-mater-conformance-quality-report/v1"
+CONFORMANCE_RESULT_SCHEMA = "parallel-mater-conformance-result/v1"
 
 
 @dataclass
@@ -53,6 +54,15 @@ def _vector(value: Any, path: str,
     return float(value[0]), float(value[1]), float(value[2])
 
 
+def _quaternion(value: Any, path: str,
+                failures: list[Failure]) -> tuple[float, float, float, float] | None:
+    if not isinstance(value, list) or len(value) != 4 or not all(
+            _number(component) for component in value):
+        failures.append(Failure(path, "expected four finite components", value))
+        return None
+    return tuple(float(component) for component in value)  # type: ignore[return-value]
+
+
 def _subtract(left: tuple[float, float, float],
               right: tuple[float, float, float]) -> tuple[float, float, float]:
     return tuple(a - b for a, b in zip(left, right))  # type: ignore[return-value]
@@ -64,6 +74,13 @@ def _sum(vectors: list[tuple[float, float, float]]) -> tuple[float, float, float
 
 def _norm(value: tuple[float, float, float]) -> float:
     return math.sqrt(sum(component * component for component in value))
+
+
+def _unit(value: tuple[float, float, float]) -> tuple[float, float, float] | None:
+    length = _norm(value)
+    if not length > 0.0:
+        return None
+    return tuple(component / length for component in value)  # type: ignore[return-value]
 
 
 def _limit(profile: dict[str, Any], name: str, scale: float) -> float:
@@ -338,12 +355,327 @@ def _evaluate_penetration(profile: dict[str, Any], result: dict[str, Any],
     }
 
 
+def _evaluate_rigid_kinematic_sweep(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        failures: list[Failure]) -> dict[str, Any]:
+    fixture = profile.get("fixture")
+    if not isinstance(fixture, dict):
+        failures.append(Failure("$.profile.fixture", "expected an object", fixture))
+        fixture = {}
+
+    if result.get("schema") != CONFORMANCE_RESULT_SCHEMA:
+        failures.append(Failure("$.schema", "unsupported conformance result schema",
+                                result.get("schema"), CONFORMANCE_RESULT_SCHEMA))
+    if result.get("execution_status") != "completed":
+        failures.append(Failure("$.execution_status",
+                                "quality execution must be completed",
+                                result.get("execution_status"), "completed"))
+    if result.get("case_id") != fixture.get("case_id"):
+        failures.append(Failure("$.case_id", "case identity mismatch",
+                                result.get("case_id"), fixture.get("case_id")))
+    if result.get("case_sha256") != fixture.get("case_sha256"):
+        failures.append(Failure("$.case_sha256", "case hash mismatch",
+                                result.get("case_sha256"), fixture.get("case_sha256")))
+
+    backend = result.get("backend")
+    if not isinstance(backend, str) or not backend.strip():
+        failures.append(Failure("$.backend", "backend identity is required", backend))
+        backend = "unknown"
+    provenance = result.get("provenance")
+    if not isinstance(provenance, dict):
+        provenance = {}
+    driver = {
+        "name": backend,
+        "device": provenance.get("device_name", "not-reported"),
+    }
+
+    frame_count = fixture.get("frames")
+    checkpoints = result.get("checkpoints")
+    if not isinstance(frame_count, int) or isinstance(frame_count, bool) or frame_count < 1:
+        failures.append(Failure("$.profile.fixture.frames",
+                                "expected a positive frame count", frame_count))
+        frame_count = 0
+    if not isinstance(checkpoints, list):
+        failures.append(Failure("$.checkpoints", "expected a checkpoint array",
+                                checkpoints))
+        checkpoints = []
+    expected_frames = list(range(frame_count + 1))
+    actual_frames = [checkpoint.get("frame") if isinstance(checkpoint, dict) else None
+                     for checkpoint in checkpoints]
+    if actual_frames != expected_frames:
+        failures.append(Failure("$.checkpoints",
+                                "every frame from zero through the configured run is required",
+                                actual_frames, expected_frames))
+    by_frame = {checkpoint.get("frame"): checkpoint for checkpoint in checkpoints
+                if isinstance(checkpoint, dict) and isinstance(checkpoint.get("frame"), int)}
+
+    def resource(frame: int, identity: str) -> dict[str, Any] | None:
+        checkpoint = by_frame.get(frame)
+        path = f"$.checkpoints[{frame}].resources"
+        if not isinstance(checkpoint, dict):
+            failures.append(Failure(path, "required checkpoint is missing", frame))
+            return None
+        resources = checkpoint.get("resources")
+        if not isinstance(resources, list):
+            failures.append(Failure(path, "expected a resource array", resources))
+            return None
+        matches = [item for item in resources
+                   if isinstance(item, dict) and item.get("id") == identity]
+        if len(matches) != 1:
+            failures.append(Failure(path, "expected exactly one named rigid body",
+                                    identity, 1))
+            return None
+        return matches[0]
+
+    preimpact_frame = fixture.get("preimpact_frame")
+    impact_frame = fixture.get("impact_frame")
+    body_id = fixture.get("body")
+    collider_id = fixture.get("collider")
+    if (not isinstance(preimpact_frame, int) or isinstance(preimpact_frame, bool) or
+            not isinstance(impact_frame, int) or isinstance(impact_frame, bool) or
+            not isinstance(body_id, str) or not isinstance(collider_id, str)):
+        failures.append(Failure("$.profile.fixture",
+                                "sweep frames and rigid body identities are required"))
+        preimpact_frame = impact_frame = -1
+        body_id = collider_id = ""
+
+    before_body = resource(preimpact_frame, body_id)
+    before_collider = resource(preimpact_frame, collider_id)
+    impact_body = resource(impact_frame, body_id)
+    impact_collider = resource(impact_frame, collider_id)
+    tolerances = profile.get("tolerances")
+    if not isinstance(tolerances, dict):
+        failures.append(Failure("$.profile.tolerances", "expected an object",
+                                tolerances))
+        tolerances = {}
+
+    exact_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+    timestep = fixture.get("timestep_seconds")
+    previous_target = _vector(fixture.get("kinematic_previous_position"),
+                              "$.profile.fixture.kinematic_previous_position",
+                              failures)
+    target = _vector(fixture.get("kinematic_target_position"),
+                     "$.profile.fixture.kinematic_target_position", failures)
+    sweep = _vector(fixture.get("kinematic_sweep_displacement"),
+                    "$.profile.fixture.kinematic_sweep_displacement", failures)
+    half_extents = _vector(fixture.get("collider_half_extents"),
+                           "$.profile.fixture.collider_half_extents", failures)
+    response_axis = _vector(fixture.get("angular_response_axis"),
+                            "$.profile.fixture.angular_response_axis", failures)
+
+    def close_vector(actual: Any, expected: tuple[float, float, float] | None,
+                     path: str) -> tuple[float, float, float] | None:
+        value = _vector(actual, path, failures)
+        if value is not None and expected is not None:
+            error = max(abs(a - b) for a, b in zip(value, expected))
+            if error > exact_tolerance:
+                failures.append(Failure(path, "fixture state differs from profile",
+                                        list(value), list(expected)))
+        return value
+
+    if before_collider is not None:
+        close_vector(before_collider.get("position"), previous_target,
+                     f"$.checkpoints[{preimpact_frame}].{collider_id}.position")
+    impact_collider_position = None
+    if impact_collider is not None:
+        impact_collider_position = close_vector(
+            impact_collider.get("position"), target,
+            f"$.checkpoints[{impact_frame}].{collider_id}.position")
+        if (_number(timestep) and float(timestep) > 0.0 and
+                previous_target is not None and target is not None):
+            expected_velocity = tuple((end - start) / float(timestep)
+                                      for start, end in zip(previous_target, target))
+            close_vector(impact_collider.get("linear_velocity"), expected_velocity,
+                         f"$.checkpoints[{impact_frame}].{collider_id}.linear_velocity")
+
+    def rigid_contacts(frame: int) -> list[dict[str, Any]]:
+        checkpoint = by_frame.get(frame)
+        path = f"$.checkpoints[{frame}].contacts"
+        contacts = checkpoint.get("contacts") if isinstance(checkpoint, dict) else None
+        if not isinstance(contacts, dict):
+            failures.append(Failure(path, "expected contact diagnostics", contacts))
+            return []
+        values = contacts.get("rigid_contacts")
+        count = contacts.get("rigid_contact_count")
+        if not isinstance(values, list) or not all(isinstance(item, dict)
+                                                   for item in values):
+            failures.append(Failure(path + ".rigid_contacts",
+                                    "expected a rigid-contact array", values))
+            return []
+        if count != len(values):
+            failures.append(Failure(path + ".rigid_contact_count",
+                                    "contact count does not match records",
+                                    count, len(values)))
+        return values
+
+    if rigid_contacts(preimpact_frame):
+        failures.append(Failure(f"$.checkpoints[{preimpact_frame}].contacts",
+                                "preimpact frame must be contact-free"))
+    contacts = rigid_contacts(impact_frame)
+    if not contacts:
+        failures.append(Failure(f"$.checkpoints[{impact_frame}].contacts",
+                                "kinematic sweep produced no rigid contacts"))
+
+    weighted_normal = (0.0, 0.0, 0.0)
+    active_contacts = 0
+    contact_point_tolerance = float(tolerances.get("contact_point_absolute_m", 0.0))
+    friction_coefficient = fixture.get("friction_coefficient")
+    friction_tolerance = float(tolerances.get("friction_cone_absolute", 0.0))
+    for index, contact in enumerate(contacts):
+        path = f"$.checkpoints[{impact_frame}].contacts.rigid_contacts[{index}]"
+        if contact.get("body") != body_id or contact.get("collider") != collider_id:
+            failures.append(Failure(path, "unexpected contact body pair",
+                                    [contact.get("body"), contact.get("collider")],
+                                    [body_id, collider_id]))
+        normal = _vector(contact.get("normal"), path + ".normal", failures)
+        point = _vector(contact.get("position"), path + ".position", failures)
+        friction = _vector(contact.get("friction_impulse"),
+                           path + ".friction_impulse", failures)
+        normal_impulse = _scalar(contact.get("normal_impulse"),
+                                 path + ".normal_impulse", failures)
+        if normal is not None:
+            length = _norm(normal)
+            if abs(length - 1.0) > 1.0e-3:
+                failures.append(Failure(path + ".normal",
+                                        "contact normal is not unit length", length, 1.0))
+        if normal_impulse is not None:
+            if normal_impulse < 0.0:
+                failures.append(Failure(path + ".normal_impulse",
+                                        "normal impulse cannot be negative",
+                                        normal_impulse, 0.0))
+            elif normal_impulse > 0.0:
+                active_contacts += 1
+                if normal is not None:
+                    weighted_normal = tuple(
+                        total + component * normal_impulse
+                        for total, component in zip(weighted_normal, normal))
+        if (friction is not None and normal_impulse is not None and
+                _number(friction_coefficient)):
+            bound = float(friction_coefficient) * max(normal_impulse, 0.0)
+            if _norm(friction) > bound + friction_tolerance:
+                failures.append(Failure(path + ".friction_impulse",
+                                        "friction impulse exceeds Coulomb cone",
+                                        _norm(friction), bound + friction_tolerance))
+        if (point is not None and impact_collider_position is not None and
+                half_extents is not None):
+            excess = max(abs(value - center) - half - contact_point_tolerance
+                         for value, center, half in zip(
+                             point, impact_collider_position, half_extents))
+            if excess > 0.0:
+                failures.append(Failure(path + ".position",
+                                        "contact point lies outside the declared collider",
+                                        list(point),
+                                        {"center": list(impact_collider_position),
+                                         "half_extents": list(half_extents),
+                                         "absolute": contact_point_tolerance}))
+
+    minimum_impulse = float(tolerances.get("normal_impulse_activity_minimum", 0.0))
+    weighted_length = _norm(weighted_normal)
+    if active_contacts == 0 or weighted_length < minimum_impulse:
+        failures.append(Failure(f"$.checkpoints[{impact_frame}].contacts",
+                                "normal impulse activity is too small for the sweep",
+                                weighted_length, minimum_impulse))
+    normal_alignment = None
+    sweep_unit = _unit(sweep) if sweep is not None else None
+    normal_unit = _unit(weighted_normal)
+    if sweep_unit is not None and normal_unit is not None:
+        normal_alignment = sum(a * b for a, b in zip(sweep_unit, normal_unit))
+        minimum_alignment = float(tolerances.get("normal_alignment_cosine_minimum", 1.0))
+        if normal_alignment < minimum_alignment:
+            failures.append(Failure(f"$.checkpoints[{impact_frame}].contacts",
+                                    "contact reaction is not aligned with the kinematic sweep",
+                                    normal_alignment, minimum_alignment))
+
+    planar = {}
+    angular_response = None
+    if impact_body is not None:
+        position = _vector(impact_body.get("position"),
+                           f"$.checkpoints[{impact_frame}].{body_id}.position",
+                           failures)
+        velocity = _vector(impact_body.get("linear_velocity"),
+                           f"$.checkpoints[{impact_frame}].{body_id}.linear_velocity",
+                           failures)
+        angular = _vector(impact_body.get("angular_velocity"),
+                          f"$.checkpoints[{impact_frame}].{body_id}.angular_velocity",
+                          failures)
+        orientation = _quaternion(impact_body.get("orientation"),
+                                  f"$.checkpoints[{impact_frame}].{body_id}.orientation",
+                                  failures)
+        planar_limits = {
+            "position_z": float(tolerances.get("planar_position_absolute_m", 0.0)),
+            "linear_velocity_z": float(tolerances.get(
+                "planar_linear_velocity_absolute_m_s", 0.0)),
+            "orientation_xy": float(tolerances.get(
+                "planar_orientation_component_absolute", 0.0)),
+            "angular_velocity_xy": float(tolerances.get(
+                "planar_angular_velocity_absolute_rad_s", 0.0)),
+        }
+        if position is not None:
+            planar["position_z"] = abs(position[2])
+        if velocity is not None:
+            planar["linear_velocity_z"] = abs(velocity[2])
+            sweep_projection = (sum(a * b for a, b in zip(velocity, sweep_unit))
+                                if sweep_unit is not None else 0.0)
+            minimum_speed = float(tolerances.get(
+                "sweep_response_speed_minimum_m_s", 0.0))
+            if sweep_projection < minimum_speed:
+                failures.append(Failure(
+                    f"$.checkpoints[{impact_frame}].{body_id}.linear_velocity",
+                    "dynamic body did not respond along the kinematic sweep",
+                    sweep_projection, minimum_speed))
+        if orientation is not None:
+            planar["orientation_xy"] = max(abs(orientation[0]),
+                                            abs(orientation[1]))
+        if angular is not None:
+            planar["angular_velocity_xy"] = max(abs(angular[0]), abs(angular[1]))
+            axis_unit = _unit(response_axis) if response_axis is not None else None
+            if axis_unit is not None:
+                angular_response = sum(a * b for a, b in zip(angular, axis_unit))
+                minimum_angular = float(tolerances.get(
+                    "angular_response_minimum_rad_s", 0.0))
+                if angular_response < minimum_angular:
+                    failures.append(Failure(
+                        f"$.checkpoints[{impact_frame}].{body_id}.angular_velocity",
+                        "off-center sweep lacks the required angular response",
+                        angular_response, minimum_angular))
+        for name, value in planar.items():
+            if value > planar_limits[name]:
+                failures.append(Failure(
+                    f"$.checkpoints[{impact_frame}].{body_id}.{name}",
+                    "planar symmetry leakage exceeds profile",
+                    value, planar_limits[name]))
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": 1 if checkpoints else 0,
+        "sample_count": len(checkpoints),
+        "failure_count": len(failures),
+        "observations": {
+            "active_contact_count": active_contacts,
+            "angular_response_rad_s": angular_response,
+            "normal_alignment_cosine": normal_alignment,
+            "normal_impulse_vector": list(weighted_normal),
+            "planar_leakage": planar,
+        },
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def evaluate(profile: dict[str, Any], result: dict[str, Any],
              expected_hash: str) -> dict[str, Any]:
     failures: list[Failure] = []
     if profile.get("schema") != PROFILE_SCHEMA:
         failures.append(Failure("$.profile.schema", "unsupported profile schema",
                                 profile.get("schema"), PROFILE_SCHEMA))
+    evaluation = profile.get("evaluation", "system_exchange")
+    if evaluation == "rigid_kinematic_sweep":
+        return _evaluate_rigid_kinematic_sweep(
+            profile, result, expected_hash, failures)
     if result.get("schema") != RESULT_SCHEMA:
         failures.append(Failure("$.schema", "unsupported result schema",
                                 result.get("schema"), RESULT_SCHEMA))
@@ -364,7 +696,6 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
         failures.append(Failure("$.driver",
                                 "driver name and device are required", driver))
 
-    evaluation = profile.get("evaluation", "system_exchange")
     if evaluation == "maximum_pairwise_penetration":
         return _evaluate_penetration(profile, result, expected_hash, driver, failures)
     if evaluation != "system_exchange":
