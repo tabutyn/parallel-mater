@@ -1,20 +1,20 @@
 {
   "id": "F3-10",
-  "title": "Qualify destruction wait profiles",
+  "title": "Qualify descriptor snapshot coverage",
   "status": "open",
   "dependencies": [
     "F3-06"
   ],
   "locks": [
-    "lifecycle-tests"
+    "sdk-contract-tests"
   ],
   "requires": [
-    "Host fixture; one advertised native driver"
+    "Host fixture and one advertised reference solver"
   ],
-  "scope": "Test explicit completion and reference-runtime implicit device teardown waits with pending public objects.",
+  "scope": "Exercise record-time ownership for flat and nested host descriptor arrays across command families.",
   "acceptance": [
-    "Accepted work drains before reference-driver device teardown returns, without use-after-free, hang or stale ownership after handle reuse.",
-    "Explicit completion avoids the implicit wait, and evidence does not generalize reference-runtime behavior to external drivers."
+    "Caller storage mutation after successful recording cannot change later execution for every descriptor-shape class.",
+    "Rejected or allocation-failed recording retains no caller pointer, and command-buffer reset releases owned snapshots."
   ],
   "evidence": [],
   "lease": null,

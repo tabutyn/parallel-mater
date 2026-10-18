@@ -1,0 +1,22 @@
+{
+  "id": "F3-12",
+  "title": "Qualify runtime capacity recovery",
+  "status": "open",
+  "dependencies": [
+    "F3-06"
+  ],
+  "locks": [
+    "lifecycle-tests"
+  ],
+  "requires": [
+    "Reference solver profile with controllable generated contact or neighbor capacity"
+  ],
+  "scope": "Trigger runtime-generated capacity overflow through the public API and qualify completion, statistics, invalidation and reset recovery.",
+  "acceptance": [
+    "Submission acceptance is distinct from deferred CAPACITY_EXCEEDED reported by completion, statistics and simulation status.",
+    "Reset/reinitialization recovers the target while an unrelated domain remains valid; evidence names the exact solver profile."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

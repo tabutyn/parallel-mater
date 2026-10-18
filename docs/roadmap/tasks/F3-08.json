@@ -1,20 +1,20 @@
 {
   "id": "F3-08",
-  "title": "Qualify portable host concurrency",
+  "title": "Restore repeated statistics-query validation",
   "status": "open",
   "dependencies": [
-    "F3-06"
+    "F3-03"
   ],
   "locks": [
-    "sdk-contract-tests"
+    "validation-layer"
   ],
   "requires": [
-    "Host thread runtime; one advertised native driver"
+    "macOS Apple GPU and Metal Gallery build"
   ],
-  "scope": "Add public-API concurrency cases for physical-device queries, distinct command pools and independent mutable objects without executing undefined same-object races.",
+  "scope": "Correct validation query-state tracking so a completed and consumed statistics query can be reset and reused by the native Metal Gallery without weakening unread or in-flight rejection.",
   "acceptance": [
-    "Repeated concurrent physical-device queries and independent-pool recording pass through the loader and validation layer.",
-    "Evidence names each driver profile and keeps externally synchronized same-object access outside executable negative controls."
+    "Repeated reset, statistics begin/end, submission, wait, result read and reuse passes through the validation layer while unread and in-flight reuse remains rejected.",
+    "The installed macOS Metal Gallery interactive smoke passes with validation enabled and proves the expected revision and direct renderer."
   ],
   "evidence": [],
   "lease": null,

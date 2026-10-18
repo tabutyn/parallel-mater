@@ -1,6 +1,6 @@
 {
   "id": "F3-09",
-  "title": "Qualify descriptor snapshot coverage",
+  "title": "Qualify portable host concurrency",
   "status": "open",
   "dependencies": [
     "F3-06"
@@ -11,10 +11,10 @@
   "requires": [
     "Host fixture and one advertised reference solver"
   ],
-  "scope": "Exercise record-time ownership for flat and nested host descriptor arrays across command families.",
+  "scope": "Add public-API concurrency cases for physical-device queries, distinct command pools and independent mutable objects without executing undefined same-object races.",
   "acceptance": [
-    "Caller storage mutation after successful recording cannot change later execution for every descriptor-shape class.",
-    "Rejected or allocation-failed recording retains no caller pointer, and command-buffer reset releases owned snapshots."
+    "Repeated concurrent physical-device queries and independent-pool recording pass through the loader and validation layer.",
+    "Evidence names each driver profile and keeps externally synchronized same-object access outside executable negative controls."
   ],
   "evidence": [],
   "lease": null,

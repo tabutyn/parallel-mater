@@ -1,6 +1,6 @@
 {
   "id": "F3-11",
-  "title": "Qualify runtime capacity recovery",
+  "title": "Qualify destruction wait profiles",
   "status": "open",
   "dependencies": [
     "F3-06"
@@ -9,12 +9,12 @@
     "lifecycle-tests"
   ],
   "requires": [
-    "Reference solver profile with controllable generated contact or neighbor capacity"
+    "Host fixture; one advertised native driver"
   ],
-  "scope": "Trigger runtime-generated capacity overflow through the public API and qualify completion, statistics, invalidation and reset recovery.",
+  "scope": "Test explicit completion and reference-runtime implicit device teardown waits with pending public objects.",
   "acceptance": [
-    "Submission acceptance is distinct from deferred CAPACITY_EXCEEDED reported by completion, statistics and simulation status.",
-    "Reset/reinitialization recovers the target while an unrelated domain remains valid; evidence names the exact solver profile."
+    "Accepted work drains before reference-driver device teardown returns, without use-after-free, hang or stale ownership after handle reuse.",
+    "Explicit completion avoids the implicit wait, and evidence does not generalize reference-runtime behavior to external drivers."
   ],
   "evidence": [],
   "lease": null,
