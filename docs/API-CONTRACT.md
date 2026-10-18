@@ -14,11 +14,11 @@ in one profile never silently qualifies another profile or backend.
 
 | Rule | Required behavior | Executable evidence |
 |---|---|---|
-| PM-API-001 | Accept API 0.2 and zero (default 0.2); reject other versions with INCOMPATIBLE_VERSION and null output. | loader discovery tests; driver ABI tests (future version) |
+| PM-API-001 | Accept API 0.2 and zero (default 0.2); reject other versions with INCOMPATIBLE_VERSION and null output. | installed-SDK compatibility matrix; loader discovery tests; driver ABI tests (future version) |
 | PM-MEM-001 | Buffer/memory handles belong to one device. Binding and mapped ranges fit the allocation without overflow. Binding twice or mapping twice is invalid state; live bound buffers prevent freeing their memory. | permissive-driver validation tests, paired with no-layer negative controls |
 | PM-DEP-001 | Geometry, simulation, pipeline, buffer and backing-memory dependencies remain live while recorded or simulation-owned. Command reset/free releases recorded references; successful simulation replacement/reset updates retained geometry without preserving stale bindings. | permissive-driver validation tests, paired with no-layer negative controls |
 | PM-QUERY-001 | Query pools belong to one device. Slots are reset before use, statistics scopes are matched around a step, in-flight or unread results are not reset, and result ranges, alignment, stride and flags are validated without overflow. Failed creation publishes no tracked object. | permissive-driver validation tests, paired with no-layer negative controls |
-| PM-ABI-001 | A successful driver/layer negotiation returns a nonzero version no greater than requested. | loader rejection tests with independent zero/999 mock libraries |
+| PM-ABI-001 | A successful driver/layer negotiation returns a nonzero version no greater than requested. | installed C ABI 1/2/3 layer fixtures and independent driver/layer zero/999 rejection libraries |
 | PM-LIFE-001 | Retired domain storage is reusable within the queried allocation; unrelated live slots survive replacement. | SDK resource/domain/coupling lifecycle tests; arena tests |
 | PM-CMD-001 | Rejected argument validation enqueues no command. Recording can continue. Host descriptors are snapshots; referenced resources remain borrowed. | SDK resource lifecycle (rejected capacity/range then valid work); coupling lifecycle (descriptor mutation) |
 | PM-SYNC-001 | Submission is asynchronous. Completion reports deferred errors. Failed submissions drain issued work; a later valid submission can recover. | async submission and submission queue tests; resource lifecycle NaN failure/recovery |

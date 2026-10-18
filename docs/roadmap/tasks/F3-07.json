@@ -1,7 +1,7 @@
 {
   "id": "F3-07",
   "title": "Test independent compatibility combinations",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F3-05"
   ],
@@ -16,15 +16,31 @@
     "Current/legacy layer, malformed negotiation, unknown extensions and app versions have independent fixtures.",
     "No C++ implementation types cross any negotiated ABI."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "ebe6c335-1285-4968-8b5a-4fca772c156e",
-    "owner": "codex-windows-validation",
-    "machine": "windows-gtx1080",
-    "branch": "work/F3-07/windows-gtx1080",
-    "claimed_at": "2026-10-18T02:28:30Z",
-    "heartbeat_at": "2026-10-18T02:28:30Z",
-    "expires_at": "2026-10-19T02:28:30Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: Windows Visual Studio 18 relocated installed-SDK project compiled only public headers and passed 18/18 CTest cases: C/C++ consumers, app default/current/old/future, instance/device extensions, installed current layer, independent layer ABI 1/2/3, and driver/layer negotiation 0/999.",
+    "PASS: Windows Visual Studio 18 in-tree loader/layer regression slice passed 13/13, including Unicode discovery, malformed negotiation, validation/plain, legacy ABI 1/2, and manual interception.",
+    "PASS: generated reference check; roadmap check covers 159 cards; roadmap unit tests passed 19/19."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "ebe6c335-1285-4968-8b5a-4fca772c156e",
+        "owner": "codex-windows-validation",
+        "machine": "windows-gtx1080",
+        "branch": "work/F3-07/windows-gtx1080",
+        "claimed_at": "2026-10-18T02:28:30Z",
+        "heartbeat_at": "2026-10-18T02:28:30Z",
+        "expires_at": "2026-10-19T02:28:30Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T02:38:49Z",
+      "reason": "Added independently compiled installed-SDK ABI, application-version and extension fixtures and verified them with the existing loader suite.",
+      "evidence": [
+        "PASS: Windows Visual Studio 18 relocated installed-SDK project compiled only public headers and passed 18/18 CTest cases: C/C++ consumers, app default/current/old/future, instance/device extensions, installed current layer, independent layer ABI 1/2/3, and driver/layer negotiation 0/999.",
+        "PASS: Windows Visual Studio 18 in-tree loader/layer regression slice passed 13/13, including Unicode discovery, malformed negotiation, validation/plain, legacy ABI 1/2, and manual interception.",
+        "PASS: generated reference check; roadmap check covers 159 cards; roadmap unit tests passed 19/19."
+      ]
+    }
+  ]
 }

@@ -17,6 +17,41 @@ set_target_properties(external-mock PROPERTIES CXX_VISIBILITY_PRESET hidden
 # Intentionally no link to loader, reference driver or internal source.
 file(GENERATE OUTPUT "$<TARGET_FILE_DIR:external-mock>/mock.json"
     CONTENT "{\"file_format_version\":\"1.0.0\",\"PMD\":{\"library_path\":\"$<TARGET_FILE_NAME:external-mock>\",\"api_version\":\"0.2.0\"}}\n")
+
+# Compile negotiated ABI fixtures only from installed public C/C++ headers.
+# No loader, layer implementation or solver source is staged into this project.
+foreach(version IN ITEMS 1 2 3 0 999)
+    add_library(external-layer-${version} SHARED mock_layer.c)
+    target_compile_features(external-layer-${version} PRIVATE c_std_11)
+    target_include_directories(external-layer-${version} PRIVATE
+        $<TARGET_PROPERTY:ParallelMater::api,INTERFACE_INCLUDE_DIRECTORIES>)
+    target_compile_definitions(external-layer-${version} PRIVATE
+        PM_TEST_LAYER_VERSION=${version})
+    set_target_properties(external-layer-${version} PROPERTIES
+        C_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN YES)
+    file(GENERATE
+        OUTPUT "$<TARGET_FILE_DIR:external-layer-${version}>/layer-${version}.json"
+        CONTENT "{\"file_format_version\":\"1.0.0\",\"layer\":{\"library_path\":\"$<TARGET_FILE_NAME:external-layer-${version}>\",\"api_version\":\"0.2.0\"}}\n")
+endforeach()
+
+foreach(version IN ITEMS 0 999)
+    add_library(external-driver-${version} SHARED mock_driver.cpp)
+    target_compile_features(external-driver-${version} PRIVATE cxx_std_20)
+    target_include_directories(external-driver-${version} PRIVATE
+        $<TARGET_PROPERTY:ParallelMater::api,INTERFACE_INCLUDE_DIRECTORIES>)
+    target_compile_definitions(external-driver-${version} PRIVATE
+        PARALLEL_MATER_DRIVER_IMPLEMENTATION=1
+        PM_MOCK_INTERFACE_VERSION=${version})
+    set_target_properties(external-driver-${version} PROPERTIES
+        CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN YES)
+    file(GENERATE
+        OUTPUT "$<TARGET_FILE_DIR:external-driver-${version}>/driver-${version}.json"
+        CONTENT "{\"file_format_version\":\"1.0.0\",\"PMD\":{\"library_path\":\"$<TARGET_FILE_NAME:external-driver-${version}>\",\"api_version\":\"0.2.0\"}}\n")
+endforeach()
+
+file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/installed-layer-3.json"
+    CONTENT "{\"file_format_version\":\"1.0.0\",\"layer\":{\"library_path\":\"$<TARGET_FILE:ParallelMater::parallel-mater-layer-validation>\",\"api_version\":\"0.2.0\"}}\n")
+
 add_executable(c-consumer devices.c)
 target_compile_features(c-consumer PRIVATE c_std_11)
 target_link_libraries(c-consumer PRIVATE ParallelMater::api)
@@ -29,8 +64,36 @@ target_link_libraries(cpp-consumer PRIVATE ParallelMater::api)
 add_executable(scene-consumer scene_consumer.cpp)
 target_compile_features(scene-consumer PRIVATE cxx_std_20)
 target_link_libraries(scene-consumer PRIVATE ParallelMater::scene)
+add_executable(compatibility-consumer compatibility.c)
+target_compile_features(compatibility-consumer PRIVATE c_std_11)
+target_link_libraries(compatibility-consumer PRIVATE ParallelMater::api)
 foreach(consumer c-consumer diagnostics-consumer cpp-consumer scene-consumer)
     add_test(NAME ${consumer} COMMAND ${consumer})
     set_tests_properties(${consumer} PROPERTIES ENVIRONMENT
         "PM_DRIVER_FILES=$<TARGET_FILE_DIR:external-mock>/mock.json")
+endforeach()
+
+function(add_compatibility_test name mode driver layer)
+    add_test(NAME compatibility-${name} COMMAND compatibility-consumer ${mode})
+    set_tests_properties(compatibility-${name} PROPERTIES ENVIRONMENT
+        "PM_DRIVER_FILES=${driver};PM_LAYER_FILES=${layer}")
+endfunction()
+
+set(normal_driver "$<TARGET_FILE_DIR:external-mock>/mock.json")
+foreach(mode IN ITEMS app-default app-current app-old app-future
+                      instance-extension device-extension)
+    add_compatibility_test(${mode} ${mode} "${normal_driver}" "")
+endforeach()
+add_compatibility_test(layer-current layer "${normal_driver}"
+    "${CMAKE_CURRENT_BINARY_DIR}/installed-layer-3.json")
+foreach(version IN ITEMS 1 2 3)
+    add_compatibility_test(layer-abi-${version} layer "${normal_driver}"
+        "$<TARGET_FILE_DIR:external-layer-${version}>/layer-${version}.json")
+endforeach()
+foreach(version IN ITEMS 0 999)
+    add_compatibility_test(reject-driver-${version} reject-driver
+        "$<TARGET_FILE_DIR:external-driver-${version}>/driver-${version}.json" "")
+    add_compatibility_test(reject-layer-${version} reject-layer
+        "${normal_driver}"
+        "$<TARGET_FILE_DIR:external-layer-${version}>/layer-${version}.json")
 endforeach()
