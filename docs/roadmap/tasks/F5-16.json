@@ -1,7 +1,7 @@
 {
   "id": "F5-16",
   "title": "Publish current Linux driver evidence",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-01",
     "F5-02",
@@ -28,6 +28,14 @@
     "Register and regenerate the per-driver evidence index from a Linux and a second-OS checkout without weakening byte-stable identity; unavailable production drivers remain explicit rather than fabricated or skipped as passes."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "39359c9c-2c60-4574-b982-f0c6d3440dfc",
+    "owner": "codex-linux-evidence",
+    "machine": "thomas-laptop",
+    "branch": "work/F5-16/thomas-laptop",
+    "claimed_at": "2026-10-18T18:21:07Z",
+    "heartbeat_at": "2026-10-18T18:21:07Z",
+    "expires_at": "2026-10-19T18:21:07Z"
+  },
   "history": []
 }
