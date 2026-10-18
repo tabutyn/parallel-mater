@@ -1,27 +1,4 @@
 // Device-profile measurement and explicit human verification.
-struct DesktopGalleryState {
-    GalleryRuntime runtime{};
-    std::uint32_t dump_spheres{k_default_dump_spheres};
-    std::uint32_t fluid_particles{k_default_fluid_particles};
-    std::uint64_t revision{};
-
-    [[nodiscard]] bool rebuild(const Options &options, GalleryContext context,
-                               std::uint32_t requested_dump_spheres,
-                               std::uint32_t requested_fluid_particles,
-                               std::string &error) {
-        if (!build_runtime(options, context, requested_dump_spheres,
-                           requested_fluid_particles, runtime, error)) {
-            return false;
-        }
-        dump_spheres = requested_dump_spheres;
-        fluid_particles = requested_fluid_particles;
-        ++revision;
-        std::cout << "Gallery scene ready index=" << gallery_context_index(context)
-                  << " revision=" << revision << '\n' << std::flush;
-        return true;
-    }
-};
-
 struct CalibrationResult {
     BrickSceneConfig config{};
     parallel_mater::gallery::CalibrationMetrics metrics{};
@@ -101,14 +78,19 @@ bool run_calibration_trial(const Options &base, const BrickSceneConfig &config,
                            bool &stable, std::string &error) {
     Options candidate = base;
     candidate.bricks = config;
-    GalleryRuntime runtime;
-    if (!build_runtime(candidate, GalleryContext::rigid_body,
-                       candidate.dump_spheres, candidate.fluid_particles,
-                       runtime, error)) return false;
+    std::unique_ptr<GallerySession> session;
+    try {
+        session = std::make_unique<GallerySession>(desktop_session_config(
+            candidate, GalleryContext::rigid_body));
+    } catch (const std::exception &failure) {
+        error = failure.what();
+        return false;
+    }
+    GalleryRuntime &runtime = session->runtime();
     const StepOptions step{.timestep = k_timestep, .substeps = 4U,
                            .gravity = {0.0F, -k_gravity, 0.0F}};
     for (std::uint32_t frame = 0U; frame < 30U; ++frame) {
-        if (!step_runtime(runtime, step, error)) {
+        if (!session->controlled_step({}, step, error)) {
             error = "calibration settle failed: " + error;
             return false;
         }
@@ -121,7 +103,7 @@ bool run_calibration_trial(const Options &base, const BrickSceneConfig &config,
     auto measure = [&](bool collision) {
         timings.begin_frame();
         timings.begin_phase(FramePhase::physics);
-        if (!step_runtime(runtime, step, error)) {
+        if (!session->controlled_step({}, step, error)) {
             error = "calibration step failed: " + error;
             return false;
         }
