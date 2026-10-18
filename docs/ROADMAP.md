@@ -212,11 +212,11 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-03](roadmap/tasks/F7-03.json) | Extract common Gallery scene lifecycle | done | F7-01 | — |
 | [F7-04](roadmap/tasks/F7-04.json) | Move Gallery controllers into common runtime | done | F7-03 | — |
 | [F7-05](roadmap/tasks/F7-05.json) | Unify Gallery clock and workload policy | done | F7-03 | — |
-| [F7-06](roadmap/tasks/F7-06.json) | Adopt common runtime in desktop Gallery | ready | F7-02, F7-03, F7-04, F7-05 | — |
+| [F7-06](roadmap/tasks/F7-06.json) | Adopt common runtime in desktop Gallery | leased | F7-02, F7-03, F7-04, F7-05 | codex-linux-gallery / thomas-laptop / 2026-10-19T00:38:17Z |
 | [F7-07](roadmap/tasks/F7-07.json) | Make mobile Gallery shells thin adapters | leased | F7-02, F7-03, F7-04, F7-05 | codex-macos-gallery / Thomass-MacBook-Air / 2026-10-19T00:32:51Z |
 | [F7-08](roadmap/tasks/F7-08.json) | Define common Gallery GPU renderer contract | ready | F7-01 | — |
 | [F7-09](roadmap/tasks/F7-09.json) | Implement native Vulkan Gallery rendering | waiting on dependencies | F7-08 | — |
-| [F7-10](roadmap/tasks/F7-10.json) | Enable Vulkan cloth Gallery domains | leased | F7-03 | codex-linux-gallery / thomas-laptop / 2026-10-18T23:56:58Z |
+| [F7-10](roadmap/tasks/F7-10.json) | Enable Vulkan cloth Gallery domains | done | F7-03 | — |
 | [F7-11](roadmap/tasks/F7-11.json) | Enable Vulkan soft-body Gallery domains | ready | F7-03 | — |
 | [F7-12](roadmap/tasks/F7-12.json) | Enable Vulkan rope Gallery domains | ready | F7-03 | — |
 | [F7-13](roadmap/tasks/F7-13.json) | Enable Vulkan smoke Gallery domains | ready | F7-03 | — |

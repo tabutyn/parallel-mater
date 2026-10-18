@@ -109,6 +109,11 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     features.liquidRigidCoupling = PM_TRUE;
     features.particleEmitters = PM_TRUE;
 #endif
+#if defined(PARALLEL_MATER_VULKAN_DRIVER)
+    features.cloth = PM_TRUE;
+    features.domainCouplings = PM_TRUE;
+    features.paint = PM_TRUE;
+#endif
     features.contactEvents = PM_TRUE;
     features.debugData = PM_TRUE;
     features.timelineSemaphores = PM_TRUE;

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/session.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
@@ -138,6 +139,29 @@ int main() {
             session.frame_at(timestamp);
             require(session.frames == 2U,
                     "Resumed timestamp trace did not advance");
+
+            if (session.backend_name() == "vulkan") {
+                for (const gallery::GalleryContext context : {
+                         gallery::GalleryContext::cloth,
+                         gallery::GalleryContext::cloth_tear,
+                         gallery::GalleryContext::cloth_paint,
+                         gallery::GalleryContext::water_cloth}) {
+                    const auto item = std::find_if(
+                        session.catalog().begin(), session.catalog().end(),
+                        [context](const auto &candidate) {
+                            return candidate.scene.context == context;
+                        });
+                    require(item != session.catalog().end() && item->available,
+                            "Vulkan cloth scene was not advertised");
+                    session.select(static_cast<unsigned>(
+                        item - session.catalog().begin()));
+                    (void)session.qualify(3U);
+                    require(session.ready() && session.selection() ==
+                                static_cast<unsigned>(
+                                    item - session.catalog().begin()),
+                            "Vulkan cloth qualification lost its scene");
+                }
+            }
 
             std::cout << "Gallery session contract passed on "
                       << session.backend_name() << '\n';

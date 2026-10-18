@@ -27,7 +27,11 @@ class ScheduleContext {
     std::uint64_t address(const void *pointer) noexcept;
     std::uint64_t translated_meshes(const void *meshes, const void *parameters,
                                     std::uint32_t count,
-                                    std::uint32_t capacity = 0) noexcept;
+                                    std::uint32_t capacity = 0,
+                                    const void *paint_fields = nullptr,
+                                    std::uint32_t paint_field_capacity = 0) noexcept;
+    std::uint64_t translated_paint_fields(const void *fields,
+                                          std::uint32_t capacity) noexcept;
     void dispatch(std::string_view module, std::string_view entry,
                   std::span<const std::uint32_t> shader, dim3 grid, dim3 block,
                   dim3 shader_block, std::span<const std::byte> constants) noexcept;
