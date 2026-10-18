@@ -1,0 +1,180 @@
+{
+  "schema": "parallel-mater-roadmap-legacy-physics-reproduction/v1",
+  "task": "F6-07",
+  "recorded_at": "2026-10-18T17:35:51Z",
+  "claim": {
+    "branch": "work/F6-07/thomas-laptop",
+    "lease_token": "61ff0945-1f82-41aa-a7ee-823bd9beb61b",
+    "claim_pr": "https://github.com/tabutyn/parallel-mater/pull/248"
+  },
+  "hardware": {
+    "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "driver_version": "590.44.01",
+    "pci_bus_id": "00000000:01:00.0",
+    "backend": "slang-cuda"
+  },
+  "snapshot": {
+    "head": "deb158aeb75cd9eae02d78acbc06d9417a958ade",
+    "branch": "codex/linux-current-gallery-launcher",
+    "metadata_sha256": "8c05fa9de938aaeb2c1a6f894bc71e7da5c1f21c25641a8e5b832a81b07a8824",
+    "unstaged_patch_sha256": "92ee0582960390a72b954886daeb1b1cf6554378c0943d89667c1c299c1126b8",
+    "working_files_archive_sha256": "2a1a4bdea3d8632cd9cfaf2064693a392ddce54bddc60d3dbf858bd3faad0eff",
+    "verified_working_file_count": 21,
+    "verified_working_files": [
+      {
+        "path": "CMakeLists.txt",
+        "sha256": "25c40e86ee3533e8325d72e6a313e18174d3c6233e25ea8b20d406198c861ae9"
+      },
+      {
+        "path": "conformance/v1/golden/cuda/constraint-hinge.json",
+        "sha256": "9296ade33a3fd246882dd85ee913f3791e8eb24d5e3ed57841e7bbc249c58787"
+      },
+      {
+        "path": "conformance/v1/manifest.json",
+        "sha256": "6d309079081f7f81b27e5acf35e371e52133d331a74464306d3ec5db62b10f32"
+      },
+      {
+        "path": "conformance/v1/src/case_registry.cpp",
+        "sha256": "4b04ed6c6975ab6e52bad23b5ddc21c666c7dd47937c2cd07334be3583d93545"
+      },
+      {
+        "path": "docs/BLENDER_SCENES.md",
+        "sha256": "b8fabae6022f3d621ba546fb50fa473465b944d99128c2603720afc178afc5dc"
+      },
+      {
+        "path": "docs/CONTACT_SOLVER.md",
+        "sha256": "f326640b741ae2a3ccac4d05e6562244272263a5c020ddd8bf0c994cc3845a4f"
+      },
+      {
+        "path": "docs/GALLERY.md",
+        "sha256": "8f03e86cc75e794a08ed3cb26dead4bfcedb802b3769b8f391cb0f8475e5a9e4"
+      },
+      {
+        "path": "examples/assets/ConstraintHinge.blend",
+        "sha256": "354c2804aa5ce8b7f7b5301289f5891a6de0ca71408fad0e521dc48564f3bea7"
+      },
+      {
+        "path": "examples/assets/ConstraintHinge.glb",
+        "sha256": "80a5f22de8c7662397d7405eff6720232389e5163fd12dc586b39deb9f784e7b"
+      },
+      {
+        "path": "examples/gallery/application.cpp",
+        "sha256": "2999c746249975b5a63729e7a61e66b678ffa5d0d1f8404a07fc0ab09e689353"
+      },
+      {
+        "path": "examples/gallery/application_runtime.cpp.inc",
+        "sha256": "aeb0cf40234e28aa4c7001567f31b2a0aaa75f7a2cf378f1d1f058bf25fc1ac9"
+      },
+      {
+        "path": "examples/support/include/parallel_mater_gallery/physics_debug.hpp",
+        "sha256": "a0ee69ab20d3a6e11cf137a40d3d3756a088311b825d3974c120069581183afd"
+      },
+      {
+        "path": "examples/support/physics_debug.cpp",
+        "sha256": "875f7c7d6bc22d6fa5139b4f738c17703e190b27b9a8cca0bb812fa42ec1954c"
+      },
+      {
+        "path": "src/simulation/runtime_deformables.cu.inc",
+        "sha256": "1f387349faf4d9c29d7997c5df80d23982ec3ca92a9602784283191d441f8bac"
+      },
+      {
+        "path": "src/simulation/runtime_domains.cu.inc",
+        "sha256": "c51445ec19cabf953599f451b7d83c22b1419280aa31c26a569f4b6faed352df"
+      },
+      {
+        "path": "src/slang/geometry.slang",
+        "sha256": "a5f3af537c0b268fc02cf1341ecc41172af4ba0fd8c5ffedbb0fdb42ea1b97af"
+      },
+      {
+        "path": "tests/blender/export_scene_tests.py",
+        "sha256": "0575491408b50bfb6c589923c9398dda93e6bab94296e670e63798f0f619f273"
+      },
+      {
+        "path": "tests/gallery/hinge_top_capture.hpp",
+        "sha256": "ade073e0efed54b75b520b77263530e454f738ae1938e4fe9eb1037db1841328"
+      },
+      {
+        "path": "tests/gallery/physics_debug_tests.cpp",
+        "sha256": "be37c89d6d11cccf92c83f6ffc34cc5efddb5b4c6c28a291ba06bab52bfde230"
+      },
+      {
+        "path": "tests/gallery/rigid_constraint_command_tests.cpp",
+        "sha256": "c73211dca549b12ccbc32d2993eac8545a38f9d96c3ab502723caaabbd5293c7"
+      },
+      {
+        "path": "tests/gallery/rigid_mesh_checks.hpp",
+        "sha256": "28b64ac0e8476dc064d3ec54d14d0927024c4b7ba2541be6c598510815a40312"
+      }
+    ]
+  },
+  "fixture_hashes": {
+    "archived_working": {
+      "examples/assets/ConstraintHinge.blend": "354c2804aa5ce8b7f7b5301289f5891a6de0ca71408fad0e521dc48564f3bea7",
+      "examples/assets/ConstraintHinge.glb": "80a5f22de8c7662397d7405eff6720232389e5163fd12dc586b39deb9f784e7b",
+      "conformance/v1/golden/cuda/constraint-hinge.json": "9296ade33a3fd246882dd85ee913f3791e8eb24d5e3ed57841e7bbc249c58787",
+      "tests/gallery/hinge_top_capture.hpp": "ade073e0efed54b75b520b77263530e454f738ae1938e4fe9eb1037db1841328"
+    },
+    "current_main_at_1532f2f": {
+      "examples/assets/ConstraintHinge.blend": "cdd0db5ab1d43e813923367bf42a70771ce0c7ef2fa48e93085f92fd0154de3e",
+      "examples/assets/ConstraintHinge.glb": "db5447b00a33d29990e2f0d441d154c0509dee99689fc940261c1c92c2fe2a20",
+      "conformance/v1/golden/cuda/constraint-hinge.json": "fa3f330fd69cbd783de56d8581789c2046495357b3a9316537ca31ab997ded10"
+    }
+  },
+  "runs": [
+    {
+      "name": "archived-debug-capture-unit",
+      "revision": "archived-working-files",
+      "command": "./build-gallery-loader/parallel-mater-physics-debug-tests",
+      "exit_code": 0,
+      "stdout": ""
+    },
+    {
+      "name": "archived-default",
+      "revision": "archived-working-files",
+      "command": "./build-gallery-loader/parallel-mater-rigid-constraint-command-tests",
+      "exit_code": 0,
+      "stdout": "hinge_anchor_error=6.76979e-07 hinge_axis_error=2.02656e-06 slider_sideways_drift=7.15653e-06 slider_axis_error=1.88722e-06 slider_travel=0.314071 slider_axial_overlap=3.10685 slider_mesh_penetration=0 gear_mesh_penetration=0 maximum_joint_impulse=0.399472 locked_axis_contact_impulse=0 driver_rotation=0.516229 abrupt_speed_loss=0 slider_contact_impulse=88.6139\n"
+    },
+    {
+      "name": "archived-steering",
+      "revision": "archived-working-files",
+      "command": "./build-gallery-loader/parallel-mater-rigid-constraint-command-tests --steering",
+      "exit_code": 0,
+      "stdout": "hinge_anchor_error=6.84805e-07 hinge_axis_error=1.97317e-06 slider_sideways_drift=1.14838e-05 slider_axis_error=1.81965e-06 slider_travel=0.727239 slider_axial_overlap=3.00401 slider_mesh_penetration=0 gear_mesh_penetration=0.000352332 maximum_joint_impulse=1.67038 locked_axis_contact_impulse=0 driver_rotation=1.36395 abrupt_speed_loss=0 slider_contact_impulse=74.566\n"
+    },
+    {
+      "name": "archived-full-rotation",
+      "revision": "archived-working-files",
+      "command": "./build-gallery-loader/parallel-mater-rigid-constraint-command-tests --full-rotation",
+      "exit_code": 0,
+      "stdout": "hinge_anchor_error=7.72564e-07 hinge_axis_error=1.71926e-06 slider_sideways_drift=9.95665e-06 slider_axis_error=2.19811e-06 slider_travel=6.24409 slider_axial_overlap=1.90685 slider_mesh_penetration=0 gear_mesh_penetration=0.000352332 maximum_joint_impulse=4.70835 locked_axis_contact_impulse=0 driver_rotation=12.6831 abrupt_speed_loss=0 slider_contact_impulse=85.1112\n"
+    },
+    {
+      "name": "archived-over-top",
+      "revision": "archived-working-files",
+      "command": "./build-gallery-loader/parallel-mater-rigid-constraint-command-tests --over-top",
+      "exit_code": 0,
+      "stdout": "hinge_anchor_error=7.15256e-07 hinge_axis_error=1.32154e-06 slider_sideways_drift=5.27762e-06 slider_axis_error=1.35919e-06 slider_travel=4.78217 slider_axial_overlap=4.18634 slider_mesh_penetration=0 gear_mesh_penetration=0 maximum_joint_impulse=10.4187 locked_axis_contact_impulse=0 driver_rotation=3.42187 abrupt_speed_loss=0.62517 slider_contact_impulse=21.1933\n"
+    },
+    {
+      "name": "current-main-debug-capture-unit",
+      "revision": "1532f2f",
+      "command": "./build-desktop-switch/parallel-mater-physics-debug-tests",
+      "exit_code": 0,
+      "stdout": ""
+    },
+    {
+      "name": "current-main-baseline",
+      "revision": "1532f2f",
+      "command": "./build-desktop-switch/parallel-mater-rigid-constraint-command-tests --backend cuda --frames 2400",
+      "exit_code": 0,
+      "stdout": "constraint regression frame 0\nconstraint regression frame 300\nconstraint regression frame 600\nconstraint regression frame 900\nconstraint regression frame 1200\nconstraint regression frame 1500\nconstraint regression frame 1800\nconstraint regression frame 2100\nframes=2400 hinge_anchor_error=4.91513e-07 hinge_axis_error=2.80403e-06 slider_sideways_drift=1.81449e-05 slider_axis_error=1.96062e-06 slider_travel=0.236723 slider_mesh_penetration=0 slider_contact_impulse=0.914982\n"
+    }
+  ],
+  "conclusions": [
+    "Both current main and the archived working files pass their 2400-frame CUDA baselines.",
+    "Only the archived test qualifies steering, a complete 12.6831-radian rotation and the captured over-top substep; these remain candidates, not accepted current-main behavior.",
+    "The archived golden is quarantined because it combines fixture and solver changes. It must not be transplanted.",
+    "All 21 archived working-file hashes still match the original metadata after reproduction builds."
+  ]
+}

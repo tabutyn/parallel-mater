@@ -1,0 +1,22 @@
+{
+  "id": "F6-10",
+  "title": "Productize physics capture and substep replay",
+  "status": "open",
+  "dependencies": [
+    "F6-07"
+  ],
+  "locks": [
+    "physics-debug-capture"
+  ],
+  "requires": [
+    "CUDA reference device; public API and Gallery test harness"
+  ],
+  "scope": "Turn the retained Gallery debug capture into a backend-neutral, versioned capture and replay path that can reproduce a selected substep without driver-private access.",
+  "acceptance": [
+    "Specify capture provenance, resource identity, partial-data behavior and schema versioning; use the public API or common support code rather than driver internals.",
+    "Round-trip the archived over-top rigid state and reproduce its 1/240-second check on current CUDA with focused negative and compatibility tests."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

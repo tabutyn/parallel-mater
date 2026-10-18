@@ -206,9 +206,12 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F6-04](roadmap/tasks/F6-04.json) | Record reproducible release inputs | done | — | — |
 | [F6-05](roadmap/tasks/F6-05.json) | Regenerate and verify release reference artifacts | done | F3-06 | — |
 | [F6-06](roadmap/tasks/F6-06.json) | Reconcile legacy launcher and branding patches | done | — | — |
-| [F6-07](roadmap/tasks/F6-07.json) | Reconcile legacy hinge and contact patches | leased | — | codex-linux-cleanup / thomas-laptop / 2026-10-19T17:16:03Z |
-| [F6-08](roadmap/tasks/F6-08.json) | Retire reconciled old worktrees | waiting on dependencies | F6-06, F6-07 | — |
-| [F6-99](roadmap/tasks/F6-99.json) | Review F6 exit evidence | waiting on dependencies | F6-01, F6-02, F6-03, F6-04, F6-05, F6-06, F6-07, F6-08 | — |
+| [F6-07](roadmap/tasks/F6-07.json) | Reconcile legacy hinge and contact patches | done | — | — |
+| [F6-08](roadmap/tasks/F6-08.json) | Retire reconciled old worktrees | waiting on dependencies | F6-06, F6-07, F6-09, F6-10, F6-11 | — |
+| [F6-09](roadmap/tasks/F6-09.json) | Qualify the retained hinge fixture candidate | leased | F6-07 | codex-linux-hinge / thomas-laptop / 2026-10-19T17:38:57Z |
+| [F6-10](roadmap/tasks/F6-10.json) | Productize physics capture and substep replay | ready | F6-07 | — |
+| [F6-11](roadmap/tasks/F6-11.json) | Adjudicate the retained rigid contact patch | waiting on dependencies | F6-09, F6-10 | — |
+| [F6-99](roadmap/tasks/F6-99.json) | Review F6 exit evidence | waiting on dependencies | F6-01, F6-02, F6-03, F6-04, F6-05, F6-06, F6-07, F6-08, F6-09, F6-10, F6-11 | — |
 
 ### F7. Shared Gallery application
 
