@@ -60,6 +60,8 @@ file(GENERATE
     CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_PARALLEL_MATER_validation\",\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.2.0\"\n  }\n}\n")
 
 if(BUILD_TESTING)
+    target_compile_definitions(parallel-mater-layer-validation PRIVATE
+        PARALLEL_MATER_VALIDATION_TESTING=1)
     add_library(parallel-mater-mock-driver SHARED tests/api/mock_driver.cpp)
     set_target_properties(parallel-mater-mock-driver PROPERTIES
         CXX_STANDARD 20
@@ -166,6 +168,18 @@ if(BUILD_TESTING)
     set_tests_properties(parallel-mater-layer-v1-compatibility PROPERTIES
         LABELS "api;loader;abi" ENVIRONMENT
         "PM_DRIVER_FILES=${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/legacy-layer.json")
+
+    add_library(parallel-mater-v2-layer SHARED tests/api/mock_v2_layer.cpp)
+    target_include_directories(parallel-mater-v2-layer PRIVATE include)
+    file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/v2-layer.json"
+        CONTENT "{\"file_format_version\":\"1.0.0\",\"layer\":{\"library_path\":\"$<TARGET_FILE:parallel-mater-v2-layer>\"}}\n")
+    add_dependencies(parallel-mater-loader-driver-discovery-tests
+        parallel-mater-v2-layer)
+    add_test(NAME parallel-mater-layer-v2-compatibility
+        COMMAND parallel-mater-loader-driver-discovery-tests validation)
+    set_tests_properties(parallel-mater-layer-v2-compatibility PROPERTIES
+        LABELS "api;loader;abi" ENVIRONMENT
+        "PM_DRIVER_FILES=${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/v2-layer.json")
 
     add_library(parallel-mater-manual-test-layer SHARED
         tests/api/mock_manual_layer.cpp)

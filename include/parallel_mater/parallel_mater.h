@@ -76,6 +76,7 @@ typedef enum PmStructureType {
     PM_STRUCTURE_TYPE_SUBMIT_INFO = 11,
     PM_STRUCTURE_TYPE_NATIVE_DEVICE_IMPORT_INFO = 12,
     PM_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO = 13,
+    PM_STRUCTURE_TYPE_VALIDATION_DIAGNOSTICS_CREATE_INFO = 14,
 } PmStructureType;
 
 typedef enum PmResult {
@@ -121,6 +122,43 @@ typedef struct PmInstanceCreateInfo {
     uint32_t enabledExtensionCount;
     const char* const* ppEnabledExtensionNames;
 } PmInstanceCreateInfo;
+
+#define PM_VALIDATION_RULE_INVALID_LAYER_CALL "PM-VAL-0001"
+#define PM_VALIDATION_RULE_INVALID_ARGUMENT "PM-VAL-0002"
+#define PM_VALIDATION_RULE_INVALID_STATE "PM-VAL-0003"
+#define PM_VALIDATION_RULE_TRACKING_UNAVAILABLE "PM-VAL-0004"
+typedef enum PmValidationSeverity {
+    PM_VALIDATION_SEVERITY_WARNING = 1,
+    PM_VALIDATION_SEVERITY_ERROR = 2
+} PmValidationSeverity;
+typedef enum PmValidationObjectType {
+    PM_VALIDATION_OBJECT_UNKNOWN = 0,
+    PM_VALIDATION_OBJECT_INSTANCE = 1,
+    PM_VALIDATION_OBJECT_PHYSICAL_DEVICE = 2,
+    PM_VALIDATION_OBJECT_DEVICE = 3,
+    PM_VALIDATION_OBJECT_QUEUE = 4,
+    PM_VALIDATION_OBJECT_COMMAND_BUFFER = 5
+} PmValidationObjectType;
+typedef struct PmValidationDiagnostic {
+    const char* pRuleId;
+    PmValidationSeverity severity;
+    PmResult result;
+    const char* pCommandName;
+    PmValidationObjectType objectType;
+    const void* object;
+    uint32_t argumentSize;
+    const void* pArguments;
+    const char* pMessage;
+} PmValidationDiagnostic;
+typedef void (PMAPI_CALL *PmValidationDiagnosticFn)(
+    void* pUserData,
+    const PmValidationDiagnostic* pDiagnostic);
+typedef struct PmValidationDiagnosticsCreateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    PmValidationDiagnosticFn pfnDiagnostic;
+    void* pUserData;
+} PmValidationDiagnosticsCreateInfo;
 
 typedef void* (PMAPI_CALL *PmAllocateFn)(
     void* user, size_t size, size_t alignment);
