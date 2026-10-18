@@ -1,0 +1,25 @@
+{
+  "id": "F5-17",
+  "title": "Adjudicate rigid-direct reference drift",
+  "status": "open",
+  "dependencies": [
+    "F5-04",
+    "F5-10"
+  ],
+  "locks": [
+    "quality-rigid-direct"
+  ],
+  "requires": [
+    "Slang CPU and CUDA on one clean revision; independent rigid-contact oracle review"
+  ],
+  "scope": "Adjudicate the rigid-direct frame-21 kinematic-contact response after current Slang CPU and CUDA converge but both drift from the historical CUDA reference. Correct the shared Slang contact response if it is wrong, or replace the stale reference only through an explicit versioned review; do not relax tolerances.",
+  "acceptance": [
+    "Reproduce all 61 rigid-direct frames on Slang CPU and CUDA from one clean revision with the exact tracked case hash and unchanged direct tolerances.",
+    "Add an independent physical oracle or invariant for the frame-21 kinematic sweep that distinguishes a shared solver defect from a stale historical reference; driver agreement alone is insufficient.",
+    "If the solver is wrong, correct only the shared Slang path and preserve thin adapters. If the reference is stale, retain the old raw capture and approve a versioned replacement without weakening tolerances.",
+    "Publish the resulting CPU/CUDA reference-regression and physical-quality evidence and update the qualification limitation; do not claim broader driver qualification or performance."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
