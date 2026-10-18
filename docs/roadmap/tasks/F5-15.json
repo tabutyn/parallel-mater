@@ -1,7 +1,7 @@
 {
   "id": "F5-15",
   "title": "Publish current Android Vulkan driver evidence",
-  "status": "leased",
+  "status": "open",
   "dependencies": [
     "F5-01",
     "F5-02",
@@ -27,14 +27,22 @@
     "Register and regenerate the per-driver evidence index from a fresh checkout; retain native validation, Gallery, thermal and timing reports only as clearly separated supplemental evidence."
   ],
   "evidence": [],
-  "lease": {
-    "token": "55561f40-1320-4b1f-bde4-fdd5f8a97484",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F5-15/thomas-laptop",
-    "claimed_at": "2026-10-18T15:28:52Z",
-    "heartbeat_at": "2026-10-18T15:28:52Z",
-    "expires_at": "2026-10-19T15:28:52Z"
-  },
-  "history": []
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "55561f40-1320-4b1f-bde4-fdd5f8a97484",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F5-15/thomas-laptop",
+        "claimed_at": "2026-10-18T15:28:52Z",
+        "heartbeat_at": "2026-10-18T15:28:52Z",
+        "expires_at": "2026-10-19T15:28:52Z"
+      },
+      "outcome": "released",
+      "at": "2026-10-18T17:05:03Z",
+      "reason": "Physical Pixel unavailable; Android qualification runner retained in draft PR #241 on work/F5-15/thomas-laptop",
+      "evidence": []
+    }
+  ]
 }
