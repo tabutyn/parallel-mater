@@ -21,10 +21,15 @@ public:
     }
     ~MetalServices() override { (void)wait_idle(); destroy_event(epoch_); }
     int ordinal() const noexcept override { return 0; }
-    void *native_device_handle() const noexcept override { return context_.device().native_device(); }
+    void *native_device_handle() const noexcept override {
+        try {
+            return reinterpret_cast<void *>(context_.device().native_device().handle());
+        } catch (...) { return nullptr; }
+    }
     void describe_native_queue(PmNativeQueueInfo &info) const noexcept override {
-        info.queue = static_cast<PmNativeHandle>(reinterpret_cast<std::uintptr_t>(
-            context_.device().native_queue()));
+        try {
+            info.queue = static_cast<PmNativeHandle>(context_.device().native_queue().handle());
+        } catch (...) { info.queue = 0; }
         info.familyIndex = 0U;
         info.queueIndex = 0U;
     }
@@ -110,7 +115,8 @@ PmResult enumerate(std::uint32_t *count, Description *descriptions) noexcept {
         if (!gpu) { *count = 0; return PM_SUCCESS; }
         if (!descriptions) { *count = 1; return PM_SUCCESS; }
         if (*count == 0) return PM_INCOMPLETE;
-        id<MTLDevice> native = (__bridge id<MTLDevice>)gpu->native_device();
+        id<MTLDevice> native = (__bridge id<MTLDevice>)reinterpret_cast<void *>(
+            gpu->native_device().handle());
         auto &out = descriptions[0];
         out = {};
         out.driver_version = 202618U;

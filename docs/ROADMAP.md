@@ -166,8 +166,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F4-04](roadmap/tasks/F4-04.json) | Remove generated-source ABI parsing | done | F4-01 | — |
 | [F4-05](roadmap/tasks/F4-05.json) | Specify memory-budget confidence | waiting on lock | — | — |
 | [F4-06](roadmap/tasks/F4-06.json) | Apply conservative workload admission | waiting on dependencies | F4-05 | — |
-| [F4-07](roadmap/tasks/F4-07.json) | Specify borrowed device and queue handoff | leased | F4-02, F3-04 | codex-windows-sdk / windows-gtx1080 / 2026-10-19T17:30:31Z |
-| [F4-08](roadmap/tasks/F4-08.json) | Qualify engine handoff with a mock adapter | waiting on dependencies | F4-03, F4-07 | — |
+| [F4-07](roadmap/tasks/F4-07.json) | Specify borrowed device and queue handoff | done | F4-02, F3-04 | — |
+| [F4-08](roadmap/tasks/F4-08.json) | Qualify engine handoff with a mock adapter | leased | F4-03, F4-07 | codex-windows-sdk / windows-gtx1080 / 2026-10-19T17:52:24Z |
 | [F4-99](roadmap/tasks/F4-99.json) | Review F4 exit evidence | waiting on dependencies | F4-01, F4-02, F4-03, F4-04, F4-05, F4-06, F4-07, F4-08 | — |
 
 ### F5. Independent conformance and quality
