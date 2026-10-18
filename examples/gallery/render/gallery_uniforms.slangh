@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: MIT
-cbuffer CameraAndDraw : register(b0)
+// Common draw meanings used by D3D12 today and native Vulkan next. These are
+// graphics operations over public output layouts, not solver modes.
+static const uint GALLERY_DRAW_RIGID_MESH = 0;
+static const uint GALLERY_DRAW_DEFORMABLE_SURFACE = 1;
+static const uint GALLERY_DRAW_PARTICLES = 2;
+static const uint GALLERY_DRAW_FLUID_SURFACE = 3;
+
+[[vk::binding(0, 0)]] cbuffer CameraAndDraw : register(b0)
 {
     float4 cameraEye;
     float4 cameraRight;

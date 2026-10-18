@@ -283,7 +283,9 @@ UIImage *frame_image(const GallerySession &session) {
                     [self installCatalog:catalogSnapshot];
                 });
                 NSLog(@"ParallelMater: %@", text(self->_session->details()));
-                id<MTLDevice> gpu = (__bridge id<MTLDevice>)self->_session->native_render_device();
+                const auto native = self->_session->native_render_device();
+                id<MTLDevice> gpu = (__bridge id<MTLDevice>)(
+                    reinterpret_cast<void *>(native.device));
                 const auto limits = self->_session->limits;
                 dispatch_sync(dispatch_get_main_queue(), ^{
                     CAMetalLayer *layer = (CAMetalLayer *)self->_image.layer;
@@ -292,8 +294,12 @@ UIImage *frame_image(const GallerySession &session) {
                     layer.drawableSize = CGSizeMake(limits.render_width, limits.render_height);
                     self->_renderWidth = limits.render_width; self->_renderHeight = limits.render_height;
                 });
-                if (!self->_mobile->attach_surface(limits.render_width,
-                        limits.render_height, (__bridge void *)self->_image.layer))
+                if (!self->_mobile->attach_surface(
+                        limits.render_width, limits.render_height,
+                        {.backend = PM_NATIVE_BACKEND_METAL,
+                         .handle = static_cast<PmNativeHandle>(
+                             reinterpret_cast<std::uintptr_t>(
+                                 (__bridge void *)self->_image.layer))}))
                     throw std::runtime_error(self->_mobile->state().failure);
                 // Publish a real drawable before a long offscreen diagnostic.
                 // The system must never wait for qualification to see first draw.
@@ -343,7 +349,9 @@ UIImage *frame_image(const GallerySession &session) {
                             static_cast<float>(selection));
                 else if (reset) command(MobileGalleryCommand::reset_scene);
                 if (selection >= 0 || reset) {
-                    id<MTLDevice> gpu = (__bridge id<MTLDevice>)session.native_render_device();
+                    const auto native = session.native_render_device();
+                    id<MTLDevice> gpu = (__bridge id<MTLDevice>)(
+                        reinterpret_cast<void *>(native.device));
                     dispatch_sync(dispatch_get_main_queue(), ^{ ((CAMetalLayer *)self->_image.layer).device = gpu; });
                 }
                 if (!self->_mobile->resize_surface(width, height)) {
@@ -463,8 +471,12 @@ UIImage *frame_image(const GallerySession &session) {
     _mobile->detach_surface();
     require_mobile(!_mobile->frame() && !_mobile->state().surface_ready,
                    "Detached mobile surface admitted a frame");
-    require_mobile(_mobile->attach_surface(_renderWidth, _renderHeight,
-                       (__bridge void *)_image.layer) &&
+    require_mobile(_mobile->attach_surface(
+                       _renderWidth, _renderHeight,
+                       {.backend = PM_NATIVE_BACKEND_METAL,
+                        .handle = static_cast<PmNativeHandle>(
+                            reinterpret_cast<std::uintptr_t>(
+                                (__bridge void *)_image.layer))}) &&
                        _mobile->state().surface_generation >=
                            initial_generation + 2U,
                    "Replacement mobile surface did not recover");

@@ -16,7 +16,7 @@
 #include <parallel_mater_gallery/scene.hpp>
 #include <parallel_mater_gallery/surface_query.hpp>
 #include <parallel_mater_gallery/window.hpp>
-#ifdef PM_GALLERY_METAL_RENDERER
+#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
 #include <parallel_mater_gallery/gpu_renderer.hpp>
 #endif
 #include "scene_builder.hpp"
@@ -1128,7 +1128,7 @@ static int run_gallery_application(
                         debug.rigid_contacts || debug.vectors_visible() || debug.smoke_mode != SmokeDebugMode::none;
                     bool native_render = runtime.renderer.native_image().handle != 0U;
                     bool read_host = true;
-#ifdef PM_GALLERY_METAL_RENDERER
+#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
                     native_render = native_render || bool(runtime.native_renderer);
                     read_host = !runtime.native_renderer ||
                         entry.controls == GalleryControlPolicy::collector_gravity ||
@@ -1155,7 +1155,7 @@ static int run_gallery_application(
         // Debug toggles/capture can arrive while paused. Read the last GPU
         // output explicitly, without advancing physics or exposing stale vectors.
         if (!runtime.frame.full_host_output && (
-#ifdef PM_GALLERY_METAL_RENDERER
+#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
             runtime.gpu_ready ||
 #endif
             runtime.frame.revision != 0U) &&
@@ -1167,7 +1167,7 @@ static int run_gallery_application(
             }
         }
         const bool capture_frame_ready = runtime.frame.revision != 0U ||
-#ifdef PM_GALLERY_METAL_RENDERER
+#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
             runtime.gpu_ready ||
 #endif
             !runtime.frame.rigid_states.empty() ||
@@ -1196,7 +1196,7 @@ static int run_gallery_application(
         const Camera current_camera = session.camera().camera();
         frame_timings.begin_phase(FramePhase::render);
         bool gpu_frame = false;
-#ifdef PM_GALLERY_METAL_RENDERER
+#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
         gpu_frame = runtime.native_renderer && runtime.gpu_ready;
 #endif
         if (gpu_frame) pixels.assign(std::size_t(options.width)*options.height, 0U);
@@ -1315,20 +1315,27 @@ static int run_gallery_application(
                                 capture_status_failure);
 
         bool presented_ok = false;
-#ifdef PM_GALLERY_METAL_RENDERER
+#ifdef PM_GALLERY_NATIVE_GPU_RENDERER
         if (gpu_frame) {
             frame_timings.begin_phase(FramePhase::render);
-            PmNativeDeviceInfo native_device{};
-            if (pmGetNativeDevice(runtime.simulation.device(), &native_device) != PM_SUCCESS) {
-                std::cerr << "GPU output export failed: " << error << '\n'; return 1;
+            const auto native_device =
+                runtime.native_renderer->renderer_device().native;
+            const bool capture_image = !options.interactive_smoke_output.empty() &&
+                displayed_frames + 1 == static_cast<unsigned>(options.frames);
+            parallel_mater::gallery::GpuRenderRequest request;
+            if (parallel_mater::gallery::make_gpu_render_request(
+                    runtime.instance.render_buffers,
+                    runtime.gpu_frame_generation, current_camera,
+                    {native_device.backend,
+                     native_device.device,
+                     static_cast<PmNativeHandle>(reinterpret_cast<std::uintptr_t>(
+                         presentation.metal_layer(reinterpret_cast<void *>(
+                             native_device.device)))),
+                     options.width, options.height},
+                    {capture_image ? &pixels : nullptr}, &frame_timings, pixels,
+                    request, error)) {
+                presented_ok = runtime.native_renderer->render(request, error);
             }
-            static_cast<parallel_mater::gallery::GpuGalleryRenderer *>(
-                runtime.native_renderer.get())->render(
-                runtime.instance.render_buffers, current_camera, options.width, options.height,
-                presentation.metal_layer(reinterpret_cast<void *>(native_device.device)),
-                !options.interactive_smoke_output.empty() && displayed_frames + 1 == static_cast<unsigned>(options.frames) ? &pixels : nullptr,
-                &frame_timings, pixels);
-            presented_ok = true;
         } else
 #endif
         {

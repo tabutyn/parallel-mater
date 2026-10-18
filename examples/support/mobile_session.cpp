@@ -59,21 +59,21 @@ void MobileGallerySession::report_failure(std::string failure) noexcept {
 }
 
 bool MobileGallerySession::attach_surface(unsigned width, unsigned height,
-                                          void *presentation_layer) noexcept {
+                                          GpuRenderTarget target) noexcept {
     ++surface_generation_;
     surface_ready_ = true;
     try {
-        gallery_.set_presentation_layer(presentation_layer);
+        gallery_.set_render_target(target);
         gallery_.resize(std::max(1U, width), std::max(1U, height));
         synchronize_activity();
         return true;
     } catch (const std::exception &error) {
         surface_ready_ = false;
-        gallery_.set_presentation_layer(nullptr);
+        gallery_.set_render_target({});
         report_failure(error.what());
     } catch (...) {
         surface_ready_ = false;
-        gallery_.set_presentation_layer(nullptr);
+        gallery_.set_render_target({});
         report_failure("Display surface attachment failed");
     }
     return false;
@@ -82,7 +82,7 @@ bool MobileGallerySession::attach_surface(unsigned width, unsigned height,
 void MobileGallerySession::detach_surface() noexcept {
     ++surface_generation_;
     surface_ready_ = false;
-    gallery_.set_presentation_layer(nullptr);
+    gallery_.set_render_target({});
     synchronize_activity();
 }
 

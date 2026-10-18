@@ -53,8 +53,9 @@ class MobileGallerySession {
         return gallery_;
     }
 
-    [[nodiscard]] bool attach_surface(unsigned width, unsigned height,
-                                      void *presentation_layer = nullptr) noexcept;
+    [[nodiscard]] bool attach_surface(
+        unsigned width, unsigned height,
+        GpuRenderTarget target = {}) noexcept;
     void detach_surface() noexcept;
     [[nodiscard]] bool resize_surface(unsigned width,
                                       unsigned height) noexcept;
