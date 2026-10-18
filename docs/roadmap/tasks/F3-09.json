@@ -9,7 +9,7 @@
     "sdk-contract-tests"
   ],
   "requires": [
-    "Host fixture and one advertised reference solver"
+    "Host thread runtime; one advertised native driver"
   ],
   "scope": "Add public-API concurrency cases for physical-device queries, distinct command pools and independent mutable objects without executing undefined same-object races.",
   "acceptance": [

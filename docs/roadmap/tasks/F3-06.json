@@ -19,7 +19,7 @@
   ],
   "evidence": [
     "PASS: stable PM-THREAD-001, PM-DESTROY-001, PM-CAP-001 and PM-RESET-001 rules plus PM-CMD-001 and PM-SYNC-001 map normative anchors to exact positive/negative tests and explicit evidence profiles.",
-    "PASS: tools/reference/build.py --check-generated; roadmap check covers 158 cards; roadmap unit tests passed 19/19.",
+    "PASS: tools/reference/build.py --check-generated; roadmap check covers 159 cards; roadmap unit tests passed 19/19.",
     "PASS: Windows VS 18 Release validation/plain, submission queue and D3D12 lifecycle slice ran 6 cases: 4 passed; domain and coupling lifecycle were preserved as 2 unsupported skips, not passing evidence."
   ],
   "lease": null,
@@ -36,10 +36,10 @@
       },
       "outcome": "completed",
       "at": "2026-10-18T01:55:12Z",
-      "reason": "Audited threading, snapshots, destruction/wait, deferred errors, capacity and reset; split missing direct proof into F3-08 through F3-11 and gated the F3 exit review on them.",
+      "reason": "Audited threading, snapshots, destruction/wait, deferred errors, capacity and reset; split missing direct proof into F3-09 through F3-12 for a follow-up planning PR to gate the F3 exit review.",
       "evidence": [
         "PASS: stable PM-THREAD-001, PM-DESTROY-001, PM-CAP-001 and PM-RESET-001 rules plus PM-CMD-001 and PM-SYNC-001 map normative anchors to exact positive/negative tests and explicit evidence profiles.",
-        "PASS: tools/reference/build.py --check-generated; roadmap check covers 158 cards; roadmap unit tests passed 19/19.",
+        "PASS: tools/reference/build.py --check-generated; roadmap check covers 159 cards; roadmap unit tests passed 19/19.",
         "PASS: Windows VS 18 Release validation/plain, submission queue and D3D12 lifecycle slice ran 6 cases: 4 passed; domain and coupling lifecycle were preserved as 2 unsupported skips, not passing evidence."
       ]
     }
