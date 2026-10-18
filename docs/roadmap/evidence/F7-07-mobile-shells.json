@@ -1,0 +1,66 @@
+{
+  "schema": "parallel-mater-roadmap-mobile-gallery-evidence/v1",
+  "task": "F7-07",
+  "scope": "Shared Android/iPad Gallery session ownership and physical iPad shell lifecycle integration",
+  "source": {
+    "commit": "342997a9a2bc9cfc7a0c09a91799ed2ca77cc667",
+    "dirty": false
+  },
+  "device": {
+    "model": "iPad13,8",
+    "gpu": "Apple M1 GPU",
+    "operating_system": "iPadOS 26.6.2",
+    "graphics_api": "Metal"
+  },
+  "binary_identity": {
+    "app_executable_sha256": "92d03f6e4aeba34cd39c23cb1ecc7e9a233e5784fcd07a5497bcf19fe3240af2",
+    "embedded_driver_sha256": "7c1820147668bb7ce3bf75c7147e7a392ecbdf8c5e19a7746ba020cf329baa71"
+  },
+  "collection": {
+    "command": "python3 scripts/Deploy-Gallery.py ipad --device <paired-device> --qualify 120 --timeout 1800",
+    "backend": "metal",
+    "release_channel": "development-preview",
+    "fresh_nonce_verified": true,
+    "installed_revision_verified": true,
+    "catalog_entries": 28,
+    "available_entries": 28,
+    "passed_entries": 28,
+    "frames_per_scene": 120,
+    "report_sha256": "63336e5818951ec0f6e46d3b18f54ff4187df744015497b3480bff7d4daa8cad"
+  },
+  "mobile_session_contract": {
+    "shell_recreation": "passed twice in the host contract test",
+    "surface_replacement": true,
+    "pause_resume": true,
+    "background_recovery": true,
+    "presentation_failure_recovery": true,
+    "os_background_foreground": true,
+    "background_frame_count_stable": true
+  },
+  "verification": [
+    {
+      "check": "ctest --test-dir build-macos-metal-preview --output-on-failure -R 'parallel-mater-(gallery-session-contract|ipad-session)-tests'",
+      "result": "2/2 passed on Apple M4 Metal"
+    },
+    {
+      "check": "cmake --build build-ipad-gallery --target parallel-mater-ipad-gallery --config Release --parallel 4",
+      "result": "signed arm64 iPadOS build succeeded"
+    },
+    {
+      "check": "JAVA_HOME=<JDK17> ANDROID_HOME=<SDK> ./scripts/Build-AndroidGallery.sh",
+      "result": "ARM64 Vulkan debug APK build succeeded"
+    },
+    {
+      "check": "Full macOS Metal CTest after merging current main",
+      "result": "84/85 passed; the unrelated desktop bricks three-frame CPU/Metal comparison failed at 0.150835 versus 0.005"
+    }
+  ],
+  "limitations": [
+    "The Android adapter compiled, but no physical Android device rerun was available for this task.",
+    "The device scene sweep is Gallery integration evidence, not numerical, thermal, touch-accuracy or full physics qualification.",
+    "The desktop bricks comparison remains failed and its tolerance and golden data were not changed; F7-07 does not modify the desktop scene or solver path."
+  ],
+  "privacy": {
+    "private_device_identifiers_recorded": false
+  }
+}

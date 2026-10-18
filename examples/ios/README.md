@@ -177,3 +177,12 @@ These are bounded Gallery integration checks, not the outstanding numerical,
 thermal/performance, or complete-interaction qualification gates. Local reports
 are saved under ignored `out/gallery-deployment/`; final deployment records the
 exact installed revision separately from this pre-commit test build.
+
+2026-10-17 F7-07 evidence: clean revision `342997a9` passed all **28 × 120**
+direct-Metal Gallery frames on the same physical Apple M1 iPad. Before the scene
+sweep, the app verified shared pause/resume, background admission, surface
+replacement and deliberate presentation-failure recovery. The deployment tool
+then performed a real Settings background/foreground cycle and proved the
+simulation frame count stayed unchanged. Binary hashes and the scoped result
+are tracked in
+[`F7-07-mobile-shells.json`](../../docs/roadmap/evidence/F7-07-mobile-shells.json).
