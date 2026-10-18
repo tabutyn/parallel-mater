@@ -1893,11 +1893,23 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                 continue;
             const auto pair_blocks =
                 (pair.index.total_capacity + block_size - 1U) / block_size;
+            const auto first_constants = backend.fluid_constants(
+                first.options, options.gravity,
+                options.timestep /
+                    static_cast<float>(first.frame_iterations),
+                first.frame_live);
+            const auto second_constants = backend.fluid_constants(
+                second.options, options.gravity,
+                options.timestep /
+                    static_cast<float>(second.frame_iterations),
+                second.frame_live);
+            const float pair_support = std::max(
+                first.options.support_radius, second.options.support_radius);
             backend.fluid_pair_cell_keys(
                 pair_blocks, block_size, stream,
                 first.positions, first.count, first.options.capacity,
                 second.positions, second.count, second.options.capacity,
-                1.0F / first.options.support_radius,
+                1.0F / pair_support,
                 pair.index.keys[0], pair.index.identities[0]);
             error = backend.radix_sort_pairs_u64_u32(
                 stream, pair.index.keys[0], pair.index.keys[1],
@@ -1918,18 +1930,15 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                 second.positions, second.count, second.options.capacity,
                 second.options.maximum_neighbors,
                 pair.index.keys[1], pair.index.identities[1],
-                pair.index.total_capacity, first.options.support_radius,
+                pair.index.total_capacity, first_constants, second_constants,
                 pair.index.total_neighbors[0], pair.index.cross_neighbors[0],
+                pair.index.density_samples[0],
                 pair.index.total_neighbors[1], pair.index.cross_neighbors[1],
+                pair.index.density_samples[1],
                 impl_->fluid_neighbor_overflow,
                 impl_->fluid_neighbor_overflow,
                 impl_->fluid_maximum_neighbor_count,
                 impl_->fluid_maximum_neighbor_count);
-            const auto constants = backend.fluid_constants(
-                first.options, options.gravity,
-                options.timestep /
-                    static_cast<float>(first.frame_iterations),
-                first.frame_live);
             backend.fluid_pair_pressure_contact(
                 pair_blocks, block_size, stream,
                 first.positions, first.velocities, first.count,
@@ -1937,7 +1946,7 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                 second.positions, second.velocities, second.count,
                 second.options.capacity, second.forces,
                 pair.index.keys[1], pair.index.identities[1],
-                pair.index.total_capacity, constants);
+                pair.index.total_capacity, first_constants);
             backend.fluid_pair_viscosity(
                 pair_blocks, block_size, stream,
                 first.positions, first.velocities, first.count,
@@ -1945,7 +1954,7 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                 second.positions, second.velocities, second.count,
                 second.options.capacity, second.forces,
                 pair.index.keys[1], pair.index.identities[1],
-                pair.index.total_capacity, constants);
+                pair.index.total_capacity, first_constants);
             status = record_timing_stage(
                 TimingStage::fluid_neighbor_forces, 3U);
             if (!status) return status;

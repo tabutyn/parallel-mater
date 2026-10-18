@@ -20,6 +20,7 @@ struct FluidDispatchConstants {
     float maximum_speed{};
     float maximum_pair_acceleration{};
     float rest_density{};
+    float rest_particle_volume{};
     std::uint32_t maximum_neighbors{};
 };
 
@@ -42,11 +43,15 @@ void fluid_pair_neighbor_counts(device::DispatchSize grid,
     const void *second_positions, const std::uint32_t *second_count,
     std::uint32_t second_capacity, std::uint32_t second_maximum_neighbors,
     const std::uint64_t *keys, const std::uint32_t *identities,
-    std::uint32_t total_capacity, float support_radius,
+    std::uint32_t total_capacity,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants,
     std::uint32_t *first_total_neighbors,
     std::uint32_t *first_cross_neighbors,
+    float *first_density_samples,
     std::uint32_t *second_total_neighbors,
     std::uint32_t *second_cross_neighbors,
+    float *second_density_samples,
     std::uint32_t *first_neighbor_overflow,
     std::uint32_t *second_neighbor_overflow,
     std::uint32_t *first_maximum_neighbor_count,
