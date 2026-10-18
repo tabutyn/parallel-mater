@@ -1,7 +1,7 @@
 {
   "id": "F7-07",
   "title": "Make mobile Gallery shells thin adapters",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-02",
     "F7-03",
@@ -19,15 +19,27 @@
     "Neither mobile shell owns scene descriptions, controller rules, simulation timing or physics fallback policy.",
     "Host and device tests cover shell recreation, surface replacement, pause/background and failure recovery."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "ad2f533e-019f-4043-8360-96ae0437c335",
-    "owner": "codex-macos-gallery",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F7-07/thomass-macbook-air",
-    "claimed_at": "2026-10-18T00:32:51Z",
-    "heartbeat_at": "2026-10-18T00:32:51Z",
-    "expires_at": "2026-10-19T00:32:51Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F7-07-mobile-shells.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "ad2f533e-019f-4043-8360-96ae0437c335",
+        "owner": "codex-macos-gallery",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F7-07/thomass-macbook-air",
+        "claimed_at": "2026-10-18T00:32:51Z",
+        "heartbeat_at": "2026-10-18T00:32:51Z",
+        "expires_at": "2026-10-19T00:32:51Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T01:33:22Z",
+      "reason": "Shared mobile session owns scene controls, timing admission, lifecycle, surfaces, and failure recovery; Android and iPad shells now translate OS events and present shared state.",
+      "evidence": [
+        "docs/roadmap/evidence/F7-07-mobile-shells.json"
+      ]
+    }
+  ]
 }

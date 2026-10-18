@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Android owns JNI, surfaces and lifecycle. Shared C++ owns the Gallery session.
-#include <parallel_mater_gallery/session.hpp>
+#include <parallel_mater_gallery/mobile_session.hpp>
 #include <android/native_window_jni.h>
 #include <android/log.h>
 #include <jni.h>
@@ -17,10 +17,12 @@ namespace {
 using namespace parallel_mater::gallery;
 constexpr const char *backend_name = PM_ANDROID_VULKAN ? "vulkan" : "slang-cpu";
 struct Session {
-    std::unique_ptr<GallerySession> gallery;
+    std::unique_ptr<MobileGallerySession> mobile;
     ANativeWindow *window{};
     unsigned logged_frames{};
     ~Session() { if (window) ANativeWindow_release(window); }
+    GallerySession &gallery() { return mobile->gallery(); }
+    const GallerySession &gallery() const { return mobile->gallery(); }
     void present(const GallerySession &frame) {
         if (!window) return;
         ANativeWindow_Buffer buffer{};
@@ -38,7 +40,7 @@ struct Session {
     }
     void log_scene() {
         logged_frames = 0;
-        const auto &g = *gallery;
+        const auto &g = gallery();
         __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
             "Physics buffers: %llu bytes (excludes driver-private allocations)",
             static_cast<unsigned long long>(g.allocated_bytes()));
@@ -67,7 +69,7 @@ extern "C" JNIEXPORT jobjectArray JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeSceneCatalog(
     JNIEnv *env, jclass, jlong handle) {
     try {
-        const auto &catalog = session(handle).gallery->catalog();
+        const auto &catalog = session(handle).gallery().catalog();
         constexpr std::size_t fields = 6U;
         auto result = env->NewObjectArray(
             static_cast<jsize>(catalog.size() * fields),
@@ -94,9 +96,12 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeSceneCatalog(
 extern "C" JNIEXPORT jdoubleArray JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeQualifyScene(JNIEnv *env, jclass, jlong handle, jint index, jint count) {
     try {
-        auto &g = *session(handle).gallery;
+        auto &s = session(handle);
+        auto &g = s.gallery();
         if (index < 0 || count < 1 || count > 100000) throw std::runtime_error("Invalid qualification arguments");
-        g.select(static_cast<unsigned>(index));
+        if (!s.mobile->execute(MobileGalleryCommand::select_scene,
+                               static_cast<float>(index)))
+            throw std::runtime_error(s.mobile->state().failure);
         const auto stats = g.qualify(static_cast<unsigned>(count));
         const jdouble values[]{stats.mean_ms, stats.p95_ms, static_cast<double>(stats.count)};
         auto result = env->NewDoubleArray(3);
@@ -107,7 +112,7 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeQualifyScene(JNIEnv *env, j
 extern "C" JNIEXPORT jstring JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeRuntimeInfo(JNIEnv *env, jclass, jlong handle) {
     try {
-        const auto &g = *session(handle).gallery;
+        const auto &g = session(handle).gallery();
         std::ostringstream info;
         info.imbue(std::locale::classic());
         info << "{\"revision\":\"" << GallerySession::build_revision() << "\",\"backend\":\"" << backend_name
@@ -128,11 +133,9 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeCreate(JNIEnv *env, jclass,
             throw std::runtime_error("Could not configure Vulkan pipeline cache");
         auto result = std::make_unique<Session>();
         GallerySessionConfig config{.assets = string(env, assets), .profiles = string(env, profiles),
-            .platform = "Android", .model = string(env, model), .backend = backend_name,
-            .native_backend = std::nullopt};
-        if (PM_ANDROID_VULKAN) config.native_backend = PM_NATIVE_BACKEND_VULKAN;
-        result->gallery = std::make_unique<GallerySession>(std::move(config));
-        const auto &limits = result->gallery->limits;
+            .platform = "Android", .model = string(env, model), .backend = backend_name};
+        result->mobile = std::make_unique<MobileGallerySession>(std::move(config));
+        const auto &limits = result->gallery().limits;
         __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
             "Profile %s: %u bricks, %u fluid particles, %u coupled bodies, %ux%u, target %u FPS (unmeasured)",
             limits.name.c_str(), limits.brick_count, limits.fluid_particles,
@@ -152,23 +155,32 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeSurface(JNIEnv *env, jclass
     jlong handle, jobject surface, jint w, jint h) {
     try {
         auto &s = session(handle);
-        if (s.window) ANativeWindow_release(s.window);
+        if (s.window) {
+            s.mobile->detach_surface();
+            ANativeWindow_release(s.window);
+        }
         s.window = surface ? ANativeWindow_fromSurface(env, surface) : nullptr;
-        s.gallery->set_active(s.window != nullptr); s.logged_frames = 0;
+        s.logged_frames = 0;
         if (!s.window) return;
-        s.gallery->resize(std::max(w, 1), std::max(h, 1));
-        if (ANativeWindow_setBuffersGeometry(s.window, s.gallery->width, s.gallery->height, WINDOW_FORMAT_RGBA_8888) != 0)
+        if (!s.mobile->attach_surface(std::max(w, 1), std::max(h, 1)))
+            throw std::runtime_error(s.mobile->state().failure);
+        if (ANativeWindow_setBuffersGeometry(s.window, s.gallery().width,
+                s.gallery().height, WINDOW_FORMAT_RGBA_8888) != 0) {
+            s.mobile->report_failure("Cannot configure display surface");
             throw std::runtime_error("Cannot configure display surface");
+        }
     } catch (const std::exception &error) { exception(env, error.what()); }
     catch (...) { exception(env, "Display initialization failed"); }
 }
 extern "C" JNIEXPORT jstring JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeFrame(JNIEnv *env, jclass, jlong handle) {
     try {
-        auto &s = session(handle); auto &g = *s.gallery;
-        g.frame_at(GallerySession::FrameClock::now(),
+        auto &s = session(handle); auto &g = s.gallery();
+        const bool framed = s.mobile->frame_at(GallerySession::FrameClock::now(),
             [&](const GallerySession &frame) { s.present(frame); });
-        if (!g.is_paused() && g.active() && ++s.logged_frames == 60) {
+        const auto state = s.mobile->state();
+        if (!framed && state.failed) throw std::runtime_error(state.failure);
+        if (framed && !g.is_paused() && g.active() && ++s.logged_frames == 60) {
             const auto stats = g.timing.statistics();
             __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
                 "FrameWindow scene=%s backend=%s frames=%llu count=%zu mean_ms=%.3f median_ms=%.3f p95_ms=%.3f physics_ms=%.3f render_ms=%.3f present_ms=%.3f fps=%.2f particles=%zu bodies=%zu",
@@ -177,14 +189,15 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeFrame(JNIEnv *env, jclass, 
                 stats.present_ms, stats.cadence_fps, g.particle_count(), g.moving_bodies());
             s.logged_frames = 0;
         }
-        return env->NewStringUTF(g.status().c_str());
+        const std::string status = state.status + "\n" + state.directional_label;
+        return env->NewStringUTF(status.c_str());
     } catch (const std::exception &error) { exception(env, error.what()); }
     catch (...) { exception(env, "Gallery frame failed"); }
     return nullptr;
 }
 extern "C" JNIEXPORT jstring JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeDetails(JNIEnv *env, jclass, jlong handle) {
-    try { return env->NewStringUTF(session(handle).gallery->details().c_str()); }
+    try { return env->NewStringUTF(session(handle).gallery().details().c_str()); }
     catch (const std::exception &error) { exception(env, error.what()); }
     return nullptr;
 }
@@ -192,28 +205,52 @@ extern "C" JNIEXPORT void JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeCommand(JNIEnv *env, jclass,
     jlong handle, jint command, jfloat x, jfloat y) {
     try {
-        auto &s = session(handle); auto &g = *s.gallery;
-        if (!std::isfinite(x) || !std::isfinite(y)) throw std::runtime_error("Non-finite Gallery input");
+        auto &s = session(handle);
+        bool ok = false;
         switch (command) {
-        case 0:
-            if (x < 0 || x >= g.catalog().size())
-                throw std::runtime_error("Unknown Gallery scene");
-            g.select(static_cast<unsigned>(x)); s.log_scene(); break;
-        case 1: g.reset(); s.log_scene(); break;
-        case 2: g.set_paused(x != 0); s.logged_frames = 0; break;
-        case 3: g.steer(x, y); break;
-        case 4: g.orbit(x, y); break;
-        case 5: g.zoom(x); break;
-        case 6: (void)g.primary_action(); break;
-        case 7: g.set_bricks(static_cast<unsigned>(std::max(1.0F, x))); s.logged_frames = 0; break;
-        case 8: g.focus(); break;
-        case 9: g.set_active(x != 0); s.logged_frames = 0; break;
+        case 0: ok = s.mobile->execute(MobileGalleryCommand::select_scene, x); break;
+        case 1: ok = s.mobile->execute(MobileGalleryCommand::reset_scene); break;
+        case 2: ok = s.mobile->execute(MobileGalleryCommand::set_paused, x); break;
+        case 3: ok = s.mobile->execute(MobileGalleryCommand::steer, x, y); break;
+        case 4: ok = s.mobile->execute(MobileGalleryCommand::orbit, x, y); break;
+        case 5: ok = s.mobile->execute(MobileGalleryCommand::zoom, x); break;
+        case 6: ok = s.mobile->execute(MobileGalleryCommand::primary_action); break;
+        case 7: ok = s.mobile->execute(MobileGalleryCommand::set_count, x); break;
+        case 8: ok = s.mobile->execute(MobileGalleryCommand::focus); break;
+        case 9: s.mobile->set_foreground(x != 0); ok = true; break;
+        case 10: ok = s.mobile->execute(MobileGalleryCommand::toggle_paused); break;
         default: throw std::runtime_error("Unknown Gallery command");
         }
+        if (!ok) throw std::runtime_error(s.mobile->state().failure);
+        if (command == 0 || command == 1) s.log_scene();
+        if (command == 2 || command == 7 || command == 9) s.logged_frames = 0;
     } catch (const std::exception &error) { exception(env, error.what()); }
     catch (...) { exception(env, "Gallery command failed"); }
 }
-extern "C" JNIEXPORT jint JNICALL
-Java_org_parallelmater_gallery_GalleryActivity_nativeTargetFps(JNIEnv *, jclass, jlong handle) {
-    return handle ? static_cast<jint>(reinterpret_cast<Session *>(handle)->gallery->limits.target_fps) : 30;
+
+extern "C" JNIEXPORT jobjectArray JNICALL
+Java_org_parallelmater_gallery_GalleryActivity_nativeControlState(
+    JNIEnv *env, jclass, jlong handle) {
+    try {
+        const auto state = session(handle).mobile->state();
+        const std::array<std::string, 7U> values{
+            std::to_string(state.selection), state.paused ? "1" : "0",
+            state.primary_action_available ? "1" : "0",
+            state.primary_action_label, state.directional_label,
+            state.failed ? "1" : "0", state.failure};
+        auto result = env->NewObjectArray(static_cast<jsize>(values.size()),
+            env->FindClass("java/lang/String"), nullptr);
+        if (!result) return nullptr;
+        for (std::size_t i = 0; i < values.size(); ++i) {
+            auto value = env->NewStringUTF(values[i].c_str());
+            if (!value) return nullptr;
+            env->SetObjectArrayElement(result, static_cast<jsize>(i), value);
+            env->DeleteLocalRef(value);
+            if (env->ExceptionCheck()) return nullptr;
+        }
+        return result;
+    } catch (const std::exception &error) {
+        exception(env, error.what());
+        return nullptr;
+    }
 }
