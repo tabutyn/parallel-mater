@@ -143,7 +143,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F3-00](roadmap/tasks/F3-00.json) | Version and typed validation baseline | done | — | — |
 | [F3-01](roadmap/tasks/F3-01.json) | Finish manual command interception | done | — | — |
 | [F3-02](roadmap/tasks/F3-02.json) | Validate command recording state | done | F3-01 | — |
-| [F3-03](roadmap/tasks/F3-03.json) | Validate object dependencies and query state | leased | F3-01, F1-03, F1-04 | codex-windows-validation / windows-gtx1080 / 2026-10-19T01:02:04Z |
+| [F3-03](roadmap/tasks/F3-03.json) | Validate object dependencies and query state | done | F3-01, F1-03, F1-04 | — |
 | [F3-04](roadmap/tasks/F3-04.json) | Validate synchronization state | done | F3-02 | — |
 | [F3-05](roadmap/tasks/F3-05.json) | Expose structured validation diagnostics | done | F3-01 | — |
 | [F3-06](roadmap/tasks/F3-06.json) | Close threading and deferred-error contract gaps | ready | F1-06, F3-04 | — |

@@ -259,6 +259,106 @@ PmResult mock_map(PmDevice, PmDeviceMemory, PmDeviceSize, PmDeviceSize, void **o
 }
 void mock_unmap(PmDevice, PmDeviceMemory) {}
 PmResult mock_ranges(PmDevice, uint32_t, const PmMappedMemoryRange *) { return PM_SUCCESS; }
+PmResult mock_create_geometry(PmDevice, const PmGeometryCreateInfo *,
+                              PmGeometry *out) {
+    *out = reinterpret_cast<PmGeometry>(new char);
+    return PM_SUCCESS;
+}
+void mock_destroy_geometry(PmDevice, PmGeometry geometry) {
+    delete reinterpret_cast<char *>(geometry);
+}
+void mock_geometry_requirements(PmDevice, PmGeometry,
+                                PmMemoryRequirements *out) {
+    *out = {256U, 256U, 2U, PM_FALSE};
+}
+PmResult mock_bind_geometry(PmDevice, PmGeometry, PmDeviceMemory,
+                            PmDeviceSize) {
+    return PM_SUCCESS;
+}
+PmResult mock_cmd_build_geometry(PmCommandBuffer, PmGeometry) {
+    return PM_SUCCESS;
+}
+PmResult mock_create_simulation(PmDevice, const PmSimulationCreateInfo *,
+                                PmSimulation *out) {
+    *out = reinterpret_cast<PmSimulation>(new char);
+    return PM_SUCCESS;
+}
+void mock_destroy_simulation(PmDevice, PmSimulation simulation) {
+    delete reinterpret_cast<char *>(simulation);
+}
+void mock_simulation_requirements(PmDevice, PmSimulation,
+                                  PmSimulationMemoryRequirements *out) {
+    out->persistent = {256U, 256U, 2U, PM_FALSE};
+    out->scratch = {256U, 256U, 2U, PM_FALSE};
+}
+PmResult mock_bind_simulation(PmDevice, PmSimulation,
+                              const PmSimulationMemoryBinding *) {
+    return PM_SUCCESS;
+}
+PmResult mock_cmd_write_rigid_bodies(PmCommandBuffer, PmSimulation,
+                                     std::uint32_t, std::uint32_t,
+                                     const PmRigidBodyInfo *) {
+    return PM_SUCCESS;
+}
+PmResult mock_cmd_reset_simulation(PmCommandBuffer, PmSimulation) {
+    return PM_SUCCESS;
+}
+PmResult mock_create_pipeline(PmDevice, const PmPhysicsPipelineCreateInfo *,
+                              PmPhysicsPipeline *out) {
+    *out = reinterpret_cast<PmPhysicsPipeline>(new char);
+    return PM_SUCCESS;
+}
+void mock_destroy_pipeline(PmDevice, PmPhysicsPipeline pipeline) {
+    delete reinterpret_cast<char *>(pipeline);
+}
+PmResult mock_cmd_bind_pipeline(PmCommandBuffer, PmPhysicsPipeline) {
+    return PM_SUCCESS;
+}
+PmResult mock_cmd_write_cloths(PmCommandBuffer, PmSimulation,
+                               std::uint32_t, std::uint32_t,
+                               const PmClothInfo *) {
+    return PM_SUCCESS;
+}
+PmResult mock_cmd_step(PmCommandBuffer, PmSimulation, const PmStepInfo *) {
+    return PM_SUCCESS;
+}
+PmResult mock_create_query_pool(PmDevice, const PmQueryPoolCreateInfo *info,
+                                PmQueryPool *out) {
+    *out = nullptr;
+    if (info->queryCount == 13U) return PM_ERROR_OUT_OF_HOST_MEMORY;
+    *out = reinterpret_cast<PmQueryPool>(new char);
+    return PM_SUCCESS;
+}
+void mock_destroy_query_pool(PmDevice, PmQueryPool pool) {
+    delete reinterpret_cast<char *>(pool);
+}
+PmResult mock_cmd_reset_query_pool(PmCommandBuffer, PmQueryPool,
+                                   std::uint32_t, std::uint32_t) {
+    return PM_SUCCESS;
+}
+PmResult mock_cmd_write_timestamp(PmCommandBuffer, PmStageFlags,
+                                  PmQueryPool, std::uint32_t) {
+    return PM_SUCCESS;
+}
+PmResult mock_cmd_begin_statistics(PmCommandBuffer, PmQueryPool,
+                                   std::uint32_t) {
+    return PM_SUCCESS;
+}
+PmResult mock_cmd_end_statistics(PmCommandBuffer, PmQueryPool,
+                                 std::uint32_t) {
+    return PM_SUCCESS;
+}
+PmResult mock_get_simulation_status(PmDevice, PmSimulation,
+                                    PmResult *out) {
+    *out = PM_SUCCESS;
+    return PM_SUCCESS;
+}
+PmResult mock_get_query_results(PmDevice, PmQueryPool, std::uint32_t,
+                                std::uint32_t, std::size_t size, void *data,
+                                PmDeviceSize, PmFlags) {
+    if (data && size) std::memset(data, 0, size);
+    return PM_SUCCESS;
+}
 
 PFN_pmVoidFunction lookup_instance(const char *name) {
     if (name == nullptr) return nullptr;
@@ -336,6 +436,30 @@ PM_MOCK_EXPORT PFN_pmVoidFunction PMAPI_CALL pm_driverGetDeviceProcAddr(
     MOCK(pmUnmapMemory, mock_unmap);
     MOCK(pmFlushMappedMemoryRanges, mock_ranges);
     MOCK(pmInvalidateMappedMemoryRanges, mock_ranges);
+    MOCK(pmCreateGeometry, mock_create_geometry);
+    MOCK(pmDestroyGeometry, mock_destroy_geometry);
+    MOCK(pmGetGeometryMemoryRequirements, mock_geometry_requirements);
+    MOCK(pmBindGeometryMemory, mock_bind_geometry);
+    MOCK(pmCmdBuildGeometry, mock_cmd_build_geometry);
+    MOCK(pmCreateSimulation, mock_create_simulation);
+    MOCK(pmDestroySimulation, mock_destroy_simulation);
+    MOCK(pmGetSimulationMemoryRequirements, mock_simulation_requirements);
+    MOCK(pmBindSimulationMemory, mock_bind_simulation);
+    MOCK(pmCmdWriteRigidBodies, mock_cmd_write_rigid_bodies);
+    MOCK(pmCmdResetSimulation, mock_cmd_reset_simulation);
+    MOCK(pmCreatePhysicsPipeline, mock_create_pipeline);
+    MOCK(pmDestroyPhysicsPipeline, mock_destroy_pipeline);
+    MOCK(pmCmdBindPhysicsPipeline, mock_cmd_bind_pipeline);
+    MOCK(pmCmdWriteCloths, mock_cmd_write_cloths);
+    MOCK(pmCmdStepSimulation, mock_cmd_step);
+    MOCK(pmCreateQueryPool, mock_create_query_pool);
+    MOCK(pmDestroyQueryPool, mock_destroy_query_pool);
+    MOCK(pmCmdResetQueryPool, mock_cmd_reset_query_pool);
+    MOCK(pmCmdWriteTimestamp, mock_cmd_write_timestamp);
+    MOCK(pmCmdBeginStatisticsQuery, mock_cmd_begin_statistics);
+    MOCK(pmCmdEndStatisticsQuery, mock_cmd_end_statistics);
+    MOCK(pmGetSimulationStatus, mock_get_simulation_status);
+    MOCK(pmGetQueryPoolResults, mock_get_query_results);
 #undef MOCK
     return nullptr;
 }

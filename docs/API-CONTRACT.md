@@ -8,6 +8,8 @@ physics accuracy result.
 |---|---|---|
 | PM-API-001 | Accept API 0.2 and zero (default 0.2); reject other versions with INCOMPATIBLE_VERSION and null output. | loader discovery tests; driver ABI tests (future version) |
 | PM-MEM-001 | Buffer/memory handles belong to one device. Binding and mapped ranges fit the allocation without overflow. Binding twice or mapping twice is invalid state; live bound buffers prevent freeing their memory. | permissive-driver validation tests, paired with no-layer negative controls |
+| PM-DEP-001 | Geometry, simulation, pipeline, buffer and backing-memory dependencies remain live while recorded or simulation-owned. Command reset/free releases recorded references; successful simulation replacement/reset updates retained geometry without preserving stale bindings. | permissive-driver validation tests, paired with no-layer negative controls |
+| PM-QUERY-001 | Query pools belong to one device. Slots are reset before use, statistics scopes are matched around a step, in-flight or unread results are not reset, and result ranges, alignment, stride and flags are validated without overflow. Failed creation publishes no tracked object. | permissive-driver validation tests, paired with no-layer negative controls |
 | PM-ABI-001 | A successful driver/layer negotiation returns a nonzero version no greater than requested. | loader rejection tests with independent zero/999 mock libraries |
 | PM-LIFE-001 | Retired domain storage is reusable within the queried allocation; unrelated live slots survive replacement. | SDK resource/domain/coupling lifecycle tests; arena tests |
 | PM-CMD-001 | Rejected argument validation enqueues no command. Recording can continue. Host descriptors are snapshots; referenced resources remain borrowed. | SDK resource lifecycle (rejected capacity/range then valid work); coupling lifecycle (descriptor mutation) |
@@ -61,11 +63,17 @@ explicit generated/tested decision.
 | `pmCreateInstance` | excluded | selects the layer chain that later calls use |
 
 Memory/buffer validation tracks allocation, queried requirements, binding,
-mapping, ownership and retirement. Command-buffer, fence, submission and
-timeline state are tracked through precise completion boundaries. Native buffer
-and semaphore imports participate in ownership checks. Old v1/v2 layers receive
-their unchanged prefix; this v3 validation layer rejects old loaders that cannot
-supply diagnostics and application-object context.
+mapping, ownership and retirement. Geometry input buffers, geometry/simulation
+bindings, submitted simulation geometry, pipeline material tables and every
+recorded resource reference participate in lifetime checks. Command reset/free
+releases its recorded dependency set; successful simulation reset/replacement
+updates the separate live dependency set. Query pools track ownership, typed
+slots, reset/write/consume/pending state and matched statistics scopes.
+Command-buffer, fence, submission and timeline state are tracked through precise
+completion boundaries. Native buffer and semaphore imports participate in
+ownership checks. Old v1/v2 layers receive their unchanged prefix; this v3
+validation layer rejects old loaders that cannot supply diagnostics and
+application-object context.
 
 Structured diagnostics use stable IDs. `PM-VAL-0001` reports a malformed
 loader/layer payload, `PM-VAL-0002` invalid arguments or ownership,
@@ -77,11 +85,11 @@ be concurrent, occurs outside the validation state mutex, and therefore permits
 independent reentrant API reads. The application must keep its callback target
 and user data alive through instance destruction and synchronize its own state.
 
-Coverage is intentionally explicit: geometry/simulation memory dependencies,
-query state and interop handoff are not yet validated by this layer. Driver
-validation remains required. Invalid void calls are suppressed after delivering
-a diagnostic. Host-bookkeeping exhaustion delivers `PM-VAL-0004` without
-allocation, disables stateful tracking, and preserves already-created driver
-objects and stateless checks. The table above maps implemented tests, not
-comprehensive proof of all specification clauses. Geometry/paint ownership,
-all coupling modes and physical accuracy remain separate gates.
+Coverage is intentionally explicit: interop handoff is not yet validated by
+this layer, and driver validation remains required. Invalid void calls are
+suppressed after delivering a diagnostic. Host-bookkeeping exhaustion delivers
+`PM-VAL-0004` without allocation, disables stateful tracking, and preserves
+already-created driver objects and stateless checks. The table above maps
+implemented tests, not comprehensive proof of all specification clauses.
+Private geometry/paint generations, all coupling modes and physical accuracy
+remain separate gates.
