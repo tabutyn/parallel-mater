@@ -1366,3 +1366,188 @@ void fluid_reconstruct_immiscible_interface_curvature(
         first_interface_flags[local] = flags;
     }
 }
+
+public float fluid_immiscible_pressure_jump(
+    float surface_tension, float first_curvature, float second_curvature)
+{
+    return surface_tension *
+        0.5f * (first_curvature + second_curvature);
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_apply_immiscible_pair_pressure_capillarity(
+    uniform PMBuffer<Vec3> first_positions,
+    uniform PMBuffer<Vec3> first_velocities,
+    uniform PMBuffer<uint> first_count, uniform uint first_capacity,
+    uniform PMBuffer<Vec3> first_forces,
+    uniform PMBuffer<float> first_density_samples,
+    uniform PMBuffer<Vec3> first_interface_normals,
+    uniform PMBuffer<float> first_interface_curvatures,
+    uniform PMBuffer<uint> first_interface_flags,
+    uniform PMBuffer<Vec3> second_positions,
+    uniform PMBuffer<Vec3> second_velocities,
+    uniform PMBuffer<uint> second_count, uniform uint second_capacity,
+    uniform PMBuffer<Vec3> second_forces,
+    uniform PMBuffer<float> second_density_samples,
+    uniform PMBuffer<Vec3> second_interface_normals,
+    uniform PMBuffer<float> second_interface_curvatures,
+    uniform PMBuffer<uint> second_interface_flags,
+    uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> identities,
+    uniform uint total_capacity,
+    uniform FluidOptions first_options,
+    uniform FluidOptions second_options,
+    uniform float surface_tension
+    PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint item = pmThreadIndex();
+    if (item >= total_capacity || item >= first_capacity + second_capacity)
+        return;
+    bool second = item >= first_capacity;
+    uint local = second ? item - first_capacity : item;
+    uint count = second ? *second_count : *first_count;
+    if (local >= count) return;
+
+    Vec3 position = second ? second_positions[local] : first_positions[local];
+    float pairSupport = max(
+        first_options.support_radius, second_options.support_radius);
+    float inverseSupport = 1.0f / pairSupport;
+    int cx = int(floor(position.x * inverseSupport));
+    int cy = int(floor(position.y * inverseSupport));
+    int cz = int(floor(position.z * inverseSupport));
+    float supportSquared = pairSupport * pairSupport;
+    float firstMass = fluid_particle_mass(first_options);
+    float secondMass = fluid_particle_mass(second_options);
+    float pairMass = 2.0f * firstMass * secondMass /
+        max(firstMass + secondMass, 1.0e-20f);
+    float firstVolume = firstMass / first_options.rest_density;
+    float secondVolume = secondMass / second_options.rest_density;
+    float contactSeparation =
+        first_options.particle_radius + second_options.particle_radius;
+    float firstContactScale = first_options.repulsion *
+        (1000.0f / first_options.rest_density);
+    float secondContactScale = second_options.repulsion *
+        (1000.0f / second_options.rest_density);
+    float forceLimit = 0.0f;
+    if (first_options.maximum_pair_acceleration > 0.0f)
+        forceLimit = firstMass * first_options.maximum_pair_acceleration;
+    if (second_options.maximum_pair_acceleration > 0.0f)
+    {
+        float secondLimit = secondMass *
+            second_options.maximum_pair_acceleration;
+        forceLimit = forceLimit > 0.0f
+            ? min(forceLimit, secondLimit) : secondLimit;
+    }
+    Vec3 acceleration = {};
+
+    for (int dz = -1; dz <= 1; ++dz)
+    {
+        for (int dy = -1; dy <= 1; ++dy)
+        {
+            for (int dx = -1; dx <= 1; ++dx)
+            {
+                if (cx + dx < -kFluidCellBias || cx + dx >= kFluidCellBias ||
+                    cy + dy < -kFluidCellBias || cy + dy >= kFluidCellBias ||
+                    cz + dz < -kFluidCellBias || cz + dz >= kFluidCellBias)
+                    continue;
+                uint64_t key = fluid_cell_key(cx + dx, cy + dy, cz + dz);
+                for (uint sorted = fluid_lower_bound(keys, total_capacity, key);
+                     sorted < total_capacity && keys[sorted] == key; ++sorted)
+                {
+                    uint otherIdentity = identities[sorted];
+                    bool otherSecond =
+                        (otherIdentity & kFluidSecondPopulation) != 0u;
+                    if (otherSecond == second) continue;
+                    uint other = otherIdentity & kFluidLocalIndexMask;
+                    uint firstIndex = second ? other : local;
+                    uint secondIndex = second ? local : other;
+                    Vec3 firstPosition = first_positions[firstIndex];
+                    Vec3 secondPosition = second_positions[secondIndex];
+                    Vec3 delta = subtract(firstPosition, secondPosition);
+                    float squared = length_squared(delta);
+                    if (squared >= supportSquared) continue;
+
+                    Vec3 firstVelocity = first_velocities[firstIndex];
+                    Vec3 secondVelocity = second_velocities[secondIndex];
+                    Vec3 relativeVelocity =
+                        subtract(secondVelocity, firstVelocity);
+                    float distance = sqrt(max(squared, 1.0e-12f));
+                    Vec3 direction = squared > 1.0e-12f
+                        ? multiply(delta, 1.0f / distance)
+                        : normalized_or(relativeVelocity, Vec3(0.0f));
+                    float gradientMagnitude =
+                        fluid_pressure_gradient_magnitude(
+                            distance, pairSupport);
+                    float firstDensity = max(
+                        first_density_samples[firstIndex], 1.0e-6f);
+                    float secondDensity = max(
+                        second_density_samples[secondIndex], 1.0e-6f);
+                    float firstPressure = fluid_pair_pressure(
+                        first_options, firstDensity);
+                    float secondPressure = fluid_pair_pressure(
+                        second_options, secondDensity);
+                    float pressureMagnitude = firstMass * secondMass *
+                        (firstPressure / (firstDensity * firstDensity) +
+                         secondPressure / (secondDensity * secondDensity)) *
+                        gradientMagnitude;
+
+                    float contactMagnitude = 0.0f;
+                    if (distance < contactSeparation)
+                    {
+                        float q = 1.0f - distance / contactSeparation;
+                        float radialSpeed = dot(relativeVelocity, direction);
+                        float contactAcceleration =
+                            0.5f * (firstContactScale + secondContactScale) *
+                                q * q +
+                            0.5f * (first_options.normal_damping +
+                                second_options.normal_damping) * radialSpeed;
+                        contactMagnitude = pairMass * contactAcceleration;
+                    }
+
+                    float capillaryMagnitude = 0.0f;
+                    uint firstFlags = first_interface_flags[firstIndex];
+                    uint secondFlags = second_interface_flags[secondIndex];
+                    bool validInterface = squared > 1.0e-12f &&
+                        (firstFlags & kFluidInterfaceSample) != 0u &&
+                        (secondFlags & kFluidInterfaceSample) != 0u &&
+                        (firstFlags & kFluidInterfaceDegenerate) == 0u &&
+                        (secondFlags & kFluidInterfaceDegenerate) == 0u;
+                    if (surface_tension > 0.0f && validInterface)
+                    {
+                        Vec3 averageNormal = normalized_or(add(
+                            first_interface_normals[firstIndex],
+                            second_interface_normals[secondIndex]),
+                            multiply(direction, -1.0f));
+                        Vec3 firstToSecond = multiply(direction, -1.0f);
+                        float alignment = max(
+                            0.0f, dot(averageNormal, firstToSecond));
+                        float pressureJump = fluid_immiscible_pressure_jump(
+                            surface_tension,
+                            first_interface_curvatures[firstIndex],
+                            second_interface_curvatures[secondIndex]);
+                        if (isfinite(pressureJump))
+                            capillaryMagnitude = abs(pressureJump) *
+                                firstVolume * secondVolume *
+                                gradientMagnitude * alignment;
+                    }
+
+                    Vec3 commonForce = multiply(direction,
+                        pressureMagnitude + contactMagnitude -
+                            capillaryMagnitude);
+                    if (forceLimit > 0.0f)
+                        commonForce = clamp_length(commonForce, forceLimit);
+                    acceleration = add(acceleration,
+                        multiply(commonForce,
+                            second ? -1.0f / secondMass :
+                                1.0f / firstMass));
+                }
+            }
+        }
+    }
+
+    if (second)
+        second_forces[local] = add(second_forces[local], acceleration);
+    else
+        first_forces[local] = add(first_forces[local], acceleration);
+}
