@@ -1,0 +1,52 @@
+{
+  "schema": "parallel-mater-roadmap-query-reuse-evidence/v1",
+  "task": "F3-08",
+  "scope": "Statistics-query consumption and repeated reuse in the direct Metal Gallery path",
+  "source": {
+    "commit": "a3eddaa332f2b79024e53b6c1541da8a2c228888",
+    "implementation_commit": "2cad3d2",
+    "dirty": false
+  },
+  "device": {
+    "gpu": "Apple M4",
+    "operating_system": "macOS 26.5.2 (25F84)",
+    "compiler": "Apple clang 21.0.0",
+    "architecture": "arm64"
+  },
+  "installed_bundle": {
+    "path": "/Applications/ParallelMater Gallery.app",
+    "revision": "a3eddaa332f2b79024e53b6c1541da8a2c228888",
+    "backend": "metal",
+    "release_channel": "development-preview",
+    "signature": "codesign --verify --deep --strict passed",
+    "app_executable_sha256": "fd59b0e2ef90f39fdb412177cf76653119922f1d4c53624627d8ddff03924140",
+    "driver_sha256": "bed2bf610dfec15f930444570982d6f3843469f87532288bc220d3b0220a953f"
+  },
+  "verification": [
+    {
+      "check": "ctest --test-dir build-macos-metal-preview --output-on-failure -R '^parallel-mater-layer-validation-tests$'",
+      "result": "passed; consumed statistics queries reset and repeat, while unread query reset remains rejected"
+    },
+    {
+      "check": "PM_DRIVER_FILES=<slang-metal.json> PM_LAYER_FILES=<validation.json> ./build-macos-metal-preview/parallel-mater-command-gallery-tests --scene RigidBody.glb --frames 2",
+      "result": "passed; two consecutive zero-host-readback steps plus explicit diagnostic read and reset"
+    },
+    {
+      "check": "ctest --test-dir build-macos-metal-preview --output-on-failure -R '^parallel-mater-(layer-validation-tests|macos-gallery-signature|slang-metal-gallery-domains|macos-gallery-help|macos-slang-rigid-smoke|gallery-gpu-renderer-contract-tests)$'",
+      "result": "6/6 passed after merging origin/main"
+    },
+    {
+      "check": "python3 scripts/Deploy-Gallery.py macos --timeout 300",
+      "result": "installed exact clean revision and passed 6-frame interactive smoke with renderer=metal-direct-fenced"
+    }
+  ],
+  "smoke_capture": {
+    "image_sha256": "ee2a8c9f670fae94f8eeb2a27b20fc0762a06f3fa24c1724b8e41f39ccc5e9e6",
+    "frames": 6,
+    "renderer": "metal-direct-fenced"
+  },
+  "limitations": [
+    "This evidence covers query lifecycle validation and installed native Metal Gallery integration, not full physics qualification.",
+    "The separate optional CPU-reference comparison currently rejects the implicit loader backend and is outside F3-08's validation-layer scope."
+  ]
+}

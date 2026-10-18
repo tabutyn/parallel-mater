@@ -148,7 +148,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F3-05](roadmap/tasks/F3-05.json) | Expose structured validation diagnostics | done | F3-01 | — |
 | [F3-06](roadmap/tasks/F3-06.json) | Close threading and deferred-error contract gaps | done | F1-06, F3-04 | — |
 | [F3-07](roadmap/tasks/F3-07.json) | Test independent compatibility combinations | leased | F3-05 | codex-windows-validation / windows-gtx1080 / 2026-10-19T02:28:30Z |
-| [F3-08](roadmap/tasks/F3-08.json) | Restore repeated statistics-query validation | leased | F3-03 | codex-macos-gallery / Thomass-MacBook-Air / 2026-10-19T01:54:48Z |
+| [F3-08](roadmap/tasks/F3-08.json) | Restore repeated statistics-query validation | done | F3-03 | — |
 | [F3-09](roadmap/tasks/F3-09.json) | Qualify portable host concurrency | waiting on lock | F3-06 | — |
 | [F3-10](roadmap/tasks/F3-10.json) | Qualify descriptor snapshot coverage | waiting on lock | F3-06 | — |
 | [F3-11](roadmap/tasks/F3-11.json) | Qualify destruction wait profiles | ready | F3-06 | — |
