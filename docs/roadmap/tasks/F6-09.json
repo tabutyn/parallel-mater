@@ -1,7 +1,7 @@
 {
   "id": "F6-09",
   "title": "Qualify the retained hinge fixture candidate",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F6-07"
   ],
@@ -17,6 +17,14 @@
     "Run settling, steering and complete-rotation behavior on CUDA; generate a fresh same-revision golden only if the reviewed fixture remains a valid conformance case."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "437e8f67-5390-4503-93b5-67a8d4e7b28e",
+    "owner": "codex-linux-hinge",
+    "machine": "thomas-laptop",
+    "branch": "work/F6-09/thomas-laptop",
+    "claimed_at": "2026-10-18T17:38:57Z",
+    "heartbeat_at": "2026-10-18T17:38:57Z",
+    "expires_at": "2026-10-19T17:38:57Z"
+  },
   "history": []
 }
