@@ -198,7 +198,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-21](roadmap/tasks/F5-21.json) | Make Gallery validation discovery hermetic | waiting on dependencies | F6-11 | — |
 | [F5-22](roadmap/tasks/F5-22.json) | Version rigid contact quality profiles | waiting on dependencies | F5-18, F6-11 | — |
 | [F5-23](roadmap/tasks/F5-23.json) | Split advertised qualification gaps | waiting on dependencies | F5-19, F5-20, F5-22 | — |
-| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17, F5-18, F5-19, F5-20, F5-21, F5-22, F5-23 | — |
+| [F5-24](roadmap/tasks/F5-24.json) | Expose lifecycle qualification through the installed CLI | ready | F5-19, F5-20 | — |
+| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17, F5-18, F5-19, F5-20, F5-21, F5-22, F5-23, F5-24 | — |
 
 ### F6. SDK releases and repository ownership
 
