@@ -192,7 +192,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
 | [F5-16](roadmap/tasks/F5-16.json) | Publish current Linux driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
 | [F5-17](roadmap/tasks/F5-17.json) | Adjudicate rigid-direct reference drift | done | F5-04, F5-10 | — |
-| [F5-18](roadmap/tasks/F5-18.json) | Stabilize rigid-direct planar symmetry | leased | F5-17 | codex-windows-sdk / windows-gtx1080 / 2026-10-19T10:36:58Z |
+| [F5-18](roadmap/tasks/F5-18.json) | Stabilize rigid-direct planar symmetry | done | F5-17 | — |
 | [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17, F5-18 | — |
 
 ### F6. SDK releases and repository ownership

@@ -1,7 +1,7 @@
 {
   "id": "F5-18",
   "title": "Stabilize rigid-direct planar symmetry",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-17"
   ],
@@ -19,15 +19,27 @@
     "Add focused regression coverage that preserves planar mirror symmetry without discarding legitimate small three-dimensional angular response, and rerun the existing torque-free, convex-sweep, face-normal and brick-penetration gates.",
     "Publish revisioned CPU/CUDA comparison and physical-quality evidence and update the qualification limitation; do not claim broader driver qualification or performance."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "c7c93279-2fa1-4013-8a8a-90b52242c8b3",
-    "owner": "codex-windows-sdk",
-    "machine": "windows-gtx1080",
-    "branch": "work/F5-18/windows-gtx1080",
-    "claimed_at": "2026-10-18T10:36:58Z",
-    "heartbeat_at": "2026-10-18T10:36:58Z",
-    "expires_at": "2026-10-19T10:36:58Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F5-18-rigid-direct-planar-symmetry.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "c7c93279-2fa1-4013-8a8a-90b52242c8b3",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F5-18/windows-gtx1080",
+        "claimed_at": "2026-10-18T10:36:58Z",
+        "heartbeat_at": "2026-10-18T10:36:58Z",
+        "expires_at": "2026-10-19T10:36:58Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T11:07:23Z",
+      "reason": "Removed tessellation-diagonal interior face contacts in shared Slang; 61-frame CPU/CUDA parity and both physical-quality profiles pass at unchanged tolerances.",
+      "evidence": [
+        "docs/roadmap/evidence/F5-18-rigid-direct-planar-symmetry.json"
+      ]
+    }
+  ]
 }

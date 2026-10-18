@@ -858,6 +858,56 @@ void rigid_add_contact(inout ContactManifold manifold, Contact contact,
         manifold.contacts[shallowest] = contact;
 }
 
+// Convex face clipping visits the triangles that tessellate an incident face.
+// Their shared diagonals can contribute points that lie between two real patch
+// vertices. Those points add no contact region, but an unpaired interior row
+// breaks mirror symmetry and makes the AVBD block depend on triangulation.
+// Remove only geometrically collinear interior points; real corners and small
+// out-of-plane features remain part of the manifold.
+void rigid_reduce_face_patch(inout ContactManifold manifold, float tolerance)
+{
+    float toleranceSquared = tolerance * tolerance;
+    bool removed = true;
+    while (removed)
+    {
+        removed = false;
+        for (uint candidate = 0u;
+             candidate < manifold.count && !removed; ++candidate)
+        {
+            Vec3 point = manifold.contacts[candidate].point;
+            for (uint first = 0u;
+                 first < manifold.count && !removed; ++first)
+            {
+                if (first == candidate) continue;
+                for (uint second = first + 1u;
+                     second < manifold.count; ++second)
+                {
+                    if (second == candidate) continue;
+                    Vec3 edge = subtract(manifold.contacts[second].point,
+                        manifold.contacts[first].point);
+                    float edgeSquared = length_squared(edge);
+                    if (edgeSquared <= toleranceSquared) continue;
+                    float parameter = dot(subtract(point,
+                        manifold.contacts[first].point), edge) / edgeSquared;
+                    if (parameter <= 1.0e-4f || parameter >= 0.9999f)
+                        continue;
+                    Vec3 closest = add(manifold.contacts[first].point,
+                        multiply(edge, parameter));
+                    if (length_squared(subtract(point, closest)) >
+                        toleranceSquared) continue;
+                    for (uint index = candidate + 1u;
+                         index < manifold.count; ++index)
+                        manifold.contacts[index - 1u] =
+                            manifold.contacts[index];
+                    --manifold.count;
+                    removed = true;
+                    break;
+                }
+            }
+        }
+    }
+}
+
 float rigid_contact_normal_speed(RigidBodyState body,
     RigidBodyState collider, Vec3 point, Vec3 normal)
 {
@@ -1191,6 +1241,7 @@ bool rigid_convex_face_manifold(RigidBodyState bodyState,
         }
     }
     if (output.count == 0u) return false;
+    rigid_reduce_face_patch(output, max(1.0e-6f, margin * 1.0e-3f));
     output.face_patch = true;
     return true;
 }

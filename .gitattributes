@@ -7,4 +7,5 @@
 /tools/reference/*.txt text eol=lf
 /docs/roadmap/evidence/F5-04-rigid-direct-*.json text eol=lf
 /docs/roadmap/evidence/F5-17-*.json text eol=lf
+/docs/roadmap/evidence/F5-18-*.json text eol=lf
 /conformance/v1/golden/cuda/rigid-direct.json text eol=lf
