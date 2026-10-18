@@ -25,6 +25,11 @@ if(BUILD_TESTING)
     add_test(NAME parallel-mater-reflected-abi-tests
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/solver/test_slang_abi.py")
     set_tests_properties(parallel-mater-reflected-abi-tests PROPERTIES LABELS "slang;abi")
+    add_test(NAME parallel-mater-release-reproducibility-tests
+        COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/tests/release/test_release_reproducibility.py")
+    set_tests_properties(parallel-mater-release-reproducibility-tests PROPERTIES
+        LABELS "release;reproducibility")
 endif()
 
 function(parallel_mater_enable_warnings target)
