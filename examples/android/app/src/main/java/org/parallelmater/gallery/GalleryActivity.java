@@ -82,7 +82,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     // Lifecycle and presentation scheduling are UI-thread state. Simulation
     // admission and recovery remain in the shared native mobile session.
     private boolean active, surfaceReady, failed, framePending, framePosted, qualifying;
-    private long lastStatus;
+    private long lastStatus, lastRuntimeInfo;
     private int backgrounds, foregrounds;
     private String diagnosticNonce = "";
     // UI state is only accessed on the main thread.
@@ -104,6 +104,10 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                         if (!status.getText().toString().equals(text)) status.setText(text);
                         if (state.length > 1) steering.setText(state[1]);
                     });
+                }
+                if (BuildConfig.DEBUG && start - lastRuntimeInfo >= 2000) {
+                    lastRuntimeInfo = start;
+                    writeRuntimeInfo();
                 }
             } catch (RuntimeException error) { showFailure(error); }
             runOnUiThread(() -> {
@@ -600,6 +604,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
             if (handle == 0) return;
             try {
                 nativeSurface(handle, surface, width, height);
+                writeRuntimeInfo();
                 runOnUiThread(() -> { surfaceReady = true; restartFrames(); });
             }
             catch (RuntimeException error) { showFailure(error); }
@@ -609,7 +614,10 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         surfaceReady = false;
         restartFrames();
         worker.post(() -> {
-            if (handle != 0) nativeSurface(handle, null, 0, 0);
+            if (handle != 0) {
+                nativeSurface(handle, null, 0, 0);
+                writeRuntimeInfo();
+            }
         });
     }
     @Override protected void onResume() {

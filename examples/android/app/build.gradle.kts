@@ -22,6 +22,7 @@ android {
         versionCode = 2
         versionName = "0.1-$physicsBackend-preview"
         buildConfigField("String", "PHYSICS_BACKEND", "\"$physicsBackend\"")
+        manifestPlaceholders["vulkanRequired"] = useVulkan.toString()
         ndk { abiFilters += providers.gradleProperty("abis")
             .orElse("arm64-v8a,x86_64").get().split(",") }
         externalNativeBuild {

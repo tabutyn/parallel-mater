@@ -1,13 +1,16 @@
 # Parallel Mater Gallery for Android
 
 This native APK uses the shared gallery scene builder, public command API,
-loader, validation layer, and software renderer. Android and iPad share one C++
-`MobileGallerySession` for controls, scene/reset logic, surface admission,
-failure recovery, budgets and frame timing. Java/JNI retain only Android
-lifecycle, semantic input translation, surface presentation and reporting. The default build bundles the
-same loadable Vulkan driver and common Slang physics as the desktop preview.
-Vulkan physics runs on the phone; rendering currently copies results into the
-software renderer. This is not yet native GPU-renderer interoperability.
+loader, validation layer, and native Gallery renderer. Android and iPad share
+one C++ `MobileGallerySession` for controls, scene/reset logic, surface
+admission, failure recovery, budgets and frame timing. Java/JNI retain only
+Android lifecycle, semantic input translation, native surface ownership and
+reporting. The default build bundles the same loadable Vulkan driver and common
+Slang physics as the desktop preview.
+Vulkan physics and graphics share the public native device, queue and output
+buffer. Ordinary frames render through the common Vulkan Gallery renderer into
+an `ANativeWindow` swapchain without CPU image readback or a software copy.
+Diagnostic qualification frames may explicitly request an offscreen readback.
 An explicit `-PphysicsBackend=cpu` build retains the experimental Slang CPU
 preview. There is no silent CPU fallback when the Vulkan driver is unavailable.
 
@@ -102,17 +105,19 @@ For diagnostic logs:
 ## Device qualification
 
 The mobile CI workflow builds the Vulkan APK and unsigned iPad app. On a phone
-with the new debug APK installed, run shared sustained/control and actual OS
-background-recovery checks with:
+with the new debug APK installed, run shared scene/control, direct-presentation,
+background, resize, rotation, and teardown checks with:
 
 ```sh
 python3 scripts/Test-AndroidGallery.py --serial PHONE_SERIAL --frames 120
 ```
 
-Reports include compiled revision/backend and a fresh nonce; old reports cannot
-satisfy a new run. The same C++ qualification routine runs on iPad. This does
-not replace the native API suites below or qualify thermal/physical accuracy.
-Release APKs ignore diagnostic intents and do not write these reports.
+Reports include compiled revision/backend, surface generations, process logs,
+and a fresh nonce; old reports cannot satisfy a new run. Display size and
+rotation settings are restored even when a check fails. The same C++
+qualification routine runs on iPad. This does not replace the native API suites
+below or qualify thermal/physical accuracy. Release APKs ignore diagnostic
+intents and do not write these reports.
 
 Build existing public-API tests as Android executables alongside the APK:
 

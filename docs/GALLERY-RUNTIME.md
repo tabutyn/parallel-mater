@@ -23,8 +23,8 @@ records. `GalleryFramePolicy` supplies the same profiled fixed-step clock and
 catch-up behavior to desktop scheduling and the session-managed mobile loop.
 Native rendering uses a common device, buffer, synchronization, target,
 readback, and draw-semantics contract. Metal and Vulkan implement that contract.
-Desktop Vulkan uses it now; F7-16 attaches Android's native surface to the same
-Vulkan adapter.
+Desktop and Android Vulkan use the same Vulkan adapter; Android supplies its
+native surface while the adapter owns the swapchain.
 
 | Responsibility | Current desktop owner | Current mobile owner | Required owner |
 |---|---|---|---|
@@ -38,7 +38,7 @@ Vulkan adapter.
 | Fixed-step accumulation, catch-up limits, substeps, pause, and foreground recovery | `GalleryFramePolicy` in the rich desktop frame coordinator | `GalleryFramePolicy` through `MobileGallerySession` | Common policy implementation; the remaining desktop coordinator should delegate its ordinary frame path to `GallerySession` |
 | Camera state and focus policy | `GallerySession::camera()`, driven by desktop input | `MobileGallerySession` touch commands | Common runtime, driven by semantic pointer/zoom commands |
 | Host render-frame assembly | `GalleryRuntime::step` | `GalleryRuntime::step` | Common runtime (done) |
-| Software, native GPU, or external-engine drawing | Desktop renderer/window path, including direct Vulkan | Android software renderer or iPad Metal renderer | Renderer adapter |
+| Software, native GPU, or external-engine drawing | Desktop renderer/window path, including direct Vulkan | Android Vulkan or iPad Metal renderer | Renderer adapter |
 | Graphics API resources, swapchain/layer binding, upload, and presentation | Desktop window adapter | Android surface/ANativeWindow or Apple presentation layer | Renderer adapter, with the platform shell supplying the native surface |
 | Keyboard, touch, gamepad, lifecycle, window, intent, and accessibility events | GLFW/native desktop glue | Java/JNI or UIKit glue | Platform shell translating events into common commands |
 | Catalog, parameter, timing, status, and error view models | Shared catalog plus desktop overlays | `MobileGalleryState` plus Java/UIKit widgets | Common runtime data; platform shell chooses widgets and layout |

@@ -65,7 +65,7 @@ bool MobileGallerySession::attach_surface(unsigned width, unsigned height,
     try {
         gallery_.set_render_target(target);
         gallery_.resize(std::max(1U, width), std::max(1U, height));
-        synchronize_activity();
+        clear_failure();
         return true;
     } catch (const std::exception &error) {
         surface_ready_ = false;

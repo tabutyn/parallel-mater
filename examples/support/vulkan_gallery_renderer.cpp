@@ -715,15 +715,51 @@ class VulkanGalleryRenderer final : public GpuGalleryRenderer {
         check(vkGetPhysicalDeviceSurfaceFormatsKHR(
                   physical_, surface, &count, formats.data()),
               "query Gallery surface formats");
-        const auto preferred = std::find_if(
-            formats.begin(), formats.end(), [](const VkSurfaceFormatKHR &format) {
-                return format.format == VK_FORMAT_B8G8R8A8_UNORM &&
-                    format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-            });
-        return preferred == formats.end() ? formats.front() : *preferred;
+        const auto supports_blit = [&](const VkSurfaceFormatKHR &format) {
+            VkFormatProperties properties{};
+            vkGetPhysicalDeviceFormatProperties(
+                physical_, format.format, &properties);
+            return (properties.optimalTilingFeatures &
+                    VK_FORMAT_FEATURE_BLIT_DST_BIT) != 0U;
+        };
+        if (formats.size() == 1U &&
+            formats.front().format == VK_FORMAT_UNDEFINED) {
+            const VkSurfaceFormatKHR selected{
+                color_format, formats.front().colorSpace};
+            if (!supports_blit(selected))
+                throw std::runtime_error(
+                    "Vulkan Gallery surface cannot blit its RGBA format");
+            return selected;
+        }
+        const auto select = [&](VkFormat requested) {
+            return std::find_if(formats.begin(), formats.end(),
+                [&](const VkSurfaceFormatKHR &format) {
+                    return format.format == requested &&
+                        format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR &&
+                        supports_blit(format);
+                });
+        };
+        if (const auto exact = select(color_format); exact != formats.end())
+            return *exact;
+        if (const auto bgra = select(VK_FORMAT_B8G8R8A8_UNORM);
+            bgra != formats.end())
+            return *bgra;
+        const auto supported = std::find_if(
+            formats.begin(), formats.end(), supports_blit);
+        if (supported == formats.end())
+            throw std::runtime_error(
+                "Vulkan Gallery surface has no blit-compatible format");
+        return *supported;
     }
 
     void create_swapchain(VkSurfaceKHR surface) {
+        VkFormatProperties render_format{};
+        vkGetPhysicalDeviceFormatProperties(
+            physical_, color_format, &render_format);
+        if ((render_format.optimalTilingFeatures &
+             VK_FORMAT_FEATURE_BLIT_SRC_BIT) == 0U)
+            throw std::runtime_error(
+                "Vulkan Gallery render target cannot be presented by blit");
         VkBool32 present_supported{};
         check(vkGetPhysicalDeviceSurfaceSupportKHR(
                   physical_, queue_family_, surface, &present_supported),
