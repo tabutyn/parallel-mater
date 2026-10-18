@@ -2,8 +2,10 @@
 #include <parallel_mater/pm_layer.h>
 #include <parallel_mater/pm_layer_args.h>
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <map>
 #include <mutex>
 #include <new>
 #include <unordered_map>
@@ -37,16 +39,26 @@ struct CommandPool {
 struct CommandBuffer {
     PmDevice device{};
     PmCommandPool pool{};
-    PmQueue pending_queue{};
-    PmFence pending_fence{};
+    std::uint64_t pending_submission{};
     PmFlags usage{};
     CommandState state{CommandState::initial};
 };
 enum class FenceState { unsignaled, pending, signaled };
 struct Fence {
     PmDevice device{};
-    PmQueue pending_queue{};
+    std::uint64_t pending_submission{};
     FenceState state{FenceState::unsignaled};
+};
+struct Submission {
+    PmDevice device{};
+    PmQueue queue{};
+};
+struct Semaphore {
+    PmDevice device{};
+    std::uint64_t value{};
+    std::uint64_t greatest_value{};
+    bool value_known{};
+    std::map<std::uint64_t, std::uint64_t> signals;
 };
 struct Queue {
     PmDevice device{};
@@ -62,6 +74,9 @@ std::unordered_map<PmCommandPool, CommandPool> command_pools;
 std::unordered_map<PmCommandBuffer, CommandBuffer> command_buffers;
 std::unordered_map<PmQueue, Queue> queues;
 std::unordered_map<PmFence, Fence> fences;
+std::unordered_map<std::uint64_t, Submission> submissions;
+std::unordered_map<PmSemaphore, Semaphore> semaphores;
+std::uint64_t next_submission = 1U;
 bool tracking_available = true;
 
 bool fits(PmDeviceSize offset, PmDeviceSize size, PmDeviceSize capacity) {
@@ -96,53 +111,125 @@ Fence *fence(PmDevice device, PmFence value) {
     return found != fences.end() && found->second.device == device
         ? &found->second : nullptr;
 }
+Semaphore *semaphore(PmDevice device, PmSemaphore value) {
+    const auto found = semaphores.find(value);
+    return found != semaphores.end() && found->second.device == device
+        ? &found->second : nullptr;
+}
 void complete(CommandBuffer &buffer) {
     buffer.state = (buffer.usage & PM_COMMAND_BUFFER_ONE_TIME_BIT) != 0U
         ? CommandState::invalid : CommandState::executable;
-    buffer.pending_queue = nullptr;
-    buffer.pending_fence = nullptr;
+    buffer.pending_submission = 0U;
 }
-void complete_fence(PmFence value) {
-    const auto found = fences.find(value);
-    if (found == fences.end()) return;
+void finish_submission(std::uint64_t value, PmResult result) {
+    if (!value) return;
     for (auto &[handle, buffer] : command_buffers) {
         (void)handle;
         if (buffer.state == CommandState::pending &&
-            buffer.pending_fence == value)
-            complete(buffer);
-    }
-    found->second.pending_queue = nullptr;
-    found->second.state = FenceState::signaled;
-}
-void complete_queue(PmQueue value) {
-    for (auto &[handle, buffer] : command_buffers) {
-        (void)handle;
-        if (buffer.state == CommandState::pending &&
-            buffer.pending_queue == value)
+            buffer.pending_submission == value)
             complete(buffer);
     }
     for (auto &[handle, tracked_fence] : fences) {
         (void)handle;
         if (tracked_fence.state == FenceState::pending &&
-            tracked_fence.pending_queue == value) {
-            tracked_fence.pending_queue = nullptr;
+            tracked_fence.pending_submission == value) {
+            tracked_fence.pending_submission = 0U;
             tracked_fence.state = FenceState::signaled;
         }
+    }
+    for (auto &[handle, timeline] : semaphores) {
+        (void)handle;
+        for (auto signal = timeline.signals.begin();
+             signal != timeline.signals.end();) {
+            if (signal->second != value) {
+                ++signal;
+                continue;
+            }
+            if (result == PM_SUCCESS) {
+                timeline.value = std::max(timeline.value, signal->first);
+                timeline.value_known = true;
+            }
+            signal = timeline.signals.erase(signal);
+        }
+    }
+    submissions.erase(value);
+}
+void complete_fence(PmFence value, PmResult result = PM_SUCCESS) {
+    const auto found = fences.find(value);
+    if (found == fences.end()) return;
+    finish_submission(found->second.pending_submission, result);
+    found->second.pending_submission = 0U;
+    found->second.state = FenceState::signaled;
+}
+void complete_queue(PmQueue value, PmResult result = PM_SUCCESS) {
+    for (;;) {
+        std::uint64_t pending{};
+        for (const auto &[id, submission] : submissions)
+            if (submission.queue == value) {
+                pending = id;
+                break;
+            }
+        if (!pending) break;
+        finish_submission(pending, result);
     }
 }
-void complete_device(PmDevice device) {
-    for (auto &[handle, buffer] : command_buffers) {
-        (void)handle;
-        if (buffer.device == device && buffer.state == CommandState::pending)
-            complete(buffer);
+void complete_device(PmDevice device, PmResult result = PM_SUCCESS) {
+    for (;;) {
+        std::uint64_t pending{};
+        for (const auto &[id, submission] : submissions)
+            if (submission.device == device) {
+                pending = id;
+                break;
+            }
+        if (!pending) break;
+        finish_submission(pending, result);
     }
-    for (auto &[handle, tracked_fence] : fences) {
-        (void)handle;
-        if (tracked_fence.device == device &&
-            tracked_fence.state == FenceState::pending) {
-            tracked_fence.pending_queue = nullptr;
-            tracked_fence.state = FenceState::signaled;
+}
+void complete_timeline_through(PmDevice device, PmSemaphore handle,
+                               std::uint64_t value, PmResult result) {
+    auto *timeline = semaphore(device, handle);
+    if (!timeline) return;
+    const auto selected = timeline->signals.lower_bound(value);
+    if (selected == timeline->signals.end()) {
+        if (result == PM_SUCCESS) {
+            timeline->value = std::max(timeline->value, value);
+            timeline->greatest_value = std::max(
+                timeline->greatest_value, timeline->value);
+            timeline->value_known = true;
         }
+        return;
+    }
+    const auto boundary = selected->first;
+    for (;;) {
+        timeline = semaphore(device, handle);
+        if (!timeline || timeline->signals.empty() ||
+            timeline->signals.begin()->first > boundary)
+            break;
+        const auto submission = timeline->signals.begin()->second;
+        finish_submission(submission, result);
+    }
+    timeline = semaphore(device, handle);
+    if (timeline && result == PM_SUCCESS) {
+        timeline->value = std::max(timeline->value, value);
+        timeline->greatest_value = std::max(
+            timeline->greatest_value, timeline->value);
+        timeline->value_known = true;
+    }
+}
+void observe_timeline_value(PmDevice device, PmSemaphore handle,
+                            std::uint64_t value) {
+    auto *timeline = semaphore(device, handle);
+    while (timeline && !timeline->signals.empty() &&
+           timeline->signals.begin()->first <= value) {
+        const auto submission = timeline->signals.begin()->second;
+        finish_submission(submission, PM_SUCCESS);
+        timeline = semaphore(device, handle);
+    }
+    if (timeline) {
+        timeline->value = std::max(timeline->value, value);
+        timeline->greatest_value = std::max(
+            timeline->greatest_value, timeline->value);
+        timeline->value_known = true;
     }
 }
 template<class T> PmResult validate(const T &) { return PM_SUCCESS; }
@@ -297,6 +384,53 @@ void record(const PmLayerArgs_pmResetCommandBuffer &a) {
         buffer->usage = 0U;
     }
 }
+
+PmResult validate(const PmLayerArgs_pmCreateSemaphore &a) {
+    return a.pInfo && a.pSemaphore &&
+        a.pInfo->sType == PM_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO &&
+        !a.pInfo->pNext ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT;
+}
+void record(const PmLayerArgs_pmCreateSemaphore &a) {
+    if (a.pSemaphore && *a.pSemaphore)
+        semaphores[*a.pSemaphore] = {
+            a.device, a.pInfo->initialValue, a.pInfo->initialValue, true};
+}
+PmResult validate(const PmLayerArgs_pmDestroySemaphore &a) {
+    return !a.semaphore || !tracking_available ||
+        semaphore(a.device, a.semaphore)
+        ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT;
+}
+void record(const PmLayerArgs_pmDestroySemaphore &a) {
+    for (;;) {
+        const auto found = semaphores.find(a.semaphore);
+        if (found == semaphores.end() || found->second.signals.empty()) break;
+        finish_submission(found->second.signals.begin()->second,
+                          PM_ERROR_DEVICE_LOST);
+    }
+    semaphores.erase(a.semaphore);
+}
+PmResult validate(const PmLayerArgs_pmGetSemaphoreCounterValue &a) {
+    return a.pValue && (!tracking_available || semaphore(a.device, a.semaphore))
+        ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT;
+}
+PmResult validate(const PmLayerArgs_pmWaitSemaphore &a) {
+    return !tracking_available || semaphore(a.device, a.semaphore)
+        ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT;
+}
+PmResult validate(const PmLayerArgs_pmImportNativeSemaphore &a) {
+    return a.nativeSemaphore && a.pSemaphore
+        ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT;
+}
+void record(const PmLayerArgs_pmImportNativeSemaphore &a) {
+    if (a.pSemaphore && *a.pSemaphore)
+        semaphores[*a.pSemaphore] = {a.device, 0U, 0U, false};
+}
+PmResult validate(const PmLayerArgs_pmGetNativeSemaphore &a) {
+    return a.pNativeSemaphore &&
+        (!tracking_available || semaphore(a.device, a.semaphore))
+        ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT;
+}
+
 PmResult validate(const PmLayerArgs_pmQueueSubmit &a) {
     if (!a.pInfo || a.pInfo->sType != PM_STRUCTURE_TYPE_SUBMIT_INFO ||
         a.pInfo->pNext ||
@@ -307,6 +441,33 @@ PmResult validate(const PmLayerArgs_pmQueueSubmit &a) {
     if (!tracking_available) return PM_SUCCESS;
     const auto queue = queues.find(a.queue);
     if (queue == queues.end()) return PM_ERROR_INVALID_ARGUMENT;
+    for (std::uint32_t index = 0U; index < a.pInfo->waitCount; ++index) {
+        const auto &wait = a.pInfo->pWaits[index];
+        const auto *timeline = semaphore(queue->second.device, wait.semaphore);
+        if (!timeline || wait.stages == 0U ||
+            (wait.stages & ~PM_STAGE_ALL_COMMANDS_BIT) != 0U)
+            return PM_ERROR_INVALID_ARGUMENT;
+        const bool submitted = (timeline->value_known &&
+                timeline->value >= wait.value) ||
+            timeline->signals.lower_bound(wait.value) != timeline->signals.end();
+        if (!submitted && timeline->value_known)
+            for (std::uint32_t signal = 0U;
+                 signal < a.pInfo->signalCount; ++signal)
+                if (a.pInfo->pSignals[signal].semaphore == wait.semaphore)
+                    return PM_ERROR_INVALID_ARGUMENT;
+    }
+    for (std::uint32_t index = 0U; index < a.pInfo->signalCount; ++index) {
+        const auto &signal = a.pInfo->pSignals[index];
+        const auto *timeline = semaphore(queue->second.device, signal.semaphore);
+        if (!timeline || signal.stages != PM_STAGE_ALL_COMMANDS_BIT)
+            return PM_ERROR_INVALID_ARGUMENT;
+        auto greatest = timeline->greatest_value;
+        for (std::uint32_t previous = 0U; previous < index; ++previous)
+            if (a.pInfo->pSignals[previous].semaphore == signal.semaphore)
+                greatest = std::max(greatest,
+                    a.pInfo->pSignals[previous].value);
+        if (signal.value <= greatest) return PM_ERROR_INVALID_ARGUMENT;
+    }
     for (std::uint32_t index = 0U;
          index < a.pInfo->commandBufferCount; ++index) {
         const auto handle = a.pInfo->pCommandBuffers[index];
@@ -331,20 +492,34 @@ PmResult validate(const PmLayerArgs_pmQueueSubmit &a) {
     return PM_SUCCESS;
 }
 void record(const PmLayerArgs_pmQueueSubmit &a) {
+    const auto queue = queues.find(a.queue);
+    if (queue == queues.end()) return;
+    if (!a.fence && !a.pInfo->commandBufferCount && !a.pInfo->signalCount)
+        return;
+    auto submission = next_submission++;
+    if (!submission) submission = next_submission++;
+    submissions.emplace(submission, Submission{queue->second.device, a.queue});
     for (std::uint32_t index = 0U;
          index < a.pInfo->commandBufferCount; ++index)
         if (auto *buffer = command_buffer(a.pInfo->pCommandBuffers[index])) {
             buffer->state = CommandState::pending;
-            buffer->pending_queue = a.queue;
-            buffer->pending_fence = a.fence;
+            buffer->pending_submission = submission;
         }
+    for (std::uint32_t index = 0U;
+         index < a.pInfo->signalCount; ++index) {
+        const auto &signal = a.pInfo->pSignals[index];
+        if (auto *timeline = semaphore(queue->second.device,
+                                      signal.semaphore)) {
+            timeline->greatest_value = std::max(
+                timeline->greatest_value, signal.value);
+            timeline->signals.emplace(signal.value, submission);
+        }
+    }
     if (a.fence) {
-        const auto queue = queues.find(a.queue);
-        if (queue != queues.end())
-            if (auto *tracked_fence = fence(queue->second.device, a.fence)) {
-                tracked_fence->state = FenceState::pending;
-                tracked_fence->pending_queue = a.queue;
-            }
+        if (auto *tracked_fence = fence(queue->second.device, a.fence)) {
+            tracked_fence->state = FenceState::pending;
+            tracked_fence->pending_submission = submission;
+        }
     }
 }
 void record(const PmLayerArgs_pmQueueWaitIdle &a) { complete_queue(a.queue); }
@@ -356,7 +531,7 @@ PmResult validate(const PmLayerArgs_pmCreateFence &a) {
 }
 void record(const PmLayerArgs_pmCreateFence &a) {
     if (a.pFence && *a.pFence)
-        fences[*a.pFence] = {a.device, nullptr,
+        fences[*a.pFence] = {a.device, 0U,
             (a.flags & PM_FENCE_SIGNALED_BIT) != 0U
                 ? FenceState::signaled : FenceState::unsignaled};
 }
@@ -509,7 +684,7 @@ void record(const PmLayerArgs_pmFreeMemory &a) {
         d->second.memories.erase(a.memory);
 }
 void record(const PmLayerArgs_pmDestroyDevice &a) {
-    complete_device(a.device);
+    complete_device(a.device, PM_ERROR_DEVICE_LOST);
     for (auto found = command_buffers.begin(); found != command_buffers.end();)
         if (found->second.device == a.device) found = command_buffers.erase(found);
         else ++found;
@@ -522,6 +697,9 @@ void record(const PmLayerArgs_pmDestroyDevice &a) {
     for (auto found = fences.begin(); found != fences.end();)
         if (found->second.device == a.device) found = fences.erase(found);
         else ++found;
+    for (auto found = semaphores.begin(); found != semaphores.end();)
+        if (found->second.device == a.device) found = semaphores.erase(found);
+        else ++found;
     devices.erase(a.device);
 }
 
@@ -532,7 +710,7 @@ template<class T> void record_result(const T &a, PmResult result) {
     if (result == PM_SUCCESS) record(a);
 }
 void record_result(const PmLayerArgs_pmGetFenceStatus &a, PmResult result) {
-    if (completion_result(result)) complete_fence(a.fence);
+    if (completion_result(result)) complete_fence(a.fence, result);
 }
 void record_result(const PmLayerArgs_pmWaitForFences &a, PmResult result) {
     if (!completion_result(result)) return;
@@ -541,13 +719,22 @@ void record_result(const PmLayerArgs_pmWaitForFences &a, PmResult result) {
     // later status query before allowing its command buffers to be reused.
     if ((result == PM_SUCCESS && a.waitAll == PM_TRUE) || a.count == 1U)
         for (std::uint32_t index = 0U; index < a.count; ++index)
-            complete_fence(a.pFences[index]);
+            complete_fence(a.pFences[index], result);
 }
 void record_result(const PmLayerArgs_pmQueueWaitIdle &a, PmResult result) {
-    if (completion_result(result)) complete_queue(a.queue);
+    if (completion_result(result)) complete_queue(a.queue, result);
 }
 void record_result(const PmLayerArgs_pmDeviceWaitIdle &a, PmResult result) {
-    if (completion_result(result)) complete_device(a.device);
+    if (completion_result(result)) complete_device(a.device, result);
+}
+void record_result(const PmLayerArgs_pmGetSemaphoreCounterValue &a,
+                   PmResult result) {
+    if (result == PM_SUCCESS && a.pValue)
+        observe_timeline_value(a.device, a.semaphore, *a.pValue);
+}
+void record_result(const PmLayerArgs_pmWaitSemaphore &a, PmResult result) {
+    if (completion_result(result))
+        complete_timeline_through(a.device, a.semaphore, a.value, result);
 }
 
 template<class Function>
@@ -606,6 +793,8 @@ PM_LAYER_EXPORT void PMAPI_CALL pm_layerPostCall(
         command_buffers.clear();
         queues.clear();
         fences.clear();
+        submissions.clear();
+        semaphores.clear();
         tracking_available = false;
         std::fputs("Parallel Mater validation: host memory exhausted; object tracking disabled\n", stderr);
     }
