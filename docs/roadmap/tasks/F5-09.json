@@ -1,7 +1,7 @@
 {
   "id": "F5-09",
   "title": "Isolate native Vulkan validation crash",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "vulkan-qualification"
@@ -15,6 +15,14 @@
     "A corrected setup or confirmed upstream fix must pass the unchanged lifecycle case before closing qualification."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "829f3ebc-684f-4d5a-ac34-1ced6eab3024",
+    "owner": "codex-linux-gallery",
+    "machine": "thomas-laptop",
+    "branch": "work/F5-09/thomas-laptop",
+    "claimed_at": "2026-10-18T15:17:51Z",
+    "heartbeat_at": "2026-10-18T15:17:51Z",
+    "expires_at": "2026-10-19T15:17:51Z"
+  },
   "history": []
 }
