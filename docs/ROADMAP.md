@@ -344,7 +344,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-53](roadmap/tasks/P1-53.json) | Solve mixed smoke thermal exchange | deferred | P1-40 | — |
 | [P1-54](roadmap/tasks/P1-54.json) | Schedule mixed smoke pair modes | deferred | P1-52, P1-53 | — |
 | [P1-55](roadmap/tasks/P1-55.json) | Qualify mixed smoke pair modes | deferred | P1-54, F5-02, F5-03 | — |
-| [P1-56](roadmap/tasks/P1-56.json) | Expose immiscible interface state | deferred | P1-04 | — |
+| [P1-56](roadmap/tasks/P1-56.json) | Expose immiscible interface state | ready | P1-04 | — |
 | [P1-57](roadmap/tasks/P1-57.json) | Expose interface thermal conductance | deferred | P1-15, P1-56 | — |
 
 ### P2. Deferred engine integration
