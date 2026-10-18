@@ -487,15 +487,20 @@ public:
         collect_locked();
     }
     void close() noexcept {
-        std::list<std::shared_ptr<RetainedSubmission>> pending;
-        {
-            std::lock_guard lock(mutex_);
-            closed_ = true;
-            pending.swap(pending_);
-        }
         // No queue lock while waiting. A deferred failure is terminal, but
         // must not prevent later submissions from draining during teardown.
-        for (const auto &completion : pending) {
+        // Pop one existing slot at a time: even an empty temporary list may
+        // allocate its sentinel on some standard libraries. Teardown must not
+        // need a fresh allocation in order to retain/drain accepted work.
+        for (;;) {
+            std::shared_ptr<RetainedSubmission> completion;
+            {
+                std::lock_guard lock(mutex_);
+                closed_ = true;
+                if (pending_.empty()) return;
+                completion = std::move(pending_.front());
+                pending_.pop_front();
+            }
             try { completion->wait(); } catch (...) {}
         }
     }
