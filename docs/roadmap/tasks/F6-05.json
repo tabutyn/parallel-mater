@@ -1,7 +1,7 @@
 {
   "id": "F6-05",
   "title": "Regenerate and verify release reference artifacts",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F3-06"
   ],
@@ -16,15 +16,29 @@
     "Text, generated C headers, coverage and PDF/layout refer to the same registry revision.",
     "A clean documented command reproduces artifacts or reports known nondeterminism."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "fe8d308c-7eec-4425-89de-f5c64a17b273",
-    "owner": "codex-windows-sdk",
-    "machine": "windows-gtx1080",
-    "branch": "work/F6-05/windows-gtx1080",
-    "claimed_at": "2026-10-18T07:11:34Z",
-    "heartbeat_at": "2026-10-18T07:11:34Z",
-    "expires_at": "2026-10-19T07:11:34Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: python tools/reference/bootstrap.py --build --check --skip-vulkan-header; CPython 3.13.15/MSVC 19.51 on Windows GTX 1080 host; all 10 artifacts reproduced byte-for-byte and docs/roadmap/evidence/F6-05-reference-artifacts.json records the reviewed result.",
+    "PASS: 6 C11/C++17 ABI checks, 118 declarations, 52 specification pages and 9 reference pages; embedded fonts, links, bounds and overlap checks passed; optional Vulkan compile probe was skipped but its generated header was hash-compared."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "fe8d308c-7eec-4425-89de-f5c64a17b273",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F6-05/windows-gtx1080",
+        "claimed_at": "2026-10-18T07:11:34Z",
+        "heartbeat_at": "2026-10-18T07:11:34Z",
+        "expires_at": "2026-10-19T07:11:34Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T07:26:46Z",
+      "reason": "Pinned the complete reference-document toolchain and made every release artifact provenance-linked and cleanly reproducible.",
+      "evidence": [
+        "PASS: python tools/reference/bootstrap.py --build --check --skip-vulkan-header; CPython 3.13.15/MSVC 19.51 on Windows GTX 1080 host; all 10 artifacts reproduced byte-for-byte and docs/roadmap/evidence/F6-05-reference-artifacts.json records the reviewed result.",
+        "PASS: 6 C11/C++17 ABI checks, 118 declarations, 52 specification pages and 9 reference pages; embedded fonts, links, bounds and overlap checks passed; optional Vulkan compile probe was skipped but its generated header was hash-compared."
+      ]
+    }
+  ]
 }

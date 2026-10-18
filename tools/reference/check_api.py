@@ -17,7 +17,7 @@ LOADER_SPECIAL = {
 }
 
 
-def check_contract(root, destination, directory, run, require,
+def check_contract(root, destination, directory, run, require, compile_source,
                    skip_vulkan=False):
     del destination
     commands = [command for command in declarations()
@@ -38,13 +38,12 @@ def check_contract(root, destination, directory, run, require,
         source += f'    (void)check_{name};\n'
     source += '    return 0;\n}\n'
     test = directory / "all_commands.c"
-    test.write_text(source)
-    for compiler, language, standard in (
-            (os.environ.get("CC", "cc"), "c", "c11"),
-            (os.environ.get("CXX", "c++"), "c++", "c++17")):
-        run([compiler, "-x", language, f"-std={standard}", "-Wall",
-             "-Wextra", "-Werror", "-pedantic", "-Iinclude",
-             "-fsyntax-only", str(test)])
+    test.write_text(source, encoding="utf-8", newline="\n")
+    defaults = ("cl", "cl") if os.name == "nt" else ("cc", "c++")
+    for compiler, language, standard in ((defaults[0], "c", "c11"),
+                                          (defaults[1], "c++", "c++17")):
+        compiler = os.environ.get("CC" if language == "c" else "CXX", compiler)
+        compile_source(compiler, language, standard, test, "include")
 
     definitions = {}
     for path in sorted((root / "src/loader").glob("*.cpp")):

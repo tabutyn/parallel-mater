@@ -1,4 +1,8 @@
 {
+  "registry": {
+    "path": "registry/pm.xml",
+    "sha256": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7"
+  },
   "contract": "Parallel Mater command API 0.2",
   "implementation": "src/loader public entry points routed to installable drivers",
   "statusMeaning": {

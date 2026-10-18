@@ -168,7 +168,8 @@ def build_specification(output):
     doc = SpecificationDoc(stream)
     doc.multiBuild(story)
     output.write_bytes(stream.getvalue())
-    output.with_suffix(".md").write_text(render_markdown())
+    output.with_suffix(".md").write_text(
+        render_markdown(), encoding="utf-8", newline="\n")
     return {"version": "0.2", "page_count": doc.page_count, "page_map": doc.page_map,
             "numbers": NUMBERS, "symbols": dict(symbols()), "example_keys": list(source_code),
             "pdf_sha256": hashlib.sha256(stream.getvalue()).hexdigest()}
