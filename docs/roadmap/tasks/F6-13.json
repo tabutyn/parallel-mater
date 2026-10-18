@@ -1,7 +1,7 @@
 {
   "id": "F6-13",
   "title": "Package the conformance runner source closure",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F6-12"
   ],
@@ -18,6 +18,14 @@
     "The full SDK install checker passes configure, build, corpus input, installed-runner, unsupported-case and missing-driver checks after relocating a clean install."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "9c9ee686-192f-407d-aa3e-de797a8d3be9",
+    "owner": "codex-linux-release",
+    "machine": "thomas-laptop",
+    "branch": "work/F6-13/thomas-laptop",
+    "claimed_at": "2026-10-18T20:41:34Z",
+    "heartbeat_at": "2026-10-18T20:41:34Z",
+    "expires_at": "2026-10-19T20:41:34Z"
+  },
   "history": []
 }
