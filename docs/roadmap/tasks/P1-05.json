@@ -1,7 +1,7 @@
 {
   "id": "P1-05",
   "title": "Build heterogeneous fluid pair sampling",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "P1-04"
   ],
@@ -18,6 +18,14 @@
     "Storage planning bounds all heterogeneous pair scratch and overflow diagnostics."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "57a06708-1b8c-48b4-8a02-808b09b6f177",
+    "owner": "codex-fluid-sampling",
+    "machine": "thomas-laptop",
+    "branch": "work/P1-05/thomas-laptop",
+    "claimed_at": "2026-10-18T21:47:04Z",
+    "heartbeat_at": "2026-10-18T21:47:04Z",
+    "expires_at": "2026-10-19T21:47:04Z"
+  },
   "history": []
 }
