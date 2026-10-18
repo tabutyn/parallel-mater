@@ -19,6 +19,24 @@ struct GallerySessionConfig {
     std::string platform, model, backend;
     std::optional<PmNativeBackend> native_backend;
     bool gpu_rendering{};
+    std::optional<GalleryWorkloadLimits> workload_limits;
+    std::optional<BrickSceneConfig> bricks;
+    std::uint32_t dump_spheres{};
+    std::uint32_t fluid_particles{};
+    unsigned initial_scene{};
+    std::filesystem::path rigid_body_asset;
+    GalleryReplacementPolicy replacement{
+        GalleryReplacementPolicy::release_before_device_create};
+    std::optional<bool> create_host_renderer;
+    bool prime_scene{true};
+    std::function<bool(GalleryContext, const SceneDefinition &, std::string &)>
+        validate_scene;
+};
+
+struct GallerySceneParameters {
+    BrickSceneConfig bricks{};
+    std::uint32_t dump_spheres{};
+    std::uint32_t fluid_particles{};
 };
 
 // One worker owns the session. Platform clients supply paths, input, monotonic
@@ -45,6 +63,11 @@ public:
     void set_active(bool value);
     void steer(float right, float up);
     void set_bricks(unsigned count);
+    void set_scene_parameters(GallerySceneParameters parameters) noexcept;
+    [[nodiscard]] GallerySceneParameters scene_parameters() const noexcept;
+    [[nodiscard]] bool controlled_step(const GalleryControlInput &input,
+                                       GalleryStepOptions options,
+                                       std::string &error);
     void validate_snapshot() const;
     // Destructive diagnostic: exercise current scene, then reset it. The caller
     // supplies scheduling/reporting; all platforms run these same checks.
@@ -64,10 +87,15 @@ public:
     GalleryControllerState controller_state() const {
         return runtime_.controller_state();
     }
+    GalleryRuntime &runtime() noexcept { return runtime_; }
+    const GalleryRuntime &runtime() const noexcept { return runtime_; }
+    CameraController &camera() noexcept { return runtime_.camera; }
+    const CameraController &camera() const noexcept { return runtime_.camera; }
     bool ready() const { return runtime_.ready(); }
     bool active() const { return active_; }
     bool is_paused() const { return paused_; }
     unsigned selection() const { return selected_; }
+    std::uint64_t revision() const noexcept { return revision_; }
     void set_presentation_layer(void *layer) { presentation_layer_ = layer; }
     void *native_render_device() const;
     GalleryWorkloadLimits limits;
@@ -80,7 +108,8 @@ private:
     GallerySessionConfig config_;
     GalleryCatalog catalog_{make_gallery_catalog()};
     unsigned selected_{};
-    unsigned bricks_{};
+    GallerySceneParameters parameters_{};
+    std::uint64_t revision_{};
     bool paused_{}, active_{true};
     float right_{}, up_{};
     bool released_{};
