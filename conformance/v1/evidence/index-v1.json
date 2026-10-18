@@ -3076,7 +3076,9 @@
       "rule_id": "rope-self",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
+          "contracts": [
+            "quality:rope-self-contact-v1"
+          ],
           "status": "missing_contract"
         },
         "compilation": {
@@ -3125,7 +3127,9 @@
       "rule_id": "rope-self",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
+          "contracts": [
+            "quality:rope-self-contact-v1"
+          ],
           "status": "missing_contract"
         },
         "compilation": {
@@ -7966,7 +7970,9 @@
       "rule_id": "rope-self",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
+          "contracts": [
+            "quality:rope-self-contact-v1"
+          ],
           "status": "missing_contract"
         },
         "compilation": {
@@ -8015,7 +8021,9 @@
       "rule_id": "rope-self",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
+          "contracts": [
+            "quality:rope-self-contact-v1"
+          ],
           "status": "missing_contract"
         },
         "compilation": {
@@ -11112,7 +11120,9 @@
       "rule_id": "rope-self",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
+          "contracts": [
+            "quality:rope-self-contact-v1"
+          ],
           "status": "missing_contract"
         },
         "compilation": {
@@ -12169,7 +12179,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "1630b7fd29c8f569069205c0d3476b5e96b75e3919c8a364c96929a85be44472",
+      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -14991,20 +15001,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral rope self-contact quality case is registered.",
+      "actual": "quality:rope-self-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "unknown required contract",
       "path": "$.advertised_capabilities[6].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral rope self-contact quality case is registered.",
+      "actual": "quality:rope-self-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "unknown required contract",
       "path": "$.advertised_capabilities[6].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -15236,7 +15246,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "1630b7fd29c8f569069205c0d3476b5e96b75e3919c8a364c96929a85be44472",
+      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15245,7 +15255,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "1630b7fd29c8f569069205c0d3476b5e96b75e3919c8a364c96929a85be44472",
+      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15254,7 +15264,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "1630b7fd29c8f569069205c0d3476b5e96b75e3919c8a364c96929a85be44472",
+      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15648,7 +15658,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "1630b7fd29c8f569069205c0d3476b5e96b75e3919c8a364c96929a85be44472",
+      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -17568,20 +17578,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral rope self-contact quality case is registered.",
+      "actual": "quality:rope-self-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "unknown required contract",
       "path": "$.advertised_capabilities[3].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral rope self-contact quality case is registered.",
+      "actual": "quality:rope-self-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "unknown required contract",
       "path": "$.advertised_capabilities[3].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -18272,7 +18282,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "1630b7fd29c8f569069205c0d3476b5e96b75e3919c8a364c96929a85be44472",
+      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18281,7 +18291,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "1630b7fd29c8f569069205c0d3476b5e96b75e3919c8a364c96929a85be44472",
+      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19233,11 +19243,11 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral rope self-contact quality case is registered.",
+      "actual": "quality:rope-self-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "unknown required contract",
       "path": "$.advertised_capabilities[3].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -19577,7 +19587,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "1630b7fd29c8f569069205c0d3476b5e96b75e3919c8a364c96929a85be44472",
+      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19585,7 +19595,7 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "1630b7fd29c8f569069205c0d3476b5e96b75e3919c8a364c96929a85be44472",
+  "obligations_sha256": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
   "qualification_complete": true,
   "qualified_capability_count": 0,
   "report_count": 10,
@@ -19894,7 +19904,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "022e0aa7a337e726724342ebfa12c2b2516dbefb76a49cc9919c6243b2dfdba9",
+  "sources_sha256": "0b91c338b7d6096fa04439406f3ac16456c10424610027f2ea8e1c66ca260f8e",
   "valid": true,
   "validation_failures": []
 }
