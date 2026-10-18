@@ -1,4 +1,5 @@
 #include "dispatch_entry.slang"
+#include "dispatch_shape.slangh"
 // SPDX-License-Identifier: MIT
 // Shared cloth/smoke coupling kernels.
 
@@ -11,7 +12,7 @@ import smoke_grid;
 import graphics_resources;
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_cloth_wind(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> inverse_masses, uniform uint vertex_count,
@@ -30,7 +31,7 @@ void smoke_cloth_wind(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_cloth_contact(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous_positions,
     uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages, uniform PMBuffer<float> pressures,

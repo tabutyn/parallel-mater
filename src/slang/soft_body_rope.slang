@@ -1,4 +1,5 @@
 #include "dispatch_entry.slang"
+#include "dispatch_shape.slangh"
 // SPDX-License-Identifier: MIT
 // Shared soft-body and rope endpoint coupling kernels. Contact traversal is
 // shared with rope.slang.
@@ -11,7 +12,7 @@ import graphics_resources;
 groupshared float ropeSoftSums[256];
 
 [shader("compute")]
-[numthreads(1, 1, 1)]
+[numthreads(PM_THREADS(1), 1, 1)]
 void rope_soft_sample_anchor(
     uniform PMBuffer<Vec3> soft_anchor_positions,
     uniform PMBuffer<Vec3> soft_anchor_velocities,
@@ -48,7 +49,7 @@ void rope_soft_sample_anchor(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void rope_soft_scatter_anchor(
     uniform PMBuffer<Vec3> soft_anchor_positions,
     uniform PMBuffer<Vec3> soft_anchor_impulses, uniform uint end,
@@ -120,7 +121,7 @@ void rope_soft_scatter_anchor(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void rope_soft_apply(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<Vec3> forces, uniform PMBuffer<float> inverse_masses,

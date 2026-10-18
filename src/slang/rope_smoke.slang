@@ -1,4 +1,5 @@
 #include "dispatch_entry.slang"
+#include "dispatch_shape.slangh"
 // SPDX-License-Identifier: MIT
 // Shared rope/smoke coupling kernels.
 
@@ -10,13 +11,14 @@ import geometry_smoke;
 import graphics_resources;
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_rope_wind(
     uniform PMBuffer<Vec3> rope_positions, uniform PMBuffer<Vec3> rope_velocities,
     uniform uint rope_count, uniform float rope_maximum_speed,
     uniform bool first_attached, uniform bool last_attached,
     uniform bool soft_first, uniform bool soft_last,
-    uniform SmokeOptions smoke,
+    uniform uint smoke_capacity, uniform float smoke_particle_radius,
+    uniform float smoke_rest_number_density,
     uniform PMBuffer<Vec3> smoke_positions, uniform PMBuffer<Vec3> smoke_velocities,
     uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> indices,
     uniform SmokeGridField grid, uniform float drag,
@@ -27,6 +29,10 @@ void smoke_rope_wind(
     if (node >= rope_count ||
         (node == 0u && (first_attached || soft_first)) ||
         (node + 1u == rope_count && (last_attached || soft_last))) return;
+    SmokeOptions smoke = {};
+    smoke.capacity = smoke_capacity;
+    smoke.particle_radius = smoke_particle_radius;
+    smoke.rest_number_density = smoke_rest_number_density;
     rope_velocities[node] = clamp_length(add(rope_velocities[node],
         smoke_wind_delta(rope_positions[node], rope_velocities[node],
             smoke_positions, smoke_velocities, keys, indices, smoke, grid,
@@ -34,7 +40,7 @@ void smoke_rope_wind(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_rope_contact(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous_positions,
     uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages, uniform uint count,

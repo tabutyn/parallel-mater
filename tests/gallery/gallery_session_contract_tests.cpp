@@ -197,23 +197,6 @@ int main() {
 
             if (session.backend_name() == "vulkan") {
                 for (const gallery::GalleryContext context : {
-                         gallery::GalleryContext::rope_cloth,
-                         gallery::GalleryContext::rope_soft_body,
-                         gallery::GalleryContext::smoke_cloth,
-                         gallery::GalleryContext::smoke_soft_body,
-                         gallery::GalleryContext::smoke_rope}) {
-                    const auto item = std::find_if(
-                        session.catalog().begin(), session.catalog().end(),
-                        [context](const auto &candidate) {
-                            return candidate.scene.context == context;
-                        });
-                    require(item != session.catalog().end() && !item->available &&
-                                item->unavailable_reason.find(
-                                    "Missing backend interactions") !=
-                                    std::string::npos,
-                            "Unqualified Vulkan rope coupling was advertised");
-                }
-                for (const gallery::GalleryContext context : {
                          gallery::GalleryContext::cloth,
                          gallery::GalleryContext::cloth_tear,
                          gallery::GalleryContext::cloth_paint,
@@ -221,10 +204,16 @@ int main() {
                          gallery::GalleryContext::soft_body,
                          gallery::GalleryContext::soft_body_rigid,
                          gallery::GalleryContext::soft_body_fluid,
+                         gallery::GalleryContext::soft_body_cloth,
                          gallery::GalleryContext::rope,
                          gallery::GalleryContext::rope_fluid,
+                         gallery::GalleryContext::rope_soft_body,
+                         gallery::GalleryContext::rope_cloth,
                          gallery::GalleryContext::smoke,
-                         gallery::GalleryContext::smoke_water}) {
+                         gallery::GalleryContext::smoke_water,
+                         gallery::GalleryContext::smoke_soft_body,
+                         gallery::GalleryContext::smoke_cloth,
+                         gallery::GalleryContext::smoke_rope}) {
                     const auto item = std::find_if(
                         session.catalog().begin(), session.catalog().end(),
                         [context](const auto &candidate) {
