@@ -720,6 +720,10 @@ int main(int argc, char **argv) {
                 error, false, false, false) || gpu_only.full_host_output ||
             gpu_only.revision != 0 || !gpu_only.rigid_states.empty() ||
             !gpu_only.fluid_particles.empty() || !gpu_only.cloth_vertices.empty() ||
+            gpu_only.statistics.stepCount == 0U ||
+            !simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F}, gpu_only,
+                error, false, false, false) || gpu_only.full_host_output ||
+            gpu_only.revision != 0 || !gpu_only.rigid_states.empty() ||
             !simulation.read_output(gpu_only, error) || !validate_frame(scene, gpu_only, error)) {
             std::cerr << entry.name << ": no-host-output step failed: " << error << '\n';
             return 1;
