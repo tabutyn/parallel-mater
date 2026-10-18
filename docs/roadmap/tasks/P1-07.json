@@ -1,7 +1,7 @@
 {
   "id": "P1-07",
   "title": "Exchange miscible viscosity",
-  "status": "deferred",
+  "status": "open",
   "dependencies": [
     "P1-06"
   ],
