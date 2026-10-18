@@ -1,0 +1,123 @@
+{
+  "schema": "parallel-mater-roadmap-rope-self-contact-evidence/v1",
+  "task": "F5-28",
+  "source": {
+    "commit": "f08b130193b0f0982bc9e1384afd5cd66acede82",
+    "dirty": false,
+    "branch": "work/F5-28/windows-gtx1080",
+    "lease_token": "9026eafc-49a2-438a-9d99-d71203462c0e"
+  },
+  "canonical_hash_normalization": "UTF-8 bytes with CRLF normalized to LF for JSON contracts, matching conformance input verification",
+  "host": {
+    "hostname": "Thomas-Desktop",
+    "operating_system": "Microsoft Windows 10.0.26200.9711",
+    "architecture": "x86_64",
+    "cpu": "AMD Ryzen 5 5500",
+    "gpu": "NVIDIA GeForce GTX 1080",
+    "pci_device_id": "0x1B8010DE",
+    "nvidia_driver": "582.66"
+  },
+  "toolchain": {
+    "host_compiler": "MSVC 19.44.35228.0",
+    "cuda": "12.9.86",
+    "cmake": "4.4.2",
+    "slang": "2026.18",
+    "python": "3.12.9"
+  },
+  "capability": {
+    "first_family": "ROPE",
+    "second_family": "ROPE",
+    "scope": "SELF",
+    "mode": "CONTACT",
+    "direction": "BIDIRECTIONAL",
+    "material_profile": "ENDPOINT_NATIVE"
+  },
+  "profile": {
+    "id": "rope-self-contact-v1",
+    "path": "conformance/v1/quality/rope-self-contact-v1.json",
+    "sha256": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113",
+    "oracle": "independent sampled-node pair distance, topology exclusion, center-of-mass, transverse leakage and speed checks over canonical public input and public rope output",
+    "representation": "material-radius spheres centered at sampled rope nodes; continuous segment contact is not claimed",
+    "units": {
+      "distance": "m",
+      "velocity": "m/s",
+      "mass": "kg",
+      "time": "s"
+    },
+    "retained_thresholds": {
+      "target_separation_m": 0.12,
+      "minimum_separation_fraction": 0.95,
+      "topology_exclusion_index_distance": 2,
+      "excluded_probe_maximum_fraction": 0.95,
+      "center_of_mass_drift_absolute_m": 1e-05,
+      "transverse_position_absolute_m": 1e-06
+    }
+  },
+  "qualification_obligations": {
+    "path": "conformance/v1/qualification/capability-obligations-v1.json",
+    "sha256": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
+    "exact_rule": "rope-self",
+    "trajectory_contract": "case:rope-core",
+    "lifecycle_invariants": "case:rope-core",
+    "analytic_invariants": "quality:rope-self-contact-v1",
+    "lifecycle_remains_independent": true
+  },
+  "runner": {
+    "path": "build-f5-28-windows/Release/parallel-mater-conformance.exe",
+    "sha256": "22fd7253a5883b1ed142f0a5874f97cdb5ff634cb32b975f53794b2689090287",
+    "validation_layer_sha256": "322ca70a95cc45d77bbd8326e7cdc4b786503126e75ac6a1269198644df7fbae"
+  },
+  "drivers": {
+    "slang-cuda": {
+      "binary_sha256": "0e9f148f0f7bc21a058648eb9f1de5428da76c61b1bcd14fa85809f6b0cd7401",
+      "result": "docs/roadmap/evidence/F5-28-f08b130-cuda-result.json",
+      "result_sha256": "bdfa3763a5da503bd6a379afdc4680d79086fb90e2e128985312e9f47cdb3ab1",
+      "report": "docs/roadmap/evidence/F5-28-f08b130-cuda-report.json",
+      "report_sha256": "e439a83a57e1abe3ab22eec3ed799afbbadd005876d3e5f5e6da6255637a0f90",
+      "advertised": true,
+      "passed": true
+    },
+    "slang-d3d12": {
+      "binary_sha256": "25bdda6a9940894c350be69392967746e2f35e849a0d2f694360bcc349eddb4e",
+      "result": "docs/roadmap/evidence/F5-28-f08b130-d3d12-result.json",
+      "result_sha256": "5c2882097c79cd4481ba57e6abf4a7f5ac13174ea161cd8e6d7e58bc1ff68a8f",
+      "advertised": false,
+      "passed": false,
+      "reason": "selected device does not expose every scene capability"
+    }
+  },
+  "observations": {
+    "slang-cuda": {
+      "minimum_eligible_initial_separation_m": 0.019999999552965164,
+      "minimum_eligible_final_separation_m": 0.11999999507617162,
+      "target_separation_m": 0.12,
+      "overlapping_eligible_pair_count": 1,
+      "center_of_mass_drift_m": 9.315374889959498e-10,
+      "maximum_transverse_position_m": 0.0,
+      "maximum_node_speed_m_s": 6.453602275000999
+    }
+  },
+  "validation": {
+    "physical_quality": "CUDA passed 1/1 public-API sample on the physical GTX 1080",
+    "unsupported_preserved": "D3D12 did not advertise the rope scene capability; its failed raw result is retained and grants no qualification",
+    "lifecycle_binding": "case:rope-core remains an independent required lifecycle and trajectory contract",
+    "python_conformance_tests": "106/106 quality, qualification, manifest and evidence-index tests passed",
+    "evidence_index": "rebuilt with all 10 historical reports and 0/251 qualified records; failures retained",
+    "input_manifest": "passed"
+  },
+  "reproduction": [
+    "Configure a clean Windows source build with PARALLEL_MATER_BUILD_CONFORMANCE=ON, PARALLEL_MATER_BUILD_CUDA=ON and PARALLEL_MATER_BUILD_D3D12=ON.",
+    "Build parallel-mater-conformance, parallel-mater-layer-validation, parallel-mater-driver-slang-cuda and parallel-mater-driver-slang-d3d12 in Release configuration.",
+    "Set PM_DRIVER_FILES to the selected build manifest and PM_LAYER_FILES to the build validation manifest.",
+    "parallel-mater-conformance --quality rope-self-contact-v1 --output <result-directory>.",
+    "python conformance/v1/quality.py --profile conformance/v1/quality/rope-self-contact-v1.json --actual <result> --report <report>.",
+    "python conformance/v1/evidence_index.py --check."
+  ],
+  "limitations": [
+    "This evidence qualifies only the exact sampled-node rope self-contact behavior of the captured CUDA binary on the named physical device.",
+    "Nodes whose indices differ by two or less remain excluded; continuous segment, knot, splice and inter-rope contact are not claimed.",
+    "The unchanged rope-core lifecycle, capacity, replacement and rollback obligations remain independently required and are not substituted by this analytic fixture.",
+    "D3D12 remains unqualified for this record because the captured driver does not advertise rope support.",
+    "Historical and unrecaptured drivers remain unqualified; this capture does not promote them or erase their failures."
+  ]
+}

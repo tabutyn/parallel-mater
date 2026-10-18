@@ -1107,6 +1107,261 @@ def _evaluate_rigid_kinematic_sweep(
     }
 
 
+def _evaluate_rope_self_contact(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definition = profile.get("fixture")
+    actual = result.get("fixture")
+    if not isinstance(definition, dict):
+        failures.append(Failure("$.profile.fixture", "expected an object", definition))
+        definition = {}
+    if not isinstance(actual, dict):
+        failures.append(Failure("$.fixture", "expected an object", actual))
+        actual = {}
+    tolerances = profile.get("tolerances")
+    if not isinstance(tolerances, dict):
+        failures.append(Failure("$.profile.tolerances", "expected an object",
+                                tolerances))
+        tolerances = {}
+
+    exact_fields = (
+        "id", "point_count", "sampled_node_count", "substeps",
+        "solver_iterations", "self_collision",
+        "topology_exclusion_index_distance", "excluded_probe_pair", "oracle",
+    )
+    for field in exact_fields:
+        if actual.get(field) != definition.get(field):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "fixture setting does not match profile",
+                                    actual.get(field), definition.get(field)))
+
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+    scalar_fields = (
+        "timestep_seconds", "node_spacing_m", "radius_m", "mass_kg",
+        "stretch_compliance_m_per_n", "velocity_damping_per_s",
+        "maximum_substep_timestep_seconds", "friction", "maximum_speed_m_s",
+    )
+    for field in scalar_fields:
+        value = _scalar(actual.get(field), f"$.fixture.{field}", failures)
+        expected = _scalar(definition.get(field),
+                           f"$.profile.fixture.{field}", failures)
+        if (value is not None and expected is not None and
+                abs(value - expected) > state_tolerance):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "fixture setting differs from profile",
+                                    value, expected))
+
+    gravity = _vector(actual.get("gravity_m_s2"),
+                      "$.fixture.gravity_m_s2", failures)
+    expected_gravity = _vector(definition.get("gravity_m_s2"),
+                               "$.profile.fixture.gravity_m_s2", failures)
+    if (gravity is not None and expected_gravity is not None and
+            max(abs(a - b) for a, b in zip(gravity, expected_gravity)) >
+            state_tolerance):
+        failures.append(Failure("$.fixture.gravity_m_s2",
+                                "fixture setting differs from profile",
+                                list(gravity), list(expected_gravity)))
+
+    def vectors(value: Any, path: str) -> list[tuple[float, float, float]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a vector array", value))
+            return []
+        parsed: list[tuple[float, float, float]] = []
+        for index, item in enumerate(value):
+            vector = _vector(item, f"{path}[{index}]", failures)
+            if vector is not None:
+                parsed.append(vector)
+        return parsed
+
+    centerline = vectors(actual.get("initial_centerline_m"),
+                         "$.fixture.initial_centerline_m")
+    expected_centerline = vectors(definition.get("initial_centerline_m"),
+                                  "$.profile.fixture.initial_centerline_m")
+    if len(centerline) != len(expected_centerline):
+        failures.append(Failure("$.fixture.initial_centerline_m",
+                                "centerline point count differs from profile",
+                                len(centerline), len(expected_centerline)))
+    else:
+        for index, (value, expected) in enumerate(zip(centerline,
+                                                       expected_centerline)):
+            if max(abs(a - b) for a, b in zip(value, expected)) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.initial_centerline_m[{index}]",
+                    "initial public input differs from profile",
+                    list(value), list(expected)))
+
+    sampled_count = definition.get("sampled_node_count")
+    expected_initial = vectors(definition.get("initial_sampled_nodes_m"),
+                               "$.profile.fixture.initial_sampled_nodes_m")
+
+    def nodes(value: Any, path: str) -> list[tuple[
+            tuple[float, float, float], tuple[float, float, float]]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a node array", value))
+            return []
+        if not isinstance(sampled_count, int) or isinstance(sampled_count, bool):
+            failures.append(Failure("$.profile.fixture.sampled_node_count",
+                                    "expected an integer", sampled_count))
+        elif len(value) != sampled_count:
+            failures.append(Failure(path, "sampled node count differs from profile",
+                                    len(value), sampled_count))
+        parsed = []
+        for index, node in enumerate(value):
+            node_path = f"{path}[{index}]"
+            if not isinstance(node, dict):
+                failures.append(Failure(node_path, "expected a node object", node))
+                continue
+            if node.get("index") != index:
+                failures.append(Failure(node_path + ".index",
+                                        "node order/index changed", node.get("index"),
+                                        index))
+            position = _vector(node.get("position_m"), node_path + ".position_m",
+                               failures)
+            velocity = _vector(node.get("velocity_m_s"),
+                               node_path + ".velocity_m_s", failures)
+            if position is not None and velocity is not None:
+                parsed.append((position, velocity))
+        return parsed
+
+    initial = nodes(actual.get("initial_nodes"), "$.fixture.initial_nodes")
+    final = nodes(actual.get("final_nodes"), "$.fixture.final_nodes")
+    if len(initial) == len(expected_initial):
+        for index, ((position, velocity), expected) in enumerate(
+                zip(initial, expected_initial)):
+            if max(abs(a - b) for a, b in zip(position, expected)) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.initial_nodes[{index}].position_m",
+                    "initial sampled public state differs from profile",
+                    list(position), list(expected)))
+            if _norm(velocity) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.initial_nodes[{index}].velocity_m_s",
+                    "initial sampled velocity must be zero", list(velocity), 0.0))
+    elif initial:
+        failures.append(Failure("$.fixture.initial_nodes",
+                                "initial sampled profile count differs",
+                                len(initial), len(expected_initial)))
+
+    target_separation = None
+    radius = _scalar(definition.get("radius_m"),
+                     "$.profile.fixture.radius_m", failures)
+    exclusion = definition.get("topology_exclusion_index_distance")
+    eligible_initial = eligible_final = None
+    overlapping_eligible_pairs = 0
+    if (radius is not None and radius > 0.0 and
+            isinstance(exclusion, int) and not isinstance(exclusion, bool) and
+            exclusion >= 0 and len(initial) == len(final) and initial):
+        target_separation = 2.0 * radius
+        minimum_fraction = float(tolerances.get(
+            "minimum_separation_fraction", 1.0))
+        activity = float(tolerances.get(
+            "initial_overlap_activity_minimum_m", 0.0))
+        minimum_allowed = target_separation * minimum_fraction
+        for first in range(len(initial)):
+            for second in range(first + exclusion + 1, len(initial)):
+                before = _norm(_subtract(initial[first][0], initial[second][0]))
+                after = _norm(_subtract(final[first][0], final[second][0]))
+                eligible_initial = before if eligible_initial is None else min(
+                    eligible_initial, before)
+                eligible_final = after if eligible_final is None else min(
+                    eligible_final, after)
+                if target_separation - before >= activity:
+                    overlapping_eligible_pairs += 1
+                    if after < minimum_allowed:
+                        failures.append(Failure(
+                            f"$.fixture.final_nodes[{first},{second}]",
+                            "nonadjacent sampled nodes remain inside the radius separation",
+                            after, minimum_allowed))
+        if overlapping_eligible_pairs == 0:
+            failures.append(Failure("$.fixture.initial_nodes",
+                                    "fixture has no active nonadjacent overlap",
+                                    eligible_initial,
+                                    target_separation - activity))
+
+        probe = definition.get("excluded_probe_pair")
+        if (isinstance(probe, list) and len(probe) == 2 and
+                all(isinstance(index, int) and not isinstance(index, bool)
+                    for index in probe)):
+            first, second = probe
+            if (first < 0 or second >= len(initial) or first >= second or
+                    second - first > exclusion):
+                failures.append(Failure("$.profile.fixture.excluded_probe_pair",
+                                        "excluded probe is not a valid topology neighbor",
+                                        probe))
+            else:
+                excluded_limit = target_separation * float(tolerances.get(
+                    "excluded_probe_maximum_fraction", 1.0))
+                excluded_initial = _norm(_subtract(initial[first][0],
+                                                    initial[second][0]))
+                excluded_final = _norm(_subtract(final[first][0],
+                                                  final[second][0]))
+                if excluded_initial >= excluded_limit:
+                    failures.append(Failure(
+                        "$.fixture.initial_nodes",
+                        "topology probe is not initially inside the exclusion radius",
+                        excluded_initial, excluded_limit))
+                if excluded_final >= excluded_limit:
+                    failures.append(Failure(
+                        "$.fixture.final_nodes",
+                        "topology-neighbor probe was separated as self contact",
+                        excluded_final, excluded_limit))
+        else:
+            failures.append(Failure("$.profile.fixture.excluded_probe_pair",
+                                    "expected two topology indices", probe))
+
+    center_of_mass_drift = None
+    maximum_transverse = None
+    maximum_speed = None
+    if len(initial) == len(final) and initial:
+        initial_center = tuple(sum(node[0][axis] for node in initial) / len(initial)
+                               for axis in range(3))
+        final_center = tuple(sum(node[0][axis] for node in final) / len(final)
+                             for axis in range(3))
+        center_of_mass_drift = _norm(_subtract(final_center, initial_center))
+        center_limit = float(tolerances.get(
+            "center_of_mass_drift_absolute_m", 0.0))
+        if center_of_mass_drift > center_limit:
+            failures.append(Failure("$.fixture.final_nodes",
+                                    "center-of-mass drift exceeds profile",
+                                    center_of_mass_drift, center_limit))
+        maximum_transverse = max(abs(node[0][2]) for node in initial + final)
+        transverse_limit = float(tolerances.get(
+            "transverse_position_absolute_m", 0.0))
+        if maximum_transverse > transverse_limit:
+            failures.append(Failure("$.fixture.final_nodes",
+                                    "transverse symmetry leakage exceeds profile",
+                                    maximum_transverse, transverse_limit))
+        maximum_speed = max(_norm(node[1]) for node in final)
+        speed_limit = float(definition.get("maximum_speed_m_s", 0.0)) + float(
+            tolerances.get("maximum_speed_slack_m_s", 0.0))
+        if maximum_speed > speed_limit:
+            failures.append(Failure("$.fixture.final_nodes",
+                                    "node speed exceeds authored maximum",
+                                    maximum_speed, speed_limit))
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": 1 if actual else 0,
+        "sample_count": overlapping_eligible_pairs,
+        "failure_count": len(failures),
+        "observations": {
+            "target_separation_m": target_separation,
+            "minimum_eligible_initial_separation_m": eligible_initial,
+            "minimum_eligible_final_separation_m": eligible_final,
+            "overlapping_eligible_pair_count": overlapping_eligible_pairs,
+            "center_of_mass_drift_m": center_of_mass_drift,
+            "maximum_transverse_position_m": maximum_transverse,
+            "maximum_node_speed_m_s": maximum_speed,
+        },
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def evaluate(profile: dict[str, Any], result: dict[str, Any],
              expected_hash: str) -> dict[str, Any]:
     failures: list[Failure] = []
@@ -1147,6 +1402,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
         return _evaluate_fluid_self_pair(
             profile, result, expected_hash, driver, failures,
             mode=evaluation.removeprefix("fluid_self_"))
+    if evaluation == "rope_self_contact":
+        return _evaluate_rope_self_contact(
+            profile, result, expected_hash, driver, failures)
     if evaluation != "system_exchange":
         failures.append(Failure("$.profile.evaluation",
                                 "unsupported quality evaluation", evaluation))

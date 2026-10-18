@@ -27,6 +27,8 @@ FLUID_SELF_PRESSURE_PROFILE_PATH = (
     ROOT / "quality" / "fluid-self-pressure-v1.json")
 FLUID_SELF_VISCOSITY_PROFILE_PATH = (
     ROOT / "quality" / "fluid-self-viscosity-v1.json")
+ROPE_SELF_CONTACT_PROFILE_PATH = (
+    ROOT / "quality" / "rope-self-contact-v1.json")
 
 
 def particle(identity: int) -> dict:
@@ -579,6 +581,103 @@ class FluidSelfViscosityQualityTests(unittest.TestCase):
     def test_nonfinite_and_incomplete_results_fail(self):
         result = self.valid_result()
         result["fixture"]["final_particles"][0]["velocity_m_s"][0] = float("nan")
+        self.assert_rejected(result, "expected three finite components")
+
+        result = self.valid_result()
+        result["execution_status"] = "failed"
+        self.assert_rejected(result, "must be completed")
+
+
+class RopeSelfContactQualityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.profile = json.loads(
+            ROPE_SELF_CONTACT_PROFILE_PATH.read_text(encoding="utf-8"))
+        cls.digest = quality.profile_sha256(ROPE_SELF_CONTACT_PROFILE_PATH)
+
+    @staticmethod
+    def node(index: int, position: list[float],
+             velocity: list[float]) -> dict:
+        return {
+            "index": index,
+            "position_m": position,
+            "velocity_m_s": velocity,
+        }
+
+    def valid_result(self) -> dict:
+        fixture = copy.deepcopy(self.profile["fixture"])
+        initial_positions = fixture.pop("initial_sampled_nodes_m")
+        fixture["initial_nodes"] = [
+            self.node(index, copy.deepcopy(position), [0.0, 0.0, 0.0])
+            for index, position in enumerate(initial_positions)
+        ]
+        fixture["final_nodes"] = [
+            self.node(0, [-0.05, 0.0, 0.0], [-5.0, 0.0, 0.0]),
+            self.node(1, [0.1, 0.0, 0.0], [0.0, 0.0, 0.0]),
+            self.node(2, [0.06, 0.091651514, 0.0], [0.0, 0.0, 0.0]),
+            self.node(3, [0.07, 0.0, 0.0], [5.0, 0.0, 0.0]),
+        ]
+        return {
+            "schema": quality.RESULT_SCHEMA,
+            "profile_id": self.profile["id"],
+            "profile_sha256": self.digest,
+            "execution_status": "completed",
+            "driver": {"name": "test-driver", "device": "test-device"},
+            "fixture": fixture,
+        }
+
+    def evaluate(self, result: dict) -> dict:
+        return quality.evaluate(self.profile, result, self.digest)
+
+    def assert_rejected(self, result: dict, message: str) -> None:
+        report = self.evaluate(result)
+        self.assertFalse(report["passed"])
+        self.assertTrue(any(message in failure["message"]
+                            for failure in report["failures"]), report)
+
+    def test_sampled_node_contact_and_topology_exclusion_pass(self):
+        report = self.evaluate(self.valid_result())
+        self.assertTrue(report["passed"], report)
+        self.assertEqual(report["fixture_count"], 1)
+        self.assertEqual(report["sample_count"], 1)
+        observations = report["observations"]
+        self.assertEqual(observations["target_separation_m"], 0.12)
+        self.assertGreaterEqual(
+            observations["minimum_eligible_final_separation_m"], 0.114)
+
+    def test_fixture_inputs_and_sample_order_are_exact(self):
+        result = self.valid_result()
+        result["fixture"]["radius_m"] = 0.061
+        self.assert_rejected(result, "fixture setting differs from profile")
+
+        result = self.valid_result()
+        result["fixture"]["initial_centerline_m"][0][0] = 0.01
+        self.assert_rejected(result, "initial public input differs from profile")
+
+        result = self.valid_result()
+        result["fixture"]["initial_nodes"][1]["index"] = 2
+        self.assert_rejected(result, "node order/index changed")
+
+    def test_static_overlap_and_topology_overcorrection_fail(self):
+        result = self.valid_result()
+        result["fixture"]["final_nodes"] = copy.deepcopy(
+            result["fixture"]["initial_nodes"])
+        self.assert_rejected(result,
+                             "nonadjacent sampled nodes remain inside")
+
+        result = self.valid_result()
+        result["fixture"]["final_nodes"][3]["position_m"] = [0.22, 0.0, 0.0]
+        self.assert_rejected(result,
+                             "topology-neighbor probe was separated")
+
+    def test_asymmetry_nonfinite_and_incomplete_results_fail(self):
+        result = self.valid_result()
+        result["fixture"]["final_nodes"][2]["position_m"][2] = 0.001
+        self.assert_rejected(result, "center-of-mass drift exceeds profile")
+        self.assert_rejected(result, "transverse symmetry leakage")
+
+        result = self.valid_result()
+        result["fixture"]["final_nodes"][0]["position_m"][0] = float("nan")
         self.assert_rejected(result, "expected three finite components")
 
         result = self.valid_result()
