@@ -2,7 +2,7 @@
   "schema": "parallel-mater-reference-artifacts/v1",
   "registry": {
     "path": "registry/pm.xml",
-    "sha256": "6da66da58a41e96d4229afc6a49d9ab9b5615b7e39830970a6c65c9aa3c82923"
+    "sha256": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7"
   },
   "toolchain": {
     "lock": "tools/reference/toolchain.json",
@@ -25,27 +25,27 @@
   },
   "artifacts": {
     "docs/reference/api/parallel_mater.h": {
-      "sha256": "3603e4869662901d28a4528d9b47d5d12a18140d86347f4bd8294670f9286d73",
+      "sha256": "a01fe4f746054f817f95f38def7fcfd35eb124d14b7c0bc63d658dd45c88daf3",
       "size": 64764
     },
     "docs/reference/api/interop_vulkan.h": {
-      "sha256": "82a476017565b82b75c4d1f292a1f0902d87559fc57a04931ea3f64a41a630c5",
+      "sha256": "3163958fda718fc439866714dabfc16ee2fd74e1865e4c9e87f3c34312011011",
       "size": 2865
     },
     "include/parallel_mater/parallel_mater.h": {
-      "sha256": "3603e4869662901d28a4528d9b47d5d12a18140d86347f4bd8294670f9286d73",
+      "sha256": "a01fe4f746054f817f95f38def7fcfd35eb124d14b7c0bc63d658dd45c88daf3",
       "size": 64764
     },
     "include/parallel_mater/interop_vulkan.h": {
-      "sha256": "82a476017565b82b75c4d1f292a1f0902d87559fc57a04931ea3f64a41a630c5",
+      "sha256": "3163958fda718fc439866714dabfc16ee2fd74e1865e4c9e87f3c34312011011",
       "size": 2865
     },
     "docs/reference/api-coverage.json": {
-      "sha256": "182b381975970f824811477c68161e73c03b1910e00eb4aafc46177ce1ab3c54",
+      "sha256": "45099e8b2293bd4d0c8ce04e9f7de203f203cac45a6bf0a8557dc1e3cced5cfc",
       "size": 46134
     },
     "docs/reference/parallel-mater-specification.md": {
-      "sha256": "f478fb438abe831078da697d5a3d1548aac098a3195092fe7a6533bedf77692b",
+      "sha256": "d5e155ca61159f3510f8e06e7136e0ee9a0d56448265933463ce0097f3fc1a10",
       "size": 120879
     },
     "docs/reference/parallel-mater-specification.pdf": {
@@ -53,7 +53,7 @@
       "size": 255964
     },
     "docs/reference/parallel-mater-specification.layout.json": {
-      "sha256": "9f246ad14fcd6b06afc1edd173008578cb4bb977332b4581377fbd5bd10eb922",
+      "sha256": "fd987f4c25e545881ad1e9586091c11907cdcb07d7c2cd9072e1fd28d7edb376",
       "size": 17519
     },
     "docs/reference/parallel-mater-reference.pdf": {
@@ -61,7 +61,7 @@
       "size": 544553
     },
     "docs/reference/parallel-mater-reference.layout.json": {
-      "sha256": "087fb8f685b56b84a051c62d49a4cee894c1be1b91d297fd144797e3f851152c",
+      "sha256": "2ce0b9e0182be227ddc547c9a608deaabb7c0977f7f72dd53930f9c683f80c6c",
       "size": 206639
     }
   },

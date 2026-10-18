@@ -255,7 +255,7 @@ The reference release uses a tracked CPython 3.13.15/package/font lock instead
 of host-installed fonts. All four generated header copies, searchable
 specification text, API coverage, two PDFs and two layout manifests identify or
 are hash-bound to registry revision
-`6da66da58a41e96d4229afc6a49d9ab9b5615b7e39830970a6c65c9aa3c82923`.
+`13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7`.
 The clean staging check reproduced all 10 files byte-for-byte with no accepted
 nondeterminism. It also passed 6 MSVC C11/C++17 ABI probes, checked all 118
 functions and 143 non-Vulkan public types, and validated 52 specification pages,

@@ -55,8 +55,9 @@ The checker generates the full set below a clean temporary root and byte
 compares both header copies, searchable text, API coverage, both PDFs, both
 layout manifests, and `release-artifacts.json`. A mismatch names every changed
 artifact. The release manifest binds those files and the locked toolchain to
-one SHA-256 revision of `registry/pm.xml`; `known_nondeterminism` records any
-accepted exception and is currently empty.
+one LF-canonical SHA-256 revision of `registry/pm.xml`, independent of checkout
+line endings; `known_nondeterminism` records any accepted exception and is
+currently empty.
 
 Header and runtime coverage generation does not require the PDF dependencies:
 

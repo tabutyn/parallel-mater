@@ -10,10 +10,15 @@ def file_sha256(path):
     return sha256(Path(path).read_bytes()).hexdigest()
 
 
+def canonical_text_sha256(path):
+    data = Path(path).read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return sha256(data).hexdigest()
+
+
 def registry_provenance():
     return {
         "path": "registry/pm.xml",
-        "sha256": file_sha256(REGISTRY),
+        "sha256": canonical_text_sha256(REGISTRY),
     }
 
 

@@ -1,13 +1,14 @@
 import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools/reference"))
 
 from build import RELEASE_ARTIFACTS
-from provenance import registry_provenance
+from provenance import canonical_text_sha256, registry_provenance
 
 
 class ReferenceToolchainTests(unittest.TestCase):
@@ -53,6 +54,14 @@ class ReferenceToolchainTests(unittest.TestCase):
                 "include/parallel_mater/interop_vulkan.h",
                 "docs/reference/parallel-mater-specification.md"):
             self.assertIn(digest, (ROOT / relative).read_text(encoding="utf-8"))
+
+    def test_registry_revision_ignores_checkout_line_endings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            lf = Path(directory) / "lf.xml"
+            crlf = Path(directory) / "crlf.xml"
+            lf.write_bytes(b"<registry>\n</registry>\n")
+            crlf.write_bytes(b"<registry>\r\n</registry>\r\n")
+            self.assertEqual(canonical_text_sha256(lf), canonical_text_sha256(crlf))
 
 
 if __name__ == "__main__":

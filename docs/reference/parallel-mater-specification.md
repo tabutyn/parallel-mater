@@ -1,4 +1,4 @@
-<!-- Generated from registry/pm.xml sha256:6da66da58a41e96d4229afc6a49d9ab9b5615b7e39830970a6c65c9aa3c82923 -->
+<!-- Generated from registry/pm.xml sha256:13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7 -->
 
 # Parallel Mater 0.2 — API Specification
 

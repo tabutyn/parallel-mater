@@ -7,7 +7,7 @@
     "branch": "work/F6-05/windows-gtx1080",
     "registry": {
       "path": "registry/pm.xml",
-      "sha256": "6da66da58a41e96d4229afc6a49d9ab9b5615b7e39830970a6c65c9aa3c82923"
+      "sha256": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7"
     }
   },
   "toolchain": {
@@ -24,7 +24,7 @@
   },
   "artifacts": {
     "manifest": "docs/reference/release-artifacts.json",
-    "manifest_sha256": "f9bcceabd1dd911485db9c05a8f1c67abb7246b97a451bd4f325e4b96ae28723",
+    "manifest_sha256": "e8dd3c1e4d5fe003ab523b78171cf6f74f9a81bbb134a220f41fe234850bac35",
     "count": 10,
     "classes": {
       "public_header_copies": 4,
@@ -57,7 +57,7 @@
     },
     {
       "check": "python -m unittest tests/release/test_reference_artifacts.py",
-      "result": "PASS: 4/4 toolchain-lock, immutable-input, output-inventory and registry-provenance tests"
+      "result": "PASS: 5/5 toolchain-lock, immutable-input, output-inventory, registry-provenance and line-ending-portability tests"
     },
     {
       "check": "manual review of rendered reference pages 1, 7 and 8",
