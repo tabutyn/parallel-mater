@@ -1,0 +1,16 @@
+{
+  "id": "F7-23",
+  "title": "Normalize Gallery renderer adapter ownership",
+  "status": "open",
+  "dependencies": ["F7-08", "F7-09", "F7-19"],
+  "locks": ["gallery-renderer-adapters"],
+  "requires": ["Any development host with configured Gallery backends"],
+  "scope": "Place host, Vulkan and Metal Gallery renderers behind one common adapter and factory boundary and make CMake target ownership match that runtime boundary.",
+  "acceptance": [
+    "Gallery clients select rendering through the common adapter contract and platform applications do not construct or reach through private backend renderer types.",
+    "The CMake target graph separates the common renderer contract from backend adapters without cyclic or private-backend leakage, and host, Vulkan and Metal contract builds remain covered."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
