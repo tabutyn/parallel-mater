@@ -573,7 +573,7 @@ void test_bounded_storage_plan() {
     CHECK(fluid_pair_neighbor_index_storage_requirements(3U, 5U, requirements));
     CHECK(requirements.persistent != 0U);
     CHECK(requirements.scratch >= radix_sort_scratch_bytes(8U) +
-        8U * sizeof(float));
+        8U * (3U * sizeof(float) + sizeof(std::uint32_t) + sizeof(Vec3)));
     FluidPairNeighborIndexPlan plan{};
     StoragePlanner planner;
     CHECK(visit_fluid_pair_neighbor_index_storage(plan, 3U, 5U, planner));
@@ -593,10 +593,12 @@ void test_bounded_storage_plan() {
                     record.count == count && record.kind == kind;
             });
     };
-    CHECK(matching_records(sizeof(float), 3U, MemoryClass::scratch) == 1);
-    CHECK(matching_records(sizeof(float), 5U, MemoryClass::scratch) == 1);
+    CHECK(matching_records(sizeof(float), 3U, MemoryClass::scratch) == 4);
+    CHECK(matching_records(sizeof(float), 5U, MemoryClass::scratch) == 4);
+    CHECK(matching_records(sizeof(Vec3), 3U, MemoryClass::scratch) == 1);
+    CHECK(matching_records(sizeof(Vec3), 5U, MemoryClass::scratch) == 1);
     CHECK(matching_records(sizeof(std::uint32_t), 1U,
-        MemoryClass::persistent) == 4);
+        MemoryClass::persistent) == 12);
     CHECK(!fluid_pair_neighbor_index_storage_requirements(
         0U, 5U, requirements));
     CHECK(!fluid_pair_neighbor_index_storage_requirements(

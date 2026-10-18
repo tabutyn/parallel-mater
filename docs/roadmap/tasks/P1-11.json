@@ -1,7 +1,7 @@
 {
   "id": "P1-11",
   "title": "Apply immiscible pressure and capillarity",
-  "status": "deferred",
+  "status": "leased",
   "dependencies": [
     "P1-10"
   ],
@@ -17,6 +17,14 @@
     "Static droplet pressure follows the specified Young-Laplace relation across tension and radius sweeps."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "85bb24fe-a817-4729-a744-a626cc2d9a2c",
+    "owner": "codex-immiscible-capillarity",
+    "machine": "thomas-laptop",
+    "branch": "work/P1-11/thomas-laptop",
+    "claimed_at": "2026-10-18T23:25:03Z",
+    "heartbeat_at": "2026-10-18T23:25:03Z",
+    "expires_at": "2026-10-19T23:25:03Z"
+  },
   "history": []
 }

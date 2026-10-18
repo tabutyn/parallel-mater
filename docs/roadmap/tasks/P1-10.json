@@ -1,7 +1,7 @@
 {
   "id": "P1-10",
   "title": "Reconstruct immiscible fluid interfaces",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "P1-05",
     "P1-56"
@@ -18,15 +18,31 @@
     "Planar and spherical fixtures have orientation-consistent normals and convergent curvature across resolution sweeps.",
     "Degenerate, empty and under-resolved neighborhoods remain finite and report bounded diagnostics."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "e65bc509-6d4c-412b-b417-451402f67d3b",
-    "owner": "codex-immiscible-reconstruction",
-    "machine": "thomas-laptop",
-    "branch": "work/P1-10/thomas-laptop",
-    "claimed_at": "2026-10-18T23:04:55Z",
-    "heartbeat_at": "2026-10-18T23:04:55Z",
-    "expires_at": "2026-10-19T23:04:55Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: shared Slang CPU planar, three-resolution sphere, endpoint-reversal, empty and degenerate fixtures; docs/roadmap/evidence/P1-10-immiscible-interface-reconstruction.json.",
+    "PASS: 216/216 Metal, CUDA, PTX and Vulkan SPIR-V mirror steps; CUDA/Vulkan drivers rebuilt; DirectCompute binding generator 4/4.",
+    "PASS: SDK CI 47/47 plus generated, conformance and roadmap checks."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "e65bc509-6d4c-412b-b417-451402f67d3b",
+        "owner": "codex-immiscible-reconstruction",
+        "machine": "thomas-laptop",
+        "branch": "work/P1-10/thomas-laptop",
+        "claimed_at": "2026-10-18T23:04:55Z",
+        "heartbeat_at": "2026-10-18T23:04:55Z",
+        "expires_at": "2026-10-19T23:04:55Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T23:20:05Z",
+      "reason": "Implemented bounded shared-Slang phase labels, first-to-second normals, signed mean curvature and finite degeneracy diagnostics without capability advertisement",
+      "evidence": [
+        "PASS: shared Slang CPU planar, three-resolution sphere, endpoint-reversal, empty and degenerate fixtures; docs/roadmap/evidence/P1-10-immiscible-interface-reconstruction.json.",
+        "PASS: 216/216 Metal, CUDA, PTX and Vulkan SPIR-V mirror steps; CUDA/Vulkan drivers rebuilt; DirectCompute binding generator 4/4.",
+        "PASS: SDK CI 47/47 plus generated, conformance and roadmap checks."
+      ]
+    }
+  ]
 }
