@@ -1,7 +1,7 @@
 {
   "id": "F4-04",
   "title": "Remove generated-source ABI parsing",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F4-01"
   ],
@@ -17,6 +17,14 @@
     "Physics source remains shared Slang; unsupported reflection shapes fail generation."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "ee39bcfe-5cb6-4c6f-9572-7811ecc8153c",
+    "owner": "codex-windows-sdk",
+    "machine": "windows-gtx1080",
+    "branch": "work/F4-04/windows-gtx1080",
+    "claimed_at": "2026-10-18T15:11:11Z",
+    "heartbeat_at": "2026-10-18T15:11:11Z",
+    "expires_at": "2026-10-19T15:11:11Z"
+  },
   "history": []
 }
