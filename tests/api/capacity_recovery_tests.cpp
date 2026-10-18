@@ -2,7 +2,7 @@
 // Public SDK only. The formal profile uses four colocated particles with a
 // one-neighbor capacity, then proves selective recovery without disturbing a
 // second population.
-#include "capacity_lifecycle_fixture.hpp"
+#include "lifecycle_fixture.hpp"
 #include "test_context.hpp"
 
 #include <parallel_mater_conformance/json.hpp>

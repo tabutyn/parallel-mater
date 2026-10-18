@@ -1,0 +1,98 @@
+{
+  "schema": "parallel-mater-roadmap-graph-lifecycle-evidence/v1",
+  "task": "F5-20",
+  "source": {
+    "commit": "dbe5303f0b07babde65512b0fbce2caa75976919",
+    "dirty": false,
+    "branch": "work/F5-20/thomas-laptop",
+    "lease_token": "73ae90b0-6147-4664-8be0-06ba4d141517"
+  },
+  "host": {
+    "hostname": "ThomasLaptop",
+    "operating_system": "Debian GNU/Linux 12 (bookworm)",
+    "kernel": "Linux 6.1.0-53-amd64",
+    "architecture": "x86_64",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11370H @ 3.30GHz",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "pci_device_id": "0x25a0",
+    "nvidia_driver": "590.44.01"
+  },
+  "toolchain": {
+    "host_compiler": "GCC 12.2.0",
+    "cmake": "3.25.1",
+    "ninja": "1.11.1",
+    "cuda_compiler": "NVIDIA CUDA Compiler 13.1.80",
+    "slang": "2026.18",
+    "vulkan_loader": "1.3.239",
+    "vulkan_device_api": "1.4.325"
+  },
+  "contract": {
+    "id": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback",
+    "path": "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json",
+    "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"
+  },
+  "fixture": {
+    "binary": "build-f5-16-linux/tests/api/parallel-mater-interaction-graph-lifecycle-tests",
+    "binary_sha256": "9e91c2da8a3e6358dc4b13d57b0e9c494f3faf4fd6a4413e17647b12f12f1f01",
+    "checkpoints": [
+      "installed",
+      "updated",
+      "partial-failure",
+      "recovery",
+      "replace-liquid"
+    ],
+    "tracked_resources": [
+      "liquid",
+      "rope",
+      "soft-body",
+      "smoke",
+      "cloth"
+    ],
+    "generation_semantics": "Harness ordinal of an accepted endpoint write; only replace-liquid advances the liquid ordinal.",
+    "resource_fingerprint": "SHA-256 of public active count, capacity, stable liquid identities and positions canonicalized to 0.1 mm.",
+    "graph_fingerprint": "SHA-256 of every field in the last coupling descriptor whose deferred installation completed.",
+    "rollback_semantics": "The rejected partial update records the prior updated graph because runtime creation cleared its partial graph and restored the last complete active graph."
+  },
+  "drivers": {
+    "cuda": {
+      "driver_binary_sha256": "62d08b007b9cd7047f0bc47ec5baad66d321a67d0508211cc29b99b02870fdeb",
+      "result": "docs/roadmap/evidence/F5-20-graph-dbe5303-cuda.json",
+      "result_sha256": "d121591569f404daea307edc30a8cd57846e0aedea2eac28c5a89af3db592f45",
+      "report": "docs/roadmap/evidence/F5-20-graph-dbe5303-cuda-report.json",
+      "report_sha256": "3056a3eea5de41c9b9e3bba344425faa771b1411515f5fa043ef3030d8a3f8ec",
+      "passed": true,
+      "checkpoint_count": 5,
+      "failure_count": 0
+    },
+    "vulkan": {
+      "driver_binary_sha256": "ccc4b8c77260bfab4af59bceced17434222d5dd77b75f3628689ed7074b3f5f1",
+      "result": "docs/roadmap/evidence/F5-20-graph-dbe5303-vulkan.json",
+      "result_sha256": "0d6295e9644a98612f748e3e65600a34305953fc6286fd23d3a371cdf3ea20cc",
+      "report": "docs/roadmap/evidence/F5-20-graph-dbe5303-vulkan-report.json",
+      "report_sha256": "e950470b2c61d050f8e99ffa64a8fd222fcb4e5a79753dbaf2245af0c01ec200",
+      "passed": true,
+      "checkpoint_count": 5,
+      "failure_count": 0
+    }
+  },
+  "validation": {
+    "cuda_vulkan_graph_and_capacity_ctest": "4/4 passed",
+    "graph_repeat_stability": "CUDA 10/10 and Vulkan 10/10 passed",
+    "cross_driver_observations": "identical",
+    "full_lifecycle_profile": "CUDA and Vulkan each passed 2 cases, 9 checkpoints, 0 failures",
+    "python_conformance_tests": "75/75 passed",
+    "embedded_fixture_compile": "passed with GCC -Wall -Wextra -Wpedantic",
+    "roadmap_tests": "25/25 passed"
+  },
+  "reproduction": [
+    "cmake --build build-f5-16-linux --target parallel-mater-interaction-graph-lifecycle-tests parallel-mater-capacity-recovery-tests -j2",
+    "PM_DRIVER_FILES=build-f5-16-linux/Release/manifests/slang-cuda.json PM_LAYER_FILES=build-f5-16-linux/Release/manifests/validation.json PM_TEST_VALIDATION=1 build-f5-16-linux/tests/api/parallel-mater-interaction-graph-lifecycle-tests --output <cuda-result> --driver-name slang-cuda",
+    "PM_DRIVER_FILES=build-f5-16-linux/Release/manifests/slang-vulkan.json PM_LAYER_FILES=build-f5-16-linux/Release/manifests/validation.json PM_TEST_VALIDATION=1 build-f5-16-linux/tests/api/parallel-mater-interaction-graph-lifecycle-tests --output <vulkan-result> --driver-name slang-vulkan",
+    "python3 conformance/v1/lifecycle.py --actual <result> --case three-family-partial-rollback --report <report>",
+    "ctest --test-dir build-f5-16-linux --output-on-failure -R '^parallel-mater-(cuda|vulkan)-(interaction-graph-lifecycle|capacity-recovery)-tests$'"
+  ],
+  "limitations": [
+    "This task emits lifecycle evidence; it does not recapture per-driver qualification bundles or claim numerical coupling quality.",
+    "Metal must run the shared embedded fixture on Apple hardware because this Linux host cannot execute that production driver."
+  ]
+}

@@ -18,15 +18,21 @@ struct LifecycleCheckpointObservation {
     std::string id;
     std::string outcome;
     std::vector<LifecycleResourceObservation> resources;
+    std::string active_graph_sha256;
 };
 
-struct CapacityLifecycleResult {
+struct LifecycleFixtureResult {
     int status{2};
     std::string device;
     std::vector<LifecycleCheckpointObservation> observations;
 };
 
+using CapacityLifecycleResult = LifecycleFixtureResult;
+using GraphLifecycleResult = LifecycleFixtureResult;
+
 } // namespace parallel_mater::test
 
 int parallel_mater_capacity_recovery_fixture(
     parallel_mater::test::CapacityLifecycleResult *result);
+int parallel_mater_interaction_graph_lifecycle_fixture(
+    parallel_mater::test::GraphLifecycleResult *result);
