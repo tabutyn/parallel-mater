@@ -220,14 +220,14 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-06](roadmap/tasks/F7-06.json) | Adopt common runtime in desktop Gallery | done | F7-02, F7-03, F7-04, F7-05 | — |
 | [F7-07](roadmap/tasks/F7-07.json) | Make mobile Gallery shells thin adapters | done | F7-02, F7-03, F7-04, F7-05 | — |
 | [F7-08](roadmap/tasks/F7-08.json) | Define common Gallery GPU renderer contract | done | F7-01 | — |
-| [F7-09](roadmap/tasks/F7-09.json) | Implement native Vulkan Gallery rendering | leased | F7-08 | codex-linux-gallery / thomas-laptop / 2026-10-19T02:04:58Z |
+| [F7-09](roadmap/tasks/F7-09.json) | Implement native Vulkan Gallery rendering | done | F7-08 | — |
 | [F7-10](roadmap/tasks/F7-10.json) | Enable Vulkan cloth Gallery domains | done | F7-03 | — |
 | [F7-11](roadmap/tasks/F7-11.json) | Enable Vulkan soft-body Gallery domains | ready | F7-03 | — |
 | [F7-12](roadmap/tasks/F7-12.json) | Enable Vulkan rope Gallery domains | ready | F7-03 | — |
 | [F7-13](roadmap/tasks/F7-13.json) | Enable Vulkan smoke Gallery domains | ready | F7-03 | — |
 | [F7-14](roadmap/tasks/F7-14.json) | Enable Vulkan cross-deformable Gallery couplings | waiting on dependencies | F7-10, F7-11, F7-12, F7-13 | — |
 | [F7-15](roadmap/tasks/F7-15.json) | Expose capability-driven Android catalog | ready | F7-02, F7-07 | — |
-| [F7-16](roadmap/tasks/F7-16.json) | Use native Vulkan rendering on Android | waiting on dependencies | F7-07, F7-09 | — |
+| [F7-16](roadmap/tasks/F7-16.json) | Use native Vulkan rendering on Android | ready | F7-07, F7-09 | — |
 | [F7-17](roadmap/tasks/F7-17.json) | Complete Android Gallery controls and help | waiting on dependencies | F7-04, F7-07, F7-15 | — |
 | [F7-18](roadmap/tasks/F7-18.json) | Qualify complete Android Gallery | waiting on dependencies | F5-15, F7-05, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17 | — |
 | [F7-99](roadmap/tasks/F7-99.json) | Review shared Gallery exit evidence | waiting on dependencies | F7-01, F7-02, F7-03, F7-04, F7-05, F7-06, F7-07, F7-08, F7-09, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17, F7-18 | — |
