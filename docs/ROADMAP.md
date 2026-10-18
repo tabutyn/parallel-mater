@@ -151,9 +151,9 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F3-08](roadmap/tasks/F3-08.json) | Restore repeated statistics-query validation | done | F3-03 | — |
 | [F3-09](roadmap/tasks/F3-09.json) | Qualify portable host concurrency | done | F3-06 | — |
 | [F3-10](roadmap/tasks/F3-10.json) | Qualify descriptor snapshot coverage | done | F3-06 | — |
-| [F3-11](roadmap/tasks/F3-11.json) | Qualify destruction wait profiles | leased | F3-06 | codex-windows-validation / windows-gtx1080 / 2026-10-18T11:28:40Z |
-| [F3-12](roadmap/tasks/F3-12.json) | Qualify runtime capacity recovery | waiting on lock | F3-06 | — |
-| [F3-99](roadmap/tasks/F3-99.json) | Review F3 exit evidence | waiting on dependencies | F3-01, F3-02, F3-03, F3-04, F3-05, F3-06, F3-07, F3-08, F3-09, F3-10, F3-11, F3-12 | — |
+| [F3-11](roadmap/tasks/F3-11.json) | Qualify destruction wait profiles | done | F3-06 | — |
+| [F3-12](roadmap/tasks/F3-12.json) | Qualify runtime capacity recovery | done | F3-06 | — |
+| [F3-99](roadmap/tasks/F3-99.json) | Review F3 exit evidence | leased | F3-01, F3-02, F3-03, F3-04, F3-05, F3-06, F3-07, F3-08, F3-09, F3-10, F3-11, F3-12 | codex-windows-review / windows-gtx1080 / 2026-10-19T04:49:17Z |
 
 ### F4. Common resources and engine ownership
 
@@ -222,7 +222,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-08](roadmap/tasks/F7-08.json) | Define common Gallery GPU renderer contract | done | F7-01 | — |
 | [F7-09](roadmap/tasks/F7-09.json) | Implement native Vulkan Gallery rendering | done | F7-08 | — |
 | [F7-10](roadmap/tasks/F7-10.json) | Enable Vulkan cloth Gallery domains | done | F7-03 | — |
-| [F7-11](roadmap/tasks/F7-11.json) | Enable Vulkan soft-body Gallery domains | ready | F7-03 | — |
+| [F7-11](roadmap/tasks/F7-11.json) | Enable Vulkan soft-body Gallery domains | done | F7-03 | — |
 | [F7-12](roadmap/tasks/F7-12.json) | Enable Vulkan rope Gallery domains | ready | F7-03 | — |
 | [F7-13](roadmap/tasks/F7-13.json) | Enable Vulkan smoke Gallery domains | ready | F7-03 | — |
 | [F7-14](roadmap/tasks/F7-14.json) | Enable Vulkan cross-deformable Gallery couplings | waiting on dependencies | F7-10, F7-11, F7-12, F7-13 | — |
@@ -230,7 +230,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-16](roadmap/tasks/F7-16.json) | Use native Vulkan rendering on Android | leased | F7-07, F7-09 | codex-linux-gallery / thomas-laptop / 2026-10-18T15:43:21Z |
 | [F7-17](roadmap/tasks/F7-17.json) | Complete Android Gallery controls and help | ready | F7-04, F7-07, F7-15 | — |
 | [F7-18](roadmap/tasks/F7-18.json) | Qualify complete Android Gallery | waiting on dependencies | F5-15, F7-05, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17 | — |
-| [F7-99](roadmap/tasks/F7-99.json) | Review shared Gallery exit evidence | waiting on dependencies | F7-01, F7-02, F7-03, F7-04, F7-05, F7-06, F7-07, F7-08, F7-09, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17, F7-18 | — |
+| [F7-19](roadmap/tasks/F7-19.json) | Close common Gallery runtime boundary | done | F7-06, F7-08 | — |
+| [F7-99](roadmap/tasks/F7-99.json) | Review shared Gallery exit evidence | waiting on dependencies | F7-01, F7-02, F7-03, F7-04, F7-05, F7-06, F7-07, F7-08, F7-09, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17, F7-18, F7-19 | — |
 
 ### P1. Deferred domain and interaction coverage
 

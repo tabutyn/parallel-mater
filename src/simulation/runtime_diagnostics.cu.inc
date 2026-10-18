@@ -421,10 +421,12 @@ Status SimulationRuntime::collect_statistics(SimulationStatistics &output,
         if (source.alive)
             output.allocated_bytes += source.data->count * (sizeof(Vec3) + sizeof(std::uint8_t)) + sizeof(std::uint32_t);
     auto host_status = read_host_objects(impl_->execution, impl_->fluid_contact_count,
-        impl_->fluid_contact_overflow, impl_->fluid_maximum_neighbor_count);
+        impl_->fluid_contact_overflow, impl_->fluid_neighbor_overflow,
+        impl_->fluid_maximum_neighbor_count);
     if (!host_status) return host_status;
     output.contact_count = *impl_->fluid_contact_count;
     output.contact_overflow_count = *impl_->fluid_contact_overflow;
+    output.fluid_neighbor_overflow_count = *impl_->fluid_neighbor_overflow;
     output.maximum_fluid_neighbor_count =
         *impl_->fluid_maximum_neighbor_count;
     for (const auto &fluid : impl_->fluids) {

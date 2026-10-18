@@ -141,6 +141,79 @@ if(TARGET parallel-mater-test-driver-slang-cpu-resources)
         ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-slang-cpu-resources.json")
 endif()
 
+add_executable(parallel-mater-destruction-wait-tests
+    destruction_wait_tests.cpp)
+target_compile_features(parallel-mater-destruction-wait-tests PRIVATE
+    cxx_std_20)
+target_link_libraries(parallel-mater-destruction-wait-tests PRIVATE
+    ParallelMater::parallel_mater)
+foreach(backend cuda vulkan d3d12 metal)
+    if(TARGET parallel-mater-driver-slang-${backend} AND
+       TARGET parallel-mater-layer-validation)
+        add_dependencies(parallel-mater-destruction-wait-tests
+            parallel-mater-driver-slang-${backend}
+            parallel-mater-layer-validation)
+        add_test(NAME parallel-mater-${backend}-destruction-wait-tests
+            COMMAND parallel-mater-destruction-wait-tests)
+        set_tests_properties(
+            parallel-mater-${backend}-destruction-wait-tests PROPERTIES
+            LABELS "api;lifecycle;teardown;validation;${backend}"
+            SKIP_RETURN_CODE 77 TIMEOUT 120
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json;PM_TEST_VALIDATION=1")
+    endif()
+endforeach()
+
+if(TARGET parallel-mater-test-driver-slang-cpu-resources AND
+   TARGET parallel-mater-layer-validation)
+    add_dependencies(parallel-mater-destruction-wait-tests
+        parallel-mater-test-driver-slang-cpu-resources
+        parallel-mater-layer-validation)
+    add_test(NAME parallel-mater-host-destruction-wait-tests
+        COMMAND parallel-mater-destruction-wait-tests --failure-fixture)
+    set_tests_properties(parallel-mater-host-destruction-wait-tests PROPERTIES
+        LABELS "api;lifecycle;teardown;validation;host-fixture" TIMEOUT 120
+        ENVIRONMENT
+            "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-slang-cpu-resources.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json;PM_TEST_VALIDATION=1")
+endif()
+
+add_executable(parallel-mater-capacity-recovery-tests
+    capacity_recovery_tests.cpp)
+target_compile_features(parallel-mater-capacity-recovery-tests PRIVATE
+    cxx_std_20)
+target_link_libraries(parallel-mater-capacity-recovery-tests PRIVATE
+    ParallelMater::parallel_mater)
+foreach(backend cuda vulkan d3d12 metal)
+    if(TARGET parallel-mater-driver-slang-${backend} AND
+       TARGET parallel-mater-layer-validation)
+        add_dependencies(parallel-mater-capacity-recovery-tests
+            parallel-mater-driver-slang-${backend}
+            parallel-mater-layer-validation)
+        add_test(NAME parallel-mater-${backend}-capacity-recovery-tests
+            COMMAND parallel-mater-capacity-recovery-tests)
+        set_tests_properties(
+            parallel-mater-${backend}-capacity-recovery-tests PROPERTIES
+            LABELS "api;lifecycle;capacity;validation;${backend}"
+            SKIP_RETURN_CODE 77 TIMEOUT 120
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json;PM_TEST_VALIDATION=1")
+    endif()
+endforeach()
+
+if(PARALLEL_MATER_SLANG_CPU_LIQUIDS AND
+   TARGET parallel-mater-test-driver-slang-cpu-resources AND
+   TARGET parallel-mater-layer-validation)
+    add_dependencies(parallel-mater-capacity-recovery-tests
+        parallel-mater-test-driver-slang-cpu-resources
+        parallel-mater-layer-validation)
+    add_test(NAME parallel-mater-host-capacity-recovery-tests
+        COMMAND parallel-mater-capacity-recovery-tests)
+    set_tests_properties(parallel-mater-host-capacity-recovery-tests PROPERTIES
+        LABELS "api;lifecycle;capacity;validation;host-fixture" TIMEOUT 120
+        ENVIRONMENT
+            "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-slang-cpu-resources.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json;PM_TEST_VALIDATION=1")
+endif()
+
 if(WIN32)
     # SDK-only executables live in this subdirectory, separate from the loader
     # DLL. Windows has no build-tree RPATH; use the selected SDK's DLL directory

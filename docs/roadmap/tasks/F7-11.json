@@ -1,16 +1,42 @@
 {
   "id": "F7-11",
   "title": "Enable Vulkan soft-body Gallery domains",
-  "status": "open",
-  "dependencies": ["F7-03"],
-  "locks": ["vulkan-gallery-soft-body"],
-  "requires": ["Linux or Android Vulkan device"],
+  "status": "done",
+  "dependencies": [
+    "F7-03"
+  ],
+  "locks": [
+    "vulkan-gallery-soft-body"
+  ],
+  "requires": [
+    "Linux or Android Vulkan device"
+  ],
   "scope": "Compile, bind and qualify existing shared Slang soft-body, geometry-soft-body and fluid-soft-body schedules for the Vulkan driver.",
   "acceptance": [
     "Soft body, rigid coupling and fluid coupling scenes pass bounded lifecycle and visible-output checks on Vulkan.",
     "Vulkan advertises only the exact soft-body and coupling capabilities supported by passing public-API contracts."
   ],
-  "evidence": [],
+  "evidence": [
+    "docs/roadmap/evidence/F7-11-vulkan-soft-body.json"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "1567ee72-9ef8-475b-963c-5bd4cc7b21d4",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-11/thomas-laptop",
+        "claimed_at": "2026-10-18T04:29:18Z",
+        "heartbeat_at": "2026-10-18T04:29:18Z",
+        "expires_at": "2026-10-19T04:29:18Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T05:00:13Z",
+      "reason": "Vulkan now compiles and binds the shared soft-body, rigid-soft-body and fluid-soft-body Slang schedules; exact advertised capabilities are backed by validated public-command and common-session Gallery contracts",
+      "evidence": [
+        "docs/roadmap/evidence/F7-11-vulkan-soft-body.json"
+      ]
+    }
+  ]
 }

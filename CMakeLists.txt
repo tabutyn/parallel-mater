@@ -1278,6 +1278,15 @@ if(BUILD_TESTING)
                 RUN_SERIAL TRUE
                 ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
         endforeach()
+        foreach(scene Softbody SoftbodyRigidBody SoftbodyFluid)
+            add_test(NAME parallel-mater-vulkan-gallery-${scene}
+                COMMAND parallel-mater-command-gallery-tests --backend vulkan
+                    --scene ${scene}.glb --frames 120)
+            set_tests_properties(parallel-mater-vulkan-gallery-${scene} PROPERTIES
+                LABELS "api;gallery;vulkan;soft-body" SKIP_RETURN_CODE 77 TIMEOUT 300
+                RUN_SERIAL TRUE
+                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-vulkan.json;PM_LAYER_PATH=${PARALLEL_MATER_BUILD_MANIFEST_DIR}")
+        endforeach()
     endif()
     if(PARALLEL_MATER_BUILD_GALLERY AND PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER AND
        PARALLEL_MATER_SLANG_CPU_LIQUIDS)

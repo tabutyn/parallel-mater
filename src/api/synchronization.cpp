@@ -46,11 +46,14 @@ PmResult wait_timeline(PmSemaphore semaphore, std::uint64_t value,
 }
 
 struct Submission {
-    std::vector<std::function<PmResult(parallel_mater::device::Services &)>> commands;
+    std::vector<PmRecordedCommand> commands;
     std::vector<PmSemaphoreSubmitInfo> waits;
     std::vector<CompletionPtr> signal_dependencies;
     std::vector<PmQueryWrite> queries;
     std::vector<PmSimulation> simulations;
+#if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
+    bool delay_execution{};
+#endif
 
     [[nodiscard]] bool ready() const noexcept {
         for (const auto &wait : waits)
@@ -62,6 +65,10 @@ struct Submission {
     }
 
     [[nodiscard]] PmResult execute(parallel_mater::device::Services &services) noexcept {
+#if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
+        if (delay_execution)
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+#endif
         PmResult result = services.activate();
         for (const auto &wait : waits)
             if (result == PM_SUCCESS)
@@ -70,8 +77,10 @@ struct Submission {
             if (result == PM_SUCCESS) result = dependency->status();
         try {
             for (auto &command : commands) {
-                if (result != PM_SUCCESS) break;
-                result = command(services);
+                if (result != PM_SUCCESS && !command.continue_after_error)
+                    continue;
+                const PmResult command_result = command.execute(services);
+                if (result == PM_SUCCESS) result = command_result;
             }
         } catch (const std::bad_alloc &) {
             result = PM_ERROR_OUT_OF_HOST_MEMORY;
@@ -198,6 +207,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmQueueSubmit(
     try {
         auto submission = std::make_shared<Submission>();
         auto completion = std::make_shared<Completion>();
+#if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
+        submission->delay_execution =
+            std::getenv("PM_TEST_DELAY_SUBMISSION") != nullptr;
+#endif
         if (info->waitCount != 0U)
             submission->waits.assign(info->pWaits, info->pWaits + info->waitCount);
         for (std::uint32_t index = 0U; index < info->commandBufferCount; ++index) {
@@ -235,8 +248,12 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmQueueSubmit(
                 for (auto simulation : submission->simulations)
                     simulation->pending_submissions.fetch_add(1U);
                 for (const auto &write : submission->queries) {
-                    for (std::uint32_t slot = write.first; slot < write.first + write.count; ++slot)
+                    std::lock_guard query_lock(write.pool->mutex);
+                    for (std::uint32_t slot = write.first;
+                         slot < write.first + write.count; ++slot) {
                         std::atomic_store(&write.pool->slots[slot].completion, completion);
+                        write.pool->slots[slot].available = false;
+                    }
                 }
                 for (auto &signal : prepared) {
                     std::lock_guard lock(signal.semaphore->mutex);

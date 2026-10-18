@@ -7,10 +7,12 @@ Vulkan, and D3D12 are selected by manifest; the desktop Gallery also accepts
 `--backend cuda|vulkan|d3d12|metal` for discovered drivers.
 
 The Vulkan qualification scope is rigid bodies, rigid constraints, liquids,
-cloth, liquid–rigid and liquid–cloth coupling, paint, emitters, queries, and
-asynchronous public submission. Rope, soft-body, smoke, and their couplings
-remain unadvertised. The older standalone Vulkan `World` prototype is not used
-by this driver.
+cloth, soft bodies, liquid–rigid, liquid–cloth, liquid–soft-body and rigid
+deformable coupling, paint, emitters, queries, and asynchronous public
+submission. Rope, smoke, and cross-deformable coupling remain unadvertised.
+The exact interaction-capability query omits cloth–soft-body contact until its
+dispatch module is qualified. The older standalone Vulkan `World` prototype is
+not used by this driver.
 
 ## Architecture
 
@@ -106,7 +108,7 @@ The Linux validation scripts pin SDK 1.4.341.0 and its archive SHA-256 in
 its manifest, and `spirv-val` into ignored `out/toolchains/`, verifies installed
 file hashes on reuse, and leaves system packages untouched. The test wrapper
 sets both the layer search path and library search path to that installation.
-It validates all nine production SPIR-V modules before running CTest serially.
+It validates all twelve production SPIR-V modules before running CTest serially.
 
 ```sh
 ./scripts/Setup-VulkanValidation.sh
@@ -120,10 +122,11 @@ The scripts do not start a build. Use `--parallel 1` for builds on this laptop.
 
 Tests exercise transfers, rigid-body motion and contact, GPU timestamps,
 asynchronous completion, analytic liquid free fall across dispatch boundaries,
-bounded Fluid and FluidRigid scenes, all four cloth Gallery scenes, paint, and
-reset. Native Gallery tests additionally cover device/queue identity, direct
-output, frames in flight, oriented diagnostic readback, resize, surface detach
-and replacement, offscreen fallback, and validation-clean teardown.
+bounded Fluid and FluidRigid scenes, all four cloth Gallery scenes, the soft
+body, soft-body/rigid and soft-body/fluid scenes, paint, and reset. Native
+Gallery tests additionally cover device/queue identity, direct output, frames
+in flight, oriented diagnostic readback, resize, surface detach and replacement,
+offscreen fallback, and validation-clean teardown.
 
 ## Native Gallery evidence (2026-10-18)
 
@@ -149,6 +152,19 @@ capability advertising in the loadable Vulkan driver. Android uses the same
 modules and capability query, but the expanded cloth set still requires the
 separate Pixel device qualification before it becomes phone performance or
 stability evidence.
+
+## Desktop soft-body evidence (2026-10-18)
+
+On the RTX 3050 Ti laptop, the shared Slang soft-body, geometry–soft-body and
+fluid–soft-body modules compile to normalized SPIR-V and pass validation. The
+common-session rendered-image contract passes Soft Body, Soft Body Rigid and
+Soft Body Fluid. Separate 120-frame public-command lifecycle checks pass all
+three scenes, including reset and no-host-output recovery.
+
+Vulkan advertises `softBodies`, fluid–soft-body contact and soft-body–rigid
+contact. Its exact interaction-capability query rejects cloth–soft-body contact,
+which remains assigned to the cross-deformable qualification work. Android
+packages these same modules but still needs separate physical-device evidence.
 
 ## Desktop evidence (2026-10-16)
 
@@ -196,7 +212,7 @@ use and removes those redundant declarations before embedding each module.
 IDs, decorations, layouts and executable instructions are preserved. Recursive
 types or unfamiliar dependencies fail the build with a diagnostic. CMake keeps
 the compiler output as `generated/vulkan/*.raw.spv` and embeds the normalized
-`*.spv`; validate the latter. All nine modules pass SDK 1.4.341.0 validation on
+`*.spv`; validate the latter. All twelve modules pass SDK 1.4.341.0 validation on
 Linux; the previous Pixel run covered the original six-module subset.
 
 `tools/vulkan_pipeline_probe.cpp` isolates pipeline compilation without the
