@@ -1,7 +1,7 @@
 {
   "id": "F5-19",
   "title": "Emit capacity recovery lifecycle checkpoints",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-03",
     "F5-16"
@@ -18,15 +18,33 @@
     "The result contains baseline, replacement, overflow and recovery observations with exact outcomes, active state, deterministic generation ordinals and canonical state SHA-256 values for both target-fluid and unrelated-fluid.",
     "conformance/v1/lifecycle.py passes the capacity-replacement-recovery case on CUDA and Vulkan from one clean Linux revision; unsupported drivers remain explicitly unsupported and no lifecycle profile rule is weakened."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "13eaa70f-ac70-4b65-8439-a618e7e2f45f",
-    "owner": "codex-linux-evidence",
-    "machine": "thomas-laptop",
-    "branch": "work/F5-19/thomas-laptop",
-    "claimed_at": "2026-10-18T19:03:41Z",
-    "heartbeat_at": "2026-10-18T19:03:41Z",
-    "expires_at": "2026-10-19T19:03:41Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: CUDA and Vulkan each produced 4/4 required capacity-replacement-recovery checkpoints with 0 lifecycle evaluator failures at clean source 4406377.",
+    "PASS: CUDA/Vulkan resource-lifecycle and capacity-recovery CTests passed 4/4, retaining the 4,096-replacement stress and deferred overflow recovery.",
+    "PASS: 75/75 conformance tests, embedded fixture warning-clean compile, CRLF-stable contract hash, and roadmap validation.",
+    "docs/roadmap/evidence/F5-19-capacity-lifecycle.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "13eaa70f-ac70-4b65-8439-a618e7e2f45f",
+        "owner": "codex-linux-evidence",
+        "machine": "thomas-laptop",
+        "branch": "work/F5-19/thomas-laptop",
+        "claimed_at": "2026-10-18T19:03:41Z",
+        "heartbeat_at": "2026-10-18T19:03:41Z",
+        "expires_at": "2026-10-19T19:03:41Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T19:13:20Z",
+      "reason": "Emitted deterministic public-state capacity replacement/recovery checkpoints from one shared standalone and embedded fixture path.",
+      "evidence": [
+        "PASS: CUDA and Vulkan each produced 4/4 required capacity-replacement-recovery checkpoints with 0 lifecycle evaluator failures at clean source 4406377.",
+        "PASS: CUDA/Vulkan resource-lifecycle and capacity-recovery CTests passed 4/4, retaining the 4,096-replacement stress and deferred overflow recovery.",
+        "PASS: 75/75 conformance tests, embedded fixture warning-clean compile, CRLF-stable contract hash, and roadmap validation.",
+        "docs/roadmap/evidence/F5-19-capacity-lifecycle.json"
+      ]
+    }
+  ]
 }
