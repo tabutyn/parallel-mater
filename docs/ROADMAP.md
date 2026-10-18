@@ -178,7 +178,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-01](roadmap/tasks/F5-01.json) | Map advertised modes to conformance cases | done | F2-02 | — |
 | [F5-02](roadmap/tasks/F5-02.json) | Add vendor-neutral conservation and stability cases | done | — | — |
 | [F5-03](roadmap/tasks/F5-03.json) | Add capacity and three-family corpus cases | done | F1-06, F2-04 | — |
-| [F5-04](roadmap/tasks/F5-04.json) | Isolate CPU rigid-direct divergence | leased | — | codex-windows-sdk / windows-gtx1080 / 2026-10-19T07:51:39Z |
+| [F5-04](roadmap/tasks/F5-04.json) | Isolate CPU rigid-direct divergence | done | — | — |
 | [F5-05](roadmap/tasks/F5-05.json) | Isolate shared brick penetration failure | done | — | — |
 | [F5-06](roadmap/tasks/F5-06.json) | Classify CUDA/D3D12 comparison failures | done | — | — |
 | [F5-07](roadmap/tasks/F5-07.json) | Gate performance on physical quality | done | F5-01, F5-02 | — |
@@ -191,7 +191,9 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-14](roadmap/tasks/F5-14.json) | Publish current iPadOS Metal driver evidence | done | F5-02, F5-03, F5-05, F5-06, F5-10, F5-11, F5-13 | — |
 | [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
 | [F5-16](roadmap/tasks/F5-16.json) | Publish current Linux driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
-| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16 | — |
+| [F5-17](roadmap/tasks/F5-17.json) | Adjudicate rigid-direct reference drift | done | F5-04, F5-10 | — |
+| [F5-18](roadmap/tasks/F5-18.json) | Stabilize rigid-direct planar symmetry | done | F5-17 | — |
+| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17, F5-18 | — |
 
 ### F6. SDK releases and repository ownership
 
@@ -234,7 +236,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-20](roadmap/tasks/F7-20.json) | Consolidate the common Gallery scene descriptor | done | F7-12, F7-19 | — |
 | [F7-21](roadmap/tasks/F7-21.json) | Make Gallery presentation state backend-neutral | done | F7-19, F7-20 | — |
 | [F7-22](roadmap/tasks/F7-22.json) | Unify mobile Gallery qualification orchestration | ready | F7-07, F7-19, F7-21 | — |
-| [F7-23](roadmap/tasks/F7-23.json) | Normalize Gallery renderer adapter ownership | ready | F7-08, F7-09, F7-19 | — |
+| [F7-23](roadmap/tasks/F7-23.json) | Normalize Gallery renderer adapter ownership | leased | F7-08, F7-09, F7-19 | codex-windows-sdk / windows-gtx1080 / 2026-10-19T11:29:51Z |
 | [F7-99](roadmap/tasks/F7-99.json) | Review shared Gallery exit evidence | waiting on dependencies | F7-01, F7-02, F7-03, F7-04, F7-05, F7-06, F7-07, F7-08, F7-09, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17, F7-18, F7-19, F7-20, F7-21, F7-22, F7-23 | — |
 
 ### P1. Deferred domain and interaction coverage
@@ -333,10 +335,10 @@ listed acceptance checks, not its entire area or a driver's physical compliance.
 The [qualification index](QUALIFICATION.md) keeps known failures visible.
 Windows F5-10 evidence passes the selected 17 CUDA/D3D12 comparisons and the
 independent shared-brick penetration gate without changing inputs, tolerances
-or historical goldens. Current limits include CPU rigid-direct divergence,
-remaining driver/domain qualification, native Vulkan validation failure and
-unqualified engine handoff. Do not promote execution to physical correctness
-to complete a lease.
+or historical goldens. Current limits include shared rigid-direct reference
+drift pending independent adjudication, remaining driver/domain qualification,
+native Vulkan validation failure and unqualified engine handoff. Do not promote
+execution to physical correctness to complete a lease.
 
 The detailed [2026-10-16 roadmap snapshot](history/ROADMAP-2026-10-16.md) preserves
 prior implementation checkpoints, original exits and platform evidence. It is

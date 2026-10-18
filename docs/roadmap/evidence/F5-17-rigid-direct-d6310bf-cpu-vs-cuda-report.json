@@ -1,0 +1,137 @@
+{
+  "cases": [
+    {
+      "differences": [
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[21].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[22].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[23].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[24].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[25].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[26].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[27].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[28].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[29].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[30].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[31].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[32].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[33].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[34].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[35].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[36].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[37].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[38].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[39].resources[0].angular_velocity[1]"
+        },
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[40].resources[0].angular_velocity[1]"
+        }
+      ],
+      "id": "rigid-direct",
+      "passed": false,
+      "reason": "",
+      "status": "failed"
+    }
+  ],
+  "failed": 1,
+  "passed": 0,
+  "schema": "parallel-mater-conformance-report/v1",
+  "scope": "reference_regression",
+  "unsupported": 0
+}

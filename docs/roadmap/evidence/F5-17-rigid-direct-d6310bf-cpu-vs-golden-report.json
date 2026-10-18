@@ -1,0 +1,23 @@
+{
+  "cases": [
+    {
+      "differences": [
+        {
+          "actual": 3.457767525105737e-05,
+          "expected": 1.0484403901500627e-05,
+          "message": "absolute error 2.4093271349556744e-05 > 1.000034577675251e-05",
+          "path": "$.checkpoints[3].resources[0].angular_velocity[1]"
+        }
+      ],
+      "id": "rigid-direct",
+      "passed": false,
+      "reason": "",
+      "status": "failed"
+    }
+  ],
+  "failed": 1,
+  "passed": 0,
+  "schema": "parallel-mater-conformance-report/v1",
+  "scope": "reference_regression",
+  "unsupported": 0
+}

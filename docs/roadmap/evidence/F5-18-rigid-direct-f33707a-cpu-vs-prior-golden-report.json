@@ -1,0 +1,75 @@
+{
+  "cases": [
+    {
+      "differences": [
+        {
+          "actual": 195.3325653076172,
+          "expected": 195.3369140625,
+          "message": "absolute error 0.0043487548828125 > 0.0019633691406250003",
+          "path": "$.checkpoints[3].invariants.combined_momentum[0]"
+        },
+        {
+          "actual": 36.74273681640625,
+          "expected": 36.72294235229492,
+          "message": "absolute error 0.019794464111328125 > 0.00037742736816406255",
+          "path": "$.checkpoints[3].invariants.combined_momentum[1]"
+        },
+        {
+          "actual": 16.468843460083008,
+          "expected": 16.526390075683594,
+          "message": "absolute error 0.05754661560058594 > 0.00017526390075683595",
+          "path": "$.checkpoints[3].resources[0].angular_velocity[2]"
+        },
+        {
+          "actual": 97.6662826538086,
+          "expected": 97.66845703125,
+          "message": "absolute error 0.00217437744140625 > 0.0009866845703125002",
+          "path": "$.checkpoints[3].resources[0].linear_velocity[0]"
+        },
+        {
+          "actual": 18.371368408203125,
+          "expected": 18.36147117614746,
+          "message": "absolute error 0.009897232055664062 > 0.00019371368408203126",
+          "path": "$.checkpoints[3].resources[0].linear_velocity[1]"
+        },
+        {
+          "actual": [
+            -1.9392969008436012e-08,
+            3.317718721973506e-08,
+            0.43176886439323425,
+            -0.9019843339920044
+          ],
+          "expected": [
+            -1.9811290258076042e-05,
+            9.606825187802315e-06,
+            0.4231674075126648,
+            -0.906051516532898
+          ],
+          "message": "quaternion angular error 0.019029261280390126 > 0.002",
+          "path": "$.checkpoints[3].resources[0].orientation"
+        },
+        {
+          "actual": 32.37546157836914,
+          "expected": 32.376121520996094,
+          "message": "absolute error 0.000659942626953125 > 0.000333761215209961",
+          "path": "$.checkpoints[3].resources[0].position[0]"
+        },
+        {
+          "actual": 8.035283088684082,
+          "expected": 8.032442092895508,
+          "message": "absolute error 0.0028409957885742188 > 9.035283088684082e-05",
+          "path": "$.checkpoints[3].resources[0].position[1]"
+        }
+      ],
+      "id": "rigid-direct",
+      "passed": false,
+      "reason": "",
+      "status": "failed"
+    }
+  ],
+  "failed": 1,
+  "passed": 0,
+  "schema": "parallel-mater-conformance-report/v1",
+  "scope": "reference_regression",
+  "unsupported": 0
+}

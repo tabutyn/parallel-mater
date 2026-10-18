@@ -19,6 +19,7 @@ sys.modules[SPEC.name] = quality
 SPEC.loader.exec_module(quality)
 PROFILE_PATH = ROOT / "quality" / "core-conservation-v1.json"
 BRICK_PROFILE_PATH = ROOT / "quality" / "rigid-brick-penetration-v1.json"
+SWEEP_PROFILE_PATH = ROOT / "quality" / "rigid-kinematic-sweep-v1.json"
 
 
 def particle(identity: int) -> dict:
@@ -284,6 +285,145 @@ class RigidPenetrationQualityTests(unittest.TestCase):
         result = self.valid_result()
         result["fixture"]["maximum_penetration_m"] = float("nan")
         self.assert_rejected(result, "expected a finite number")
+
+
+class RigidKinematicSweepQualityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.profile = json.loads(SWEEP_PROFILE_PATH.read_text(encoding="utf-8"))
+        cls.digest = quality.profile_sha256(SWEEP_PROFILE_PATH)
+
+    def valid_result(self) -> dict:
+        checkpoints = [
+            {
+                "frame": frame,
+                "resources": [],
+                "contacts": {"rigid_contact_count": 0, "rigid_contacts": []},
+            }
+            for frame in range(61)
+        ]
+        checkpoints[20]["resources"] = [
+            {
+                "id": "dynamic-box",
+                "position": [0.25, 1.448, 0.0],
+                "orientation": [0.0, 0.0, 0.0, 1.0],
+                "linear_velocity": [0.75, -3.27, 0.0],
+                "angular_velocity": [0.0, 0.0, 0.0],
+            },
+            {
+                "id": "kinematic-box",
+                "position": [-1.0, 1.0, 0.0],
+                "orientation": [0.0, 0.0, 0.0, 1.0],
+                "linear_velocity": [0.0, 0.0, 0.0],
+                "angular_velocity": [0.0, 0.0, 0.0],
+            },
+        ]
+        checkpoints[21]["resources"] = [
+            {
+                "id": "dynamic-box",
+                "position": [1.448, 1.733, 0.0],
+                "orientation": [0.0, 0.0, 0.089, 0.996],
+                "linear_velocity": [97.67, 21.47, 0.0],
+                "angular_velocity": [0.0, 0.0, 16.53],
+            },
+            {
+                "id": "kinematic-box",
+                "position": [1.0, 1.5, 0.0],
+                "orientation": [0.0, 0.0, 0.0, 1.0],
+                "linear_velocity": [120.0, 30.0, 0.0],
+                "angular_velocity": [0.0, 0.0, 0.0],
+            },
+        ]
+        contacts = [
+            {
+                "body": "dynamic-box",
+                "collider": "kinematic-box",
+                "position": [1.152, 1.689, z],
+                "normal": [0.976187, 0.216930, 0.0],
+                "normal_impulse": 24.0,
+                "friction_impulse": [-0.21, 0.96, 0.0],
+                "penetration": 0.099,
+            }
+            for z in (-0.2, 0.2)
+        ]
+        checkpoints[21]["contacts"] = {
+            "rigid_contact_count": len(contacts),
+            "rigid_contacts": contacts,
+        }
+        return {
+            "schema": quality.CONFORMANCE_RESULT_SCHEMA,
+            "backend": "slang-test",
+            "case_id": "rigid-direct",
+            "case_sha256": self.profile["fixture"]["case_sha256"],
+            "execution_status": "completed",
+            "checkpoints": checkpoints,
+            "provenance": {"device_name": "test-device"},
+        }
+
+    def evaluate(self, result: dict) -> dict:
+        return quality.evaluate(self.profile, result, self.digest)
+
+    def assert_rejected(self, result: dict, message: str) -> None:
+        report = self.evaluate(result)
+        self.assertFalse(report["passed"])
+        self.assertTrue(any(message in failure["message"]
+                            for failure in report["failures"]), report)
+
+    def test_off_center_sweep_oracle_passes_without_reference(self):
+        report = self.evaluate(self.valid_result())
+        self.assertTrue(report["passed"], report)
+        self.assertEqual(report["sample_count"], 61)
+        self.assertGreater(report["observations"]["normal_alignment_cosine"],
+                           0.99)
+        adjudication = self.profile["reference_adjudication"]
+        self.assertFalse(adjudication["direct_tolerances_changed"])
+        self.assertEqual(adjudication["golden_replacement"], "required")
+
+    def test_case_identity_and_all_frames_are_required(self):
+        result = self.valid_result()
+        result["case_sha256"] = "0" * 64
+        self.assert_rejected(result, "case hash mismatch")
+
+        result = self.valid_result()
+        result["checkpoints"].pop(10)
+        self.assert_rejected(result, "every frame")
+
+    def test_historical_nonplanar_wrong_axis_response_fails(self):
+        result = self.valid_result()
+        body = result["checkpoints"][21]["resources"][0]
+        body["orientation"] = [-0.04, -0.007, 0.036, 0.998]
+        body["angular_velocity"] = [-0.023, -0.004, -0.009]
+        for contact in result["checkpoints"][21]["contacts"]["rigid_contacts"]:
+            contact["normal"] = [0.0, -1.0, 0.0]
+        self.assert_rejected(result, "not aligned with the kinematic sweep")
+        self.assert_rejected(result, "lacks the required angular response")
+        self.assert_rejected(result, "planar symmetry leakage")
+
+    def test_declared_collider_bounds_are_independently_enforced(self):
+        result = self.valid_result()
+        result["checkpoints"][21]["contacts"]["rigid_contacts"][0][
+            "position"][2] = 0.25
+        self.assert_rejected(result, "outside the declared collider")
+
+    def test_coulomb_cone_and_nonvacuous_response_are_required(self):
+        result = self.valid_result()
+        contact = result["checkpoints"][21]["contacts"]["rigid_contacts"][0]
+        contact["friction_impulse"] = [20.0, 0.0, 0.0]
+        self.assert_rejected(result, "exceeds Coulomb cone")
+
+        result = self.valid_result()
+        body = result["checkpoints"][21]["resources"][0]
+        body["linear_velocity"] = [0.0, 0.0, 0.0]
+        body["angular_velocity"] = [0.0, 0.0, 0.0]
+        self.assert_rejected(result, "did not respond along")
+        self.assert_rejected(result, "lacks the required angular response")
+
+    def test_incomplete_execution_and_backend_identity_fail(self):
+        result = self.valid_result()
+        result["execution_status"] = "failed"
+        result["backend"] = ""
+        self.assert_rejected(result, "must be completed")
+        self.assert_rejected(result, "backend identity is required")
 
 
 if __name__ == "__main__":

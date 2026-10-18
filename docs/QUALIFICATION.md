@@ -397,3 +397,64 @@ or invariant physical quality, and performance. An unsupported case counts as
 neither a pass nor a numerical failure, and leaves its qualification scope open.
 Performance comparisons require both implementations to pass the same fixed
 quality profile first. Raw case outputs and failures survive the comparison.
+
+### F5-17 rigid-direct reference adjudication
+
+Clean source `d6310bf9b65d81f8c30b2d45e415c43b82396249` exposed that the
+command runner did not execute the geometry declared by the hashed
+`rigid-direct` case: its kinematic body reused the dynamic box's 0.25 m
+half-extent mesh instead of the declared 0.2 m mesh. The retained F5-04 CPU and
+CUDA raws confirm the mismatch through frame-21 contact points at approximately
+`z = +/-0.25 m`. The runner now creates the declared kinematic mesh; the case,
+shared solver, backend adapters and `direct` tolerances are unchanged.
+
+The independent
+[`rigid-kinematic-sweep-v1`](../conformance/v1/quality/rigid-kinematic-sweep-v1.json)
+profile pins the case hash and all 61 checkpoints. It checks collider bounds,
+contact direction, the Coulomb cone, non-vacuous linear/angular response and
+planar symmetry without reading a trajectory golden. Corrected CPU and CUDA
+captures both pass with zero failures; the retained pre-correction captures
+each fail five collider-bound checks. The
+[versioned adjudication](roadmap/evidence/F5-17-rigid-direct-adjudication.json)
+therefore replaces only the stale CUDA `rigid-direct` golden, from SHA-256
+`c79c9a768c1b3f0d60d7ec5af7e1a8a69977d3e5e7c7c5558c5352c65617208d`
+to `6ebfbcc7be7cbfb5363a4fc29029bc2ba9d1f96ce03c4ab7334af9ade45ac5ba`.
+
+CUDA passes the F5-17 replacement at all five canonical checkpoints. At that
+revision CPU still failed one unchanged-tolerance field at checkpoint 40:
+`dynamic-box.angular_velocity[1]` differed by `2.4093271349556744e-05 rad/s`
+against an allowed `1.000034577675251e-05 rad/s`. The retained all-frame report
+preserves the same component on frames 21 through 40. F5-18 closes that bounded
+divergence below; the five known `0xc0000006` process failures and all other
+F5-11 limitations remain. This evidence grants no broader CPU, CUDA, Gallery,
+performance or driver qualification.
+
+### F5-18 rigid-direct planar symmetry
+
+Clean source `f33707a649399f5630b687a50eabfae7f6cef79e` reproduced the
+F5-17 failure from the same case and profile hashes. The frame-21 face manifold
+contained the four rectangular patch endpoints plus a fifth collinear interior
+point at `z = -0.082687892 m`, contributed by the incident face's internal
+triangle diagonal. That unpaired point made the AVBD block depend on face
+tessellation. The shared Slang face-manifold path now removes only points lying
+strictly inside a segment between two other patch contacts. It does not change
+the fixture, tolerance, backend adapters or output values after solving.
+
+The corrected CPU and CUDA captures each contain 61 checkpoints and a mirrored
+four-contact frame-21 patch at `z = +/-0.2 m`. They compare with zero differences
+at the unchanged `direct` tolerances, and both pass all 61 samples of the pinned
+`rigid-kinematic-sweep-v1` oracle. Maximum reported planar leakage is
+`1.1697111e-06` on CPU and `6.6892048e-06` on CUDA. A focused CUDA/D3D12
+regression additionally produces `1.21739 rad/s` from a real `0.02 rad` tilted
+contact, proving that the reduction does not discard three-dimensional angular
+response. Both backends pass 300 rigid Gallery frames, reset, torque-free,
+convex-sweep, face-normal, brick-penetration, seam and open-surface gates.
+
+Because the correction changes the physical post-impact trajectory, only the
+CUDA `rigid-direct` golden is replaced, from LF-normalized SHA-256
+`6ebfbcc7be7cbfb5363a4fc29029bc2ba9d1f96ce03c4ab7334af9ade45ac5ba`
+to `ab9fd6f8deef860cb415d0b43633d367678f3acb6993d1007ab4d97fce80147a`.
+The [versioned F5-18 evidence](roadmap/evidence/F5-18-rigid-direct-planar-symmetry.json)
+retains the pre-correction failure, current raw captures, independent quality
+reports and both reference comparisons. It closes only the bounded F5-17
+planar-symmetry limitation and grants no broader driver or performance claim.
