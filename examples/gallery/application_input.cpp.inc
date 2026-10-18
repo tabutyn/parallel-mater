@@ -189,14 +189,14 @@ void mouse_button(GLFWwindow *window, int button, int action, int modifiers) {
     }
     auto *input = static_cast<InputState *>(glfwGetWindowUserPointer(window));
     if (action == GLFW_RELEASE) {
-        input->shared.camera.end_drag();
+        input->camera->end_drag();
         return;
     }
     if (action != GLFW_PRESS || input->shared.parameters_visible ||
         input->shared.catalog_visible) return;
     double x = 0.0, y = 0.0;
     glfwGetCursorPos(window, &x, &y);
-    input->shared.camera.begin_drag((modifiers & GLFW_MOD_SHIFT) != 0
+    input->camera->begin_drag((modifiers & GLFW_MOD_SHIFT) != 0
                                  ? CameraDragMode::pan
                                  : CameraDragMode::orbit,
                              x, y);
@@ -206,7 +206,7 @@ void cursor_position(GLFWwindow *window, double x, double y) {
     auto *input = static_cast<InputState *>(glfwGetWindowUserPointer(window));
     int height = 0;
     glfwGetWindowSize(window, nullptr, &height);
-    input->shared.camera.move_cursor(
+    input->camera->move_cursor(
         x, y, height,
         !input->shared.parameters_visible && !input->shared.catalog_visible);
 }
@@ -216,7 +216,7 @@ void scroll(GLFWwindow *window, double, double offset) {
     if (input->shared.parameters_visible || input->shared.catalog_visible) {
         return;
     }
-    input->shared.camera.zoom(offset);
+    input->camera->zoom(offset);
 }
 
 void character_input(GLFWwindow *window, unsigned int codepoint) {

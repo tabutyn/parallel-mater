@@ -3,6 +3,7 @@
 #include <parallel_mater_gallery/session.hpp>
 #include "scene_builder.hpp"
 #include "render/render_scene.hpp"
+#include <parallel_mater_gallery/dump_truck.hpp>
 #include <parallel_mater_gallery/renderer.hpp>
 #ifdef PM_GALLERY_METAL_RENDERER
 #include <parallel_mater_gallery/gpu_renderer.hpp>
@@ -27,17 +28,27 @@ GallerySession::GallerySession(GallerySessionConfig config) : config_(std::move(
 #ifndef PM_GALLERY_METAL_RENDERER
     if (config_.gpu_rendering) throw std::runtime_error("Native GPU Gallery renderer is not built");
 #endif
-    std::string error;
-    DeviceProfileCatalog catalog;
-    require(load_device_profiles(config_.profiles, catalog, error), error);
-    const auto *profile = select_workload_limits(catalog, config_.platform, config_.model, config_.backend);
-    if (!profile) throw std::runtime_error("Gallery workload profile missing");
-    limits = *profile;
+    if (config_.workload_limits) {
+        limits = *config_.workload_limits;
+    } else {
+        std::string error;
+        DeviceProfileCatalog catalog;
+        require(load_device_profiles(config_.profiles, catalog, error), error);
+        const auto *profile = select_workload_limits(
+            catalog, config_.platform, config_.model, config_.backend);
+        if (!profile) throw std::runtime_error("Gallery workload profile missing");
+        limits = *profile;
+    }
     frame_policy_.apply_workload(&limits);
-    bricks_ = limits.brick_count;
+    parameters_.bricks = config_.bricks.value_or(
+        BrickSceneConfig{limits.brick_count, 1.0F, 1U});
+    parameters_.dump_spheres = config_.dump_spheres != 0U
+        ? config_.dump_spheres : limits.dump_spheres;
+    parameters_.fluid_particles = config_.fluid_particles != 0U
+        ? config_.fluid_particles : limits.fluid_particles;
     width = limits.render_width;
     height = limits.render_height;
-    select(0);
+    select(config_.initial_scene);
 }
 GallerySession::~GallerySession() = default;
 void GallerySession::require_scene() const {
@@ -53,14 +64,19 @@ void GallerySession::select(unsigned index) {
     std::string error;
     GalleryRuntimeCreateInfo request;
     request.context = selected.context;
-    request.asset = config_.assets / item.asset_file;
+    request.asset = selected.context == GalleryContext::rigid_body &&
+            !config_.rigid_body_asset.empty()
+        ? config_.rigid_body_asset : config_.assets / item.asset_file;
     request.backend = config_.native_backend;
+    request.debug_frame_capacity = selected.context ==
+            GalleryContext::constraint_fixed
+        ? 300U : 30U;
     request.width = width;
     request.height = height;
-    request.create_host_renderer = !config_.gpu_rendering;
-    request.replacement =
-        GalleryReplacementPolicy::release_before_device_create;
-    const unsigned brick_count = bricks_;
+    request.create_host_renderer = config_.create_host_renderer.value_or(
+        !config_.gpu_rendering);
+    request.replacement = config_.replacement;
+    const GallerySceneParameters parameters = parameters_;
     const GalleryWorkloadLimits selected_limits = limits;
     struct PendingDevice {
         std::optional<GalleryCatalog> catalog;
@@ -69,28 +85,36 @@ void GallerySession::select(unsigned index) {
     const auto pending_device = std::make_shared<PendingDevice>();
     request.configure_scene =
         [context = selected.context, has_fluid = selected.has_fluid,
-         brick_count, selected_limits](SceneDefinition &scene,
-                                       std::string &failure) {
+         parameters, selected_limits,
+         validate = config_.validate_scene](SceneDefinition &scene,
+                                            std::string &failure) {
         if (context == GalleryContext::rigid_body) {
             SceneDefinition generated;
-            if (!make_brick_scene(scene, {brick_count, 1.0F, 1U},
+            if (!make_brick_scene(scene, parameters.bricks,
                                   generated, failure)) return false;
             scene = std::move(generated);
         }
         if (has_fluid)
-            scene.fluid_options.capacity = selected_limits.fluid_particles;
+            scene.fluid_options.capacity = parameters.fluid_particles;
         if ((context == GalleryContext::fluid ||
-             context == GalleryContext::fluid_rigid) &&
-            !apply_liquid_workload_limits(scene, selected_limits, failure))
-            return false;
+             context == GalleryContext::fluid_rigid)) {
+            auto applied_limits = selected_limits;
+            applied_limits.fluid_particles = parameters.fluid_particles;
+            if (!apply_liquid_workload_limits(
+                    scene, applied_limits, failure)) return false;
+        }
+        if (context == GalleryContext::dump &&
+            !configure_dump_payload(
+                scene, parameters.dump_spheres, failure)) return false;
         scene.smoke_options.capacity = std::min(
             scene.smoke_options.capacity, selected_limits.smoke_particles);
-        return true;
+        return !validate || validate(context, scene, failure);
     };
     const bool gpu_rendering = config_.gpu_rendering;
     const auto native_backend = config_.native_backend;
+    const bool prime_scene = config_.prime_scene;
     request.prepare_runtime =
-        [pending_device, gpu_rendering, native_backend]
+        [pending_device, gpu_rendering, native_backend, prime_scene]
         (GalleryRuntime &next, std::string &failure) {
         PmPhysicalDeviceProperties device{};
         pmGetPhysicalDeviceProperties(next.simulation.physical_device(), &device);
@@ -107,13 +131,19 @@ void GallerySession::select(unsigned index) {
             }
         }
 #ifdef PM_GALLERY_METAL_RENDERER
-        if (gpu_rendering)
-            next.native_renderer = std::make_shared<GpuGalleryRenderer>(
-                next.simulation.device(), next.scene, next.instance);
+        if (gpu_rendering) {
+            try {
+                next.native_renderer = std::make_shared<GpuGalleryRenderer>(
+                    next.simulation.device(), next.scene, next.instance);
+            } catch (const std::exception &exception) {
+                failure = exception.what();
+                return false;
+            }
+        }
 #else
         (void)gpu_rendering;
 #endif
-        if (!next.step({.gravity = {0.0F,
+        if (prime_scene && !next.step({.gravity = {0.0F,
                 -9.81F * next.scene.gravity_scale, 0.0F}}, failure)) {
             return false;
         }
@@ -146,6 +176,7 @@ void GallerySession::select(unsigned index) {
     frame_policy_.reset();
     right_ = up_ = 0;
     released_ = false;
+    ++revision_;
     focus();
 }
 void GallerySession::reset() {
@@ -167,6 +198,7 @@ void GallerySession::reset() {
     frame_policy_.reset();
     right_ = up_ = 0;
     released_ = false;
+    ++revision_;
     focus();
 }
 void GallerySession::resize(unsigned w, unsigned h) {
@@ -197,7 +229,7 @@ void GallerySession::focus() {
     require_scene();
     runtime_.camera = CameraController{};
     auto preset = entry(selected_).context == GalleryContext::rigid_body
-        ? brick_camera_preset({bricks_, 1.0F, 1U}) : entry(selected_).camera;
+        ? brick_camera_preset(parameters_.bricks) : entry(selected_).camera;
     if (entry(selected_).context == GalleryContext::constraint_hinge) preset.distance_scale *= 1.6F;
     if (entry(selected_).context == GalleryContext::fluid || entry(selected_).context == GalleryContext::fluid_rigid) {
         Vec3 low{INFINITY, INFINITY, INFINITY}, high{-INFINITY, -INFINITY, -INFINITY};
@@ -250,8 +282,26 @@ void GallerySession::steer(float right, float up) {
     right_ = std::clamp(right, -1.0F, 1.0F); up_ = std::clamp(up, -1.0F, 1.0F);
 }
 void GallerySession::set_bricks(unsigned count) {
-    bricks_ = std::clamp(count, 1U, limits.brick_count);
+    parameters_.bricks.brick_count = std::clamp(count, 1U, limits.brick_count);
     if (entry(selected_).context == GalleryContext::rigid_body) select(selected_);
+}
+void GallerySession::set_scene_parameters(
+    GallerySceneParameters parameters) noexcept {
+    parameters_ = parameters;
+}
+GallerySceneParameters GallerySession::scene_parameters() const noexcept {
+    return parameters_;
+}
+bool GallerySession::controlled_step(const GalleryControlInput &input,
+                                     GalleryStepOptions options,
+                                     std::string &error) {
+    if (!runtime_.ready()) {
+        error = "Choose a scene or Reset to continue";
+        return false;
+    }
+    if (!runtime_.controlled_step(input, options, error)) return false;
+    ++frames;
+    return true;
 }
 void GallerySession::frame(const std::function<void(const GallerySession &)> &present) {
     frame_at(frame_policy_.next_fixed_frame_time(), present);
@@ -270,7 +320,7 @@ void GallerySession::frame_at(
             const auto controls = runtime_.controller_state();
             const bool read_host = !config_.gpu_rendering || diagnostics_ ||
                 controls.directional == GalleryControlPolicy::collector_gravity;
-            require(runtime_.controlled_step({
+            require(controlled_step({
                 .right = right_,
                 .forward = up_,
                 .camera = runtime_.camera.camera(),
@@ -280,7 +330,6 @@ void GallerySession::frame_at(
                 .read_deformables = read_host,
                 .read_host = read_host,
             }, error), error);
-            ++frames;
             frame_policy_.record_step(timing.end_phase() / 1000.0);
         }
         frame_policy_.finish_frame();

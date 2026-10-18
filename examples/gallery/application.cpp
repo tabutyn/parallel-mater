@@ -8,6 +8,7 @@
 #include <parallel_mater_gallery/gallery_debug.hpp>
 #include <parallel_mater_gallery/gallery_input.hpp>
 #include <parallel_mater_gallery/gallery_runtime.hpp>
+#include <parallel_mater_gallery/session.hpp>
 #include <parallel_mater_gallery/overlay.hpp>
 #include <parallel_mater_gallery/physics_debug.hpp>
 #include <parallel_mater_gallery/renderer.hpp>
@@ -36,6 +37,7 @@
 #include <iostream>
 #include <iomanip>
 #include <limits>
+#include <memory>
 #include <numeric>
 #include <new>
 #include <optional>
@@ -62,7 +64,10 @@ using parallel_mater::gallery::GalleryCatalog;
 using parallel_mater::gallery::GalleryEntry;
 using parallel_mater::gallery::GalleryReplacementPolicy;
 using parallel_mater::gallery::GalleryRuntime;
-using parallel_mater::gallery::GalleryRuntimeCreateInfo;
+using parallel_mater::gallery::GallerySceneParameters;
+using parallel_mater::gallery::GallerySession;
+using parallel_mater::gallery::GallerySessionConfig;
+using parallel_mater::gallery::GalleryWorkloadLimits;
 using parallel_mater::gallery::GalleryStepOptions;
 using parallel_mater::gallery::GalleryDebugState;
 using parallel_mater::gallery::GalleryFramePolicy;
@@ -73,8 +78,7 @@ using parallel_mater::gallery::GalleryWindow;
 using parallel_mater::gallery::gallery_entries;
 using parallel_mater::gallery::gallery_entry;
 using parallel_mater::gallery::gallery_context_index;
-using parallel_mater::gallery::gallery_scene_asset;
-using parallel_mater::gallery::make_gallery_catalog;
+using parallel_mater::gallery::gallery_backend_name;
 using parallel_mater::gallery::is_fluid_context;
 using parallel_mater::gallery::is_cloth_context;
 using parallel_mater::gallery::is_soft_body_context;
@@ -156,8 +160,11 @@ struct Options {
     std::optional<PmNativeBackend> backend{};
 };
 
+std::filesystem::path device_profiles_path(const Options &options);
+
 struct InputState {
     GalleryInputState shared{};
+    CameraController *camera{};
     bool replace_count_value{};
     bool count_value_invalid{};
     std::string count_value{};
@@ -424,12 +431,6 @@ static int run_gallery_application(
         options.backend = selected;
     }
     if (options.backend) window_title += " - " + backend_title(*options.backend);
-    const auto selected_features = platform_gallery_features(options.backend);
-    if (!selected_features) {
-        std::cerr << "Could not query Gallery backend capabilities\n";
-        return 1;
-    }
-    const GalleryCatalog scene_catalog = make_gallery_catalog(&*selected_features);
     if (options.headless_output.empty()) {
         const HardwareIdentity hardware =
             platform_hardware_identity(options.backend);
@@ -497,19 +498,18 @@ static int run_gallery_application(
         std::cerr << error << '\n';
         return 1;
     }
-    DesktopGalleryState session;
-    if (!session.rebuild(options, options.initial_context, options.dump_spheres,
-                         options.fluid_particles, error)) {
-        std::cerr << error << '\n';
-        return 1;
-    }
-    GalleryRuntime &runtime = session.runtime;
+    GallerySession session(desktop_session_config(
+        options, options.initial_context));
+    GalleryRuntime &runtime = session.runtime();
+    const GalleryCatalog &scene_catalog = session.catalog();
+    std::cout << "Gallery scene ready index=" << session.selection()
+              << " revision=" << session.revision() << '\n' << std::flush;
     PmPhysicalDeviceProperties physics_device{};
     pmGetPhysicalDeviceProperties(runtime.simulation.physical_device(), &physics_device);
     std::cout << "Physics device: " << physics_device.deviceName << '\n';
     std::cout << "Build revision: " << PARALLEL_MATER_GALLERY_GIT_COMMIT << '\n';
-    std::uint32_t &dump_spheres = session.dump_spheres;
-    std::uint32_t &fluid_particles = session.fluid_particles;
+    std::uint32_t dump_spheres = options.dump_spheres;
+    std::uint32_t fluid_particles = options.fluid_particles;
     std::optional<CalibrationResult> last_calibration;
 
     const StepOptions step_options{.timestep = frame_policy.timestep(),
@@ -520,16 +520,15 @@ static int run_gallery_application(
                                    .rigid_contact_pass_limit = options.contact_pass_limit};
     std::vector<std::uint32_t> pixels;
     InputState input_state;
+    input_state.camera = &session.camera();
     input_state.shared.current = gallery_context_index(runtime.context);
     input_state.shared.selected = input_state.shared.current;
-    input_state.shared.camera.set_preset(
-        camera_preset_for(runtime.context, options.bricks));
     if (!options.headless_output.empty()) {
         const bool measure_frames = !options.frame_timings_output.empty();
         RendererTimings headless_render_timings{};
         const auto render_headless = [&] {
             return runtime.renderer.render(
-                runtime.render_frame, input_state.shared.camera.camera(),
+                runtime.render_frame, session.camera().camera(),
                 pixels, error, &headless_render_timings,
                 options.cloth_debug ? FluidRenderMode::wireframe :
                 options.fluid_particle_view ? FluidRenderMode::particles :
@@ -606,15 +605,11 @@ static int run_gallery_application(
             if (options.headless_constraint_action_after_frames != 0U &&
                 frame == static_cast<int>(
                     options.headless_constraint_action_after_frames)) {
-                const auto outcome = runtime.primary_action(error);
-                if (!error.empty()) {
-                    std::cerr << "scene action failed: " << error << '\n';
-                    return 1;
-                }
-                if (outcome == parallel_mater::gallery::GalleryActionOutcome::reset_requested &&
-                    !session.rebuild(options, runtime.context, dump_spheres,
-                                     fluid_particles, error)) {
-                    std::cerr << "scene action reset failed: " << error << '\n';
+                try {
+                    (void)session.primary_action();
+                } catch (const std::exception &failure) {
+                    std::cerr << "scene action failed: " << failure.what()
+                              << '\n';
                     return 1;
                 }
             }
@@ -622,7 +617,7 @@ static int run_gallery_application(
             parallel_mater::gallery::GalleryControlInput controls{
                 .right = options.headless_motor_right ? 1.0F : 0.0F,
                 .forward = options.headless_motor_forward ? 1.0F : 0.0F,
-                .camera = input_state.shared.camera.camera(),
+                .camera = session.camera().camera(),
             };
             if (frame < static_cast<int>(options.headless_cloth_tilt_after_frames))
                 frame_step.gravity = step_options.gravity;
@@ -640,7 +635,7 @@ static int run_gallery_application(
             if (options.headless_cloth_tilt_degrees != 0U ||
                 fixed_collection)
                 controls.gravity_override = frame_step.gravity;
-            if (!runtime.controlled_step(controls, frame_step, error)) {
+            if (!session.controlled_step(controls, frame_step, error)) {
                 std::cerr << "Headless frame " << frame + 1
                           << " failed: " << error << "; peak contacts="
                           << runtime.frame.statistics.peakContactCount << '\n';
@@ -752,7 +747,7 @@ static int run_gallery_application(
                 if (!draw_cloth_debug_overlay(
                         pixels, runtime.renderer.width(), runtime.renderer.height(),
                         runtime.scene, runtime.frame, cloth,
-                        input_state.shared.camera.camera(),
+                        session.camera().camera(),
                         {.normals = true, .rigid_contact_forces = true,
                          .fluid_contact_forces = true, .wireframe = true,
                          .bonds = true}, error)) {
@@ -763,7 +758,7 @@ static int run_gallery_application(
             std::cout << "Cloth debug surfaces=" << runtime.instance.cloths.size() << '\n';
             draw_physics_debug_overlay(
                 pixels, runtime.renderer.width(), runtime.renderer.height(),
-                runtime.frame, input_state.shared.camera.camera(),
+                runtime.frame, session.camera().camera(),
                 {.contact_normals = true, .rigid_forces = true,
                  .fluid_forces = true, .velocities = true});
         }
@@ -858,7 +853,7 @@ static int run_gallery_application(
     bool capture_status_failure = false;
     FrameClock::time_point capture_status_until{};
     frame_policy.reset(FrameClock::now());
-    std::uint64_t observed_session_revision = session.revision;
+    std::uint64_t observed_session_revision = session.revision();
     float rigid_interpolation_alpha = 1.0F;
     unsigned displayed_frames = 0;
     while (glfwWindowShouldClose(window) == GLFW_FALSE) {
@@ -896,9 +891,10 @@ static int run_gallery_application(
                               << calibration_error << '\n';
                 }
                 if (calibration_succeeded &&
-                    !session.rebuild(options, GalleryContext::rigid_body,
-                                     options.dump_spheres,
-                                     options.fluid_particles, error)) {
+                    !select_desktop_scene(session, options,
+                                          GalleryContext::rigid_body,
+                                          dump_spheres, fluid_particles,
+                                          error)) {
                     std::cerr << error << '\n';
                     break;
                 }
@@ -944,6 +940,7 @@ static int run_gallery_application(
                 input_state.count_value_invalid = false;
             }
             if (keys.pressed(KeyAction::scenes)) {
+                session.camera().end_drag();
                 input_state.shared.key(GalleryKey::catalog);
                 input_state.count_value_invalid = false;
             }
@@ -967,20 +964,20 @@ static int run_gallery_application(
                 } else {
                     const BrickSceneConfig previous_bricks = options.bricks;
                     if (input_state.brick_dialog) options.bricks = requested_bricks;
-                    if (session.rebuild(
-                            options, runtime.context,
-                            fluid_dialog || input_state.brick_dialog
-                                ? dump_spheres : requested,
-                            fluid_dialog ? requested : fluid_particles,
-                            error)) {
+                    const std::uint32_t requested_dump =
+                        fluid_dialog || input_state.brick_dialog
+                            ? dump_spheres : requested;
+                    const std::uint32_t requested_fluid =
+                        fluid_dialog ? requested : fluid_particles;
+                    if (select_desktop_scene(
+                            session, options, runtime.context,
+                            requested_dump, requested_fluid, error)) {
+                        dump_spheres = requested_dump;
+                        fluid_particles = requested_fluid;
                         input_state.shared.parameters_visible = false;
                         input_state.count_value_invalid = false;
-                        if (input_state.brick_dialog) {
+                        if (input_state.brick_dialog)
                             options.bricks_overridden = true;
-                            input_state.shared.camera.set_preset(
-                                camera_preset_for(runtime.context,
-                                                  options.bricks));
-                        }
                     } else {
                         options.bricks = previous_bricks;
                         std::cerr << "Scene restart failed: " << error << '\n';
@@ -996,6 +993,7 @@ static int run_gallery_application(
                 }
             }
             if (keys.pressed(KeyAction::scenes)) {
+                session.camera().end_drag();
                 input_state.shared.key(GalleryKey::catalog);
             }
             if (input_state.shared.catalog_visible) {
@@ -1017,13 +1015,12 @@ static int run_gallery_application(
                     if (!catalog_selection.available) {
                         // The catalog explains why this row is disabled.
                     } else if (!context_changed ||
-                               session.rebuild(options, context_selection, dump_spheres,
-                                               fluid_particles, error)) {
+                               select_desktop_scene(
+                                   session, options, context_selection,
+                                   dump_spheres, fluid_particles, error)) {
                         if (context_changed) {
                             debug.reset(options.fluid_particle_view);
                             input_state.shared.current = selected;
-                            input_state.shared.camera.set_preset(
-                                camera_preset_for(runtime.context, options.bricks));
                         }
                         input_state.shared.catalog_visible = false;
                     } else {
@@ -1033,6 +1030,7 @@ static int run_gallery_application(
             } else if (gallery_entry(runtime.context).count_kind !=
                            GalleryCountKind::none &&
                        keys.pressed(KeyAction::particle_count)) {
+                session.camera().end_drag();
                 input_state.shared.key(GalleryKey::parameters);
                 input_state.brick_dialog = gallery_entry(runtime.context).count_kind ==
                     GalleryCountKind::brick_scene;
@@ -1050,22 +1048,17 @@ static int run_gallery_application(
             }
             if (!input_state.shared.catalog_visible &&
                 keys.pressed(KeyAction::reset)) {
-                if (!session.rebuild(options, runtime.context, dump_spheres,
-                                     fluid_particles, error)) {
+                if (!reset_desktop_scene(session, error)) {
                     std::cerr << "Scene reset failed: " << error << '\n';
                 }
             }
             if (!input_state.shared.catalog_visible &&
                 keys.pressed(KeyAction::action)) {
-                const auto outcome = runtime.primary_action(error);
-                if (!error.empty()) {
-                    std::cerr << "scene action failed: " << error << '\n';
-                    break;
-                }
-                if (outcome == parallel_mater::gallery::GalleryActionOutcome::reset_requested &&
-                    !session.rebuild(options, runtime.context, dump_spheres,
-                                     fluid_particles, error)) {
-                    std::cerr << "scene action reset failed: " << error << '\n';
+                try {
+                    (void)session.primary_action();
+                } catch (const std::exception &failure) {
+                    std::cerr << "scene action failed: " << failure.what()
+                              << '\n';
                     break;
                 }
             }
@@ -1100,8 +1093,8 @@ static int run_gallery_application(
                 capture_requested = true;
         }
 
-        if (session.revision != observed_session_revision) {
-            observed_session_revision = session.revision;
+        if (session.revision() != observed_session_revision) {
+            observed_session_revision = session.revision();
             frame_timings.clear_history();
             frame_policy.reset(frame_time);
             rigid_interpolation_alpha = 1.0F;
@@ -1115,7 +1108,7 @@ static int run_gallery_application(
                 const GalleryEntry &entry = gallery_entry(runtime.context);
                 auto directional = directional_input(
                     window, entry.controls != GalleryControlPolicy::motor_drive);
-                directional.camera = input_state.shared.camera.camera();
+                directional.camera = session.camera().camera();
                 if (entry.controls == GalleryControlPolicy::peg_gravity) {
                     directional.right +=
                         static_cast<float>(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) -
@@ -1144,7 +1137,7 @@ static int run_gallery_application(
                     interactive_step.read_deformables =
                         !native_render || host_diagnostics;
                     interactive_step.read_host = read_host;
-                    if (!runtime.controlled_step(
+                    if (!session.controlled_step(
                             directional, interactive_step, error)) {
                         std::cerr << "step gallery failed: " << error << '\n';
                         step_failed = true;
@@ -1200,7 +1193,7 @@ static int run_gallery_application(
             capture_requested = false;
         }
 
-        const Camera current_camera = input_state.shared.camera.camera();
+        const Camera current_camera = session.camera().camera();
         frame_timings.begin_phase(FramePhase::render);
         bool gpu_frame = false;
 #ifdef PM_GALLERY_METAL_RENDERER
