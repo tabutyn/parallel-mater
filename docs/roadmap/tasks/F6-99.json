@@ -1,7 +1,7 @@
 {
   "id": "F6-99",
   "title": "Review F6 exit evidence",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F6-01",
     "F6-02",
@@ -29,16 +29,12 @@
     "All dependency tasks are merged done with reviewable evidence.",
     "Update the qualification index with exact scope and unresolved limitations; an implementation/demo alone cannot close the gate."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "c4094f67-1ed1-4818-9ed8-a349721604e9",
-    "owner": "codex-linux-release-review",
-    "machine": "thomas-laptop",
-    "branch": "work/F6-99/thomas-laptop",
-    "claimed_at": "2026-10-18T21:05:36Z",
-    "heartbeat_at": "2026-10-18T21:05:36Z",
-    "expires_at": "2026-10-19T21:05:36Z"
-  },
+  "evidence": [
+    "PASS: F6-01 through F6-14 are merged done with nonempty evidence and completed lease history; docs/roadmap/evidence/F6-99-exit-review.json",
+    "PASS: clean Linux 3407259; 47/47 sdk-ci, 12/12 relocated install stages, 44/44 component checks and 87/87 conformance tests",
+    "REVIEW: docs/QUALIFICATION.md records Windows/macOS/Linux scope, non-bit-identical binaries, 0/251 capability qualification, Gallery F7 ownership and deferred engine/vendor work"
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -69,6 +65,25 @@
       "at": "2026-10-18T20:52:15Z",
       "reason": "Current two-build release audit found two installed raw evidence logs retaining an absolute workstation path; retain the review branch and add a bounded sanitization task before resuming.",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "c4094f67-1ed1-4818-9ed8-a349721604e9",
+        "owner": "codex-linux-release-review",
+        "machine": "thomas-laptop",
+        "branch": "work/F6-99/thomas-laptop",
+        "claimed_at": "2026-10-18T21:05:36Z",
+        "heartbeat_at": "2026-10-18T21:05:36Z",
+        "expires_at": "2026-10-19T21:05:36Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T21:10:05Z",
+      "reason": "Reviewed and closed the SDK release and repository-ownership foundation with explicit reproducibility, Gallery, driver-quality, engine and vendor boundaries",
+      "evidence": [
+        "PASS: F6-01 through F6-14 are merged done with nonempty evidence and completed lease history; docs/roadmap/evidence/F6-99-exit-review.json",
+        "PASS: clean Linux 3407259; 47/47 sdk-ci, 12/12 relocated install stages, 44/44 component checks and 87/87 conformance tests",
+        "REVIEW: docs/QUALIFICATION.md records Windows/macOS/Linux scope, non-bit-identical binaries, 0/251 capability qualification, Gallery F7 ownership and deferred engine/vendor work"
+      ]
     }
   ]
 }

@@ -29,7 +29,7 @@ promoting those results to capability certification.
 | Resource lifetime and capacity (F1) | Reference-lifecycle foundation closed by F1-01–F1-07: exact-query fluid churn/recovery; CUDA mixed-domain churn; geometry, paint and borrowed-endpoint replacement; failure/pending lifetime; fixed host owner metadata. Current Windows CUDA/D3D12 and Apple M4 Metal console tests pass 4,096 fluid replacements and exact-capacity recovery. | The console tests do not emit F5-03 checkpoint state hashes/write ordinals, so current results retain explicit `missing` profile evidence. Numerical physics and remaining driver/domain pairs remain separate; see F2-04, F4-05 and P1-01. |
 | Specification, ABI and validation (F3) | F3-01–F3-12 reconcile the generated API/specification, loader and layer negotiation, typed validation diagnostics, command/object/query/synchronization state, host snapshots, deferred errors, teardown and capacity recovery. The F3-99 review passes 23 Windows D3D12/validation tests, 6 independent WSL host tests and all 18 relocated public SDK consumer/ABI cases. | This is portable contract and reference-runtime evidence, not exhaustive proof of every specification clause, physical correctness or every driver. Native interop handoff remains F4-07/F4-08; driver/domain qualification remains F5/P1. SDK installation is qualified separately by F6-01/F6-02. |
 | Runtime-generated capacity recovery (F3-12) | Public API profile fixes four colocated particles, one allowed neighbor and one isolated control population. D3D12 on the Windows GTX 1080 and the independent WSL Slang C++ host fixture each pass 20/20: acceptance succeeds; completion, status and statistics report exactly four generated overflows; invalid output is not published; selective reinitialization recovers while preserving the control. | This qualifies only the named shared-Slang neighbor-overflow profile and lifecycle contract. It is not physical-quality, performance or blanket driver-capacity evidence. |
-| SDK/loader/host contracts | Windows x64 Release passes 38/38 `sdk-ci` CTests and all 12 relocated-install stages, including 18/18 external C/C++/ABI cases and all 30 conformance inputs. F6-03 additionally passes 44/44 driver-free and 49/49 D3D12 relocated component checks across separate loader, validation, preparation, scene, driver, conformance and benchmark exports. Linux, Apple Silicon macOS and Windows CI repeat the selected-component matrix and assert each built driver target. | This gate qualifies packaging and public ABI behavior only; physics quality and a stable optional C++ ABI are not claimed. A driver export check proves package integrity, not the driver's physical correctness or capability coverage. |
+| SDK/loader/host contracts (F6) | API/package 0.2.0. Clean Linux source `3407259` passes 47/47 `sdk-ci` CTests, all 12 relocated-install stages, 44/44 component checks and 87/87 conformance metadata tests. Windows F6-01 passes 38/38 tests plus 18/18 external C/C++/ABI cases and all 30 then-current conformance inputs; macOS ARM64 and Linux CI pass the same 12-stage relocation gate. F6-03 separates loader, validation, preparation, scene, driver, conformance and benchmark exports. Latest tracked two-build Linux evidence has matching 173-file installed artifact sets and no required workstation paths. | This qualifies packaging and public ABI behavior only. Physical quality and the optional C++ preparation/scene ABI are not certified. Bit-identical output is not established: one installed ELF and ten build-tree manifests differ between the recorded isolated Linux builds. Gallery is an opt-in public-API example application under F7, not an installed SDK component. |
 | Interaction graph lifecycle (F2-04) | Linux RTX 3050 Ti and current Windows GTX 1080 CUDA plus Apple M4 Metal execute all 12 implemented pairs through create/update/clear, endpoint replacement, three-family mutation and partial-create rollback. | Current CUDA and Metal console evidence lacks required F5-03 checkpoint fingerprints; D3D12 reports the complete three-family case unsupported because it does not advertise rope, soft-body or smoke. Unsupported/missing never passes the lifecycle evaluator. |
 | Native Vulkan validation (F5-09) | A standalone shader-module/pipeline probe pins the layer, fluid SPIR-V and probe hashes. Debian layer 1.3.239 exits 139 inside `vkCreateShaderModule`; pinned SDK layer 1.4.341 completes the same probe and the unchanged 4,096-replacement validated lifecycle case on the RTX 3050 Ti. | This isolates a host validation-tool defect and supplies a working validation setup. It does not qualify Vulkan physics, other drivers or imported engine devices. |
 | Vendor-neutral physical quality (F5-02, F5-05) | Hashed `core-conservation-stability-v1` and `rigid-brick-penetration-v1` profiles independently evaluate fluid conservation/stability and rigid surface separation. Current Windows CUDA passes all 18 equal-fluid samples; CUDA and D3D12 pass the fixed eight-brick gate at 0.205278 mm and Apple M4 Metal passes at 0.146627 mm, all against 2 mm. | D3D12 and Metal do not advertise separate-system equal-fluid modes. Brick quality does not override failed reference regression or missing lifecycle/interaction-specific analytic evidence; remaining modes still need fixtures. |
@@ -213,6 +213,54 @@ The review preserves these boundaries:
 No uncovered F3-specific leaf was found. Closing F3 establishes the reviewed
 specification/ABI/validation foundation only; it does not certify a solver,
 driver, engine integration, package release or physical-quality profile.
+
+### F6-99 SDK release and repository ownership exit review
+
+The original F6 exit required a clean checkout to produce a relocatable,
+versioned SDK and independently built consumer and driver packages without
+private-source or workstation-path dependencies. F6-01 through F6-14 are
+merged `done`, carry nonempty reviewable evidence and have completed lease
+history. Together they satisfy that scope:
+
+- Package and API version 0.2.0, compatibility rejection, minimal/headless
+  presets and independent installed C/C++ consumers are exercised on Linux,
+  Windows and Apple Silicon macOS. The external mock driver proves the public
+  driver ABI without importing implementation types.
+- Loader, validation, preparation, scene, driver, conformance and benchmark
+  exports have independent positive and negative component checks. The
+  Gallery remains separately gated by `PARALLEL_MATER_BUILD_GALLERY` as an
+  example application built on the public API; its types are deliberately not
+  installed with the physics SDK.
+- Standalone conformance owns its complete source closure and validates the
+  relocated installed corpus. One deterministic updater maintains every
+  manifest hash, and installed text evidence rejects capture-host paths.
+- Two isolated release builds record source, toolchain, dependency and option
+  identity, compare matching artifact sets and audit installed runtime
+  metadata for workstation paths. The later F6-14 Linux audit passes for 173
+  installed files after the stale corpus hashes and captured absolute paths
+  found by the first two exit-review attempts were fixed.
+- Legacy launcher, branding, hinge, capture/replay and rigid-contact work was
+  archived and adjudicated before old worktrees were retired. The retained
+  hinge candidate was rejected on measured penetration, and no failing asset,
+  solver change or golden was promoted merely to close the foundation.
+
+Current clean Linux source `34072593338c19bc5d3eb37e03d70d16e6e75c9c`
+passes 47/47 `sdk-ci` CTests, all 12 relocated-install stages, 44/44 supported
+and negative component checks, and 87/87 conformance metadata/unit tests. The
+tracked [F6-99 evidence](roadmap/evidence/F6-99-exit-review.json) ties those
+results to the prior Windows, macOS and two-build release records.
+
+This closes package reproducibility in the recorded input sense, not
+byte-for-byte reproducible binaries: the current two-build Linux record has one
+differing installed conformance ELF and ten generated test manifests containing
+their distinct build paths. Cross-host and cross-toolchain binary identity is
+also unclaimed. The installed preparation and scene libraries do not promise a
+stable C++ ABI. Driver exports establish package integrity only; the generated
+capability index still has 0 qualified records, so physical correctness,
+production vendor-driver qualification and performance remain F5/P1/P3 work.
+F7-18 and F7-99 retain full Android Gallery/device qualification, while P2 owns
+Unity, Unreal and Godot integrations and P4 owns independent vendor and standards
+handoff. No uncovered F6 leaf remains.
 
 ### F6-01 Windows SDK installation qualification
 

@@ -1,0 +1,112 @@
+{
+  "schema": "parallel-mater-roadmap-foundation-exit-review/v1",
+  "task": "F6-99",
+  "foundation": "F6",
+  "result": "passed",
+  "reviewed_exit": "A clean checkout produces a relocatable, versioned SDK and independently built consumer/driver packages without private source or workstation paths.",
+  "dependency_review": {
+    "tasks": [
+      "F6-01",
+      "F6-02",
+      "F6-03",
+      "F6-04",
+      "F6-05",
+      "F6-06",
+      "F6-07",
+      "F6-08",
+      "F6-09",
+      "F6-10",
+      "F6-11",
+      "F6-12",
+      "F6-13",
+      "F6-14"
+    ],
+    "status": "14/14 merged done",
+    "evidence": "14/14 carry nonempty evidence and completed lease history",
+    "uncovered_leaf_tasks": []
+  },
+  "current_linux_verification": {
+    "source_revision": "34072593338c19bc5d3eb37e03d70d16e6e75c9c",
+    "source_dirty": false,
+    "host": "Linux 6.1.0-53-amd64 x86_64, GCC 12.2.0, CMake 3.25.1, Ninja 1.11.1, Python 3.11.2",
+    "checks": [
+      {
+        "command": "python3 tools/roadmap.py check",
+        "result": "178 task cards passed dependency, lock, history and generated-roadmap validation"
+      },
+      {
+        "command": "python3 conformance/v1/evidence_index.py --check && python3 conformance/v1/update_manifest.py --check",
+        "result": "passed; manifest hashes current and capability index remains 0/251 from 10 reports"
+      },
+      {
+        "command": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py' -v",
+        "result": "87/87 passed"
+      },
+      {
+        "command": "cmake --preset sdk-ci && cmake --build --preset sdk-ci && ctest --preset sdk-ci",
+        "result": "47/47 passed"
+      },
+      {
+        "command": "python3 tools/check_sdk_install.py --build-dir build-sdk-ci --output /tmp/f6-99-sdk-3407259",
+        "result": "12/12 stages passed after relocation; 173 installed artifacts; report sha256 1f7d62045cd0204dd593d837dfe927ece325cfc329ceac53a68935d0609de7c1"
+      },
+      {
+        "command": "python3 tools/check_sdk_components.py --build-dir build-sdk-ci --output /tmp/f6-99-components-3407259",
+        "result": "44/44 supported and negative component checks passed; report sha256 b87afc7f02a52382a24de0011eb693c2c7b89a082981ecada0158413f0756f87"
+      }
+    ]
+  },
+  "cross_platform_evidence": [
+    {
+      "task": "F6-01",
+      "platform": "Windows 11 x64",
+      "result": "38/38 sdk-ci tests, 12/12 relocated stages, 18/18 external C/C++/ABI cases and all 30 then-current conformance inputs passed",
+      "evidence": "docs/roadmap/evidence/F6-01-windows-sdk-install.json"
+    },
+    {
+      "task": "F6-02",
+      "platform": "Apple Silicon macOS and Linux CI",
+      "result": "both installed SDK jobs passed; macOS ARM64 passed 12/12 relocation, consumer, conformance and negative checks",
+      "evidence": "https://github.com/tabutyn/parallel-mater/actions/runs/39031853796"
+    },
+    {
+      "task": "F6-03",
+      "platform": "Windows 11 x64 and cross-platform CI",
+      "result": "44/44 driver-free and 49/49 D3D12 component checks passed; Linux, macOS and Windows CI assert built driver targets",
+      "evidence": "docs/roadmap/evidence/F6-03-package-components.json"
+    },
+    {
+      "task": "F6-14",
+      "platform": "Linux x86_64",
+      "source_revision": "03f704cb5e4507b918f7f2da3a4f1dd3e1179b8e",
+      "result": "two isolated clean builds had equivalent inputs, matching 173-file installed artifact sets and zero required workstation-path hits",
+      "evidence": "docs/roadmap/evidence/F6-14-installed-evidence-paths.json",
+      "report_sha256": "e6eea3b9f5e51b33047f5d5ed8f19e547a0efd176a062b7590b6479bf8616c5a"
+    }
+  ],
+  "repository_ownership": {
+    "result": "passed",
+    "summary": "Legacy launcher, branding, hinge, capture/replay and rigid-contact changes were archived and adjudicated before old worktrees were retired; the rejected hinge candidate did not change the accepted asset or golden.",
+    "evidence": [
+      "docs/roadmap/evidence/F6-06-legacy-launcher-reconciliation.json",
+      "docs/roadmap/evidence/F6-07/hunk-dispositions.json",
+      "docs/roadmap/evidence/F6-08-retired-worktrees.json",
+      "docs/roadmap/evidence/F6-09-hinge-fixture-qualification.json",
+      "docs/roadmap/evidence/F6-10-physics-capture-replay.json",
+      "docs/roadmap/evidence/F6-11-rigid-contact-adjudication.json"
+    ]
+  },
+  "boundaries": {
+    "gallery": "The Gallery is a separately gated, non-installed public-API example application. Its common runtime and physical Android qualification remain F7 work.",
+    "driver_quality": "Driver package/export checks establish package integrity, not physical correctness or capability qualification.",
+    "engine_plugins": "Unity, Unreal and Godot integrations remain P2 work.",
+    "vendor_and_standards": "Independent vendor-driver and standards handoff remain P4 work."
+  },
+  "limitations": [
+    "Bit-identical output is not established: the F6-14 isolated Linux builds differed in one installed conformance ELF.",
+    "Ten generated build-tree test manifests differ by intentionally distinct build paths; they are not installed runtime metadata.",
+    "Cross-host and cross-toolchain binary identity is not claimed.",
+    "The optional preparation and scene libraries do not promise a stable C++ binary ABI.",
+    "The capability evidence index remains 0/251; packaging success does not qualify physics, performance or a vendor driver."
+  ]
+}
