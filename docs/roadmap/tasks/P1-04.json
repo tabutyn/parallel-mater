@@ -1,7 +1,7 @@
 {
   "id": "P1-04",
   "title": "Expose multi-material fluid pair state",
-  "status": "deferred",
+  "status": "open",
   "dependencies": [
     "P1-03"
   ],

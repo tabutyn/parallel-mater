@@ -292,7 +292,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-01](roadmap/tasks/P1-01.json) | Plan remaining driver/domain qualification | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
 | [P1-02](roadmap/tasks/P1-02.json) | Plan remaining same-family operators | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
 | [P1-03](roadmap/tasks/P1-03.json) | Plan multi-material fluid operators | done | F1-99, F2-99, F3-99, F4-99, F6-99 | — |
-| [P1-04](roadmap/tasks/P1-04.json) | Expose multi-material fluid pair state | deferred | P1-03 | — |
+| [P1-04](roadmap/tasks/P1-04.json) | Expose multi-material fluid pair state | ready | P1-03 | — |
 | [P1-05](roadmap/tasks/P1-05.json) | Build heterogeneous fluid pair sampling | deferred | P1-04 | — |
 | [P1-06](roadmap/tasks/P1-06.json) | Exchange miscible pressure and contact | deferred | P1-05 | — |
 | [P1-07](roadmap/tasks/P1-07.json) | Exchange miscible viscosity | deferred | P1-06 | — |
