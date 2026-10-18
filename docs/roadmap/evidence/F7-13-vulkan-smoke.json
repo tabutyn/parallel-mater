@@ -1,0 +1,125 @@
+{
+  "schema": "parallel-mater-roadmap-vulkan-smoke-evidence/v1",
+  "task": "F7-13",
+  "scope": "Shared Slang smoke-grid, geometry-smoke and fluid-smoke schedules executed through the public Vulkan driver and common Gallery session",
+  "source": {
+    "implementation_commit": "0dea030aee3918301320f2310707e953263fb6aa",
+    "tested_commit": "6ba8cf9b700bb9d2aa837e80ba8a26ee3ac33310",
+    "base_main_commit": "6d29f3944c0cb919c3530f67090e9e5dd5c00583",
+    "branch": "work/F7-13/thomas-laptop",
+    "pull_request": "https://github.com/tabutyn/parallel-mater/pull/233",
+    "tested_at": "2026-10-18T14:13:08Z"
+  },
+  "contract": {
+    "shared_slang_modules": [
+      "geometry_smoke",
+      "smoke_grid",
+      "fluid_smoke"
+    ],
+    "advertised_domain": "smoke",
+    "advertised_interactions": [
+      "smoke self pressure and viscosity for particle and grid profiles",
+      "smoke-rigid-body contact and drag for particle and grid profiles",
+      "fluid-smoke drag, thermal exchange and phase transfer for particle and grid profiles"
+    ],
+    "explicitly_unavailable_interactions": [
+      "cloth-smoke contact and drag",
+      "soft-body-smoke contact and drag",
+      "rope-smoke contact and drag"
+    ],
+    "catalog_policy": "A scene is selectable only when the physical device advertises every exact interaction key required by that scene."
+  },
+  "transport": {
+    "workgroup_shape": "Smoke entry points use the same specialization-controlled workgroup size as the portable scheduler launch.",
+    "entry_parameters": "Modules whose reflected entry block exceeds 256 bytes use dynamic uniform-buffer binding 1. Existing modules retain their qualified push-constant layout.",
+    "largest_smoke_entry_bytes": 356,
+    "parameter_buffer_limit_bytes": 4096,
+    "physics_source": "Existing common Slang modules; Vulkan adds reflected transport only."
+  },
+  "desktop_device": {
+    "machine": "thomas-laptop",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "driver": "590.44.01",
+    "operating_system": "Linux 6.1.0-53-amd64 x86_64",
+    "compiler": "GCC 12.2.0",
+    "slang": "2026.18",
+    "graphics_api": "Vulkan"
+  },
+  "desktop_verification": [
+    {
+      "check": "spirv-val --target-env vulkan1.3 --scalar-block-layout for every production module",
+      "result": "17/17 passed with Vulkan SDK 1.4.341.0, including geometry_smoke, smoke_grid and fluid_smoke"
+    },
+    {
+      "check": "parallel-mater-vulkan-smoke-capability-tests",
+      "result": "passed; exact smoke, rigid-smoke and fluid-smoke keys are present while cloth, soft-body and rope smoke keys return FEATURE_NOT_PRESENT"
+    },
+    {
+      "check": "parallel-mater-vulkan-gallery-Smoke and parallel-mater-vulkan-gallery-SmokeWater",
+      "result": "2/2 passed for 120 public-command frames with finite visible output and reset"
+    },
+    {
+      "check": "parallel-mater-gallery-session-contract-tests",
+      "result": "passed in 64.51 seconds; common session selected and qualified Smoke and SmokeWater and rejected all three unadvertised deformable-smoke scenes"
+    },
+    {
+      "check": "parallel-mater-vulkan-gallery-RopeFluid",
+      "result": "120 frames passed in 4.39 seconds after isolating the new parameter-buffer pipeline layout from existing push-constant modules"
+    },
+    {
+      "check": "tests/solver/test_vulkan_spirv.py and tests/solver/test_slang_abi.py",
+      "result": "9/9 and 7/7 passed"
+    }
+  ],
+  "android_device": {
+    "model": "Pixel 7",
+    "product": "panther",
+    "gpu": "Mali-G710",
+    "operating_system": "Android 17",
+    "api_level": 37,
+    "security_patch": "2026-09-05",
+    "graphics_api": "Vulkan"
+  },
+  "android_artifact": {
+    "path": "examples/android/app/build/outputs/apk/debug/app-debug.apk",
+    "abi": "arm64-v8a",
+    "sha256": "17431820dcc81d5114b4da14e5ffa206f51dbfd181ee9a96598507b8e55eda5f",
+    "embedded_revision": "6ba8cf9b700bb9d2aa837e80ba8a26ee3ac33310"
+  },
+  "android_verification": {
+    "command": "python3 scripts/Test-AndroidGallery.py --serial <physical-device> --frames 3 --timeout 1800",
+    "result": "PASS: 28 catalog scenes, 22 supported, direct Vulkan presentation, pause/reset, background, resize, rotation and teardown",
+    "smoke": {
+      "passed": true,
+      "steps": 3,
+      "mean_ms": 234.28575333333333,
+      "p95_ms": 528.62378,
+      "memory_footprint_bytes": 124479744
+    },
+    "smoke_water": {
+      "passed": true,
+      "steps": 3,
+      "mean_ms": 228.30502666666666,
+      "p95_ms": 308.125936,
+      "memory_footprint_bytes": 181647536
+    },
+    "unsupported_skipped_with_exact_reasons": 6,
+    "ordinary_readback_pixels": 0,
+    "software_presentations": 0,
+    "native_teardown_observed": true,
+    "validation_or_process_errors": 0
+  },
+  "runtime_report_hashes": {
+    "qualification.json": "b9508f343723c3581de1d9bd4ff5b39bdcdc2656a298cd1c8e1dac7effc8291d",
+    "lifecycle.json": "82157228764cc7b5f6283d0e27259b4a81f72f3d1b63aba74f58749108486409",
+    "surface-lifecycle.json": "b01f4019aae6ce89f7011be7fff82d380b6a1bad1982eb4057970f6a7ab14158",
+    "device.log": "5cc74aad125951e6328c1797bce5ad283bbb3a0c9899d0adc79613eaa506fba1"
+  },
+  "limitations": [
+    "The three deformable-smoke Gallery scenes remain unavailable until F7-14 qualifies those cross-system schedules.",
+    "The three-frame Pixel sweep is correctness, visible-output and lifecycle evidence. Sustained thermal and performance qualification remains F7-18."
+  ],
+  "privacy": {
+    "private_device_identifiers_recorded": false
+  }
+}

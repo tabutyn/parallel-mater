@@ -1,4 +1,5 @@
 #include "dispatch_entry.slang"
+#include "dispatch_shape.slangh"
 // SPDX-License-Identifier: MIT
 // Slang mirror of src/geometry_smoke.cuh. Rigid-contact entries follow the
 // standalone particle solver and shared wind sampler below.
@@ -97,7 +98,7 @@ public Vec3 smoke_wind_delta(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_emit_cells(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<float> ages, uniform uint count,
     uniform SmokeOptions options, uniform PMBuffer<uint64_t> keys,
@@ -120,7 +121,7 @@ void smoke_emit_cells(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_density_pressure(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<float> ages, uniform uint count,
     uniform SmokeOptions options, uniform PMBuffer<uint64_t> keys,
@@ -146,7 +147,7 @@ void smoke_density_pressure(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_pair_forces(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> ages, uniform uint count, uniform SmokeOptions options,
@@ -214,7 +215,7 @@ void smoke_pair_forces(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_compute_vorticity(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> ages, uniform uint count, uniform SmokeOptions options,
@@ -266,7 +267,7 @@ void smoke_compute_vorticity(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_advect(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous_positions,
     uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages,
@@ -295,7 +296,7 @@ void smoke_advect(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_emit(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous_positions,
     uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages,
@@ -324,7 +325,7 @@ void smoke_emit(
 }
 
 [shader("compute")]
-[numthreads(1, 1, 1)]
+[numthreads(PM_THREADS(1), 1, 1)]
 void smoke_deformable_bounds(
     uniform PMBuffer<Vec3> surface, uniform uint count,
     uniform PMBuffer<Vec3> minimum, uniform PMBuffer<Vec3> maximum PM_D3D12_DISPATCH_PARAMETER)
@@ -343,7 +344,7 @@ void smoke_deformable_bounds(
 }
 
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(PM_THREADS(256), 1, 1)]
 void smoke_rigid_contact(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous_positions,
     uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages, uniform PMBuffer<float> pressures,
@@ -485,7 +486,7 @@ void smoke_rigid_contact(
 }
 
 [shader("compute")]
-[numthreads(128, 1, 1)]
+[numthreads(PM_THREADS(128), 1, 1)]
 void smoke_apply_rigid_impulses(
     uniform PMBuffer<FluidBodyImpulse> impulses, uniform uint count,
     uniform uint body, uniform PMBuffer<BodyParameters> parameters,
