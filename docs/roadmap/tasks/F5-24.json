@@ -1,0 +1,24 @@
+{
+  "id": "F5-24",
+  "title": "Expose lifecycle qualification through the installed CLI",
+  "status": "open",
+  "dependencies": [
+    "F5-19",
+    "F5-20"
+  ],
+  "locks": [
+    "conformance-lifecycle-reporting"
+  ],
+  "requires": [
+    "Any development host plus one production driver implementing both adverse lifecycle fixtures"
+  ],
+  "scope": "Make the adverse-capacity-three-family-v1 producer a first-class mode of the installed parallel-mater-conformance executable, using the same fixture and serialization path as embedded platform qualification.",
+  "acceptance": [
+    "Add an explicit lifecycle CLI mode that writes the complete profile result, reports malformed arguments clearly and preserves explicit unsupported or failed fixture outcomes.",
+    "Build the capacity, graph and resource lifecycle producers for desktop conformance without copying their checkpoint assembly or coupling the command to iOS-only quality fixtures.",
+    "Prove the build-tree and installed CLI outputs pass conformance/v1/lifecycle.py on every production driver available on the host, and document the installed invocation."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
