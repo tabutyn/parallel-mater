@@ -1,7 +1,7 @@
 {
   "id": "F3-10",
   "title": "Qualify descriptor snapshot coverage",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F3-06"
   ],
@@ -17,6 +17,14 @@
     "Rejected or allocation-failed recording retains no caller pointer, and command-buffer reset releases owned snapshots."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "a248e11c-86b6-4125-b026-c5716db7d4a4",
+    "owner": "codex-windows-validation",
+    "machine": "windows-gtx1080",
+    "branch": "work/F3-10/windows-gtx1080",
+    "claimed_at": "2026-10-18T03:05:32Z",
+    "heartbeat_at": "2026-10-18T03:05:32Z",
+    "expires_at": "2026-10-18T11:05:32Z"
+  },
   "history": []
 }
