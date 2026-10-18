@@ -1,7 +1,7 @@
 {
   "id": "F7-15",
   "title": "Expose capability-driven Android catalog",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-02",
     "F7-07"
@@ -17,15 +17,27 @@
     "Every common Gallery scene appears in stable order; supported scenes launch and unsupported scenes show a precise reason.",
     "Adding a newly advertised Vulkan capability requires no Android scene-index or description change."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "1152654d-ba1a-4ce5-9b3b-cbf6a3aa32a9",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F7-15/thomas-laptop",
-    "claimed_at": "2026-10-18T03:22:31Z",
-    "heartbeat_at": "2026-10-18T03:22:31Z",
-    "expires_at": "2026-10-18T15:22:31Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F7-15-android-catalog.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "1152654d-ba1a-4ce5-9b3b-cbf6a3aa32a9",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-15/thomas-laptop",
+        "claimed_at": "2026-10-18T03:22:31Z",
+        "heartbeat_at": "2026-10-18T03:22:31Z",
+        "expires_at": "2026-10-18T15:22:31Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T03:33:24Z",
+      "reason": "Verified the Android picker derives all scene metadata, availability and reasons from the shared 28-scene catalog",
+      "evidence": [
+        "docs/roadmap/evidence/F7-15-android-catalog.json"
+      ]
+    }
+  ]
 }
