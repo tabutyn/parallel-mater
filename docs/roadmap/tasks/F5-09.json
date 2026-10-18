@@ -1,7 +1,7 @@
 {
   "id": "F5-09",
   "title": "Isolate native Vulkan validation crash",
-  "status": "open",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "vulkan-qualification"
@@ -14,7 +14,27 @@
     "Minimal reproduction records layer/driver versions and old/new binding-generator controls.",
     "A corrected setup or confirmed upstream fix must pass the unchanged lifecycle case before closing qualification."
   ],
-  "evidence": [],
+  "evidence": [
+    "docs/roadmap/evidence/F5-09-vulkan-validation-layer.json"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "829f3ebc-684f-4d5a-ac34-1ced6eab3024",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F5-09/thomas-laptop",
+        "claimed_at": "2026-10-18T15:17:51Z",
+        "heartbeat_at": "2026-10-18T15:17:51Z",
+        "expires_at": "2026-10-19T15:17:51Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T15:27:36Z",
+      "reason": "Standalone Vulkan probe isolates Debian validation-layer exit 139 to vkCreateShaderModule; pinned SDK 1.4.341 passes the identical probe and unchanged validated lifecycle.",
+      "evidence": [
+        "docs/roadmap/evidence/F5-09-vulkan-validation-layer.json"
+      ]
+    }
+  ]
 }

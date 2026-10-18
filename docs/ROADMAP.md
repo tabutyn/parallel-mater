@@ -183,14 +183,14 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-06](roadmap/tasks/F5-06.json) | Classify CUDA/D3D12 comparison failures | done | — | — |
 | [F5-07](roadmap/tasks/F5-07.json) | Gate performance on physical quality | done | F5-01, F5-02 | — |
 | [F5-08](roadmap/tasks/F5-08.json) | Publish per-driver evidence indexes | done | F5-01 | — |
-| [F5-09](roadmap/tasks/F5-09.json) | Isolate native Vulkan validation crash | ready | — | — |
+| [F5-09](roadmap/tasks/F5-09.json) | Isolate native Vulkan validation crash | done | — | — |
 | [F5-10](roadmap/tasks/F5-10.json) | Correct shared contacts and CUDA/D3D12 drift | done | — | — |
 | [F5-11](roadmap/tasks/F5-11.json) | Publish current Windows driver evidence | done | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-10 | — |
 | [F5-12](roadmap/tasks/F5-12.json) | Publish current macOS Metal driver evidence | done | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-10, F5-11 | — |
 | [F5-13](roadmap/tasks/F5-13.json) | Expose capability qualification on iPadOS | done | F5-01, F5-08 | — |
 | [F5-14](roadmap/tasks/F5-14.json) | Publish current iPadOS Metal driver evidence | done | F5-02, F5-03, F5-05, F5-06, F5-10, F5-11, F5-13 | — |
-| [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
-| [F5-16](roadmap/tasks/F5-16.json) | Publish current Linux driver evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
+| [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | leased | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | codex-linux-gallery / thomas-laptop / 2026-10-19T15:28:52Z |
+| [F5-16](roadmap/tasks/F5-16.json) | Publish current Linux driver evidence | waiting on lock | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
 | [F5-17](roadmap/tasks/F5-17.json) | Adjudicate rigid-direct reference drift | done | F5-04, F5-10 | — |
 | [F5-18](roadmap/tasks/F5-18.json) | Stabilize rigid-direct planar symmetry | done | F5-17 | — |
 | [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17, F5-18 | — |
@@ -227,7 +227,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-11](roadmap/tasks/F7-11.json) | Enable Vulkan soft-body Gallery domains | done | F7-03 | — |
 | [F7-12](roadmap/tasks/F7-12.json) | Enable Vulkan rope Gallery domains | done | F7-03 | — |
 | [F7-13](roadmap/tasks/F7-13.json) | Enable Vulkan smoke Gallery domains | done | F7-03 | — |
-| [F7-14](roadmap/tasks/F7-14.json) | Enable Vulkan cross-deformable Gallery couplings | leased | F7-10, F7-11, F7-12, F7-13 | codex-linux-gallery / thomas-laptop / 2026-10-19T14:37:12Z |
+| [F7-14](roadmap/tasks/F7-14.json) | Enable Vulkan cross-deformable Gallery couplings | done | F7-10, F7-11, F7-12, F7-13 | — |
 | [F7-15](roadmap/tasks/F7-15.json) | Expose capability-driven Android catalog | done | F7-02, F7-07 | — |
 | [F7-16](roadmap/tasks/F7-16.json) | Use native Vulkan rendering on Android | done | F7-07, F7-09 | — |
 | [F7-17](roadmap/tasks/F7-17.json) | Complete Android Gallery controls and help | done | F7-04, F7-07, F7-15, F7-20, F7-21 | — |
@@ -337,7 +337,8 @@ Windows F5-10 evidence passes the selected 17 CUDA/D3D12 comparisons and the
 independent shared-brick penetration gate without changing inputs, tolerances
 or historical goldens. Current limits include shared rigid-direct reference
 drift pending independent adjudication, remaining driver/domain qualification,
-native Vulkan validation failure and unqualified engine handoff. Do not promote
+and unqualified engine handoff. Native Vulkan validation uses the isolated,
+pinned F5-09 setup. Do not promote
 execution to physical correctness to complete a lease.
 
 The detailed [2026-10-16 roadmap snapshot](history/ROADMAP-2026-10-16.md) preserves

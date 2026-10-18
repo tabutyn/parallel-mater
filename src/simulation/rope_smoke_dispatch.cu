@@ -11,16 +11,6 @@ template <typename T> T *as(void *value) noexcept {
 template <typename T> const T *as(const void *value) noexcept {
     return reinterpret_cast<const T *>(value);
 }
-SmokeOptions_0 converted(const SmokeDispatchOptions &value) noexcept {
-    SmokeOptions_0 result{};
-    result.capacity_0 = value.capacity;
-    result.particle_radius_0 = value.particle_radius;
-    result.lifetime_0 = value.lifetime;
-    result.rest_number_density_0 = value.rest_number_density;
-    result.pressure_stiffness_0 = value.pressure_stiffness;
-    result.maximum_speed_0 = value.maximum_speed;
-    return result;
-}
 SmokeGridField_0 converted(const SmokeGridDispatchField &value) noexcept {
     SmokeGridField_0 result{};
     result.n_0 = value.resolution;
@@ -51,7 +41,8 @@ void apply_smoke_wind_to_rope(
     smoke_rope_wind<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(rope_positions)),
         as<Vec3_0>(rope_velocities), rope_count, rope_maximum_speed,
-        first_attached, last_attached, soft_first, soft_last, converted(smoke),
+        first_attached, last_attached, soft_first, soft_last, smoke.capacity,
+        smoke.particle_radius, smoke.rest_number_density,
         const_cast<Vec3_0 *>(as<Vec3_0>(smoke_positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(smoke_velocities)),
         reinterpret_cast<ulonglong *>(
