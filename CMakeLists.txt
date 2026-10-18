@@ -802,6 +802,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     add_library(parallel-mater-gallery-session STATIC
                 examples/support/gallery_runtime.cpp
                 examples/support/mobile_session.cpp
+                examples/support/mobile_qualification.cpp
                 examples/support/session.cpp)
     set_target_properties(parallel-mater-gallery-session PROPERTIES POSITION_INDEPENDENT_CODE YES)
     target_link_libraries(parallel-mater-gallery-session
@@ -1440,6 +1441,12 @@ if(BUILD_TESTING)
         include examples/support/include ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_test(NAME parallel-mater-gallery-input-tests
         COMMAND parallel-mater-gallery-input-tests)
+    add_test(NAME parallel-mater-mobile-qualification-schema-tests
+        COMMAND ${Python3_EXECUTABLE} -m unittest discover
+                -s ${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery
+                -p test_mobile_qualification_report.py)
+    set_tests_properties(parallel-mater-mobile-qualification-schema-tests
+        PROPERTIES LABELS "gallery;mobile;qualification;contract")
     add_test(NAME parallel-mater-conformance-case-registry
         COMMAND parallel-mater-conformance-cases --check
                 ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/cases)

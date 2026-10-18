@@ -3,8 +3,9 @@
 This native APK uses the shared gallery scene builder, public command API,
 loader, validation layer, and software renderer. Android and iPad share one C++
 `MobileGallerySession` for controls, scene/reset logic, surface admission,
-failure recovery, budgets and frame timing. Java/JNI retain only Android
-lifecycle, semantic input translation, surface presentation and reporting. The default build bundles the
+failure recovery, budgets and frame timing, plus one C++ qualification
+coordinator and report schema. Java/JNI retain only Android lifecycle, semantic
+input translation, surface presentation and atomic report storage. The default build bundles the
 same loadable Vulkan driver and common Slang physics as the desktop preview.
 Vulkan physics runs on the phone; rendering currently copies results into the
 software renderer. This is not yet native GPU-renderer interoperability.
@@ -109,9 +110,11 @@ background-recovery checks with:
 python3 scripts/Test-AndroidGallery.py --serial PHONE_SERIAL --frames 120
 ```
 
-Reports include compiled revision/backend and a fresh nonce; old reports cannot
-satisfy a new run. The same C++ qualification routine runs on iPad. This does
-not replace the native API suites below or qualify thermal/physical accuracy.
+Reports use `parallel-mater-mobile-gallery-qualification/v1` and include the
+compiled identity, renderer/readback mode, common lifecycle and control checks,
+failures, all scenes, and a fresh nonce; old or platform-specific reports cannot
+satisfy a new run. The same C++ scenario and fields run on iPad. This does not
+replace the native API suites below or qualify thermal/physical accuracy.
 Release APKs ignore diagnostic intents and do not write these reports.
 
 Build existing public-API tests as Android executables alongside the APK:

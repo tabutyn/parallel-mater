@@ -31,4 +31,4 @@ jobs:
       - name: Test loader and shared contracts
         run: >-
           ctest --test-dir build -C Release --output-on-failure
-          -R "parallel-mater-(loader(-unicode)?-driver-discovery|gallery-registry|gallery-input)-tests"
+          -R "parallel-mater-(loader(-unicode)?-driver-discovery|gallery-registry|gallery-input|mobile-qualification-schema)-tests"

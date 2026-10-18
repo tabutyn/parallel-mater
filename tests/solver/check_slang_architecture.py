@@ -501,6 +501,71 @@ if "target_sources(parallel-mater-gallery-renderer-adapters" not in \
     failures.append(
         "cmake/ParallelMaterVulkanGallery.cmake: Vulkan renderer adapter "
         "target ownership missing")
+
+mobile_qualification_header = (
+    ROOT / "examples" / "support" / "include" /
+    "parallel_mater_gallery" / "mobile_qualification.hpp"
+)
+mobile_qualification_source = (
+    ROOT / "examples" / "support" / "mobile_qualification.cpp"
+)
+if not mobile_qualification_header.exists() or not mobile_qualification_source.exists():
+    failures.append(
+        "examples/support: common mobile qualification coordinator missing")
+else:
+    mobile_qualification = mobile_qualification_header.read_text(
+        encoding="utf-8") + mobile_qualification_source.read_text(encoding="utf-8")
+    for required in (
+        "parallel-mater-mobile-gallery-qualification/v1",
+        "qualify_mobile_gallery",
+        '"attach"', '"resize"', '"background"',
+        '"failure_recovery"', '"scene_selection"',
+    ):
+        if required not in mobile_qualification:
+            failures.append(
+                "examples/support/mobile_qualification: missing common "
+                f"scenario/report contract {required}")
+if "examples/support/mobile_qualification.cpp" not in cmake:
+    failures.append(
+        "CMakeLists.txt: common Gallery session does not own mobile "
+        "qualification orchestration")
+
+android_jni_path = (
+    ROOT / "examples" / "android" / "app" / "src" / "main" / "cpp" /
+    "gallery_jni.cpp"
+)
+android_activity_path = (
+    ROOT / "examples" / "android" / "app" / "src" / "main" / "java" /
+    "org" / "parallelmater" / "gallery" / "GalleryActivity.java"
+)
+ios_gallery_path = ROOT / "examples" / "ios" / "gallery_main.mm"
+android_jni = android_jni_path.read_text(encoding="utf-8")
+android_activity = android_activity_path.read_text(encoding="utf-8")
+ios_gallery = ios_gallery_path.read_text(encoding="utf-8")
+if "qualify_mobile_gallery" not in android_jni:
+    failures.append(
+        "examples/android: JNI runner bypasses common mobile qualification")
+for duplicate in ("nativeQualifyScene", "new JSONArray"):
+    if duplicate in android_activity or duplicate in android_jni:
+        failures.append(
+            f"examples/android: platform qualification loop remains: {duplicate}")
+if "qualify_mobile_gallery" not in ios_gallery:
+    failures.append(
+        "examples/ios/gallery_main.mm: iOS runner bypasses common mobile "
+        "qualification")
+ios_smoke = ios_gallery.split("- (void)runSmokeTests {", 1)[-1].split(
+    "#if PM_IOS_QUALIFICATION_RUNNER", 1)[0]
+for duplicate in ("mobileContract", "for (unsigned i = 0; i < catalog.size()"):
+    if duplicate in ios_smoke:
+        failures.append(
+            f"examples/ios/gallery_main.mm: platform qualification sequence "
+            f"remains: {duplicate}")
+for script in ("Test-AndroidGallery.py", "Deploy-Gallery.py"):
+    script_text = (ROOT / "scripts" / script).read_text(encoding="utf-8")
+    if "validate_mobile_gallery_report" not in script_text:
+        failures.append(
+            f"scripts/{script}: does not validate the common mobile report")
+
 legacy_cuda_gallery_platform = (
     ROOT / "examples" / "support" / "cuda_runtime_platform.cpp"
 )
