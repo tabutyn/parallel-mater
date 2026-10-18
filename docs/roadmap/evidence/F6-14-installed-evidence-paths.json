@@ -2,7 +2,7 @@
   "schema": "parallel-mater-roadmap-installed-evidence-paths/v1",
   "task": "F6-14",
   "result": "passed",
-  "source_revision": "be34b7b9cb8c2b81810528583ddb625d36c1b3f7",
+  "source_revision": "03f704cb5e4507b918f7f2da3a4f1dd3e1179b8e",
   "source_dirty": false,
   "repair": {
     "placeholder": "<repo>",
@@ -33,11 +33,11 @@
       "result": "47/47 passed"
     },
     {
-      "check": "python3 tools/check_release_reproducibility.py --preset sdk-ci --output /tmp/f6-14-repro-be34b7b",
+      "check": "python3 tools/check_release_reproducibility.py --preset sdk-ci --output /tmp/f6-14-repro-03f704c",
       "result": "passed two clean configure/build/install runs; equivalent inputs, matching artifact sets and zero required workstation-path hits",
-      "report_sha256": "4436837be9dbbc08dc96253e99db81e536cb91289902a74af174f8ff864b2d7c",
-      "manifest_a_sha256": "7de80ed1b3af49e857f82c1c38436b66651c2b716de8ad3b30f068ad3fe24d25",
-      "manifest_b_sha256": "47645e7a6f1d2973108375839a523699395916e509889855970702456d0d1f4a"
+      "report_sha256": "e6eea3b9f5e51b33047f5d5ed8f19e547a0efd176a062b7590b6479bf8616c5a",
+      "manifest_a_sha256": "ce4201d372c328005f346739a587259bfdab60ce880d0687a63589fe0b418528",
+      "manifest_b_sha256": "8c5c8f5e5b4d095883ada4dc68c71e35c25006da7f00ff62cfe626cd64ac4e43"
     }
   ],
   "limitations": [
