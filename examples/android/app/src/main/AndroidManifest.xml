@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-feature android:name="android.hardware.vulkan.version"
+        android:version="0x00403000" android:required="${vulkanRequired}" />
     <application android:label="Parallel Mater Gallery"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:allowBackup="false" android:hasCode="true"
         android:icon="@drawable/ic_gallery">
         <activity android:name=".GalleryActivity" android:exported="true"
             android:launchMode="singleTop"
-            android:screenOrientation="sensorLandscape">
+            android:screenOrientation="userLandscape"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

@@ -1,7 +1,7 @@
 {
   "id": "F7-16",
   "title": "Use native Vulkan rendering on Android",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-07",
     "F7-09"
@@ -17,15 +17,29 @@
     "Android renders directly from public GPU outputs with explicit physics/graphics ordering and no ordinary-frame CPU readback.",
     "Rotation, resize, background, surface recreation and teardown pass on a physical device without stale or foreign resources."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "5fa364d4-045a-4191-ab55-d6b68ea7926c",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F7-16/thomas-laptop",
-    "claimed_at": "2026-10-18T03:43:21Z",
-    "heartbeat_at": "2026-10-18T03:43:21Z",
-    "expires_at": "2026-10-18T15:43:21Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: Pixel 7 Android 17 physical Vulkan run at 1dc6363; 28 scenes, shared mobile qualification, direct presentation, zero ordinary readback, background, resize, rotation and teardown; docs/roadmap/evidence/F7-16-android-vulkan-gallery.json",
+    "PASS: Linux physical Vulkan renderer/surface/session contracts 3/3 and ARM64 Android Vulkan APK build; docs/roadmap/evidence/F7-16-android-vulkan-gallery.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "5fa364d4-045a-4191-ab55-d6b68ea7926c",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-16/thomas-laptop",
+        "claimed_at": "2026-10-18T03:43:21Z",
+        "heartbeat_at": "2026-10-18T03:43:21Z",
+        "expires_at": "2026-10-18T15:43:21Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T12:35:11Z",
+      "reason": "Android Gallery now presents public GPU outputs directly through Vulkan and safely rebinds native surfaces across runtime replacement and lifecycle changes",
+      "evidence": [
+        "PASS: Pixel 7 Android 17 physical Vulkan run at 1dc6363; 28 scenes, shared mobile qualification, direct presentation, zero ordinary readback, background, resize, rotation and teardown; docs/roadmap/evidence/F7-16-android-vulkan-gallery.json",
+        "PASS: Linux physical Vulkan renderer/surface/session contracts 3/3 and ARM64 Android Vulkan APK build; docs/roadmap/evidence/F7-16-android-vulkan-gallery.json"
+      ]
+    }
+  ]
 }

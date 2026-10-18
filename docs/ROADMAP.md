@@ -160,10 +160,10 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [F4-00](roadmap/tasks/F4-00.json) | Portable schedule and neutral reflection baseline | done | — | — |
-| [F4-01](roadmap/tasks/F4-01.json) | Describe resources and access ranges | leased | — | codex-macos-runtime / Thomass-MacBook-Air / 2026-10-19T02:39:33Z |
-| [F4-02](roadmap/tasks/F4-02.json) | Retain resources through completion | waiting on dependencies | F4-01 | — |
+| [F4-01](roadmap/tasks/F4-01.json) | Describe resources and access ranges | done | — | — |
+| [F4-02](roadmap/tasks/F4-02.json) | Retain resources through completion | leased | F4-01 | codex-macos-runtime / Thomass-MacBook-Air / 2026-10-19T13:56:38Z |
 | [F4-03](roadmap/tasks/F4-03.json) | Schedule common resource dependencies | waiting on dependencies | F4-01, F4-02 | — |
-| [F4-04](roadmap/tasks/F4-04.json) | Remove generated-source ABI parsing | waiting on dependencies | F4-01 | — |
+| [F4-04](roadmap/tasks/F4-04.json) | Remove generated-source ABI parsing | ready | F4-01 | — |
 | [F4-05](roadmap/tasks/F4-05.json) | Specify memory-budget confidence | waiting on lock | — | — |
 | [F4-06](roadmap/tasks/F4-06.json) | Apply conservative workload admission | waiting on dependencies | F4-05 | — |
 | [F4-07](roadmap/tasks/F4-07.json) | Specify borrowed device and queue handoff | waiting on dependencies | F4-02, F3-04 | — |
@@ -226,10 +226,10 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-10](roadmap/tasks/F7-10.json) | Enable Vulkan cloth Gallery domains | done | F7-03 | — |
 | [F7-11](roadmap/tasks/F7-11.json) | Enable Vulkan soft-body Gallery domains | done | F7-03 | — |
 | [F7-12](roadmap/tasks/F7-12.json) | Enable Vulkan rope Gallery domains | done | F7-03 | — |
-| [F7-13](roadmap/tasks/F7-13.json) | Enable Vulkan smoke Gallery domains | ready | F7-03 | — |
+| [F7-13](roadmap/tasks/F7-13.json) | Enable Vulkan smoke Gallery domains | leased | F7-03 | codex-linux-gallery / thomas-laptop / 2026-10-19T13:31:42Z |
 | [F7-14](roadmap/tasks/F7-14.json) | Enable Vulkan cross-deformable Gallery couplings | waiting on dependencies | F7-10, F7-11, F7-12, F7-13 | — |
 | [F7-15](roadmap/tasks/F7-15.json) | Expose capability-driven Android catalog | done | F7-02, F7-07 | — |
-| [F7-16](roadmap/tasks/F7-16.json) | Use native Vulkan rendering on Android | leased | F7-07, F7-09 | codex-linux-gallery / thomas-laptop / 2026-10-18T15:43:21Z |
+| [F7-16](roadmap/tasks/F7-16.json) | Use native Vulkan rendering on Android | done | F7-07, F7-09 | — |
 | [F7-17](roadmap/tasks/F7-17.json) | Complete Android Gallery controls and help | leased | F7-04, F7-07, F7-15, F7-20, F7-21 | codex-windows-sdk / windows-gtx1080 / 2026-10-19T13:00:32Z |
 | [F7-18](roadmap/tasks/F7-18.json) | Qualify complete Android Gallery | waiting on dependencies | F5-15, F7-05, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17, F7-22 | — |
 | [F7-19](roadmap/tasks/F7-19.json) | Close common Gallery runtime boundary | done | F7-06, F7-08 | — |

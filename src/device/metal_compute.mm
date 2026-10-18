@@ -38,6 +38,12 @@ class MetalBuffer final : public Buffer {
 public:
     explicit MetalBuffer(id<MTLBuffer> value) : value(value) {}
     id<MTLBuffer> value;
+    ResourceIdentity identity() const noexcept override {
+        return {
+            static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>((__bridge void *)value.device)),
+            static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>((__bridge void *)value)),
+        };
+    }
     std::size_t size() const noexcept override { return value.length; }
     void *host_address() const noexcept override {
         return value.storageMode == MTLStorageModeShared ? value.contents : nullptr;
@@ -198,8 +204,8 @@ public:
                 throw std::invalid_argument("empty compute dispatch");
             // Validate before opening an encoder, so failed validation leaves the
             // command list usable and cannot strand an active native encoder.
-            auto resources = arguments.resources();
-            for (const auto &resource : resources) (void)buffer(resource);
+            auto bindings = arguments.bindings();
+            for (const auto &binding : bindings) (void)buffer(binding.range.buffer);
             const std::uint32_t dimensions[4]{groups.x, groups.y, groups.z, kernel->threads.x};
             id<MTLComputeCommandEncoder> encoder = [command_ computeCommandEncoder];
             require(encoder != nil, "Metal compute encoder allocation failed");
@@ -208,14 +214,14 @@ public:
                 [encoder setBytes:dimensions length:sizeof(dimensions) atIndex:kernel->dispatch_index];
             [encoder setBytes:arguments.bytes().data() length:arguments.bytes().size()
                 atIndex:kernel->argument_index];
-            for (const auto &resource : resources)
-                [encoder useResource:buffer(resource) usage:MTLResourceUsageRead | MTLResourceUsageWrite];
+            for (const auto &binding : bindings)
+                [encoder useResource:buffer(binding.range.buffer) usage:usage(binding.range.access)];
             [encoder dispatchThreadgroups:MTLSizeMake(groups.x, groups.y, groups.z)
                 threadsPerThreadgroup:MTLSizeMake(kernel->threads.x, kernel->threads.y, kernel->threads.z)];
             [encoder endEncoding];
             // Separate encoders + tracked resources establish GPU-wide ordering,
             // including raw-pointer accesses declared above. Never a group barrier.
-            retained_.insert(resources.begin(), resources.end());
+            for (const auto &binding : bindings) retained_.insert(binding.range.buffer);
         }
     }
     void copy(const BufferPtr &destination, std::size_t destination_offset,
@@ -279,6 +285,14 @@ public:
         }
     }
 private:
+    static MTLResourceUsage usage(ResourceAccess access) {
+        switch (access) {
+        case ResourceAccess::read: return MTLResourceUsageRead;
+        case ResourceAccess::write: return MTLResourceUsageWrite;
+        case ResourceAccess::read_write: return MTLResourceUsageRead | MTLResourceUsageWrite;
+        }
+        throw std::invalid_argument("invalid Metal resource access");
+    }
     void ensure_open() const {
         if (submitted_) throw std::logic_error("compute command list already submitted");
     }

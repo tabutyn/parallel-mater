@@ -32,8 +32,8 @@ format that snapshot for their own controls and layouts. `MobileGalleryState`
 adds surface/lifecycle admission and a latched error to the same snapshot.
 Native rendering uses a common device, buffer, synchronization, target,
 readback, and draw-semantics contract. Metal and Vulkan implement that contract.
-Desktop Vulkan uses it now; F7-16 attaches Android's native surface to the same
-Vulkan adapter.
+Desktop and Android Vulkan use the same Vulkan adapter; Android supplies its
+native surface while the adapter owns the swapchain.
 
 | Responsibility | Current desktop owner | Current mobile owner | Required owner |
 |---|---|---|---|
@@ -47,7 +47,7 @@ Vulkan adapter.
 | Fixed-step accumulation, catch-up limits, substeps, pause, foreground recovery, and timing publication | `GallerySession::frame_at` with desktop render/present callbacks | `GallerySession::frame_at` through `MobileGallerySession` | Common session (done) |
 | Camera state and focus policy | `GallerySession::camera()`, driven by desktop input | `MobileGallerySession` touch commands | Common runtime, driven by semantic pointer/zoom commands |
 | Host render-frame assembly | `GalleryRuntime::step` | `GalleryRuntime::step` | Common runtime (done) |
-| Software, native GPU, or external-engine drawing | Desktop renderer/window path, including direct Vulkan | Android software renderer or iPad Metal renderer | Renderer adapter |
+| Software, native GPU, or external-engine drawing | Desktop renderer/window path, including direct Vulkan | Android Vulkan or iPad Metal renderer | Renderer adapter |
 | Graphics API resources, swapchain/layer binding, upload, and presentation | Desktop window adapter | Android surface/ANativeWindow or Apple presentation layer | Renderer adapter, with the platform shell supplying the native surface |
 | Keyboard, touch, gamepad, lifecycle, window, intent, and accessibility events | GLFW/native desktop glue | Java/JNI or UIKit glue | Platform shell translating events into common commands |
 | Catalog, parameter, timing, status, and error view models | `GalleryPresentationState` plus desktop formatting | `MobileGalleryState` plus Java/UIKit formatting | Common structured data; platform shell chooses wording, widgets, and layout (done) |
