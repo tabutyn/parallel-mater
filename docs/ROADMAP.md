@@ -150,7 +150,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F3-07](roadmap/tasks/F3-07.json) | Test independent compatibility combinations | done | F3-05 | — |
 | [F3-08](roadmap/tasks/F3-08.json) | Restore repeated statistics-query validation | done | F3-03 | — |
 | [F3-09](roadmap/tasks/F3-09.json) | Qualify portable host concurrency | done | F3-06 | — |
-| [F3-10](roadmap/tasks/F3-10.json) | Qualify descriptor snapshot coverage | ready | F3-06 | — |
+| [F3-10](roadmap/tasks/F3-10.json) | Qualify descriptor snapshot coverage | leased | F3-06 | codex-windows-validation / windows-gtx1080 / 2026-10-18T11:05:32Z |
 | [F3-11](roadmap/tasks/F3-11.json) | Qualify destruction wait profiles | ready | F3-06 | — |
 | [F3-12](roadmap/tasks/F3-12.json) | Qualify runtime capacity recovery | ready | F3-06 | — |
 | [F3-99](roadmap/tasks/F3-99.json) | Review F3 exit evidence | waiting on dependencies | F3-01, F3-02, F3-03, F3-04, F3-05, F3-06, F3-07, F3-08, F3-09, F3-10, F3-11, F3-12 | — |
