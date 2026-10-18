@@ -1,0 +1,23 @@
+{
+  "id": "F5-31",
+  "title": "Qualify fluid-cloth contact",
+  "status": "open",
+  "dependencies": [
+    "F5-23"
+  ],
+  "locks": [
+    "quality-f5-31"
+  ],
+  "requires": [
+    "Any development host and one physical production driver advertising the exact capability tuple"
+  ],
+  "scope": "Publish and bind vendor-neutral qualification for exactly FLUID/CLOTH/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE. The single physical behavior is: Fluid and cloth prevent overlap at the declared contact distance and apply reciprocal normal response without implying containment.",
+  "acceptance": [
+    "Publish one immutable analytic profile for the listed tuple or representation variants, with canonical public-API inputs, SI units, bounded tolerances and an oracle independent of driver-private state.",
+    "Add exact bounded capacity, replacement, removal and rollback lifecycle checks; a rejected mutation preserves the last usable state and recovery is deterministic.",
+    "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

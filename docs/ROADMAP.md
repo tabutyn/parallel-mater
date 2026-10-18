@@ -199,7 +199,38 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-22](roadmap/tasks/F5-22.json) | Version rigid contact quality profiles | done | F5-18, F6-11 | — |
 | [F5-23](roadmap/tasks/F5-23.json) | Split advertised qualification gaps | leased | F5-19, F5-20, F5-22 | codex-windows-qualification / windows-gtx1080 / 2026-10-19T21:00:00Z |
 | [F5-24](roadmap/tasks/F5-24.json) | Expose lifecycle qualification through the installed CLI | done | F5-19, F5-20 | — |
-| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17, F5-18, F5-19, F5-20, F5-21, F5-22, F5-23, F5-24 | — |
+| [F5-25](roadmap/tasks/F5-25.json) | Qualify fluid self contact | waiting on dependencies | F5-23 | — |
+| [F5-26](roadmap/tasks/F5-26.json) | Qualify fluid self pressure | waiting on dependencies | F5-23 | — |
+| [F5-27](roadmap/tasks/F5-27.json) | Qualify fluid self viscosity | waiting on dependencies | F5-23 | — |
+| [F5-28](roadmap/tasks/F5-28.json) | Qualify sampled rope self contact | waiting on dependencies | F5-23 | — |
+| [F5-29](roadmap/tasks/F5-29.json) | Qualify smoke self pressure | waiting on dependencies | F5-23 | — |
+| [F5-30](roadmap/tasks/F5-30.json) | Qualify smoke self viscosity | waiting on dependencies | F5-23 | — |
+| [F5-31](roadmap/tasks/F5-31.json) | Qualify fluid-cloth contact | waiting on dependencies | F5-23 | — |
+| [F5-32](roadmap/tasks/F5-32.json) | Qualify cloth fluid containment | waiting on dependencies | F5-23 | — |
+| [F5-33](roadmap/tasks/F5-33.json) | Qualify fluid-soft contact | waiting on dependencies | F5-23 | — |
+| [F5-34](roadmap/tasks/F5-34.json) | Qualify fluid-rope contact | waiting on dependencies | F5-23 | — |
+| [F5-35](roadmap/tasks/F5-35.json) | Qualify smoke-to-fluid drag | waiting on dependencies | F5-23 | — |
+| [F5-36](roadmap/tasks/F5-36.json) | Qualify externally heated fluid | waiting on dependencies | F5-23 | — |
+| [F5-37](roadmap/tasks/F5-37.json) | Qualify fluid-to-smoke phase transfer | waiting on dependencies | F5-23 | — |
+| [F5-38](roadmap/tasks/F5-38.json) | Qualify fluid-rigid contact | waiting on dependencies | F5-23 | — |
+| [F5-39](roadmap/tasks/F5-39.json) | Qualify rigid fluid containment | waiting on dependencies | F5-23 | — |
+| [F5-40](roadmap/tasks/F5-40.json) | Qualify cloth-soft contact | waiting on dependencies | F5-23 | — |
+| [F5-41](roadmap/tasks/F5-41.json) | Qualify cloth-rope attachment | waiting on dependencies | F5-23 | — |
+| [F5-42](roadmap/tasks/F5-42.json) | Qualify cloth-to-smoke contact | waiting on dependencies | F5-23 | — |
+| [F5-43](roadmap/tasks/F5-43.json) | Qualify smoke-to-cloth drag | waiting on dependencies | F5-23 | — |
+| [F5-44](roadmap/tasks/F5-44.json) | Qualify cloth-rigid contact | waiting on dependencies | F5-23 | — |
+| [F5-45](roadmap/tasks/F5-45.json) | Qualify soft-rope contact | waiting on dependencies | F5-23 | — |
+| [F5-46](roadmap/tasks/F5-46.json) | Qualify soft-rope attachment | waiting on dependencies | F5-23 | — |
+| [F5-47](roadmap/tasks/F5-47.json) | Qualify soft-to-smoke contact | waiting on dependencies | F5-23 | — |
+| [F5-48](roadmap/tasks/F5-48.json) | Qualify smoke-to-soft drag | waiting on dependencies | F5-23 | — |
+| [F5-49](roadmap/tasks/F5-49.json) | Qualify soft-rigid contact | waiting on dependencies | F5-23 | — |
+| [F5-50](roadmap/tasks/F5-50.json) | Qualify rope-to-smoke contact | waiting on dependencies | F5-23 | — |
+| [F5-51](roadmap/tasks/F5-51.json) | Qualify smoke-to-rope drag | waiting on dependencies | F5-23 | — |
+| [F5-52](roadmap/tasks/F5-52.json) | Qualify rope-rigid contact | waiting on dependencies | F5-23 | — |
+| [F5-53](roadmap/tasks/F5-53.json) | Qualify rope-rigid attachment | waiting on dependencies | F5-23 | — |
+| [F5-54](roadmap/tasks/F5-54.json) | Qualify smoke-rigid contact | waiting on dependencies | F5-23 | — |
+| [F5-55](roadmap/tasks/F5-55.json) | Qualify smoke-rigid drag | waiting on dependencies | F5-23 | — |
+| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17, F5-18, F5-19, F5-20, F5-21, F5-22, F5-23, F5-24, F5-25, F5-26, F5-27, F5-28, F5-29, F5-30, F5-31, F5-32, F5-33, F5-34, F5-35, F5-36, F5-37, F5-38, F5-39, F5-40, F5-41, F5-42, F5-43, F5-44, F5-45, F5-46, F5-47, F5-48, F5-49, F5-50, F5-51, F5-52, F5-53, F5-54, F5-55 | — |
 
 ### F6. SDK releases and repository ownership
 
