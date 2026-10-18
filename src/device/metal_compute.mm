@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <limits>
 #include <utility>
-#include <unordered_set>
 
 namespace parallel_mater::device::compute {
 namespace {
@@ -177,13 +176,13 @@ public:
     void *native_handle() const noexcept override { return (__bridge void *)command_; }
 private:
     void check_error() const {
-        require(command_.status != MTLCommandBufferStatusError,
-            "Metal execution failed: " + error_text(command_.error));
+        if (command_.status == MTLCommandBufferStatusError)
+            throw std::runtime_error("Metal execution failed: " + error_text(command_.error));
     }
     id<MTLCommandBuffer> command_;
 };
 
-class MetalCommandList final : public CommandList {
+class MetalCommandList final : public CommandEncoder {
 public:
     MetalCommandList(id<MTLDevice> device, id<MTLCommandQueue> queue)
         : device_(device) {
@@ -221,7 +220,6 @@ public:
             [encoder endEncoding];
             // Separate encoders + tracked resources establish GPU-wide ordering,
             // including raw-pointer accesses declared above. Never a group barrier.
-            for (const auto &binding : bindings) retained_.insert(binding.range.buffer);
         }
     }
     void copy(const BufferPtr &destination, std::size_t destination_offset,
@@ -240,8 +238,6 @@ public:
             [encoder copyFromBuffer:src sourceOffset:source_offset toBuffer:dst
                 destinationOffset:destination_offset size:size];
             [encoder endEncoding];
-            retained_.insert(destination);
-            retained_.insert(source);
         }
     }
     void fill(const BufferPtr &destination, std::size_t offset,
@@ -255,30 +251,27 @@ public:
             require(encoder != nil, "Metal blit encoder allocation failed");
             [encoder fillBuffer:dst range:NSMakeRange(offset, size) value:value];
             [encoder endEncoding];
-            retained_.insert(destination);
         }
     }
-    void upload(const BufferPtr &destination, std::size_t offset,
-                std::span<const std::byte> bytes) override {
+    BufferPtr upload(const BufferPtr &destination, std::size_t offset,
+                     std::span<const std::byte> bytes) override {
         @autoreleasepool {
             ensure_open();
             (void)buffer(destination);
             range(destination, offset, bytes.size());
-            if (bytes.empty()) return;
+            if (bytes.empty()) return {};
             id<MTLBuffer> staging = [device_ newBufferWithBytes:bytes.data()
                 length:bytes.size() options:MTLResourceStorageModeShared];
             require(staging != nil, "Metal upload staging allocation failed");
-            copy(destination, offset, std::make_shared<MetalBuffer>(staging), 0, bytes.size());
+            auto owner = std::make_shared<MetalBuffer>(staging);
+            copy(destination, offset, owner, 0, bytes.size());
+            return owner;
         }
     }
     SubmissionPtr submit() override {
         @autoreleasepool {
             ensure_open();
             auto result = std::make_shared<MetalSubmission>(command_);
-            // Retain C++ resource ownership even if both caller and completion
-            // token disappear before the GPU finishes. No blocking destructor.
-            auto retained = std::make_shared<std::unordered_set<BufferPtr>>(std::move(retained_));
-            [command_ addCompletedHandler:^(id<MTLCommandBuffer>) { (void)retained; }];
             [command_ commit];
             submitted_ = true;
             return result;
@@ -309,7 +302,6 @@ private:
     id<MTLDevice> device_;
     id<MTLCommandBuffer> command_;
     bool submitted_{};
-    std::unordered_set<BufferPtr> retained_;
 };
 
 class MetalDevice final : public Device {
@@ -412,7 +404,7 @@ public:
     }
     std::unique_ptr<CommandList> commands() override {
         @autoreleasepool {
-            return std::make_unique<MetalCommandList>(device_, queue_);
+            return submissions_.commands(std::make_unique<MetalCommandList>(device_, queue_));
         }
     }
     void *native_device() const noexcept override { return (__bridge void *)device_; }
@@ -420,6 +412,7 @@ public:
 private:
     id<MTLDevice> device_;
     id<MTLCommandQueue> queue_;
+    SubmissionQueue submissions_;
 };
 } // namespace
 

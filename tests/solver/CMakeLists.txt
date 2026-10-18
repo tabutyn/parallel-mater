@@ -11,6 +11,32 @@ target_compile_features(parallel-mater-compute-contract-tests PRIVATE cxx_std_20
 target_include_directories(parallel-mater-compute-contract-tests PRIVATE ../../src)
 add_test(NAME parallel-mater-compute-contract-tests COMMAND parallel-mater-compute-contract-tests)
 
+add_executable(parallel-mater-compute-lifetime-tests compute_lifetime_tests.cpp)
+find_package(Threads REQUIRED)
+target_compile_features(parallel-mater-compute-lifetime-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-compute-lifetime-tests PRIVATE ../../src)
+target_link_libraries(parallel-mater-compute-lifetime-tests PRIVATE Threads::Threads)
+add_test(NAME parallel-mater-compute-lifetime-tests COMMAND parallel-mater-compute-lifetime-tests)
+set_tests_properties(parallel-mater-compute-lifetime-tests PROPERTIES TIMEOUT 30)
+
+if(APPLE)
+    add_executable(parallel-mater-metal-schedule-recovery-tests
+        metal_schedule_recovery_tests.cpp ../../src/driver/metal/schedule_context.cpp)
+    target_compile_features(parallel-mater-metal-schedule-recovery-tests PRIVATE cxx_std_20)
+    target_include_directories(parallel-mater-metal-schedule-recovery-tests PRIVATE
+        ../../src/device/metal_compat ../../src ../../include)
+    target_link_libraries(parallel-mater-metal-schedule-recovery-tests PRIVATE Threads::Threads)
+    set_target_properties(parallel-mater-metal-schedule-recovery-tests PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/schedule-recovery/$<CONFIG>")
+    # The real scheduler resolves its manifest relative to its binary. No GPU
+    # kernels are needed by this non-installed failure-injection test device.
+    file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/schedule-recovery/$<CONFIG>/slang-metal/manifest.txt"
+        CONTENT "")
+    add_test(NAME parallel-mater-metal-schedule-recovery-tests
+        COMMAND parallel-mater-metal-schedule-recovery-tests)
+    set_tests_properties(parallel-mater-metal-schedule-recovery-tests PROPERTIES TIMEOUT 30)
+endif()
+
 add_executable(parallel-mater-memory-arena-tests memory_arena_tests.cpp ../../src/simulation/memory_arena.cpp)
 target_compile_features(parallel-mater-memory-arena-tests PRIVATE cxx_std_20)
 target_include_directories(parallel-mater-memory-arena-tests PRIVATE ../../src ../../include)
