@@ -126,10 +126,26 @@ void GallerySession::select(unsigned index) {
         [pending_device, gpu_rendering, native_backend, prime_scene]
         (GalleryRuntime &next, std::string &failure) {
         PmPhysicalDeviceProperties device{};
-        pmGetPhysicalDeviceProperties(next.simulation.physical_device(), &device);
+        const PmPhysicalDevice physical = next.simulation.physical_device();
+        pmGetPhysicalDeviceProperties(physical, &device);
         PmPhysicalDeviceFeatures features{};
-        pmGetPhysicalDeviceFeatures(next.simulation.physical_device(), &features);
-        pending_device->catalog = make_gallery_catalog(&features);
+        pmGetPhysicalDeviceFeatures(physical, &features);
+        std::uint32_t interaction_count{};
+        if (pmEnumeratePhysicalDeviceInteractionCapabilities(
+                physical, &interaction_count, nullptr) != PM_SUCCESS) {
+            failure = "Could not enumerate Gallery interaction capabilities";
+            return false;
+        }
+        std::vector<PmInteractionCapability> interactions(interaction_count);
+        if (interaction_count != 0U &&
+            pmEnumeratePhysicalDeviceInteractionCapabilities(
+                physical, &interaction_count, interactions.data()) !=
+                PM_SUCCESS) {
+            failure = "Could not read Gallery interaction capabilities";
+            return false;
+        }
+        interactions.resize(interaction_count);
+        pending_device->catalog = make_gallery_catalog(&features, interactions);
         if (native_backend) {
             PmNativeDeviceInfo native{};
             if (pmGetNativeDevice(next.simulation.device(), &native) != PM_SUCCESS ||

@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/gallery_catalog.hpp>
 
+#include <algorithm>
+#include <initializer_list>
 #include <stdexcept>
+#include <string>
 #include <string_view>
+#include <vector>
 
 using namespace parallel_mater::gallery;
 
@@ -36,6 +40,35 @@ static_assert(gallery_entry(GalleryContext::constraint_generic).controls ==
               GalleryControlPolicy::authored_force);
 static_assert(gallery_entry(GalleryContext::rigid_body).moves_kinematic);
 
+std::vector<PmInteractionCapability> interactions_for(
+    std::initializer_list<GalleryContext> contexts) {
+    std::vector<PmInteractionCapability> result;
+    for (const GalleryContext context : contexts) {
+        visit_gallery_interaction_requirements(
+            context, [&](const PmInteractionCapabilityKey &key) {
+                for (const auto &existing : result)
+                    if (gallery_interaction_key_equal(existing.key, key))
+                        return;
+                result.push_back({key, PM_INTERACTION_GRAPH_EDGES_NOT_APPLICABLE});
+            });
+    }
+    return result;
+}
+
+std::vector<PmInteractionCapability> all_interactions() {
+    std::vector<PmInteractionCapability> result;
+    for (const auto &entry : gallery_entries) {
+        visit_gallery_interaction_requirements(
+            entry.context, [&](const PmInteractionCapabilityKey &key) {
+                for (const auto &existing : result)
+                    if (gallery_interaction_key_equal(existing.key, key))
+                        return;
+                result.push_back({key, PM_INTERACTION_GRAPH_EDGES_NOT_APPLICABLE});
+            });
+    }
+    return result;
+}
+
 int main() {
     const GalleryCatalog catalog = make_gallery_catalog();
     if (catalog.size() != gallery_entries.size())
@@ -46,7 +79,8 @@ int main() {
             item.id.empty() || item.scene.name.empty() ||
             item.scene.help.empty() || item.asset_file.empty() ||
             item.required_features == 0U ||
-            item.required_feature_names.empty())
+            item.required_feature_names.empty() ||
+            item.required_interaction_names.empty())
             throw std::runtime_error("Catalog metadata is incomplete");
         for (std::size_t previous = 0; previous < index; ++previous)
             if (catalog[previous].id == item.id)
@@ -56,7 +90,10 @@ int main() {
     PmPhysicalDeviceFeatures rigid{};
     rigid.rigidBodies = PM_TRUE;
     rigid.rigidConstraints = PM_TRUE;
-    const GalleryCatalog limited = make_gallery_catalog(&rigid);
+    const auto rigid_interactions = interactions_for({
+        GalleryContext::rigid_body, GalleryContext::constraint_point});
+    const GalleryCatalog limited =
+        make_gallery_catalog(&rigid, rigid_interactions);
     if (!limited[gallery_context_index(GalleryContext::rigid_body)].available ||
         !limited[gallery_context_index(GalleryContext::constraint_point)].available)
         throw std::runtime_error("Supported rigid scenes are unavailable");
@@ -69,9 +106,35 @@ int main() {
     full.rigidBodies = full.rigidConstraints = full.particleLiquids =
         full.liquidRigidCoupling = full.cloth = full.rope = full.softBodies =
         full.smoke = full.domainCouplings = full.paint = PM_TRUE;
-    const GalleryCatalog complete = make_gallery_catalog(&full);
+    const auto interactions = all_interactions();
+    const GalleryCatalog complete = make_gallery_catalog(&full, interactions);
     for (const auto &item : complete)
         if (!item.available || !item.unavailable_reason.empty())
             throw std::runtime_error("Fully capable backend lost a scene");
+
+    auto partial_rope = interactions;
+    std::erase_if(partial_rope, [](const PmInteractionCapability &candidate) {
+        const auto &key = candidate.key;
+        return (key.firstFamily == PM_INTERACTION_FAMILY_CLOTH &&
+                   key.secondFamily == PM_INTERACTION_FAMILY_ROPE) ||
+            (key.firstFamily == PM_INTERACTION_FAMILY_SOFT_BODY &&
+             key.secondFamily == PM_INTERACTION_FAMILY_ROPE);
+    });
+    const GalleryCatalog exact = make_gallery_catalog(&full, partial_rope);
+    const auto &rope = exact[gallery_context_index(GalleryContext::rope)];
+    const auto &rope_fluid =
+        exact[gallery_context_index(GalleryContext::rope_fluid)];
+    const auto &rope_cloth =
+        exact[gallery_context_index(GalleryContext::rope_cloth)];
+    const auto &rope_soft =
+        exact[gallery_context_index(GalleryContext::rope_soft_body)];
+    if (!rope.available || !rope_fluid.available || rope_cloth.available ||
+        rope_soft.available ||
+        rope_cloth.unavailable_reason.find("cloth-rope attachment") ==
+            std::string::npos ||
+        rope_soft.unavailable_reason.find("soft-body-rope contact") ==
+            std::string::npos)
+        throw std::runtime_error(
+            "Catalog did not preserve exact rope interaction availability");
     return 0;
 }
