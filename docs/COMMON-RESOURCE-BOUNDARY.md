@@ -77,9 +77,43 @@ not create resource bindings and cannot carry offsets or ranges.
 Overlapping bindings for the same allocation are legal and remain separate, so
 an adapter can observe every shader-visible use and combine access modes without
 losing their source names. Adjacent half-open ranges do not overlap. Access
-metadata describes a dispatch; it does not itself insert a barrier or establish
-completion ownership. The shared lifetime layer below consumes those bindings;
-dependency scheduling remains separate work.
+metadata describes a dispatch and the common scheduler below derives ordering
+from it. Completion ownership remains a separate lifetime responsibility.
+
+## Range dependency scheduling
+
+`compute::CommandList` normalizes the resource ranges of each dispatch, copy,
+fill and upload before native encoding. Overlapping aliases within one command
+combine their access modes and never create a dependency on that same command.
+The list retains the most recent access state for each byte interval; replacing
+one interval does not erase hazards on disjoint portions of the allocation.
+
+An exact intersected range is ordered when either its prior or next access
+writes. This covers read-after-write, write-after-read and write-after-write.
+Read-after-read, adjacent or disjoint ranges, and different allocation
+identities do not create a dependency. Inconsistent wrappers for one allocation
+remain validation errors and do not discard earlier valid commands.
+
+The common scheduler passes each required transition to
+`CommandEncoder::barrier` immediately before the consuming command. The callback
+contains only buffer/range/access data. It records native GPU ordering and must
+not submit or wait on the CPU. Metal already orders the separate compute/blit
+encoders in one command buffer, so its thin adapter validates the transition and
+uses that native encoder ordering without adding a host wait. Other adapters can
+translate the same callback to their barrier model as they adopt this command
+interface.
+
+Dependency history exists only while a command list records. Submission clears
+that history while the completion owner retains the actual resources, so a
+submitted `CommandList` cannot extend allocation lifetime. This contract covers
+one device-owned command list and queue. Borrowed queues, prior/next engine
+completion and cross-queue handoff remain F4-07/F4-08 work.
+
+Portable mock coverage is in `compute_dependency_tests.cpp`. It checks exact
+RAW, WAR and WAW intersections, partial-range history, overlapping aliases in a
+single dispatch, read/read and independent-resource elision, callback ordering,
+validation recovery and the absence of implicit waits. The ordinary
+shader-portability matrix builds and runs it on Windows, Linux and macOS.
 
 ## Command and completion ownership
 
@@ -121,8 +155,9 @@ Device teardown drains accepted work before releasing native device/queue
 members, continues draining after a deferred error, and does not throw. A
 surviving unsubmitted command list cannot enqueue after teardown. Each command
 list is single-writer; shared queue bookkeeping and completion observations are
-serialized. No physics equations, GPU barriers, borrowed-device contract or
-public API changed in this step.
+serialized. F4-02 changed no physics equations, synchronization policy,
+borrowed-device contract or public API; the range scheduler above subsequently
+added the common GPU-ordering policy without changing physics or public API.
 
 Portable evidence is in `tests/solver/compute_lifetime_tests.cpp`; the ordinary
 shader-portability CI executes it on Windows, Linux and macOS. Native Metal
@@ -159,14 +194,14 @@ system package. See [F5-09 evidence](roadmap/evidence/F5-09-vulkan-validation-la
 
 ## Remaining common contracts
 
-Resources now carry explicit owning-device/allocation identities and typed
-access ranges and common completion ownership at the Metal command-list boundary.
-Migration of the other adapters and dependency scheduling remain incomplete. A borrowed engine
-device/queue/buffer must never be destroyed by the library. Queue handoff must
-identify both prior completion and the completion the renderer waits for; all
-indirect pointer resources must survive that completion, even if the caller
-drops its token. The common mock-adapter tests must exercise those rules before
-engine-specific packages advertise interoperability.
+Resources now carry explicit owning-device/allocation identities, typed access
+ranges, range-derived dependencies and common completion ownership at the Metal
+command-list boundary. Migration of the other adapters remains incomplete. A
+borrowed engine device/queue/buffer must never be destroyed by the library.
+Queue handoff must identify both prior completion and the completion the renderer
+waits for; all indirect pointer resources must survive that completion, even if
+the caller drops its token. The common mock-adapter tests must exercise those
+rules before engine-specific packages advertise interoperability.
 
 Physical heap capacity, usable OS/driver budget, library/application allocation
 accounting and borrowed bytes are different quantities. Current budget queries

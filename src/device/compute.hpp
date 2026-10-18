@@ -4,6 +4,8 @@
 // Private reference-runtime execution boundary. No native API types and no
 // physics equations. A command list owns its encoding state; submissions own
 // all referenced resources through GPU completion.
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -19,6 +21,7 @@
 #include <string_view>
 #include <type_traits>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace parallel_mater::device::compute {
@@ -79,9 +82,20 @@ struct ResourceBinding {
     ResourceRange range;
 };
 
+// Exact overlapping byte slice which must be ordered before the next command.
+// Adapters translate this neutral dependency into their native barrier model;
+// it never requests a host wait or exposes a native synchronization type.
+struct ResourceDependency {
+    ResourceRange prior;
+    ResourceRange next;
+};
+
 [[nodiscard]] inline bool valid(ResourceAccess access) noexcept {
     return access == ResourceAccess::read || access == ResourceAccess::write ||
         access == ResourceAccess::read_write;
+}
+[[nodiscard]] inline bool writes(ResourceAccess access) noexcept {
+    return (static_cast<unsigned>(access) & static_cast<unsigned>(ResourceAccess::write)) != 0;
 }
 [[nodiscard]] inline bool valid(ResourceBindingKind kind) noexcept {
     return kind == ResourceBindingKind::parameter ||
@@ -396,8 +410,9 @@ using SubmissionPtr = std::shared_ptr<Submission>;
 class CommandEncoder {
 public:
     virtual ~CommandEncoder() = default;
-    // Dispatch boundaries guarantee visibility of prior writes on this queue,
-    // including indirectly addressed buffers. No implicit CPU wait/readback.
+    // Order only the conflicting resource slices identified by common code.
+    // This records native GPU ordering; it must never wait on the CPU or submit.
+    virtual void barrier(std::span<const ResourceDependency> dependencies) = 0;
     virtual void dispatch(const Arguments &arguments, Extent groups) = 0;
     virtual void copy(const BufferPtr &destination, std::size_t destination_offset,
                       const BufferPtr &source, std::size_t source_offset,
@@ -418,6 +433,146 @@ namespace detail {
 struct ResourceOwners {
     std::unordered_set<BufferPtr> buffers;
     std::unordered_set<KernelPtr> kernels;
+};
+
+struct DependencyPlan {
+    std::vector<ResourceDependency> dependencies;
+    std::vector<ResourceRange> next;
+};
+
+// Tracks the most recent access for each byte interval. A new command replaces
+// history only over its own ranges, so disjoint portions retain their hazards.
+// Overlapping bindings within one command are combined before comparison and
+// therefore never create a dependency on the command itself.
+class DependencyTracker {
+public:
+    [[nodiscard]] DependencyPlan plan(std::span<const ResourceRange> accesses) const {
+        const auto current = normalize(accesses);
+        DependencyPlan result;
+        for (const auto &next : current) {
+            for (const auto &prior : history_) {
+                if (!aliases(prior, next)) continue;
+                require_consistent(prior, next);
+                if (!overlaps(prior, next) || (!writes(prior.access) && !writes(next.access)))
+                    continue;
+                const auto begin = std::max(prior.offset, next.offset);
+                const auto end = std::min(prior.offset + prior.size, next.offset + next.size);
+                result.dependencies.push_back({
+                    {prior.buffer, begin, end - begin, prior.access},
+                    {next.buffer, begin, end - begin, next.access},
+                });
+            }
+        }
+
+        result.next = history_;
+        for (const auto &next : current) overlay(result.next, next);
+        coalesce(result.next);
+        return result;
+    }
+
+    void commit(DependencyPlan &&plan) noexcept { history_.swap(plan.next); }
+    void clear() noexcept { history_.clear(); }
+
+private:
+    using IdentityKey = std::pair<std::uint64_t, std::uint64_t>;
+
+    static void require_range(const ResourceRange &range) {
+        if (!range.buffer || !range.identity().valid() || !valid(range.access) || !range.size ||
+            range.offset > range.buffer->size() ||
+            range.size > range.buffer->size() - range.offset)
+            throw std::invalid_argument("invalid compute dependency range");
+    }
+
+    static void require_consistent(const ResourceRange &left, const ResourceRange &right) {
+        if (left.buffer->size() != right.buffer->size() ||
+            left.buffer->device_address() != right.buffer->device_address())
+            throw std::invalid_argument("inconsistent aliased compute resource");
+    }
+
+    [[nodiscard]] static std::vector<ResourceRange> normalize(
+        std::span<const ResourceRange> accesses) {
+        std::map<IdentityKey, std::vector<ResourceRange>> groups;
+        for (const auto &access : accesses) {
+            require_range(access);
+            const auto identity = access.identity();
+            auto &group = groups[{identity.device, identity.allocation}];
+            if (!group.empty()) require_consistent(group.front(), access);
+            group.push_back(access);
+        }
+
+        std::vector<ResourceRange> result;
+        for (const auto &[identity, group] : groups) {
+            (void)identity;
+            std::vector<std::size_t> boundaries;
+            boundaries.reserve(group.size() * 2);
+            for (const auto &access : group) {
+                boundaries.push_back(access.offset);
+                boundaries.push_back(access.offset + access.size);
+            }
+            std::sort(boundaries.begin(), boundaries.end());
+            boundaries.erase(std::unique(boundaries.begin(), boundaries.end()), boundaries.end());
+            for (std::size_t i = 1; i < boundaries.size(); ++i) {
+                const auto begin = boundaries[i - 1], end = boundaries[i];
+                unsigned bits{};
+                for (const auto &access : group)
+                    if (access.offset < end && begin < access.offset + access.size)
+                        bits |= static_cast<unsigned>(access.access);
+                if (bits != 0)
+                    result.push_back({group.front().buffer, begin, end - begin,
+                                      static_cast<ResourceAccess>(bits)});
+            }
+        }
+        coalesce(result);
+        return result;
+    }
+
+    static void overlay(std::vector<ResourceRange> &history, const ResourceRange &next) {
+        std::vector<ResourceRange> updated;
+        updated.reserve(history.size() + 1);
+        const auto next_end = next.offset + next.size;
+        for (const auto &prior : history) {
+            if (!aliases(prior, next)) {
+                updated.push_back(prior);
+                continue;
+            }
+            require_consistent(prior, next);
+            if (!overlaps(prior, next)) {
+                updated.push_back(prior);
+                continue;
+            }
+            const auto prior_end = prior.offset + prior.size;
+            if (prior.offset < next.offset)
+                updated.push_back({prior.buffer, prior.offset, next.offset - prior.offset,
+                                   prior.access});
+            if (next_end < prior_end)
+                updated.push_back({prior.buffer, next_end, prior_end - next_end, prior.access});
+        }
+        updated.push_back(next);
+        history.swap(updated);
+    }
+
+    static void coalesce(std::vector<ResourceRange> &ranges) {
+        std::sort(ranges.begin(), ranges.end(), [](const auto &left, const auto &right) {
+            const auto l = left.identity(), r = right.identity();
+            if (l.device != r.device) return l.device < r.device;
+            if (l.allocation != r.allocation) return l.allocation < r.allocation;
+            return left.offset < right.offset;
+        });
+        std::vector<ResourceRange> result;
+        result.reserve(ranges.size());
+        for (auto range : ranges) {
+            if (!result.empty() && aliases(result.back(), range) &&
+                result.back().access == range.access &&
+                result.back().offset + result.back().size == range.offset) {
+                result.back().size += range.size;
+            } else {
+                result.push_back(std::move(range));
+            }
+        }
+        ranges.swap(result);
+    }
+
+    std::vector<ResourceRange> history_;
 };
 
 class RetainedSubmission final : public Submission {
@@ -536,9 +691,11 @@ public:
         if (!groups.x || !groups.y || !groups.z)
             throw std::invalid_argument("empty compute dispatch");
         const auto bindings = arguments.bindings();
-        encode([&] {
+        std::vector<ResourceRange> accesses;
+        accesses.reserve(bindings.size());
+        for (const auto &binding : bindings) accesses.push_back(binding.range);
+        encode(accesses, [&] {
             owners_->kernels.insert(arguments.kernel());
-            for (const auto &binding : bindings) owners_->buffers.insert(binding.range.buffer);
             encoder_->dispatch(arguments, groups);
         });
     }
@@ -550,9 +707,11 @@ public:
         if (!size) return;
         if (overlaps({destination, destination_offset, size}, {source, source_offset, size}))
             throw std::invalid_argument("overlapping GPU copy ranges");
-        encode([&] {
-            owners_->buffers.insert(destination);
-            owners_->buffers.insert(source);
+        const std::array<ResourceRange, 2> accesses{{
+            {destination, destination_offset, size, ResourceAccess::write},
+            {source, source_offset, size, ResourceAccess::read},
+        }};
+        encode(accesses, [&] {
             encoder_->copy(destination, destination_offset, source, source_offset, size);
         });
     }
@@ -560,8 +719,9 @@ public:
         ensure_open();
         range(destination, offset, size);
         if (!size) return;
-        encode([&] {
-            owners_->buffers.insert(destination);
+        const std::array accesses{
+            ResourceRange{destination, offset, size, ResourceAccess::write}};
+        encode(accesses, [&] {
             encoder_->fill(destination, offset, size, value);
         });
     }
@@ -569,8 +729,9 @@ public:
         ensure_open();
         range(destination, offset, bytes.size());
         if (bytes.empty()) return;
-        encode([&] {
-            owners_->buffers.insert(destination);
+        const std::array accesses{
+            ResourceRange{destination, offset, bytes.size(), ResourceAccess::write}};
+        encode(accesses, [&] {
             auto staging = encoder_->upload(destination, offset, bytes);
             if (staging) owners_->buffers.insert(std::move(staging));
         });
@@ -600,15 +761,26 @@ private:
         if (!encoder_) throw std::logic_error("compute command list already submitted or cancelled");
         state_->require_open();
     }
-    template<class Function> void encode(Function &&function) {
-        try { function(); } catch (...) { cancel(); throw; }
+    template<class Function> void encode(std::span<const ResourceRange> accesses,
+                                         Function &&function) {
+        // Planning is side-effect free. Validation/allocation failures here do
+        // not discard commands that were already encoded successfully.
+        auto plan = dependencies_.plan(accesses);
+        try {
+            for (const auto &access : accesses) owners_->buffers.insert(access.buffer);
+            if (!plan.dependencies.empty()) encoder_->barrier(plan.dependencies);
+            function();
+            dependencies_.commit(std::move(plan));
+        } catch (...) { cancel(); throw; }
     }
     void cancel() noexcept {
         encoder_.reset();
         owners_.reset();
+        dependencies_.clear();
     }
     std::shared_ptr<detail::SubmissionState> state_;
     std::shared_ptr<detail::ResourceOwners> owners_;
+    detail::DependencyTracker dependencies_;
     // Destroy the unsubmitted native encoder before releasing its allocations.
     std::unique_ptr<CommandEncoder> encoder_;
 };
