@@ -1,7 +1,7 @@
 {
   "id": "F3-12",
   "title": "Qualify runtime capacity recovery",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F3-06"
   ],
@@ -17,6 +17,14 @@
     "Reset/reinitialization recovers the target while an unrelated domain remains valid; evidence names the exact solver profile."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "b4cac55c-4532-44d2-9f98-f088c867cac4",
+    "owner": "codex-windows-validation",
+    "machine": "windows-gtx1080",
+    "branch": "work/F3-12/windows-gtx1080",
+    "claimed_at": "2026-10-18T03:57:42Z",
+    "heartbeat_at": "2026-10-18T03:57:42Z",
+    "expires_at": "2026-10-18T11:57:42Z"
+  },
   "history": []
 }
