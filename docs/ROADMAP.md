@@ -298,7 +298,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-07](roadmap/tasks/P1-07.json) | Exchange miscible viscosity | done | P1-06 | — |
 | [P1-08](roadmap/tasks/P1-08.json) | Schedule miscible fluid pair graphs | done | P1-07 | — |
 | [P1-09](roadmap/tasks/P1-09.json) | Qualify and advertise miscible fluids | deferred | P1-08, F5-02, F5-03 | — |
-| [P1-10](roadmap/tasks/P1-10.json) | Reconstruct immiscible fluid interfaces | deferred | P1-05, P1-56 | — |
+| [P1-10](roadmap/tasks/P1-10.json) | Reconstruct immiscible fluid interfaces | leased | P1-05, P1-56 | codex-immiscible-reconstruction / thomas-laptop / 2026-10-19T23:04:55Z |
 | [P1-11](roadmap/tasks/P1-11.json) | Apply immiscible pressure and capillarity | deferred | P1-10 | — |
 | [P1-12](roadmap/tasks/P1-12.json) | Apply immiscible interfacial viscosity | deferred | P1-11 | — |
 | [P1-13](roadmap/tasks/P1-13.json) | Schedule immiscible fluid pair graphs | deferred | P1-12 | — |
@@ -344,7 +344,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-53](roadmap/tasks/P1-53.json) | Solve mixed smoke thermal exchange | deferred | P1-40 | — |
 | [P1-54](roadmap/tasks/P1-54.json) | Schedule mixed smoke pair modes | deferred | P1-52, P1-53 | — |
 | [P1-55](roadmap/tasks/P1-55.json) | Qualify mixed smoke pair modes | deferred | P1-54, F5-02, F5-03 | — |
-| [P1-56](roadmap/tasks/P1-56.json) | Expose immiscible interface state | leased | P1-04 | codex-immiscible-interface / thomas-laptop / 2026-10-19T22:45:26Z |
+| [P1-56](roadmap/tasks/P1-56.json) | Expose immiscible interface state | done | P1-04 | — |
 | [P1-57](roadmap/tasks/P1-57.json) | Expose interface thermal conductance | deferred | P1-15, P1-56 | — |
 
 ### P2. Deferred engine integration

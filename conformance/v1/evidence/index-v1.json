@@ -12170,7 +12170,7 @@
     {
       "actual": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
       "driver": "slang-cpu",
-      "expected": "d459278a52eb90299ff35c7db308d78edc25600ade1a236b3cf4d06c7d4cd17b",
+      "expected": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
@@ -12179,7 +12179,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
+      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15219,7 +15219,7 @@
     {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-cuda",
-      "expected": "d459278a52eb90299ff35c7db308d78edc25600ade1a236b3cf4d06c7d4cd17b",
+      "expected": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
@@ -15228,7 +15228,7 @@
     {
       "actual": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
       "driver": "slang-cuda",
-      "expected": "d459278a52eb90299ff35c7db308d78edc25600ade1a236b3cf4d06c7d4cd17b",
+      "expected": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
@@ -15237,7 +15237,7 @@
     {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-cuda",
-      "expected": "d459278a52eb90299ff35c7db308d78edc25600ade1a236b3cf4d06c7d4cd17b",
+      "expected": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[2].contract_sha256",
@@ -15246,7 +15246,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
+      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15255,7 +15255,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
+      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15264,7 +15264,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
+      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15649,7 +15649,7 @@
     {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-d3d12",
-      "expected": "d459278a52eb90299ff35c7db308d78edc25600ade1a236b3cf4d06c7d4cd17b",
+      "expected": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
@@ -15658,7 +15658,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
+      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18264,7 +18264,7 @@
     {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-metal",
-      "expected": "d459278a52eb90299ff35c7db308d78edc25600ade1a236b3cf4d06c7d4cd17b",
+      "expected": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
@@ -18273,7 +18273,7 @@
     {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-metal",
-      "expected": "d459278a52eb90299ff35c7db308d78edc25600ade1a236b3cf4d06c7d4cd17b",
+      "expected": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
@@ -18282,7 +18282,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
+      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18291,7 +18291,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
+      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19578,7 +19578,7 @@
     {
       "actual": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3",
       "driver": "slang-vulkan",
-      "expected": "d459278a52eb90299ff35c7db308d78edc25600ade1a236b3cf4d06c7d4cd17b",
+      "expected": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
@@ -19587,7 +19587,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
+      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19595,7 +19595,7 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "a6d371f14be7dc8690089a38d18a12d37c9daa380ef5756c16f2a102dd2a7372",
+  "obligations_sha256": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
   "qualification_complete": true,
   "qualified_capability_count": 0,
   "report_count": 10,
@@ -19904,7 +19904,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "0b91c338b7d6096fa04439406f3ac16456c10424610027f2ea8e1c66ca260f8e",
+  "sources_sha256": "71d2360fa2c43e71d46a146470c2d2d1f8ebe41b35f09a00702f0dda989659c7",
   "valid": true,
   "validation_failures": []
 }

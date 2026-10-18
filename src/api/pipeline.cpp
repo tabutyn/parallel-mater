@@ -79,7 +79,8 @@ constexpr PmInteractionModeFlags all_mode_flags =
     PM_INTERACTION_MODE_CONTACT_BIT | PM_INTERACTION_MODE_ATTACHMENT_BIT |
     PM_INTERACTION_MODE_DRAG_BIT | PM_INTERACTION_MODE_CONTAINMENT_BIT |
     PM_INTERACTION_MODE_PRESSURE_BIT | PM_INTERACTION_MODE_VISCOSITY_BIT |
-    PM_INTERACTION_MODE_THERMAL_BIT | PM_INTERACTION_MODE_PHASE_BIT;
+    PM_INTERACTION_MODE_THERMAL_BIT | PM_INTERACTION_MODE_PHASE_BIT |
+    PM_INTERACTION_MODE_INTERFACE_BIT;
 
 bool zero_equal_material_parameters(
     const PmCouplingParameters &parameters) noexcept {
@@ -131,12 +132,15 @@ PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noe
         return PM_ERROR_INVALID_ARGUMENT;
 
     const auto &contract = coupling_contracts[static_cast<std::size_t>(coupling.type)];
-    const PmInteractionModeFlags expected_modes =
+    const bool immiscible =
         coupling.type == PM_COUPLING_LIQUID_LIQUID &&
-                coupling.materialProfile ==
-                    PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE
+        coupling.materialProfile ==
+            PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE;
+    const PmInteractionModeFlags expected_modes =
+        immiscible
             ? PM_INTERACTION_MODE_CONTACT_BIT |
-                  PM_INTERACTION_MODE_PRESSURE_BIT
+                  PM_INTERACTION_MODE_PRESSURE_BIT |
+                  PM_INTERACTION_MODE_INTERFACE_BIT
             : contract.mode_flags;
     if (coupling.modeFlags != expected_modes)
         return PM_ERROR_FEATURE_NOT_PRESENT;
@@ -151,19 +155,18 @@ PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noe
         : coupling.materialProfile == PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
     if (!valid_profile) return PM_ERROR_FEATURE_NOT_PRESENT;
 
-    const std::uint32_t interaction_count =
-        coupling.type == PM_COUPLING_LIQUID_LIQUID &&
-                coupling.materialProfile ==
-                    PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE
-            ? 2U
-            : contract.interaction_count;
+    const std::uint32_t interaction_count = contract.interaction_count;
     for (std::uint32_t index = 0U; index < interaction_count; ++index) {
+        const PmInteractionMode mode =
+            immiscible && index == 2U
+            ? PM_INTERACTION_MODE_INTERFACE
+            : contract.interactions[index].mode;
         const PmInteractionCapabilityKey key{
             contract.first, contract.second,
             coupling.type == PM_COUPLING_LIQUID_LIQUID
                 ? PM_INTERACTION_SCOPE_SEPARATE_SYSTEM
                 : PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
-            contract.interactions[index].mode,
+            mode,
             contract.interactions[index].direction,
             coupling.materialProfile};
         PmInteractionCapability capability{};
@@ -202,23 +205,40 @@ PmResult normalize_coupling_info(
     if (source.sType != PM_STRUCTURE_TYPE_COUPLING_STATE_INFO)
         return PM_ERROR_INVALID_ARGUMENT;
 
+    struct Header {
+        PmStructureType sType;
+        const void *pNext;
+    };
     const PmFluidPairMaterialState *fluid_pair_state = nullptr;
-    if (source.pNext != nullptr) {
-        struct Header {
-            PmStructureType sType;
-            const void *pNext;
-        };
-        const auto *header = static_cast<const Header *>(source.pNext);
-        if (source.type != PM_COUPLING_LIQUID_LIQUID ||
-            header->sType != PM_STRUCTURE_TYPE_FLUID_PAIR_MATERIAL_STATE ||
-            header->pNext != nullptr)
+    const PmFluidInterfaceState *interface_state = nullptr;
+    const void *extension = source.pNext;
+    for (std::uint32_t extension_count = 0U;
+         extension != nullptr && extension_count < 2U; ++extension_count) {
+        if (source.type != PM_COUPLING_LIQUID_LIQUID)
             return PM_ERROR_INVALID_ARGUMENT;
-        fluid_pair_state =
-            static_cast<const PmFluidPairMaterialState *>(source.pNext);
-        if (fluid_pair_state->firstMaterialIndex != source.first ||
-            fluid_pair_state->secondMaterialIndex != source.second)
-            return PM_ERROR_INVALID_ARGUMENT;
+        const auto *header = static_cast<const Header *>(extension);
+        switch (header->sType) {
+        case PM_STRUCTURE_TYPE_FLUID_PAIR_MATERIAL_STATE:
+            if (fluid_pair_state != nullptr) return PM_ERROR_INVALID_ARGUMENT;
+            fluid_pair_state =
+                static_cast<const PmFluidPairMaterialState *>(extension);
+            if (fluid_pair_state->firstMaterialIndex != source.first ||
+                fluid_pair_state->secondMaterialIndex != source.second)
+                return PM_ERROR_INVALID_ARGUMENT;
+            break;
+        case PM_STRUCTURE_TYPE_FLUID_INTERFACE_STATE:
+            if (interface_state != nullptr) return PM_ERROR_INVALID_ARGUMENT;
+            interface_state =
+                static_cast<const PmFluidInterfaceState *>(extension);
+            if (!std::isfinite(interface_state->surfaceTension) ||
+                interface_state->surfaceTension < 0.0F)
+                return PM_ERROR_INVALID_ARGUMENT;
+            break;
+        default: return PM_ERROR_INVALID_ARGUMENT;
+        }
+        extension = header->pNext;
     }
+    if (extension != nullptr) return PM_ERROR_INVALID_ARGUMENT;
 
     const bool different_material =
         source.materialProfile == PM_INTERACTION_MATERIAL_MISCIBLE ||
@@ -226,7 +246,11 @@ PmResult normalize_coupling_info(
     if (source.type == PM_COUPLING_LIQUID_LIQUID && different_material &&
         fluid_pair_state == nullptr)
         return PM_ERROR_INVALID_ARGUMENT;
-    if (source.type != PM_COUPLING_LIQUID_LIQUID && source.pNext != nullptr)
+    const bool immiscible =
+        source.materialProfile ==
+        PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE;
+    if ((immiscible && interface_state == nullptr) ||
+        (!immiscible && interface_state != nullptr))
         return PM_ERROR_INVALID_ARGUMENT;
 
     destination = {};

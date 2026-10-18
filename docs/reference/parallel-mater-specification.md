@@ -1,4 +1,4 @@
-<!-- Generated from registry/pm.xml sha256:d459278a52eb90299ff35c7db308d78edc25600ade1a236b3cf4d06c7d4cd17b -->
+<!-- Generated from registry/pm.xml sha256:c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af -->
 
 # Parallel Mater 0.2 — API Specification
 
@@ -1115,7 +1115,8 @@ typedef enum PmInteractionMode {
     PM_INTERACTION_MODE_PRESSURE = 4,
     PM_INTERACTION_MODE_VISCOSITY = 5,
     PM_INTERACTION_MODE_THERMAL = 6,
-    PM_INTERACTION_MODE_PHASE = 7
+    PM_INTERACTION_MODE_PHASE = 7,
+    PM_INTERACTION_MODE_INTERFACE = 8
 } PmInteractionMode;
 typedef PmFlags PmInteractionModeFlags;
 enum {
@@ -1126,7 +1127,8 @@ enum {
     PM_INTERACTION_MODE_PRESSURE_BIT = 0x10,
     PM_INTERACTION_MODE_VISCOSITY_BIT = 0x20,
     PM_INTERACTION_MODE_THERMAL_BIT = 0x40,
-    PM_INTERACTION_MODE_PHASE_BIT = 0x80
+    PM_INTERACTION_MODE_PHASE_BIT = 0x80,
+    PM_INTERACTION_MODE_INTERFACE_BIT = 0x100
 };
 typedef enum PmInteractionDirection {
     PM_INTERACTION_DIRECTION_BIDIRECTIONAL = 0,
@@ -1229,6 +1231,11 @@ typedef struct PmFluidPairMaterialState {
     uint32_t firstMaterialIndex;
     uint32_t secondMaterialIndex;
 } PmFluidPairMaterialState;
+typedef struct PmFluidInterfaceState {
+    PmStructureType sType;
+    const void* pNext;
+    float surfaceTension;
+} PmFluidInterfaceState;
 ```
 
 ```c
@@ -1242,13 +1249,13 @@ PmResult pmCmdSetCouplings2(PmCommandBuffer commandBuffer,
 
 first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. modeFlags is a nonzero bit set and materialProfile selects the exact advertised interaction records consumed by the edge. API 0.2 coupling types use fixed mode bundles; omitting or adding a known mode returns FEATURE_NOT_PRESENT, while zero or unknown bits return INVALID_ARGUMENT. Non-smoke pairs require ENDPOINT_NATIVE. Smoke pairs require an advertised SMOKE_PARTICLE or SMOKE_GRID profile.
 
-PmCouplingState is the API 0.2 descriptor. PmCouplingStateInfo is an ABI-compatible extensible path: sType identifies that exact structure and pNext is NULL except for a separately permitted typed state. A LIQUID_LIQUID edge using MISCIBLE or IMMISCIBLE_INTERFACE must chain exactly one PmFluidPairMaterialState. Its material indices must equal first and second, so the edge consumes the two endpoint PmLiquidMaterialState records without copying, averaging or silently changing ownership. MISCIBLE requests contact, pressure and viscosity as one mechanical bundle. IMMISCIBLE_INTERFACE reserves contact and pressure plus an independently queryable future interface mode; optional interfacial viscosity remains a separate capability. Both profiles remain unsupported until their operator and qualification leaves complete. A well-formed request therefore returns FEATURE_NOT_PRESENT, while missing, mismatched, nested, duplicate or unknown typed state returns INVALID_ARGUMENT and cannot replace a live graph.
+PmCouplingState is the API 0.2 descriptor. PmCouplingStateInfo is an ABI-compatible extensible path: sType identifies that exact structure and pNext is NULL except for separately permitted typed state. A LIQUID_LIQUID edge using MISCIBLE or IMMISCIBLE_INTERFACE must chain exactly one PmFluidPairMaterialState. Its material indices must equal first and second, so the edge consumes the two endpoint PmLiquidMaterialState records without copying, averaging or silently changing ownership. MISCIBLE requests contact, pressure and viscosity as one mechanical bundle. IMMISCIBLE_INTERFACE also chains exactly one PmFluidInterfaceState and requests contact, pressure and interface. surfaceTension is finite and nonnegative in N/m; zero disables capillary traction while retaining the material boundary. The interface normal points from the first fluid endpoint to the second, so positive curvature obeys pressure_first - pressure_second = surfaceTension * (1 / R1 + 1 / R2). Interfacial viscosity remains a separate capability. Both different-material profiles remain unsupported until their operator and qualification leaves complete. A well-formed request therefore returns FEATURE_NOT_PRESENT, while missing, mismatched, duplicate, unknown, profile-inapplicable or nonfinite typed state returns INVALID_ARGUMENT and cannot replace a live graph.
 
 Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings and pmCmdSetCouplings2 copy a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. The complete replacement is validated before live edges are removed. If installation then fails, the previous usable graph is restored. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph.
 
-Coupling units are: contact distance and heater geometry in m; stiffness in N/m; damping and tangential drag in N·s/m; maximum force in N; acceleration limits in m/s²; wind drag and heat-transfer rate in s⁻¹; air density in kg/m³; effective mass in kg; steam rise speed in m/s; heater and boiling temperatures in °C. Friction, drag coefficient and radius scales are dimensionless.
+Coupling units are: contact distance and heater geometry in m; stiffness in N/m; damping and tangential drag in N·s/m; maximum force in N; acceleration limits in m/s²; surface tension in N/m; wind drag and heat-transfer rate in s⁻¹; air density in kg/m³; effective mass in kg; steam rise speed in m/s; heater and boiling temperatures in °C. Friction, drag coefficient and radius scales are dimensionless.
 
-The reference mechanical contact pairs currently require twoWay = PM_TRUE; one-way requests return FEATURE_NOT_PRESENT. API 0.2 directions are fixed by coupling type and checked through the exact capability records. Liquid/cloth derives interaction radius from liquid supportRadius; maximumAcceleration must be zero for this pair. Collision, attachment, drag, containment, pressure, viscosity, thermal and phase behavior are independent capabilities; a driver must not infer one from another or from the broad domainCouplings bit.
+The reference mechanical contact pairs currently require twoWay = PM_TRUE; one-way requests return FEATURE_NOT_PRESENT. API 0.2 directions are fixed by coupling type and checked through the exact capability records. Liquid/cloth derives interaction radius from liquid supportRadius; maximumAcceleration must be zero for this pair. Collision, attachment, drag, containment, pressure, viscosity, interface, thermal and phase behavior are independent capabilities; a driver must not infer one from another or from the broad domainCouplings bit.
 
 <a id="spec-domain_materials"></a>
 
@@ -2821,6 +2828,7 @@ typedef enum PmStructureType {
     PM_STRUCTURE_TYPE_COUPLING_STATE_INFO = 15,
     PM_STRUCTURE_TYPE_FLUID_PAIR_MATERIAL_STATE = 16,
     PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_COUPLING_STATE_INFO = 17,
+    PM_STRUCTURE_TYPE_FLUID_INTERFACE_STATE = 18,
 } PmStructureType;
 ```
 
@@ -2953,6 +2961,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmFloat2 | [10.1](#spec-domain_records) |
 | PmFloat3 | [10.1](#spec-domain_records) |
 | PmFluidCapacity | [7.1](#spec-simulation_create) |
+| PmFluidInterfaceState | [9.3](#spec-coupling) |
 | PmFluidPairMaterialState | [9.3](#spec-coupling) |
 | PmFluidParticleOutput | [11.4](#spec-simulation_init) |
 | pmFlushMappedMemoryRanges | [5.4](#spec-mapping) |

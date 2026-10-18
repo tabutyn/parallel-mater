@@ -82,6 +82,7 @@ typedef struct PmQueryPool_T* PmQueryPool;
     <type name="PmCouplingStateInfo" value="15" />
     <type name="PmFluidPairMaterialState" value="16" />
     <type name="PmPhysicsPipelineCouplingStateInfo" value="17" />
+    <type name="PmFluidInterfaceState" value="18" />
   </structure-types>
   <interaction-capabilities>
     <!-- This is the reference-driver inventory.  Public records are emitted
@@ -790,7 +791,8 @@ typedef enum PmInteractionMode {
     PM_INTERACTION_MODE_PRESSURE = 4,
     PM_INTERACTION_MODE_VISCOSITY = 5,
     PM_INTERACTION_MODE_THERMAL = 6,
-    PM_INTERACTION_MODE_PHASE = 7
+    PM_INTERACTION_MODE_PHASE = 7,
+    PM_INTERACTION_MODE_INTERFACE = 8
 } PmInteractionMode;
 typedef PmFlags PmInteractionModeFlags;
 enum {
@@ -801,7 +803,8 @@ enum {
     PM_INTERACTION_MODE_PRESSURE_BIT = 0x10,
     PM_INTERACTION_MODE_VISCOSITY_BIT = 0x20,
     PM_INTERACTION_MODE_THERMAL_BIT = 0x40,
-    PM_INTERACTION_MODE_PHASE_BIT = 0x80
+    PM_INTERACTION_MODE_PHASE_BIT = 0x80,
+    PM_INTERACTION_MODE_INTERFACE_BIT = 0x100
 };
 typedef enum PmInteractionDirection {
     PM_INTERACTION_DIRECTION_BIDIRECTIONAL = 0,
@@ -903,7 +906,12 @@ typedef struct PmFluidPairMaterialState {
     const void* pNext;
     uint32_t firstMaterialIndex;
     uint32_t secondMaterialIndex;
-} PmFluidPairMaterialState;</types>
+} PmFluidPairMaterialState;
+typedef struct PmFluidInterfaceState {
+    PmStructureType sType;
+    const void* pNext;
+    float surfaceTension;
+} PmFluidInterfaceState;</types>
       <commands>PmResult pmCmdSetCouplings(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t couplingCount,
     const PmCouplingState *pCouplings);

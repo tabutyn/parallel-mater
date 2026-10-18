@@ -1,7 +1,7 @@
 {
   "id": "P1-10",
   "title": "Reconstruct immiscible fluid interfaces",
-  "status": "deferred",
+  "status": "leased",
   "dependencies": [
     "P1-05",
     "P1-56"
@@ -19,6 +19,14 @@
     "Degenerate, empty and under-resolved neighborhoods remain finite and report bounded diagnostics."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "e65bc509-6d4c-412b-b417-451402f67d3b",
+    "owner": "codex-immiscible-reconstruction",
+    "machine": "thomas-laptop",
+    "branch": "work/P1-10/thomas-laptop",
+    "claimed_at": "2026-10-18T23:04:55Z",
+    "heartbeat_at": "2026-10-18T23:04:55Z",
+    "expires_at": "2026-10-19T23:04:55Z"
+  },
   "history": []
 }

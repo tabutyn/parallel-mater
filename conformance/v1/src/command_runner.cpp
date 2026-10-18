@@ -1161,6 +1161,7 @@ void copy_particle_state(const std::vector<State> &states,
     case PM_INTERACTION_MODE_VISCOSITY: return "VISCOSITY";
     case PM_INTERACTION_MODE_THERMAL: return "THERMAL";
     case PM_INTERACTION_MODE_PHASE: return "PHASE";
+    case PM_INTERACTION_MODE_INTERFACE: return "INTERFACE";
     }
     throw std::runtime_error("driver returned an unknown interaction mode");
 }

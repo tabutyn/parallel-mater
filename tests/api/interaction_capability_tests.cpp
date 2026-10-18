@@ -89,7 +89,8 @@ int main() {
         unsupported.materialProfile = profile;
         for (const auto mode : {PM_INTERACTION_MODE_CONTACT,
                                 PM_INTERACTION_MODE_PRESSURE,
-                                PM_INTERACTION_MODE_VISCOSITY}) {
+                                PM_INTERACTION_MODE_VISCOSITY,
+                                PM_INTERACTION_MODE_INTERFACE}) {
             unsupported.mode = mode;
             CHECK(pmGetPhysicalDeviceInteractionCapability(
                       physical, &unsupported, &queried) ==
