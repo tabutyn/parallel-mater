@@ -7,13 +7,13 @@ Vulkan, and D3D12 are selected by manifest; the desktop Gallery also accepts
 `--backend cuda|vulkan|d3d12|metal` for discovered drivers.
 
 The Vulkan qualification scope is rigid bodies, rigid constraints, liquids,
-cloth, ropes, soft bodies, liquid–rigid, liquid–cloth, liquid–rope,
-liquid–soft-body and rigid–deformable coupling, paint, emitters, queries, and
-asynchronous public submission. Smoke and cross-deformable coupling remain
-unadvertised. The exact interaction-capability query omits cloth–soft-body,
-cloth–rope and soft-body–rope contact or attachment until their dispatch
-modules are qualified. The older standalone Vulkan `World` prototype is not
-used by this driver.
+cloth, ropes, soft bodies, smoke, liquid–rigid, liquid–cloth, liquid–rope,
+liquid–soft-body, liquid–smoke and rigid–deformable/smoke coupling, paint,
+emitters, queries, and asynchronous public submission. Cross-deformable
+coupling remains unadvertised. The exact interaction-capability query omits
+cloth–soft-body, cloth–rope, soft-body–rope, cloth–smoke, soft-body–smoke and
+rope–smoke interactions until their dispatch modules are qualified. The older
+standalone Vulkan `World` prototype is not used by this driver.
 
 ## Architecture
 
@@ -21,11 +21,13 @@ The driver runs the same host preparation, portable schedule, and Slang
 physics entry points as CUDA. Slang emits SPIR-V plus reflection. Generated
 transport wrappers reuse the existing typed host argument lists and check
 buffer structure sizes and offsets against reflection. Constants are packed
-explicitly, including host/Vulkan boolean differences. Large rope records use
-a bounded mapped staging arena and enter the shader by device address, keeping
-the actual push-constant block at 88 bytes. Nested buffer fields are translated
-to `VkDeviceAddress` before staging. Shader debug metadata is emitted separately
-so older Vulkan tooling can read the executable SPIR-V.
+explicitly, including host/Vulkan boolean differences. Modules whose reflected
+entry block exceeds 256 bytes use a bounded dynamic uniform-buffer path;
+smaller modules retain their qualified push-constant pipeline layout. Large
+rope records use a bounded mapped staging arena and enter the shader by device
+address, keeping the actual push-constant block at 88 bytes. Nested buffer
+fields are translated to `VkDeviceAddress` before staging. Shader debug metadata
+is emitted separately so older Vulkan tooling can read the executable SPIR-V.
 Production SPIR-V uses Slang optimization with precise floating-point mode;
 `spirv-val`, when installed, checks every generated module in CTest. Runtime
 tests also fail on Vulkan validation errors, even if the API call succeeds.
@@ -47,9 +49,9 @@ fit a 32 KiB workgroup memory budget. The AVBD solve uses its existing single
 workgroup path because Vulkan has no cooperative grid barrier.
 
 Requirements: Vulkan 1.3, maintenance4, buffer device address, scalar block
-layout, 8-bit buffer/push-constant storage and arithmetic, 64-bit integer and
-buffer atomics, timestamp support, coherent host-visible memory, and 256-byte
-push constants.
+layout, 8-bit uniform/storage-buffer and push-constant storage and arithmetic,
+64-bit integer and buffer atomics, timestamp support, coherent host-visible
+memory, and 256-byte push constants.
 The first enumerated supported discrete GPU is preferred; software adapters
 are excluded. Native import is not advertised. Memory-budget reporting currently
 uses total device-local heap capacity minus this context's allocations; it does
@@ -96,12 +98,13 @@ records. Ordinary frames perform no physics-state or image readback. Explicit
 capture and qualification requests render offscreen and copy only the final
 RGBA image.
 
-The GLFW shell owns `VkSurfaceKHR`; the renderer owns its swapchain. Target
+Desktop GLFW and Android `ANativeWindow` shells own their `VkSurfaceKHR`; the
+common renderer owns its swapchain. Target
 detach releases the swapchain before the shell destroys or replaces the
 surface, while the physics driver keeps the borrowed Vulkan instance alive.
 The renderer handles resize, out-of-date/suboptimal swapchains and reported
-surface loss. Android continues to copy the software image until F7-16 attaches
-its `ANativeWindow` surface to this same renderer.
+surface loss. Android presents through this same renderer without ordinary-frame
+image readback.
 
 Use a recent Vulkan SDK validator. On this laptop the system 1.3.239 layer
 crashes while inspecting the liquid shader; the isolated SDK 1.4.341.0 layer
@@ -112,7 +115,7 @@ The Linux validation scripts pin SDK 1.4.341.0 and its archive SHA-256 in
 its manifest, and `spirv-val` into ignored `out/toolchains/`, verifies installed
 file hashes on reuse, and leaves system packages untouched. The test wrapper
 sets both the layer search path and library search path to that installation.
-It validates all fourteen production SPIR-V modules before running CTest serially.
+It validates all seventeen production SPIR-V modules before running CTest serially.
 
 ```sh
 ./scripts/Setup-VulkanValidation.sh
@@ -127,9 +130,10 @@ The scripts do not start a build. Use `--parallel 1` for builds on this laptop.
 Tests exercise transfers, rigid-body motion and contact, GPU timestamps,
 asynchronous completion, analytic liquid free fall across dispatch boundaries,
 bounded Fluid and FluidRigid scenes, all four cloth Gallery scenes, the soft
-body, soft-body/rigid and soft-body/fluid scenes, Rope and RopeFluid, paint, and
-reset. Native Gallery tests additionally cover device/queue identity, direct
-output, frames in flight, oriented diagnostic readback, resize, surface detach and replacement,
+body, soft-body/rigid and soft-body/fluid scenes, Rope, RopeFluid, Smoke and
+SmokeWater, paint, and reset. Native Gallery tests additionally cover device/queue identity, direct
+output, frames in flight, oriented diagnostic readback, resize, surface detach and
+replacement,
 offscreen fallback, and validation-clean teardown.
 
 ## Native Gallery evidence (2026-10-18)
@@ -153,9 +157,8 @@ separate render-mesh bound required by paint fields.
 
 This desktop evidence enables exact `cloth`, `domainCouplings`, and `paint`
 capability advertising in the loadable Vulkan driver. Android uses the same
-modules and capability query, but the expanded cloth set still requires the
-separate Pixel device qualification before it becomes phone performance or
-stability evidence.
+modules and capability query. The revision-pinned Pixel catalog sweep passes
+the four cloth scenes; sustained phone qualification remains F7-18.
 
 ## Desktop soft-body evidence (2026-10-18)
 
@@ -167,8 +170,8 @@ three scenes, including reset and no-host-output recovery.
 
 Vulkan advertises `softBodies`, fluid–soft-body contact and soft-body–rigid
 contact. Its exact interaction-capability query rejects cloth–soft-body contact,
-which remains assigned to the cross-deformable qualification work. Android
-packages these same modules but still needs separate physical-device evidence.
+which remains assigned to the cross-deformable qualification work. The Pixel
+catalog sweep passes the three available soft-body scenes.
 
 ## Desktop rope evidence (2026-10-18)
 
@@ -184,7 +187,26 @@ rope–rigid contact and attachment. Its exact capability query rejects
 cloth–rope and soft-body–rope interactions pending F7-14. The Vulkan transport
 stages reflected rope records because the complete 612-byte by-value entry block
 cannot fit the required 256-byte push-constant baseline. Android packages the
-same modules but still needs separate physical-device evidence.
+same modules; the Pixel catalog sweep passes Rope and RopeFluid.
+
+## Desktop and Android smoke evidence (2026-10-18)
+
+The shared Slang geometry-smoke, smoke-grid and fluid-smoke modules compile to
+normalized SPIR-V. All seventeen production modules pass SDK 1.4.341.0 static
+validation. Separate 120-frame public-command lifecycle checks pass Smoke and
+SmokeWater, including finite visible output and reset. The common Gallery
+session qualifies both scenes through the backend-independent runtime.
+
+Vulkan advertises smoke self pressure/viscosity, smoke–rigid contact/drag and
+fluid–smoke drag/thermal/phase interactions for the particle and grid profiles.
+Its exact capability query rejects cloth–smoke, soft-body–smoke and rope–smoke
+interactions pending F7-14.
+
+A revision-pinned Pixel 7 run passed Smoke and SmokeWater within the full
+28-scene catalog sweep. The run reported 22 supported scenes, direct Vulkan
+presentation without ordinary-frame readback, background recovery, resize,
+rotation and native teardown. This short physical run establishes correctness
+and visible output; sustained thermal/performance qualification remains F7-18.
 
 ## Desktop evidence (2026-10-16)
 
@@ -229,10 +251,12 @@ creation after the same transformation.
 
 `tools/normalize_vulkan_spirv.py` now orders type/constant dependencies before
 use and removes those redundant declarations before embedding each module.
-IDs, decorations, layouts and executable instructions are preserved. Recursive
-types or unfamiliar dependencies fail the build with a diagnostic. CMake keeps
+IDs and executable instructions are preserved. Oversized reflected entry blocks
+are additionally rebound from push constants to a scalar-layout uniform buffer;
+smaller modules remain byte-identical after pointer ordering. Recursive types or
+unfamiliar dependencies fail the build with a diagnostic. CMake keeps
 the compiler output as `generated/vulkan/*.raw.spv` and embeds the normalized
-`*.spv`; validate the latter. All fourteen modules pass SDK 1.4.341.0 validation on
+`*.spv`; validate the latter. All seventeen modules pass SDK 1.4.341.0 validation on
 Linux; the previous Pixel run covered the original six-module subset.
 
 `tools/vulkan_pipeline_probe.cpp` isolates pipeline compilation without the
