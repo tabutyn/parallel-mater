@@ -51,6 +51,9 @@ struct Submission {
     std::vector<CompletionPtr> signal_dependencies;
     std::vector<PmQueryWrite> queries;
     std::vector<PmSimulation> simulations;
+#if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
+    bool delay_execution{};
+#endif
 
     [[nodiscard]] bool ready() const noexcept {
         for (const auto &wait : waits)
@@ -62,6 +65,10 @@ struct Submission {
     }
 
     [[nodiscard]] PmResult execute(parallel_mater::device::Services &services) noexcept {
+#if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
+        if (delay_execution)
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+#endif
         PmResult result = services.activate();
         for (const auto &wait : waits)
             if (result == PM_SUCCESS)
@@ -198,6 +205,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmQueueSubmit(
     try {
         auto submission = std::make_shared<Submission>();
         auto completion = std::make_shared<Completion>();
+#if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
+        submission->delay_execution =
+            std::getenv("PM_TEST_DELAY_SUBMISSION") != nullptr;
+#endif
         if (info->waitCount != 0U)
             submission->waits.assign(info->pWaits, info->pWaits + info->waitCount);
         for (std::uint32_t index = 0U; index < info->commandBufferCount; ++index) {
