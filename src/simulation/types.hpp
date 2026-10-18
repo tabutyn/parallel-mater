@@ -892,6 +892,7 @@ struct SimulationStatistics {
     std::uint32_t rigid_contact_live_pairs{};
     std::uint32_t contact_count{};
     std::uint32_t contact_overflow_count{};
+    std::uint32_t fluid_neighbor_overflow_count{};
     std::uint32_t maximum_fluid_neighbor_count{};
     std::uint64_t emitted_particle_count{};
     std::uint64_t destroyed_particle_count{};

@@ -1457,7 +1457,7 @@ SECTIONS += [
             PmResult pmGetSimulationStatus(
                 PmDevice device, PmSimulation simulation,
                 PmResult* pExecutionResult);
-        """, text="Queries accumulate across enclosed steps: work counters sum, peak fields and high-water bytes take maxima. executionResult is the first failing PmResult, or SUCCESS. Do not nest statistics queries; Begin and End must be in one buffer. After observing completion, GetSimulationStatus exposes the last step status even when statistics are disabled. It returns NOT_READY while simulation work is pending. Overflow invalidates that step's output and requires reinitialization."),
+        """, text="Queries accumulate across enclosed steps: work counters sum, peak fields and high-water bytes take maxima. executionResult is the first failing PmResult, or SUCCESS. Do not nest statistics queries; Begin and End must be in one buffer. After observing completion, GetSimulationStatus exposes the last step status even when statistics are disabled. It returns NOT_READY while simulation work is pending. Overflow invalidates that step's output and requires reinitialization. When an enclosed step completes with CAPACITY_EXCEEDED, its completed statistics result remains readable and returns SUCCESS; executionResult contains CAPACITY_EXCEEDED and overflowCount contains the generated overflow count. Other failed query submissions return their completion error."),
         c("query_results", "Readback & availability", types="""
             enum {
                 PM_QUERY_RESULT_WAIT_BIT = 0x1,

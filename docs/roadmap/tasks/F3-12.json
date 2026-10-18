@@ -1,7 +1,7 @@
 {
   "id": "F3-12",
   "title": "Qualify runtime capacity recovery",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F3-06"
   ],
@@ -16,15 +16,31 @@
     "Submission acceptance is distinct from deferred CAPACITY_EXCEEDED reported by completion, statistics and simulation status.",
     "Reset/reinitialization recovers the target while an unrelated domain remains valid; evidence names the exact solver profile."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "b4cac55c-4532-44d2-9f98-f088c867cac4",
-    "owner": "codex-windows-validation",
-    "machine": "windows-gtx1080",
-    "branch": "work/F3-12/windows-gtx1080",
-    "claimed_at": "2026-10-18T03:57:42Z",
-    "heartbeat_at": "2026-10-18T03:57:42Z",
-    "expires_at": "2026-10-18T11:57:42Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS Windows D3D12 NVIDIA GeForce GTX 1080 capacity-recovery profile 20/20: four colocated particles with neighbor capacity one produced exactly four overflows; queue acceptance succeeded; fence, statistics and status reported PM_ERROR_CAPACITY_EXCEEDED; invalid output remained unpublished; selective reinitialization preserved the isolated control population.",
+    "PASS WSL GCC 13.3 Slang C++ host fixture 20/20 with the same shared-Slang profile and validation layer.",
+    "PASS adjacent regressions: D3D12 command/lifecycle/validated-lifecycle/destruction 4/4, layer validation and submission queue 2/2, host async/failure/destruction 3/3; generated API references, 19 roadmap unit tests and 160-card roadmap validation passed."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "b4cac55c-4532-44d2-9f98-f088c867cac4",
+        "owner": "codex-windows-validation",
+        "machine": "windows-gtx1080",
+        "branch": "work/F3-12/windows-gtx1080",
+        "claimed_at": "2026-10-18T03:57:42Z",
+        "heartbeat_at": "2026-10-18T03:57:42Z",
+        "expires_at": "2026-10-18T11:57:42Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T04:29:32Z",
+      "reason": "Qualified deferred runtime-generated neighbor overflow and selective reinitialization through the public API.",
+      "evidence": [
+        "PASS Windows D3D12 NVIDIA GeForce GTX 1080 capacity-recovery profile 20/20: four colocated particles with neighbor capacity one produced exactly four overflows; queue acceptance succeeded; fence, statistics and status reported PM_ERROR_CAPACITY_EXCEEDED; invalid output remained unpublished; selective reinitialization preserved the isolated control population.",
+        "PASS WSL GCC 13.3 Slang C++ host fixture 20/20 with the same shared-Slang profile and validation layer.",
+        "PASS adjacent regressions: D3D12 command/lifecycle/validated-lifecycle/destruction 4/4, layer validation and submission queue 2/2, host async/failure/destruction 3/3; generated API references, 19 roadmap unit tests and 160-card roadmap validation passed."
+      ]
+    }
+  ]
 }
