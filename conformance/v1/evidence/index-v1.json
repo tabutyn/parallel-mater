@@ -969,11 +969,13 @@
       "key_text": "FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-self-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -1018,11 +1020,13 @@
       "key_text": "FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-self-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -1067,7 +1071,7 @@
       "key_text": "FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-pressure-viscosity",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -1116,7 +1120,7 @@
       "key_text": "FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-pressure-viscosity",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -1165,7 +1169,7 @@
       "key_text": "FLUID/FLUID/SELF/VISCOSITY/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-pressure-viscosity",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -1214,7 +1218,7 @@
       "key_text": "FLUID/FLUID/SELF/VISCOSITY/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-pressure-viscosity",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -5094,11 +5098,13 @@
       "key_text": "FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "windows-gtx1080-slang-d3d12-2b04e55",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-self-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -5143,7 +5149,7 @@
       "key_text": "FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "windows-gtx1080-slang-d3d12-2b04e55",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-pressure-viscosity",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -5192,7 +5198,7 @@
       "key_text": "FLUID/FLUID/SELF/VISCOSITY/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "windows-gtx1080-slang-d3d12-2b04e55",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-pressure-viscosity",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -6291,11 +6297,13 @@
       "key_text": "FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-self-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6340,11 +6348,13 @@
       "key_text": "FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-self-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6389,7 +6399,7 @@
       "key_text": "FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-pressure-viscosity",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -6438,7 +6448,7 @@
       "key_text": "FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-pressure-viscosity",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -6487,7 +6497,7 @@
       "key_text": "FLUID/FLUID/SELF/VISCOSITY/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-pressure-viscosity",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -6536,7 +6546,7 @@
       "key_text": "FLUID/FLUID/SELF/VISCOSITY/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-pressure-viscosity",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -10252,11 +10262,13 @@
       "key_text": "FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-self-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -10301,7 +10313,7 @@
       "key_text": "FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-pressure-viscosity",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -10350,7 +10362,7 @@
       "key_text": "FLUID/FLUID/SELF/VISCOSITY/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "fluid-self",
+      "rule_id": "fluid-self-pressure-viscosity",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -12106,7 +12118,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
+      "expected": "977d9266024a9970d88da6a3b4f0d87700a1c3cecc6115201d45642ec446d73e",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -12201,20 +12213,20 @@
       "report": "windows-gtx1080-physics-2026-10-16"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "quality:fluid-self-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[0].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "quality:fluid-self-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[0].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -12777,7 +12789,7 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "No vendor-neutral fluid self pressure or viscosity quality case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -12786,7 +12798,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "No vendor-neutral fluid self pressure or viscosity quality case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13389,7 +13401,7 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "No vendor-neutral fluid self pressure or viscosity quality case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13398,7 +13410,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "No vendor-neutral fluid self pressure or viscosity quality case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -14723,7 +14735,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
+      "expected": "977d9266024a9970d88da6a3b4f0d87700a1c3cecc6115201d45642ec446d73e",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -14732,7 +14744,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
+      "expected": "977d9266024a9970d88da6a3b4f0d87700a1c3cecc6115201d45642ec446d73e",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -14741,7 +14753,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
+      "expected": "977d9266024a9970d88da6a3b4f0d87700a1c3cecc6115201d45642ec446d73e",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -14836,11 +14848,11 @@
       "report": "windows-gtx1080-physics-2026-10-16"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "quality:fluid-self-contact-v1",
       "driver": "slang-d3d12",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[0].analytic_invariants",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
@@ -14863,7 +14875,7 @@
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "No vendor-neutral fluid self pressure or viscosity quality case is registered.",
       "driver": "slang-d3d12",
       "expected": null,
       "kind": "qualification_failure",
@@ -14890,7 +14902,7 @@
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "No vendor-neutral fluid self pressure or viscosity quality case is registered.",
       "driver": "slang-d3d12",
       "expected": null,
       "kind": "qualification_failure",
@@ -15135,7 +15147,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
+      "expected": "977d9266024a9970d88da6a3b4f0d87700a1c3cecc6115201d45642ec446d73e",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15156,20 +15168,20 @@
       "report": "windows-gtx1080-physics-2026-10-16"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "quality:fluid-self-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[0].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "quality:fluid-self-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[0].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -15759,7 +15771,7 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "No vendor-neutral fluid self pressure or viscosity quality case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -15768,7 +15780,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "No vendor-neutral fluid self pressure or viscosity quality case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16425,7 +16437,7 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "No vendor-neutral fluid self pressure or viscosity quality case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16434,7 +16446,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "No vendor-neutral fluid self pressure or viscosity quality case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -17759,7 +17771,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
+      "expected": "977d9266024a9970d88da6a3b4f0d87700a1c3cecc6115201d45642ec446d73e",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -17768,18 +17780,18 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
+      "expected": "977d9266024a9970d88da6a3b4f0d87700a1c3cecc6115201d45642ec446d73e",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "quality:fluid-self-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[0].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -17973,7 +17985,7 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "No vendor-neutral fluid self pressure or viscosity quality case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -18207,7 +18219,7 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral fluid self-interaction quality case is registered.",
+      "actual": "No vendor-neutral fluid self pressure or viscosity quality case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -18641,7 +18653,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
+      "expected": "977d9266024a9970d88da6a3b4f0d87700a1c3cecc6115201d45642ec446d73e",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18649,7 +18661,7 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
+  "obligations_sha256": "977d9266024a9970d88da6a3b4f0d87700a1c3cecc6115201d45642ec446d73e",
   "qualification_complete": true,
   "qualified_capability_count": 0,
   "report_count": 10,
@@ -18958,7 +18970,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "9864e4e0a2bf954d9907cc3635b42c319af4db850ebf787880faccf4f6fe6465",
+  "sources_sha256": "c6c5d8310c7f5510d29c164570ec586d127efbc05cd4048dab362b776cc438a1",
   "valid": true,
   "validation_failures": []
 }
