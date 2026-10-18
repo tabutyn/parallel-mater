@@ -24,6 +24,11 @@ struct FluidDispatchConstants {
     std::uint32_t maximum_neighbors{};
 };
 
+inline constexpr std::uint32_t k_fluid_interface_sample = 1U;
+inline constexpr std::uint32_t k_fluid_interface_under_resolved = 2U;
+inline constexpr std::uint32_t k_fluid_interface_degenerate = 4U;
+inline constexpr std::uint32_t k_fluid_interface_curvature_clamped = 8U;
+
 void fluid_cell_keys(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
     void *positions, std::uint32_t *count, std::uint32_t capacity,
     float inverse_radius, std::uint64_t *keys,
@@ -92,6 +97,52 @@ void fluid_miscible_pair_viscosity(device::DispatchSize grid,
     std::uint32_t total_capacity,
     const FluidDispatchConstants &first_constants,
     const FluidDispatchConstants &second_constants) noexcept;
+
+void fluid_immiscible_interface_normals(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream,
+    const void *first_positions, const std::uint32_t *first_count,
+    std::uint32_t first_capacity,
+    const std::uint32_t *first_total_neighbors,
+    const std::uint32_t *first_cross_neighbors, float *first_phase_labels,
+    void *first_interface_normals, std::uint32_t *first_interface_flags,
+    const void *second_positions, const std::uint32_t *second_count,
+    std::uint32_t second_capacity,
+    const std::uint32_t *second_total_neighbors,
+    const std::uint32_t *second_cross_neighbors, float *second_phase_labels,
+    void *second_interface_normals, std::uint32_t *second_interface_flags,
+    const std::uint64_t *keys, const std::uint32_t *identities,
+    std::uint32_t total_capacity,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants,
+    std::uint32_t *first_interface_sample_count,
+    std::uint32_t *second_interface_sample_count,
+    std::uint32_t *first_under_resolved_interface_count,
+    std::uint32_t *second_under_resolved_interface_count,
+    std::uint32_t *first_degenerate_interface_count,
+    std::uint32_t *second_degenerate_interface_count) noexcept;
+
+void fluid_immiscible_interface_curvature(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream,
+    const void *first_positions, const std::uint32_t *first_count,
+    std::uint32_t first_capacity, const void *first_interface_normals,
+    float *first_interface_curvatures,
+    std::uint32_t *first_interface_flags,
+    const void *second_positions, const std::uint32_t *second_count,
+    std::uint32_t second_capacity, const void *second_interface_normals,
+    float *second_interface_curvatures,
+    std::uint32_t *second_interface_flags,
+    const std::uint64_t *keys, const std::uint32_t *identities,
+    std::uint32_t total_capacity,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants,
+    std::uint32_t *first_under_resolved_interface_count,
+    std::uint32_t *second_under_resolved_interface_count,
+    std::uint32_t *first_degenerate_interface_count,
+    std::uint32_t *second_degenerate_interface_count,
+    std::uint32_t *first_curvature_clamp_count,
+    std::uint32_t *second_curvature_clamp_count) noexcept;
 
 void fluid_pair_viscosity(device::DispatchSize grid,
     device::DispatchSize block, device::ExecutionQueue stream,
