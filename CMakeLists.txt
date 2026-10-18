@@ -568,7 +568,8 @@ if(PARALLEL_MATER_BUILD_GALLERY)
                               PRIVATE parallel-mater-gallery-scene)
         target_compile_definitions(
             parallel-mater-rigid-constraint-command-tests PRIVATE
-            PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintHinge.glb")
+            PARALLEL_MATER_CONSTRAINT_HINGE_SCENE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/ConstraintHinge.glb"
+            PARALLEL_MATER_HINGE_CAPTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/assets/hinge_over_top_v5.pmcapture")
         parallel_mater_enable_warnings(
             parallel-mater-rigid-constraint-command-tests)
 
@@ -622,6 +623,8 @@ if(PARALLEL_MATER_BUILD_GALLERY)
                        tests/gallery/physics_debug_tests.cpp)
         target_link_libraries(parallel-mater-physics-debug-tests
                               PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(parallel-mater-physics-debug-tests PRIVATE
+            PARALLEL_MATER_HINGE_CAPTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery/assets/hinge_over_top_v5.pmcapture")
         parallel_mater_enable_warnings(parallel-mater-physics-debug-tests)
         add_test(NAME parallel-mater-physics-debug-tests
                  COMMAND parallel-mater-physics-debug-tests)

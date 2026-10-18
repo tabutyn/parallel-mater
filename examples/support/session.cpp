@@ -76,6 +76,10 @@ void GallerySession::select(unsigned index) {
     request.debug_frame_capacity = selected.context ==
             GalleryContext::constraint_fixed
         ? 300U : 30U;
+    request.capture_history_capacity =
+        selected.context >= GalleryContext::constraint_fixed &&
+                selected.context <= GalleryContext::constraint_motor_spring
+            ? 300U : 0U;
     request.width = width;
     request.height = height;
     request.create_host_renderer = config_.create_host_renderer.value_or(
@@ -421,6 +425,12 @@ void GallerySession::frame_at(
 }
 std::string GallerySession::scene_file() const {
     return std::string(catalog_item(selected_).asset_file);
+}
+PhysicsCaptureProvenance GallerySession::physics_capture_provenance() const {
+    PhysicsCaptureProvenance provenance{scene_file(), backend_name(),
+                                        device_name(), build_revision(), {}};
+    provenance.rigid_body_ids = physics_rigid_body_ids(runtime_.scene);
+    return provenance;
 }
 FrameTimingStatistics GallerySession::qualify(unsigned frame_count) {
     if (frame_count == 0 || frame_count > 100000)
