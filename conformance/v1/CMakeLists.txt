@@ -13,13 +13,12 @@ add_library(parallel-mater-conformance-runner STATIC
     src/command_runner.cpp
     src/case_registry.cpp
     src/lifecycle_fixtures.cpp
-    ../../tests/api/capacity_recovery_tests.cpp
-    ../../tests/api/interaction_graph_lifecycle_tests.cpp
-    ../../tests/api/resource_lifecycle_tests.cpp)
+    src/capacity_recovery_fixture.cpp
+    src/interaction_graph_lifecycle_fixture.cpp
+    src/resource_lifecycle_fixture.cpp)
 target_compile_features(parallel-mater-conformance-runner PUBLIC cxx_std_20)
 target_include_directories(parallel-mater-conformance-runner
-    PUBLIC include
-    PRIVATE ../../tests/api)
+    PUBLIC include)
 target_compile_definitions(parallel-mater-conformance-runner PRIVATE
     PM_CONFORMANCE_EMBEDDED=1
     PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${PARALLEL_MATER_CONFORMANCE_DATA_ROOT}"

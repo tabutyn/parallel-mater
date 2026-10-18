@@ -7,14 +7,13 @@ endif()
 add_library(parallel-mater-conformance-runner STATIC
     conformance/v1/src/command_runner.cpp
     conformance/v1/src/lifecycle_fixtures.cpp
-    tests/api/capacity_recovery_tests.cpp
-    tests/api/interaction_graph_lifecycle_tests.cpp
-    tests/api/resource_lifecycle_tests.cpp)
+    conformance/v1/src/capacity_recovery_fixture.cpp
+    conformance/v1/src/interaction_graph_lifecycle_fixture.cpp
+    conformance/v1/src/resource_lifecycle_fixture.cpp)
 target_link_libraries(parallel-mater-conformance-runner PRIVATE
     parallel-mater-conformance-registry ParallelMater::scene)
 target_include_directories(parallel-mater-conformance-runner PUBLIC
     conformance/v1/include)
-target_include_directories(parallel-mater-conformance-runner PRIVATE tests/api)
 target_compile_features(parallel-mater-conformance-runner PUBLIC cxx_std_20)
 target_compile_definitions(parallel-mater-conformance-runner PRIVATE
     PM_CONFORMANCE_EMBEDDED=1

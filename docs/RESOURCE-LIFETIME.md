@@ -102,7 +102,7 @@ simulation reference.
 
 ## Current evidence
 
-`tests/api/resource_lifecycle_tests.cpp` uses only installed public SDK headers
+`conformance/v1/src/resource_lifecycle_fixture.cpp` uses only installed public SDK headers
 and loader symbols. It can be built separately with `cmake -S tests/api` and an
 installed `ParallelMater_DIR`; select an installed driver using PM_DRIVER_FILES.
 
