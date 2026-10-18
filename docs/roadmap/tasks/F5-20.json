@@ -1,7 +1,7 @@
 {
   "id": "F5-20",
   "title": "Emit graph rollback lifecycle checkpoints",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-03",
     "F5-19"
@@ -19,6 +19,14 @@
     "conformance/v1/lifecycle.py passes the three-family-partial-rollback case on every production driver advertising its required feature set; unsupported drivers remain explicit and no profile rule is weakened."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "73ae90b0-6147-4664-8be0-06ba4d141517",
+    "owner": "codex-linux-evidence",
+    "machine": "thomas-laptop",
+    "branch": "work/F5-20/thomas-laptop",
+    "claimed_at": "2026-10-18T19:15:45Z",
+    "heartbeat_at": "2026-10-18T19:15:45Z",
+    "expires_at": "2026-10-19T19:15:45Z"
+  },
   "history": []
 }
