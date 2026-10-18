@@ -1,7 +1,7 @@
 {
   "id": "F7-22",
   "title": "Unify mobile Gallery qualification orchestration",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-07",
     "F7-19",
@@ -18,15 +18,27 @@
     "Android and iOS qualification runners invoke one common scenario model and emit the same versioned report fields for scenes, controls, lifecycle, renderer and failures.",
     "Common contract tests cover attach, resize, background, recovery, control execution and scene selection without duplicating that sequence in platform shells."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "448e7c76-9ee3-41a6-9970-476b9b434bcc",
-    "owner": "codex-windows-sdk",
-    "machine": "windows-gtx1080",
-    "branch": "work/F7-22/windows-gtx1080",
-    "claimed_at": "2026-10-18T12:22:50Z",
-    "heartbeat_at": "2026-10-18T12:22:50Z",
-    "expires_at": "2026-10-19T12:22:50Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F7-22-mobile-gallery-qualification.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "448e7c76-9ee3-41a6-9970-476b9b434bcc",
+        "owner": "codex-windows-sdk",
+        "machine": "windows-gtx1080",
+        "branch": "work/F7-22/windows-gtx1080",
+        "claimed_at": "2026-10-18T12:22:50Z",
+        "heartbeat_at": "2026-10-18T12:22:50Z",
+        "expires_at": "2026-10-19T12:22:50Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T12:47:34Z",
+      "reason": "Android and iOS now invoke one common qualification scenario and emit one versioned report; platform shells retain only native surface, lifecycle, and storage responsibilities.",
+      "evidence": [
+        "docs/roadmap/evidence/F7-22-mobile-gallery-qualification.json"
+      ]
+    }
+  ]
 }
