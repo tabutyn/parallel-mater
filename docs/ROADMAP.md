@@ -165,10 +165,10 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F4-03](roadmap/tasks/F4-03.json) | Schedule common resource dependencies | done | F4-01, F4-02 | — |
 | [F4-04](roadmap/tasks/F4-04.json) | Remove generated-source ABI parsing | done | F4-01 | — |
 | [F4-05](roadmap/tasks/F4-05.json) | Specify memory-budget confidence | done | — | — |
-| [F4-06](roadmap/tasks/F4-06.json) | Apply conservative workload admission | leased | F4-05 | codex-windows-sdk / windows-gtx1080 / 2026-10-19T18:24:00Z |
+| [F4-06](roadmap/tasks/F4-06.json) | Apply conservative workload admission | done | F4-05 | — |
 | [F4-07](roadmap/tasks/F4-07.json) | Specify borrowed device and queue handoff | done | F4-02, F3-04 | — |
 | [F4-08](roadmap/tasks/F4-08.json) | Qualify engine handoff with a mock adapter | done | F4-03, F4-07 | — |
-| [F4-99](roadmap/tasks/F4-99.json) | Review F4 exit evidence | waiting on dependencies | F4-01, F4-02, F4-03, F4-04, F4-05, F4-06, F4-07, F4-08 | — |
+| [F4-99](roadmap/tasks/F4-99.json) | Review F4 exit evidence | done | F4-01, F4-02, F4-03, F4-04, F4-05, F4-06, F4-07, F4-08 | — |
 
 ### F5. Independent conformance and quality
 
@@ -210,7 +210,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F6-08](roadmap/tasks/F6-08.json) | Retire reconciled old worktrees | waiting on dependencies | F6-06, F6-07, F6-09, F6-10, F6-11 | — |
 | [F6-09](roadmap/tasks/F6-09.json) | Qualify the retained hinge fixture candidate | done | F6-07 | — |
 | [F6-10](roadmap/tasks/F6-10.json) | Productize physics capture and substep replay | done | F6-07 | — |
-| [F6-11](roadmap/tasks/F6-11.json) | Adjudicate the retained rigid contact patch | ready | F6-09, F6-10 | — |
+| [F6-11](roadmap/tasks/F6-11.json) | Adjudicate the retained rigid contact patch | leased | F6-09, F6-10 | codex-windows-sdk / windows-gtx1080 / 2026-10-19T18:48:11Z |
 | [F6-99](roadmap/tasks/F6-99.json) | Review F6 exit evidence | waiting on dependencies | F6-01, F6-02, F6-03, F6-04, F6-05, F6-06, F6-07, F6-08, F6-09, F6-10, F6-11 | — |
 
 ### F7. Shared Gallery application
