@@ -51,6 +51,11 @@ notice are pinned in `third_party/cgltf`. Gallery's optional dependencies are
 outside the minimal SDK's dependency closure. A release must record their
 resolved revisions if Gallery is included.
 
+On Windows, run the presets and installed-SDK checker from an x64 Visual Studio
+Developer Command Prompt with Ninja on `PATH`. The checker applies its
+`--config` value to both independently configured consumer builds; a Release
+SDK therefore cannot be linked accidentally into a Debug MSVC consumer.
+
 The conformance install contains `bin/parallel-mater-conformance` and its
 manifest-pinned input data under `share/parallel-mater`. After relocation:
 
@@ -74,13 +79,14 @@ conformance against the installed SDK and installed corpus. It also distinguishe
 an unsupported capability from a missing-driver setup failure. No reference
 physics implementation is linked into the mock or application.
 
-`report.json` records source revision/dirty state, host architecture, the exact
-CMake C++ compiler identity, checks, exit codes and SDK file SHA-256 values.
+`report.json` records source revision/dirty state, host architecture, requested
+configuration, the exact CMake C++ compiler identity, checks, exit codes and SDK
+file SHA-256 values. Windows reports also record the selected Windows SDK and
+resource compiler.
 Scope is `packaging_and_public_abi`; physical quality is explicitly
 `not_evaluated`. The installed-SDK CI workflow enforces these checks on Linux
-and Apple Silicon macOS. Windows packaging remains unqualified until its own run
-is recorded. Successful local checks do not imply that a newly added remote job
-has already run.
+Apple Silicon macOS and Windows x64. Successful local checks do not imply that a
+newly added remote job has already run.
 
 A release requires a clean source revision, exact compiler/SDK/dependency
 versions, generated contract checks, retained install/consumer/driver evidence,

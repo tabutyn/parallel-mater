@@ -198,9 +198,9 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [F6-00](roadmap/tasks/F6-00.json) | Versioned SDK and release baseline | done | — | — |
-| [F6-01](roadmap/tasks/F6-01.json) | Qualify Windows SDK installation | leased | — | codex-windows-sdk / windows-gtx1080 / 2026-10-19T05:28:36Z |
+| [F6-01](roadmap/tasks/F6-01.json) | Qualify Windows SDK installation | done | — | — |
 | [F6-02](roadmap/tasks/F6-02.json) | Qualify macOS SDK installation | done | — | — |
-| [F6-03](roadmap/tasks/F6-03.json) | Separate optional package exports | waiting on lock | F5-07 | — |
+| [F6-03](roadmap/tasks/F6-03.json) | Separate optional package exports | ready | F5-07 | — |
 | [F6-04](roadmap/tasks/F6-04.json) | Record reproducible release inputs | ready | — | — |
 | [F6-05](roadmap/tasks/F6-05.json) | Regenerate and verify release reference artifacts | ready | F3-06 | — |
 | [F6-06](roadmap/tasks/F6-06.json) | Reconcile legacy launcher and branding patches | ready | — | — |

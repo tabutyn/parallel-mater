@@ -1,0 +1,57 @@
+{
+  "schema": "parallel-mater-roadmap-windows-sdk-evidence/v1",
+  "task": "F6-01",
+  "scope": "Release SDK installation, relocation and public-consumer qualification on Windows x64",
+  "source": {
+    "base_main_commit": "ff571e51f33ae46235840bbf3b4d704b5a92a59f",
+    "implementation_commit": "6994b6c658ca81dd62234e93b3c79df5aa8af0cc",
+    "branch": "work/F6-01/windows-gtx1080",
+    "dirty_before_evidence": false
+  },
+  "toolchain": {
+    "operating_system": "Windows 11 10.0.26200 x64",
+    "visual_studio": "Build Tools 18.9.1",
+    "compiler": "MSVC 19.51.36256.0",
+    "windows_sdk": "10.0.26100.0",
+    "cmake": "4.4.2",
+    "ninja": "1.12.1",
+    "configuration": "Release"
+  },
+  "package": {
+    "profile": "sdk-ci",
+    "relocated_file_count": 154,
+    "report_sha256": "4529af67614d10ab44ea0af3171013f1fd61d887c59a484c0a0a97da4295dfae",
+    "loader_sha256": "f07b0471406606cd5d828f086df45a03e07fe8a8de422761c6612be3a5655e77",
+    "conformance_runner_sha256": "f74e39c31b00545b0a5b0826b155f84d35b4b686f083e09c712cb5b79345395d"
+  },
+  "verification": [
+    {
+      "check": "cmake --preset sdk-ci -B build-f6-01-sdk-windows && cmake --build build-f6-01-sdk-windows --parallel 2 && ctest --test-dir build-f6-01-sdk-windows -C Release --output-on-failure --no-tests=error -j1",
+      "result": "38/38 headless SDK, loader, ABI, conformance, Gallery-contract and host tests passed"
+    },
+    {
+      "check": "python tools/check_sdk_install.py --build-dir build-f6-01-sdk-windows --output out/sdk-evidence/f6-01-windows-final-6994b6c",
+      "result": "12/12 install, relocation, consumer, version, conformance and negative-path stages passed from a clean source revision"
+    },
+    {
+      "check": "relocated external consumer CTest matrix",
+      "result": "18/18 C, C++, scene, diagnostics, current/legacy layer ABI and invalid driver/layer negotiation cases passed"
+    },
+    {
+      "check": "relocated conformance consumer and installed runner",
+      "result": "Release consumer linked the installed Release SDK, all 30 pinned inputs validated, unsupported cloth and missing-driver outcomes were classified correctly"
+    },
+    {
+      "check": "python -m unittest discover -s conformance/v1/tests -p 'test_*.py' and python -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "67/67 conformance metadata tests and 19/19 roadmap lease tests passed"
+    },
+    {
+      "check": ".github/workflows/sdk-install.yml sdk-windows",
+      "result": "Windows x64 CI repeats the minimal build, full sdk-ci build/CTest, relocation gate and retained evidence artifact"
+    }
+  ],
+  "limitations": [
+    "This qualifies packaging and public ABI behavior only; physics quality and native GPU drivers are not evaluated.",
+    "The optional C++ scene and preparation libraries remain host tooling without a stable C++ binary ABI promise."
+  ]
+}

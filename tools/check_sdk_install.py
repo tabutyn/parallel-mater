@@ -43,6 +43,28 @@ def compiler_metadata(build_dir):
     return result
 
 
+def windows_sdk_metadata(build_dir):
+    """Read the Windows SDK selected by CMake for this build."""
+    if os.name != "nt":
+        return None
+    cache = build_dir / "CMakeCache.txt"
+    if not cache.is_file():
+        raise RuntimeError(f"missing CMake cache: {cache}")
+    resource_compiler = ""
+    for line in cache.read_text(encoding="utf-8").splitlines():
+        if line.startswith("CMAKE_RC_COMPILER:"):
+            resource_compiler = line.partition("=")[2]
+            break
+    match = re.search(
+        r"[\\/]Windows Kits[\\/]10[\\/]bin[\\/]([^\\/]+)[\\/]",
+        resource_compiler,
+        re.IGNORECASE,
+    )
+    if not match:
+        raise RuntimeError("could not identify the Windows SDK from CMAKE_RC_COMPILER")
+    return {"version": match.group(1), "resource_compiler": resource_compiler}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--build-dir", type=Path, required=True)
@@ -80,7 +102,11 @@ def main():
 
     try:
         report["architecture"] = platform.machine()
+        report["configuration"] = args.config
         report["compiler"] = compiler_metadata(args.build_dir.resolve())
+        windows_sdk = windows_sdk_metadata(args.build_dir.resolve())
+        if windows_sdk:
+            report["windows_sdk"] = windows_sdk
         report["source_revision"] = subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
         report["source_dirty"] = bool(subprocess.check_output(
@@ -105,9 +131,10 @@ def main():
         build = output / "external-build"
         run("consumer-configure", ["cmake", "-S", source, "-B", build, "-G", "Ninja",
             f"-DCMAKE_BUILD_TYPE={args.config}", f"-DCMAKE_PREFIX_PATH={sdk}"])
-        run("consumer-build", ["cmake", "--build", build, "--parallel", "1"])
+        run("consumer-build", ["cmake", "--build", build, "--config", args.config,
+                               "--parallel", "1"])
         run("consumer-tests", ["ctest", "--test-dir", build, "--output-on-failure",
-                                "--no-tests=error", "-j1"])
+                                "--no-tests=error", "-C", args.config, "-j1"])
         for version in ("0.1", "0.3"):
             run("reject-version-" + version, ["cmake", "-S", source, "-B",
                 output / ("version-" + version), "-G", "Ninja",
@@ -121,11 +148,13 @@ def main():
         data = sdk / "share/parallel-mater"
         suite_build = output / "conformance-build"
         run("conformance-configure", ["cmake", "-S", suite, "-B", suite_build, "-G", "Ninja",
-            f"-DCMAKE_PREFIX_PATH={sdk}", f"-DPARALLEL_MATER_CONFORMANCE_DATA_ROOT={data}",
+            f"-DCMAKE_BUILD_TYPE={args.config}", f"-DCMAKE_PREFIX_PATH={sdk}",
+            f"-DPARALLEL_MATER_CONFORMANCE_DATA_ROOT={data}",
             f"-DPARALLEL_MATER_CONFORMANCE_REVISION={report['source_revision']}"])
-        run("conformance-build", ["cmake", "--build", suite_build, "--parallel", "1"])
+        run("conformance-build", ["cmake", "--build", suite_build, "--config", args.config,
+                                  "--parallel", "1"])
         run("conformance-inputs", ["ctest", "--test-dir", suite_build, "--output-on-failure",
-                                  "--no-tests=error"])
+                                  "--no-tests=error", "-C", args.config])
         suffix = ".exe" if os.name == "nt" else ""
         run("installed-runner-inputs", [sdk / "bin" / ("parallel-mater-conformance" + suffix),
                                         "--check-inputs", "--root", data])

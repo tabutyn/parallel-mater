@@ -74,3 +74,39 @@ jobs:
             out/sdk-evidence/ci/report.json
             out/sdk-evidence/ci/*.log
             build-sdk-ci/Testing/Temporary/*.log
+  sdk-windows:
+    name: sdk (Windows x64)
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Record toolchain
+        run: |
+          cmake --version
+          ninja --version
+      - name: Build minimal loader without shader or graphics toolchains
+        run: |
+          cmake --preset sdk-minimal
+          cmake --build --preset sdk-minimal
+      - name: Build and test headless SDK
+        run: |
+          cmake --preset sdk-ci
+          cmake --build --preset sdk-ci
+          ctest --preset sdk-ci
+      - name: Relocate and build independent applications and vendor driver
+        run: python tools/check_sdk_install.py --build-dir build-sdk-ci --output out/sdk-evidence/ci
+      - name: Preserve qualification scope and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-install-contracts-windows-x64
+          path: |
+            out/sdk-evidence/ci/report.json
+            out/sdk-evidence/ci/*.log
+            build-sdk-ci/Testing/Temporary/*.log
