@@ -1,7 +1,7 @@
 {
   "id": "F6-07",
   "title": "Reconcile legacy hinge and contact patches",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "legacy-patch-review"
@@ -15,7 +15,15 @@
     "Each unique patch hunk has a disposition; no unreviewed golden or solver transplant."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "61ff0945-1f82-41aa-a7ee-823bd9beb61b",
+    "owner": "codex-linux-cleanup",
+    "machine": "thomas-laptop",
+    "branch": "work/F6-07/thomas-laptop",
+    "claimed_at": "2026-10-18T17:16:03Z",
+    "heartbeat_at": "2026-10-18T17:16:03Z",
+    "expires_at": "2026-10-19T17:16:03Z"
+  },
   "history": [
     {
       "lease": {
