@@ -32,7 +32,6 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import org.json.JSONObject;
-import org.json.JSONArray;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -50,7 +49,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     private static native void nativeCommand(long handle, int command, float x, float y);
     private static native String[] nativeControlState(long handle);
     private static native String[] nativeSceneCatalog(long handle);
-    private static native double[] nativeQualifyScene(long handle, int scene, int frames);
+    private static native String nativeQualify(long handle, int frames, String nonce);
     private static native String nativeRuntimeInfo(long handle);
 
     private static final class SceneInfo {
@@ -82,7 +81,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     // Lifecycle and presentation scheduling are UI-thread state. Simulation
     // admission and recovery remain in the shared native mobile session.
     private boolean active, surfaceReady, failed, framePending, framePosted, qualifying;
-    private long lastStatus;
+    private long lastStatus, lastRuntimeInfo;
     private int backgrounds, foregrounds;
     private String diagnosticNonce = "";
     // UI state is only accessed on the main thread.
@@ -104,6 +103,10 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                         if (!status.getText().toString().equals(text)) status.setText(text);
                         if (state.length > 1) steering.setText(state[1]);
                     });
+                }
+                if (BuildConfig.DEBUG && start - lastRuntimeInfo >= 2000) {
+                    lastRuntimeInfo = start;
+                    writeRuntimeInfo();
                 }
             } catch (RuntimeException error) { showFailure(error); }
             runOnUiThread(() -> {
@@ -388,31 +391,8 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                 if (surfaceView != null) surfaceView.removeCallbacks(frameRequest);
                 framePosted = false;
             });
-            JSONArray results = new JSONArray();
-            JSONObject report = new JSONObject(nativeRuntimeInfo(handle));
-            report.put("nonce", nonce).put("frames_per_scene", count).put("scenes", results);
-            SceneInfo[] items = catalog;
-            for (int i = 0; i < items.length; ++i) {
-                JSONObject result = new JSONObject().put("id", items[i].id)
-                    .put("scene", items[i].name).put("requirements", items[i].requirements)
-                    .put("available", items[i].available).put("steps", count);
-                if (!items[i].available) {
-                    result.put("skipped", true).put("reason", items[i].unavailableReason);
-                    results.put(result);
-                    report.put("completed", i + 1 == items.length);
-                    writeReport("qualification.json", report);
-                    continue;
-                }
-                try {
-                    double[] stats = nativeQualifyScene(handle, i, count);
-                    result.put("passed", true).put("mean_ms", stats[0]).put("p95_ms", stats[1])
-                        .put("timing_window_frames", stats[2]).put("session_controls", true);
-                } catch (RuntimeException error) { result.put("passed", false).put("error", error.toString()); }
-                results.put(result);
-                report.put("completed", i + 1 == items.length);
-                writeReport("qualification.json", report);
-            }
-            nativeCommand(handle, 0, 0, 0);
+            JSONObject report = new JSONObject(nativeQualify(handle, count, nonce));
+            writeReport("qualification.json", report);
             writeRuntimeInfo();
             String[] controls = nativeControlState(handle);
             runOnUiThread(() -> {
@@ -600,6 +580,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
             if (handle == 0) return;
             try {
                 nativeSurface(handle, surface, width, height);
+                writeRuntimeInfo();
                 runOnUiThread(() -> { surfaceReady = true; restartFrames(); });
             }
             catch (RuntimeException error) { showFailure(error); }
@@ -609,7 +590,10 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         surfaceReady = false;
         restartFrames();
         worker.post(() -> {
-            if (handle != 0) nativeSurface(handle, null, 0, 0);
+            if (handle != 0) {
+                nativeSurface(handle, null, 0, 0);
+                writeRuntimeInfo();
+            }
         });
     }
     @Override protected void onResume() {

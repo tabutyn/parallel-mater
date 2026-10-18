@@ -10,6 +10,11 @@ fi
 export ANDROID_HOME="$android_sdk"
 export CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL:-1}"
 arguments=(--no-daemon --max-workers=1 "-Pabis=${ANDROID_ABIS:-arm64-v8a}")
+source_revision="${PARALLEL_MATER_SOURCE_REVISION:-}"
+if [[ -z "$source_revision" ]]; then
+    source_revision="$(git -C "$project_root" rev-parse HEAD)"
+fi
+arguments+=("-PsourceRevision=$source_revision")
 if [[ -n "${SLANGC:-}" ]]; then
     arguments+=("-Pslangc=$SLANGC")
 fi

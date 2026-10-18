@@ -3,6 +3,7 @@ plugins { id("com.android.application") }
 val slangCompiler = providers.gradleProperty("slangc")
     .orElse(providers.environmentVariable("SLANGC"))
 val cgltfSource = providers.gradleProperty("cgltfSource")
+val sourceRevision = providers.gradleProperty("sourceRevision")
 val physicsBackend = providers.gradleProperty("physicsBackend").orElse("vulkan").get()
 require(physicsBackend in listOf("vulkan", "cpu")) {
     "physicsBackend must be vulkan or cpu"
@@ -22,6 +23,7 @@ android {
         versionCode = 2
         versionName = "0.1-$physicsBackend-preview"
         buildConfigField("String", "PHYSICS_BACKEND", "\"$physicsBackend\"")
+        manifestPlaceholders["vulkanRequired"] = useVulkan.toString()
         ndk { abiFilters += providers.gradleProperty("abis")
             .orElse("arm64-v8a,x86_64").get().split(",") }
         externalNativeBuild {
@@ -47,6 +49,8 @@ android {
                     arguments += "-DPARALLEL_MATER_SLANGC_EXECUTABLE=${slangCompiler.get()}"
                 if (cgltfSource.isPresent)
                     arguments += "-DFETCHCONTENT_SOURCE_DIR_PARALLEL_MATER_CGLTF=${cgltfSource.get()}"
+                if (sourceRevision.isPresent)
+                    arguments += "-DPARALLEL_MATER_SOURCE_REVISION=${sourceRevision.get()}"
                 targets += "parallel-mater-gallery-android"
                 if (qualification) targets += listOf("pm-android-command-tests",
                     "pm-android-async-tests", "pm-android-liquid-tests")

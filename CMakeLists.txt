@@ -475,12 +475,26 @@ if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
     include(cmake/ParallelMaterSlangMetal.cmake)
 endif()
 
-execute_process(
-    COMMAND git rev-parse HEAD
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    OUTPUT_VARIABLE PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    ERROR_QUIET)
+set(PARALLEL_MATER_SOURCE_REVISION "" CACHE STRING
+    "Source commit embedded in built Gallery and qualification artifacts")
+if(PARALLEL_MATER_SOURCE_REVISION)
+    string(LENGTH "${PARALLEL_MATER_SOURCE_REVISION}"
+           PARALLEL_MATER_SOURCE_REVISION_LENGTH)
+    if(NOT PARALLEL_MATER_SOURCE_REVISION MATCHES "^[0-9a-fA-F]+$" OR
+       NOT PARALLEL_MATER_SOURCE_REVISION_LENGTH EQUAL 40)
+        message(FATAL_ERROR
+            "PARALLEL_MATER_SOURCE_REVISION must be a full 40-character commit")
+    endif()
+    string(TOLOWER "${PARALLEL_MATER_SOURCE_REVISION}"
+           PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT)
+else()
+    execute_process(
+        COMMAND git rev-parse HEAD
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        OUTPUT_VARIABLE PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET)
+endif()
 if(NOT PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT)
     set(PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT unknown)
 endif()
@@ -802,6 +816,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     add_library(parallel-mater-gallery-session STATIC
                 examples/support/gallery_runtime.cpp
                 examples/support/mobile_session.cpp
+                examples/support/mobile_qualification.cpp
                 examples/support/session.cpp)
     set_target_properties(parallel-mater-gallery-session PROPERTIES POSITION_INDEPENDENT_CODE YES)
     target_link_libraries(parallel-mater-gallery-session
@@ -1440,6 +1455,12 @@ if(BUILD_TESTING)
         include examples/support/include ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_test(NAME parallel-mater-gallery-input-tests
         COMMAND parallel-mater-gallery-input-tests)
+    add_test(NAME parallel-mater-mobile-qualification-schema-tests
+        COMMAND ${Python3_EXECUTABLE} -m unittest discover
+                -s ${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery
+                -p test_mobile_qualification_report.py)
+    set_tests_properties(parallel-mater-mobile-qualification-schema-tests
+        PROPERTIES LABELS "gallery;mobile;qualification;contract")
     add_test(NAME parallel-mater-conformance-case-registry
         COMMAND parallel-mater-conformance-cases --check
                 ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/cases)

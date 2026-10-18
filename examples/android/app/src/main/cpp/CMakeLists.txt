@@ -20,6 +20,11 @@ target_compile_definitions(parallel-mater-gallery-android PRIVATE
 target_link_libraries(parallel-mater-gallery-android PRIVATE
     parallel-mater-gallery-session ${android_driver}
     parallel-mater-layer-validation android log)
+if(PARALLEL_MATER_ANDROID_BACKEND STREQUAL "vulkan")
+    target_compile_definitions(parallel-mater-gallery-android PRIVATE
+        VK_USE_PLATFORM_ANDROID_KHR=1)
+    target_link_libraries(parallel-mater-gallery-android PRIVATE Vulkan::Vulkan)
+endif()
 set_target_properties(parallel-mater-gallery-android PROPERTIES
     OUTPUT_NAME parallel_mater_gallery)
 parallel_mater_enable_warnings(parallel-mater-gallery-android)

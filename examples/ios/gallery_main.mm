@@ -2,7 +2,7 @@
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 #import <Metal/Metal.h>
-#include <parallel_mater_gallery/mobile_session.hpp>
+#include <parallel_mater_gallery/mobile_qualification.hpp>
 #if PM_IOS_QUALIFICATION_RUNNER
 #include <parallel_mater_conformance/runner.hpp>
 #include <parallel_mater_conformance/sha256.hpp>
@@ -18,6 +18,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <utility>
 
 using parallel_mater::gallery::GallerySession;
 using parallel_mater::gallery::MobileGalleryCommand;
@@ -143,7 +144,6 @@ void write_report(NSString *name, id object) {
     if (!data || ![data writeToURL:[directory URLByAppendingPathComponent:name] options:NSDataWritingAtomic error:&error])
         throw std::runtime_error(std::string("Writing device report: ") + error.localizedDescription.UTF8String);
 }
-#if PM_IOS_QUALIFICATION_RUNNER
 void write_text_report(NSString *name, const std::string &contents) {
     NSError *error = nil;
     NSURL *directory = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory
@@ -158,6 +158,7 @@ void write_text_report(NSString *name, const std::string &contents) {
         throw std::runtime_error(std::string("Writing device report: ") +
                                  error.localizedDescription.UTF8String);
 }
+#if PM_IOS_QUALIFICATION_RUNNER
 NSString *file_sha256(NSString *path) {
     return text(parallel_mater::conformance::sha256_file(
         std::filesystem::path(path.fileSystemRepresentation)));
@@ -561,113 +562,46 @@ UIImage *frame_image(const GallerySession &session) {
     });
 }
 - (void)runSmokeTests {
-    NSMutableArray *results = [NSMutableArray array];
     const bool extended = [NSProcessInfo.processInfo.arguments containsObject:@"--qualify"];
     const NSInteger requested = argument(@"--qualification-frames") ? [argument(@"--qualification-frames") integerValue] : 120;
     if (extended && (requested < 1 || requested > 100000))
         throw std::runtime_error("--qualification-frames must be 1..100000");
     const unsigned steps = extended ? static_cast<unsigned>(requested) : 3;
-    NSArray<NSURL *> *directories = [NSFileManager.defaultManager URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask];
-    const auto &catalog = _session->catalog();
-    const auto require_mobile = [](bool condition, const char *failure) {
-        if (!condition) throw std::runtime_error(failure);
+    NSString *nonce = argument(@"--deployment-nonce") ?: @"";
+    parallel_mater::gallery::MobileGalleryQualificationConfig config{
+        .frames_per_scene = steps,
+        .width = _renderWidth,
+        .height = _renderHeight,
+        .render_target = {
+            .backend = PM_NATIVE_BACKEND_METAL,
+            .handle = static_cast<PmNativeHandle>(
+                reinterpret_cast<std::uintptr_t>((__bridge void *)_image.layer)),
+        },
+        .nonce = nonce.UTF8String ?: "",
+        .configure_surface = [self](unsigned width, unsigned height,
+                                    std::string &) {
+            dispatch_sync(dispatch_get_main_queue(), ^{
+                ((CAMetalLayer *)self->_image.layer).drawableSize =
+                    CGSizeMake(width, height);
+            });
+            return true;
+        },
+        .memory_footprint = [] { return memory_footprint(); },
+        .checkpoint = [](std::string_view json) {
+            write_text_report(@"smoke-report.json", std::string(json));
+        },
     };
-    const auto initial_generation = _mobile->state().surface_generation;
-    _mobile->set_foreground(false);
-    require_mobile(!_mobile->frame() &&
-                       !_mobile->state().presentation.active,
-                   "Background mobile session admitted a frame");
-    _mobile->set_foreground(true);
-    _mobile->detach_surface();
-    require_mobile(!_mobile->frame() && !_mobile->state().surface_ready,
-                   "Detached mobile surface admitted a frame");
-    require_mobile(_mobile->attach_surface(
-                       _renderWidth, _renderHeight,
-                       {.backend = PM_NATIVE_BACKEND_METAL,
-                        .handle = static_cast<PmNativeHandle>(
-                            reinterpret_cast<std::uintptr_t>(
-                                (__bridge void *)_image.layer))}) &&
-                       _mobile->state().surface_generation >=
-                           initial_generation + 2U,
-                   "Replacement mobile surface did not recover");
-    require_mobile(_mobile->execute(MobileGalleryCommand::toggle_paused) &&
-                       _mobile->state().presentation.paused &&
-                       _mobile->execute(MobileGalleryCommand::toggle_paused) &&
-                       !_mobile->state().presentation.paused,
-                   "Shared mobile pause/resume failed");
-    require_mobile(!_mobile->frame([](const GallerySession &) {
-                       throw std::runtime_error("qualification presentation failure");
-                   }) && _mobile->state().failed &&
-                       _mobile->execute(MobileGalleryCommand::reset_scene) &&
-                       !_mobile->state().failed,
-                   "Shared mobile failure recovery failed");
-    NSDictionary *mobileContract = @{
-        @"background_recovery":@YES,
-        @"surface_replacement":@YES,
-        @"pause_resume":@YES,
-        @"failure_recovery":@YES};
-    for (unsigned i = 0; i < catalog.size(); ++i) {
-        @autoreleasepool {
-            const auto &item = catalog[i];
-            if (!item.available) {
-                const auto view = _session->presentation();
-                [results addObject:@{
-                    @"id":text(std::string(item.id)),
-                    @"scene":text(std::string(item.scene.name)),
-                    @"requirements":text(item.required_feature_names),
-                    @"available":@NO, @"skipped":@YES,
-                    @"reason":text(item.unavailable_reason)}];
-                write_report(@"smoke-report.json", @{
-                    @"revision":text(view.build_revision),
-                    @"backend":text(view.backend),
-                    @"device":text(view.device),
-                    @"nonce":argument(@"--deployment-nonce") ?: @"",
-                    @"completed":@(results.count == catalog.size()),
-                    @"frames_per_scene":@(steps),
-                    @"mobile_session_contract":mobileContract,
-                    @"scope":@"scene output and shared controls; not numerical, thermal, or full physics qualification",
-                    @"scenes":results});
-                continue;
-            }
-            try {
-                NSLog(@"ParallelMater smoke START: %@, footprint=%llu MiB",
-                      text(std::string(item.scene.name)), memory_footprint() / (1024ULL*1024));
-                if (!_mobile->execute(MobileGalleryCommand::select_scene,
-                                      static_cast<float>(i)))
-                    throw std::runtime_error(_mobile->state().failure);
-                const auto statistics = _session->qualify(steps);
-                const auto view = _session->presentation();
-                [results addObject:@{@"id":text(std::string(item.id)),
-                    @"scene":text(std::string(item.scene.name)),
-                    @"requirements":text(item.required_feature_names),
-                    @"available":@YES, @"steps":@(steps),
-                    @"mean_ms":@(statistics.mean_ms), @"p95_ms":@(statistics.p95_ms),
-                    @"timing_window_frames":@(statistics.count), @"session_controls":@YES,
-                    @"memory_footprint_bytes":@(memory_footprint()),
-                    @"passed":@YES, @"details":text(details_text(view))}];
-                NSLog(@"ParallelMater smoke PASS: %@", text(std::string(item.scene.name)));
-                [UIImagePNGRepresentation(frame_image(*_session)) writeToURL:
-                    [directories.firstObject URLByAppendingPathComponent:@"last-smoke-frame.png"] atomically:YES];
-            } catch (const std::exception &error) {
-                [results addObject:@{@"id":text(std::string(item.id)),
-                    @"scene":text(std::string(item.scene.name)), @"available":@YES,
-                    @"passed":@NO, @"error":text(error.what())}];
-                NSLog(@"ParallelMater smoke FAIL: %@: %@",
-                      text(std::string(item.scene.name)), text(error.what()));
-            }
-            const auto reportView = _session->presentation();
-            write_report(@"smoke-report.json", @{
-                @"revision":text(reportView.build_revision), @"backend":text(reportView.backend),
-                @"device":text(reportView.device), @"nonce":argument(@"--deployment-nonce") ?: @"",
-                @"completed":@(results.count == catalog.size()), @"frames_per_scene":@(steps),
-                @"mobile_session_contract":mobileContract,
-                @"scope":@"scene output and shared controls; not numerical, thermal, or full physics qualification",
-                @"scenes":results});
-        }
+    const auto report = parallel_mater::gallery::qualify_mobile_gallery(
+        *_mobile, std::move(config));
+    NSLog(@"ParallelMater smoke complete: %lu scenes, passed=%@",
+          (unsigned long)report.scenes.size(), report.passed ? @"YES" : @"NO");
+    if (!_session->pixels.empty()) {
+        NSArray<NSURL *> *directories = [NSFileManager.defaultManager
+            URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask];
+        [UIImagePNGRepresentation(frame_image(*_session)) writeToURL:
+            [directories.firstObject URLByAppendingPathComponent:
+                @"last-smoke-frame.png"] atomically:YES];
     }
-    NSLog(@"ParallelMater smoke complete: %lu scenes", (unsigned long)results.count);
-    if (!_mobile->execute(MobileGalleryCommand::select_scene, 0.0F))
-        throw std::runtime_error(_mobile->state().failure);
     [self publishMobileStateCompletingFrame:NO];
     [self writeRuntimeInfo];
 }

@@ -1,0 +1,87 @@
+{
+  "schema": "parallel-mater-roadmap-android-vulkan-gallery-evidence/v1",
+  "task": "F7-16",
+  "scope": "Direct Vulkan presentation for the common Gallery runtime on a physical Android device",
+  "source": {
+    "tested_commit": "1dc636364d01c4cf160ede1c21a0ac5776834acb",
+    "surface_rebinding_commit": "73c9f502eef9e2212175411e523489a436be86ac",
+    "branch": "work/F7-16/thomas-laptop",
+    "tested_at": "2026-10-18T13:15:14Z"
+  },
+  "device": {
+    "model": "Pixel 7",
+    "product": "panther",
+    "gpu": "Mali-G710",
+    "operating_system": "Android 17",
+    "api_level": 37,
+    "security_patch": "2026-09-05",
+    "graphics_api": "Vulkan"
+  },
+  "artifact": {
+    "path": "examples/android/app/build/outputs/apk/debug/app-debug.apk",
+    "abi": "arm64-v8a",
+    "sha256": "44fa68c36fd5cd84fca0519c94b99f5c2a94e2b21216d3bb75fe96351935d21e",
+    "embedded_revision": "1dc636364d01c4cf160ede1c21a0ac5776834acb"
+  },
+  "acceptance": {
+    "direct_gpu_presentation": {
+      "presentation": "vulkan-direct",
+      "ordinary_readback_pixels": 0,
+      "software_presentations": 0,
+      "ordering": "The common GPU renderer contract acquires the public physics output after its completed frame generation and returns ownership to physics before the next step."
+    },
+    "physical_lifecycle": {
+      "background_frames_before": 16,
+      "background_frames_after": 16,
+      "surface_generation_initial": 8,
+      "surface_generation_resized": 10,
+      "surface_generation_resize_restored": 14,
+      "surface_generation_rotated": 16,
+      "rotation_from": 1,
+      "rotation_to": 3,
+      "native_teardown_observed": true,
+      "validation_or_process_errors": 0
+    },
+    "catalog_sweep": {
+      "entries": 28,
+      "supported_passed": 20,
+      "unsupported_skipped_with_reasons": 8,
+      "steps_per_supported_scene": 30
+    },
+    "shared_mobile_qualification": {
+      "schema": "parallel-mater-mobile-gallery-qualification/v1",
+      "renderer": "native-gpu",
+      "readback": "diagnostic-only",
+      "lifecycle_checks_passed": 6,
+      "control_checks_passed": 6,
+      "failures": 0
+    }
+  },
+  "verification": [
+    {
+      "check": "python3 scripts/Test-AndroidGallery.py --adb <adb> --serial <physical-device> --frames 30",
+      "result": "PASS: 28 catalog scenes (20 supported), common mobile lifecycle/control schema, direct presentation, background, resize, rotation, and teardown; revision and backend matched 1dc6363/Vulkan after merging F7-22 shared qualification and F7-23 renderer adapters"
+    },
+    {
+      "check": "ctest --test-dir build-linux-vulkan-preview --output-on-failure -R '^parallel-mater-(gallery-session-contract-tests|vulkan-gallery-renderer-tests|vulkan-gallery-surface-tests)$'",
+      "result": "3/3 passed on the physical Linux Vulkan GPU, including stale presentation-target qualification regression"
+    },
+    {
+      "check": "ANDROID_HOME=/home/thomas/Android/Sdk ./scripts/Build-AndroidGallery.sh",
+      "result": "ARM64 Vulkan debug APK build passed; the generated native build embedded the exact tested commit"
+    },
+    {
+      "check": "python3 tests/gallery/deployment_tests.py -v",
+      "result": "8/8 passed"
+    }
+  ],
+  "runtime_report_hashes": {
+    "qualification.json": "0529139ebdbf8f6a5863792ad81770fbdbe926fc6a6def53b0fee96393052d2d",
+    "lifecycle.json": "6c7bf90a47be296381ee137fd7c32a01e63c2604a1d9f3ce2e719a2f2c3fed32",
+    "surface-lifecycle.json": "47a16e8d73f00bf01b565f0af279ff8216baf3237c7f7a0aacf08bf7eed97555",
+    "device.log": "6fe10927a707df9be88806a8e80c81815b8f0bd7bc600b8e9782e4272354c7e7"
+  },
+  "privacy": {
+    "private_device_identifiers_recorded": false
+  }
+}

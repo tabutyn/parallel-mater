@@ -1,18 +1,27 @@
 // SPDX-License-Identifier: MIT
 // Android owns JNI, surfaces and lifecycle. Shared C++ owns the Gallery session.
-#include <parallel_mater_gallery/mobile_session.hpp>
+#if PM_ANDROID_VULKAN
+#ifndef VK_USE_PLATFORM_ANDROID_KHR
+#define VK_USE_PLATFORM_ANDROID_KHR 1
+#endif
+#include <vulkan/vulkan.h>
+#endif
+#include <parallel_mater_gallery/mobile_qualification.hpp>
 #include <android/native_window_jni.h>
 #include <android/log.h>
 #include <jni.h>
 #include <algorithm>
 #include <array>
 #include <cstdlib>
+#if !PM_ANDROID_VULKAN
 #include <cstring>
+#endif
 #include <cmath>
 #include <memory>
 #include <locale>
 #include <stdexcept>
 #include <sstream>
+#include <utility>
 
 namespace {
 using namespace parallel_mater::gallery;
@@ -105,10 +114,94 @@ std::string details_text(const GalleryPresentationState &state) {
 struct Session {
     std::unique_ptr<MobileGallerySession> mobile;
     ANativeWindow *window{};
+#if PM_ANDROID_VULKAN
+    VkInstance vulkan_instance{};
+    VkSurfaceKHR vulkan_surface{};
+#endif
+    unsigned surface_width{};
+    unsigned surface_height{};
     unsigned logged_frames{};
-    ~Session() { if (window) ANativeWindow_release(window); }
+    std::uint64_t software_presentations{};
+    ~Session() { release_surface(); }
     GallerySession &gallery() { return mobile->gallery(); }
     const GallerySession &gallery() const { return mobile->gallery(); }
+    void detach_render_target() noexcept {
+        if (window && mobile) mobile->detach_surface();
+#if PM_ANDROID_VULKAN
+        if (vulkan_surface && vulkan_instance)
+            vkDestroySurfaceKHR(vulkan_instance, vulkan_surface, nullptr);
+        vulkan_surface = {};
+        vulkan_instance = {};
+#endif
+    }
+    void release_surface() noexcept {
+        detach_render_target();
+        if (window) ANativeWindow_release(window);
+        window = nullptr;
+        surface_width = 0U;
+        surface_height = 0U;
+    }
+#if PM_ANDROID_VULKAN
+    GpuRenderTarget create_render_target(unsigned width, unsigned height) {
+        const PmNativeDeviceInfo native = gallery().native_render_device();
+        if (native.backend != PM_NATIVE_BACKEND_VULKAN ||
+            native.instance == 0U || native.device == 0U)
+            throw std::runtime_error(
+                "Android Gallery did not receive its Vulkan physics device");
+        vulkan_instance = reinterpret_cast<VkInstance>(
+            static_cast<std::uintptr_t>(native.instance));
+        VkAndroidSurfaceCreateInfoKHR info{};
+        info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+        info.window = window;
+        const VkResult result = vkCreateAndroidSurfaceKHR(
+            vulkan_instance, &info, nullptr, &vulkan_surface);
+        if (result != VK_SUCCESS) {
+            vulkan_instance = {};
+            throw std::runtime_error(
+                "Could not create Android Vulkan surface (VkResult " +
+                std::to_string(static_cast<int>(result)) + ")");
+        }
+        return {
+            PM_NATIVE_BACKEND_VULKAN,
+            native.device,
+            static_cast<PmNativeHandle>(reinterpret_cast<std::uintptr_t>(
+                vulkan_surface)),
+            width,
+            height,
+        };
+    }
+#endif
+    void attach_render_target() {
+        if (!window) return;
+        GpuRenderTarget target{};
+#if PM_ANDROID_VULKAN
+        target = create_render_target(surface_width, surface_height);
+#endif
+        if (!mobile->attach_surface(surface_width, surface_height, target))
+            throw std::runtime_error(mobile->state().failure);
+#if !PM_ANDROID_VULKAN
+        if (ANativeWindow_setBuffersGeometry(window, gallery().width,
+                gallery().height, WINDOW_FORMAT_RGBA_8888) != 0) {
+            mobile->report_failure("Cannot configure display surface");
+            throw std::runtime_error("Cannot configure display surface");
+        }
+#endif
+    }
+    bool execute(MobileGalleryCommand command, float x = 0.0F,
+                 float y = 0.0F, bool may_replace_runtime = false) {
+#if PM_ANDROID_VULKAN
+        // VkSurfaceKHR belongs to its creating VkInstance. Gallery runtime
+        // replacement creates a fresh instance/device, so retire presentation
+        // before the old runtime and bind it again only after replacement.
+        if (may_replace_runtime && window) detach_render_target();
+#endif
+        const bool ok = mobile->execute(command, x, y);
+#if PM_ANDROID_VULKAN
+        if (may_replace_runtime && ok && window) attach_render_target();
+#endif
+        return ok;
+    }
+#if !PM_ANDROID_VULKAN
     void present(const GallerySession &frame) {
         if (!window) return;
         ANativeWindow_Buffer buffer{};
@@ -123,7 +216,9 @@ struct Session {
                     frame.width * sizeof(std::uint32_t));
         }
         (void)ANativeWindow_unlockAndPost(window);
+        ++software_presentations;
     }
+#endif
     void log_scene() {
         logged_frames = 0;
         const auto &g = gallery();
@@ -183,34 +278,94 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeSceneCatalog(
         return result;
     } catch (const std::exception &error) { exception(env, error.what()); return nullptr; }
 }
-extern "C" JNIEXPORT jdoubleArray JNICALL
-Java_org_parallelmater_gallery_GalleryActivity_nativeQualifyScene(JNIEnv *env, jclass, jlong handle, jint index, jint count) {
+extern "C" JNIEXPORT jstring JNICALL
+Java_org_parallelmater_gallery_GalleryActivity_nativeQualify(
+    JNIEnv *env, jclass, jlong handle, jint count, jstring nonce) {
     try {
         auto &s = session(handle);
         auto &g = s.gallery();
-        if (index < 0 || count < 1 || count > 100000) throw std::runtime_error("Invalid qualification arguments");
-        if (!s.mobile->execute(MobileGalleryCommand::select_scene,
-                               static_cast<float>(index)))
-            throw std::runtime_error(s.mobile->state().failure);
-        const auto stats = g.qualify(static_cast<unsigned>(count));
-        const jdouble values[]{stats.mean_ms, stats.p95_ms, static_cast<double>(stats.count)};
-        auto result = env->NewDoubleArray(3);
-        if (result) env->SetDoubleArrayRegion(result, 0, 3, values);
-        return result;
+        if (count < 1 || count > 100000)
+            throw std::runtime_error("Invalid qualification arguments");
+        if (!s.window)
+            throw std::runtime_error("Qualification requires an attached surface");
+#if PM_ANDROID_VULKAN
+        // The common qualification sweep replaces physics runtimes. A
+        // VkSurfaceKHR belongs to the VkInstance that created it, so qualify
+        // against the public offscreen target and bind a fresh Android surface
+        // to the final runtime afterward.
+        s.detach_render_target();
+#endif
+        MobileGalleryQualificationConfig config{
+            .frames_per_scene = static_cast<unsigned>(count),
+            .width = std::max(g.width, 1U),
+            .height = std::max(g.height, 1U),
+            .nonce = string(env, nonce),
+#if !PM_ANDROID_VULKAN
+            .configure_surface = [&s](unsigned width, unsigned height,
+                                      std::string &error) {
+                if (!s.window) {
+                    error = "Android qualification surface was detached";
+                    return false;
+                }
+                if (ANativeWindow_setBuffersGeometry(
+                        s.window, static_cast<int>(width),
+                        static_cast<int>(height), WINDOW_FORMAT_RGBA_8888) != 0) {
+                    error = "Cannot configure Android qualification surface";
+                    return false;
+                }
+                return true;
+            },
+#else
+            .configure_surface = {},
+#endif
+            .memory_footprint = [&g] { return g.allocated_bytes(); },
+            .checkpoint = {},
+        };
+        MobileGalleryQualificationReport report;
+        try {
+            report = qualify_mobile_gallery(*s.mobile, std::move(config));
+#if PM_ANDROID_VULKAN
+            s.mobile->detach_surface();
+            s.attach_render_target();
+#endif
+        } catch (...) {
+#if PM_ANDROID_VULKAN
+            try {
+                s.mobile->detach_surface();
+                if (s.window) s.attach_render_target();
+            } catch (...) {
+            }
+#endif
+            throw;
+        }
+        const std::string serialized = report.json();
+        return env->NewStringUTF(serialized.c_str());
     } catch (const std::exception &error) { exception(env, error.what()); return nullptr; }
 }
 extern "C" JNIEXPORT jstring JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeRuntimeInfo(JNIEnv *env, jclass, jlong handle) {
     try {
-        const auto &g = session(handle).gallery();
-        const auto view = g.presentation();
+        const auto &s = session(handle);
+        const auto &g = s.gallery();
+        const auto state = s.mobile->state();
+        const auto &view = state.presentation;
         std::ostringstream info;
         info.imbue(std::locale::classic());
         info << "{\"revision\":\"" << view.build_revision
              << "\",\"backend\":\"" << view.backend
              << "\",\"frames\":" << view.steps
              << ",\"active\":" << (view.active ? "true" : "false")
-             << ",\"paused\":" << (view.paused ? "true" : "false") << "}";
+             << ",\"paused\":" << (view.paused ? "true" : "false")
+             << ",\"surface_ready\":" << (state.surface_ready ? "true" : "false")
+             << ",\"surface_generation\":" << state.surface_generation
+             << ",\"render_width\":" << view.width
+             << ",\"render_height\":" << view.height
+             << ",\"presentation\":\""
+             << (view.renderer == GalleryRendererKind::native_gpu
+                     ? "vulkan-direct" : "software-copy")
+             << "\",\"ordinary_readback_pixels\":" << g.pixels.size()
+             << ",\"software_presentations\":" << s.software_presentations
+             << "}";
         return env->NewStringUTF(info.str().c_str());
     } catch (const std::exception &error) { exception(env, error.what()); return nullptr; }
 }
@@ -225,8 +380,16 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeCreate(JNIEnv *env, jclass,
         if (PM_ANDROID_VULKAN && setenv("PM_VULKAN_CACHE_DIR", string(env, cache).c_str(), 1) != 0)
             throw std::runtime_error("Could not configure Vulkan pipeline cache");
         auto result = std::make_unique<Session>();
-        GallerySessionConfig config{.assets = string(env, assets), .profiles = string(env, profiles),
-            .platform = "Android", .model = string(env, model), .backend = backend_name};
+        GallerySessionConfig config;
+        config.assets = string(env, assets);
+        config.profiles = string(env, profiles);
+        config.platform = "Android";
+        config.model = string(env, model);
+        config.backend = backend_name;
+#if PM_ANDROID_VULKAN
+        config.native_backend = PM_NATIVE_BACKEND_VULKAN;
+        config.gpu_rendering = true;
+#endif
         result->mobile = std::make_unique<MobileGallerySession>(std::move(config));
         const auto &limits = result->gallery().limits;
         __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
@@ -242,25 +405,25 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeCreate(JNIEnv *env, jclass,
 extern "C" JNIEXPORT void JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeDestroy(JNIEnv *, jclass, jlong handle) {
     delete reinterpret_cast<Session *>(handle);
+    __android_log_print(
+        ANDROID_LOG_INFO, "ParallelMater", "Gallery session destroyed");
 }
 extern "C" JNIEXPORT void JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeSurface(JNIEnv *env, jclass,
     jlong handle, jobject surface, jint w, jint h) {
     try {
         auto &s = session(handle);
-        if (s.window) {
-            s.mobile->detach_surface();
-            ANativeWindow_release(s.window);
-        }
+        s.release_surface();
         s.window = surface ? ANativeWindow_fromSurface(env, surface) : nullptr;
         s.logged_frames = 0;
         if (!s.window) return;
-        if (!s.mobile->attach_surface(std::max(w, 1), std::max(h, 1)))
-            throw std::runtime_error(s.mobile->state().failure);
-        if (ANativeWindow_setBuffersGeometry(s.window, s.gallery().width,
-                s.gallery().height, WINDOW_FORMAT_RGBA_8888) != 0) {
-            s.mobile->report_failure("Cannot configure display surface");
-            throw std::runtime_error("Cannot configure display surface");
+        s.surface_width = static_cast<unsigned>(std::max(w, 1));
+        s.surface_height = static_cast<unsigned>(std::max(h, 1));
+        try {
+            s.attach_render_target();
+        } catch (...) {
+            s.release_surface();
+            throw;
         }
     } catch (const std::exception &error) { exception(env, error.what()); }
     catch (...) { exception(env, "Display initialization failed"); }
@@ -269,8 +432,13 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeFrame(JNIEnv *env, jclass, jlong handle) {
     try {
         auto &s = session(handle); auto &g = s.gallery();
+#if PM_ANDROID_VULKAN
+        const bool framed =
+            s.mobile->frame_at(GallerySession::FrameClock::now());
+#else
         const bool framed = s.mobile->frame_at(GallerySession::FrameClock::now(),
             [&](const GallerySession &frame) { s.present(frame); });
+#endif
         const auto state = s.mobile->state();
         if (!framed && state.failed) throw std::runtime_error(state.failure);
         if (framed && !g.is_paused() && g.active() && ++s.logged_frames == 60) {
@@ -306,14 +474,14 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeCommand(JNIEnv *env, jclass
         auto &s = session(handle);
         bool ok = false;
         switch (command) {
-        case 0: ok = s.mobile->execute(MobileGalleryCommand::select_scene, x); break;
-        case 1: ok = s.mobile->execute(MobileGalleryCommand::reset_scene); break;
+        case 0: ok = s.execute(MobileGalleryCommand::select_scene, x, y, true); break;
+        case 1: ok = s.execute(MobileGalleryCommand::reset_scene, x, y, true); break;
         case 2: ok = s.mobile->execute(MobileGalleryCommand::set_paused, x); break;
         case 3: ok = s.mobile->execute(MobileGalleryCommand::steer, x, y); break;
         case 4: ok = s.mobile->execute(MobileGalleryCommand::orbit, x, y); break;
         case 5: ok = s.mobile->execute(MobileGalleryCommand::zoom, x); break;
-        case 6: ok = s.mobile->execute(MobileGalleryCommand::primary_action); break;
-        case 7: ok = s.mobile->execute(MobileGalleryCommand::set_count, x); break;
+        case 6: ok = s.execute(MobileGalleryCommand::primary_action, x, y, true); break;
+        case 7: ok = s.execute(MobileGalleryCommand::set_count, x, y, true); break;
         case 8: ok = s.mobile->execute(MobileGalleryCommand::focus); break;
         case 9: s.mobile->set_foreground(x != 0); ok = true; break;
         case 10: ok = s.mobile->execute(MobileGalleryCommand::toggle_paused); break;
