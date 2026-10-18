@@ -1,0 +1,24 @@
+{
+  "id": "F5-22",
+  "title": "Version rigid contact quality profiles",
+  "status": "open",
+  "dependencies": [
+    "F5-18",
+    "F6-11"
+  ],
+  "locks": [
+    "quality-rigid-profiles"
+  ],
+  "requires": [
+    "Slang CPU and at least one physical GPU driver on one clean revision"
+  ],
+  "scope": "Turn the existing independent rigid penetration and rigid attachment checks into immutable vendor-neutral analytic profiles and bind them to the advertised same-domain rigid contact and attachment capabilities.",
+  "acceptance": [
+    "Publish separate versioned contact and attachment profiles with canonical inputs, physical units, unchanged thresholds and independent oracles that do not use driver-private state.",
+    "Run both profiles through the public API on Slang CPU and at least one physical GPU driver; retain every failure rather than qualifying from cross-driver agreement.",
+    "Update capability obligations and revisioned evidence so each rigid capability qualifies only when its own analytic, lifecycle and reference obligations pass."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

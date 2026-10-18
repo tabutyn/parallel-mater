@@ -1,7 +1,7 @@
 {
   "id": "F5-16",
   "title": "Publish current Linux driver evidence",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-01",
     "F5-02",
@@ -27,15 +27,39 @@
     "All applicable obligations execute independently per advertised driver; cross-driver agreement is retained as reference evidence but cannot replace analytic physical quality, and all failures, missing and unsupported scope remains visible.",
     "Register and regenerate the per-driver evidence index from a Linux and a second-OS checkout without weakening byte-stable identity; unavailable production drivers remain explicit rather than fabricated or skipped as passes."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "39359c9c-2c60-4574-b982-f0c6d3440dfc",
-    "owner": "codex-linux-evidence",
-    "machine": "thomas-laptop",
-    "branch": "work/F5-16/thomas-laptop",
-    "claimed_at": "2026-10-18T18:21:07Z",
-    "heartbeat_at": "2026-10-18T18:21:07Z",
-    "expires_at": "2026-10-19T18:21:07Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: clean eed669e build; CPU executed 12/30 cases and CUDA/Vulkan each executed 30/30, with exact binaries, toolchains and hardware pinned in revisioned bundles.",
+    "PASS: rigid kinematic 61/61 and brick penetration gates passed on all three drivers; CUDA equal-fluid 18/18 passed; missing formal lifecycle fingerprints remain explicit.",
+    "PASS: evidence index is valid and qualification-complete; Linux local and Windows Actions job 117758435016 regenerated it byte-stably. Zero capabilities qualify because known contract/evidence gaps remain visible.",
+    "docs/roadmap/evidence/F5-16-linux-driver-evidence.json",
+    "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-evidence.json",
+    "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-eed669e-evidence.json",
+    "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-evidence.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "39359c9c-2c60-4574-b982-f0c6d3440dfc",
+        "owner": "codex-linux-evidence",
+        "machine": "thomas-laptop",
+        "branch": "work/F5-16/thomas-laptop",
+        "claimed_at": "2026-10-18T18:21:07Z",
+        "heartbeat_at": "2026-10-18T18:21:07Z",
+        "expires_at": "2026-10-19T18:21:07Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-18T18:58:49Z",
+      "reason": "Published current clean Linux CPU, CUDA and Vulkan evidence with every failure, unsupported case and missing contract explicit.",
+      "evidence": [
+        "PASS: clean eed669e build; CPU executed 12/30 cases and CUDA/Vulkan each executed 30/30, with exact binaries, toolchains and hardware pinned in revisioned bundles.",
+        "PASS: rigid kinematic 61/61 and brick penetration gates passed on all three drivers; CUDA equal-fluid 18/18 passed; missing formal lifecycle fingerprints remain explicit.",
+        "PASS: evidence index is valid and qualification-complete; Linux local and Windows Actions job 117758435016 regenerated it byte-stably. Zero capabilities qualify because known contract/evidence gaps remain visible.",
+        "docs/roadmap/evidence/F5-16-linux-driver-evidence.json",
+        "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-evidence.json",
+        "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-eed669e-evidence.json",
+        "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-evidence.json"
+      ]
+    }
+  ]
 }

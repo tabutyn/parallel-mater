@@ -149,6 +149,27 @@ class EvidenceIndexTests(unittest.TestCase):
                 self.assertTrue(any(message in failure["message"]
                                     for failure in index["known_failures"]))
 
+    def test_expected_driver_without_result_remains_explicit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary = pathlib.Path(directory)
+            sources = {
+                "schema": evidence_index.SOURCES_SCHEMA,
+                "id": "test-sources",
+                "obligations": {"path": str(PROFILE_PATH),
+                                "sha256": self.profile_hash},
+                "expected_drivers": [{"id": "missing-driver", "label": "Missing"}],
+                "qualification_results": [],
+                "supplemental_reports": [],
+            }
+            sources_path = temporary / "sources.json"
+            sources_path.write_text(json.dumps(sources), encoding="utf-8")
+            index = evidence_index.build_index(REPOSITORY, sources_path)
+        self.assertFalse(index["qualification_complete"])
+        self.assertTrue(any(
+            failure["driver"] == "missing-driver" and
+            failure["kind"] == "missing_qualification_result"
+            for failure in index["known_failures"]))
+
     def test_checked_in_index_and_document_claims_are_current(self):
         index = evidence_index.build_index(REPOSITORY, SOURCES_PATH)
         self.assertEqual(index, json.loads(INDEX_PATH.read_text(encoding="utf-8")))
@@ -173,7 +194,8 @@ class EvidenceIndexTests(unittest.TestCase):
         kinds = {failure["kind"] for failure in index["known_failures"]}
         self.assertIn("historical_baseline_failure", kinds)
         self.assertIn("unsupported", kinds)
-        self.assertIn("missing_qualification_result", kinds)
+        self.assertIn("qualification_failure", kinds)
+        self.assertTrue(index["qualification_complete"])
 
     def test_stale_report_registry_hash_is_a_validation_failure(self):
         sources = json.loads(SOURCES_PATH.read_text(encoding="utf-8"))

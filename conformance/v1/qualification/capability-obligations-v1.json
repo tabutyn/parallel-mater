@@ -25,7 +25,7 @@
     ]
   },
   "contracts": [
-    {"id": "registry:interaction-capabilities", "path": "registry/pm.xml", "sha256": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7"},
+    {"id": "registry:interaction-capabilities", "path": "registry/pm.xml", "sha256": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3"},
     {"id": "case:fluid-lifecycle", "path": "conformance/v1/cases/fluid-lifecycle.json", "sha256": "43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b"},
     {"id": "case:rope-core", "path": "conformance/v1/cases/rope-core.json", "sha256": "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41"},
     {"id": "case:smoke-grid", "path": "conformance/v1/cases/smoke-grid.json", "sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3"},

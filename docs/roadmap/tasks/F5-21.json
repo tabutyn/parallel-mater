@@ -1,0 +1,23 @@
+{
+  "id": "F5-21",
+  "title": "Make Gallery validation discovery hermetic",
+  "status": "open",
+  "dependencies": [
+    "F6-11"
+  ],
+  "locks": [
+    "gallery-test-runtime-manifests"
+  ],
+  "requires": [
+    "Any host building a Gallery production driver and the validation layer"
+  ],
+  "scope": "Give every physical Gallery CTest that enables Parallel Mater validation an explicit build-tree validation-layer manifest, so test outcomes never depend on a machine-wide installation or inherited environment.",
+  "acceptance": [
+    "Audit all Gallery CTest registrations and set PM_LAYER_FILES or PM_LAYER_PATH alongside each explicit PM_DRIVER_FILES selection when the test creates a validation-enabled instance.",
+    "Add a focused test or inspection check that fails when a validation-enabled physical test omits its local layer manifest and proves discovery uses the intended build artifact.",
+    "Run the affected CPU/CUDA/Vulkan Gallery tests available on the host; layer-not-present is not accepted as a skip or physics result."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
