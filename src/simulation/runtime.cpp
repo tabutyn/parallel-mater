@@ -883,6 +883,7 @@ struct FluidPairCouplingStorage {
         for (auto *&pointer : index.identities) release_managed(pointer);
         for (auto *&pointer : index.total_neighbors) release_managed(pointer);
         for (auto *&pointer : index.cross_neighbors) release_managed(pointer);
+        for (auto *&pointer : index.density_samples) release_managed(pointer);
         for (auto *&pointer : index.neighbor_overflow) release_managed(pointer);
         for (auto *&pointer : index.maximum_neighbor_count)
             release_managed(pointer);
@@ -1086,6 +1087,7 @@ simulation::FluidDispatchConstants slang_fluid_constants(
             options.maximum_speed,
             options.maximum_pair_acceleration,
             options.rest_density,
+            options.rest_particle_volume,
             options.maximum_neighbors};
 }
 

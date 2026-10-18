@@ -381,6 +381,26 @@ void fluid_copy_initial(
 static const uint kFluidSecondPopulation = 0x80000000u;
 static const uint kFluidLocalIndexMask = 0x7fffffffu;
 
+float fluid_particle_mass(FluidOptions options)
+{
+    float diameter = 2.0f * options.particle_radius;
+    float volume = options.rest_particle_volume > 0.0f
+        ? options.rest_particle_volume : diameter * diameter * diameter;
+    return options.rest_density * volume;
+}
+
+// Three-dimensional poly6 sample. Writing the normalized form in terms of
+// r^2 / h^2 avoids h^9 and keeps density values in kg/m^3.
+float fluid_density_kernel(float squared_distance, float support_radius)
+{
+    float support_squared = support_radius * support_radius;
+    if (squared_distance >= support_squared) return 0.0f;
+    float q_squared = max(0.0f, 1.0f - squared_distance / support_squared);
+    float support_cubed = support_radius * support_squared;
+    return 1.56668147106f * q_squared * q_squared * q_squared /
+        support_cubed;
+}
+
 [shader("compute")]
 [numthreads(PM_THREADS(128), 1, 1)]
 void fluid_emit_pair_cells(
@@ -421,11 +441,14 @@ void fluid_count_pair_neighbors(
     uniform PMBuffer<uint> second_count, uniform uint second_capacity,
     uniform uint second_maximum_neighbors,
     uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> identities,
-    uniform uint total_capacity, uniform float support_radius,
+    uniform uint total_capacity, uniform FluidOptions first_options,
+    uniform FluidOptions second_options,
     uniform PMBuffer<uint> first_total_neighbors,
     uniform PMBuffer<uint> first_cross_neighbors,
+    uniform PMBuffer<float> first_density_samples,
     uniform PMBuffer<uint> second_total_neighbors,
     uniform PMBuffer<uint> second_cross_neighbors,
+    uniform PMBuffer<float> second_density_samples,
     uniform PMBuffer<uint> first_neighbor_overflow,
     uniform PMBuffer<uint> second_neighbor_overflow,
     uniform PMBuffer<uint> first_maximum_neighbor_count,
@@ -443,23 +466,29 @@ void fluid_count_pair_neighbors(
     {
         second_total_neighbors[local] = 0u;
         second_cross_neighbors[local] = 0u;
+        second_density_samples[local] = 0.0f;
     }
     else
     {
         first_total_neighbors[local] = 0u;
         first_cross_neighbors[local] = 0u;
+        first_density_samples[local] = 0.0f;
     }
     if (local >= count) return;
 
     Vec3 position = second ? second_positions[local] : first_positions[local];
     uint selfIdentity = local | (second ? kFluidSecondPopulation : 0u);
-    float inverseRadius = 1.0f / support_radius;
+    FluidOptions localOptions = second ? second_options : first_options;
+    float pairSupport = max(first_options.support_radius,
+        second_options.support_radius);
+    float inverseRadius = 1.0f / pairSupport;
     int cx = int(floor(position.x * inverseRadius));
     int cy = int(floor(position.y * inverseRadius));
     int cz = int(floor(position.z * inverseRadius));
-    float supportSquared = support_radius * support_radius;
     uint neighbors = 0u;
     uint crossNeighbors = 0u;
+    float density = fluid_particle_mass(localOptions) *
+        fluid_density_kernel(0.0f, localOptions.support_radius);
     for (int dz = -1; dz <= 1; ++dz)
     {
         for (int dy = -1; dy <= 1; ++dy)
@@ -481,11 +510,19 @@ void fluid_count_pair_neighbors(
                     uint other = otherIdentity & kFluidLocalIndexMask;
                     Vec3 otherPosition = otherSecond
                         ? second_positions[other] : first_positions[other];
-                    if (length_squared(subtract(position, otherPosition)) >=
-                        supportSquared)
+                    bool crossPopulation = otherSecond != second;
+                    float support = crossPopulation
+                        ? pairSupport : localOptions.support_radius;
+                    float squared = length_squared(
+                        subtract(position, otherPosition));
+                    if (squared >= support * support)
                         continue;
                     ++neighbors;
-                    if (otherSecond != second) ++crossNeighbors;
+                    if (crossPopulation) ++crossNeighbors;
+                    FluidOptions otherOptions = otherSecond
+                        ? second_options : first_options;
+                    density += fluid_particle_mass(otherOptions) *
+                        fluid_density_kernel(squared, support);
                 }
             }
         }
@@ -495,6 +532,7 @@ void fluid_count_pair_neighbors(
     {
         second_total_neighbors[local] = neighbors;
         second_cross_neighbors[local] = crossNeighbors;
+        second_density_samples[local] = density;
         pmAtomicMax(second_maximum_neighbor_count, neighbors);
         if (neighbors > second_maximum_neighbors)
             pmAtomicAdd(second_neighbor_overflow, 1u);
@@ -503,6 +541,7 @@ void fluid_count_pair_neighbors(
     {
         first_total_neighbors[local] = neighbors;
         first_cross_neighbors[local] = crossNeighbors;
+        first_density_samples[local] = density;
         pmAtomicMax(first_maximum_neighbor_count, neighbors);
         if (neighbors > first_maximum_neighbors)
             pmAtomicAdd(first_neighbor_overflow, 1u);
