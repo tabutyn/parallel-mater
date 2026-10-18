@@ -1,0 +1,23 @@
+{
+  "id": "P1-56",
+  "title": "Expose immiscible interface state",
+  "status": "deferred",
+  "dependencies": [
+    "P1-04"
+  ],
+  "locks": [
+    "api-spec",
+    "interaction-spec"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Add a separately queryable interface mode and typed, versioned capillary state for immiscible fluid pairs; advertise nothing.",
+  "acceptance": [
+    "Registry, generated C API and specification define the interface capability identity, first-to-second normal convention, surface tension in N/m and the zero limit.",
+    "Negative tests atomically reject interface state on other material profiles plus missing, negative, nonfinite, duplicate and unsupported state."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
