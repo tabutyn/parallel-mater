@@ -1,16 +1,33 @@
 {
   "id": "F7-14",
   "title": "Enable Vulkan cross-deformable Gallery couplings",
-  "status": "open",
-  "dependencies": ["F7-10", "F7-11", "F7-12", "F7-13"],
-  "locks": ["vulkan-gallery-cross-domain"],
-  "requires": ["Linux or Android Vulkan device"],
+  "status": "leased",
+  "dependencies": [
+    "F7-10",
+    "F7-11",
+    "F7-12",
+    "F7-13"
+  ],
+  "locks": [
+    "vulkan-gallery-cross-domain"
+  ],
+  "requires": [
+    "Linux or Android Vulkan device"
+  ],
   "scope": "Compile, bind and qualify existing shared Slang soft-cloth, rope-soft, rope-cloth, smoke-soft, smoke-cloth and smoke-rope schedules for Vulkan.",
   "acceptance": [
     "Every existing cross-domain Gallery scene either passes public-API lifecycle and visible-output checks or remains unavailable with its exact unsupported capability.",
     "No aggregate domainCouplings claim is exposed when any capability record needed by a selectable scene is missing."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "c18470d7-88ac-496a-a083-ab846ac96d72",
+    "owner": "codex-linux-gallery",
+    "machine": "thomas-laptop",
+    "branch": "work/F7-14/thomas-laptop",
+    "claimed_at": "2026-10-18T14:37:12Z",
+    "heartbeat_at": "2026-10-18T14:37:12Z",
+    "expires_at": "2026-10-19T14:37:12Z"
+  },
   "history": []
 }
