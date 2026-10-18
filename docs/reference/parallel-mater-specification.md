@@ -2130,9 +2130,11 @@ PmResult pmImportNativeDevice(
     PmDevice* pDevice);
 PmResult pmGetNativeDevice(PmDevice device,
     PmNativeDeviceInfo* pNativeDevice);
+PmResult pmGetNativeQueue(PmQueue queue,
+    PmNativeQueueInfo* pNativeQueue);
 ```
 
-Import borrows a device/context and at least one explicit queue/stream. enabledFeatures selects PM features; enabledNativeFeatures records native capabilities already enabled by the caller, not requests to enable them. Unknown bits fail. TIMELINE_ENABLED is required for shared counter synchronization. SYNCHRONIZATION2 is required only for Vulkan 1.3 import, and must be zero for other backends. Get returns borrowed handles, including for PM-created native devices; it does not transfer ownership.
+Import borrows a device/context and at least one explicit queue/stream. enabledFeatures selects PM features; enabledNativeFeatures records native capabilities already enabled by the caller, not requests to enable them. Unknown bits fail. TIMELINE_ENABLED is required for shared counter synchronization. SYNCHRONIZATION2 is required only for Vulkan 1.3 import, and must be zero for other backends. GetNativeDevice and GetNativeQueue return borrowed handles, including for PM-created native devices and queues; they do not transfer ownership.
 
 CUDA uses instance = 0, physicalDevice = CUdevice ordinal, device = CUcontext, queue = a non-default CUstream from that context. Metal uses instance = physicalDevice = 0, device = id<MTLDevice>, queue = id<MTLCommandQueue>. DirectX 12 uses instance = physicalDevice = 0, device = ID3D12Device*, queue = ID3D12CommandQueue* of DIRECT or COMPUTE type. Vulkan uses VkInstance, VkPhysicalDevice, VkDevice and VkQueue. Verify adapter identity before combining native objects.
 
@@ -2924,6 +2926,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmGetInstanceProcAddr | [3.1](#spec-function_pointers) |
 | pmGetNativeBuffer | [14.3](#spec-native_buffer) |
 | pmGetNativeDevice | [14.2](#spec-native_device) |
+| pmGetNativeQueue | [14.2](#spec-native_device) |
 | pmGetNativeSemaphore | [14.4](#spec-native_timeline) |
 | pmGetPhysicalDeviceFeatures | [4.4](#spec-features) |
 | pmGetPhysicalDeviceFormatProperties | [16.3](#spec-formats) |

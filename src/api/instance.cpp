@@ -275,6 +275,7 @@ PFN_pmVoidFunction lookup_proc(const char *value) noexcept {
     PM_LOOKUP(pmGetPhysicalDeviceInteropProperties);
     PM_LOOKUP(pmImportNativeDevice);
     PM_LOOKUP(pmGetNativeDevice);
+    PM_LOOKUP(pmGetNativeQueue);
     PM_LOOKUP(pmImportNativeBuffer);
     PM_LOOKUP(pmGetNativeBuffer);
     PM_LOOKUP(pmImportNativeSemaphore);

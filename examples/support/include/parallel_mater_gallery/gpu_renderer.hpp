@@ -22,6 +22,7 @@ struct GpuRendererDevice {
     PmDevice api_device{};
     PmQueue physics_queue{};
     PmNativeDeviceInfo native{};
+    PmNativeQueueInfo native_queue{};
     std::uint64_t resource_generation{};
 };
 

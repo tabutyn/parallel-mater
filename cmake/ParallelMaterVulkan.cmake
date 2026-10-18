@@ -114,6 +114,10 @@ if(BUILD_TESTING)
     endif()
 endif()
 
+if(PARALLEL_MATER_BUILD_GALLERY)
+    include(${CMAKE_CURRENT_LIST_DIR}/ParallelMaterVulkanGallery.cmake)
+endif()
+
 if(BUILD_TESTING)
     foreach(test parallel-mater-vulkan-command-api-tests parallel-mater-vulkan-async-tests
                  parallel-mater-vulkan-liquid-tests)

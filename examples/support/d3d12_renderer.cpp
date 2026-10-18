@@ -36,9 +36,10 @@ void barrier(ID3D12GraphicsCommandList *commands, ID3D12Resource *resource,
 struct DrawConstants {
     float eye[4]{}, right[4]{}, up[4]{}, forward[4]{}, color[4]{};
     std::uint32_t draw[4]{};
+    std::uint32_t paint[4]{};
     float settings[4]{};
 };
-static_assert(sizeof(DrawConstants) == 112U);
+static_assert(sizeof(DrawConstants) == 128U);
 static_assert(sizeof(PmRigidState) == 52U && sizeof(PmFluidParticleOutput) == 48U);
 static_assert(sizeof(PmDomainOutputHeader) == 16U);
 
@@ -187,7 +188,8 @@ class D3D12Renderer final : public Renderer {
             IID_PPV_ARGS(&root_)), "create drawing root signature");
         D3D12_INPUT_ELEMENT_DESC elements[]{
             {"POSITION",0U,DXGI_FORMAT_R32G32B32_FLOAT,0U,0U,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0U},
-            {"NORMAL",0U,DXGI_FORMAT_R32G32B32_FLOAT,0U,12U,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0U}};
+            {"NORMAL",0U,DXGI_FORMAT_R32G32B32_FLOAT,0U,12U,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0U},
+            {"TEXCOORD",0U,DXGI_FORMAT_R32G32_FLOAT,0U,24U,D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,0U}};
         D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline{};
         pipeline.pRootSignature = root_.Get();
         pipeline.VS = {shaders::vertex, sizeof(shaders::vertex)};
@@ -200,7 +202,7 @@ class D3D12Renderer final : public Renderer {
         pipeline.DepthStencilState.DepthEnable = TRUE;
         pipeline.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
         pipeline.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-        pipeline.InputLayout = {elements, 2U};
+        pipeline.InputLayout = {elements, 3U};
         pipeline.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         pipeline.NumRenderTargets = 1U;
         pipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -344,7 +346,6 @@ class D3D12Renderer final : public Renderer {
             std::memcpy(values.forward, &forward, sizeof(Vec3));
             values.up[3] = std::tan(camera.vertical_field_of_view_degrees * 0.00872664626F);
             values.right[3] = values.up[3] * static_cast<float>(width_) / static_cast<float>(height_);
-            values.draw[3] = static_cast<std::uint32_t>(buffers_.previous_rigid.offset);
             values.settings[1] = rigid_interpolation_alpha;
             std::size_t constant_index{};
             const auto bind = [&] {
@@ -357,7 +358,16 @@ class D3D12Renderer final : public Renderer {
                 const auto &mesh = meshes_.at(draw.mesh);
                 if (!mesh.visible || !mesh.count) continue;
                 std::memcpy(values.color, &mesh.color, sizeof(Vec3));
-                values.draw[0] = draw.mode; values.draw[1] = draw.offset; values.draw[2] = draw.body;
+                values.draw[0] = draw.mode;
+                values.draw[1] = draw.mode == 0U
+                    ? static_cast<std::uint32_t>(buffers_.rigid.offset) +
+                        draw.body * sizeof(PmRigidState)
+                    : draw.offset;
+                values.draw[2] = 0U;
+                values.draw[3] = draw.mode == 0U
+                    ? static_cast<std::uint32_t>(buffers_.previous_rigid.offset) +
+                        draw.body * sizeof(PmRigidState)
+                    : 0U;
                 bind();
                 commands_->IASetVertexBuffers(0U, 1U, &mesh.vertex_view);
                 commands_->IASetIndexBuffer(&mesh.index_view);
@@ -367,7 +377,9 @@ class D3D12Renderer final : public Renderer {
                 values.color[0] = 0.05F; values.color[1] = 0.42F; values.color[2] = 0.92F;
                 values.draw[0] = 2U;
                 values.draw[1] = static_cast<std::uint32_t>(buffers_.fluid.offset);
+                values.draw[2] = sizeof(PmFluidParticleOutput);
                 values.settings[0] = particle_radius_;
+                values.settings[3] = 1.0F;
                 values.settings[2] = support_radius_;
                 if (fluid_mode == FluidRenderMode::particles) {
                     bind();

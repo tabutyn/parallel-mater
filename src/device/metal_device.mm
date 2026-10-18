@@ -22,6 +22,12 @@ public:
     ~MetalServices() override { (void)wait_idle(); destroy_event(epoch_); }
     int ordinal() const noexcept override { return 0; }
     void *native_device_handle() const noexcept override { return context_.device().native_device(); }
+    void describe_native_queue(PmNativeQueueInfo &info) const noexcept override {
+        info.queue = static_cast<PmNativeHandle>(reinterpret_cast<std::uintptr_t>(
+            context_.device().native_queue()));
+        info.familyIndex = 0U;
+        info.queueIndex = 0U;
+    }
     // Internal schedule token, not an exported native queue handle.
     void *native_queue_handle() const noexcept override { return &context_; }
     void *native_allocation_handle(const void *pointer) const noexcept override {
