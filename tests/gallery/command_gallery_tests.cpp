@@ -497,6 +497,7 @@ int main(int argc, char **argv) {
             auto &selected = option == "--backend" ? backend : reference_backend;
             if (value == "d3d12") selected = PM_NATIVE_BACKEND_D3D12;
             else if (value == "cuda") selected = PM_NATIVE_BACKEND_CUDA;
+            else if (value == "vulkan") selected = PM_NATIVE_BACKEND_VULKAN;
             else { std::cerr << "Unknown backend: " << value << '\n'; return 1; }
         } else if (option == "--frames" && argument + 1 < argc) {
             try { requested_frames = std::stoul(argv[++argument]); }
@@ -660,6 +661,25 @@ int main(int argc, char **argv) {
                  !test::compare_frames(frame, reference_frame, error, trace_comparison))) {
                 std::cerr << entry.name << ": backend comparison frame " << frame_index
                           << " failed: " << error << '\n';
+                return 1;
+            }
+        }
+
+        if (requested_frames >= 120U &&
+            (entry.context == GalleryContext::peg_paint ||
+             entry.context == GalleryContext::cloth_paint)) {
+            const auto painted = std::count_if(
+                frame.paint_fields.begin(), frame.paint_fields.end(),
+                [](const auto &field) {
+                    return std::any_of(field.begin(), field.end(),
+                                       [](std::uint32_t pixel) {
+                                           return pixel != 0U;
+                                       });
+                });
+            if (painted == 0) {
+                std::cerr << entry.name
+                          << ": paint field remained empty after "
+                          << requested_frames << " frames\n";
                 return 1;
             }
         }
