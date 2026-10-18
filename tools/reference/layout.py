@@ -30,9 +30,9 @@ COL = (W - 2 * MARGIN - (COLUMNS - 1) * GUTTER) / COLUMNS
 INNER = COL - 2 * PAD
 TOP, BOTTOM = H - MARGIN, 12.0
 CODE_SIZE, CODE_LEADING = 6.7, 8.0
-LONG_TOKEN_SIZE = 6.4  # Full structure identifiers, never truncated or split.
+LONG_TOKEN_SIZE = 5.7  # Full structure identifiers, never truncated or split.
 BODY_SIZE, BODY_LEADING = 8.0, 9.4
-INDEX_SIZE, INDEX_LEADING = 8.0, 16.0
+INDEX_SIZE, INDEX_MIN_SIZE, INDEX_LEADING = 8.0, 7.3, 16.0
 DIAGRAM_HEIGHTS = {"ownership": 169, "allocation": 192, "pipeline": 239,
                    "lifecycle": 207, "handoff": 211}
 INK = colors.HexColor("#24323C")
@@ -94,6 +94,11 @@ def paragraph(text, size=BODY_SIZE, leading=BODY_LEADING, bold=False, color=INK)
     return Paragraph(markup, ParagraphStyle("reference", fontName="Bold" if bold else "Body",
         fontSize=size, leading=leading, textColor=color, spaceAfter=0,
         allowWidows=0, allowOrphans=0, splitLongWords=True))
+
+
+def index_size(symbol):
+    width_at_one_point = pdfmetrics.stringWidth(symbol, "Body", 1.0)
+    return min(INDEX_SIZE, (INNER - 13) / width_at_one_point)
 
 
 def code_lines(source):
@@ -331,7 +336,7 @@ def layout():
         if flow.available() < index_leading:
             flow.next_column()
             flow.start_region(index_section)
-        if pdfmetrics.stringWidth(symbol, "Body", INDEX_SIZE) > INNER - 13:
+        if index_size(symbol) < INDEX_MIN_SIZE:
             raise ValueError(f"Index label too wide: {symbol}")
         flow.add("index", (symbol, key), index_leading, None)
     flow.finish_region()
@@ -581,7 +586,9 @@ def draw_item(pdf, item, page_map):
         draw_wordmark(pdf, x, top)
     elif kind == "index":
         symbol, key = value
-        label(pdf, symbol, x, top-9, INDEX_SIZE, color=BLUE if symbol.startswith("pm") else GREEN, centered=False)
+        size = index_size(symbol)
+        label(pdf, symbol, x, top-9, size,
+              color=BLUE if symbol.startswith("pm") else GREEN, centered=False)
         pdf.setFont("Body", INDEX_SIZE)
         pdf.setFillColor(MUTED)
         pdf.drawRightString(x+INNER, top-9, str(page_map[key]))

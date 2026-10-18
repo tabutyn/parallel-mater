@@ -18,7 +18,7 @@ LOADER_SPECIAL = {
 }
 
 
-def generate_coverage(root, destination):
+def generate_coverage(root, destination, provenance):
     commands = declarations()
     definitions = {}
     for source in sorted((root / "src/loader").glob("*.cpp")):
@@ -41,6 +41,7 @@ def generate_coverage(root, destination):
             f"Runtime command coverage mismatch; missing={missing}, duplicates={duplicates}")
 
     inventory = {
+        "registry": provenance,
         "contract": "Parallel Mater command API 0.2",
         "implementation": "src/loader public entry points routed to installable drivers",
         "statusMeaning": {
@@ -71,4 +72,4 @@ def generate_coverage(root, destination):
                               SPEC_NUMBERS["base_types"] + "."),
     }
     (destination / "api-coverage.json").write_text(
-        json.dumps(inventory, indent=2) + "\n")
+        json.dumps(inventory, indent=2) + "\n", encoding="utf-8", newline="\n")

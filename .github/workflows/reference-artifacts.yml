@@ -1,0 +1,36 @@
+name: Reference artifacts
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.15'
+      - name: Verify toolchain lock contract
+        run: python -m unittest tests/release/test_reference_artifacts.py
+      - name: Reproduce complete reference artifact set
+        run: python tools/reference/bootstrap.py --check --skip-vulkan-header
+      - name: Preserve reviewed release artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reference-artifacts
+          path: |
+            docs/reference/release-artifacts.json
+            docs/reference/parallel-mater-reference.pdf
+            docs/reference/parallel-mater-reference.layout.json
+            docs/reference/parallel-mater-specification.pdf
+            docs/reference/parallel-mater-specification.layout.json

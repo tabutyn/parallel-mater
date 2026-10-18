@@ -1,0 +1,6 @@
+/docs/reference/api/*.h text eol=lf
+/docs/reference/*.json text eol=lf
+/docs/reference/*.md text eol=lf
+/include/parallel_mater/*.h text eol=lf
+/tools/reference/*.json text eol=lf
+/tools/reference/*.txt text eol=lf

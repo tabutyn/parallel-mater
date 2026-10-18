@@ -1,3 +1,5 @@
+<!-- Generated from registry/pm.xml sha256:6da66da58a41e96d4229afc6a49d9ab9b5615b7e39830970a6c65c9aa3c82923 -->
+
 # Parallel Mater 0.2 — API Specification
 
 This specification defines the Parallel Mater 0.2 command API: object ownership, device discovery, explicit storage, physics pipelines, command execution, and synchronization. It is the behavioral contract for implementations and applications. The companion reference guide lists declarations and points here by section number.

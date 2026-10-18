@@ -249,6 +249,26 @@ names. Absent components and a scene install without preparation must fail at
 configuration. These checks qualify packaging boundaries only, not physical
 quality, capability coverage or a stable C++ ABI.
 
+### F6-05 release reference artifacts
+
+The reference release uses a tracked CPython 3.13.15/package/font lock instead
+of host-installed fonts. All four generated header copies, searchable
+specification text, API coverage, two PDFs and two layout manifests identify or
+are hash-bound to registry revision
+`6da66da58a41e96d4229afc6a49d9ab9b5615b7e39830970a6c65c9aa3c82923`.
+The clean staging check reproduced all 10 files byte-for-byte with no accepted
+nondeterminism. It also passed 6 MSVC C11/C++17 ABI probes, checked all 118
+functions and 143 non-Vulkan public types, and validated 52 specification pages,
+9 reference pages, embedded fonts, links, page bounds and non-overlap.
+
+The [tracked F6-05 evidence](roadmap/evidence/F6-05-reference-artifacts.json)
+and [release artifact manifest](reference/release-artifacts.json) pin the exact
+inputs, output hashes and reproduction command. Reference-artifact CI repeats a
+clean Ubuntu regeneration. The optional Vulkan header compile probe was skipped
+locally because this host lacks Vulkan SDK headers; generation and byte
+comparison still include that header. This qualifies document release
+artifacts, not driver execution, physics quality or performance.
+
 The [Windows physics report](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json)
 records tested source/binary/case hashes, original first divergences, comparison
 results, independent physical metrics and reproduction commands. See also the

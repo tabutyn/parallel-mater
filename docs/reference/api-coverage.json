@@ -1,4 +1,8 @@
 {
+  "registry": {
+    "path": "registry/pm.xml",
+    "sha256": "6da66da58a41e96d4229afc6a49d9ab9b5615b7e39830970a6c65c9aa3c82923"
+  },
   "contract": "Parallel Mater command API 0.2",
   "implementation": "src/loader public entry points routed to installable drivers",
   "statusMeaning": {
@@ -11,7 +15,7 @@
       "section": "3.1",
       "card": "function_pointers",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:62",
+      "source": "src\\loader\\entry.cpp:62",
       "status": "implemented"
     },
     {
@@ -19,7 +23,7 @@
       "section": "3.1",
       "card": "function_pointers",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:127",
+      "source": "src\\loader\\entry.cpp:127",
       "status": "implemented"
     },
     {
@@ -27,7 +31,7 @@
       "section": "3.2",
       "card": "instance",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:137",
+      "source": "src\\loader\\entry.cpp:137",
       "status": "implemented"
     },
     {
@@ -35,7 +39,7 @@
       "section": "3.2",
       "card": "instance",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:78",
+      "source": "src\\loader\\entry.cpp:78",
       "status": "implemented"
     },
     {
@@ -43,7 +47,7 @@
       "section": "3.2",
       "card": "instance",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:90",
+      "source": "src\\loader\\entry.cpp:90",
       "status": "implemented"
     },
     {
@@ -51,7 +55,7 @@
       "section": "3.2",
       "card": "instance",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:101",
+      "source": "src\\loader\\entry.cpp:101",
       "status": "implemented"
     },
     {
@@ -59,7 +63,7 @@
       "section": "3.2",
       "card": "instance",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:144",
+      "source": "src\\loader\\entry.cpp:144",
       "status": "implemented"
     },
     {
@@ -67,7 +71,7 @@
       "section": "3.2",
       "card": "instance",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:236",
+      "source": "src\\loader\\entry.cpp:236",
       "status": "implemented"
     },
     {
@@ -75,7 +79,7 @@
       "section": "4.1",
       "card": "physical_devices",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:254",
+      "source": "src\\loader\\entry.cpp:254",
       "status": "implemented"
     },
     {
@@ -107,7 +111,7 @@
       "section": "4.5",
       "card": "device",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:282",
+      "source": "src\\loader\\entry.cpp:282",
       "status": "implemented"
     },
     {
@@ -115,7 +119,7 @@
       "section": "4.5",
       "card": "device",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:344",
+      "source": "src\\loader\\entry.cpp:344",
       "status": "implemented"
     },
     {
@@ -123,7 +127,7 @@
       "section": "4.5",
       "card": "device",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:358",
+      "source": "src\\loader\\entry.cpp:358",
       "status": "implemented"
     },
     {
@@ -539,7 +543,7 @@
       "section": "11.2",
       "card": "command_buffers",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:407",
+      "source": "src\\loader\\entry.cpp:407",
       "status": "implemented"
     },
     {
@@ -547,7 +551,7 @@
       "section": "11.2",
       "card": "command_buffers",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:460",
+      "source": "src\\loader\\entry.cpp:460",
       "status": "implemented"
     },
     {
@@ -675,7 +679,7 @@
       "section": "13.4",
       "card": "submission",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:493",
+      "source": "src\\loader\\entry.cpp:493",
       "status": "implemented"
     },
     {
@@ -747,7 +751,7 @@
       "section": "14.2",
       "card": "native_device",
       "header": "parallel_mater.h",
-      "source": "src/loader/entry.cpp:527",
+      "source": "src\\loader\\entry.cpp:527",
       "status": "implemented"
     },
     {
@@ -803,7 +807,7 @@
       "section": "14.6",
       "card": "vulkan_device",
       "header": "interop_vulkan.h",
-      "source": "src/loader/entry.cpp:569",
+      "source": "src\\loader\\entry.cpp:569",
       "status": "implemented"
     },
     {

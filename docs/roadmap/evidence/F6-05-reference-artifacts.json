@@ -1,0 +1,76 @@
+{
+  "schema": "parallel-mater-roadmap-reference-artifact-evidence/v1",
+  "task": "F6-05",
+  "scope": "Pinned release reference toolchain and deterministic full-artifact regeneration",
+  "source": {
+    "base_main_commit": "39f06b20947865a44fa4cd10a44ddbc2ade658e1",
+    "branch": "work/F6-05/windows-gtx1080",
+    "registry": {
+      "path": "registry/pm.xml",
+      "sha256": "6da66da58a41e96d4229afc6a49d9ab9b5615b7e39830970a6c65c9aa3c82923"
+    }
+  },
+  "toolchain": {
+    "lock": "tools/reference/toolchain.json",
+    "lock_sha256": "b729ef8937165f132f69dc71a0cb31cf89dd2b4a483d87d5426cfd2f6b47ec7e",
+    "python": "CPython 3.13.15",
+    "packages": {
+      "reportlab": "5.0.1",
+      "PyMuPDF": "1.28.2",
+      "Pillow": "12.3.0"
+    },
+    "fonts": "Immutable Google Fonts commit and DejaVu 2.37 release inputs, with archive and extracted-file SHA-256 validation",
+    "compiler": "MSVC 19.51 x64 through Visual Studio 2026 Developer PowerShell"
+  },
+  "artifacts": {
+    "manifest": "docs/reference/release-artifacts.json",
+    "manifest_sha256": "f9bcceabd1dd911485db9c05a8f1c67abb7246b97a451bd4f325e4b96ae28723",
+    "count": 10,
+    "classes": {
+      "public_header_copies": 4,
+      "coverage_inventories": 1,
+      "searchable_specifications": 1,
+      "pdfs": 2,
+      "layout_manifests": 2
+    },
+    "registry_revision_shared": true,
+    "clean_regeneration_byte_identical": true,
+    "known_nondeterminism": []
+  },
+  "document_contract": {
+    "functions": 118,
+    "typed_function_pointers_without_optional_vulkan": 112,
+    "public_types_without_optional_vulkan": 143,
+    "reference_pages": 9,
+    "specification_pages": 52,
+    "reference_section_fragments": 91,
+    "internal_links": 265,
+    "specification_links": 105,
+    "embedded_project_fonts_only": true,
+    "overlaps": 0,
+    "out_of_bounds_items": 0
+  },
+  "verification": [
+    {
+      "check": "python tools/reference/bootstrap.py --build --check --skip-vulkan-header",
+      "result": "PASS: pinned environment and font inputs; 6 MSVC C11/C++17 ABI checks; complete semantic, visual-layout and clean byte-regeneration checks"
+    },
+    {
+      "check": "python -m unittest tests/release/test_reference_artifacts.py",
+      "result": "PASS: 4/4 toolchain-lock, immutable-input, output-inventory and registry-provenance tests"
+    },
+    {
+      "check": "manual review of rendered reference pages 1, 7 and 8",
+      "result": "PASS: opening layout and longest declaration/index identifiers are legible, complete and non-overlapping"
+    }
+  ],
+  "continuous_integration": {
+    "workflow": ".github/workflows/reference-artifacts.yml",
+    "python": "3.13.15",
+    "coverage": "Clean Ubuntu regeneration compares all tracked release artifacts and retains the reviewed PDFs and manifests"
+  },
+  "limitations": [
+    "The optional Vulkan header compile probe was skipped on this Windows host because no Vulkan SDK headers were installed; generation and byte comparison still include interop_vulkan.h.",
+    "This evidence verifies the document/API artifact contract and does not qualify runtime driver behavior, physics quality or performance."
+  ]
+}
