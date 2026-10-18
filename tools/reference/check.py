@@ -61,6 +61,8 @@ def compile_source(compiler, language, standard, source, include=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--font-dir", type=Path)
+    parser.add_argument("--staging-root", type=Path,
+                        help="Keep the clean regenerated artifact tree at this path")
     parser.add_argument("--skip-vulkan-header", action="store_true",
                         help="Only if the optional Vulkan SDK is not installed")
     args = parser.parse_args()
@@ -334,7 +336,8 @@ def main():
     with tempfile.TemporaryDirectory(prefix="pm-reference-check-") as directory:
         check_contract(ROOT, DEST, Path(directory), run, require,
                        compile_source, args.skip_vulkan_header)
-        artifact_root = Path(directory) / "generated"
+        artifact_root = (args.staging_root.resolve() if args.staging_root
+                         else Path(directory) / "generated")
         command = [sys.executable, "tools/reference/build.py",
                    "--artifact-root", str(artifact_root)]
         if args.font_dir:

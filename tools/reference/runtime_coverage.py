@@ -27,7 +27,8 @@ def generate_coverage(root, destination, provenance):
                 r'extern\s+"C"\s+PMAPI_ATTR\s+[\w*]+\s+PMAPI_CALL\s+(pm\w+)\s*\(',
                 text):
             definitions.setdefault(match.group(1), []).append(
-                f"{source.relative_to(root)}:{text.count(chr(10), 0, match.start()) + 1}")
+                f"{source.relative_to(root).as_posix()}:"
+                f"{text.count(chr(10), 0, match.start()) + 1}")
     for command in commands:
         if command["name"] not in LOADER_SPECIAL:
             definitions.setdefault(command["name"], []).append(

@@ -22,7 +22,9 @@ jobs:
       - name: Verify toolchain lock contract
         run: python -m unittest tests/release/test_reference_artifacts.py
       - name: Reproduce complete reference artifact set
-        run: python tools/reference/bootstrap.py --check --skip-vulkan-header
+        run: >-
+          python tools/reference/bootstrap.py --check --skip-vulkan-header
+          --staging-root out/reference-artifacts/ci-generated
       - name: Preserve reviewed release artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -34,3 +36,4 @@ jobs:
             docs/reference/parallel-mater-reference.layout.json
             docs/reference/parallel-mater-specification.pdf
             docs/reference/parallel-mater-specification.layout.json
+            out/reference-artifacts/ci-generated

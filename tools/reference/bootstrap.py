@@ -27,6 +27,8 @@ def main():
     parser.add_argument("--check", action="store_true",
                         help="Verify the tracked artifacts by clean regeneration")
     parser.add_argument("--skip-vulkan-header", action="store_true")
+    parser.add_argument("--staging-root", type=Path,
+                        help="Keep the clean regenerated artifact tree at this path")
     args = parser.parse_args()
     lock = load_lock()
     verify_python(lock)
@@ -44,6 +46,8 @@ def main():
         command = [python, "tools/reference/check.py"]
         if args.skip_vulkan_header:
             command.append("--skip-vulkan-header")
+        if args.staging_root:
+            command += ["--staging-root", args.staging_root.resolve()]
         run(command)
     if not args.build and not args.check:
         print(json.dumps({
