@@ -145,10 +145,15 @@ python3 scripts/Test-AndroidVulkan.py --serial PHONE_SERIAL \
 ```
 
 Use the CMake directory whose cache has `PARALLEL_MATER_ANDROID_QUALIFICATION=ON`.
-The runner stages only these tests, their libraries, two scenes and profile data
-in `/data/local/tmp/parallel-mater-qualification`. Command/API, asynchronous
-submission and analytic/bounded liquid/reset checks execute on the phone.
-Logs and results are saved in ignored `out/android/native-vulkan-tests/`.
+The runner stages these smoke tests plus the canonical conformance corpus and
+development-only public API runner in `/data/local/tmp/parallel-mater-qualification`.
+It executes command/API, asynchronous submission and bounded liquid/reset
+checks, then captures device provenance, advertised capabilities, all canonical
+trajectories, analytic quality fixtures and adverse lifecycle fixtures. Raw
+artifacts, independent evaluator reports, hashes and public device/toolchain
+metadata are saved in ignored `out/android/native-vulkan-tests/`. Failed,
+unsupported and missing contracts remain in the capture instead of being
+converted into passes.
 These tests enable the Parallel Mater command validation layer; they do not
 implicitly install or enable the Khronos Vulkan validation layer.
 

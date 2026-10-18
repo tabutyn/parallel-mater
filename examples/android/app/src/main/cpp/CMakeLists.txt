@@ -48,4 +48,14 @@ if(PARALLEL_MATER_ANDROID_QUALIFICATION)
         PM_TEST_BACKEND="vulkan"
         PM_PROFILE_CATALOG="/data/local/tmp/parallel-mater-qualification/device-profiles.json"
         PM_SCENE_ROOT="/data/local/tmp/parallel-mater-qualification/scenes")
+    add_executable(pm-android-conformance
+        ${PROJECT_SOURCE_DIR}/conformance/v1/src/command_main.cpp)
+    target_link_libraries(pm-android-conformance PRIVATE
+        parallel-mater-conformance-runner)
+    add_executable(pm-android-device-contracts qualification_main.cpp)
+    target_link_libraries(pm-android-device-contracts PRIVATE
+        parallel-mater-conformance-runner)
+    foreach(target pm-android-conformance pm-android-device-contracts)
+        target_compile_features(${target} PRIVATE cxx_std_20)
+    endforeach()
 endif()

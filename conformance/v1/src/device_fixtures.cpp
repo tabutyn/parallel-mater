@@ -19,6 +19,10 @@ int parallel_mater_resource_lifecycle_fixture();
 int parallel_mater_interaction_graph_lifecycle_fixture();
 int parallel_mater_fluid_pair_quality_fixture(int argc, char **argv);
 
+#ifndef PM_CONFORMANCE_DRIVER_NAME
+#define PM_CONFORMANCE_DRIVER_NAME "selected-loadable-driver"
+#endif
+
 namespace parallel_mater::conformance {
 namespace {
 using namespace parallel_mater::gallery;
@@ -30,7 +34,8 @@ std::filesystem::path bundled_asset(const std::filesystem::path &root,
     return path;
 }
 
-Json driver_json(PmPhysicalDevice physical, const char *name = "slang-metal") {
+Json driver_json(PmPhysicalDevice physical,
+                 const char *name = PM_CONFORMANCE_DRIVER_NAME) {
     PmPhysicalDeviceProperties properties{};
     pmGetPhysicalDeviceProperties(physical, &properties);
     Json result = Json::object();
@@ -156,10 +161,10 @@ std::string conformance_fluid_pair_quality(
     const std::filesystem::path &temporary_output) {
     std::filesystem::create_directories(temporary_output.parent_path());
     std::string output = temporary_output.string();
-    char program[] = "ipad-quality";
+    char program[] = "mobile-quality";
     char output_option[] = "--output";
     char driver_option[] = "--driver-name";
-    char driver_name[] = "slang-metal";
+    char driver_name[] = PM_CONFORMANCE_DRIVER_NAME;
     char *arguments[]{program, output_option, output.data(), driver_option,
                       driver_name};
     const int status = parallel_mater_fluid_pair_quality_fixture(5, arguments);
