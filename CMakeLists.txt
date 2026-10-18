@@ -759,6 +759,8 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         target_link_libraries(parallel-mater-gallery-renderer
             PUBLIC parallel-mater-gallery-scene)
     endif()
+    target_sources(parallel-mater-gallery-renderer PRIVATE
+                   examples/support/gpu_renderer.cpp)
     target_compile_features(parallel-mater-gallery-renderer PUBLIC cxx_std_20)
     if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
         include(cmake/ParallelMaterD3D12Renderer.cmake)
@@ -782,7 +784,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         set_target_properties(parallel-mater-gallery-session PROPERTIES
             XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES)
         target_compile_options(parallel-mater-gallery-session PRIVATE "$<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>")
-        target_compile_definitions(parallel-mater-gallery-session PRIVATE PM_GALLERY_METAL_RENDERER=1)
+        target_compile_definitions(parallel-mater-gallery-session PRIVATE PM_GALLERY_NATIVE_GPU_RENDERER=1)
         target_link_libraries(parallel-mater-gallery-session PRIVATE "-framework Metal" "-framework QuartzCore" "-framework Foundation")
     endif()
 
@@ -847,7 +849,7 @@ if(PARALLEL_MATER_BUILD_GALLERY)
 
     if(APPLE)
         if(PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
-            target_compile_definitions(parallel-mater-gallery-application PRIVATE PM_GALLERY_METAL_RENDERER=1)
+            target_compile_definitions(parallel-mater-gallery-application PRIVATE PM_GALLERY_NATIVE_GPU_RENDERER=1)
         endif()
         include(cmake/ParallelMaterMacOSGallery.cmake)
     else()
@@ -1169,6 +1171,20 @@ if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)
 endif()
 
 if(BUILD_TESTING)
+    if(TARGET parallel-mater-gallery-renderer)
+        add_executable(parallel-mater-gallery-gpu-renderer-contract-tests
+            tests/gallery/gpu_renderer_contract_tests.cpp)
+        target_link_libraries(
+            parallel-mater-gallery-gpu-renderer-contract-tests PRIVATE
+            parallel-mater-gallery-renderer)
+        parallel_mater_enable_warnings(
+            parallel-mater-gallery-gpu-renderer-contract-tests)
+        add_test(NAME parallel-mater-gallery-gpu-renderer-contract-tests
+            COMMAND parallel-mater-gallery-gpu-renderer-contract-tests)
+        set_tests_properties(
+            parallel-mater-gallery-gpu-renderer-contract-tests PROPERTIES
+            LABELS "gallery;renderer;contract")
+    endif()
     add_executable(parallel-mater-gallery-workload-tests
         tests/gallery/workload_profile_tests.cpp examples/support/device_profiles.cpp)
     target_compile_features(parallel-mater-gallery-workload-tests PRIVATE cxx_std_20)

@@ -256,9 +256,15 @@ UIImage *frame_image(const GallerySession &session) {
                 dispatch_sync(dispatch_get_main_queue(), ^{
                     [self installCatalog:catalogSnapshot];
                 });
-                self->_session->set_presentation_layer((__bridge void *)self->_image.layer);
+                self->_session->set_render_target({
+                    .backend = PM_NATIVE_BACKEND_METAL,
+                    .handle = static_cast<PmNativeHandle>(
+                        reinterpret_cast<std::uintptr_t>(
+                            (__bridge void *)self->_image.layer))});
                 NSLog(@"ParallelMater: %@", text(self->_session->details()));
-                id<MTLDevice> gpu = (__bridge id<MTLDevice>)self->_session->native_render_device();
+                const auto native = self->_session->native_render_device();
+                id<MTLDevice> gpu = (__bridge id<MTLDevice>)(
+                    reinterpret_cast<void *>(native.device));
                 const auto limits = self->_session->limits;
                 dispatch_sync(dispatch_get_main_queue(), ^{
                     CAMetalLayer *layer = (CAMetalLayer *)self->_image.layer;
@@ -305,7 +311,9 @@ UIImage *frame_image(const GallerySession &session) {
                 if (selection >= 0) session.select(static_cast<unsigned>(selection));
                 else if (reset) session.reset();
                 if (selection >= 0 || reset) {
-                    id<MTLDevice> gpu = (__bridge id<MTLDevice>)session.native_render_device();
+                    const auto native = session.native_render_device();
+                    id<MTLDevice> gpu = (__bridge id<MTLDevice>)(
+                        reinterpret_cast<void *>(native.device));
                     dispatch_sync(dispatch_get_main_queue(), ^{ ((CAMetalLayer *)self->_image.layer).device = gpu; });
                 }
                 session.resize(width, height);

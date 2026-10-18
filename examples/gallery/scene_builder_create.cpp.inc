@@ -1000,6 +1000,8 @@ bool CommandScene::create(const SceneDefinition &scene,
     instance.render_buffers.device = next->device;
     instance.render_buffers.queue = next->queue;
     instance.render_buffers.output = next->output.handle;
+    instance.render_buffers.resource_generation =
+        next_output_resource_generation.fetch_add(1U, std::memory_order_relaxed);
     const auto region = [](auto value) { return GpuSceneBuffers::Region{value.offset, value.size}; };
     instance.render_buffers.rigid = region(next->rigid_output);
     instance.render_buffers.previous_rigid = region(next->previous_rigid_output);

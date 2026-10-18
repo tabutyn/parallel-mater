@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Common raster drawing of public pm* output records. No physics lives here.
 #include "gallery_uniforms.slangh"
-ByteAddressBuffer physics : register(t0);
-StructuredBuffer<float3> surfaceVertices : register(t1);
+[[vk::binding(1, 0)]] ByteAddressBuffer physics : register(t0);
+[[vk::binding(2, 0)]] StructuredBuffer<float3> surfaceVertices : register(t1);
 
 struct VertexInput { float3 position : POSITION; float3 normal : NORMAL; };
 struct FragmentInput
@@ -35,7 +35,7 @@ FragmentInput vertexMain(VertexInput input, uint vertex : SV_VertexID,
     FragmentInput output = {};
     float3 world = input.position;
     float3 normal = input.normal;
-    if (draw.x == 0)
+    if (draw.x == GALLERY_DRAW_RIGID_MESH)
     {
         uint offset = draw.y + draw.z * 52;
         float3 position = asfloat(physics.Load3(offset));
@@ -52,13 +52,13 @@ FragmentInput vertexMain(VertexInput input, uint vertex : SV_VertexID,
         world = rotate(orientation, world) + position;
         normal = rotate(orientation, normal);
     }
-    else if (draw.x == 1)
+    else if (draw.x == GALLERY_DRAW_DEFORMABLE_SURFACE)
     {
         uint count = physics.Load(draw.y);
         if (vertex >= count) { output.position = float4(2,2,2,1); return output; }
         world = asfloat(physics.Load3(draw.y + 16 + vertex * 12));
     }
-    else if (draw.x == 3)
+    else if (draw.x == GALLERY_DRAW_FLUID_SURFACE)
     {
         world = surfaceVertices[vertex * 2];
         normal = surfaceVertices[vertex * 2 + 1];
@@ -86,7 +86,7 @@ FragmentInput vertexMain(VertexInput input, uint vertex : SV_VertexID,
 float4 fragmentMain(FragmentInput input, bool front : SV_IsFrontFace) : SV_Target
 {
     float3 normal;
-    if (draw.x == 2)
+    if (draw.x == GALLERY_DRAW_PARTICLES)
     {
         float radius2 = dot(input.uv, input.uv);
         if (radius2 > 1.0) discard;
@@ -99,6 +99,8 @@ float4 fragmentMain(FragmentInput input, bool front : SV_IsFrontFace) : SV_Targe
         if (dot(normal, cameraEye.xyz - input.world) < 0.0) normal = -normal;
     }
     float shade = 0.28 + 0.72 * max(0.0, dot(normal, normalize(float3(0.349,0.814,0.465))));
-    float3 color = draw.x == 2 ? lerp(baseColor.xyz, float3(0.92), saturate(input.foam)) : baseColor.xyz;
+    float3 color = draw.x == GALLERY_DRAW_PARTICLES
+        ? lerp(baseColor.xyz, float3(0.92), saturate(input.foam))
+        : baseColor.xyz;
     return float4(color * shade, 1.0);
 }

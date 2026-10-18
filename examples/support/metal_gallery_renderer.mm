@@ -29,22 +29,25 @@ static_assert(sizeof(PmRigidState) == 52 && offsetof(PmRigidState, orientation) 
 static_assert(sizeof(PmDomainOutputHeader) == 16 && sizeof(PmFloat3) == 12);
 std::array<float,4> vector(Vec3 v, float w = 0) { return {v.x,v.y,v.z,w}; }
 }
-struct GpuGalleryRenderer::Impl {
+struct MetalGalleryRenderer final : GpuGalleryRenderer {
+    GpuRendererContractState contract;
     id<MTLDevice> device;
     id<MTLCommandQueue> queue;
     id<MTLRenderPipelineState> mesh_pipeline, particle_pipeline, overlay_pipeline;
     id<MTLDepthStencilState> depth_state;
     struct Draw {
         id<MTLBuffer> vertices;
-        unsigned count, domain, index, paint{PM_INVALID_INDEX}, paint_resolution{};
-        Vec3 color;
+        unsigned count;
+        GpuDrawCommand semantics;
     };
     std::vector<Draw> draws;
-    float fluid_radius{}, smoke_radius{};
-    std::vector<float> rope_radii;
-    Impl(PmDevice physics, const SceneDefinition &scene, const CommandSceneInstance &instance) {
-        PmNativeDeviceInfo native{};
-        require(pmGetNativeDevice(physics, &native) == PM_SUCCESS && native.backend == PM_NATIVE_BACKEND_METAL,
+    std::vector<GpuDrawCommand> particle_draws;
+    MetalGalleryRenderer(GpuRendererDevice renderer_device,
+                         const SceneDefinition &scene,
+                         const CommandSceneInstance &instance)
+        : contract(renderer_device) {
+        const auto native = renderer_device.native;
+        require(native.backend == PM_NATIVE_BACKEND_METAL && native.device != 0U,
             "GPU Gallery rendering requires the native Metal physics device");
         device = (__bridge id<MTLDevice>)(reinterpret_cast<void *>(native.device));
         queue = [device newCommandQueue];
@@ -78,48 +81,47 @@ struct GpuGalleryRenderer::Impl {
         depth.depthCompareFunction = MTLCompareFunctionLess; depth.depthWriteEnabled = YES;
         depth_state = [device newDepthStencilStateWithDescriptor:depth];
         require(depth_state != nil, "Metal depth state allocation failed");
-        const auto mesh = [&](unsigned mesh_index, unsigned domain, unsigned index, bool corners) {
-            const auto &source = scene.meshes.at(mesh_index);
-            if (!source.visible || source.indices.empty()) return;
+        GpuSceneDrawList draw_list;
+        std::string draw_error;
+        require(make_gpu_scene_draw_list(scene, instance, draw_list, draw_error),
+                draw_error.c_str());
+        for (const auto &semantics : draw_list.commands) {
+            if (semantics.kind == GpuDrawKind::particles) {
+                particle_draws.push_back(semantics);
+                continue;
+            }
+            const auto &source = scene.meshes.at(semantics.mesh_index);
+            if (!source.visible || source.indices.empty()) continue;
             std::vector<VertexData> vertices;
             vertices.reserve(source.indices.size());
             for (unsigned i = 0; i < source.indices.size(); ++i) {
                 const auto &v = source.vertices.at(source.indices[i]);
-                vertices.push_back({v.position, v.uv, corners ? i : source.indices[i]});
+                vertices.push_back({v.position, v.uv,
+                    semantics.use_triangle_corners ? i : source.indices[i]});
             }
             Draw draw{[device newBufferWithBytes:vertices.data() length:vertices.size()*sizeof(VertexData)
-                options:MTLResourceStorageModeShared], static_cast<unsigned>(vertices.size()), domain, index,
-                PM_INVALID_INDEX, 0, source.base_color};
+                options:MTLResourceStorageModeShared],
+                static_cast<unsigned>(vertices.size()), semantics};
             require(draw.vertices != nil, "Metal scene vertices allocation failed");
-            for (const auto &binding : instance.paint_bindings) {
-                if (binding.mesh_index != mesh_index || (domain == 0 && binding.body_index != index)) continue;
-                draw.paint = binding.field_index;
-                draw.paint_resolution = domain == 0 ? scene.rigid_bodies.at(index).paint_resolution
-                    : scene.cloths.at(index).paint_resolution;
-            }
             draws.push_back(std::move(draw));
-        };
-        for (unsigned i = 0; i < scene.rigid_bodies.size(); ++i)
-            for (auto index : scene.rigid_bodies[i].mesh_indices) mesh(index, 0, i, false);
-        for (unsigned i = 0; i < scene.cloths.size(); ++i) {
-            const auto &cloth = scene.cloths[i];
-            mesh(cloth.mesh_index, 1, i, cloth.break_strain > 0 || cloth.impact_break_impulse > 0);
         }
-        for (unsigned i = 0; i < scene.soft_bodies.size(); ++i) mesh(scene.soft_bodies[i].mesh_index, 2, i, false);
-        fluid_radius = std::max(scene.fluid_options.particle_radius, .02F);
-        smoke_radius = std::max(scene.smoke_options.particle_radius, .03F);
-        for (const auto &rope : scene.ropes) rope_radii.push_back(std::max(rope.options.radius, .025F));
     }
-    void render(const GpuSceneBuffers &frame, Camera camera, unsigned width, unsigned height,
-                void *target, std::vector<std::uint32_t> *capture, FrameTimingCollector *timing,
-                std::span<const std::uint32_t> overlay) {
-        PmNativeBufferInfo native{};
-        require(width && height && pmGetNativeBuffer(frame.device, frame.output, &native) == PM_SUCCESS &&
-            native.buffer, "Invalid Metal render frame");
+    void render_frame(const GpuRenderRequest &request) {
+        const auto &native = request.output.native;
+        const auto camera = request.camera;
+        unsigned width = request.target.width;
+        unsigned height = request.target.height;
+        auto *capture = request.readback.rgba;
+        auto *timing = request.timing;
+        const auto overlay = request.overlay;
+        require(request.synchronization.mode == GpuSynchronizationMode::queue_idle &&
+            pmQueueWaitIdle(request.synchronization.physics_queue) == PM_SUCCESS,
+            "Metal graphics could not acquire completed physics output");
         id<MTLBuffer> buffer = (__bridge id<MTLBuffer>)(reinterpret_cast<void *>(native.buffer));
         require(buffer.device == device && native.offset <= buffer.length &&
             native.size <= buffer.length - native.offset, "Foreign or out-of-bounds graphics buffer");
-        CAMetalLayer *layer = (__bridge CAMetalLayer *)target;
+        CAMetalLayer *layer = (__bridge CAMetalLayer *)(reinterpret_cast<void *>(
+            request.target.handle));
         id<CAMetalDrawable> drawable = nil;
         if (layer) {
             require(layer.device == device, "Presentation layer must use the physics Metal device");
@@ -167,17 +169,17 @@ struct GpuGalleryRenderer::Impl {
         };
         [encoder setRenderPipelineState:mesh_pipeline];
         for (const auto &draw : draws) {
-            if (draw.domain == 0) {
-                const auto offset = frame.rigid.offset + draw.index * sizeof(PmRigidState);
-                require((draw.index + 1ULL) * sizeof(PmRigidState) <= frame.rigid.size, "Missing GPU rigid state");
-                region({offset, sizeof(PmRigidState)}, sizeof(PmRigidState), false);
-            } else region(draw.domain == 1 ? frame.cloth_surfaces.at(draw.index) : frame.soft_surfaces.at(draw.index), sizeof(PmFloat3), true);
-            u.kind = draw.domain == 0 ? 0 : 1; u.color = vector(draw.color, 1); u.paint_resolution = 0;
-            if (draw.paint != PM_INVALID_INDEX) {
-                const auto paint = frame.paint.at(draw.paint);
+            const auto &semantics = draw.semantics;
+            region(semantics.output, semantics.output_stride,
+                   semantics.output_has_header);
+            u.kind = semantics.kind == GpuDrawKind::rigid_mesh ? 0 : 1;
+            u.color = vector(semantics.color, 1); u.paint_resolution = 0;
+            if (semantics.paint_output.size != 0U) {
+                const auto paint = semantics.paint_output;
                 require(paint.offset <= UINT32_MAX && paint.size >= 16 && paint.offset <= native.size &&
                     paint.size <= native.size - paint.offset, "Invalid GPU paint region");
-                u.paint_offset = static_cast<unsigned>(paint.offset); u.paint_resolution = draw.paint_resolution;
+                u.paint_offset = static_cast<unsigned>(paint.offset);
+                u.paint_resolution = semantics.paint_resolution;
                 u.paint_count = static_cast<unsigned>((paint.size-16)/4);
             }
             [encoder setVertexBuffer:draw.vertices offset:0 atIndex:0];
@@ -186,17 +188,14 @@ struct GpuGalleryRenderer::Impl {
             [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:draw.count];
         }
         [encoder setRenderPipelineState:particle_pipeline];
-        const auto particles = [&](GpuSceneBuffers::Region r, unsigned stride, Vec3 tint, float radius) {
-            if (!r.size) return;
-            region(r, stride, true); u.radius = radius; u.color = vector(tint, 1);
+        const auto particles = [&](const GpuDrawCommand &semantics) {
+            region(semantics.output, semantics.output_stride, true);
+            u.radius = semantics.radius; u.color = vector(semantics.color, 1);
             [encoder setVertexBytes:&u length:sizeof(u) atIndex:2];
             [encoder setFragmentBytes:&u length:sizeof(u) atIndex:2];
             [encoder drawPrimitives:MTLPrimitiveTypePoint vertexStart:0 vertexCount:u.count];
         };
-        particles(frame.fluid, sizeof(PmFluidParticleOutput), {.05F,.42F,.92F}, fluid_radius);
-        particles(frame.smoke, sizeof(PmSmokeParticleState), {.58F,.61F,.65F}, smoke_radius);
-        for (unsigned i = 0; i < frame.ropes.size(); ++i)
-            particles(frame.ropes[i], sizeof(PmRopeNodeState), {.85F,.62F,.18F}, rope_radii.at(i));
+        for (const auto &draw : particle_draws) particles(draw);
         if (!overlay.empty()) {
             require(overlay.size() == std::size_t(width)*height, "Overlay dimensions do not match Metal target");
             MTLTextureDescriptor *desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm
@@ -241,15 +240,36 @@ struct GpuGalleryRenderer::Impl {
             }
         }
     }
+    const GpuRendererDevice &renderer_device() const noexcept override {
+        return contract.device();
+    }
+    bool render(const GpuRenderRequest &request,
+                std::string &error) override {
+        if (!contract.begin(request, error)) return false;
+        try {
+            @autoreleasepool { render_frame(request); }
+        } catch (const std::exception &exception) {
+            contract.abandon(request.synchronization.frame_generation);
+            error = exception.what();
+            return false;
+        }
+        return contract.finish(request.synchronization.frame_generation,
+                               error);
+    }
 };
-GpuGalleryRenderer::GpuGalleryRenderer(PmDevice device, const SceneDefinition &scene, const CommandSceneInstance &instance)
-{
-    @autoreleasepool { impl_ = std::make_unique<Impl>(device, scene, instance); }
-}
-GpuGalleryRenderer::~GpuGalleryRenderer() = default;
-void GpuGalleryRenderer::render(const GpuSceneBuffers &frame, Camera camera, unsigned width, unsigned height,
-                                void *layer, std::vector<std::uint32_t> *capture, FrameTimingCollector *timing,
-                                std::span<const std::uint32_t> overlay) {
-    @autoreleasepool { impl_->render(frame, camera, width, height, layer, capture, timing, overlay); }
+
+std::unique_ptr<GpuGalleryRenderer> create_gpu_gallery_renderer(
+    GpuRendererDevice device, const SceneDefinition &scene,
+    const CommandSceneInstance &instance, std::string &error) {
+    error.clear();
+    try {
+        @autoreleasepool {
+            return std::make_unique<MetalGalleryRenderer>(
+                device, scene, instance);
+        }
+    } catch (const std::exception &exception) {
+        error = exception.what();
+        return {};
+    }
 }
 }
