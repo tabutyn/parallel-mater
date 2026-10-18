@@ -420,6 +420,7 @@ GalleryControllerState GalleryRuntime::controller_state() const noexcept {
             kinematic_index < instance.rigid_bodies.size(),
         .steering_angle = steering_angle,
         .dump_bed_angle = dump_bed.angle(),
+        .dump_bed_raised = dump_bed.raised(),
         .gravity = control_gravity_,
     };
 }

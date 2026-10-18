@@ -3,6 +3,7 @@
 #import <QuartzCore/QuartzCore.h>
 #import <Metal/Metal.h>
 #include <parallel_mater_gallery/mobile_qualification.hpp>
+#include <parallel_mater_gallery/control_text.hpp>
 #if PM_IOS_QUALIFICATION_RUNNER
 #include <parallel_mater_conformance/runner.hpp>
 #include <parallel_mater_conformance/sha256.hpp>
@@ -28,33 +29,6 @@ NSString *text(std::string_view value) {
     if (value.empty()) return @"";
     return [[NSString alloc] initWithBytes:value.data() length:value.size()
                                   encoding:NSUTF8StringEncoding];
-}
-
-std::string directional_label(parallel_mater::gallery::GalleryControlPolicy policy) {
-    using parallel_mater::gallery::GalleryControlPolicy;
-    switch (policy) {
-    case GalleryControlPolicy::authored_force: return "Push objects";
-    case GalleryControlPolicy::motor_drive: return "Drive and steer";
-    case GalleryControlPolicy::none: return "Camera only";
-    case GalleryControlPolicy::rigid_gravity:
-    case GalleryControlPolicy::collector_gravity:
-    case GalleryControlPolicy::peg_gravity:
-    case GalleryControlPolicy::cloth_gravity: return "Tilt gravity";
-    }
-    return "Camera only";
-}
-
-std::string primary_action_label(
-    const parallel_mater::gallery::GalleryControllerState &controls) {
-    using parallel_mater::gallery::GalleryPrimaryAction;
-    switch (controls.primary) {
-    case GalleryPrimaryAction::release_restore_constraints:
-        return controls.constraints_released ? "Restore" : "Release";
-    case GalleryPrimaryAction::toggle_dump_bed:
-        return controls.dump_bed_angle > 0.05F ? "Lower bed" : "Raise bed";
-    case GalleryPrimaryAction::none: return {};
-    }
-    return {};
 }
 
 std::string renderer_label(
@@ -119,8 +93,10 @@ std::string details_text(
     if (state.controls.directional !=
         parallel_mater::gallery::GalleryControlPolicy::none)
         text << " Direction buttons: "
-             << directional_label(state.controls.directional) << '.';
-    const std::string primary = primary_action_label(state.controls);
+             << parallel_mater::gallery::gallery_directional_control_text(
+                    state.controls.directional).label << '.';
+    const std::string_view primary =
+        parallel_mater::gallery::gallery_primary_action_label(state.controls);
     if (!primary.empty()) text << " Use " << primary << " for the scene action.";
     text << "\n\nBuild " << state.build_revision;
     return text.str();
@@ -270,10 +246,12 @@ UIImage *frame_image(const GallerySession &session) {
     if (!_mobile) return;
     const auto state = _mobile->state();
     const auto &view = state.presentation;
-    NSString *status = text(status_text(state) + "\n" +
-        directional_label(view.controls.directional));
+    NSString *status = text(status_text(state) + "\n" + std::string(
+        parallel_mater::gallery::gallery_directional_control_text(
+            view.controls.directional).label));
     NSString *details = text(details_text(view));
-    NSString *primary = text(primary_action_label(view.controls));
+    NSString *primary = text(
+        parallel_mater::gallery::gallery_primary_action_label(view.controls));
     NSString *scene = view.selection < _session->catalog().size()
         ? text(std::string(_session->catalog()[view.selection].scene.name))
         : @"Unknown scene";

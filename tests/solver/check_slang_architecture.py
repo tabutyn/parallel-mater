@@ -542,6 +542,25 @@ ios_gallery_path = ROOT / "examples" / "ios" / "gallery_main.mm"
 android_jni = android_jni_path.read_text(encoding="utf-8")
 android_activity = android_activity_path.read_text(encoding="utf-8")
 ios_gallery = ios_gallery_path.read_text(encoding="utf-8")
+control_text_path = (
+    ROOT / "examples" / "support" / "include" /
+    "parallel_mater_gallery" / "control_text.hpp"
+)
+if not control_text_path.exists():
+    failures.append("examples/support: common Gallery control text is missing")
+else:
+    for platform, source in (("Android JNI", android_jni),
+                             ("iOS", ios_gallery)):
+        if "control_text.hpp" not in source or \
+                "gallery_directional_control_text" not in source or \
+                "gallery_primary_action_label" not in source:
+            failures.append(
+                f"{platform}: semantic Gallery control text bypasses common metadata")
+for duplicate in ("std::string directional_label(",
+                  "std::string primary_action_label("):
+    if duplicate in android_jni or duplicate in ios_gallery:
+        failures.append(
+            f"mobile Gallery: platform control-label policy remains: {duplicate}")
 if "qualify_mobile_gallery" not in android_jni:
     failures.append(
         "examples/android: JNI runner bypasses common mobile qualification")

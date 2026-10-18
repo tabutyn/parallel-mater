@@ -92,10 +92,13 @@ required at runtime.
 The simulation fills the screen beneath compact overlay controls. Tap the scene
 name to open the scene picker. Drag to orbit, pinch or use +/- to zoom; Focus
 reframes the liquid particles and moving bodies, or restores the other scenes'
-authored views. Hold arrow buttons for the displayed action (push objects or tilt
-gravity). Orbiting bodies exposes separate Release and Restore actions. Reset
+authored views. Hold arrow buttons for the displayed action: tilt gravity, push
+an authored force, or drive and steer a motorized scene. Their accessibility
+labels come from the same common semantic control metadata as iPad. Orbiting
+bodies expose Release and Restore; Dump exposes Raise bed and Lower bed. Reset
 reloads the scene. Info contains backend, profile limits, frame-work averages,
-and gesture help; the main view shows only population and paused state. Backgrounding stops frame scheduling and clears held movement. Physics
+and one copy of the scene requirements and gesture help; the main view shows
+only population and paused state. Backgrounding stops frame scheduling and clears held movement. Physics
 and rendering run on a worker thread; Android UI controls remain responsive.
 
 For diagnostic logs:
@@ -106,12 +109,23 @@ For diagnostic logs:
 
 ## Device qualification
 
-The mobile CI workflow builds the Vulkan APK and unsigned iPad app. On a phone
-with the new debug APK installed, run shared scene/control, direct-presentation,
+The mobile CI workflow builds the Vulkan APK and unsigned iPad app. It also runs
+an x86_64 Slang CPU APK on a Pixel 6 phone emulator. The emulator taps every
+declared control family, checks accessible names and user-facing language, and
+uploads screenshots, UI hierarchies, and a revision-tagged summary. This proves
+Android control reachability and presentation independently of Vulkan device
+qualification. On a phone with the new debug APK installed, run shared
+scene/control, direct-presentation,
 background, resize, rotation, and teardown checks with:
 
 ```sh
 python3 scripts/Test-AndroidGallery.py --serial PHONE_SERIAL --frames 120
+```
+
+To repeat only the phone UI evidence against an installed debug APK:
+
+```sh
+python3 scripts/Test-AndroidGalleryUi.py --serial PHONE_SERIAL
 ```
 
 Reports use `parallel-mater-mobile-gallery-qualification/v1` and include the
@@ -141,7 +155,9 @@ These tests enable the Parallel Mater command validation layer; they do not
 implicitly install or enable the Khronos Vulkan validation layer.
 
 Debug APKs accept `pm_scene` (0–27) and `pm_action` (`reset`, `pause`, `resume`,
-`focus`, `info`) extras for repeatable UI testing. Release builds ignore them.
+`focus`, `info`, `freeze`, `unfreeze`) extras for repeatable UI testing. Freeze
+stops presentation callbacks so Android accessibility can observe an idle
+window; it does not add or replace a physics control. Release builds ignore them.
 They invoke the same worker commands as the visible controls:
 
 ```sh
