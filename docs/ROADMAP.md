@@ -160,11 +160,11 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [F4-00](roadmap/tasks/F4-00.json) | Portable schedule and neutral reflection baseline | done | — | — |
-| [F4-01](roadmap/tasks/F4-01.json) | Describe resources and access ranges | ready | — | — |
+| [F4-01](roadmap/tasks/F4-01.json) | Describe resources and access ranges | leased | — | codex-macos-runtime / Thomass-MacBook-Air / 2026-10-19T02:39:33Z |
 | [F4-02](roadmap/tasks/F4-02.json) | Retain resources through completion | waiting on dependencies | F4-01 | — |
 | [F4-03](roadmap/tasks/F4-03.json) | Schedule common resource dependencies | waiting on dependencies | F4-01, F4-02 | — |
 | [F4-04](roadmap/tasks/F4-04.json) | Remove generated-source ABI parsing | waiting on dependencies | F4-01 | — |
-| [F4-05](roadmap/tasks/F4-05.json) | Specify memory-budget confidence | ready | — | — |
+| [F4-05](roadmap/tasks/F4-05.json) | Specify memory-budget confidence | waiting on lock | — | — |
 | [F4-06](roadmap/tasks/F4-06.json) | Apply conservative workload admission | waiting on dependencies | F4-05 | — |
 | [F4-07](roadmap/tasks/F4-07.json) | Specify borrowed device and queue handoff | waiting on dependencies | F4-02, F3-04 | — |
 | [F4-08](roadmap/tasks/F4-08.json) | Qualify engine handoff with a mock adapter | waiting on dependencies | F4-03, F4-07 | — |
