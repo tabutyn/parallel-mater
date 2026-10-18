@@ -77,12 +77,26 @@ class Device:
 
     def tap(self, value):
         node, _ = self.wait_node(value)
+        self.tap_node(node, value)
+
+    def tap_node(self, node, value):
         match = BOUNDS.fullmatch(node.get("bounds", ""))
         if not match:
             raise RuntimeError(f"No usable bounds for {value!r}")
         left, top, right, bottom = map(int, match.groups())
         self.run("shell", "input", "tap", str((left + right) // 2),
                  str((top + bottom) // 2))
+
+    def maybe_tap(self, value):
+        try:
+            tree = self.hierarchy()
+        except (subprocess.CalledProcessError, ET.ParseError):
+            return False
+        matches = [node for node in tree.iter() if self.matches(node, value)]
+        if not matches:
+            return False
+        self.tap_node(matches[0], value)
+        return True
 
     def launch_scene(self, index, name, expected_control):
         self.run("shell", "am", "start", "-f", "0x20000000", "-n", ACTIVITY,
@@ -151,6 +165,8 @@ def main():
 
     device.run("shell", "am", "force-stop", PACKAGE)
     device.run("shell", "am", "start", "-n", ACTIVITY)
+    time.sleep(1)
+    device.maybe_tap("Got it")
     _, initial = device.wait_node("Choose scene: RIGID BODY")
     ET.ElementTree(initial).write(
         args.output / "initial-rigid-body.xml", encoding="utf-8",

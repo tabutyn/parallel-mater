@@ -83,6 +83,7 @@ jobs:
           emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           script: |
+            adb shell settings put secure immersive_mode_confirmations confirmed
             adb install -r examples/android/app/build/outputs/apk/debug/app-debug.apk
             python3 scripts/Test-AndroidGalleryUi.py --serial emulator-5554 --revision "$GITHUB_SHA"
       - uses: actions/upload-artifact@v4
