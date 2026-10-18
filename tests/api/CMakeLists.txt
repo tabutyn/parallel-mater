@@ -200,7 +200,8 @@ foreach(backend cuda vulkan d3d12 metal)
     endif()
 endforeach()
 
-if(TARGET parallel-mater-test-driver-slang-cpu-resources AND
+if(PARALLEL_MATER_SLANG_CPU_LIQUIDS AND
+   TARGET parallel-mater-test-driver-slang-cpu-resources AND
    TARGET parallel-mater-layer-validation)
     add_dependencies(parallel-mater-capacity-recovery-tests
         parallel-mater-test-driver-slang-cpu-resources
