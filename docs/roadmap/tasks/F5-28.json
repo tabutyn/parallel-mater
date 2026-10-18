@@ -1,0 +1,23 @@
+{
+  "id": "F5-28",
+  "title": "Qualify sampled rope self contact",
+  "status": "open",
+  "dependencies": [
+    "F5-23"
+  ],
+  "locks": [
+    "quality-f5-28"
+  ],
+  "requires": [
+    "Any development host and one physical production driver advertising the exact capability tuple"
+  ],
+  "scope": "Publish and bind vendor-neutral qualification for exactly ROPE/ROPE/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE. The single physical behavior is: Nonadjacent sampled rope nodes remain separated by the declared radius while documented topology neighbors stay excluded.",
+  "acceptance": [
+    "Publish one immutable analytic profile for the listed tuple or representation variants, with canonical public-API inputs, SI units, bounded tolerances and an oracle independent of driver-private state.",
+    "Retain the existing exact lifecycle binding and prove the new analytic fixture does not broaden or substitute for its capacity, replacement and rollback obligations.",
+    "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
