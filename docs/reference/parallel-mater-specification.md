@@ -1,4 +1,4 @@
-<!-- Generated from registry/pm.xml sha256:109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3 -->
+<!-- Generated from registry/pm.xml sha256:d459278a52eb90299ff35c7db308d78edc25600ade1a236b3cf4d06c7d4cd17b -->
 
 # Parallel Mater 0.2 — API Specification
 
@@ -1213,17 +1213,38 @@ typedef struct PmCouplingState {
     PmInteractionMaterialProfile materialProfile;
     PmCouplingParameters parameters;
 } PmCouplingState;
+typedef struct PmCouplingStateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    PmCouplingType type;
+    uint32_t first;
+    uint32_t second;
+    PmInteractionModeFlags modeFlags;
+    PmInteractionMaterialProfile materialProfile;
+    PmCouplingParameters parameters;
+} PmCouplingStateInfo;
+typedef struct PmFluidPairMaterialState {
+    PmStructureType sType;
+    const void* pNext;
+    uint32_t firstMaterialIndex;
+    uint32_t secondMaterialIndex;
+} PmFluidPairMaterialState;
 ```
 
 ```c
 PmResult pmCmdSetCouplings(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t couplingCount,
     const PmCouplingState *pCouplings);
+PmResult pmCmdSetCouplings2(PmCommandBuffer commandBuffer,
+    PmSimulation simulation, uint32_t couplingCount,
+    const PmCouplingStateInfo *pCouplings);
 ```
 
 first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. modeFlags is a nonzero bit set and materialProfile selects the exact advertised interaction records consumed by the edge. API 0.2 coupling types use fixed mode bundles; omitting or adding a known mode returns FEATURE_NOT_PRESENT, while zero or unknown bits return INVALID_ARGUMENT. Non-smoke pairs require ENDPOINT_NATIVE. Smoke pairs require an advertised SMOKE_PARTICLE or SMOKE_GRID profile.
 
-Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings copies a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. The complete replacement is validated before live edges are removed. If installation then fails, the previous usable graph is restored. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph.
+PmCouplingState is the API 0.2 descriptor. PmCouplingStateInfo is an ABI-compatible extensible path: sType identifies that exact structure and pNext is NULL except for a separately permitted typed state. A LIQUID_LIQUID edge using MISCIBLE or IMMISCIBLE_INTERFACE must chain exactly one PmFluidPairMaterialState. Its material indices must equal first and second, so the edge consumes the two endpoint PmLiquidMaterialState records without copying, averaging or silently changing ownership. MISCIBLE requests contact, pressure and viscosity as one mechanical bundle. IMMISCIBLE_INTERFACE reserves contact and pressure plus an independently queryable future interface mode; optional interfacial viscosity remains a separate capability. Both profiles remain unsupported until their operator and qualification leaves complete. A well-formed request therefore returns FEATURE_NOT_PRESENT, while missing, mismatched, nested, duplicate or unknown typed state returns INVALID_ARGUMENT and cannot replace a live graph.
+
+Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings and pmCmdSetCouplings2 copy a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. The complete replacement is validated before live edges are removed. If installation then fails, the previous usable graph is restored. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph.
 
 Coupling units are: contact distance and heater geometry in m; stiffness in N/m; damping and tangential drag in N·s/m; maximum force in N; acceleration limits in m/s²; wind drag and heat-transfer rate in s⁻¹; air density in kg/m³; effective mass in kg; steam rise speed in m/s; heater and boiling temperatures in °C. Friction, drag coefficient and radius scales are dimensionless.
 
@@ -1297,6 +1318,12 @@ typedef struct PmSmokeMaterialState {
 ### 9.5 Pipeline creation
 
 ```c
+typedef struct PmPhysicsPipelineCouplingStateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    uint32_t couplingCount;
+    const PmCouplingStateInfo* pCouplings;
+} PmPhysicsPipelineCouplingStateInfo;
 typedef struct PmPhysicsPipelineCreateInfo {
     PmStructureType sType;
     const void* pNext;
@@ -1327,6 +1354,8 @@ void pmDestroyPhysicsPipeline(
 ```
 
 Creation copies all settings. pRigidState may be NULL only when no rigid domain is needed. The material count must equal a bound simulation's fluid count. Pipelines are immutable and shareable across compatible simulations. Changing materials creates a new pipeline, without reallocating state if its capacity requirements remain satisfied.
+
+Chain at most one PmPhysicsPipelineCouplingStateInfo to supply extensible coupling descriptors. Its own pNext is NULL. When present, the base couplingCount is zero and pCouplings is NULL; the chained count and array provide the complete pipeline edge list. Descriptor validation and deep-copy rules match pmCmdSetCouplings2. Unknown, nested or conflicting chains return INVALID_ARGUMENT.
 
 <a id="spec-pipeline_flow"></a>
 
@@ -2789,6 +2818,9 @@ typedef enum PmStructureType {
     PM_STRUCTURE_TYPE_NATIVE_DEVICE_IMPORT_INFO = 12,
     PM_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO = 13,
     PM_STRUCTURE_TYPE_VALIDATION_DIAGNOSTICS_CREATE_INFO = 14,
+    PM_STRUCTURE_TYPE_COUPLING_STATE_INFO = 15,
+    PM_STRUCTURE_TYPE_FLUID_PAIR_MATERIAL_STATE = 16,
+    PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_COUPLING_STATE_INFO = 17,
 } PmStructureType;
 ```
 
@@ -2849,6 +2881,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmCmdResetQueryPool | [15.1](#spec-query_pool) |
 | pmCmdResetSimulation | [11.4](#spec-simulation_init) |
 | pmCmdSetCouplings | [9.3](#spec-coupling) |
+| pmCmdSetCouplings2 | [9.3](#spec-coupling) |
 | pmCmdSetFluidParticles | [11.4](#spec-simulation_init) |
 | pmCmdSetKinematicTargets | [7.5](#spec-body_inputs) |
 | pmCmdSetRigidStates | [7.5](#spec-body_inputs) |
@@ -2875,6 +2908,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmContactEventType | [10.8](#spec-event_outputs) |
 | PmCouplingParameters | [9.3](#spec-coupling) |
 | PmCouplingState | [9.3](#spec-coupling) |
+| PmCouplingStateInfo | [9.3](#spec-coupling) |
 | PmCouplingType | [9.3](#spec-coupling) |
 | pmCreateBuffer | [6.1](#spec-buffer) |
 | pmCreateCommandPool | [11.1](#spec-command_pool) |
@@ -2919,6 +2953,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmFloat2 | [10.1](#spec-domain_records) |
 | PmFloat3 | [10.1](#spec-domain_records) |
 | PmFluidCapacity | [7.1](#spec-simulation_create) |
+| PmFluidPairMaterialState | [9.3](#spec-coupling) |
 | PmFluidParticleOutput | [11.4](#spec-simulation_init) |
 | pmFlushMappedMemoryRanges | [5.4](#spec-mapping) |
 | PmFormat | [6.3](#spec-format_enum) |
@@ -3008,6 +3043,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmPhysicalDeviceLimits | [16.2](#spec-limits) |
 | PmPhysicalDeviceProperties | [4.2](#spec-properties) |
 | PmPhysicsPipeline | [18.1](#spec-base_types) |
+| PmPhysicsPipelineCouplingStateInfo | [9.5](#spec-pipeline_create) |
 | PmPhysicsPipelineCreateInfo | [9.5](#spec-pipeline_create) |
 | PmQueryPool | [18.1](#spec-base_types) |
 | PmQueryPoolCreateInfo | [15.1](#spec-query_pool) |

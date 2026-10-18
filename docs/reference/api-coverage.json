@@ -1,7 +1,7 @@
 {
   "registry": {
     "path": "registry/pm.xml",
-    "sha256": "109f8fa0eedf4f7036d33853a41c0761fb5431b071794c57e9a6e005ff5a97e3"
+    "sha256": "d459278a52eb90299ff35c7db308d78edc25600ade1a236b3cf4d06c7d4cd17b"
   },
   "contract": "Parallel Mater command API 0.2",
   "implementation": "src/loader public entry points routed to installable drivers",
@@ -340,6 +340,14 @@
     },
     {
       "name": "pmCmdSetCouplings",
+      "section": "9.3",
+      "card": "coupling",
+      "header": "parallel_mater.h",
+      "source": "generated/api/loader_forward.inc",
+      "status": "driver-routed"
+    },
+    {
+      "name": "pmCmdSetCouplings2",
       "section": "9.3",
       "card": "coupling",
       "header": "parallel_mater.h",
@@ -1237,7 +1245,17 @@
       "card": "coupling"
     },
     {
+      "name": "PmCouplingStateInfo",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
       "name": "PmCouplingType",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmFluidPairMaterialState",
       "section": "9.3",
       "card": "coupling"
     },
@@ -1305,6 +1323,11 @@
       "name": "PmSoftBodyMaterialState",
       "section": "9.4",
       "card": "domain_materials"
+    },
+    {
+      "name": "PmPhysicsPipelineCouplingStateInfo",
+      "section": "9.5",
+      "card": "pipeline_create"
     },
     {
       "name": "PmPhysicsPipelineCreateInfo",
@@ -1740,6 +1763,7 @@
     "PFN_pmCmdQueryHitBox",
     "PFN_pmCmdWriteRigidConstraints",
     "PFN_pmCmdSetCouplings",
+    "PFN_pmCmdSetCouplings2",
     "PFN_pmCreatePhysicsPipeline",
     "PFN_pmDestroyPhysicsPipeline",
     "PFN_pmCmdWriteCloths",
