@@ -16,8 +16,10 @@
       "rule_id": "rigid-attachment",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rigid-attachment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -65,8 +67,10 @@
       "rule_id": "rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rigid-brick-penetration-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2660,8 +2664,10 @@
       "rule_id": "rigid-attachment",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rigid-attachment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2709,8 +2715,10 @@
       "rule_id": "rigid-attachment",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rigid-attachment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2758,8 +2766,10 @@
       "rule_id": "rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rigid-brick-penetration-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2807,8 +2817,10 @@
       "rule_id": "rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rigid-brick-penetration-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -5326,8 +5338,10 @@
       "rule_id": "rigid-attachment",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rigid-attachment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -5375,8 +5389,10 @@
       "rule_id": "rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rigid-brick-penetration-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7520,8 +7536,10 @@
       "rule_id": "rigid-attachment",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rigid-attachment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7569,8 +7587,10 @@
       "rule_id": "rigid-attachment",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rigid-attachment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7618,8 +7638,10 @@
       "rule_id": "rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rigid-brick-penetration-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7667,8 +7689,10 @@
       "rule_id": "rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rigid-brick-penetration-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -10852,8 +10876,10 @@
       "rule_id": "rigid-attachment",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rigid-attachment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -10901,8 +10927,10 @@
       "rule_id": "rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rigid-brick-penetration-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -12058,21 +12086,30 @@
   ],
   "known_failures": [
     {
-      "actual": "The rigid penetration fixture is not yet a versioned vendor-neutral profile.",
+      "actual": "quality:rigid-brick-penetration-v1",
       "driver": "slang-cpu",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[0].analytic_invariants",
       "report": "linux-thomas-laptop-slang-cpu-eed669e"
     },
     {
-      "actual": "No vendor-neutral rigid attachment quality case is registered.",
+      "actual": "quality:rigid-attachment-v1",
       "driver": "slang-cpu",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[1].analytic_invariants",
+      "report": "linux-thomas-laptop-slang-cpu-eed669e"
+    },
+    {
+      "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
+      "driver": "slang-cpu",
+      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
       "report": "linux-thomas-laptop-slang-cpu-eed669e"
     },
     {
@@ -12263,20 +12300,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "The rigid penetration fixture is not yet a versioned vendor-neutral profile.",
+      "actual": "quality:rigid-brick-penetration-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[11].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "The rigid penetration fixture is not yet a versioned vendor-neutral profile.",
+      "actual": "quality:rigid-brick-penetration-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[11].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -12299,20 +12336,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral rigid attachment quality case is registered.",
+      "actual": "quality:rigid-attachment-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[12].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral rigid attachment quality case is registered.",
+      "actual": "quality:rigid-attachment-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[12].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -14686,16 +14723,25 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
+      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17"
     },
     {
+      "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
+      "driver": "slang-cuda",
+      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
+    },
+    {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
+      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -14871,11 +14917,11 @@
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
-      "actual": "The rigid penetration fixture is not yet a versioned vendor-neutral profile.",
+      "actual": "quality:rigid-brick-penetration-v1",
       "driver": "slang-d3d12",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[3].analytic_invariants",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
@@ -14898,11 +14944,11 @@
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
-      "actual": "No vendor-neutral rigid attachment quality case is registered.",
+      "actual": "quality:rigid-attachment-v1",
       "driver": "slang-d3d12",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[4].analytic_invariants",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
@@ -15089,7 +15135,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
+      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -17603,20 +17649,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "The rigid penetration fixture is not yet a versioned vendor-neutral profile.",
+      "actual": "quality:rigid-brick-penetration-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[8].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "The rigid penetration fixture is not yet a versioned vendor-neutral profile.",
+      "actual": "quality:rigid-brick-penetration-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[8].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -17657,20 +17703,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral rigid attachment quality case is registered.",
+      "actual": "quality:rigid-attachment-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[9].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral rigid attachment quality case is registered.",
+      "actual": "quality:rigid-attachment-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[9].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -17713,7 +17759,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
+      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -17722,7 +17768,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
+      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18575,26 +18621,35 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "The rigid penetration fixture is not yet a versioned vendor-neutral profile.",
+      "actual": "quality:rigid-brick-penetration-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[8].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral rigid attachment quality case is registered.",
+      "actual": "quality:rigid-attachment-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[9].analytic_invariants",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
+      "driver": "slang-vulkan",
+      "expected": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
+  "obligations_sha256": "1bd2cae18a26e1ddf56fd8d47c606e16303a94448d83a12ae6d1334f85be1625",
   "qualification_complete": true,
   "qualified_capability_count": 0,
   "report_count": 10,
@@ -18671,7 +18726,7 @@
         "name": "slang-cuda",
         "version": "0.2.0+eed669e"
       },
-      "failure_count": 103,
+      "failure_count": 104,
       "id": "linux-rtx3050ti-slang-cuda-eed669e",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-eed669e-qualification.json",
@@ -18700,7 +18755,7 @@
         "name": "slang-vulkan",
         "version": "0.2.0+eed669e"
       },
-      "failure_count": 96,
+      "failure_count": 97,
       "id": "linux-rtx3050ti-slang-vulkan-eed669e",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-qualification.json",
@@ -18729,7 +18784,7 @@
         "name": "slang-cpu",
         "version": "0.2.0+eed669e"
       },
-      "failure_count": 2,
+      "failure_count": 3,
       "id": "linux-thomas-laptop-slang-cpu-eed669e",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json",
@@ -18903,7 +18958,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "c6dacf7d7dbbb1512522c1138d50b0dc96c0a493788f039d996edc64200f560a",
+  "sources_sha256": "63155d9f79a35104d39979f2492963e826f473ae44eca8d08d724519a43f65d5",
   "valid": true,
   "validation_failures": []
 }

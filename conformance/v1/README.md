@@ -141,18 +141,41 @@ Rigid contact uses the separate `rigid-brick-penetration-v1` profile. Its
 result repeats the fixed `RigidBody.glb`, eight-brick, 300-frame, four-substep
 configuration and reports the maximum pairwise penetration observed by the
 independent closed-mesh sampler in `tests/gallery/rigid_mesh_checks.hpp`.
-Evaluate a captured result with:
+Select one installed driver and capture the public-API result, then evaluate it:
 
 ```text
+parallel-mater-conformance --quality rigid-brick-penetration-v1 \
+  --output /path/to/rigid-quality-results
 python3 conformance/v1/quality.py \
   --profile conformance/v1/quality/rigid-brick-penetration-v1.json \
-  --actual /path/to/rigid-brick-result.json \
+  --actual /path/to/rigid-quality-results/rigid-brick-penetration-v1.json \
   --report /path/to/rigid-brick-report.json
 ```
 
 The existing 2 mm threshold is unchanged. A driver-contact depth is diagnostic;
 it cannot replace the independent mesh measurement. The original CUDA/D3D12
 failures and corrected observations remain in the revisioned Windows report.
+
+Rigid attachment has its own `rigid-attachment-v1` profile. It runs the
+accepted six-body, five-constraint `ConstraintHinge.glb` settling fixture for
+2,400 frames and derives hinge-anchor, hinge-axis, slider-drift, slider-axis and
+slider-travel measurements from authored local frames and public rigid output.
+It also requires every authored constraint to remain enabled and unbroken.
+The existing 2 mm, 0.014, 2 mm, 0.001 and 0.01--1.0 m gates are unchanged.
+
+```text
+parallel-mater-conformance --quality rigid-attachment-v1 \
+  --output /path/to/rigid-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/rigid-attachment-v1.json \
+  --actual /path/to/rigid-quality-results/rigid-attachment-v1.json \
+  --report /path/to/rigid-attachment-report.json
+```
+
+Both profiles pin their scene SHA-256, schedule, physical units and oracle.
+They are separate analytic obligations for the advertised same-domain rigid
+contact and attachment capabilities; neither substitutes for lifecycle or
+reference-regression evidence.
 
 The `rigid-kinematic-sweep-v1` profile independently adjudicates the
 `rigid-direct` frame-21 kinematic impact. Capture all frames, then evaluate the
