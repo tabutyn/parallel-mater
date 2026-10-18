@@ -1,7 +1,7 @@
 {
   "id": "F6-07",
   "title": "Reconcile legacy hinge and contact patches",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "legacy-patch-review"
@@ -15,6 +15,14 @@
     "Each unique patch hunk has a disposition; no unreviewed golden or solver transplant."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "2e1e3517-635b-4aa7-bb7f-329391e55971",
+    "owner": "codex-windows-sdk",
+    "machine": "windows-gtx1080",
+    "branch": "work/F6-07/windows-gtx1080",
+    "claimed_at": "2026-10-18T11:20:08Z",
+    "heartbeat_at": "2026-10-18T11:20:08Z",
+    "expires_at": "2026-10-19T11:20:08Z"
+  },
   "history": []
 }
