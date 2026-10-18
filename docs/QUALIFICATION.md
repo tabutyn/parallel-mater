@@ -27,9 +27,9 @@ promoting those results to capability certification.
 | Scope | Evidence and host scope | Unqualified or failed scope |
 |---|---|---|
 | Resource lifetime and capacity (F1) | Reference-lifecycle foundation closed by F1-01–F1-07: exact-query fluid churn/recovery; CUDA mixed-domain churn; geometry, paint and borrowed-endpoint replacement; failure/pending lifetime; fixed host owner metadata. Current Windows CUDA/D3D12 and Apple M4 Metal console tests pass 4,096 fluid replacements and exact-capacity recovery. | The console tests do not emit F5-03 checkpoint state hashes/write ordinals, so current results retain explicit `missing` profile evidence. Numerical physics and remaining driver/domain pairs remain separate; see F2-04, F4-05 and P1-01. |
-| Specification, ABI and validation (F3) | F3-01–F3-12 reconcile the generated API/specification, loader and layer negotiation, typed validation diagnostics, command/object/query/synchronization state, host snapshots, deferred errors, teardown and capacity recovery. The F3-99 review passes 23 Windows D3D12/validation tests, 6 independent WSL host tests and all 18 relocated public SDK consumer/ABI cases. | This is portable contract and reference-runtime evidence, not exhaustive proof of every specification clause, physical correctness or every driver. Native interop handoff remains F4-07/F4-08; driver/domain qualification remains F5/P1; the full Windows SDK gate still exposes the F6-01 Debug/Release conformance-consumer mismatch. |
+| Specification, ABI and validation (F3) | F3-01–F3-12 reconcile the generated API/specification, loader and layer negotiation, typed validation diagnostics, command/object/query/synchronization state, host snapshots, deferred errors, teardown and capacity recovery. The F3-99 review passes 23 Windows D3D12/validation tests, 6 independent WSL host tests and all 18 relocated public SDK consumer/ABI cases. | This is portable contract and reference-runtime evidence, not exhaustive proof of every specification clause, physical correctness or every driver. Native interop handoff remains F4-07/F4-08; driver/domain qualification remains F5/P1. SDK installation is qualified separately by F6-01/F6-02. |
 | Runtime-generated capacity recovery (F3-12) | Public API profile fixes four colocated particles, one allowed neighbor and one isolated control population. D3D12 on the Windows GTX 1080 and the independent WSL Slang C++ host fixture each pass 20/20: acceptance succeeds; completion, status and statistics report exactly four generated overflows; invalid output is not published; selective reinitialization recovers while preserving the control. | This qualifies only the named shared-Slang neighbor-overflow profile and lifecycle contract. It is not physical-quality, performance or blanket driver-capacity evidence. |
-| SDK/loader/host contracts | 34 shader-free `sdk-ci` CTests; relocated C/C++ consumers and separately built mock driver; standalone conformance checks all 30 inputs; Linux and Apple Silicon macOS CI preserve revisioned compiler/architecture reports | Windows installed packages are not run here; physics is not evaluated by this gate |
+| SDK/loader/host contracts | Windows x64 Release passes 38/38 `sdk-ci` CTests and all 12 relocated-install stages, including 18/18 external C/C++/ABI cases and all 30 conformance inputs. Linux, Apple Silicon macOS and Windows CI preserve revisioned compiler, architecture and package evidence. | This gate qualifies packaging and public ABI behavior only; physics quality, native GPU drivers and a stable optional C++ ABI are not claimed. |
 | Interaction graph lifecycle (F2-04) | Linux RTX 3050 Ti and current Windows GTX 1080 CUDA plus Apple M4 Metal execute all 12 implemented pairs through create/update/clear, endpoint replacement, three-family mutation and partial-create rollback. | Current CUDA and Metal console evidence lacks required F5-03 checkpoint fingerprints; D3D12 reports the complete three-family case unsupported because it does not advertise rope, soft-body or smoke. Unsupported/missing never passes the lifecycle evaluator. |
 | Vendor-neutral physical quality (F5-02, F5-05) | Hashed `core-conservation-stability-v1` and `rigid-brick-penetration-v1` profiles independently evaluate fluid conservation/stability and rigid surface separation. Current Windows CUDA passes all 18 equal-fluid samples; CUDA and D3D12 pass the fixed eight-brick gate at 0.205278 mm and Apple M4 Metal passes at 0.146627 mm, all against 2 mm. | D3D12 and Metal do not advertise separate-system equal-fluid modes. Brick quality does not override failed reference regression or missing lifecycle/interaction-specific analytic evidence; remaining modes still need fixtures. |
 | Capability evidence obligations (F5-01) | Hashed `capability-obligations-v1` rules cover all 49 API 0.2 interaction records exactly once and keep compilation, execution, regression, lifecycle, analytic and timing evidence separate. Current physical results register 49 CUDA and 10 D3D12 records on GTX 1080 plus 46 Metal records on Apple M4. | Qualification remains 0/49 for current Windows CUDA, 0/10 D3D12 and 0/46 Metal. Reference failures, process crashes, missing exact lifecycle captures and rule-level analytic gaps stay explicit. |
@@ -204,16 +204,32 @@ The review preserves these boundaries:
   and F4-08 own that contract and mock-adapter evidence. Physical accuracy,
   every driver/domain combination and native Vulkan validation remain F5 and
   P1 work rather than being inferred from F3 lifecycle passes.
-- The broader Windows SDK verifier installed and relocated the current Release
-  package, passed all 18 external ABI cases and rejected package versions 0.1
-  and 0.3 as expected. Its separate conformance consumer then configured with
-  Debug MSVC defaults and could not link the Release SDK libraries. F6-01
-  already owns Windows SDK installation qualification, so this release-tooling
-  defect is retained there rather than hidden or expanded into F3.
+- The broader Windows SDK verifier originally exposed a Debug/Release mismatch
+  in its independent conformance consumer. F6-01 now applies the requested
+  configuration consistently and separately qualifies the complete relocated
+  package; that packaging result does not broaden F3's specification claims.
 
 No uncovered F3-specific leaf was found. Closing F3 establishes the reviewed
 specification/ABI/validation foundation only; it does not certify a solver,
 driver, engine integration, package release or physical-quality profile.
+
+### F6-01 Windows SDK installation qualification
+
+Clean source `6994b6c658ca81dd62234e93b3c79df5aa8af0cc` built the Release
+`sdk-ci` profile on Windows 11 x64 with Visual Studio Build Tools 18.9.1,
+MSVC 19.51.36256.0, Windows SDK 10.0.26100.0, CMake 4.4.2 and Ninja 1.12.1.
+All 38 headless SDK CTests passed. The installed-SDK verifier then installed and
+moved 154 files, passed all 12 stages, passed all 18 external C/C++ and ABI
+cases, rejected package lines 0.1 and 0.3, rebuilt conformance against only the
+relocated public package, validated all 30 inputs and preserved the unsupported
+and missing-driver classifications.
+
+The [tracked F6-01 evidence](roadmap/evidence/F6-01-windows-sdk-install.json)
+pins the source, toolchain, binary/report hashes and reproduction commands. The
+Windows x64 job in `sdk-install.yml` repeats the same minimal build, `sdk-ci`
+build/CTest and relocated-install verifier in CI and retains its raw report and
+logs. This qualifies packaging and public ABI behavior only; no physical quality
+or native GPU-driver claim follows from it.
 
 The [Windows physics report](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json)
 records tested source/binary/case hashes, original first divergences, comparison
