@@ -192,7 +192,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-12](roadmap/tasks/F5-12.json) | Publish current macOS Metal driver evidence | done | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-10, F5-11 | — |
 | [F5-13](roadmap/tasks/F5-13.json) | Expose capability qualification on iPadOS | done | F5-01, F5-08 | — |
 | [F5-14](roadmap/tasks/F5-14.json) | Publish current iPadOS Metal driver evidence | done | F5-02, F5-03, F5-05, F5-06, F5-10, F5-11, F5-13 | — |
-| [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | leased | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | codex-linux-gallery / thomas-laptop / 2026-10-19T23:43:01Z |
+| [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | leased | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | codex-linux-gallery / thomas-laptop / 2026-10-20T11:32:56Z |
 | [F5-16](roadmap/tasks/F5-16.json) | Publish current Linux driver evidence | done | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
 | [F5-17](roadmap/tasks/F5-17.json) | Adjudicate rigid-direct reference drift | done | F5-04, F5-10 | — |
 | [F5-18](roadmap/tasks/F5-18.json) | Stabilize rigid-direct planar symmetry | done | F5-17 | — |
