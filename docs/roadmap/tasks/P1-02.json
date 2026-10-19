@@ -1,7 +1,7 @@
 {
   "id": "P1-02",
   "title": "Plan remaining same-family operators",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F1-99",
     "F2-99",
@@ -20,6 +20,14 @@
     "Cloth, soft body, rope and smoke inter-system/self modes each have leaf tasks; rigid–rigid gaps remain explicit."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "5bb646b5-f57c-4549-9b90-2edceaaece9c",
+    "owner": "codex-macos-physics",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/P1-02/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-19T14:21:29Z",
+    "heartbeat_at": "2026-10-19T14:21:29Z",
+    "expires_at": "2026-10-20T14:21:29Z"
+  },
   "history": []
 }
