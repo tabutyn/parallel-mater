@@ -3,20 +3,17 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 import tarfile
 import unittest
 
+from tests.roadmap.evidence_hash import byte_sha256, text_sha256
+
 
 ROOT = Path(__file__).resolve().parents[2]
 REPORT = ROOT / "docs/roadmap/evidence/F6-09-hinge-fixture-qualification.json"
 ARCHIVE = ROOT / "docs/roadmap/evidence/F6-07/snapshot-working-files.tar.gz"
-
-
-def digest(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
 
 
 class HingeFixtureQualificationTests(unittest.TestCase):
@@ -31,19 +28,24 @@ class HingeFixtureQualificationTests(unittest.TestCase):
             candidate_test = archive.extractfile(
                 "tests/blender/export_scene_tests.py").read()
 
-        self.assertEqual(digest(candidate_blend),
+        self.assertEqual(byte_sha256(candidate_blend),
                          source["candidate_blend_sha256"])
-        self.assertEqual(digest(candidate_glb), source["archived_glb_sha256"])
-        self.assertEqual(digest(candidate_test),
+        self.assertEqual(byte_sha256(candidate_glb),
+                         source["archived_glb_sha256"])
+        self.assertEqual(byte_sha256(candidate_test),
                          source["candidate_blender_test_sha256"])
         self.assertEqual(source["archived_glb_sha256"],
                          source["current_exporter_glb_sha256"])
         accepted = source["accepted_assets"]
-        self.assertEqual(digest((ROOT / "examples/assets/ConstraintHinge.blend").read_bytes()),
+        accepted_blend = ROOT / "examples/assets/ConstraintHinge.blend"
+        accepted_glb = ROOT / "examples/assets/ConstraintHinge.glb"
+        accepted_golden = (
+            ROOT / "conformance/v1/golden/cuda/constraint-hinge.json")
+        self.assertEqual(byte_sha256(accepted_blend.read_bytes()),
                          accepted["blend_sha256"])
-        self.assertEqual(digest((ROOT / "examples/assets/ConstraintHinge.glb").read_bytes()),
+        self.assertEqual(byte_sha256(accepted_glb.read_bytes()),
                          accepted["glb_sha256"])
-        self.assertEqual(digest((ROOT / "conformance/v1/golden/cuda/constraint-hinge.json").read_bytes()),
+        self.assertEqual(text_sha256(accepted_golden.read_bytes()),
                          accepted["cuda_golden_sha256"])
         self.assertNotEqual(source["candidate_blend_sha256"],
                             accepted["blend_sha256"])
