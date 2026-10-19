@@ -1362,6 +1362,406 @@ def _evaluate_rope_self_contact(
     }
 
 
+def _evaluate_fluid_cloth_containment(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definition = profile.get("fixture")
+    actual = result.get("fixture")
+    if not isinstance(definition, dict):
+        failures.append(Failure("$.profile.fixture",
+                                "expected a fixture object", definition))
+        definition = {}
+    if not isinstance(actual, dict):
+        failures.append(Failure("$.fixture", "expected a fixture object", actual))
+        actual = {}
+    tolerances = profile.get("tolerances")
+    if not isinstance(tolerances, dict):
+        failures.append(Failure("$.profile.tolerances",
+                                "expected an object", tolerances))
+        tolerances = {}
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+
+    for field in ("id", "substeps", "fluid_particle_count",
+                  "cloth_solver_iterations", "cloth_preserve_volume",
+                  "two_way", "oracle"):
+        if actual.get(field) != definition.get(field):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "fixture setting differs from profile",
+                                    actual.get(field), definition.get(field)))
+    for field in (
+            "timestep_seconds", "fluid_rest_density_kg_m3",
+            "fluid_particle_radius_m", "fluid_support_radius_m",
+            "fluid_rest_particle_volume_m3", "fluid_maximum_speed_m_s",
+            "cloth_vertex_mass_kg", "cloth_thickness_m",
+            "cloth_stretch_compliance_m_per_n",
+            "cloth_bending_compliance_m_per_n", "cloth_target_volume_m3",
+            "cloth_volume_compliance_m3_per_pa", "contact_distance_m",
+            "stiffness_n_per_m", "damping_n_s_per_m",
+            "tangential_drag_n_s_per_m", "maximum_force_n"):
+        value = _scalar(actual.get(field), f"$.fixture.{field}", failures)
+        expected = _scalar(definition.get(field),
+                           f"$.profile.fixture.{field}", failures)
+        if (value is not None and expected is not None and
+                abs(value - expected) > state_tolerance):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "fixture setting differs from profile",
+                                    value, expected))
+    gravity = _vector(actual.get("gravity_m_s2"),
+                      "$.fixture.gravity_m_s2", failures)
+    expected_gravity = _vector(definition.get("gravity_m_s2"),
+                               "$.profile.fixture.gravity_m_s2", failures)
+    if (gravity is not None and expected_gravity is not None and
+            max(abs(a - b) for a, b in zip(gravity, expected_gravity)) >
+            state_tolerance):
+        failures.append(Failure("$.fixture.gravity_m_s2",
+                                "fixture setting differs from profile",
+                                list(gravity), list(expected_gravity)))
+
+    def vectors(value: Any, path: str) -> list[tuple[float, float, float]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a vector array", value))
+            return []
+        parsed: list[tuple[float, float, float]] = []
+        for index, item in enumerate(value):
+            vector = _vector(item, f"{path}[{index}]", failures)
+            if vector is not None:
+                parsed.append(vector)
+        return parsed
+
+    vertices = vectors(actual.get("cloth_vertices_m"),
+                       "$.fixture.cloth_vertices_m")
+    expected_vertices = vectors(definition.get("cloth_vertices_m"),
+                                "$.profile.fixture.cloth_vertices_m")
+    if len(vertices) != len(expected_vertices):
+        failures.append(Failure("$.fixture.cloth_vertices_m",
+                                "cloth vertex count differs from profile",
+                                len(vertices), len(expected_vertices)))
+    else:
+        for index, (value, expected) in enumerate(zip(vertices,
+                                                       expected_vertices)):
+            if max(abs(a - b) for a, b in zip(value, expected)) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.cloth_vertices_m[{index}]",
+                    "cloth public input differs from profile",
+                    list(value), list(expected)))
+    indices_value = actual.get("cloth_triangle_indices")
+    expected_indices = definition.get("cloth_triangle_indices")
+    if indices_value != expected_indices:
+        failures.append(Failure("$.fixture.cloth_triangle_indices",
+                                "cloth topology differs from profile",
+                                indices_value, expected_indices))
+    indices = indices_value if (isinstance(indices_value, list) and
+                                all(isinstance(item, int) and
+                                    not isinstance(item, bool)
+                                    for item in indices_value)) else []
+    if len(indices) == 0 or len(indices) % 3 != 0:
+        failures.append(Failure("$.fixture.cloth_triangle_indices",
+                                "expected complete triangle indices", indices))
+
+    def fluid_states(value: Any, path: str) -> list[dict[str, Any]]:
+        expected_count = definition.get("fluid_particle_count")
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a particle array", value))
+            return []
+        if isinstance(expected_count, int) and len(value) != expected_count:
+            failures.append(Failure(path, "fluid particle count differs",
+                                    len(value), expected_count))
+        parsed: list[dict[str, Any]] = []
+        for index, particle in enumerate(value):
+            item_path = f"{path}[{index}]"
+            if not isinstance(particle, dict):
+                failures.append(Failure(item_path,
+                                        "expected a particle object", particle))
+                continue
+            if particle.get("stable_id") != index:
+                failures.append(Failure(item_path + ".stable_id",
+                                        "fluid stable ID/order changed",
+                                        particle.get("stable_id"), index))
+            position = _vector(particle.get("position_m"),
+                               item_path + ".position_m", failures)
+            velocity = _vector(particle.get("velocity_m_s"),
+                               item_path + ".velocity_m_s", failures)
+            acceleration = _vector(particle.get("acceleration_m_s2"),
+                                   item_path + ".acceleration_m_s2", failures)
+            foam = _scalar(particle.get("foam"), item_path + ".foam", failures)
+            if (position is not None and velocity is not None and
+                    acceleration is not None and foam is not None):
+                parsed.append({"position": position, "velocity": velocity,
+                               "acceleration": acceleration, "foam": foam})
+        return parsed
+
+    def cloth_states(value: Any, path: str) -> list[dict[str, Any]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a cloth vertex array", value))
+            return []
+        if len(value) != len(expected_vertices):
+            failures.append(Failure(path, "cloth state count differs",
+                                    len(value), len(expected_vertices)))
+        parsed: list[dict[str, Any]] = []
+        for index, vertex in enumerate(value):
+            item_path = f"{path}[{index}]"
+            if not isinstance(vertex, dict):
+                failures.append(Failure(item_path,
+                                        "expected a cloth vertex object", vertex))
+                continue
+            if vertex.get("index") != index:
+                failures.append(Failure(item_path + ".index",
+                                        "cloth vertex order/index changed",
+                                        vertex.get("index"), index))
+            position = _vector(vertex.get("position_m"),
+                               item_path + ".position_m", failures)
+            velocity = _vector(vertex.get("velocity_m_s"),
+                               item_path + ".velocity_m_s", failures)
+            force = _vector(vertex.get("liquid_contact_force_n"),
+                            item_path + ".liquid_contact_force_n", failures)
+            if position is not None and velocity is not None and force is not None:
+                parsed.append({"position": position, "velocity": velocity,
+                               "force": force})
+        return parsed
+
+    initial_profile = definition.get("initial_particles")
+    initial_fluid = fluid_states(actual.get("initial_fluid_state"),
+                                 "$.fixture.initial_fluid_state")
+    final_fluid = fluid_states(actual.get("final_fluid_state"),
+                               "$.fixture.final_fluid_state")
+    if isinstance(initial_profile, list) and len(initial_fluid) == len(initial_profile):
+        for index, (state, expected) in enumerate(zip(initial_fluid,
+                                                       initial_profile)):
+            expected_position = _vector(
+                expected.get("position_m") if isinstance(expected, dict) else None,
+                f"$.profile.fixture.initial_particles[{index}].position_m",
+                failures)
+            expected_velocity = _vector(
+                expected.get("velocity_m_s") if isinstance(expected, dict) else None,
+                f"$.profile.fixture.initial_particles[{index}].velocity_m_s",
+                failures)
+            if (expected_position is not None and
+                    max(abs(a - b) for a, b in zip(
+                        state["position"], expected_position)) > state_tolerance):
+                failures.append(Failure(
+                    f"$.fixture.initial_fluid_state[{index}].position_m",
+                    "initial particle position differs from profile",
+                    list(state["position"]), list(expected_position)))
+            if (expected_velocity is not None and
+                    max(abs(a - b) for a, b in zip(
+                        state["velocity"], expected_velocity)) > state_tolerance):
+                failures.append(Failure(
+                    f"$.fixture.initial_fluid_state[{index}].velocity_m_s",
+                    "initial particle velocity differs from profile",
+                    list(state["velocity"]), list(expected_velocity)))
+    else:
+        failures.append(Failure("$.fixture.initial_fluid_state",
+                                "initial particle profile count differs",
+                                len(initial_fluid),
+                                len(initial_profile) if
+                                isinstance(initial_profile, list) else None))
+
+    initial_cloth = cloth_states(actual.get("initial_cloth_state"),
+                                 "$.fixture.initial_cloth_state")
+    final_cloth = cloth_states(actual.get("final_cloth_state"),
+                               "$.fixture.final_cloth_state")
+    if len(initial_cloth) == len(expected_vertices):
+        for index, (state, expected) in enumerate(zip(initial_cloth,
+                                                       expected_vertices)):
+            if max(abs(a - b) for a, b in zip(
+                    state["position"], expected)) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.initial_cloth_state[{index}].position_m",
+                    "initial cloth public state differs from profile",
+                    list(state["position"]), list(expected)))
+            if _norm(state["velocity"]) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.initial_cloth_state[{index}].velocity_m_s",
+                    "initial cloth velocity must be zero",
+                    list(state["velocity"]), 0.0))
+            if _norm(state["force"]) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.initial_cloth_state[{index}].liquid_contact_force_n",
+                    "initial cloth liquid force must be zero",
+                    list(state["force"]), 0.0))
+
+    def dot(left: tuple[float, float, float],
+            right: tuple[float, float, float]) -> float:
+        return sum(a * b for a, b in zip(left, right))
+
+    def cross(left: tuple[float, float, float],
+              right: tuple[float, float, float]) -> tuple[float, float, float]:
+        return (left[1] * right[2] - left[2] * right[1],
+                left[2] * right[0] - left[0] * right[2],
+                left[0] * right[1] - left[1] * right[0])
+
+    def signed_volume(points: list[tuple[float, float, float]]) -> float | None:
+        if (not indices or not points or
+                any(index < 0 or index >= len(points) for index in indices)):
+            failures.append(Failure("$.fixture.cloth_triangle_indices",
+                                    "triangle index is outside cloth vertices",
+                                    indices, len(points)))
+            return None
+        return sum(dot(points[indices[corner]], cross(
+            points[indices[corner + 1]], points[indices[corner + 2]])) / 6.0
+                   for corner in range(0, len(indices), 3))
+
+    manifold = bool(indices and vertices)
+    edge_directions: dict[tuple[int, int], list[tuple[int, int]]] = {}
+    if manifold:
+        for corner in range(0, len(indices), 3):
+            triangle = indices[corner:corner + 3]
+            if len(set(triangle)) != 3:
+                manifold = False
+                failures.append(Failure(
+                    f"$.fixture.cloth_triangle_indices[{corner}]",
+                    "cloth triangle repeats a vertex", triangle))
+                continue
+            for offset in range(3):
+                first = triangle[offset]
+                second = triangle[(offset + 1) % 3]
+                edge_directions.setdefault(tuple(sorted((first, second))), []).append(
+                    (first, second))
+        for edge, directions in edge_directions.items():
+            if (len(directions) != 2 or directions[0] != directions[1][::-1]):
+                manifold = False
+                failures.append(Failure("$.fixture.cloth_triangle_indices",
+                                        "cloth boundary is not closed and consistently oriented",
+                                        {"edge": edge, "directions": directions}))
+
+    initial_volume = signed_volume(vertices) if manifold else None
+    final_positions = [state["position"] for state in final_cloth]
+    final_volume = (signed_volume(final_positions)
+                    if manifold and len(final_positions) == len(vertices) else None)
+    volume_relative_error = None
+    if initial_volume is not None:
+        if initial_volume <= 0.0:
+            failures.append(Failure("$.fixture.cloth_triangle_indices",
+                                    "closed cloth orientation must have positive volume",
+                                    initial_volume, "> 0"))
+        if final_volume is not None and abs(initial_volume) > 0.0:
+            if final_volume <= 0.0:
+                failures.append(Failure("$.fixture.final_cloth_state",
+                                        "closed cloth orientation inverted",
+                                        final_volume, "> 0"))
+            volume_relative_error = (
+                abs(abs(final_volume) - abs(initial_volume)) /
+                abs(initial_volume))
+            volume_limit = float(tolerances.get(
+                "maximum_cloth_volume_relative_error", 0.0))
+            if volume_relative_error > volume_limit:
+                failures.append(Failure("$.fixture.final_cloth_state",
+                                        "closed cloth volume drift exceeds profile",
+                                        volume_relative_error, volume_limit))
+
+    maximum_signed_distance = None
+    maximum_penetration = None
+    leaked_particles = 0
+    contact_distance = _scalar(definition.get("contact_distance_m"),
+                               "$.profile.fixture.contact_distance_m", failures)
+    if (manifold and len(final_positions) == len(vertices) and final_fluid and
+            contact_distance is not None):
+        face_planes: list[tuple[tuple[float, float, float],
+                                tuple[float, float, float]]] = []
+        for corner in range(0, len(indices), 3):
+            first = final_positions[indices[corner]]
+            second = final_positions[indices[corner + 1]]
+            third = final_positions[indices[corner + 2]]
+            normal = _unit(cross(_subtract(second, first),
+                                 _subtract(third, first)))
+            if normal is None:
+                failures.append(Failure("$.fixture.final_cloth_state",
+                                        "cloth triangle became degenerate",
+                                        indices[corner:corner + 3]))
+                continue
+            face_planes.append((first, normal))
+        signed_distances = [
+            max(dot(_subtract(particle["position"], point), normal)
+                for point, normal in face_planes)
+            for particle in final_fluid
+        ] if face_planes else []
+        if signed_distances:
+            maximum_signed_distance = max(signed_distances)
+            leaked_particles = sum(distance > state_tolerance
+                                   for distance in signed_distances)
+            maximum_penetration = max(
+                0.0, contact_distance + maximum_signed_distance)
+            leak_limit = tolerances.get("maximum_leaked_particles", 0)
+            if leaked_particles > leak_limit:
+                failures.append(Failure("$.fixture.final_fluid_state",
+                                        "fluid leaked outside the closed cloth",
+                                        leaked_particles, leak_limit))
+            penetration_limit = float(tolerances.get(
+                "maximum_containment_penetration_m", 0.0))
+            if maximum_penetration > penetration_limit:
+                failures.append(Failure("$.fixture.final_fluid_state",
+                                        "fluid penetrated the containment envelope",
+                                        maximum_penetration, penetration_limit))
+
+    fluid_force = cloth_force = residual = None
+    reaction_activity = None
+    density = _scalar(definition.get("fluid_rest_density_kg_m3"),
+                      "$.profile.fixture.fluid_rest_density_kg_m3", failures)
+    particle_volume = _scalar(definition.get("fluid_rest_particle_volume_m3"),
+                              "$.profile.fixture.fluid_rest_particle_volume_m3",
+                              failures)
+    if density is not None and particle_volume is not None and final_fluid:
+        mass = density * particle_volume
+        fluid_force = tuple(mass * component for component in _sum(
+            [state["acceleration"] for state in final_fluid]))
+    if final_cloth:
+        cloth_force = _sum([state["force"] for state in final_cloth])
+    if fluid_force is not None and cloth_force is not None:
+        residual_vector = tuple(a + b for a, b in zip(fluid_force, cloth_force))
+        residual = _norm(residual_vector)
+        reaction_activity = max(_norm(fluid_force), _norm(cloth_force))
+        activity_limit = float(tolerances.get("minimum_reaction_force_n", 0.0))
+        if reaction_activity < activity_limit:
+            failures.append(Failure("$.fixture.final_cloth_state",
+                                    "reciprocal reaction is too small",
+                                    reaction_activity, activity_limit))
+        residual_limit = float(tolerances.get(
+            "maximum_reciprocal_force_residual_n", 0.0))
+        if residual > residual_limit:
+            failures.append(Failure("$.fixture.final_cloth_state",
+                                    "fluid and cloth reaction forces are not reciprocal",
+                                    residual, residual_limit))
+
+    maximum_speed = None
+    if final_fluid:
+        maximum_speed = max(_norm(state["velocity"]) for state in final_fluid)
+        speed_limit = float(definition.get("fluid_maximum_speed_m_s", 0.0)) + float(
+            tolerances.get("maximum_speed_slack_m_s", 0.0))
+        if maximum_speed > speed_limit:
+            failures.append(Failure("$.fixture.final_fluid_state",
+                                    "fluid speed exceeds authored maximum",
+                                    maximum_speed, speed_limit))
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": 1 if actual else 0,
+        "sample_count": len(final_fluid),
+        "failure_count": len(failures),
+        "observations": {
+            "closed_consistently_oriented_manifold": manifold,
+            "initial_signed_volume_m3": initial_volume,
+            "final_signed_volume_m3": final_volume,
+            "cloth_volume_relative_error": volume_relative_error,
+            "maximum_particle_signed_distance_m": maximum_signed_distance,
+            "maximum_containment_penetration_m": maximum_penetration,
+            "leaked_particle_count": leaked_particles,
+            "fluid_reaction_force_n": list(fluid_force)
+                if fluid_force is not None else None,
+            "cloth_reaction_force_n": list(cloth_force)
+                if cloth_force is not None else None,
+            "reciprocal_force_residual_n": residual,
+            "reaction_activity_n": reaction_activity,
+            "maximum_fluid_speed_m_s": maximum_speed,
+        },
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def _smoke_particle_states(
         value: Any, path: str, failures: list[Failure]
         ) -> dict[int, tuple[tuple[float, float, float],
@@ -2037,6 +2437,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             mode=evaluation.removeprefix("fluid_self_"))
     if evaluation == "rope_self_contact":
         return _evaluate_rope_self_contact(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "fluid_cloth_containment":
+        return _evaluate_fluid_cloth_containment(
             profile, result, expected_hash, driver, failures)
     if evaluation == "smoke_self_pressure":
         return _evaluate_smoke_self_pressure(

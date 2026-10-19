@@ -1079,15 +1079,17 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
-    constexpr std::array<std::pair<std::string_view, std::string_view>, 12U>
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 14U>
         pinned_inputs{{
             {"quality profile", "conformance/v1/quality/core-conservation-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-attachment-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-brick-penetration-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-kinematic-sweep-v1.json"},
+            {"quality profile", "conformance/v1/quality/fluid-cloth-containment-v1.json"},
             {"quality profile", "conformance/v1/quality/smoke-self-pressure-v1.json"},
             {"quality profile", "conformance/v1/quality/smoke-self-viscosity-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json"},
+            {"lifecycle profile", "conformance/v1/lifecycle/fluid-cloth-containment-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json"},
             {"qualification profile",
@@ -1381,6 +1383,10 @@ int conformance_command_main(int argc, char **argv) {
             if (arguments.lifecycle_id == "adverse-capacity-three-family-v1")
                 result = conformance_adverse_lifecycle(root, &status);
             else if (arguments.lifecycle_id ==
+                     "fluid-cloth-containment-lifecycle-v1")
+                result = conformance_fluid_cloth_containment_lifecycle(
+                    root, &status);
+            else if (arguments.lifecycle_id ==
                      "smoke-self-pressure-lifecycle-v1")
                 result = conformance_smoke_pressure_lifecycle(root, &status);
             else if (arguments.lifecycle_id == "smoke-self-lifecycle-v1")
@@ -1400,11 +1406,14 @@ int conformance_command_main(int argc, char **argv) {
                 "rigid-attachment-v1";
             const bool rope_self_contact = arguments.quality_id ==
                 "rope-self-contact-v1";
+            const bool fluid_cloth_containment = arguments.quality_id ==
+                "fluid-cloth-containment-v1";
             const bool smoke_self_pressure = arguments.quality_id ==
                 "smoke-self-pressure-v1";
             const bool smoke_self_viscosity = arguments.quality_id ==
                 "smoke-self-viscosity-v1";
             if (!brick && !attachment && !rope_self_contact &&
+                !fluid_cloth_containment &&
                 !smoke_self_pressure && !smoke_self_viscosity)
                 throw std::runtime_error(
                     "unknown conformance quality profile: " +
@@ -1417,6 +1426,31 @@ int conformance_command_main(int argc, char **argv) {
                     result = conformance_rigid_attachment_quality(root);
                 } else if (rope_self_contact) {
                     result = conformance_rope_self_contact_quality(root);
+                } else if (fluid_cloth_containment) {
+                    ExecutionStatus status{};
+                    result = conformance_fluid_cloth_containment_quality(
+                        root, &status);
+                    if (status != ExecutionStatus::completed) {
+                        Json unavailable = Json::object();
+                        unavailable["schema"] =
+                            "parallel-mater-conformance-quality-result/v1";
+                        unavailable["profile_id"] = arguments.quality_id;
+                        unavailable["profile_sha256"] = contract_sha256(
+                            root / "conformance/v1/quality" /
+                            (arguments.quality_id + ".json"));
+                        unavailable["execution_status"] =
+                            status == ExecutionStatus::unsupported ?
+                            "unsupported" : "failed";
+                        result = unavailable.serialize();
+                    }
+                    write_file(arguments.output /
+                                   (arguments.quality_id + ".json"),
+                               result);
+                    if (status == ExecutionStatus::unsupported) return 77;
+                    if (status == ExecutionStatus::failed) return 2;
+                    std::cout << "Quality execution completed: "
+                              << arguments.quality_id << '\n';
+                    return 0;
                 } else if (smoke_self_pressure) {
                     ExecutionStatus status{};
                     result = conformance_smoke_pressure_quality(root, &status);
