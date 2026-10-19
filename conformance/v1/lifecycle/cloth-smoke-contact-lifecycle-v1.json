@@ -1,0 +1,72 @@
+{
+  "schema": "parallel-mater-conformance-lifecycle-profile/v1",
+  "id": "cloth-smoke-contact-lifecycle-v1",
+  "title": "Grid cloth-to-smoke contact graph bounded lifecycle",
+  "sources": {
+    "capacity": "include/parallel_mater/parallel_mater.h: PmSimulationCreateInfo::couplingCapacity and pmCmdSetCouplings",
+    "qualification": "docs/ROADMAP.md: F5-42",
+    "rollback": "docs/RESOURCE-LIFETIME.md: rejected graph mutations preserve the last usable graph"
+  },
+  "state_fingerprint": "Graph SHA-256 combines the accepted descriptor with the public CONTACT-redirected predicate and pinned-cloth invariance. Endpoint SHA-256 is a canonical public behavioral signature containing smoke tracer count and the same predicates. CONTACT-redirected means x at or behind -0.0145 m with no inward +X velocity. Raw public cloth and smoke fields remain in each checkpoint probe for audit; exclude handles, timings and driver-private state.",
+  "observation_boundary": "After every accepted or rejected graph mutation, execute a fresh zero-gravity grid-smoke probe step under the surviving graph and capture public cloth and smoke output. Generation is the harness ordinal of an accepted graph mutation, never a private driver handle.",
+  "scope": "SMOKE_GRID tuple only. Existing particle lifecycle coverage remains bound independently. API 0.2 groups CONTACT and DRAG in one descriptor; all lifecycle descriptors keep DRAG inert. A retained +X grid-smoke tracer must be reprojected by every active CONTACT checkpoint, move when the graph is removed, and be reprojected after recovery.",
+  "cases": [
+    {
+      "id": "grid-cloth-smoke-contact-capacity-replacement-removal-rollback",
+      "families": ["cloth", "smoke"],
+      "unrelated_resources": [],
+      "tracked_resources": ["grid-cloth-smoke-contact-graph", "grid-cloth-smoke-endpoints"],
+      "track_graph": false,
+      "checkpoints": [
+        {
+          "id": "baseline",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "grid-cloth-smoke-contact-graph": {"active": true},
+            "grid-cloth-smoke-endpoints": {"active": true}
+          }
+        },
+        {
+          "id": "replacement",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "grid-cloth-smoke-contact-graph": {"active": true, "generation_different_from": "baseline", "state_different_from": "baseline"},
+            "grid-cloth-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "rejected-overflow",
+          "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED",
+          "resources": {
+            "grid-cloth-smoke-contact-graph": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"},
+            "grid-cloth-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "replacement"}
+          }
+        },
+        {
+          "id": "rejected-invalid-endpoint",
+          "expected_outcome": "PM_ERROR_INVALID_STATE",
+          "resources": {
+            "grid-cloth-smoke-contact-graph": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"},
+            "grid-cloth-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "rejected-overflow"}
+          }
+        },
+        {
+          "id": "removal",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "grid-cloth-smoke-contact-graph": {"active": false, "generation_different_from": "replacement", "state_different_from": "replacement"},
+            "grid-cloth-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_different_from": "replacement"}
+          }
+        },
+        {
+          "id": "recovery",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "grid-cloth-smoke-contact-graph": {"active": true, "generation_different_from": "removal", "state_different_from": "removal"},
+            "grid-cloth-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "replacement", "state_different_from": "removal"}
+          }
+        }
+      ]
+    }
+  ]
+}

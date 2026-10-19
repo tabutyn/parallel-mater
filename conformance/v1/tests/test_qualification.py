@@ -165,6 +165,31 @@ def smoke_viscosity_result(profile: dict) -> dict:
     return result
 
 
+def cloth_smoke_contact_result(profile: dict, material: str,
+                               mode: str = "CONTACT") -> dict:
+    result = valid_equal_fluid_result(profile)
+    direction = "FIRST_TO_SECOND" if mode == "CONTACT" else "SECOND_TO_FIRST"
+    result["advertised_capabilities"] = [
+        capability("CLOTH", "SMOKE", "DISTINCT_FAMILY", mode,
+                   direction, material)
+    ]
+    lifecycle_contract = (
+        "lifecycle:adverse-capacity-three-family-v1#"
+        "three-family-partial-rollback"
+        if material == "SMOKE_PARTICLE" else
+        "lifecycle:cloth-smoke-contact-lifecycle-v1#"
+        "grid-cloth-smoke-contact-capacity-replacement-removal-rollback")
+    result["evidence"] = [
+        evidence(profile, "compilation", "registry:interaction-capabilities"),
+        evidence(profile, "execution", "case:smoke-cloth"),
+        evidence(profile, "reference_regression", "case:smoke-cloth"),
+        evidence(profile, "lifecycle_invariants", lifecycle_contract),
+        evidence(profile, "analytic_invariants",
+                 "quality:cloth-smoke-contact-v1"),
+    ]
+    return result
+
+
 def fluid_soft_aggregate(profile: dict) -> tuple[dict, dict, list[dict]]:
     contracts = contract_map(profile)
     advertised = capability(
@@ -353,6 +378,41 @@ class QualificationTests(unittest.TestCase):
                           "lifecycle_invariants", "analytic_invariants"):
                 self.assertEqual(
                     capability_report["scopes"][scope]["status"], "passed")
+
+    def test_cloth_smoke_contact_contracts_do_not_qualify_drag(self):
+        contracts = contract_map(self.profile)
+        expected_contracts = {
+            "quality:cloth-smoke-contact-v1":
+                ROOT / "quality" / "cloth-smoke-contact-v1.json",
+            ("lifecycle:cloth-smoke-contact-lifecycle-v1#"
+             "grid-cloth-smoke-contact-capacity-replacement-removal-rollback"):
+                ROOT / "lifecycle" / "cloth-smoke-contact-lifecycle-v1.json",
+        }
+        for contract_id, path in expected_contracts.items():
+            with self.subTest(contract=contract_id):
+                self.assertEqual(contracts[contract_id]["path"],
+                                 path.relative_to(REPOSITORY).as_posix())
+                self.assertEqual(contracts[contract_id]["sha256"],
+                                 qualification.profile_sha256(path))
+
+        for material in ("SMOKE_PARTICLE", "SMOKE_GRID"):
+            with self.subTest(material=material, mode="CONTACT"):
+                report = self.evaluate(
+                    cloth_smoke_contact_result(self.profile, material))
+                self.assertTrue(report["passed"], report)
+                self.assertEqual(report["qualified_count"], 1)
+                self.assertEqual(report["capabilities"][0]["rule_id"],
+                                 "cloth-smoke-contact-" +
+                                 material.removeprefix("SMOKE_").lower())
+
+            with self.subTest(material=material, mode="DRAG"):
+                report = self.assert_rejected(
+                    cloth_smoke_contact_result(self.profile, material, "DRAG"),
+                    "qualification contract is missing")
+                self.assertEqual(report["qualified_count"], 0)
+                self.assertEqual(report["capabilities"][0]["rule_id"],
+                                 "cloth-smoke-drag-" +
+                                 material.removeprefix("SMOKE_").lower())
 
     def test_stale_contract_source_and_artifact_metadata_fail(self):
         result = valid_equal_fluid_result(self.profile)
