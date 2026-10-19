@@ -293,6 +293,31 @@ python3 conformance/v1/lifecycle.py \
   --report /path/to/soft-smoke-lifecycle-report.json
 ```
 
+Rope-to-smoke CONTACT uses `rope-smoke-contact-v1` for both particle and
+projected-grid smoke. Paired no-edge and CONTACT-edge runs derive capsule
+entry, declared-radius clearance, relative radial rejection, retained
+tangential motion, speed bounds, and one-way dynamic-rope invariance from
+public rope-node and smoke snapshots. The explicit `0.015 m` contact distance
+equals the rope radius; bundled DRAG is inert. Two exact graph cases cover
+capacity, replacement, rejected-overflow rollback, removal, and recovery:
+
+```text
+parallel-mater-conformance --quality rope-smoke-contact-v1 \
+  --output /path/to/rope-smoke-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/rope-smoke-contact-v1.json \
+  --actual /path/to/rope-smoke-quality-results/rope-smoke-contact-v1.json \
+  --report /path/to/rope-smoke-quality-report.json
+
+parallel-mater-conformance \
+  --lifecycle-profile rope-smoke-contact-lifecycle-v1 \
+  --output /path/to/rope-smoke-lifecycle-result.json
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/rope-smoke-contact-lifecycle-v1.json \
+  --actual /path/to/rope-smoke-lifecycle-result.json \
+  --report /path/to/rope-smoke-lifecycle-report.json
+```
+
 Smoke-to-soft-body DRAG uses `smoke-soft-drag-v1` for particle and projected-
 grid smoke. Six public-state runs pair zero-drag controls with forward,
 stationary, and reverse carrier flow. The oracle bounds signed soft-node

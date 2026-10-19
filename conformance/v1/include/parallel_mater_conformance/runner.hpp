@@ -70,6 +70,9 @@ struct CaseExecution {
 [[nodiscard]] std::string conformance_soft_smoke_contact_quality(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_rope_smoke_contact_quality(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_smoke_fluid_drag_quality(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
@@ -110,6 +113,9 @@ struct CaseExecution {
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_soft_smoke_contact_lifecycle(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_rope_smoke_contact_lifecycle(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_cloth_soft_contact_lifecycle(

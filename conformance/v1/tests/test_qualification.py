@@ -222,6 +222,29 @@ def soft_smoke_contact_result(profile: dict, material: str,
     return result
 
 
+def rope_smoke_contact_result(profile: dict, material: str,
+                              mode: str = "CONTACT") -> dict:
+    result = valid_equal_fluid_result(profile)
+    direction = "FIRST_TO_SECOND" if mode == "CONTACT" else "SECOND_TO_FIRST"
+    result["advertised_capabilities"] = [
+        capability("ROPE", "SMOKE", "DISTINCT_FAMILY", mode,
+                   direction, material)
+    ]
+    prefix = material.removeprefix("SMOKE_").lower()
+    lifecycle_contract = (
+        "lifecycle:rope-smoke-contact-lifecycle-v1#" + prefix +
+        "-rope-smoke-contact-capacity-replacement-removal-rollback")
+    result["evidence"] = [
+        evidence(profile, "compilation", "registry:interaction-capabilities"),
+        evidence(profile, "execution", "case:smoke-rope"),
+        evidence(profile, "reference_regression", "case:smoke-rope"),
+        evidence(profile, "lifecycle_invariants", lifecycle_contract),
+        evidence(profile, "analytic_invariants",
+                 "quality:rope-smoke-contact-v1"),
+    ]
+    return result
+
+
 def soft_rope_attachment_result(profile: dict,
                                 mode: str = "ATTACHMENT") -> dict:
     result = valid_equal_fluid_result(profile)
@@ -604,6 +627,51 @@ class QualificationTests(unittest.TestCase):
                 self.assertIn(
                     "quality:soft-smoke-contact-v1",
                     {item["contract"] for item in report["unused_evidence"]})
+
+    def test_rope_smoke_contact_contracts_are_exact_and_disjoint_from_drag(self):
+        contracts = contract_map(self.profile)
+        expected_contracts = {
+            "quality:rope-smoke-contact-v1":
+                ROOT / "quality" / "rope-smoke-contact-v1.json",
+            ("lifecycle:rope-smoke-contact-lifecycle-v1#"
+             "particle-rope-smoke-contact-capacity-replacement-removal-rollback"):
+                ROOT / "lifecycle" / "rope-smoke-contact-lifecycle-v1.json",
+            ("lifecycle:rope-smoke-contact-lifecycle-v1#"
+             "grid-rope-smoke-contact-capacity-replacement-removal-rollback"):
+                ROOT / "lifecycle" / "rope-smoke-contact-lifecycle-v1.json",
+        }
+        for contract_id, path in expected_contracts.items():
+            with self.subTest(contract=contract_id):
+                self.assertEqual(contracts[contract_id]["path"],
+                                 path.relative_to(REPOSITORY).as_posix())
+                self.assertEqual(contracts[contract_id]["sha256"],
+                                 qualification.profile_sha256(path))
+
+        for material in ("SMOKE_PARTICLE", "SMOKE_GRID"):
+            suffix = material.removeprefix("SMOKE_").lower()
+            with self.subTest(material=material):
+                report = self.evaluate(
+                    rope_smoke_contact_result(self.profile, material))
+                self.assertTrue(report["passed"], report)
+                self.assertEqual(report["qualified_count"], 1)
+                self.assertEqual(report["capabilities"][0]["rule_id"],
+                                 "rope-smoke-contact-" + suffix)
+
+                wrong = rope_smoke_contact_result(self.profile, material)
+                wrong["evidence"][-1] = evidence(
+                    self.profile, "analytic_invariants",
+                    "quality:soft-smoke-contact-v1")
+                rejected = self.assert_rejected(
+                    wrong, "required evidence is missing")
+                self.assertEqual(rejected["qualified_count"], 0)
+
+                drag = rope_smoke_contact_result(
+                    self.profile, material, "DRAG")
+                drag_report = self.assert_rejected(
+                    drag, "qualification contract is missing")
+                self.assertEqual(drag_report["qualified_count"], 0)
+                self.assertEqual(drag_report["capabilities"][0]["rule_id"],
+                                 "rope-smoke-drag-" + suffix)
 
     def test_soft_rope_attachment_quality_cannot_qualify_contact(self):
         report = self.evaluate(

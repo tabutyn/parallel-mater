@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "9d23925f80d28bd31429682da8e40beeca02ddd29b17d4659b30007b4fc35dd5"
+    "sha256": "522d78e5fa511c09ea4e7c21478b024aa8b44f89e592e81699f2dae0854dc68e"
   },
   "qualification_results": [
     {

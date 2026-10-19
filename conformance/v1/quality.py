@@ -6145,6 +6145,422 @@ def _evaluate_cloth_smoke_contact(
     }
 
 
+def _evaluate_rope_smoke_contact(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    """Evaluate one-way smoke contact from public rope-node capsules."""
+    definitions = {item["id"]: item for item in profile.get("fixtures", [])
+                   if isinstance(item, dict) and
+                   isinstance(item.get("id"), str)}
+    raw_actual = result.get("fixtures")
+    if not isinstance(raw_actual, list):
+        failures.append(Failure("$.fixtures", "expected a fixture array",
+                                raw_actual))
+        raw_actual = []
+    actuals: dict[str, dict[str, Any]] = {}
+    for index, item in enumerate(raw_actual):
+        if not isinstance(item, dict) or not isinstance(item.get("id"), str):
+            failures.append(Failure(f"$.fixtures[{index}]",
+                                    "fixture needs a string id", item))
+            continue
+        identity = item["id"]
+        if identity in actuals:
+            failures.append(Failure(f"$.fixtures[{index}].id",
+                                    "duplicate fixture id", identity))
+            continue
+        actuals[identity] = item
+    for identity in sorted(set(definitions) - set(actuals)):
+        failures.append(Failure("$.fixtures", "missing required fixture",
+                                identity))
+    for identity in sorted(set(actuals) - set(definitions)):
+        failures.append(Failure("$.fixtures", "unexpected fixture", identity))
+
+    tolerances = profile.get("tolerances", {})
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+    scalar_tolerance = float(tolerances.get(
+        "smoke_scalar_state_absolute", 0.0))
+
+    def add(left: tuple[float, float, float],
+            right: tuple[float, float, float]
+            ) -> tuple[float, float, float]:
+        return tuple(a + b for a, b in zip(left, right))
+
+    def scale(value: tuple[float, float, float], factor: float
+              ) -> tuple[float, float, float]:
+        return tuple(component * factor for component in value)
+
+    def dot(left: tuple[float, float, float],
+            right: tuple[float, float, float]) -> float:
+        return sum(a * b for a, b in zip(left, right))
+
+    def compare_setting(actual: Any, expected: Any, path: str) -> None:
+        if isinstance(expected, bool) or isinstance(expected, str):
+            if actual != expected:
+                failures.append(Failure(
+                    path, "fixture setting differs from profile",
+                    actual, expected))
+            return
+        if isinstance(expected, (int, float)) and not isinstance(expected, bool):
+            value = _scalar(actual, path, failures)
+            if value is not None and abs(value - float(expected)) > state_tolerance:
+                failures.append(Failure(
+                    path, "fixture setting differs from profile",
+                    value, expected))
+            return
+        if isinstance(expected, list):
+            if not isinstance(actual, list) or len(actual) != len(expected):
+                failures.append(Failure(
+                    path, "fixture setting differs from profile",
+                    actual, expected))
+                return
+            for index, (value, reference) in enumerate(zip(actual, expected)):
+                compare_setting(value, reference, f"{path}[{index}]")
+            return
+        if actual != expected:
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    actual, expected))
+
+    def snapshot(value: Any, path: str, node_count: int
+                 ) -> dict[str, Any] | None:
+        if not isinstance(value, dict):
+            failures.append(Failure(path, "expected a snapshot object", value))
+            return None
+        particles = value.get("smoke_particles")
+        if not isinstance(particles, list) or len(particles) != 1:
+            failures.append(Failure(path + ".smoke_particles",
+                                    "expected exactly one smoke particle",
+                                    particles, 1))
+            return None
+        particle = particles[0]
+        if not isinstance(particle, dict):
+            failures.append(Failure(path + ".smoke_particles[0]",
+                                    "expected a smoke particle object",
+                                    particle))
+            return None
+        particle_path = path + ".smoke_particles[0]"
+        if particle.get("slot") != 0:
+            failures.append(Failure(particle_path + ".slot",
+                                    "smoke slot/order changed",
+                                    particle.get("slot"), 0))
+        position = _vector(particle.get("position_m"),
+                           particle_path + ".position_m", failures)
+        velocity = _vector(particle.get("velocity_m_s"),
+                           particle_path + ".velocity_m_s", failures)
+        vorticity = _vector(particle.get("vorticity_per_s"),
+                            particle_path + ".vorticity_per_s", failures)
+        scalars: dict[str, float] = {}
+        for field in ("age_seconds", "number_density", "pressure_m_s2"):
+            parsed = _scalar(particle.get(field), particle_path + "." + field,
+                             failures)
+            if parsed is not None:
+                scalars[field] = parsed
+        raw_nodes = value.get("rope_nodes_m")
+        raw_velocities = value.get("rope_velocities_m_s")
+        if not isinstance(raw_nodes, list) or len(raw_nodes) != node_count:
+            failures.append(Failure(path + ".rope_nodes_m",
+                                    "unexpected rope-node count",
+                                    raw_nodes, node_count))
+            return None
+        if (not isinstance(raw_velocities, list) or
+                len(raw_velocities) != node_count):
+            failures.append(Failure(path + ".rope_velocities_m_s",
+                                    "unexpected rope velocity count",
+                                    raw_velocities, node_count))
+            return None
+        nodes = [_vector(item, f"{path}.rope_nodes_m[{index}]", failures)
+                 for index, item in enumerate(raw_nodes)]
+        velocities = [_vector(
+            item, f"{path}.rope_velocities_m_s[{index}]", failures)
+            for index, item in enumerate(raw_velocities)]
+        if (position is None or velocity is None or vorticity is None or
+                len(scalars) != 3 or any(item is None for item in nodes) or
+                any(item is None for item in velocities)):
+            return None
+        return {
+            "particle_raw": particle,
+            "position": position,
+            "velocity": velocity,
+            "vorticity": vorticity,
+            "scalars": scalars,
+            "nodes": [item for item in nodes if item is not None],
+            "node_velocities": [item for item in velocities
+                                if item is not None],
+        }
+
+    def projection(point: tuple[float, float, float],
+                   nodes: list[tuple[float, float, float]],
+                   velocities: list[tuple[float, float, float]],
+                   path: str) -> dict[str, Any] | None:
+        best: dict[str, Any] | None = None
+        for index in range(len(nodes) - 1):
+            edge = _subtract(nodes[index + 1], nodes[index])
+            length_squared = dot(edge, edge)
+            if length_squared <= 1.0e-12:
+                failures.append(Failure(
+                    f"{path}.rope_nodes_m[{index}]",
+                    "rope segment is degenerate", length_squared, "> 0"))
+                continue
+            fraction = min(1.0, max(0.0, dot(
+                _subtract(point, nodes[index]), edge) / length_squared))
+            closest = add(nodes[index], scale(edge, fraction))
+            radial = _subtract(point, closest)
+            distance = _norm(radial)
+            rope_velocity = add(
+                velocities[index], scale(
+                    _subtract(velocities[index + 1], velocities[index]),
+                    fraction))
+            if best is None or distance < best["distance"]:
+                best = {"distance": distance, "closest": closest,
+                        "radial": radial, "rope_velocity": rope_velocity,
+                        "fraction": fraction, "segment": index}
+        if best is None:
+            return None
+        if best["distance"] <= 1.0e-12:
+            failures.append(Failure(path + ".smoke_particles[0].position_m",
+                                    "smoke tracer lies on rope centerline"))
+            return None
+        best["normal"] = scale(best["radial"], 1.0 / best["distance"])
+        return best
+
+    def compare_snapshots(first: dict[str, Any], second: dict[str, Any],
+                          path: str) -> None:
+        for field in ("position", "velocity", "vorticity"):
+            if _norm(_subtract(first[field], second[field])) > state_tolerance:
+                failures.append(Failure(
+                    path, "paired initial smoke state differs",
+                    list(second[field]), list(first[field])))
+        for field in first["scalars"]:
+            if abs(first["scalars"][field] - second["scalars"][field]) > \
+                    scalar_tolerance:
+                failures.append(Failure(
+                    path, "paired initial smoke scalar state differs",
+                    second["scalars"][field], first["scalars"][field]))
+        for field in ("nodes", "node_velocities"):
+            for left, right in zip(first[field], second[field]):
+                if _norm(_subtract(left, right)) > state_tolerance:
+                    failures.append(Failure(
+                        path, "paired initial rope state differs",
+                        list(right), list(left)))
+
+    observations: dict[str, Any] = {}
+    sample_count = 0
+    for identity, definition in definitions.items():
+        actual = actuals.get(identity)
+        if actual is None:
+            continue
+        base = f"$.fixtures[{identity}]"
+        for field, expected in definition.items():
+            compare_setting(actual.get(field), expected, base + "." + field)
+        runs = actual.get("runs")
+        if not isinstance(runs, list):
+            failures.append(Failure(base + ".runs", "expected a run array",
+                                    runs))
+            continue
+        indexed = {run.get("id"): run for run in runs
+                   if isinstance(run, dict) and isinstance(run.get("id"), str)}
+        expected_runs = {"control", "coupled"}
+        if set(indexed) != expected_runs or len(indexed) != len(runs):
+            failures.append(Failure(
+                base + ".runs", "expected exactly the paired runs",
+                sorted(indexed), sorted(expected_runs)))
+            continue
+        node_count = int(definition.get("rope_node_count", 0))
+        states: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
+        for run_id in sorted(expected_runs):
+            initial = snapshot(indexed[run_id].get("initial"),
+                               base + f".runs[{run_id}].initial", node_count)
+            final = snapshot(indexed[run_id].get("final"),
+                             base + f".runs[{run_id}].final", node_count)
+            if initial is not None and final is not None:
+                states[run_id] = initial, final
+        if set(states) != expected_runs:
+            continue
+        control_initial, control_final = states["control"]
+        coupled_initial, coupled_final = states["coupled"]
+        compare_snapshots(control_initial, coupled_initial,
+                          base + ".runs[coupled].initial")
+
+        centerline = [_vector(item, base + ".rope_centerline_m", failures)
+                      for item in definition.get("rope_centerline_m", [])]
+        canonical = [item for item in centerline if item is not None]
+        rope_position_limit = float(tolerances.get(
+            "maximum_rope_position_difference_m", 0.0))
+        rope_velocity_limit = float(tolerances.get(
+            "maximum_rope_velocity_difference_m_s", 0.0))
+        for run_id, (initial, final) in states.items():
+            for index, (before, after) in enumerate(zip(
+                    initial["nodes"], final["nodes"])):
+                reference = canonical[index] if index < len(canonical) else before
+                for label, value in (("initial", before), ("final", after)):
+                    difference = _norm(_subtract(value, reference))
+                    if difference > rope_position_limit:
+                        failures.append(Failure(
+                            base + f".runs[{run_id}].{label}.rope_nodes_m[{index}]",
+                            "dynamic rope moved without an advertised reverse mechanical response",
+                            difference, rope_position_limit))
+                speed = max(_norm(initial["node_velocities"][index]),
+                            _norm(final["node_velocities"][index]))
+                if speed > rope_velocity_limit:
+                    failures.append(Failure(
+                        base + f".runs[{run_id}].final.rope_velocities_m_s[{index}]",
+                        "dynamic rope received an unadvertised reverse mechanical response",
+                        speed, rope_velocity_limit))
+        for index in range(node_count):
+            position_delta = _norm(_subtract(
+                control_final["nodes"][index],
+                coupled_final["nodes"][index]))
+            velocity_delta = _norm(_subtract(
+                control_final["node_velocities"][index],
+                coupled_final["node_velocities"][index]))
+            if (position_delta > rope_position_limit or
+                    velocity_delta > rope_velocity_limit):
+                failures.append(Failure(
+                    base + ".runs[coupled].final.rope_nodes_m",
+                    "rope received an unadvertised reverse mechanical response",
+                    max(position_delta, velocity_delta),
+                    max(rope_position_limit, rope_velocity_limit)))
+
+        projections = {
+            "initial": projection(control_initial["position"],
+                                  control_initial["nodes"],
+                                  control_initial["node_velocities"],
+                                  base + ".runs[control].initial"),
+            "control": projection(control_final["position"],
+                                  control_final["nodes"],
+                                  control_final["node_velocities"],
+                                  base + ".runs[control].final"),
+            "coupled": projection(coupled_final["position"],
+                                  coupled_final["nodes"],
+                                  coupled_final["node_velocities"],
+                                  base + ".runs[coupled].final"),
+        }
+        if any(value is None for value in projections.values()):
+            continue
+        initial_projection = projections["initial"]
+        control_projection = projections["control"]
+        coupled_projection = projections["coupled"]
+        assert initial_projection is not None
+        assert control_projection is not None
+        assert coupled_projection is not None
+        radius = float(definition.get("expected_clearance_m", 0.0))
+        minimum_crossing = float(tolerances.get(
+            "minimum_control_crossing_m", 0.0))
+        if initial_projection["distance"] - radius < minimum_crossing:
+            failures.append(Failure(
+                base + ".runs[control].initial.smoke_particles[0].position_m",
+                "initial smoke did not start outside rope contact radius",
+                initial_projection["distance"] - radius, minimum_crossing))
+        if radius - control_projection["distance"] < minimum_crossing:
+            failures.append(Failure(
+                base + ".runs[control].final.smoke_particles[0].position_m",
+                "control smoke did not enter rope contact radius",
+                radius - control_projection["distance"], minimum_crossing))
+        incoming_side = dot(coupled_projection["radial"],
+                            initial_projection["normal"])
+        if incoming_side <= 0.0:
+            failures.append(Failure(
+                base + ".runs[coupled].final.smoke_particles[0].position_m",
+                "contact failed to keep smoke on its incoming side",
+                incoming_side, "> 0"))
+        clearance_error = abs(coupled_projection["distance"] - radius)
+        clearance_limit = float(tolerances.get(
+            "maximum_contact_clearance_error_m", 0.0))
+        if clearance_error > clearance_limit:
+            failures.append(Failure(
+                base + ".runs[coupled].final.smoke_particles[0].position_m",
+                "contact clearance differs from declared rope radius",
+                clearance_error, clearance_limit))
+        fraction = coupled_projection["fraction"]
+        if fraction < 0.1 or fraction > 0.9:
+            failures.append(Failure(
+                base + ".runs[coupled].final.smoke_particles[0].position_m",
+                "contact hit a rope end cap instead of the segment interior",
+                fraction, [0.1, 0.9]))
+        relative_velocity = _subtract(
+            coupled_final["velocity"],
+            coupled_projection["rope_velocity"])
+        radial_velocity = dot(relative_velocity,
+                              coupled_projection["normal"])
+        radial_limit = float(tolerances.get(
+            "maximum_contact_normal_velocity_m_s", 0.0))
+        if abs(radial_velocity) > radial_limit:
+            failures.append(Failure(
+                base + ".runs[coupled].final.smoke_particles[0].velocity_m_s",
+                "contact left excessive normal velocity",
+                abs(radial_velocity), radial_limit))
+        tangential_velocity = _norm(_subtract(
+            relative_velocity,
+            scale(coupled_projection["normal"], radial_velocity)))
+        tangent_minimum = float(tolerances.get(
+            "minimum_redirected_tangential_speed_m_s", 0.0))
+        if tangential_velocity < tangent_minimum:
+            failures.append(Failure(
+                base + ".runs[coupled].final.smoke_particles[0].velocity_m_s",
+                "contact did not retain redirected tangential motion",
+                tangential_velocity, tangent_minimum))
+        speed_limit = float(definition.get("smoke_maximum_speed_m_s", 0.0)) + \
+            float(tolerances.get("maximum_smoke_speed_error_m_s", 0.0))
+        maximum_speed = max(_norm(state["velocity"])
+                            for pair in states.values() for state in pair)
+        if maximum_speed > speed_limit:
+            failures.append(Failure(base + ".runs",
+                                    "smoke speed exceeds profile bound",
+                                    maximum_speed, speed_limit))
+
+        for label, state, projected in (
+                ("control.initial", control_initial, initial_projection),
+                ("control.final", control_final, control_projection),
+                ("coupled.initial", coupled_initial, initial_projection),
+                ("coupled.final", coupled_final, coupled_projection)):
+            raw = state["particle_raw"]
+            if "closest_rope_distance_m" in raw:
+                reported = _scalar(raw["closest_rope_distance_m"],
+                                   base + f".runs[{label}].smoke_particles[0].closest_rope_distance_m",
+                                   failures)
+                if (reported is not None and
+                        abs(reported - projected["distance"]) > state_tolerance):
+                    failures.append(Failure(
+                        base + f".runs[{label}].smoke_particles[0].closest_rope_distance_m",
+                        "reported rope distance differs from public state",
+                        reported, projected["distance"]))
+            if "rope_contact_normal" in raw:
+                reported_normal = _vector(
+                    raw["rope_contact_normal"],
+                    base + f".runs[{label}].smoke_particles[0].rope_contact_normal",
+                    failures)
+                if (reported_normal is not None and _norm(_subtract(
+                        reported_normal, projected["normal"])) > state_tolerance):
+                    failures.append(Failure(
+                        base + f".runs[{label}].smoke_particles[0].rope_contact_normal",
+                        "reported rope normal differs from public state",
+                        list(reported_normal), list(projected["normal"])))
+
+        observations[identity] = {
+            "initial_rope_distance_m": initial_projection["distance"],
+            "control_final_rope_distance_m": control_projection["distance"],
+            "coupled_final_rope_distance_m": coupled_projection["distance"],
+            "coupled_contact_segment_fraction": fraction,
+            "coupled_relative_radial_velocity_m_s": radial_velocity,
+            "coupled_relative_tangential_speed_m_s": tangential_velocity,
+            "maximum_smoke_speed_m_s": maximum_speed,
+        }
+        sample_count += 1
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": len(actuals),
+        "sample_count": sample_count,
+        "failure_count": len(failures),
+        "observations": observations,
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def _evaluate_soft_smoke_contact(
         profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
         driver: Any, failures: list[Failure]) -> dict[str, Any]:
@@ -8709,6 +9125,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "soft_smoke_contact":
         return _evaluate_soft_smoke_contact(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "rope_smoke_contact":
+        return _evaluate_rope_smoke_contact(
             profile, result, expected_hash, driver, failures)
     if evaluation == "fluid_cloth_contact":
         return _evaluate_fluid_cloth_contact(
