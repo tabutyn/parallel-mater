@@ -291,7 +291,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [P1-01](roadmap/tasks/P1-01.json) | Plan remaining driver/domain qualification | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
-| [P1-02](roadmap/tasks/P1-02.json) | Plan remaining same-family operators | leased | F1-99, F2-99, F3-99, F4-99, F6-99 | codex-macos-physics / Thomass-MacBook-Air / 2026-10-20T14:21:29Z |
+| [P1-02](roadmap/tasks/P1-02.json) | Plan remaining same-family operators | done | F1-99, F2-99, F3-99, F4-99, F6-99 | — |
 | [P1-03](roadmap/tasks/P1-03.json) | Plan multi-material fluid operators | done | F1-99, F2-99, F3-99, F4-99, F6-99 | — |
 | [P1-04](roadmap/tasks/P1-04.json) | Expose multi-material fluid pair state | done | P1-03 | — |
 | [P1-05](roadmap/tasks/P1-05.json) | Build heterogeneous fluid pair sampling | done | P1-04 | — |
