@@ -2586,8 +2586,10 @@
       "rule_id": "fluid-soft-body",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-soft-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2635,8 +2637,10 @@
       "rule_id": "fluid-soft-body",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-soft-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7579,8 +7583,10 @@
       "rule_id": "fluid-soft-body",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-soft-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7628,8 +7634,10 @@
       "rule_id": "fluid-soft-body",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-soft-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11120,8 +11128,10 @@
       "rule_id": "fluid-soft-body",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-soft-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -12450,7 +12460,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "593edc8916febb65a8259343a6918f9de42813ba30ab28e3e6cb218ff9a23c92",
+      "expected": "fdbd9463e7b326fe0557f2e2f597ef7e94be5378c56118a52f44383b6a3c3e5b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -12851,20 +12861,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral fluid-soft-body quality case is registered.",
+      "actual": "quality:fluid-soft-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[15].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral fluid-soft-body quality case is registered.",
+      "actual": "quality:fluid-soft-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[15].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -15553,7 +15563,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "593edc8916febb65a8259343a6918f9de42813ba30ab28e3e6cb218ff9a23c92",
+      "expected": "fdbd9463e7b326fe0557f2e2f597ef7e94be5378c56118a52f44383b6a3c3e5b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15562,7 +15572,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "593edc8916febb65a8259343a6918f9de42813ba30ab28e3e6cb218ff9a23c92",
+      "expected": "fdbd9463e7b326fe0557f2e2f597ef7e94be5378c56118a52f44383b6a3c3e5b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15571,7 +15581,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "593edc8916febb65a8259343a6918f9de42813ba30ab28e3e6cb218ff9a23c92",
+      "expected": "fdbd9463e7b326fe0557f2e2f597ef7e94be5378c56118a52f44383b6a3c3e5b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15965,7 +15975,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "593edc8916febb65a8259343a6918f9de42813ba30ab28e3e6cb218ff9a23c92",
+      "expected": "fdbd9463e7b326fe0557f2e2f597ef7e94be5378c56118a52f44383b6a3c3e5b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -16148,20 +16158,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral fluid-soft-body quality case is registered.",
+      "actual": "quality:fluid-soft-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[12].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral fluid-soft-body quality case is registered.",
+      "actual": "quality:fluid-soft-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[12].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -18625,7 +18635,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "593edc8916febb65a8259343a6918f9de42813ba30ab28e3e6cb218ff9a23c92",
+      "expected": "fdbd9463e7b326fe0557f2e2f597ef7e94be5378c56118a52f44383b6a3c3e5b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18634,7 +18644,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "593edc8916febb65a8259343a6918f9de42813ba30ab28e3e6cb218ff9a23c92",
+      "expected": "fdbd9463e7b326fe0557f2e2f597ef7e94be5378c56118a52f44383b6a3c3e5b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18722,11 +18732,11 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral fluid-soft-body quality case is registered.",
+      "actual": "quality:fluid-soft-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[12].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -19948,7 +19958,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "593edc8916febb65a8259343a6918f9de42813ba30ab28e3e6cb218ff9a23c92",
+      "expected": "fdbd9463e7b326fe0557f2e2f597ef7e94be5378c56118a52f44383b6a3c3e5b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19956,7 +19966,7 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "593edc8916febb65a8259343a6918f9de42813ba30ab28e3e6cb218ff9a23c92",
+  "obligations_sha256": "fdbd9463e7b326fe0557f2e2f597ef7e94be5378c56118a52f44383b6a3c3e5b",
   "qualification_complete": true,
   "qualified_capability_count": 3,
   "report_count": 12,
@@ -20125,7 +20135,7 @@
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-1d85b88-fluid-cloth-containment-qualification.json",
       "qualified_count": 1,
-      "sha256": "d4f990abb3dfcf9281573d80f73e9ab263a7e65a925daa9369add31d2994e173",
+      "sha256": "52581f7b3759ca353bba2b5fa3bbbf3781ef7553de399767f3ad36ab0f81ff0d",
       "source": {
         "commit": "1d85b882e1b332fa54a0fdfc2a376395fd056642",
         "dirty": false
@@ -20183,7 +20193,7 @@
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-e566034-smoke-viscosity-qualification.json",
       "qualified_count": 2,
-      "sha256": "a464728e47cf8ed0cd487ec28a3dc3741ca13c3f9956c5a5f403ac94c1023831",
+      "sha256": "e7f8261523a2d356137659b01aef9f61261c5391eab5f43e4965701b1acbd652",
       "source": {
         "commit": "e5660347bba4efb02148119b70d1985c38ee8f51",
         "dirty": false
@@ -20323,7 +20333,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "2651fc7a370afe960d86e818d3d9775b0fb96ecb596e43925197ea9837ef6410",
+  "sources_sha256": "8c6721f772e04bb71805ab33ee87b75f808eaa7151a8610a5da52d8bdd90f69b",
   "valid": true,
   "validation_failures": []
 }

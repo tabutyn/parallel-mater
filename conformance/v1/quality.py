@@ -1762,6 +1762,637 @@ def _evaluate_fluid_cloth_containment(
     }
 
 
+def _evaluate_fluid_soft_contact(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definition = profile.get("fixture")
+    actual = result.get("fixture")
+    if not isinstance(definition, dict):
+        failures.append(Failure("$.profile.fixture",
+                                "expected a fixture object", definition))
+        definition = {}
+    if not isinstance(actual, dict):
+        failures.append(Failure("$.fixture", "expected a fixture object", actual))
+        actual = {}
+    tolerances = profile.get("tolerances")
+    if not isinstance(tolerances, dict):
+        failures.append(Failure("$.profile.tolerances",
+                                "expected an object", tolerances))
+        tolerances = {}
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+
+    for field in ("id", "substeps", "fluid_particle_count",
+                  "soft_solver_iterations", "coupling_solver_iterations",
+                  "two_way",
+                  "minimum_binding_incidence_per_node", "oracle"):
+        if actual.get(field) != definition.get(field):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "fixture setting differs from profile",
+                                    actual.get(field), definition.get(field)))
+    for field in (
+            "timestep_seconds", "fluid_rest_density_kg_m3",
+            "fluid_particle_radius_m", "fluid_support_radius_m",
+            "fluid_rest_particle_volume_m3", "fluid_maximum_speed_m_s",
+            "soft_node_mass_kg", "soft_node_radius_m",
+            "soft_stretch_compliance_m_per_n", "soft_velocity_damping",
+            "soft_spring_damping", "soft_contact_friction",
+            "soft_shape_matching_stiffness",
+            "soft_maximum_projection_fraction",
+            "soft_constraint_velocity_response", "soft_maximum_speed_m_s",
+            "contact_distance_m", "friction"):
+        value = _scalar(actual.get(field), f"$.fixture.{field}", failures)
+        expected = _scalar(definition.get(field),
+                           f"$.profile.fixture.{field}", failures)
+        if (value is not None and expected is not None and
+                abs(value - expected) > state_tolerance):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "fixture setting differs from profile",
+                                    value, expected))
+
+    def vectors(value: Any, path: str) -> list[tuple[float, float, float]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a vector array", value))
+            return []
+        parsed: list[tuple[float, float, float]] = []
+        for index, item in enumerate(value):
+            vector = _vector(item, f"{path}[{index}]", failures)
+            if vector is not None:
+                parsed.append(vector)
+        return parsed
+
+    def compare_vectors(field: str) -> list[tuple[float, float, float]]:
+        values = vectors(actual.get(field), f"$.fixture.{field}")
+        expected = vectors(definition.get(field),
+                           f"$.profile.fixture.{field}")
+        if len(values) != len(expected):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "vector count differs from profile",
+                                    len(values), len(expected)))
+        else:
+            for index, (value, wanted) in enumerate(zip(values, expected)):
+                if max(abs(a - b) for a, b in zip(value, wanted)) > state_tolerance:
+                    failures.append(Failure(
+                        f"$.fixture.{field}[{index}]",
+                        "public input differs from profile",
+                        list(value), list(wanted)))
+        return values
+
+    gravity = _vector(actual.get("gravity_m_s2"),
+                      "$.fixture.gravity_m_s2", failures)
+    expected_gravity = _vector(definition.get("gravity_m_s2"),
+                               "$.profile.fixture.gravity_m_s2", failures)
+    if (gravity is not None and expected_gravity is not None and
+            max(abs(a - b) for a, b in zip(gravity, expected_gravity)) >
+            state_tolerance):
+        failures.append(Failure("$.fixture.gravity_m_s2",
+                                "fixture setting differs from profile",
+                                list(gravity), list(expected_gravity)))
+
+    nodes = compare_vectors("soft_nodes_m")
+    surface_vertices = compare_vectors("surface_vertices_m")
+    indices_value = actual.get("surface_triangle_indices")
+    if indices_value != definition.get("surface_triangle_indices"):
+        failures.append(Failure("$.fixture.surface_triangle_indices",
+                                "surface topology differs from profile",
+                                indices_value,
+                                definition.get("surface_triangle_indices")))
+    indices = indices_value if (isinstance(indices_value, list) and
+                                all(isinstance(item, int) and
+                                    not isinstance(item, bool)
+                                    for item in indices_value)) else []
+    if not indices or len(indices) % 3 != 0:
+        failures.append(Failure("$.fixture.surface_triangle_indices",
+                                "expected complete triangle indices", indices))
+
+    inverse_value = actual.get("soft_inverse_masses_kg_inverse")
+    inverse_masses: list[float] = []
+    expected_inverse = definition.get("soft_inverse_masses_kg_inverse")
+    if not isinstance(inverse_value, list):
+        failures.append(Failure("$.fixture.soft_inverse_masses_kg_inverse",
+                                "expected an inverse-mass array", inverse_value))
+    else:
+        for index, item in enumerate(inverse_value):
+            value = _scalar(item,
+                            f"$.fixture.soft_inverse_masses_kg_inverse[{index}]",
+                            failures)
+            if value is not None:
+                if value <= 0.0:
+                    failures.append(Failure(
+                        f"$.fixture.soft_inverse_masses_kg_inverse[{index}]",
+                        "quality fixture requires movable positive-mass nodes",
+                        value, "> 0"))
+                inverse_masses.append(value)
+    if (not isinstance(expected_inverse, list) or
+            len(inverse_masses) != len(expected_inverse)):
+        failures.append(Failure("$.fixture.soft_inverse_masses_kg_inverse",
+                                "inverse-mass count differs from profile",
+                                len(inverse_masses),
+                                len(expected_inverse) if
+                                isinstance(expected_inverse, list) else None))
+    else:
+        for index, (value, wanted) in enumerate(zip(inverse_masses,
+                                                     expected_inverse)):
+            if (not _number(wanted) or
+                    abs(value - float(wanted)) > state_tolerance):
+                failures.append(Failure(
+                    f"$.fixture.soft_inverse_masses_kg_inverse[{index}]",
+                    "inverse mass differs from profile", value, wanted))
+
+    bonds_value = actual.get("soft_bonds")
+    expected_bonds = definition.get("soft_bonds")
+    if (not isinstance(bonds_value, list) or
+            not isinstance(expected_bonds, list) or
+            len(bonds_value) != len(expected_bonds)):
+        failures.append(Failure("$.fixture.soft_bonds",
+                                "bond count differs from profile",
+                                len(bonds_value) if isinstance(bonds_value, list)
+                                else None,
+                                len(expected_bonds) if
+                                isinstance(expected_bonds, list) else None))
+    else:
+        for index, (bond, wanted) in enumerate(zip(bonds_value, expected_bonds)):
+            path = f"$.fixture.soft_bonds[{index}]"
+            if not isinstance(bond, dict) or not isinstance(wanted, dict):
+                failures.append(Failure(path, "expected a bond object", bond))
+                continue
+            if (bond.get("first"), bond.get("second")) != (
+                    wanted.get("first"), wanted.get("second")):
+                failures.append(Failure(path,
+                                        "bond endpoints differ from profile",
+                                        bond, wanted))
+            length = _scalar(bond.get("rest_length_m"),
+                             path + ".rest_length_m", failures)
+            wanted_length = _scalar(wanted.get("rest_length_m"),
+                                    f"$.profile.fixture.soft_bonds[{index}].rest_length_m",
+                                    failures)
+            if (length is not None and wanted_length is not None and
+                    abs(length - wanted_length) > state_tolerance):
+                failures.append(Failure(path + ".rest_length_m",
+                                        "bond length differs from profile",
+                                        length, wanted_length))
+
+    bindings_value = actual.get("surface_bindings")
+    expected_bindings = definition.get("surface_bindings")
+    bindings: list[list[tuple[int, float]]] = []
+    incidence = [0 for _ in nodes]
+    if not isinstance(bindings_value, list):
+        failures.append(Failure("$.fixture.surface_bindings",
+                                "expected a binding array", bindings_value))
+        bindings_value = []
+    if (not isinstance(expected_bindings, list) or
+            len(bindings_value) != len(expected_bindings) or
+            len(bindings_value) != len(surface_vertices)):
+        failures.append(Failure("$.fixture.surface_bindings",
+                                "binding count differs from profile/surface",
+                                len(bindings_value), len(surface_vertices)))
+    for index, item in enumerate(bindings_value):
+        path = f"$.fixture.surface_bindings[{index}]"
+        if not isinstance(item, dict):
+            failures.append(Failure(path, "expected a binding object", item))
+            bindings.append([])
+            continue
+        node_slots, weights = item.get("nodes"), item.get("weights")
+        if (not isinstance(node_slots, list) or len(node_slots) != 4 or
+                not isinstance(weights, list) or len(weights) != 4):
+            failures.append(Failure(path,
+                                    "binding needs four nodes and weights", item))
+            bindings.append([])
+            continue
+        parsed: list[tuple[int, float]] = []
+        for slot, (node, weight) in enumerate(zip(node_slots, weights)):
+            if (not isinstance(node, int) or isinstance(node, bool) or
+                    node < 0 or node >= len(nodes) or not _number(weight) or
+                    float(weight) < 0.0):
+                failures.append(Failure(f"{path}[{slot}]",
+                                        "invalid node/weight binding",
+                                        [node, weight]))
+                continue
+            parsed.append((node, float(weight)))
+            if float(weight) > 0.0:
+                incidence[node] += 1
+        if abs(sum(weight for _, weight in parsed) - 1.0) > state_tolerance:
+            failures.append(Failure(path + ".weights",
+                                    "binding weights must sum to one",
+                                    sum(weight for _, weight in parsed), 1.0))
+        bindings.append(parsed)
+        if (isinstance(expected_bindings, list) and
+                index < len(expected_bindings) and
+                item != expected_bindings[index]):
+            failures.append(Failure(path,
+                                    "binding differs from profile", item,
+                                    expected_bindings[index]))
+    minimum_incidence = min(incidence) if incidence else 0
+    required_incidence = definition.get("minimum_binding_incidence_per_node")
+    if (isinstance(required_incidence, int) and
+            minimum_incidence < required_incidence):
+        failures.append(Failure("$.fixture.surface_bindings",
+                                "bound-node incidence is too small to detect mass multiplication",
+                                minimum_incidence, required_incidence))
+
+    def particle_states(value: Any, path: str) -> list[dict[str, Any]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a particle array", value))
+            return []
+        parsed: list[dict[str, Any]] = []
+        for index, particle in enumerate(value):
+            item_path = f"{path}[{index}]"
+            if not isinstance(particle, dict):
+                failures.append(Failure(item_path,
+                                        "expected a particle object", particle))
+                continue
+            if particle.get("stable_id") != index:
+                failures.append(Failure(item_path + ".stable_id",
+                                        "fluid stable ID/order changed",
+                                        particle.get("stable_id"), index))
+            position = _vector(particle.get("position_m"),
+                               item_path + ".position_m", failures)
+            velocity = _vector(particle.get("velocity_m_s"),
+                               item_path + ".velocity_m_s", failures)
+            acceleration = _vector(particle.get("acceleration_m_s2"),
+                                   item_path + ".acceleration_m_s2", failures)
+            if position is not None and velocity is not None and acceleration is not None:
+                parsed.append({"position": position, "velocity": velocity,
+                               "acceleration": acceleration})
+        return parsed
+
+    def node_states(value: Any, path: str) -> list[dict[str, Any]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a soft-node array", value))
+            return []
+        parsed: list[dict[str, Any]] = []
+        for index, node in enumerate(value):
+            item_path = f"{path}[{index}]"
+            if not isinstance(node, dict):
+                failures.append(Failure(item_path,
+                                        "expected a soft-node object", node))
+                continue
+            if node.get("index") != index:
+                failures.append(Failure(item_path + ".index",
+                                        "soft-node order/index changed",
+                                        node.get("index"), index))
+            position = _vector(node.get("position_m"),
+                               item_path + ".position_m", failures)
+            velocity = _vector(node.get("velocity_m_s"),
+                               item_path + ".velocity_m_s", failures)
+            force = _vector(node.get("liquid_contact_force_n"),
+                            item_path + ".liquid_contact_force_n", failures)
+            if position is not None and velocity is not None and force is not None:
+                parsed.append({"position": position, "velocity": velocity,
+                               "force": force})
+        return parsed
+
+    initial_fluid = particle_states(actual.get("initial_fluid_state"),
+                                    "$.fixture.initial_fluid_state")
+    final_fluid = particle_states(actual.get("final_fluid_state"),
+                                  "$.fixture.final_fluid_state")
+    initial_nodes = node_states(actual.get("initial_soft_node_state"),
+                                "$.fixture.initial_soft_node_state")
+    final_nodes = node_states(actual.get("final_soft_node_state"),
+                              "$.fixture.final_soft_node_state")
+    initial_surface = vectors(actual.get("initial_surface_state_m"),
+                              "$.fixture.initial_surface_state_m")
+    final_surface = vectors(actual.get("final_surface_state_m"),
+                            "$.fixture.final_surface_state_m")
+    expected_count = definition.get("fluid_particle_count")
+    if isinstance(expected_count, int):
+        for path, states in (("initial", initial_fluid),
+                             ("final", final_fluid)):
+            if len(states) != expected_count:
+                failures.append(Failure(f"$.fixture.{path}_fluid_state",
+                                        "fluid particle count differs",
+                                        len(states), expected_count))
+    for path, states in (("initial", initial_nodes), ("final", final_nodes)):
+        if len(states) != len(nodes):
+            failures.append(Failure(f"$.fixture.{path}_soft_node_state",
+                                    "soft-node count differs",
+                                    len(states), len(nodes)))
+    for path, states in (("initial", initial_surface),
+                         ("final", final_surface)):
+        if len(states) != len(surface_vertices):
+            failures.append(Failure(f"$.fixture.{path}_surface_state_m",
+                                    "surface vertex count differs",
+                                    len(states), len(surface_vertices)))
+
+    initial_profile = definition.get("initial_particles")
+    if (isinstance(initial_profile, list) and initial_fluid and
+            len(initial_profile) == len(initial_fluid)):
+        for index, (state, wanted) in enumerate(zip(initial_fluid,
+                                                     initial_profile)):
+            wanted_position = _vector(
+                wanted.get("position_m") if isinstance(wanted, dict) else None,
+                f"$.profile.fixture.initial_particles[{index}].position_m",
+                failures)
+            wanted_velocity = _vector(
+                wanted.get("velocity_m_s") if isinstance(wanted, dict) else None,
+                f"$.profile.fixture.initial_particles[{index}].velocity_m_s",
+                failures)
+            if (wanted_position is not None and max(abs(a - b) for a, b in zip(
+                    state["position"], wanted_position)) > state_tolerance):
+                failures.append(Failure(
+                    f"$.fixture.initial_fluid_state[{index}].position_m",
+                    "initial particle position differs from profile",
+                    list(state["position"]), list(wanted_position)))
+            if (wanted_velocity is not None and max(abs(a - b) for a, b in zip(
+                    state["velocity"], wanted_velocity)) > state_tolerance):
+                failures.append(Failure(
+                    f"$.fixture.initial_fluid_state[{index}].velocity_m_s",
+                    "initial particle velocity differs from profile",
+                    list(state["velocity"]), list(wanted_velocity)))
+
+    for index, state in enumerate(initial_nodes):
+        if index < len(nodes) and max(abs(a - b) for a, b in zip(
+                state["position"], nodes[index])) > state_tolerance:
+            failures.append(Failure(
+                f"$.fixture.initial_soft_node_state[{index}].position_m",
+                "initial soft-node state differs from profile",
+                list(state["position"]), list(nodes[index])))
+        if _norm(state["velocity"]) > state_tolerance:
+            failures.append(Failure(
+                f"$.fixture.initial_soft_node_state[{index}].velocity_m_s",
+                "initial soft-node velocity must be zero",
+                list(state["velocity"]), 0.0))
+        if _norm(state["force"]) > state_tolerance:
+            failures.append(Failure(
+                f"$.fixture.initial_soft_node_state[{index}].liquid_contact_force_n",
+                "initial soft-node liquid force must be zero",
+                list(state["force"]), 0.0))
+
+    maximum_reconstruction_error = 0.0
+    for phase, node_state, skin in (("initial", initial_nodes, initial_surface),
+                                    ("final", final_nodes, final_surface)):
+        if len(node_state) != len(nodes) or len(skin) != len(bindings):
+            continue
+        for vertex, binding in enumerate(bindings):
+            reconstructed = tuple(sum(node_state[node]["position"][axis] * weight
+                                      for node, weight in binding)
+                                  for axis in range(3))
+            error = _norm(_subtract(skin[vertex], reconstructed))
+            maximum_reconstruction_error = max(maximum_reconstruction_error,
+                                               error)
+            limit = float(tolerances.get(
+                "maximum_surface_reconstruction_error_m", 0.0))
+            if error > limit:
+                failures.append(Failure(
+                    f"$.fixture.{phase}_surface_state_m[{vertex}]",
+                    "public soft surface does not match its node bindings",
+                    error, limit))
+
+    def dot(left: tuple[float, float, float],
+            right: tuple[float, float, float]) -> float:
+        return sum(a * b for a, b in zip(left, right))
+
+    def cross(left: tuple[float, float, float],
+              right: tuple[float, float, float]) -> tuple[float, float, float]:
+        return (left[1] * right[2] - left[2] * right[1],
+                left[2] * right[0] - left[0] * right[2],
+                left[0] * right[1] - left[1] * right[0])
+
+    manifold = bool(indices and surface_vertices)
+    edge_directions: dict[tuple[int, int], list[tuple[int, int]]] = {}
+    for corner in range(0, len(indices), 3):
+        triangle = indices[corner:corner + 3]
+        if (len(triangle) != 3 or len(set(triangle)) != 3 or
+                any(index < 0 or index >= len(surface_vertices)
+                    for index in triangle)):
+            manifold = False
+            failures.append(Failure(
+                f"$.fixture.surface_triangle_indices[{corner}]",
+                "invalid surface triangle", triangle))
+            continue
+        for offset in range(3):
+            first, second = triangle[offset], triangle[(offset + 1) % 3]
+            edge_directions.setdefault(tuple(sorted((first, second))), []).append(
+                (first, second))
+    for edge, directions in edge_directions.items():
+        if len(directions) != 2 or directions[0] != directions[1][::-1]:
+            manifold = False
+            failures.append(Failure("$.fixture.surface_triangle_indices",
+                                    "soft surface is not closed and consistently oriented",
+                                    {"edge": edge, "directions": directions}))
+
+    maximum_overlap = None
+    final_signed_distance = None
+    contact_normal = None
+    if (manifold and final_fluid and
+            len(final_surface) == len(surface_vertices)):
+        planes: list[tuple[tuple[float, float, float],
+                           tuple[float, float, float]]] = []
+        for corner in range(0, len(indices), 3):
+            first = final_surface[indices[corner]]
+            second = final_surface[indices[corner + 1]]
+            third = final_surface[indices[corner + 2]]
+            normal = _unit(cross(_subtract(second, first),
+                                 _subtract(third, first)))
+            if normal is None:
+                failures.append(Failure("$.fixture.final_surface_state_m",
+                                        "soft surface triangle became degenerate",
+                                        indices[corner:corner + 3]))
+                continue
+            planes.append((first, normal))
+        if planes:
+            distances = [(dot(_subtract(final_fluid[0]["position"], point),
+                              normal), normal)
+                         for point, normal in planes]
+            final_signed_distance, contact_normal = max(
+                distances, key=lambda item: item[0])
+            maximum_overlap = max(0.0, -final_signed_distance)
+            overlap_limit = float(tolerances.get(
+                "maximum_overlap_penetration_m", 0.0))
+            if maximum_overlap > overlap_limit:
+                failures.append(Failure("$.fixture.final_fluid_state",
+                                        "fluid overlapped the soft-body surface",
+                                        maximum_overlap, overlap_limit))
+
+    fluid_impulse = soft_impulse = impulse_residual = None
+    contact_activity = expected_impulse = expected_impulse_error = None
+    fluid_force = soft_force = force_residual = None
+    force_impulse_residual = None
+    density = _scalar(definition.get("fluid_rest_density_kg_m3"),
+                      "$.profile.fixture.fluid_rest_density_kg_m3", failures)
+    volume = _scalar(definition.get("fluid_rest_particle_volume_m3"),
+                     "$.profile.fixture.fluid_rest_particle_volume_m3",
+                     failures)
+    timestep = _scalar(definition.get("timestep_seconds"),
+                       "$.profile.fixture.timestep_seconds", failures)
+    if (density is not None and volume is not None and initial_fluid and
+            final_fluid):
+        fluid_mass = density * volume
+        fluid_impulse = tuple(fluid_mass * (after - before)
+                              for before, after in zip(
+                                  initial_fluid[0]["velocity"],
+                                  final_fluid[0]["velocity"]))
+        fluid_force = tuple(fluid_mass * component
+                            for component in final_fluid[0]["acceleration"])
+    if (len(initial_nodes) == len(final_nodes) == len(inverse_masses) and
+            inverse_masses):
+        soft_impulse = tuple(sum(
+            (final_nodes[index]["velocity"][axis] -
+             initial_nodes[index]["velocity"][axis]) / inverse_masses[index]
+            for index in range(len(inverse_masses))) for axis in range(3))
+        soft_force = _sum([node["force"] for node in final_nodes])
+    if fluid_impulse is not None and soft_impulse is not None:
+        impulse_residual = _norm(tuple(a + b for a, b in zip(
+            fluid_impulse, soft_impulse)))
+        contact_activity = max(_norm(fluid_impulse), _norm(soft_impulse))
+        minimum_activity = float(tolerances.get(
+            "minimum_contact_impulse_n_s", 0.0))
+        if contact_activity < minimum_activity:
+            failures.append(Failure("$.fixture.final_soft_node_state",
+                                    "contact impulse is too small",
+                                    contact_activity, minimum_activity))
+        residual_limit = float(tolerances.get(
+            "maximum_reciprocal_impulse_residual_n_s", 0.0))
+        if impulse_residual > residual_limit:
+            failures.append(Failure("$.fixture.final_soft_node_state",
+                                    "fluid and soft-body impulses are not reciprocal",
+                                    impulse_residual, residual_limit))
+    if fluid_force is not None and soft_force is not None:
+        force_residual = _norm(tuple(a + b for a, b in zip(
+            fluid_force, soft_force)))
+        force_limit = float(tolerances.get(
+            "maximum_reciprocal_force_residual_n", 0.0))
+        if force_residual > force_limit:
+            failures.append(Failure("$.fixture.final_soft_node_state",
+                                    "fluid and soft-body forces are not reciprocal",
+                                    force_residual, force_limit))
+        if soft_impulse is not None and timestep is not None:
+            force_impulse_residual = _norm(tuple(
+                impulse - force * timestep
+                for impulse, force in zip(soft_impulse, soft_force)))
+            consistency_limit = float(tolerances.get(
+                "maximum_node_force_impulse_residual_n_s", 0.0))
+            if force_impulse_residual > consistency_limit:
+                failures.append(Failure(
+                    "$.fixture.final_soft_node_state",
+                    "soft-node masses do not map force to impulse once per bound node",
+                    force_impulse_residual, consistency_limit))
+
+    expected_weights_value = actual.get("expected_contact_node_weights")
+    expected_weights_profile = definition.get("expected_contact_node_weights")
+    expected_weights: list[float] = []
+    if (not isinstance(expected_weights_value, list) or
+            not isinstance(expected_weights_profile, list) or
+            len(expected_weights_value) != len(inverse_masses)):
+        failures.append(Failure("$.fixture.expected_contact_node_weights",
+                                "contact weights differ from profile/nodes",
+                                expected_weights_value,
+                                expected_weights_profile))
+    else:
+        for index, (value, wanted) in enumerate(zip(
+                expected_weights_value, expected_weights_profile)):
+            if not _number(value) or not _number(wanted):
+                failures.append(Failure(
+                    f"$.fixture.expected_contact_node_weights[{index}]",
+                    "expected a finite contact weight", value, wanted))
+                continue
+            parsed = float(value)
+            expected_weights.append(parsed)
+            if abs(parsed - float(wanted)) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.expected_contact_node_weights[{index}]",
+                    "contact weight differs from profile", parsed, wanted))
+    if (len(expected_weights) == len(inverse_masses) and initial_fluid and
+            fluid_impulse is not None and manifold and
+            len(initial_surface) == len(surface_vertices)):
+        initial_planes: list[tuple[float, tuple[float, float, float]]] = []
+        for corner in range(0, len(indices), 3):
+            first = initial_surface[indices[corner]]
+            normal = _unit(cross(
+                _subtract(initial_surface[indices[corner + 1]], first),
+                _subtract(initial_surface[indices[corner + 2]], first)))
+            if normal is not None:
+                initial_planes.append((dot(_subtract(
+                    initial_fluid[0]["position"], first), normal), normal))
+        if initial_planes:
+            _, initial_normal = max(initial_planes, key=lambda item: item[0])
+            surface_velocity = tuple(sum(
+                expected_weights[index] * initial_nodes[index]["velocity"][axis]
+                for index in range(len(expected_weights))) for axis in range(3))
+            relative_velocity = _subtract(initial_fluid[0]["velocity"],
+                                          surface_velocity)
+            closing_speed = max(0.0, -dot(relative_velocity, initial_normal))
+            fluid_mass = float(density) * float(volume)
+            effective_inverse_mass = sum(
+                weight * inverse_mass for weight, inverse_mass in zip(
+                    expected_weights, inverse_masses))
+            denominator = 1.0 / fluid_mass + effective_inverse_mass
+            response_inverse_mass = 1.0 / fluid_mass + sum(
+                weight * weight * inverse_mass
+                for weight, inverse_mass in zip(
+                    expected_weights, inverse_masses))
+            passes = definition.get("coupling_solver_iterations")
+            if (not isinstance(passes, int) or isinstance(passes, bool) or
+                    passes <= 0):
+                failures.append(Failure(
+                    "$.profile.fixture.coupling_solver_iterations",
+                    "expected a positive solver pass count", passes))
+                passes = 1
+            remaining_fraction = 1.0 - response_inverse_mass / denominator
+            expected_impulse = (closing_speed / response_inverse_mass) * (
+                1.0 - remaining_fraction ** passes)
+            expected_vector = tuple(component * expected_impulse
+                                    for component in initial_normal)
+            expected_impulse_error = _norm(_subtract(fluid_impulse,
+                                                      expected_vector))
+            expected_limit = float(tolerances.get(
+                "maximum_expected_impulse_error_n_s", 0.0))
+            if expected_impulse_error > expected_limit:
+                failures.append(Failure(
+                    "$.fixture.final_fluid_state",
+                    "contact impulse does not use each uniquely bound node mass once",
+                    expected_impulse_error, expected_limit))
+
+    maximum_speed = None
+    speeds = ([_norm(state["velocity"]) for state in final_fluid] +
+              [_norm(state["velocity"]) for state in final_nodes])
+    if speeds:
+        maximum_speed = max(speeds)
+        speed_limit = max(
+            float(definition.get("fluid_maximum_speed_m_s", 0.0)),
+            float(definition.get("soft_maximum_speed_m_s", 0.0))) + float(
+                tolerances.get("maximum_speed_slack_m_s", 0.0))
+        if maximum_speed > speed_limit:
+            failures.append(Failure("$.fixture",
+                                    "contact speed exceeds authored maximum",
+                                    maximum_speed, speed_limit))
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": 1 if actual else 0,
+        "sample_count": len(final_fluid),
+        "failure_count": len(failures),
+        "observations": {
+            "closed_consistently_oriented_surface": manifold,
+            "minimum_binding_incidence_per_node": minimum_incidence,
+            "maximum_surface_reconstruction_error_m":
+                maximum_reconstruction_error,
+            "final_particle_signed_distance_m": final_signed_distance,
+            "maximum_overlap_penetration_m": maximum_overlap,
+            "fluid_contact_impulse_n_s": list(fluid_impulse)
+                if fluid_impulse is not None else None,
+            "soft_body_contact_impulse_n_s": list(soft_impulse)
+                if soft_impulse is not None else None,
+            "reciprocal_impulse_residual_n_s": impulse_residual,
+            "contact_impulse_activity_n_s": contact_activity,
+            "expected_unique_bound_node_impulse_n_s": expected_impulse,
+            "expected_impulse_error_n_s": expected_impulse_error,
+            "fluid_reaction_force_n": list(fluid_force)
+                if fluid_force is not None else None,
+            "soft_body_reaction_force_n": list(soft_force)
+                if soft_force is not None else None,
+            "reciprocal_force_residual_n": force_residual,
+            "soft_force_impulse_residual_n_s": force_impulse_residual,
+            "maximum_endpoint_speed_m_s": maximum_speed,
+        },
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def _smoke_particle_states(
         value: Any, path: str, failures: list[Failure]
         ) -> dict[int, tuple[tuple[float, float, float],
@@ -2440,6 +3071,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "fluid_cloth_containment":
         return _evaluate_fluid_cloth_containment(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "fluid_soft_contact":
+        return _evaluate_fluid_soft_contact(
             profile, result, expected_hash, driver, failures)
     if evaluation == "smoke_self_pressure":
         return _evaluate_smoke_self_pressure(
