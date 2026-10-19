@@ -9,6 +9,8 @@ add_library(parallel-mater-conformance-runner STATIC
     conformance/v1/src/rigid_quality.cpp
     conformance/v1/src/rope_quality.cpp
     conformance/v1/src/smoke_quality.cpp
+    conformance/v1/src/smoke_viscosity_quality.cpp
+    conformance/v1/src/smoke_lifecycle_fixture.cpp
     conformance/v1/src/lifecycle_fixtures.cpp
     conformance/v1/src/smoke_lifecycle.cpp
     conformance/v1/src/capacity_recovery_fixture.cpp

@@ -1362,6 +1362,362 @@ def _evaluate_rope_self_contact(
     }
 
 
+def _smoke_particle_states(
+        value: Any, path: str, failures: list[Failure]
+        ) -> dict[int, tuple[tuple[float, float, float],
+                             tuple[float, float, float]]]:
+    if not isinstance(value, list):
+        failures.append(Failure(path, "expected a smoke particle array", value))
+        return {}
+    states: dict[int, tuple[tuple[float, float, float],
+                            tuple[float, float, float]]] = {}
+    for index, particle in enumerate(value):
+        particle_path = f"{path}[{index}]"
+        if not isinstance(particle, dict):
+            failures.append(Failure(
+                particle_path, "expected a smoke particle object", particle))
+            continue
+        slot = particle.get("slot")
+        if (not isinstance(slot, int) or isinstance(slot, bool) or slot < 0):
+            failures.append(Failure(
+                particle_path + ".slot", "expected a nonnegative slot", slot))
+            continue
+        if slot != index:
+            failures.append(Failure(
+                particle_path + ".slot", "public smoke slot order changed",
+                slot, index))
+        if slot in states:
+            failures.append(Failure(
+                particle_path + ".slot", "duplicate smoke slot", slot))
+            continue
+        position = _vector(particle.get("position_m"),
+                           particle_path + ".position_m", failures)
+        velocity = _vector(particle.get("velocity_m_s"),
+                           particle_path + ".velocity_m_s", failures)
+        _scalar(particle.get("age_seconds"),
+                particle_path + ".age_seconds", failures)
+        _scalar(particle.get("number_density"),
+                particle_path + ".number_density", failures)
+        _scalar(particle.get("pressure_m_s2"),
+                particle_path + ".pressure_m_s2", failures)
+        _vector(particle.get("vorticity_per_s"),
+                particle_path + ".vorticity_per_s", failures)
+        if position is not None and velocity is not None:
+            states[slot] = position, velocity
+    return states
+
+
+def _smoke_velocity_statistics(
+        states: dict[int, tuple[tuple[float, float, float],
+                                tuple[float, float, float]]]
+        ) -> dict[str, Any] | None:
+    if not states:
+        return None
+    velocities = [state[1] for _, state in sorted(states.items())]
+    count = len(velocities)
+    mean = tuple(sum(value[axis] for value in velocities) / count
+                 for axis in range(3))
+    relative_square = sum(
+        sum((value[axis] - mean[axis]) ** 2 for axis in range(3))
+        for value in velocities) / count
+    total_square = sum(
+        sum(component * component for component in value)
+        for value in velocities) / count
+    return {
+        "mean_velocity_m_s": mean,
+        "relative_rms_speed_m_s": math.sqrt(relative_square),
+        "relative_specific_kinetic_energy_m2_s2": 0.5 * relative_square,
+        "total_specific_kinetic_energy_m2_s2": 0.5 * total_square,
+        "maximum_speed_m_s": max(_norm(value) for value in velocities),
+    }
+
+
+def _evaluate_smoke_self_viscosity(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    def index_by_id(value: list[Any], path: str) -> dict[str, dict[str, Any]]:
+        indexed: dict[str, dict[str, Any]] = {}
+        for index, item in enumerate(value):
+            item_path = f"{path}[{index}]"
+            if not isinstance(item, dict) or not isinstance(item.get("id"), str):
+                failures.append(Failure(
+                    item_path, "item needs a string id", item))
+                continue
+            identity = item["id"]
+            if identity in indexed:
+                failures.append(Failure(
+                    item_path + ".id", "duplicate id", identity))
+                continue
+            indexed[identity] = item
+        return indexed
+
+    definitions_value = profile.get("fixtures")
+    actual_value = result.get("fixtures")
+    if not isinstance(definitions_value, list):
+        failures.append(Failure(
+            "$.profile.fixtures", "expected a fixture array", definitions_value))
+        definitions_value = []
+    if not isinstance(actual_value, list):
+        failures.append(Failure(
+            "$.fixtures", "expected a fixture array", actual_value))
+        actual_value = []
+    definitions = index_by_id(definitions_value, "$.profile.fixtures")
+    actuals = index_by_id(actual_value, "$.fixtures")
+    if set(actuals) != set(definitions):
+        failures.append(Failure(
+            "$.fixtures", "smoke viscosity fixture identities differ",
+            sorted(actuals), sorted(definitions)))
+    tolerances = profile.get("tolerances")
+    if not isinstance(tolerances, dict):
+        failures.append(Failure(
+            "$.profile.tolerances", "expected an object", tolerances))
+        tolerances = {}
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+    exact_fields = (
+        "id", "representation", "substeps", "initial_capture_step",
+        "final_capture_step", "particle_capacity", "expected_particle_count",
+        "grid_resolution", "grid_vertical_resolution",
+        "grid_pressure_iterations", "oracle",
+    )
+    scalar_fields = (
+        "timestep_seconds", "particles_per_second", "lifetime_seconds",
+        "particle_radius_m", "buoyancy_m_s2", "wind_response_per_s",
+        "rest_number_density", "pressure_stiffness_m_s2",
+        "control_viscosity_per_s", "test_viscosity_per_s",
+        "vorticity_confinement_m_s2", "maximum_speed_m_s",
+        "grid_control_kinematic_viscosity_m2_s",
+        "grid_test_kinematic_viscosity_m2_s", "grid_les_coefficient",
+        "grid_pressure_tolerance_per_s", "grid_edge_length_m",
+    )
+    vector_fields = (
+        "gravity_m_s2", "emitter_center_m", "initial_velocity_m_s",
+        "wind_velocity_m_s", "grid_minimum_m",
+    )
+    observations: dict[str, Any] = {}
+    sample_count = 0
+
+    for identity, definition in definitions.items():
+        actual = actuals.get(identity)
+        if actual is None:
+            continue
+        fixture_path = f"$.fixtures[{identity}]"
+        for field in exact_fields:
+            if actual.get(field) != definition.get(field):
+                failures.append(Failure(
+                    f"{fixture_path}.{field}",
+                    "fixture setting does not match profile",
+                    actual.get(field), definition.get(field)))
+        for field in scalar_fields:
+            value = _scalar(actual.get(field),
+                            f"{fixture_path}.{field}", failures)
+            expected = _scalar(definition.get(field),
+                               f"$.profile.fixtures[{identity}].{field}",
+                               failures)
+            if (value is not None and expected is not None and
+                    abs(value - expected) > state_tolerance):
+                failures.append(Failure(
+                    f"{fixture_path}.{field}",
+                    "fixture setting differs from profile", value, expected))
+        for field in vector_fields:
+            value = _vector(actual.get(field), f"{fixture_path}.{field}",
+                            failures)
+            expected = _vector(
+                definition.get(field),
+                f"$.profile.fixtures[{identity}].{field}", failures)
+            if (value is not None and expected is not None and
+                    max(abs(a - b) for a, b in zip(value, expected)) >
+                    state_tolerance):
+                failures.append(Failure(
+                    f"{fixture_path}.{field}",
+                    "fixture setting differs from profile",
+                    list(value), list(expected)))
+        extents = actual.get("emitter_half_extents_m")
+        expected_extents = definition.get("emitter_half_extents_m")
+        if (not isinstance(extents, list) or len(extents) != 2 or
+                not all(_number(item) for item in extents)):
+            failures.append(Failure(
+                fixture_path + ".emitter_half_extents_m",
+                "expected two finite emitter extents", extents))
+        elif (not isinstance(expected_extents, list) or
+              len(expected_extents) != 2 or
+              not all(_number(item) for item in expected_extents)):
+            failures.append(Failure(
+                f"$.profile.fixtures[{identity}].emitter_half_extents_m",
+                "expected two finite emitter extents", expected_extents))
+        elif max(abs(float(a) - float(b))
+                 for a, b in zip(extents, expected_extents)) > state_tolerance:
+            failures.append(Failure(
+                fixture_path + ".emitter_half_extents_m",
+                "fixture setting differs from profile", extents,
+                expected_extents))
+
+        runs_value = actual.get("runs")
+        if not isinstance(runs_value, list):
+            failures.append(Failure(
+                fixture_path + ".runs", "expected a run array", runs_value))
+            runs_value = []
+        runs = index_by_id(runs_value, fixture_path + ".runs")
+        if set(runs) != {"control", "viscous"}:
+            failures.append(Failure(
+                fixture_path + ".runs",
+                "expected exactly control and viscous runs",
+                sorted(runs), ["control", "viscous"]))
+        states: dict[str, dict[str, dict[int, tuple[
+            tuple[float, float, float], tuple[float, float, float]]]]] = {}
+        expected_count = definition.get("expected_particle_count")
+        for run_id in ("control", "viscous"):
+            run = runs.get(run_id)
+            if run is None:
+                continue
+            run_path = f"{fixture_path}.runs[{run_id}]"
+            initial = _smoke_particle_states(
+                run.get("initial_particles"), run_path + ".initial_particles",
+                failures)
+            final = _smoke_particle_states(
+                run.get("final_particles"), run_path + ".final_particles",
+                failures)
+            states[run_id] = {"initial": initial, "final": final}
+            if set(initial) != set(final):
+                failures.append(Failure(
+                    run_path, "sampled smoke slots changed during measurement",
+                    sorted(final), sorted(initial)))
+            if (isinstance(expected_count, int) and
+                    not isinstance(expected_count, bool) and
+                    len(initial) != expected_count):
+                failures.append(Failure(
+                    run_path + ".initial_particles",
+                    "smoke particle count differs from profile",
+                    len(initial), expected_count))
+            capacity = definition.get("particle_capacity")
+            if (isinstance(capacity, int) and not isinstance(capacity, bool) and
+                    len(final) > capacity):
+                failures.append(Failure(
+                    run_path + ".final_particles",
+                    "smoke output exceeds declared capacity",
+                    len(final), capacity))
+        if set(states) != {"control", "viscous"}:
+            continue
+        if set(states["control"]["initial"]) != set(
+                states["viscous"]["initial"]):
+            failures.append(Failure(
+                fixture_path + ".runs",
+                "paired smoke runs sampled different slots"))
+
+        statistics: dict[str, dict[str, dict[str, Any]]] = {}
+        for run_id in ("control", "viscous"):
+            statistics[run_id] = {}
+            for phase in ("initial", "final"):
+                measured = _smoke_velocity_statistics(states[run_id][phase])
+                if measured is not None:
+                    statistics[run_id][phase] = measured
+        if any(set(statistics[run_id]) != {"initial", "final"}
+               for run_id in statistics):
+            continue
+
+        initial_activity = statistics["viscous"]["initial"][
+            "relative_rms_speed_m_s"]
+        activity_minimum = float(tolerances.get(
+            "initial_relative_rms_speed_minimum_m_s", 0.0))
+        if initial_activity < activity_minimum:
+            failures.append(Failure(
+                fixture_path + ".runs[viscous].initial_particles",
+                "initial smoke relative motion is too small for viscosity",
+                initial_activity, activity_minimum))
+
+        control_energy = statistics["control"]["final"][
+            "relative_specific_kinetic_energy_m2_s2"]
+        viscous_energy = statistics["viscous"]["final"][
+            "relative_specific_kinetic_energy_m2_s2"]
+        reduction = (1.0 - viscous_energy / control_energy
+                     if control_energy > 0.0 else 0.0)
+        minimum_reduction = float(tolerances.get(
+            "relative_specific_energy_reduction_fraction_minimum", 0.0))
+        if reduction < minimum_reduction:
+            failures.append(Failure(
+                fixture_path + ".runs[viscous].final_particles",
+                "smoke viscosity did not dissipate relative motion",
+                reduction, minimum_reduction))
+        energy_slack_key = (
+            "particle_specific_energy_relative_increase_maximum"
+            if definition.get("representation") == "SMOKE_PARTICLE"
+            else "driven_grid_specific_energy_relative_increase_maximum")
+        energy_slack = float(tolerances.get(energy_slack_key, 0.0))
+        control_total = statistics["control"]["final"][
+            "total_specific_kinetic_energy_m2_s2"]
+        viscous_total = statistics["viscous"]["final"][
+            "total_specific_kinetic_energy_m2_s2"]
+        total_limit = control_total * (1.0 + energy_slack)
+        if viscous_total > total_limit:
+            failures.append(Failure(
+                fixture_path + ".runs[viscous].final_particles",
+                "smoke viscosity increased specific kinetic energy",
+                viscous_total, total_limit))
+
+        maximum_speed = max(
+            statistics[run_id][phase]["maximum_speed_m_s"]
+            for run_id in ("control", "viscous")
+            for phase in ("initial", "final"))
+        maximum_authored = float(definition.get("maximum_speed_m_s", 0.0))
+        speed_limit = maximum_authored * (1.0 + float(tolerances.get(
+            "maximum_speed_relative_slack", 0.0)))
+        if maximum_speed > speed_limit:
+            failures.append(Failure(
+                fixture_path + ".runs", "smoke speed exceeds authored maximum",
+                maximum_speed, speed_limit))
+
+        def mean_change(run_id: str) -> tuple[float, float, float]:
+            before = statistics[run_id]["initial"]["mean_velocity_m_s"]
+            after = statistics[run_id]["final"]["mean_velocity_m_s"]
+            return _subtract(after, before)
+
+        control_change = mean_change("control")
+        viscous_change = mean_change("viscous")
+        representation = definition.get("representation")
+        if representation == "SMOKE_PARTICLE":
+            impulse_residual = _norm(viscous_change)
+            residual_limit = float(tolerances.get(
+                "particle_mean_velocity_change_absolute_m_s", 0.0))
+        else:
+            impulse_residual = _norm(_subtract(
+                viscous_change, control_change))
+            residual_limit = float(tolerances.get(
+                "grid_control_delta_absolute_m_s", 0.0))
+        if impulse_residual > residual_limit:
+            failures.append(Failure(
+                fixture_path + ".runs[viscous]",
+                "viscosity introduced an unexplained mean-velocity change",
+                impulse_residual, residual_limit))
+
+        observations[identity] = {
+            "initial_relative_rms_speed_m_s": initial_activity,
+            "control_final_relative_specific_kinetic_energy_m2_s2":
+                control_energy,
+            "viscous_final_relative_specific_kinetic_energy_m2_s2":
+                viscous_energy,
+            "relative_specific_energy_reduction_fraction": reduction,
+            "control_final_total_specific_kinetic_energy_m2_s2": control_total,
+            "viscous_final_total_specific_kinetic_energy_m2_s2": viscous_total,
+            "mean_velocity_residual_m_s": impulse_residual,
+            "maximum_speed_m_s": maximum_speed,
+        }
+        sample_count += 1
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": len(actuals),
+        "sample_count": sample_count,
+        "failure_count": len(failures),
+        "observations": observations,
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
+
 def _evaluate_smoke_self_pressure(
         profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
         driver: Any, failures: list[Failure]) -> dict[str, Any]:
@@ -1684,6 +2040,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "smoke_self_pressure":
         return _evaluate_smoke_self_pressure(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "smoke_self_viscosity":
+        return _evaluate_smoke_self_viscosity(
             profile, result, expected_hash, driver, failures)
     if evaluation != "system_exchange":
         failures.append(Failure("$.profile.evaluation",

@@ -3,7 +3,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "a0a3861e8eb61262dbfa7d06f1e1780d2d59cce1fba5f5de3ef916330f720087"
+    "sha256": "869939383b19afa4dee86c6d1a5db99ca13de0a7a44667a545e4658335543709"
   },
   "expected_drivers": [
     {
@@ -57,6 +57,11 @@
       "id": "macos-m4-slang-metal-aac6d59",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json",
       "sha256": "4c8bacefffcaed67e300d2bdf90a683d46b0c12efeac14f6c83151ecac0bc9ef"
+    },
+    {
+      "id": "macos-m4-slang-metal-e566034-smoke-viscosity",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-e566034-smoke-viscosity-qualification.json",
+      "sha256": "fc2893b88ecce822abf5428ede688336f4ea5ee4e2cfac5527c8bdde478a92a9"
     },
     {
       "id": "windows-gtx1080-slang-cuda-2b04e55",
