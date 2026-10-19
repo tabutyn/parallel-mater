@@ -7,7 +7,7 @@
     "capability": "docs/INTERACTION-MODES.md: SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL with SMOKE_PARTICLE and SMOKE_GRID",
     "fixture": "conformance/v1/src/smoke_rigid_drag.cpp: paired public-API zero-drag controls at equal air density and forward-flow, stationary-flow and reverse-flow runs",
     "oracle": "Public rigid velocity must follow public carrier flow while persistent public smoke tracers carry the opposite response; the particle representation must conserve the independently derived public effective-particle momentum, and both representations must remain geometrically outside the authored contact distance",
-    "tolerances": "Explicit immutable inputs, bounded signed rigid and smoke response fractions, transverse drift, stationary response, forward/reverse symmetry, reciprocal momentum, non-contact clearance, pressure, energy and public speed caps"
+    "tolerances": "Explicit immutable inputs, bounded signed rigid and smoke response fractions, transverse drift, stationary response, forward/reverse symmetry, reciprocal momentum, non-contact clearance, particle contact-pressure sentinel, particle energy and public speed caps"
   },
   "units": "SI: metres, kilograms, seconds, metres per second, radians per second, kilograms per cubic metre, square metres per second and metres squared per second squared",
   "fixtures": [

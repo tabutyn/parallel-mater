@@ -6341,7 +6341,12 @@ def _evaluate_smoke_rigid_drag(
                 minimum_clearance, f"> {required_clearance + state_tolerance}"))
         pressure_limit = float(tolerances.get(
             "maximum_pressure_delta_m_s2", 0.0))
-        if pressure_delta > pressure_limit:
+        # Particle pressure is written only by the touching branch, so it is a
+        # valid non-contact sentinel. Grid tracer pressure samples the public
+        # Eulerian projection; a moving, non-contact boundary can legitimately
+        # change that field while exchanging viscous drag.
+        if (representation == "SMOKE_PARTICLE" and
+                pressure_delta > pressure_limit):
             failures.append(Failure(base + ".runs",
                                     "non-contact drag changed smoke pressure",
                                     pressure_delta, pressure_limit))

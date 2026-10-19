@@ -320,8 +320,8 @@ void require_drag_capability(const Context &context, bool grid) {
     fixture.output = context.buffer(
         rigid_bytes + smoke_bytes,
         PM_BUFFER_SIMULATION_OUTPUT_BIT | PM_BUFFER_TRANSFER_DST_BIT);
-    fixture.rigid_output = {fixture.output.handle, 0U, rigid_bytes};
-    fixture.smoke_output = {fixture.output.handle, rigid_bytes, smoke_bytes};
+    fixture.smoke_output = {fixture.output.handle, 0U, smoke_bytes};
+    fixture.rigid_output = {fixture.output.handle, smoke_bytes, rigid_bytes};
     return fixture;
 }
 
@@ -359,7 +359,8 @@ void record_copies(Context &context, const FixtureObjects &fixture) {
     context.invalidate(fixture.output);
     const auto *base = static_cast<const std::byte *>(fixture.output.mapped);
     Snapshot result{};
-    result.rigid = *reinterpret_cast<const PmRigidState *>(base);
+    result.rigid = *reinterpret_cast<const PmRigidState *>(
+        base + fixture.rigid_output.offset);
     const auto *header = reinterpret_cast<const PmDomainOutputHeader *>(
         base + fixture.smoke_output.offset);
     if (header->activeCount > smoke_capacity)

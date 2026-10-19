@@ -147,7 +147,7 @@ class SmokeRigidDragQualityTests(unittest.TestCase):
 
     def test_rejects_contact_pressure(self) -> None:
         result = copy.deepcopy(self.result)
-        result["fixtures"][1]["runs"][1]["final"]["smoke_particles"][0][
+        result["fixtures"][0]["runs"][1]["final"]["smoke_particles"][0][
             "pressure_m_s2"] = 0.01
         self.assert_rejected(result, "non-contact drag changed smoke pressure")
 
