@@ -1,0 +1,42 @@
+{
+  "driver": {
+    "device": "NVIDIA GeForce GTX 1080",
+    "device_id": 0,
+    "driver_version": "13000",
+    "name": "slang-cuda",
+    "vendor_id": 4318
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 2,
+  "observations": {
+    "grid-smoke-rigid-contact": {
+      "control_final_face_clearance_m": 0.012999999821186065,
+      "coupled_clearance_error_m": 1.4901161207725444e-10,
+      "coupled_final_face_clearance_m": 0.015000000149011612,
+      "coupled_inward_relative_normal_velocity_m_s": 0.00011359713971614838,
+      "coupled_rigid_angular_speed_rad_s": 0.06427181029490753,
+      "initial_face_clearance_m": 0.023000001460313797,
+      "maximum_smoke_speed_m_s": 1.0307764064044151,
+      "rigid_reciprocal_normal_impulse_n_s": 5.4725231602787975e-05,
+      "smoke_outward_normal_response_m_s": 0.994413879700005
+    },
+    "particle-smoke-rigid-contact": {
+      "control_final_face_clearance_m": 0.012999999821186065,
+      "coupled_clearance_error_m": 1.4901161207725444e-10,
+      "coupled_final_face_clearance_m": 0.015000000149011612,
+      "coupled_inward_relative_normal_velocity_m_s": -0.09999999403953552,
+      "coupled_rigid_angular_speed_rad_s": 0.9458901009628039,
+      "initial_face_clearance_m": 0.023000001460313797,
+      "maximum_smoke_speed_m_s": 1.0307764064044151,
+      "rigid_reciprocal_normal_impulse_n_s": 0.0009999999403953552,
+      "smoke_outward_normal_response_m_s": 1.0
+    }
+  },
+  "passed": true,
+  "profile_id": "smoke-rigid-contact-v1",
+  "profile_sha256": "138454122bed21dccb6c30f5e7e132ba9a1131856d88396cd8171570a4337029",
+  "sample_count": 2,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

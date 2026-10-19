@@ -1,0 +1,18 @@
+{
+  "case_count": 2,
+  "checkpoint_count": 10,
+  "driver": {
+    "device": "NVIDIA GeForce GTX 1080",
+    "device_id": 0,
+    "driver_version": "13000",
+    "name": "slang-cuda",
+    "vendor_id": 4318
+  },
+  "failure_count": 0,
+  "failures": [],
+  "passed": true,
+  "profile_id": "smoke-rigid-contact-lifecycle-v1",
+  "profile_sha256": "d53d75c441f41f74dddb0a6ef1d6dff97dee10f688002b1d8775781e871be47e",
+  "schema": "parallel-mater-conformance-lifecycle-report/v1",
+  "scope": "lifecycle_invariants"
+}

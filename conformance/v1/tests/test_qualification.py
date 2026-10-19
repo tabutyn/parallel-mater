@@ -251,6 +251,28 @@ def rope_smoke_contact_result(profile: dict, material: str,
     return result
 
 
+def smoke_rigid_contact_result(profile: dict, material: str,
+                               mode: str = "CONTACT") -> dict:
+    result = valid_equal_fluid_result(profile)
+    result["advertised_capabilities"] = [
+        capability("SMOKE", "RIGID_BODY", "DISTINCT_FAMILY", mode,
+                   "BIDIRECTIONAL", material)
+    ]
+    prefix = material.removeprefix("SMOKE_").lower()
+    lifecycle_contract = (
+        "lifecycle:smoke-rigid-contact-lifecycle-v1#" + prefix +
+        "-smoke-rigid-contact-capacity-replacement-removal-rollback")
+    result["evidence"] = [
+        evidence(profile, "compilation", "registry:interaction-capabilities"),
+        evidence(profile, "execution", "case:smoke-grid"),
+        evidence(profile, "reference_regression", "case:smoke-grid"),
+        evidence(profile, "lifecycle_invariants", lifecycle_contract),
+        evidence(profile, "analytic_invariants",
+                 "quality:smoke-rigid-contact-v1"),
+    ]
+    return result
+
+
 def soft_rope_attachment_result(profile: dict,
                                 mode: str = "ATTACHMENT") -> dict:
     result = valid_equal_fluid_result(profile)
@@ -887,6 +909,51 @@ class QualificationTests(unittest.TestCase):
                 rejected_drag = self.assert_rejected(
                     wrong_drag, "required evidence is missing")
                 self.assertEqual(rejected_drag["qualified_count"], 0)
+
+    def test_smoke_rigid_contact_contracts_are_exact_and_disjoint_from_drag(self):
+        contracts = contract_map(self.profile)
+        expected_contracts = {
+            "quality:smoke-rigid-contact-v1":
+                ROOT / "quality" / "smoke-rigid-contact-v1.json",
+            ("lifecycle:smoke-rigid-contact-lifecycle-v1#"
+             "particle-smoke-rigid-contact-capacity-replacement-removal-rollback"):
+                ROOT / "lifecycle" / "smoke-rigid-contact-lifecycle-v1.json",
+            ("lifecycle:smoke-rigid-contact-lifecycle-v1#"
+             "grid-smoke-rigid-contact-capacity-replacement-removal-rollback"):
+                ROOT / "lifecycle" / "smoke-rigid-contact-lifecycle-v1.json",
+        }
+        for contract_id, path in expected_contracts.items():
+            with self.subTest(contract=contract_id):
+                self.assertEqual(contracts[contract_id]["path"],
+                                 path.relative_to(REPOSITORY).as_posix())
+                self.assertEqual(contracts[contract_id]["sha256"],
+                                 qualification.profile_sha256(path))
+
+        for material in ("SMOKE_PARTICLE", "SMOKE_GRID"):
+            suffix = material.removeprefix("SMOKE_").lower()
+            with self.subTest(material=material):
+                report = self.evaluate(
+                    smoke_rigid_contact_result(self.profile, material))
+                self.assertTrue(report["passed"], report)
+                self.assertEqual(report["qualified_count"], 1)
+                self.assertEqual(report["capabilities"][0]["rule_id"],
+                                 "smoke-rigid-contact-" + suffix)
+
+                wrong = smoke_rigid_contact_result(self.profile, material)
+                wrong["evidence"][-1] = evidence(
+                    self.profile, "analytic_invariants",
+                    "quality:soft-rigid-contact-v1")
+                rejected = self.assert_rejected(
+                    wrong, "required evidence is missing")
+                self.assertEqual(rejected["qualified_count"], 0)
+
+                drag = smoke_rigid_contact_result(
+                    self.profile, material, "DRAG")
+                drag_report = self.assert_rejected(
+                    drag, "qualification contract is missing")
+                self.assertEqual(drag_report["qualified_count"], 0)
+                self.assertEqual(drag_report["capabilities"][0]["rule_id"],
+                                 "smoke-rigid-drag")
 
     def test_soft_rope_attachment_quality_cannot_qualify_contact(self):
         report = self.evaluate(
