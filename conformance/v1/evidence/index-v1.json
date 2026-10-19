@@ -5018,7 +5018,7 @@
         "second_family": "ROPE"
       },
       "key_text": "SOFT_BODY/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment",
       "rule_id": "soft-body-rope-attachment",
       "scopes": {
@@ -5269,13 +5269,66 @@
         "second_family": "SMOKE"
       },
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
-      "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "soft-body-smoke",
+      "qualified": true,
+      "report": "linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-grid",
+      "rule_id": "soft-body-smoke-contact-grid",
       "scopes": {
         "analytic_invariants": {
+          "contracts": [
+            "quality:soft-smoke-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "timing": {
           "contracts": [],
-          "status": "missing_contract"
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
+      "qualified": false,
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
+      "rule_id": "soft-body-smoke-contact-grid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:soft-smoke-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -5290,8 +5343,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -5318,11 +5373,13 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-contact-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:soft-smoke-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -5337,8 +5394,61 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "timing": {
           "contracts": [],
-          "status": "missing_contract"
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
+      "qualified": true,
+      "report": "linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-particle",
+      "rule_id": "soft-body-smoke-contact-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:soft-smoke-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -5365,11 +5475,13 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-contact-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:soft-smoke-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -5384,8 +5496,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "missing"
         },
         "reference_regression": {
           "contracts": [
@@ -5412,7 +5526,58 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-contact-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:soft-smoke-contact-v1"
+          ],
+          "status": "missing_evidence"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
+      "qualified": false,
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
+      "rule_id": "soft-body-smoke-drag-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -5458,55 +5623,8 @@
       },
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "soft-body-smoke",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "invalid"
-        },
-        "execution": {
-          "contracts": [
-            "case:smoke-soft-body"
-          ],
-          "status": "passed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:smoke-soft-body"
-          ],
-          "status": "passed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-cuda",
-      "key": {
-        "direction": "SECOND_TO_FIRST",
-        "first_family": "SOFT_BODY",
-        "material_profile": "SMOKE_GRID",
-        "mode": "DRAG",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "SMOKE"
-      },
-      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
-      "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-drag-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -5553,7 +5671,7 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-drag-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -5600,7 +5718,7 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-drag-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -11012,11 +11130,13 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-contact-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:soft-smoke-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11031,8 +11151,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11059,11 +11181,13 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-contact-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:soft-smoke-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11078,8 +11202,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11106,11 +11232,13 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-contact-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:soft-smoke-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11125,8 +11253,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "missing"
         },
         "reference_regression": {
           "contracts": [
@@ -11153,7 +11283,58 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-contact-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:soft-smoke-contact-v1"
+          ],
+          "status": "missing_evidence"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
+      "qualified": false,
+      "report": "ipados-m1-slang-metal-9f7e72e",
+      "rule_id": "soft-body-smoke-drag-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -11199,55 +11380,8 @@
       },
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
-      "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "soft-body-smoke",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "invalid"
-        },
-        "execution": {
-          "contracts": [
-            "case:smoke-soft-body"
-          ],
-          "status": "passed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:smoke-soft-body"
-          ],
-          "status": "passed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-metal",
-      "key": {
-        "direction": "SECOND_TO_FIRST",
-        "first_family": "SOFT_BODY",
-        "material_profile": "SMOKE_GRID",
-        "mode": "DRAG",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "SMOKE"
-      },
-      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
-      "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-drag-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -11294,7 +11428,7 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-drag-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -11341,7 +11475,7 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-drag-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -15584,11 +15718,13 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
       "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-contact-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:soft-smoke-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -15603,8 +15739,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -15631,11 +15769,13 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-contact-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:soft-smoke-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -15650,8 +15790,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -15678,11 +15820,13 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
       "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-contact-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:soft-smoke-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -15697,8 +15841,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -15725,7 +15871,58 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-contact-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:soft-smoke-contact-v1"
+          ],
+          "status": "missing_evidence"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "soft-body-smoke-drag-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -15735,7 +15932,7 @@
           "contracts": [
             "registry:interaction-capabilities"
           ],
-          "status": "invalid"
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -15771,55 +15968,8 @@
       },
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
-      "report": "android-pixel7-slang-vulkan-3187375",
-      "rule_id": "soft-body-smoke",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "passed"
-        },
-        "execution": {
-          "contracts": [
-            "case:smoke-soft-body"
-          ],
-          "status": "passed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:smoke-soft-body"
-          ],
-          "status": "passed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-vulkan",
-      "key": {
-        "direction": "SECOND_TO_FIRST",
-        "first_family": "SOFT_BODY",
-        "material_profile": "SMOKE_GRID",
-        "mode": "DRAG",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "SMOKE"
-      },
-      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
-      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-drag-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -15866,7 +16016,7 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-drag-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -15913,7 +16063,7 @@
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "soft-body-smoke",
+      "rule_id": "soft-body-smoke-drag-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -15948,7 +16098,7 @@
       }
     }
   ],
-  "capability_count": 320,
+  "capability_count": 322,
   "driver_count": 5,
   "drivers": [
     {
@@ -15974,6 +16124,8 @@
         "linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid",
         "linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle",
         "linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment",
+        "linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-grid",
+        "linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-particle",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
         "windows-gtx1080-slang-cuda-2b04e55",
@@ -15982,7 +16134,7 @@
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle"
       ],
-      "qualified_capability_count": 1,
+      "qualified_capability_count": 2,
       "report_ids": [
         "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
         "linux-rtx3050ti-slang-cuda-eed669e",
@@ -15990,6 +16142,8 @@
         "linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid",
         "linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle",
         "linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment",
+        "linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-grid",
+        "linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-particle",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
         "windows-gtx1080-slang-cuda-2b04e55",
@@ -16000,7 +16154,7 @@
         "windows-gtx1080-physics-2026-10-16"
       ],
       "status": "unqualified",
-      "unqualified_capability_count": 110
+      "unqualified_capability_count": 111
     },
     {
       "id": "slang-d3d12",
@@ -16134,7 +16288,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18008,20 +18162,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "quality:soft-smoke-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[34].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "quality:soft-smoke-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[34].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -18044,25 +18198,25 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "missing",
       "driver": "slang-cuda",
-      "expected": null,
+      "expected": "passed",
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[34].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "missing",
       "driver": "slang-cuda",
-      "expected": null,
+      "expected": "passed",
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[34].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "No vendor-neutral particle soft-body-smoke DRAG quality case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -18071,7 +18225,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "No vendor-neutral particle soft-body-smoke DRAG quality case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -18098,7 +18252,7 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "No exact particle soft-body-smoke DRAG adverse graph case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -18107,7 +18261,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "No exact particle soft-body-smoke DRAG adverse graph case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -18116,20 +18270,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "quality:soft-smoke-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[36].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "quality:soft-smoke-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[36].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -18152,25 +18306,25 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[36].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[36].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "No vendor-neutral grid soft-body-smoke DRAG quality case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -18179,7 +18333,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "No vendor-neutral grid soft-body-smoke DRAG quality case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -18206,7 +18360,7 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "No exact grid soft-body-smoke DRAG adverse graph case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -18215,7 +18369,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "No exact grid soft-body-smoke DRAG adverse graph case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -19315,7 +19469,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19324,7 +19478,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19333,7 +19487,7 @@
     {
       "actual": "20c3086b26c05fc00bdc2a70fc4f528cdd588271c2cc2be4409912982d60c419",
       "driver": "slang-cuda",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19342,7 +19496,7 @@
     {
       "actual": "024f8894735a8285f1d5fb7058e639256cf5db6bc9a5ee9e2b1ff28de50ab588",
       "driver": "slang-cuda",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19351,16 +19505,25 @@
     {
       "actual": "024f8894735a8285f1d5fb7058e639256cf5db6bc9a5ee9e2b1ff28de50ab588",
       "driver": "slang-cuda",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle"
     },
     {
+      "actual": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "driver": "slang-cuda",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment"
+    },
+    {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19369,7 +19532,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19378,7 +19541,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19387,7 +19550,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-cuda",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19396,7 +19559,7 @@
     {
       "actual": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
       "driver": "slang-cuda",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19405,7 +19568,7 @@
     {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19414,7 +19577,7 @@
     {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19850,7 +20013,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19859,7 +20022,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-d3d12",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21338,20 +21501,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "quality:soft-smoke-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[31].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "quality:soft-smoke-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[31].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -21374,25 +21537,25 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "missing",
       "driver": "slang-metal",
-      "expected": null,
+      "expected": "passed",
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[31].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "missing",
       "driver": "slang-metal",
-      "expected": null,
+      "expected": "passed",
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[31].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "No vendor-neutral particle soft-body-smoke DRAG quality case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -21401,7 +21564,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "No vendor-neutral particle soft-body-smoke DRAG quality case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -21428,7 +21591,7 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "No exact particle soft-body-smoke DRAG adverse graph case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -21437,7 +21600,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "No exact particle soft-body-smoke DRAG adverse graph case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -21446,20 +21609,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "quality:soft-smoke-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[33].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "quality:soft-smoke-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[33].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -21482,25 +21645,25 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[33].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[33].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "No vendor-neutral grid soft-body-smoke DRAG quality case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -21509,7 +21672,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "No vendor-neutral grid soft-body-smoke DRAG quality case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -21536,7 +21699,7 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "No exact grid soft-body-smoke DRAG adverse graph case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -21545,7 +21708,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "No exact grid soft-body-smoke DRAG adverse graph case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -22618,7 +22781,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22627,7 +22790,7 @@
     {
       "actual": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "driver": "slang-metal",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22636,7 +22799,7 @@
     {
       "actual": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "driver": "slang-metal",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22645,7 +22808,7 @@
     {
       "actual": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "driver": "slang-metal",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22654,7 +22817,7 @@
     {
       "actual": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "driver": "slang-metal",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22663,7 +22826,7 @@
     {
       "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
       "driver": "slang-metal",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22672,7 +22835,7 @@
     {
       "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
       "driver": "slang-metal",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22681,7 +22844,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22690,7 +22853,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22699,7 +22862,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22708,7 +22871,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23768,20 +23931,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "quality:soft-smoke-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[31].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "quality:soft-smoke-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[31].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -23795,25 +23958,16 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "missing",
       "driver": "slang-vulkan",
-      "expected": null,
+      "expected": "passed",
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
-      "path": "$.advertised_capabilities[31].lifecycle_invariants",
-      "report": "android-pixel7-slang-vulkan-3187375"
-    },
-    {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
-      "driver": "slang-vulkan",
-      "expected": null,
-      "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[31].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "No vendor-neutral particle soft-body-smoke DRAG quality case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -23822,7 +23976,7 @@
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "No vendor-neutral particle soft-body-smoke DRAG quality case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -23840,7 +23994,7 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "No exact particle soft-body-smoke DRAG adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -23849,7 +24003,7 @@
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "No exact particle soft-body-smoke DRAG adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -23858,20 +24012,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "quality:soft-smoke-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[33].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "quality:soft-smoke-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[33].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -23885,25 +24039,25 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[33].lifecycle_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[33].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "No vendor-neutral grid soft-body-smoke DRAG quality case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -23912,7 +24066,7 @@
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "actual": "No vendor-neutral grid soft-body-smoke DRAG quality case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -23930,7 +24084,7 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "No exact grid soft-body-smoke DRAG adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -23939,7 +24093,7 @@
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "actual": "No exact grid soft-body-smoke DRAG adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -24706,7 +24860,7 @@
     {
       "actual": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
       "driver": "slang-vulkan",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -24715,7 +24869,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+      "expected": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -24723,10 +24877,10 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
+  "obligations_sha256": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
   "qualification_complete": true,
-  "qualified_capability_count": 1,
-  "report_count": 31,
+  "qualified_capability_count": 2,
+  "report_count": 33,
   "reports": [
     {
       "capability_count": 46,
@@ -24741,7 +24895,7 @@
         "name": "slang-vulkan",
         "version": "0.2.0"
       },
-      "failure_count": 73,
+      "failure_count": 72,
       "id": "android-pixel7-slang-vulkan-3187375",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json",
@@ -24888,14 +25042,72 @@
         "name": "slang-cuda",
         "version": "0.2.0+9a71fd6"
       },
-      "failure_count": 0,
+      "failure_count": 1,
       "id": "linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment-qualification.json",
-      "qualified_count": 1,
+      "qualified_count": 0,
       "sha256": "aa898c3af584da53ff68808f4675351f8d296ea80d29e594969d67d528388beb",
       "source": {
         "commit": "9a71fd6879919b9943b0f61afa09c74a6944eb1a",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+        "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+      },
+      "validated": false
+    },
+    {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "13010 (NVIDIA 590.44.01)",
+        "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+        "vendor_id": 4318
+      },
+      "driver": {
+        "binary_sha256": "52854125dc55b8d9cb507967045d759c4ec2edeed50e9d140686d3f1e7dfbb0c",
+        "name": "slang-cuda",
+        "version": "0.2.0+cc2b9c0"
+      },
+      "failure_count": 0,
+      "id": "linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-grid",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-grid-qualification.json",
+      "qualified_count": 1,
+      "sha256": "928533c6a0616a3ea19df12aaaf4d8402b25ee2578fb557e62c7d2da75086f10",
+      "source": {
+        "commit": "cc2b9c08dd1c4323db522406c03cb041eb4a5bd8",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+        "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+      },
+      "validated": true
+    },
+    {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "13010 (NVIDIA 590.44.01)",
+        "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+        "vendor_id": 4318
+      },
+      "driver": {
+        "binary_sha256": "52854125dc55b8d9cb507967045d759c4ec2edeed50e9d140686d3f1e7dfbb0c",
+        "name": "slang-cuda",
+        "version": "0.2.0+cc2b9c0"
+      },
+      "failure_count": 0,
+      "id": "linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-particle",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-particle-qualification.json",
+      "qualified_count": 1,
+      "sha256": "4e9caec409215c789531ba034077a15a5c02722fcaf72707fa9cdd67f5f1aa92",
+      "source": {
+        "commit": "cc2b9c08dd1c4323db522406c03cb041eb4a5bd8",
         "dirty": false
       },
       "toolchain": {
@@ -25643,7 +25855,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "a3edc93d47e688f2afa2c8f8da335c20fbfe0023215587698203bdd5cd66a677",
+  "sources_sha256": "9bc9dc1b76f76e901197f8d412444557d828732862c8ed80efc8a6d11cea7431",
   "valid": true,
   "validation_failures": []
 }

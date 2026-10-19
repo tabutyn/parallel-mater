@@ -1,0 +1,63 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-47",
+  "source_commit": "cc2b9c08dd1c4323db522406c03cb041eb4a5bd8",
+  "captured_at": "2026-10-19",
+  "host": "ThomasLaptop",
+  "driver": "slang-cuda",
+  "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+  "capabilities": [
+    "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
+    "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID"
+  ],
+  "contracts": {
+    "trajectory": "case:smoke-soft-body",
+    "quality": "quality:soft-smoke-contact-v1",
+    "particle_lifecycle": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback",
+    "grid_lifecycle": "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback"
+  },
+  "results": {
+    "trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "reference_regression": "PASS: smoke-soft-body against the canonical CUDA golden",
+    "analytic_invariants": "PASS: 2 representation samples, 0 failures",
+    "particle_contact_clearance_error_m": 3.3527612630646075e-10,
+    "particle_final_normal_velocity_m_s": 0.0,
+    "particle_final_tangential_speed_m_s": 0.25,
+    "grid_contact_clearance_error_m": 3.3527612630646075e-10,
+    "grid_final_normal_velocity_m_s": 0.0,
+    "grid_final_tangential_speed_m_s": 1.030776361896892,
+    "reverse_soft_body_response": "PASS: five public nodes and bound surface vertices remain invariant with zero final velocity",
+    "particle_lifecycle": "PASS: 2 profile cases, 9 checkpoints, 0 failures; retained three-family partial rollback binding",
+    "grid_lifecycle": "PASS: 1 profile case, 5 checkpoints, 0 failures; overflow preserves replacement graph and active contact behavior",
+    "particle_qualification": "PASS: 1/1 exact SMOKE_PARTICLE CONTACT capability, 0 failures",
+    "grid_qualification": "PASS: 1/1 exact SMOKE_GRID CONTACT capability, 0 failures",
+    "python_tests": "PASS: 273 tests after evidence integration",
+    "native_build": "PASS: conformance runner and soft-smoke fixture",
+    "command_inputs": "PASS: all pinned conformance inputs match the manifest",
+    "evidence_index": "PASS: 2/322 capability records qualified across 33 revisioned reports; stale and unrecaptured records remain visible and unqualified"
+  },
+  "artifacts": {
+    "provenance": "docs/roadmap/evidence/F5-47-cc2b9c0-cuda-provenance.json",
+    "capabilities": "docs/roadmap/evidence/F5-47-cc2b9c0-cuda-capabilities.json",
+    "trajectory_result": "docs/roadmap/evidence/F5-47-cc2b9c0-cuda-smoke-soft-body.json",
+    "trajectory_report": "docs/roadmap/evidence/F5-47-cc2b9c0-cuda-smoke-soft-body-report.json",
+    "quality_result": "docs/roadmap/evidence/F5-47-cc2b9c0-cuda-quality-result.json",
+    "quality_report": "docs/roadmap/evidence/F5-47-cc2b9c0-cuda-quality-report.json",
+    "particle_lifecycle_result": "docs/roadmap/evidence/F5-47-cc2b9c0-cuda-particle-lifecycle-result.json",
+    "particle_lifecycle_report": "docs/roadmap/evidence/F5-47-cc2b9c0-cuda-particle-lifecycle-report.json",
+    "grid_lifecycle_result": "docs/roadmap/evidence/F5-47-cc2b9c0-cuda-grid-lifecycle-result.json",
+    "grid_lifecycle_report": "docs/roadmap/evidence/F5-47-cc2b9c0-cuda-grid-lifecycle-report.json",
+    "particle_physical_evidence": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-particle.json",
+    "grid_physical_evidence": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-grid.json",
+    "particle_qualification": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-particle-qualification.json",
+    "grid_qualification": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-grid-qualification.json"
+  },
+  "notes": [
+    "The immutable public-API oracle uses paired no-edge and CONTACT-edge runs over a dynamic five-node closed soft-body surface with one-to-one public bindings.",
+    "Particle and grid smoke cross the surface in the control. CONTACT projects each tracer to the declared clearance, removes inward normal velocity and preserves tangential motion.",
+    "Public soft-body nodes and bound surface vertices remain invariant, proving the one-way tuple does not apply an unadvertised reverse mechanical response.",
+    "Grid capacity rejection preserves the accepted replacement graph and public behavior; removal changes behavior and deterministic recovery restores it.",
+    "CONTACT and DRAG obligation rules are disjoint. These qualification results advertise only CONTACT; contact evidence remains unused for the still-open F5-48 DRAG rules.",
+    "Only the two exact recaptured CUDA CONTACT records qualify. Historical and unrecaptured records remain visible and unqualified after the obligation hash changed."
+  ]
+}
