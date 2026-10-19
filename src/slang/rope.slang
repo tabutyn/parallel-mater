@@ -1166,8 +1166,7 @@ void rope_advance(
 #else
     PM_D3D12_DISPATCH_PROLOGUE();
 #endif
-    bool canonicalizeCoupledState = pmBufferPresent(soft_a.surface) ||
-        pmBufferPresent(soft_b.surface);
+    bool canonicalizeCoupledState = rope.soft_first || rope.soft_last;
     uint lane = pmGroupThreadIndex().x;
     if (lane == 0u) ropeConverged = 0u;
     if (lane == 0u)
