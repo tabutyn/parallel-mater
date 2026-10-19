@@ -1,0 +1,100 @@
+{
+  "schema": "parallel-mater-roadmap-fluid-rope-contact-evidence/v1",
+  "task": "F5-34",
+  "scope": "FLUID/ROPE/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+  "source": {
+    "commit": "dcae63e0494a21f74b99e924ed9e418b1ec4ff00",
+    "branch": "work/F5-34/Thomass-MacBook-Air",
+    "lease_token": "bec1a360-0edc-4aa3-941e-dd542861247a",
+    "clean_worktree_at_capture": true
+  },
+  "host": {
+    "machine": "Thomass-MacBook-Air",
+    "platform": "macOS",
+    "gpu": "Apple M4",
+    "driver": "slang-metal",
+    "driver_device_name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "host_compiler": "Apple LLVM 21.0.0 (clang-2100.1.1.101)",
+    "slang": "2026.18"
+  },
+  "binaries": {
+    "driver_sha256": "dae53b75933a4f6143debc7dcfeb8e0ce71820749f0c9659cb6a20d3161c7a9d",
+    "runner_sha256": "9b3c0acaef1e623b2fe7a68b7a22ba1ffafd8b9de99823688c629d686a58fdad"
+  },
+  "contracts": {
+    "analytic": {
+      "id": "quality:fluid-rope-contact-v1",
+      "sha256": "462b1b2249fc9b928b5f983f648c0486aaf0ebf0f7ee2fb354637ea39f214a89",
+      "behavior": "A public fluid particle and an unattached two-node rope prevent overlap at their declared radii and exchange reciprocal normal impulse with barycentric endpoint distribution."
+    },
+    "lifecycle": {
+      "id": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback",
+      "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
+      "behavior": "The exact graph retains its capacity, replacement, rejected partial mutation, removal and deterministic recovery obligations."
+    },
+    "trajectory": {
+      "id": "case:rope-fluid",
+      "sha256": "368a65ec45f88baebc53e252dcbf8b95e3775b205714deed1006210dd5d13d27"
+    }
+  },
+  "results": {
+    "analytic_invariants": "PASS: 1 sample, 0 failures",
+    "maximum_overlap_penetration_m": 0.0,
+    "reciprocal_impulse_residual_n_s": 0.0,
+    "maximum_node_distribution_error_n_s": 0.0,
+    "maximum_node_force_impulse_residual_n_s": 0.0,
+    "lifecycle_invariants": "PASS: 2 cases, 9 checkpoints, 0 failures",
+    "trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "historical_cuda_reference": "FAIL retained: frame-48 rope maximum speed 0.6964983836153531 m/s versus 0.4837673450357463 m/s, absolute error 0.2127310385796068 m/s greater than the unchanged 0.13482491918076767 m/s allowance",
+    "current_android_vulkan_peer": "PASS: current Metal capture matches the retained physical Pixel 7 Slang Vulkan rope-fluid capture within the unchanged deformable tolerance",
+    "qualification": "The exact Metal record remains unqualified because the required historical CUDA reference scope failed; the failure is retained and no passing qualification is claimed.",
+    "evidence_index": "PASS: evidence_index.py --check accepts the rebuilt index; unqualified and failed records remain visible."
+  },
+  "artifacts": {
+    "quality_result": {
+      "path": "docs/roadmap/evidence/F5-34-dcae63e-metal-quality-result.json",
+      "sha256": "833c0a86b7938982af48bed27a3152d69e565ba1ce7e9be395a52b12b407e51b"
+    },
+    "quality_report": {
+      "path": "docs/roadmap/evidence/F5-34-dcae63e-metal-quality-report.json",
+      "sha256": "d4a475239c5cbe3bb41604a8c3ab68f8ab21b65d436f42816b531ef83d7d1e82"
+    },
+    "lifecycle_result": {
+      "path": "docs/roadmap/evidence/F5-34-dcae63e-metal-lifecycle-result.json",
+      "sha256": "dfb45babf4def7e69543ed57f816b3a3cf355d5e2b2cb92e289dac9308611e38"
+    },
+    "lifecycle_report": {
+      "path": "docs/roadmap/evidence/F5-34-dcae63e-metal-lifecycle-report.json",
+      "sha256": "ec2b02585e534d739521534be79f21f8e491a1cb7b8faba4dce21936062cff9e"
+    },
+    "trajectory_result": {
+      "path": "docs/roadmap/evidence/F5-34-dcae63e-metal-rope-fluid.json",
+      "sha256": "196e54e5ef26095e0889c51bd66a3a5563d5becc1e768f09f08943cac9bba6fe"
+    },
+    "cuda_reference_report": {
+      "path": "docs/roadmap/evidence/F5-34-dcae63e-metal-vs-cuda-report.json",
+      "sha256": "122ff91eb0cadeec67a821a2b109ccbbe740608ab375728f398c3d1b46659245"
+    },
+    "android_peer_report": {
+      "path": "docs/roadmap/evidence/F5-34-dcae63e-metal-vs-android-report.json",
+      "sha256": "03fdf29e2e3bb1fd9b4465b594e9251475b3911465d923c268fcc7aa1f099f45"
+    }
+  },
+  "advertisement_review": {
+    "decision": "retain",
+    "reason": "The immutable public-state analytic oracle proves the advertised fluid-rope contact behavior on the physical Metal driver, the exact lifecycle contract passes, and current Metal agrees with current physical Vulkan. The failed broad trajectory comparison is retained as a historical CUDA-reference limitation and does not justify deleting a capability that passes its independent physical contract."
+  },
+  "reproduction": [
+    "Configure a clean Release build with PARALLEL_MATER_BUILD_CONFORMANCE=ON and PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW=ON.",
+    "Select the generated slang-metal and validation manifests with PM_DRIVER_FILES and PM_LAYER_FILES and set PM_TEST_VALIDATION=1.",
+    "Run parallel-mater-conformance --quality fluid-rope-contact-v1 and evaluate it with conformance/v1/quality.py.",
+    "Run parallel-mater-conformance --lifecycle-profile adverse-capacity-three-family-v1 and evaluate it with conformance/v1/lifecycle.py.",
+    "Run parallel-mater-conformance --case rope-fluid and compare it first with conformance/v1/golden/cuda, then diagnostically with the retained Android Pixel 7 Vulkan capture.",
+    "Run python3 conformance/v1/evidence_index.py --check, python3 conformance/v1/update_manifest.py --check and the focused Python conformance tests."
+  ],
+  "limitations": [
+    "This evidence completes the exact qualification contract and physical oracle review; it does not claim that slang-metal passes the historical CUDA reference or that the exact capability is fully qualified in the merged index.",
+    "The CUDA golden predates the shared swept-mesh contact correction. Replacing it requires a separately reviewed current CUDA capture; neither the Metal nor Vulkan capture is promoted to a CUDA golden.",
+    "No tolerance, golden, capability tuple, physics equation or platform-specific schedule changed for this completion."
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "cases": [
+    {
+      "differences": [
+        {
+          "actual": 0.6964983836153531,
+          "expected": 0.4837673450357463,
+          "message": "absolute error 0.2127310385796068 > 0.13482491918076767",
+          "path": "$.checkpoints[2].resources[5].aggregate.maximum_speed"
+        }
+      ],
+      "id": "rope-fluid",
+      "passed": false,
+      "reason": "",
+      "status": "failed"
+    }
+  ],
+  "failed": 1,
+  "passed": 0,
+  "schema": "parallel-mater-conformance-report/v1",
+  "scope": "reference_regression",
+  "unsupported": 0
+}
