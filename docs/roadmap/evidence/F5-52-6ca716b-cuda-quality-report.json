@@ -1,0 +1,92 @@
+{
+  "driver": {
+    "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "device_id": 0,
+    "driver_version": "13010",
+    "name": "slang-cuda",
+    "vendor_id": 4318
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 2,
+  "observations": {
+    "rope-segment-centered-cube-impact": {
+      "angular_speed_rad_s": 0.0,
+      "contact_impulse_activity_n_s": 0.49873446114361286,
+      "control_contact_force_n": null,
+      "control_momentum_change_n_s": null,
+      "control_position_error_m": null,
+      "control_velocity_error_m_s": null,
+      "expected_impulse_error_n_s": 0.0012220804815861186,
+      "expected_normal_impulse_n_s": 0.4975123191947368,
+      "final_closing_speed_m_s": 0.0,
+      "final_frictionless_slip_m_s": 1.0,
+      "force_impulse_residual_n_s": 1.1265277866101542e-07,
+      "kinetic_energy_change_j": -0.24875459903461272,
+      "maximum_overlap_penetration_m": 0.0,
+      "maximum_rope_speed_m_s": 1.0000032028797725,
+      "minimum_capsule_geometry_clearance_m": 0.02002456114350934,
+      "orientation_drift": 0.0,
+      "reciprocal_impulse_residual_n_s": 6.146728992462158e-08,
+      "rigid_contact_impulse_n_s": [
+        0.49873446114361286,
+        0.0,
+        0.0
+      ],
+      "rigid_linear_speed_m_s": 0.004987344611436129,
+      "rope_contact_impulse_n_s": [
+        -0.49873439967632294,
+        0.0,
+        0.0
+      ],
+      "rope_force_impulse_n_s": [
+        -0.4987345123291016,
+        0.0,
+        0.0
+      ],
+      "tangential_impulse_n_s": 0.0
+    },
+    "rope-segment-separated-cube-control": {
+      "angular_speed_rad_s": 0.0,
+      "contact_impulse_activity_n_s": 0.0,
+      "control_contact_force_n": 0.0,
+      "control_momentum_change_n_s": 0.0,
+      "control_position_error_m": 2.2351741811588166e-10,
+      "control_velocity_error_m_s": 0.0,
+      "expected_impulse_error_n_s": 0.4975119633461113,
+      "expected_normal_impulse_n_s": 0.4975119633461113,
+      "final_closing_speed_m_s": 0.9999990463256836,
+      "final_frictionless_slip_m_s": 1.0,
+      "force_impulse_residual_n_s": 0.0,
+      "kinetic_energy_change_j": 0.0,
+      "maximum_overlap_penetration_m": 0.0,
+      "maximum_rope_speed_m_s": 1.4142128880236797,
+      "minimum_capsule_geometry_clearance_m": 0.18000003099441528,
+      "orientation_drift": 0.0,
+      "reciprocal_impulse_residual_n_s": 0.0,
+      "rigid_contact_impulse_n_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rigid_linear_speed_m_s": 0.0,
+      "rope_contact_impulse_n_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rope_force_impulse_n_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "tangential_impulse_n_s": 0.0
+    }
+  },
+  "passed": true,
+  "profile_id": "rope-rigid-contact-v1",
+  "profile_sha256": "2cd3e0ff2be4463e635bc855810b933d38c5e2b099fbb511df8360846202c9e3",
+  "sample_count": 2,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

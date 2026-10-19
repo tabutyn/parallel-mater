@@ -1,0 +1,108 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-51",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "0dc9fbf2a35181b29b6b151d87289d173158a971",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+0dc9fbf",
+    "binary_sha256": "4b7a08ce2bc56ce31cf85f40bfce9c7353943c0008d4f8665f780b93ccda7800"
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13010 (NVIDIA 590.44.01)"
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "e473c26ed191b622401fc7af3c23933b23a34f8e52d3a29b54ff798e8f2bcb5a",
+    "capabilities_sha256": "4f1f17830a833fc6c7cbb6e6f768649b74ed7084d0f526da37c448d74d63e6e5"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "ROPE",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "DRAG",
+      "direction": "SECOND_TO_FIRST",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:smoke-rope",
+      "sha256": "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7"
+    },
+    "quality": {
+      "id": "quality:smoke-rope-drag-v1",
+      "sha256": "9554669ec21ac7c5dd6c1110d66bf974c115f7755cba4f78769cce2b1e3d318d"
+    },
+    "lifecycle": {
+      "id": "lifecycle:smoke-rope-drag-lifecycle-v1#particle-smoke-rope-drag-capacity-replacement-removal-rollback",
+      "sha256": "5266327b4ea77d9bac1b7b8f4bef8b287704c59db1363b7d4aeb0ea25a1cb4d2"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "5bc01b3593436e8318ec2841dbc5b5eb1442f98b7cc24d8004ece7146ae0f84a",
+    "comparison_report_sha256": "5a706d1db83e9e10630cb2a8ceeffa103e6361ca3e93ff2e9d7d2590fffdce4f",
+    "reference_regression": {"passed": 1, "failed": 0, "unsupported": 0}
+  },
+  "analytic_invariants": {
+    "result_sha256": "918e8ead76c210371d15a01f8def638667ce16ddc9a5ba66eb5f12107eedb8c6",
+    "report_sha256": "ebe20a69df0f4197d877f2670ab74adf1eb1296e120d685ba4e2931bf2c812a7",
+    "passed": true,
+    "sample_count": 6,
+    "failure_count": 0,
+    "observations": {
+      "particle-smoke-rope-drag": {
+        "forward_response_fraction": 0.09999871253967285,
+        "forward_reverse_response_difference": 1.4901161193847656e-06,
+        "forward_transverse_velocity_m_s": 0.0,
+        "maximum_control_velocity_drift_m_s": 0.0,
+        "maximum_drag_acceleration_m_s2": 10.000020265579224,
+        "maximum_paired_initial_rope_state_delta": 0.0,
+        "maximum_paired_initial_smoke_state_delta": 0.0,
+        "maximum_reverse_smoke_state_delta": 0.0,
+        "maximum_rope_node_speed_m_s": 0.10000020265579224,
+        "maximum_segment_length_error_m": 1.3709068324985196e-08,
+        "minimum_tracer_segment_clearance_m": 0.10411272626082052,
+        "reverse_response_fraction": 0.10000020265579224,
+        "reverse_transverse_velocity_m_s": 0.0,
+        "stationary_velocity_m_s": 0.0
+      }
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "fcd59457b18bf7a9e100dcd96a2e7d5146931d3796e390371d60522485b289c1",
+    "report_sha256": "cc3d26ead70f6a8775c534d70ee71158915d125d8207f02b42dd3d569dcf0a67",
+    "passed": true,
+    "profile_case_count": 2,
+    "profile_checkpoint_count": 10,
+    "failure_count": 0,
+    "bound_case": "particle-smoke-rope-drag-capacity-replacement-removal-rollback",
+    "bound_case_checkpoint_count": 5
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case smoke-rope --output <trajectory-output>",
+    "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case smoke-rope --report <trajectory-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality smoke-rope-drag-v1 --output <quality-output>",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/smoke-rope-drag-v1.json --actual <quality-output>/smoke-rope-drag-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle-profile smoke-rope-drag-lifecycle-v1 --output <lifecycle-result>",
+    "python3 conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/smoke-rope-drag-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "Six public-state runs pair zero-drag controls with forward, stationary and reverse carrier flow; the free two-node rope responds in the carrier direction within the authored acceleration cap.",
+    "Closest tracer-to-segment clearance remains above 0.104 m, more than ten times the 0.01 m contact distance, while public smoke output is identical to every paired control.",
+    "The exact particle graph lifecycle proves bounded capacity, accepted DRAG replacement, rejected-overflow rollback, removal and deterministic recovery.",
+    "The shared analytic and lifecycle profiles execute both representations, but this aggregate advertises only the exact SMOKE_PARTICLE DRAG tuple."
+  ]
+}

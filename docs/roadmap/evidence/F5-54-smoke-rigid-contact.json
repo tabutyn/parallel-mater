@@ -1,0 +1,65 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-54",
+  "source_commit": "ec024d7ea0010f25654dab170d4ad8bc607aa6e9",
+  "captured_at": "2026-10-19",
+  "host": "windows-gtx1080",
+  "driver": "slang-cuda",
+  "device": "NVIDIA GeForce GTX 1080",
+  "capabilities": [
+    "SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/SMOKE_PARTICLE",
+    "SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/SMOKE_GRID"
+  ],
+  "contracts": {
+    "trajectory": "case:smoke-grid",
+    "quality": "quality:smoke-rigid-contact-v1",
+    "particle_lifecycle": "lifecycle:smoke-rigid-contact-lifecycle-v1#particle-smoke-rigid-contact-capacity-replacement-removal-rollback",
+    "grid_lifecycle": "lifecycle:smoke-rigid-contact-lifecycle-v1#grid-smoke-rigid-contact-capacity-replacement-removal-rollback"
+  },
+  "results": {
+    "trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "reference_regression": "PASS: smoke-grid against the canonical CUDA golden",
+    "analytic_invariants": "PASS: 2 representation samples, 0 failures",
+    "particle_final_face_clearance_m": 0.015000000149011612,
+    "particle_clearance_error_m": 1.4901161207725444e-10,
+    "particle_smoke_outward_response_m_s": 1.0,
+    "particle_rigid_reciprocal_impulse_n_s": 0.0009999999403953552,
+    "particle_rigid_angular_speed_rad_s": 0.9458901009628039,
+    "grid_final_face_clearance_m": 0.015000000149011612,
+    "grid_clearance_error_m": 1.4901161207725444e-10,
+    "grid_smoke_outward_response_m_s": 0.994413879700005,
+    "grid_rigid_reciprocal_impulse_n_s": 5.4725231602787975e-05,
+    "grid_rigid_angular_speed_rad_s": 0.06427181029490753,
+    "lifecycle": "PASS: 2 exact representation cases, 10 checkpoints, 0 failures",
+    "particle_qualification": "PASS: 1/1 exact SMOKE_PARTICLE CONTACT capability, 0 failures",
+    "grid_qualification": "PASS: 1/1 exact SMOKE_GRID CONTACT capability, 0 failures",
+    "d3d12": "UNSUPPORTED: driver does not advertise smoke and rigid features; both exit-77 results are retained and grant no qualification",
+    "python_tests": "PASS: 373 tests after merging F5-52/F5-53 and integrating evidence",
+    "native_build": "PASS: conformance runner, validation layer, slang-cuda driver and slang-d3d12 driver",
+    "command_inputs": "PASS: loader-style CUDA and D3D12 runners accept all pinned conformance inputs",
+    "evidence_index": "PASS: 2/333 capability records qualified across 44 revisioned reports; stale, unsupported and unrecaptured records remain visible and unqualified"
+  },
+  "artifacts": {
+    "provenance": "docs/roadmap/evidence/F5-54-ec024d7-cuda-provenance.json",
+    "capabilities": "docs/roadmap/evidence/F5-54-ec024d7-cuda-capabilities.json",
+    "trajectory_result": "docs/roadmap/evidence/F5-54-ec024d7-cuda-trajectory/smoke-grid.json",
+    "trajectory_report": "docs/roadmap/evidence/F5-54-ec024d7-cuda-smoke-grid-report.json",
+    "quality_result": "docs/roadmap/evidence/F5-54-ec024d7-cuda-quality/smoke-rigid-contact-v1.json",
+    "quality_report": "docs/roadmap/evidence/F5-54-ec024d7-cuda-quality-report.json",
+    "lifecycle_result": "docs/roadmap/evidence/F5-54-ec024d7-cuda-lifecycle-result.json",
+    "lifecycle_report": "docs/roadmap/evidence/F5-54-ec024d7-cuda-lifecycle-report.json",
+    "particle_physical_evidence": "conformance/v1/evidence/windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-particle.json",
+    "grid_physical_evidence": "conformance/v1/evidence/windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-grid.json",
+    "particle_qualification": "conformance/v1/evidence/windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-particle-qualification.json",
+    "grid_qualification": "conformance/v1/evidence/windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-grid-qualification.json",
+    "d3d12_quality_result": "docs/roadmap/evidence/F5-54-ec024d7-d3d12-quality/smoke-rigid-contact-v1.json",
+    "d3d12_lifecycle_result": "docs/roadmap/evidence/F5-54-ec024d7-d3d12-lifecycle-result.json"
+  },
+  "notes": [
+    "The immutable oracle compares coupled particle and projected-grid smoke with zero-contact controls against a dynamic rigid cuboid using only public smoke and rigid snapshots.",
+    "Both representations retain the authored 0.015 m contact clearance while producing non-vacuous outward smoke response, reciprocal rigid impulse and rigid angular response.",
+    "Particle and grid graph cases independently prove exact capacity, replacement, rejected-overflow rollback, removal and deterministic recovery.",
+    "D3D12 does not advertise smoke and rigid support. Its retained unsupported results are not converted into evidence and grant no qualification.",
+    "The separate SMOKE/RIGID_BODY DRAG obligation remains explicitly missing; CONTACT evidence cannot qualify it."
+  ]
+}

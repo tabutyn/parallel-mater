@@ -1,0 +1,56 @@
+{
+  "driver": {
+    "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "device_id": 0,
+    "driver_version": "13010",
+    "name": "slang-cuda",
+    "vendor_id": 4318
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 1,
+  "observations": {
+    "angular_reaction_impulse_n_m_s": [
+      0.0,
+      0.0,
+      -0.003386819362640381
+    ],
+    "body_attachment_impulse_n_s": [
+      0.0002832858881447464,
+      -0.01702868938446045,
+      0.0
+    ],
+    "endpoint_force_impulse_n_s": [
+      0.00028328588232398035,
+      -0.017028803825378417,
+      0.0
+    ],
+    "expected_angular_reaction_impulse_n_m_s": [
+      0.0,
+      0.0,
+      -0.003389604693982175
+    ],
+    "final_attachment_drift_m": 2.250640657308347e-09,
+    "force_impulse_residual_n_s": 1.144409181158083e-07,
+    "free_rope_impulse_n_s": [
+      -0.0002831229745462849,
+      0.01702871769666672,
+      0.0
+    ],
+    "initial_attachment_drift_m": 2.980232227667301e-09,
+    "maximum_contact_force_n": 0.0,
+    "maximum_rope_length_error_m": 2.126754256731589e-08,
+    "maximum_rope_speed_m_s": 0.18457975496591253,
+    "previous_attachment_drift_m": 4.049708212141937e-08,
+    "reciprocal_angular_impulse_residual_n_m_s": 2.78533134179422e-06,
+    "reciprocal_linear_impulse_residual_n_s": 1.6535544015115795e-07,
+    "rigid_angular_speed_rad_s": 4.021114826202393,
+    "rigid_linear_speed_m_s": 0.9664289546661906
+  },
+  "passed": true,
+  "profile_id": "rope-rigid-attachment-v1",
+  "profile_sha256": "f11a7dd5b27e5da058a4384b2154b2db6a3ee1f8c3cc94d6333b9f8d8c5fb6d0",
+  "sample_count": 1,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

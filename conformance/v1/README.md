@@ -240,6 +240,78 @@ python3 conformance/v1/quality.py \
   --report /path/to/soft-rope-quality-report.json
 ```
 
+Intrinsic soft-body/rigid CONTACT uses `soft-rigid-contact-v1`. A prepared
+four-node tetrahedron exposes a ten-vertex bound surface and strikes a centered
+dynamic cube beside a separated control. The public-state oracle reconstructs
+the surface from its bindings, counts each physical node mass once, checks
+exterior clearance, reciprocal endpoint momentum, reduced-mass impulse,
+closing speed, transverse/angular drift, and energy. This exact capability has
+no `PmCouplingState`; its graph limit is `not-applicable`. The paired
+`soft-rigid-contact-lifecycle-v1` profile therefore exercises bounded soft
+endpoint replacement, record-time over-capacity rollback, removal, and
+deterministic recovery while a public rigid endpoint stays unchanged:
+
+```text
+parallel-mater-conformance --quality soft-rigid-contact-v1 \
+  --output /path/to/soft-rigid-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/soft-rigid-contact-v1.json \
+  --actual /path/to/soft-rigid-quality-results/soft-rigid-contact-v1.json \
+  --report /path/to/soft-rigid-quality-report.json
+
+parallel-mater-conformance \
+  --lifecycle-profile soft-rigid-contact-lifecycle-v1 \
+  --output /path/to/soft-rigid-lifecycle-result.json
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/soft-rigid-contact-lifecycle-v1.json \
+  --actual /path/to/soft-rigid-lifecycle-result.json \
+  --report /path/to/soft-rigid-lifecycle-report.json
+```
+
+Intrinsic rope/rigid CONTACT uses `rope-rigid-contact-v1`. A free two-node
+rope segment receives a public preparation impulse, then strikes the centered
+face of a dynamic cube beside a separated control. The public-state oracle
+reconstructs capsule-to-mesh clearance and checks coherent reduced-mass
+impulse, reciprocal rope/body momentum, public contact-force consistency,
+frictionless tangential slip, closing speed, angular drift, energy and speed
+bounds. Both endpoint attachments are disabled and this exact capability has
+no `PmCouplingState`; its graph limit is `not-applicable`:
+
+```text
+parallel-mater-conformance --quality rope-rigid-contact-v1 \
+  --output /path/to/rope-rigid-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/rope-rigid-contact-v1.json \
+  --actual /path/to/rope-rigid-quality-results/rope-rigid-contact-v1.json \
+  --report /path/to/rope-rigid-quality-report.json
+```
+
+The existing `case:rope-core` contract remains the independent trajectory and
+lifecycle obligation. A checked physical aggregate binds both scopes to the
+same completed `rope-core` result and passing comparison report; the analytic
+fixture cannot substitute for its capacity, replacement or rollback coverage.
+
+Intrinsic rope/rigid ATTACHMENT uses `rope-rigid-attachment-v1`. A public
+force drives a dynamic cube through an off-center native rope endpoint while
+the other endpoint remains free. The public-state oracle reconstructs the
+rotated local anchor, bounds endpoint drift, and checks reciprocal rigid/free-
+rope linear impulse, endpoint constraint-force consistency, off-center angular
+reaction, inactive contact force, segment length, and speed limits. No
+`PmCouplingState` exists for this graph-free capability:
+
+```text
+parallel-mater-conformance --quality rope-rigid-attachment-v1 \
+  --output /path/to/rope-rigid-attachment-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/rope-rigid-attachment-v1.json \
+  --actual /path/to/rope-rigid-attachment-quality-results/rope-rigid-attachment-v1.json \
+  --report /path/to/rope-rigid-attachment-quality-report.json
+```
+
+`case:rope-core` remains independently required for rope-rigid attachment
+trajectory and lifecycle evidence. The attachment fixture does not broaden or
+replace that binding.
+
 Soft-body-to-smoke CONTACT uses the immutable `soft-smoke-contact-v1`
 profile for particle and projected-grid smoke. Paired no-edge and CONTACT-edge
 runs derive crossing, surface clearance, normal rejection, tangential motion,
@@ -263,6 +335,114 @@ python3 conformance/v1/lifecycle.py \
   --profile conformance/v1/lifecycle/soft-smoke-contact-lifecycle-v1.json \
   --actual /path/to/soft-smoke-lifecycle-result.json \
   --report /path/to/soft-smoke-lifecycle-report.json
+```
+
+Rope-to-smoke CONTACT uses `rope-smoke-contact-v1` for both particle and
+projected-grid smoke. Paired no-edge and CONTACT-edge runs derive capsule
+entry, declared-radius clearance, relative radial rejection, retained
+tangential motion, speed bounds, and one-way dynamic-rope invariance from
+public rope-node and smoke snapshots. The explicit `0.015 m` contact distance
+equals the rope radius; bundled DRAG is inert. Two exact graph cases cover
+capacity, replacement, rejected-overflow rollback, removal, and recovery:
+
+```text
+parallel-mater-conformance --quality rope-smoke-contact-v1 \
+  --output /path/to/rope-smoke-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/rope-smoke-contact-v1.json \
+  --actual /path/to/rope-smoke-quality-results/rope-smoke-contact-v1.json \
+  --report /path/to/rope-smoke-quality-report.json
+
+parallel-mater-conformance \
+  --lifecycle-profile rope-smoke-contact-lifecycle-v1 \
+  --output /path/to/rope-smoke-lifecycle-result.json
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/rope-smoke-contact-lifecycle-v1.json \
+  --actual /path/to/rope-smoke-lifecycle-result.json \
+  --report /path/to/rope-smoke-lifecycle-report.json
+```
+
+Smoke-to-rigid-body CONTACT uses `smoke-rigid-contact-v1` for particle and
+projected-grid smoke. Paired no-edge and CONTACT-edge runs send one public
+smoke tracer through the negative face of a dynamic cube. The independent
+oracle reconstructs that face from public rigid position and orientation,
+then checks shell clearance, relative normal rejection, reciprocal rigid
+impulse, finite bounded state, and a stationary no-edge rigid control. Zero
+wind drag isolates CONTACT even though API 0.2 bundles CONTACT and DRAG in one
+descriptor. Two exact graph cases cover capacity, replacement, rejected-
+overflow rollback, removal, and recovery while retaining both endpoints:
+
+```text
+parallel-mater-conformance --quality smoke-rigid-contact-v1 \
+  --output /path/to/smoke-rigid-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/smoke-rigid-contact-v1.json \
+  --actual /path/to/smoke-rigid-quality-results/smoke-rigid-contact-v1.json \
+  --report /path/to/smoke-rigid-quality-report.json
+
+parallel-mater-conformance \
+  --lifecycle-profile smoke-rigid-contact-lifecycle-v1 \
+  --output /path/to/smoke-rigid-lifecycle-result.json
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/smoke-rigid-contact-lifecycle-v1.json \
+  --actual /path/to/smoke-rigid-lifecycle-result.json \
+  --report /path/to/smoke-rigid-lifecycle-report.json
+```
+
+Smoke-to-rigid-body DRAG uses `smoke-rigid-drag-v1` for particle and
+projected-grid smoke. Six paired public-state runs isolate zero-drag,
+forward-flow, stationary-flow, and reverse-flow behavior. The oracle requires
+non-vacuous velocity-dependent rigid and tracer response, forward/reverse
+symmetry, geometric separation beyond the contact distance, and bounded
+speed. Particle smoke additionally proves reciprocal momentum, force, and
+dissipative energy from its public effective mass; grid tracer pressure stays
+descriptive because it samples the private Eulerian projection and does not
+stand in for that field's mass, force, or energy.
+`smoke-rigid-drag-lifecycle-v1` supplies separate exact adverse graph cases
+for particle and grid representations. These contracts make DRAG evidence
+disjoint from the neighboring smoke-rigid CONTACT contracts; they do not by
+themselves register a physical driver qualification result.
+
+```text
+parallel-mater-conformance --quality smoke-rigid-drag-v1 \
+  --output /path/to/smoke-rigid-drag-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/smoke-rigid-drag-v1.json \
+  --actual /path/to/smoke-rigid-drag-quality-results/smoke-rigid-drag-v1.json \
+  --report /path/to/smoke-rigid-drag-quality-report.json
+
+parallel-mater-conformance \
+  --lifecycle-profile smoke-rigid-drag-lifecycle-v1 \
+  --output /path/to/smoke-rigid-drag-lifecycle-result.json
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/smoke-rigid-drag-lifecycle-v1.json \
+  --actual /path/to/smoke-rigid-drag-lifecycle-result.json \
+  --report /path/to/smoke-rigid-drag-lifecycle-report.json
+```
+
+Smoke-to-rope DRAG uses `smoke-rope-drag-v1` for particle and projected-grid
+smoke. Six public-state runs pair zero-drag controls with forward, stationary,
+and reverse carrier flow around a free two-node rope. The oracle bounds signed
+mean rope-node response, acceleration, transverse drift, forward/reverse
+symmetry, segment-length preservation, closest-segment tracer clearance, node
+speed, and one-way smoke invariance. `smoke-rope-drag-lifecycle-v1` carries an
+exact five-checkpoint graph case for each representation:
+
+```text
+parallel-mater-conformance --quality smoke-rope-drag-v1 \
+  --output /path/to/smoke-rope-drag-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/smoke-rope-drag-v1.json \
+  --actual /path/to/smoke-rope-drag-quality-results/smoke-rope-drag-v1.json \
+  --report /path/to/smoke-rope-drag-quality-report.json
+
+parallel-mater-conformance \
+  --lifecycle-profile smoke-rope-drag-lifecycle-v1 \
+  --output /path/to/smoke-rope-drag-lifecycle-result.json
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/smoke-rope-drag-lifecycle-v1.json \
+  --actual /path/to/smoke-rope-drag-lifecycle-result.json \
+  --report /path/to/smoke-rope-drag-lifecycle-report.json
 ```
 
 Smoke-to-soft-body DRAG uses `smoke-soft-drag-v1` for particle and projected-

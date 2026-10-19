@@ -1,0 +1,42 @@
+{
+  "schema": "parallel-mater-conformance-lifecycle-profile/v1",
+  "id": "smoke-rope-drag-lifecycle-v1",
+  "title": "Smoke-to-rope drag graph bounded lifecycle",
+  "sources": {
+    "capacity": "include/parallel_mater/parallel_mater.h: PmSimulationCreateInfo::couplingCapacity and pmCmdSetCouplings",
+    "qualification": "docs/ROADMAP.md: F5-51",
+    "rollback": "docs/RESOURCE-LIFETIME.md: rejected graph replacement preserves the last usable graph"
+  },
+  "state_fingerprint": "SHA-256 of the canonical accepted public smoke-rope edge with CONTACT and DRAG declared and every PmSmokeCouplingState field included, plus public rope nodes and smoke endpoint outputs; exclude handles, timings and driver-private state",
+  "observation_boundary": "Complete each graph mutation and zero-gravity step before public readback; generation is the harness ordinal of an accepted graph mutation, never a private driver handle",
+  "cases": [
+    {
+      "id": "particle-smoke-rope-drag-capacity-replacement-removal-rollback",
+      "families": ["rope", "smoke"],
+      "unrelated_resources": ["particle-smoke-rope-endpoints"],
+      "tracked_resources": ["particle-smoke-rope-drag-graph", "particle-smoke-rope-endpoints"],
+      "track_graph": false,
+      "checkpoints": [
+        {"id": "baseline", "expected_outcome": "PM_SUCCESS", "resources": {"particle-smoke-rope-drag-graph": {"active": true}, "particle-smoke-rope-endpoints": {"active": true}}},
+        {"id": "replacement", "expected_outcome": "PM_SUCCESS", "resources": {"particle-smoke-rope-drag-graph": {"active": true, "generation_different_from": "baseline", "state_different_from": "baseline"}, "particle-smoke-rope-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}}},
+        {"id": "rejected-overflow", "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED", "resources": {"particle-smoke-rope-drag-graph": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"}, "particle-smoke-rope-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}}},
+        {"id": "removal", "expected_outcome": "PM_SUCCESS", "resources": {"particle-smoke-rope-drag-graph": {"active": false, "generation_different_from": "replacement", "state_different_from": "replacement"}, "particle-smoke-rope-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}}},
+        {"id": "recovery", "expected_outcome": "PM_SUCCESS", "resources": {"particle-smoke-rope-drag-graph": {"active": true, "generation_different_from": "removal", "state_different_from": "removal"}, "particle-smoke-rope-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}}}
+      ]
+    },
+    {
+      "id": "grid-smoke-rope-drag-capacity-replacement-removal-rollback",
+      "families": ["rope", "smoke"],
+      "unrelated_resources": ["grid-smoke-rope-endpoints"],
+      "tracked_resources": ["grid-smoke-rope-drag-graph", "grid-smoke-rope-endpoints"],
+      "track_graph": false,
+      "checkpoints": [
+        {"id": "baseline", "expected_outcome": "PM_SUCCESS", "resources": {"grid-smoke-rope-drag-graph": {"active": true}, "grid-smoke-rope-endpoints": {"active": true}}},
+        {"id": "replacement", "expected_outcome": "PM_SUCCESS", "resources": {"grid-smoke-rope-drag-graph": {"active": true, "generation_different_from": "baseline", "state_different_from": "baseline"}, "grid-smoke-rope-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}}},
+        {"id": "rejected-overflow", "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED", "resources": {"grid-smoke-rope-drag-graph": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"}, "grid-smoke-rope-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}}},
+        {"id": "removal", "expected_outcome": "PM_SUCCESS", "resources": {"grid-smoke-rope-drag-graph": {"active": false, "generation_different_from": "replacement", "state_different_from": "replacement"}, "grid-smoke-rope-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}}},
+        {"id": "recovery", "expected_outcome": "PM_SUCCESS", "resources": {"grid-smoke-rope-drag-graph": {"active": true, "generation_different_from": "removal", "state_different_from": "removal"}, "grid-smoke-rope-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}}}
+      ]
+    }
+  ]
+}

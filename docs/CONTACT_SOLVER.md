@@ -136,7 +136,11 @@ volumes with open seams. This does not close holes or replace concave geometry
 with a convex hull. Triangle contacts must face an opposing boundary:
 co-facing coplanar seams and tangent side walls are not contact faces. Faces
 without a certified exterior, including flat open sheets, remain two-sided.
-Signed face separation is used only for certified exterior faces.
+Signed face separation is used only for certified exterior faces. When a
+dynamic body's previous center is inside a closed static convex mesh, that
+mesh is treated as an authored container: its occupied interior side is
+preserved for contact instead of interpreting the enclosing floor and walls
+as the exterior of a solid obstacle.
 Interior triangles of open surfaces reject tangent contact directions at
 their tessellation edges; boundary triangles retain edge contact. This
 normal-cone metadata does not assign an inside to an open surface.
