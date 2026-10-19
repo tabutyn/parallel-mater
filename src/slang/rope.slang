@@ -89,6 +89,12 @@ void rope_move_body(inout RigidBodyState state, Vec3 translation,
         state.orientation.y + 0.5f * spin.y,
         state.orientation.z + 0.5f * spin.z,
         state.orientation.w + 0.5f * spin.w});
+    const float orientationScale = 1048576.0f;
+    state.orientation = {
+        round(state.orientation.x * orientationScale) / orientationScale,
+        round(state.orientation.y * orientationScale) / orientationScale,
+        round(state.orientation.z * orientationScale) / orientationScale,
+        round(state.orientation.w * orientationScale) / orientationScale};
     state.linear_velocity = add(state.linear_velocity,
         multiply(translation, 1.0f / dt));
     state.angular_velocity = add(state.angular_velocity,
