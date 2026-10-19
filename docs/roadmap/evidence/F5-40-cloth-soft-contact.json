@@ -1,0 +1,59 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-40",
+  "source_commit": "b191454c979d8620341e63140ba1478f14707df8",
+  "captured_at": "2026-10-19",
+  "host": "windows-gtx1080",
+  "drivers": [
+    "slang-cuda",
+    "slang-d3d12"
+  ],
+  "device": "NVIDIA GeForce GTX 1080, NVIDIA 582.66",
+  "capabilities": [
+    "CLOTH/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE"
+  ],
+  "contracts": {
+    "trajectory": "case:soft-body-cloth",
+    "quality": "quality:cloth-soft-contact-v1",
+    "lifecycle": "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback"
+  },
+  "results": {
+    "cuda_trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "cuda_reference_regression": "PASS: soft-body-cloth against the unchanged CUDA golden",
+    "cuda_analytic_invariants": "PASS: 4 contact samples, 0 failures",
+    "maximum_overlap_penetration_m": 0.0,
+    "final_contact_separation_m": 0.10000001245074716,
+    "reciprocal_impulse_residual_n_s": 0.0,
+    "reciprocal_force_residual_n": 0.0000019073486328125,
+    "endpoint_force_impulse_residual_n_s": 3.337860099428269e-8,
+    "expected_impulse_error_n_s": 0.00006527560097824292,
+    "tangential_impulse_n_s": 0.0,
+    "final_frictionless_slip_m_s": 0.9999998693768936,
+    "maximum_surface_reconstruction_error_m": 2.2799903162828172e-8,
+    "minimum_binding_incidence_per_node": 4,
+    "cuda_lifecycle_invariants": "PASS: 1 profile case, 5 checkpoints, 0 failures",
+    "cuda_qualification": "PASS: 1/1 exact capability, 0 failures",
+    "d3d12_trajectory_execution": "UNSUPPORTED: the driver does not advertise soft bodies or the exact tuple",
+    "d3d12_analytic_invariants": "UNSUPPORTED: 0 samples; retained without qualification",
+    "d3d12_lifecycle_invariants": "UNSUPPORTED: 0 cases; retained without qualification",
+    "d3d12_qualification": "NOT EMITTED: unsupported capability grants no qualification",
+    "python_conformance_tests": "PASS: 229 tests",
+    "roadmap_tests": "PASS: 31 tests",
+    "native_builds": "PASS: merged conformance runner, CUDA and D3D12 drivers, and validation layers",
+    "focused_native_tests": "PASS: command-input and lifecycle-output gates, 2/2 on CUDA and 2/2 on D3D12",
+    "command_inputs": "PASS: all pinned conformance inputs match the manifest",
+    "evidence_index": "PASS: 1/313 capability records qualified across 26 reports; stale and unrecaptured records remain visible and unqualified"
+  },
+  "artifacts": {
+    "cuda_physical_evidence": "conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact.json",
+    "cuda_qualification_result": "conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact-qualification.json",
+    "d3d12_unsupported_evidence": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-b191454-cloth-soft-contact.json",
+    "evidence_index": "conformance/v1/evidence/index-v1.json"
+  },
+  "notes": [
+    "The immutable public-API fixture places one cloth triangle against a bound soft-body surface and uses SI units with bounded clearance, reciprocity, frictionless-slip, reconstruction and unique-mass tolerances.",
+    "The independent oracle uses only public cloth, soft-node and bound-surface state; it detects hidden attachment and mass multiplication from repeated surface-binding incidence without reading driver-private state.",
+    "The lifecycle fixture proves exact graph capacity, destructive replacement, rejected-overflow rollback, removal, recovery and unchanged endpoint state.",
+    "Only the recaptured CUDA tuple qualifies. D3D12 remains explicitly unsupported and has no qualification result; all other stale or unrecaptured records remain unqualified after the obligation hash changed."
+  ]
+}

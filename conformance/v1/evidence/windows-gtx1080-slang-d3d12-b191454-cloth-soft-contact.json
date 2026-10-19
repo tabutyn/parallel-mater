@@ -1,0 +1,93 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-40",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "b191454c979d8620341e63140ba1478f14707df8",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-d3d12",
+    "version": "0.2.0+b191454",
+    "binary_sha256": "52a668bd4d9e3432a8f5f239a1328ed2e1d249db4c53a0356469c9b33af3acda"
+  },
+  "device": {
+    "name": "NVIDIA GeForce GTX 1080",
+    "vendor_id": 4318,
+    "device_id": 7040,
+    "driver_version": "1 (NVIDIA 582.66)"
+  },
+  "toolchain": {
+    "compiler": "MSVC, Slang DXIL",
+    "version": "MSVC 19.51.36256.0; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "4f94fc1fc8a937208af50913baae47da06fb262a7c7ae8fe101f800e30b8bb8b",
+    "capabilities_sha256": "a09e6537fd1a016cadfc4a7f44d273a1296b72b4e2e34c9f64d9c2bb9f1e5420"
+  },
+  "requested_capability": {
+    "first_family": "CLOTH",
+    "second_family": "SOFT_BODY",
+    "scope": "DISTINCT_FAMILY",
+    "mode": "CONTACT",
+    "direction": "BIDIRECTIONAL",
+    "material_profile": "ENDPOINT_NATIVE"
+  },
+  "advertised_capabilities": [],
+  "contracts": {
+    "trajectory": {
+      "id": "case:soft-body-cloth",
+      "sha256": "779b5f55f4db0b9f0952d0d8607c1221ca2c50a52bc2dca2b95dff70ea5e6f4a"
+    },
+    "quality": {
+      "id": "quality:cloth-soft-contact-v1",
+      "sha256": "0d67c947347d45b5bdc897df3f213513f576c01ca1bd3898b32010ec7578b7e2"
+    },
+    "lifecycle": {
+      "id": "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback",
+      "sha256": "10d28df6b1b1756da1c1b21b76e214aa554a8e753a370a2951d99fffbcdd7b35"
+    }
+  },
+  "trajectory": {
+    "execution_status": "unsupported",
+    "execution_result_sha256": "42124a995ec1e163ebcc5239abe9b19892d2ea092eeaa4672e838ebaa7fea4a8",
+    "comparison_report_sha256": "bf0c389cd38b6603acb8fb5c49e054c3a8e169be6a19d8129123a9e36e5c3b6b",
+    "reference_regression": {
+      "passed": 0,
+      "failed": 0,
+      "unsupported": 1
+    },
+    "reason": "selected device does not expose every scene capability"
+  },
+  "analytic_invariants": {
+    "execution_status": "unsupported",
+    "result_sha256": "8395f849987b74ebeb403c56afe70a5ee24d121fb33f77d5ba245917e882e6f1",
+    "report_sha256": "00834125447f332aaf1de00c83b83986e33e75ad6ed38bf704eebcefc30ea951",
+    "passed": false,
+    "sample_count": 0,
+    "failure_count": 61
+  },
+  "lifecycle_invariants": {
+    "execution_status": "unsupported",
+    "result_sha256": "4ced7daf1185d20300356744cae6cfd27cf0d09ebe7e27d1cfaaa4f910882ae7",
+    "report_sha256": "ab53ea6f407adbfbf83cd3fc22570e4672ba1b1e5cef8763c9ec84dd83239824",
+    "passed": false,
+    "case_count": 0,
+    "checkpoint_count": 0,
+    "failure_count": 2,
+    "reason": "unsupported: cloth-soft contact tuple"
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<d3d12-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case soft-body-cloth --output <trajectory-output>",
+    "python conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case soft-body-cloth --report <trajectory-report>",
+    "PM_DRIVER_FILES=<d3d12-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality cloth-soft-contact-v1 --output <quality-output>",
+    "python conformance/v1/quality.py --profile conformance/v1/quality/cloth-soft-contact-v1.json --actual <quality-result> --report <quality-report>",
+    "PM_DRIVER_FILES=<d3d12-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle cloth-soft-contact-lifecycle-v1 --output <lifecycle-result>",
+    "python conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/cloth-soft-contact-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "The D3D12 driver does not advertise soft bodies or the exact cloth-soft contact tuple, so trajectory, analytic, and lifecycle execution remain explicitly unsupported.",
+    "No D3D12 qualification result is emitted, and the unsupported capture grants no capability evidence.",
+    "The unsupported result is retained to prevent a future evidence refresh from silently converting an unadvertised capability into a pass."
+  ]
+}

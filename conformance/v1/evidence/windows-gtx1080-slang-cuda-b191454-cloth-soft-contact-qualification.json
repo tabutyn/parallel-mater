@@ -1,0 +1,83 @@
+{
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+  "execution_status": "completed",
+  "source": {
+    "commit": "b191454c979d8620341e63140ba1478f14707df8",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+b191454",
+    "binary_sha256": "fe6ffe84dab14cf258b081bb95b918883504aeab6a919fcb2c167a9e155026b0"
+  },
+  "device": {
+    "name": "NVIDIA GeForce GTX 1080",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13000 (NVIDIA 582.66)"
+  },
+  "toolchain": {
+    "compiler": "MSVC, CUDA, Slang",
+    "version": "MSVC 19.44.35228.0; CUDA 12.9.86; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "CLOTH",
+      "second_family": "SOFT_BODY",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "evidence": [
+    {
+      "scope": "analytic_invariants",
+      "contract": "quality:cloth-soft-contact-v1",
+      "status": "passed",
+      "source_commit": "b191454c979d8620341e63140ba1478f14707df8",
+      "contract_sha256": "0d67c947347d45b5bdc897df3f213513f576c01ca1bd3898b32010ec7578b7e2",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact.json",
+      "artifact_sha256": "dfe851a9b2ecccafc6c67ad502db6ded7cf8360a05a3f6e4ee88818860823d8e"
+    },
+    {
+      "scope": "compilation",
+      "contract": "registry:interaction-capabilities",
+      "status": "passed",
+      "source_commit": "b191454c979d8620341e63140ba1478f14707df8",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact.json",
+      "artifact_sha256": "dfe851a9b2ecccafc6c67ad502db6ded7cf8360a05a3f6e4ee88818860823d8e"
+    },
+    {
+      "scope": "execution",
+      "contract": "case:soft-body-cloth",
+      "status": "passed",
+      "source_commit": "b191454c979d8620341e63140ba1478f14707df8",
+      "contract_sha256": "779b5f55f4db0b9f0952d0d8607c1221ca2c50a52bc2dca2b95dff70ea5e6f4a",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact.json",
+      "artifact_sha256": "dfe851a9b2ecccafc6c67ad502db6ded7cf8360a05a3f6e4ee88818860823d8e"
+    },
+    {
+      "scope": "lifecycle_invariants",
+      "contract": "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback",
+      "status": "passed",
+      "source_commit": "b191454c979d8620341e63140ba1478f14707df8",
+      "contract_sha256": "10d28df6b1b1756da1c1b21b76e214aa554a8e753a370a2951d99fffbcdd7b35",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact.json",
+      "artifact_sha256": "dfe851a9b2ecccafc6c67ad502db6ded7cf8360a05a3f6e4ee88818860823d8e"
+    },
+    {
+      "scope": "reference_regression",
+      "contract": "case:soft-body-cloth",
+      "status": "passed",
+      "source_commit": "b191454c979d8620341e63140ba1478f14707df8",
+      "contract_sha256": "779b5f55f4db0b9f0952d0d8607c1221ca2c50a52bc2dca2b95dff70ea5e6f4a",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact.json",
+      "artifact_sha256": "dfe851a9b2ecccafc6c67ad502db6ded7cf8360a05a3f6e4ee88818860823d8e"
+    }
+  ]
+}
