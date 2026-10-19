@@ -285,7 +285,7 @@ def tolerance_for(case: dict[str, Any], tolerance_class: str,
     else:
         profile = values.get(tolerance_class) or values[case["tolerances"]["profile"]]
         quantity = "velocity" if (
-            "velocity" in leaf or "momentum" in leaf or
+            "velocity" in leaf or "speed" in leaf or "momentum" in leaf or
             "vorticity" in leaf) else "position"
         selected = profile[quantity]
     return float(selected["abs"]), float(selected["rel"])

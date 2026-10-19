@@ -1,0 +1,52 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-46",
+  "source_commit": "9a71fd6879919b9943b0f61afa09c74a6944eb1a",
+  "captured_at": "2026-10-19",
+  "host": "ThomasLaptop",
+  "driver": "slang-cuda",
+  "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+  "capabilities": [
+    "SOFT_BODY/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE"
+  ],
+  "contracts": {
+    "trajectory": "case:rope-soft-body",
+    "quality": "quality:soft-rope-attachment-v1",
+    "lifecycle": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+  },
+  "results": {
+    "trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "reference_regression": "PASS: rope-soft-body against the refreshed canonical CUDA golden",
+    "analytic_invariants": "PASS: 1 attachment sample, 0 failures",
+    "final_attachment_drift_m": 0.00030796263528896667,
+    "reciprocal_force_residual_n": 0.00014475375796291578,
+    "maximum_contact_force_n": 0,
+    "maximum_pinned_node_drift_m": 0,
+    "reaction_activity_n": 23.243515984510825,
+    "lifecycle": "PASS: 2 profile cases, 9 checkpoints, 0 failures; retained three-family partial rollback binding",
+    "qualification": "PASS: 1/1 exact ATTACHMENT capability, 0 failures",
+    "native_build": "PASS: 366 targets including conformance runner, Slang CUDA/Vulkan drivers and cross-target shader validation",
+    "command_inputs": "PASS: all pinned conformance inputs match the manifest",
+    "evidence_index": "PASS: 1/320 capability records qualified across 31 revisioned reports; stale and unrecaptured records remain visible and unqualified"
+  },
+  "artifacts": {
+    "provenance": "docs/roadmap/evidence/F5-46-9a71fd6-cuda-provenance.json",
+    "capabilities": "docs/roadmap/evidence/F5-46-9a71fd6-cuda-capabilities.json",
+    "trajectory_result": "docs/roadmap/evidence/F5-46-9a71fd6-cuda-trajectory/rope-soft-body.json",
+    "trajectory_report": "docs/roadmap/evidence/F5-46-9a71fd6-cuda-rope-soft-body-report.json",
+    "quality_result": "docs/roadmap/evidence/F5-46-9a71fd6-cuda-quality-result.json",
+    "quality_report": "docs/roadmap/evidence/F5-46-9a71fd6-cuda-quality-report.json",
+    "lifecycle_result": "docs/roadmap/evidence/F5-46-9a71fd6-cuda-lifecycle-result.json",
+    "lifecycle_report": "docs/roadmap/evidence/F5-46-9a71fd6-cuda-lifecycle-report.json",
+    "physical_evidence": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment.json",
+    "qualification": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment-qualification.json"
+  },
+  "notes": [
+    "The immutable public-API oracle attaches the first rope endpoint to a supported tetrahedral surface, then bounds endpoint and pinned-support drift in SI units without reading driver-private state.",
+    "The oracle compares summed public soft-body ropeContactForce with a gravity-corrected dynamic-rope momentum balance and requires nonzero public constraint activity.",
+    "The public coupling representation coauthors CONTACT, but the oracle requires the public contact-force channel to remain zero, so contact cannot substitute for attachment.",
+    "The exact ATTACHMENT obligation retains the existing adverse three-family partial-rollback lifecycle contract; CONTACT remains a separate missing analytic obligation until F5-45 lands.",
+    "The CUDA trajectory golden predated extensive shared-runtime solver evolution. Three warm captures established the new envelope; a focused comparator regression now classifies aggregate maximum_speed with the already-declared velocity tolerance instead of position tolerance.",
+    "Only the exact recaptured CUDA ATTACHMENT record qualifies. Older and unrecaptured driver records remain visible and unqualified after the obligation hash changed."
+  ]
+}

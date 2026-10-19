@@ -7059,6 +7059,405 @@ def _evaluate_fluid_rigid_containment(
     }
 
 
+def _evaluate_soft_rope_attachment(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definitions = {fixture["id"]: fixture
+                   for fixture in profile.get("fixtures", [])
+                   if isinstance(fixture, dict) and
+                   isinstance(fixture.get("id"), str)}
+    actual_fixtures = result.get("fixtures")
+    if not isinstance(actual_fixtures, list):
+        failures.append(Failure("$.fixtures", "expected a fixture array",
+                                actual_fixtures))
+        actual_fixtures = []
+    actual_by_id: dict[str, dict[str, Any]] = {}
+    for index, fixture in enumerate(actual_fixtures):
+        if not isinstance(fixture, dict) or not isinstance(
+                fixture.get("id"), str):
+            failures.append(Failure(f"$.fixtures[{index}]",
+                                    "fixture needs a string id", fixture))
+            continue
+        identity = fixture["id"]
+        if identity in actual_by_id:
+            failures.append(Failure(f"$.fixtures[{index}].id",
+                                    "duplicate fixture id", identity))
+            continue
+        actual_by_id[identity] = fixture
+    for missing in sorted(set(definitions) - set(actual_by_id)):
+        failures.append(Failure("$.fixtures", "missing required fixture", missing))
+    for extra in sorted(set(actual_by_id) - set(definitions)):
+        failures.append(Failure("$.fixtures", "unexpected fixture", extra))
+
+    tolerances = profile.get("tolerances", {})
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+
+    def add(left: tuple[float, float, float],
+            right: tuple[float, float, float]) -> tuple[float, float, float]:
+        return tuple(a + b for a, b in zip(left, right))  # type: ignore[return-value]
+
+    def close_number(actual: Any, expected: Any, path: str) -> None:
+        value = _scalar(actual, path, failures)
+        reference = _scalar(expected, path.replace(
+            "$.fixtures", "$.profile.fixtures"), failures)
+        if value is not None and reference is not None and abs(
+                value - reference) > state_tolerance:
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    value, reference))
+
+    def close_vector(actual: Any, expected: Any, path: str) -> None:
+        value = _vector(actual, path, failures)
+        reference = _vector(expected, path.replace(
+            "$.fixtures", "$.profile.fixtures"), failures)
+        if value is not None and reference is not None and _norm(
+                _subtract(value, reference)) > state_tolerance:
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    list(value), list(reference)))
+
+    def vector_array(actual: Any, expected: Any, path: str) -> list[
+            tuple[float, float, float]]:
+        if not isinstance(actual, list) or not isinstance(expected, list) or len(
+                actual) != len(expected):
+            failures.append(Failure(path, "fixture vector array differs from profile",
+                                    actual, expected))
+            return []
+        parsed = []
+        for index, (value, reference) in enumerate(zip(actual, expected)):
+            close_vector(value, reference, f"{path}[{index}]")
+            vector = _vector(value, f"{path}[{index}]", failures)
+            if vector is not None:
+                parsed.append(vector)
+        return parsed
+
+    def scalar_array(actual: Any, expected: Any, path: str) -> list[float]:
+        if not isinstance(actual, list) or not isinstance(expected, list) or len(
+                actual) != len(expected):
+            failures.append(Failure(path, "fixture scalar array differs from profile",
+                                    actual, expected))
+            return []
+        parsed = []
+        for index, (value, reference) in enumerate(zip(actual, expected)):
+            item_path = f"{path}[{index}]"
+            close_number(value, reference, item_path)
+            scalar = _scalar(value, item_path, failures)
+            if scalar is not None:
+                parsed.append(scalar)
+        return parsed
+
+    def snapshot(value: Any, path: str, soft_count: int,
+                 rope_count: int) -> dict[str, Any] | None:
+        if not isinstance(value, dict):
+            failures.append(Failure(path, "expected a snapshot object", value))
+            return None
+        soft = value.get("soft_body")
+        surface = value.get("soft_body_surface_m")
+        rope = value.get("rope")
+        if not isinstance(soft, list) or len(soft) != soft_count:
+            failures.append(Failure(path + ".soft_body",
+                                    "soft-body state count differs from profile",
+                                    len(soft) if isinstance(soft, list) else soft,
+                                    soft_count))
+            return None
+        if not isinstance(surface, list) or len(surface) != soft_count:
+            failures.append(Failure(path + ".soft_body_surface_m",
+                                    "soft-body surface count differs from profile",
+                                    len(surface) if isinstance(surface, list) else surface,
+                                    soft_count))
+            return None
+        if not isinstance(rope, list) or len(rope) != rope_count:
+            failures.append(Failure(path + ".rope",
+                                    "rope state count differs from profile",
+                                    len(rope) if isinstance(rope, list) else rope,
+                                    rope_count))
+            return None
+
+        def states(items: list[Any], base: str,
+                   force_name: str) -> list[dict[str, Any]]:
+            parsed = []
+            for index, item in enumerate(items):
+                item_path = f"{base}[{index}]"
+                if not isinstance(item, dict):
+                    failures.append(Failure(item_path,
+                                            "expected a state object", item))
+                    continue
+                if item.get("index") != index:
+                    failures.append(Failure(item_path + ".index",
+                                            "public state order changed",
+                                            item.get("index"), index))
+                position = _vector(item.get("position_m"),
+                                   item_path + ".position_m", failures)
+                velocity = _vector(item.get("velocity_m_s"),
+                                   item_path + ".velocity_m_s", failures)
+                force = _vector(item.get(force_name),
+                                item_path + "." + force_name, failures)
+                if position is not None and velocity is not None and force is not None:
+                    parsed.append({"position": position, "velocity": velocity,
+                                   "force": force})
+            return parsed
+
+        soft_states = states(soft, path + ".soft_body",
+                             "rope_reaction_force_n")
+        rope_states = states(rope, path + ".rope",
+                             "soft_body_contact_force_n")
+        surface_states = []
+        for index, item in enumerate(surface):
+            vector = _vector(item, f"{path}.soft_body_surface_m[{index}]",
+                             failures)
+            if vector is not None:
+                surface_states.append(vector)
+        if (len(soft_states) != soft_count or len(rope_states) != rope_count or
+                len(surface_states) != soft_count):
+            return None
+        return {"soft": soft_states, "surface": surface_states,
+                "rope": rope_states}
+
+    observations: dict[str, Any] = {}
+    sample_count = 0
+    for identity, definition in definitions.items():
+        actual = actual_by_id.get(identity)
+        if actual is None:
+            continue
+        base = f"$.fixtures[{identity}]"
+        for field in ("id", "step_count", "substeps",
+                      "surface_triangle_indices", "soft_solver_iterations",
+                      "rope_solver_iterations", "attached_rope_end",
+                      "attached_surface_triangle", "oracle"):
+            if actual.get(field) != definition.get(field):
+                failures.append(Failure(base + "." + field,
+                                        "fixture setting differs from profile",
+                                        actual.get(field), definition.get(field)))
+        actual_bonds = actual.get("soft_bonds")
+        expected_bonds = definition.get("soft_bonds")
+        if (not isinstance(actual_bonds, list) or
+                not isinstance(expected_bonds, list) or
+                len(actual_bonds) != len(expected_bonds)):
+            failures.append(Failure(base + ".soft_bonds",
+                                    "fixture bond array differs from profile",
+                                    actual_bonds, expected_bonds))
+        else:
+            for index, (bond, reference) in enumerate(zip(
+                    actual_bonds, expected_bonds)):
+                path = f"{base}.soft_bonds[{index}]"
+                if (not isinstance(bond, list) or len(bond) != 3 or
+                        not isinstance(reference, list) or len(reference) != 3 or
+                        bond[:2] != reference[:2]):
+                    failures.append(Failure(path,
+                                            "fixture bond differs from profile",
+                                            bond, reference))
+                    continue
+                close_number(bond[2], reference[2], path + "[2]")
+        for field in ("timestep_seconds", "soft_node_mass_kg",
+                      "soft_node_radius_m", "soft_stretch_compliance_m_per_n",
+                      "soft_velocity_damping_per_s", "rope_node_spacing_m",
+                      "rope_radius_m", "rope_total_mass_kg",
+                      "rope_stretch_compliance_m_per_n",
+                      "rope_velocity_damping_per_s",
+                      "anchor_support_radius_scale",
+                      "anchor_contact_support_radius_scale",
+                      "maximum_soft_body_acceleration_m_s2"):
+            close_number(actual.get(field), definition.get(field),
+                         base + "." + field)
+        close_vector(actual.get("gravity_m_s2"),
+                     definition.get("gravity_m_s2"),
+                     base + ".gravity_m_s2")
+        soft_nodes = vector_array(
+            actual.get("soft_nodes_m"), definition.get("soft_nodes_m"),
+            base + ".soft_nodes_m")
+        inverse_masses = scalar_array(
+            actual.get("soft_inverse_masses_per_kg"),
+            definition.get("soft_inverse_masses_per_kg"),
+            base + ".soft_inverse_masses_per_kg")
+        rope_centerline = vector_array(
+            actual.get("rope_centerline_m"),
+            definition.get("rope_centerline_m"),
+            base + ".rope_centerline_m")
+        spacing = _scalar(definition.get("rope_node_spacing_m"),
+                          base + ".rope_node_spacing_m", failures)
+        rope_count = 0
+        if len(rope_centerline) == 2 and spacing is not None and spacing > 0.0:
+            rope_count = round(_norm(_subtract(
+                rope_centerline[1], rope_centerline[0])) / spacing) + 1
+        initial = snapshot(actual.get("initial"), base + ".initial",
+                           len(soft_nodes), rope_count)
+        previous = snapshot(actual.get("previous"), base + ".previous",
+                            len(soft_nodes), rope_count)
+        final = snapshot(actual.get("final"), base + ".final",
+                         len(soft_nodes), rope_count)
+        if (initial is None or previous is None or final is None or
+                not soft_nodes or rope_count < 2):
+            continue
+
+        for index, expected in enumerate(soft_nodes):
+            for state_name, position in (
+                    ("node", initial["soft"][index]["position"]),
+                    ("surface", initial["surface"][index])):
+                if _norm(_subtract(position, expected)) > state_tolerance:
+                    failures.append(Failure(
+                        f"{base}.initial.soft_body_{state_name}[{index}]",
+                        "initial soft-body state differs from profile",
+                        list(position), list(expected)))
+            if _norm(initial["soft"][index]["velocity"]) > state_tolerance:
+                failures.append(Failure(
+                    f"{base}.initial.soft_body[{index}].velocity_m_s",
+                    "initial soft-body velocity must be zero",
+                    list(initial["soft"][index]["velocity"]), 0.0))
+        initial_rope_positions = []
+        for index in range(rope_count):
+            fraction = index / (rope_count - 1)
+            expected = tuple(rope_centerline[0][axis] + fraction * (
+                rope_centerline[1][axis] - rope_centerline[0][axis])
+                             for axis in range(3))
+            initial_rope_positions.append(expected)
+            position = initial["rope"][index]["position"]
+            if _norm(_subtract(position, expected)) > state_tolerance:
+                failures.append(Failure(
+                    f"{base}.initial.rope[{index}].position_m",
+                    "initial rope state differs from the public centerline",
+                    list(position), list(expected)))
+            if _norm(initial["rope"][index]["velocity"]) > state_tolerance:
+                failures.append(Failure(
+                    f"{base}.initial.rope[{index}].velocity_m_s",
+                    "initial rope velocity must be zero",
+                    list(initial["rope"][index]["velocity"]), 0.0))
+
+        attached_triangle = definition.get("attached_surface_triangle")
+        if (not isinstance(attached_triangle, list) or
+                len(attached_triangle) != 3 or
+                not all(isinstance(index, int) and not isinstance(index, bool) and
+                        0 <= index < len(final["surface"])
+                        for index in attached_triangle)):
+            failures.append(Failure(base + ".attached_surface_triangle",
+                                    "invalid attached surface triangle",
+                                    attached_triangle))
+            continue
+        initial_anchor = tuple(value / 3.0 for value in _sum(
+            [initial["surface"][index] for index in attached_triangle]))
+        final_anchor = tuple(value / 3.0 for value in _sum(
+            [final["surface"][index] for index in attached_triangle]))
+        endpoint = 0 if definition.get("attached_rope_end") == "first" else rope_count - 1
+        initial_drift = _norm(_subtract(
+            initial_anchor,
+            initial["rope"][endpoint]["position"]))
+        final_drift = _norm(_subtract(
+            final_anchor,
+            final["rope"][endpoint]["position"]))
+        drift_limit = float(tolerances.get("maximum_attachment_drift_m", 0.0))
+        if initial_drift > state_tolerance:
+            failures.append(Failure(base + ".initial",
+                                    "attachment endpoints do not start coincident",
+                                    initial_drift, state_tolerance))
+        if final_drift > drift_limit:
+            failures.append(Failure(base + ".final",
+                                    "soft-body-rope attachment drift exceeds profile",
+                                    final_drift, drift_limit))
+
+        pinned_drift = 0.0
+        for index, inverse_mass in enumerate(inverse_masses):
+            if inverse_mass == 0.0:
+                pinned_drift = max(pinned_drift, _norm(_subtract(
+                    final["soft"][index]["position"], soft_nodes[index])))
+        pinned_limit = float(tolerances.get("maximum_pinned_node_drift_m", 0.0))
+        if pinned_drift > pinned_limit:
+            failures.append(Failure(base + ".final.soft_body",
+                                    "pinned soft-body support moved",
+                                    pinned_drift, pinned_limit))
+
+        soft_reaction = _sum([state["force"] for state in final["soft"]])
+        rope_mass = float(definition.get("rope_total_mass_kg", 0.0))
+        frame_dt = float(definition.get("timestep_seconds", 0.0))
+        gravity = _vector(definition.get("gravity_m_s2"),
+                          base + ".gravity_m_s2", failures)
+        node_mass = rope_mass / rope_count
+        dynamic_indices = [index for index in range(rope_count)
+                           if index != endpoint]
+        dynamic_mass = node_mass * len(dynamic_indices)
+        previous_momentum = tuple(node_mass * value for value in _sum(
+            [previous["rope"][index]["velocity"]
+             for index in dynamic_indices]))
+        final_momentum = tuple(node_mass * value for value in _sum(
+            [final["rope"][index]["velocity"]
+             for index in dynamic_indices]))
+        if gravity is None or frame_dt <= 0.0:
+            continue
+        rope_reaction = tuple(
+            (final_momentum[axis] - previous_momentum[axis]) / frame_dt -
+            dynamic_mass * gravity[axis] for axis in range(3))
+        reaction_activity = max(_norm(soft_reaction), _norm(rope_reaction))
+        reaction_residual = _norm(add(soft_reaction, rope_reaction))
+        activity_limit = float(tolerances.get("minimum_reaction_force_n", 0.0))
+        residual_limit = float(tolerances.get(
+            "maximum_reciprocal_force_residual_n", 0.0))
+        if reaction_activity < activity_limit:
+            failures.append(Failure(base + ".final",
+                                    "attachment reaction is too small",
+                                    reaction_activity, activity_limit))
+        if reaction_residual > residual_limit:
+            failures.append(Failure(base + ".final",
+                                    "soft body and rope reactions are not reciprocal",
+                                    reaction_residual, residual_limit))
+
+        maximum_contact_force = max(
+            _norm(state["force"]) for state in final["rope"])
+        contact_limit = float(tolerances.get("maximum_contact_force_n", 0.0))
+        if maximum_contact_force > contact_limit:
+            failures.append(Failure(base + ".final.rope",
+                                    "contact channel is active in attachment fixture",
+                                    maximum_contact_force, contact_limit))
+
+        transverse = 0.0
+        for index, state in enumerate(final["soft"]):
+            displacement = _subtract(state["position"], soft_nodes[index])
+            transverse = max(transverse, abs(displacement[0]),
+                             abs(displacement[2]))
+        for index, state in enumerate(final["rope"]):
+            displacement = _subtract(state["position"],
+                                     initial_rope_positions[index])
+            transverse = max(transverse, abs(displacement[0]),
+                             abs(displacement[2]))
+        transverse_limit = float(tolerances.get(
+            "maximum_transverse_drift_m", 0.0))
+        if transverse > transverse_limit:
+            failures.append(Failure(base + ".final",
+                                    "attachment introduced transverse drift",
+                                    transverse, transverse_limit))
+        maximum_speed = max(_norm(state["velocity"])
+                            for state in final["soft"] + final["rope"])
+        speed_limit = float(tolerances.get("maximum_speed_m_s", 0.0))
+        if maximum_speed > speed_limit:
+            failures.append(Failure(base + ".final",
+                                    "endpoint speed exceeds profile",
+                                    maximum_speed, speed_limit))
+
+        observations[identity] = {
+            "initial_attachment_drift_m": initial_drift,
+            "final_attachment_drift_m": final_drift,
+            "soft_body_reaction_force_n": list(soft_reaction),
+            "rope_reaction_force_n": list(rope_reaction),
+            "dynamic_rope_mass_kg": dynamic_mass,
+            "reaction_activity_n": reaction_activity,
+            "reciprocal_force_residual_n": reaction_residual,
+            "maximum_pinned_node_drift_m": pinned_drift,
+            "maximum_contact_force_n": maximum_contact_force,
+            "maximum_transverse_drift_m": transverse,
+            "maximum_speed_m_s": maximum_speed,
+        }
+        sample_count += 1
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": len(actual_by_id),
+        "sample_count": sample_count,
+        "failure_count": len(failures),
+        "observations": observations,
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def _evaluate_cloth_rope_attachment(
         profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
         driver: Any, failures: list[Failure]) -> dict[str, Any]:
@@ -7467,6 +7866,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "cloth_rope_attachment":
         return _evaluate_cloth_rope_attachment(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "soft_rope_attachment":
+        return _evaluate_soft_rope_attachment(
             profile, result, expected_hash, driver, failures)
     if evaluation == "smoke_self_viscosity":
         return _evaluate_smoke_self_viscosity(

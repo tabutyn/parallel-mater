@@ -50,6 +50,9 @@ struct CaseExecution {
 [[nodiscard]] std::string conformance_cloth_rope_attachment_quality(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_soft_rope_attachment_quality(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_smoke_self_viscosity_quality(
     const std::filesystem::path &root);
 [[nodiscard]] std::string conformance_smoke_pressure_quality(

@@ -221,6 +221,25 @@ python3 conformance/v1/lifecycle.py \
   --report /path/to/cloth-rope-lifecycle-report.json
 ```
 
+Soft-body-rope endpoint attachment uses the immutable
+`soft-rope-attachment-v1` profile. Its public-API fixture attaches the first
+rope endpoint to a supported tetrahedral surface, bounds endpoint and pinned
+support drift, and compares the public soft-body reaction with an independent
+rope momentum balance. The public coupling representation coauthors contact;
+the profile requires that public contact-force channel to remain inactive so
+contact cannot substitute for attachment. Capacity, replacement and rollback
+remain a separate obligation supplied by the existing
+`adverse-capacity-three-family-v1#three-family-partial-rollback` case:
+
+```text
+parallel-mater-conformance --quality soft-rope-attachment-v1 \
+  --output /path/to/soft-rope-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/soft-rope-attachment-v1.json \
+  --actual /path/to/soft-rope-quality-results/soft-rope-attachment-v1.json \
+  --report /path/to/soft-rope-quality-report.json
+```
+
 Smoke self-pressure has one immutable profile with particle and projected-grid
 variants. It derives particle pressure from public density state, checks public
 grid tracer pressure activity, and bounds particle mean-velocity drift:
