@@ -1,7 +1,7 @@
 {
   "id": "F5-38",
   "title": "Qualify fluid-rigid contact",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-23"
   ],
@@ -18,6 +18,14 @@
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "d3071b62-c36e-4ee9-93ee-e4ab17a5ed20",
+    "owner": "codex-macos-qualification",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F5-38/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-19T15:53:45Z",
+    "heartbeat_at": "2026-10-19T15:53:45Z",
+    "expires_at": "2026-10-20T15:53:45Z"
+  },
   "history": []
 }
