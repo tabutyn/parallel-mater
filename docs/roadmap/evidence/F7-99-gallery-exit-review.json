@@ -1,0 +1,127 @@
+{
+  "schema": "parallel-mater-roadmap-gallery-exit-review/v1",
+  "task": "F7-99",
+  "decision": "pass_with_recorded_performance_risk",
+  "scope": "Review that one common runtime serves desktop and mobile and that Android exposes and qualifies every Vulkan-advertised Gallery scene and action.",
+  "source": {
+    "reviewed_main_commit": "b57b60c9d74f87c9ae5cc9b7b03b1392aef7c3dd",
+    "branch": "work/F7-99/thomas-laptop",
+    "lease_token": "009c5a92-da8f-4ab9-b8f5-e7b431aef5a9"
+  },
+  "architecture": {
+    "common_owners": {
+      "scene_descriptor_and_catalog": "GalleryEntry and GallerySession::catalog in examples/support",
+      "scene_lifecycle_and_physics_resources": "GallerySession with its private GalleryRuntime",
+      "controller_semantics": "GallerySession, GalleryRuntime and MobileGallerySession semantic commands",
+      "ordinary_frame_policy": "GallerySession::frame_at with its private GalleryFramePolicy",
+      "mobile_admission_and_recovery": "MobileGallerySession",
+      "mobile_qualification_sequence": "qualify_mobile_gallery",
+      "presentation_state": "GallerySession::presentation and MobileGalleryState",
+      "renderer_selection_and_handoff": "RendererAdapterFactory and GpuGalleryRenderer contract"
+    },
+    "shell_only_responsibilities": {
+      "desktop": [
+        "GLFW and native-window event translation",
+        "backend picker and command-line parsing",
+        "debug overlays, capture, calibration and scripted diagnostic loops",
+        "window presentation"
+      ],
+      "android": [
+        "Activity, SurfaceView and Android lifecycle callbacks",
+        "touch and accessibility widget translation into semantic commands",
+        "ANativeWindow and Vulkan surface ownership",
+        "display callback scheduling and atomic report storage"
+      ],
+      "ios": [
+        "UIKit lifecycle and touch/accessibility translation",
+        "CAMetalLayer configuration and drawable presentation",
+        "display callback scheduling and atomic report storage"
+      ]
+    },
+    "source_audit": {
+      "platform_gallery_entry_declarations": 0,
+      "platform_gallery_runtime_references": 0,
+      "platform_gallery_frame_policy_instances": 0,
+      "android_catalog_source": "MobileGallerySession::gallery().catalog() through nativeSceneCatalog",
+      "ios_catalog_source": "MobileGallerySession::gallery().catalog()",
+      "desktop_ordinary_frame_source": "GallerySession::frame_at",
+      "android_and_ios_qualification_source": "qualify_mobile_gallery",
+      "result": "pass"
+    },
+    "documented_exceptions": [
+      "Desktop headless, capture and calibration paths use explicit GallerySession diagnostics because they are noninteractive tools.",
+      "Platform shells schedule display callbacks because Android, UIKit and desktop window systems supply different event loops; fixed-step admission and catch-up policy remain inside GallerySession."
+    ]
+  },
+  "android_device_evidence": {
+    "evidence": "docs/roadmap/evidence/F7-18-android-gallery.json",
+    "capture_index": "docs/roadmap/evidence/F7-18-android-gallery/capture-index.json",
+    "capture_index_sha256": "d815038c25551e6a1be4a4c026e474b29223d3a51dd515e2bbd2f59aebfb8a12",
+    "capture_files_verified": 11,
+    "capture_hash_failures": 0,
+    "tested_commit": "973cc228d1170938092f3c815d8a2fa591d0c50c",
+    "apk_sha256": "714fab7cff53b3a5b2ea5f14f309a2aac380f31a9680b4dc5ec547c496adcdee",
+    "vulkan_driver_sha256": "ad47917345a563b448e1e86a0eebbda2cb2cc88790a0c9a08f307bb9c6ec0a71",
+    "device": "Google Pixel 7 / Mali-G710 / Android 17 API 37",
+    "renderer": "native Vulkan direct presentation",
+    "ordinary_readback_pixels": 0,
+    "software_presentations": 0,
+    "catalog_scenes": 28,
+    "advertised_scenes": 28,
+    "passed_scenes": 28,
+    "diagnostic_frames_per_scene": 120,
+    "lifecycle_checks": "6/6 passed",
+    "control_checks": "6/6 passed",
+    "application_lifecycle": "background, foreground, surface recreation, resize, rotation and native teardown passed",
+    "bounded_runtime": {
+      "ordinary_frames": 3360,
+      "duration_seconds": 797.140336274053,
+      "maximum_thermal_status": 0,
+      "maximum_g3d_temperature_c": 43.000004,
+      "maximum_physics_memory_footprint_bytes": 219759476,
+      "minimum_second_to_first_window_fps_ratio": 0.6751117734724292
+    },
+    "result": "pass"
+  },
+  "supporting_evidence": [
+    "docs/roadmap/evidence/F7-07-mobile-shells.json",
+    "docs/roadmap/evidence/F7-15-android-catalog.json",
+    "docs/roadmap/evidence/F7-16-android-vulkan-gallery.json",
+    "docs/roadmap/evidence/F7-17-android-gallery-controls.json",
+    "docs/roadmap/evidence/F7-18-android-gallery.json",
+    "docs/roadmap/evidence/F7-19-gallery-boundary.json",
+    "docs/roadmap/evidence/F7-20-gallery-scene-descriptor.json",
+    "docs/roadmap/evidence/F7-21-gallery-presentation-state.json",
+    "docs/roadmap/evidence/F7-22-mobile-gallery-qualification.json",
+    "docs/roadmap/evidence/F7-23-gallery-renderer-adapters.json"
+  ],
+  "verification": [
+    {
+      "check": "F7 dependency and lease audit",
+      "result": "F7-01 through F7-23 are done and F7-99 owns the gallery-exit-review lock."
+    },
+    {
+      "check": "Platform shell source audit plus parallel-mater-slang-architecture",
+      "result": "Common catalog, lifecycle, controller, frame policy, qualification and renderer ownership pass; only documented OS event, surface and presentation work remains in shells."
+    },
+    {
+      "check": "F7-18 capture-index SHA-256 verification",
+      "result": "11/11 tracked physical-device artifacts match their recorded hashes."
+    },
+    {
+      "check": "F7-18 qualification and performance report review",
+      "result": "28/28 advertised scenes, 6/6 lifecycle checks and 6/6 control checks passed; two ordinary direct-presentation windows completed for every scene without thermal throttling."
+    },
+    {
+      "check": "Gallery and roadmap automated tests",
+      "result": "PASS: Slang architecture audit, 14/14 Gallery Python tests and 28/28 roadmap workflow tests."
+    }
+  ],
+  "residual_risks": [
+    "The Pixel 7 workload profile is not performance-qualified: second-window scene rates span 1.66 to 18.02 FPS, median 5.155 FPS, and 0 of 28 scenes reach 30 FPS.",
+    "The 640 by 288 phone render is visibly coarse; higher resolution should wait for measured physics improvements.",
+    "The frozen Info capture reports zero host frames per second; performance.json is the authoritative ordinary-frame measurement.",
+    "Physical Android runtime evidence currently covers one Pixel 7 and Mali-G710 driver combination.",
+    "The bounded 797-second sweep found no throttling; it is not a battery-endurance qualification."
+  ]
+}

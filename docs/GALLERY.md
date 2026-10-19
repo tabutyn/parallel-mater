@@ -24,8 +24,9 @@ apps/gallery_game (not installed)
 Desktop, Android, and iPad use one `GallerySession` and `GalleryRuntime` for
 catalog, scene lifecycle, workload, controls, camera, physics resources, and
 render handoff. Android and iPad add one shared `MobileGallerySession` around
-it. Desktop retains a richer frame coordinator for debug overlays, capture, and
-calibration; its ordinary frame path is the remaining coordination cleanup.
+it. Desktop retains platform input plus debug, capture, and calibration tools;
+its ordinary frame path uses the same session-owned scheduler and renderer
+handoff as mobile.
 Ownership, state transitions, and characterization gates are tracked in the
 [common Gallery runtime contract](GALLERY-RUNTIME.md).
 
@@ -83,9 +84,10 @@ GPU output buffers directly, without normal-frame image or position readback.
 
 The ordered catalog metadata, scene lifecycle, scene construction, semantic
 controllers, timing policy, mobile surface admission, mobile recovery, and
-native renderer handoff are shared today. Remaining F7 work connects Android to
-the Vulkan renderer, completes mobile controls and qualification, and removes
-the desktop coordinator's duplicate ordinary-frame scheduling.
+native renderer handoff are shared. Android uses the common Vulkan renderer,
+mobile controls and qualification use the common session, and desktop ordinary
+frames use the session-owned scheduler. The F7 exit review and physical Pixel 7
+evidence are recorded under `docs/roadmap/evidence/F7-99-gallery-exit-review.json`.
 
 1. **Rigid body** — Blender-authored static, kinematic, and dynamic triangle
    meshes collide inside a concave bowl.

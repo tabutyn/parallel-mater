@@ -1,7 +1,7 @@
 {
   "id": "F7-99",
   "title": "Review shared Gallery exit evidence",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F7-01",
     "F7-02",
@@ -38,15 +38,27 @@
     "No duplicate scene lifecycle, controller, catalog or frame policy remains in platform shells without a documented OS-specific reason.",
     "Android device evidence proves native rendering, capability-accurate scene coverage, controls, lifecycle and bounded workload behavior."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "009c5a92-da8f-4ab9-b8f5-e7b431aef5a9",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F7-99/thomas-laptop",
-    "claimed_at": "2026-10-19T14:45:49Z",
-    "heartbeat_at": "2026-10-19T14:45:49Z",
-    "expires_at": "2026-10-20T14:45:49Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F7-99-gallery-exit-review.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "009c5a92-da8f-4ab9-b8f5-e7b431aef5a9",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-99/thomas-laptop",
+        "claimed_at": "2026-10-19T14:45:49Z",
+        "heartbeat_at": "2026-10-19T14:45:49Z",
+        "expires_at": "2026-10-20T14:45:49Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T14:49:49Z",
+      "reason": "Shared Gallery ownership review passed; physical Pixel 7 evidence covers all 28 Vulkan-advertised scenes, common controls and lifecycle with bounded work, while measured performance risk remains explicit.",
+      "evidence": [
+        "docs/roadmap/evidence/F7-99-gallery-exit-review.json"
+      ]
+    }
+  ]
 }

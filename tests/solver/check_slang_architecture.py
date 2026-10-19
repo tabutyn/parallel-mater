@@ -546,6 +546,27 @@ ios_gallery_path = ROOT / "examples" / "ios" / "gallery_main.mm"
 android_jni = android_jni_path.read_text(encoding="utf-8")
 android_activity = android_activity_path.read_text(encoding="utf-8")
 ios_gallery = ios_gallery_path.read_text(encoding="utf-8")
+for platform, source in (
+        ("Android JNI", android_jni),
+        ("Android Activity", android_activity),
+        ("iOS", ios_gallery)):
+    for common_owner in ("GalleryEntry{", "GalleryRuntime", "GalleryFramePolicy"):
+        if common_owner in source:
+            failures.append(
+                f"{platform}: platform shell duplicates common Gallery owner "
+                f"{common_owner}")
+for platform, source in (("Android JNI", android_jni), ("iOS", ios_gallery)):
+    if "MobileGallerySession" not in source:
+        failures.append(
+            f"{platform}: platform shell bypasses common MobileGallerySession")
+if "gallery().catalog()" not in android_jni or \
+        "nativeSceneCatalog" not in android_activity:
+    failures.append(
+        "examples/android: scene picker bypasses the common session catalog")
+if "catalog()" not in ios_gallery:
+    failures.append(
+        "examples/ios/gallery_main.mm: scene picker bypasses the common "
+        "session catalog")
 control_text_path = (
     ROOT / "examples" / "support" / "include" /
     "parallel_mater_gallery" / "control_text.hpp"
