@@ -184,6 +184,7 @@ These tests protect behavior while later F7 tasks move ownership:
 | Vulkan surface attach, detach, offscreen fallback, replacement, resize, and teardown | `parallel-mater-vulkan-gallery-surface-tests` |
 | Frame measurement and headless render behavior | `parallel-mater-gallery-frame-timing-tests` and `parallel-mater-gallery-frame-timing-headless` |
 
-F7-02 through F7-07 may change types and file layout only while these observable
-contracts remain covered. F7-08 defines the renderer interface in detail; F7-09
-through F7-18 add native Vulkan coverage and complete Android qualification.
+F7-01 through F7-23 established and qualified these boundaries. The phase exit
+review is recorded in
+`docs/roadmap/evidence/F7-99-gallery-exit-review.json`; later changes must keep
+the contracts above covered.
