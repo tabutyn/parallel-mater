@@ -3,11 +3,12 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 import tarfile
 import unittest
+
+from tests.roadmap.evidence_hash import byte_sha256, text_sha256
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -15,20 +16,17 @@ REPORT = ROOT / "docs/roadmap/evidence/F6-10-physics-capture-replay.json"
 ARCHIVE = ROOT / "docs/roadmap/evidence/F6-07/snapshot-working-files.tar.gz"
 
 
-def digest(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
-
-
 class PhysicsCaptureReplayEvidenceTests(unittest.TestCase):
     def test_capture_and_candidate_scene_are_pinned(self):
         report = json.loads(REPORT.read_text(encoding="utf-8"))
         fixtures = report["fixtures"]
         capture = (ROOT / fixtures["capture"]).read_bytes()
-        self.assertEqual(digest(capture), fixtures["capture_sha256"])
+        self.assertEqual(text_sha256(capture), fixtures["capture_sha256"])
         with tarfile.open(ARCHIVE, "r:gz") as archive:
             candidate = archive.extractfile(
                 "examples/assets/ConstraintHinge.glb").read()
-        self.assertEqual(digest(candidate), fixtures["candidate_scene_sha256"])
+        self.assertEqual(byte_sha256(candidate),
+                         fixtures["candidate_scene_sha256"])
 
     def test_schema_and_known_quality_result_are_explicit(self):
         report = json.loads(REPORT.read_text(encoding="utf-8"))
