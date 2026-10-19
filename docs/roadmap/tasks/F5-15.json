@@ -1,7 +1,7 @@
 {
   "id": "F5-15",
   "title": "Publish current Android Vulkan driver evidence",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-01",
     "F5-02",
@@ -27,7 +27,15 @@
     "Register and regenerate the per-driver evidence index from a fresh checkout; retain native validation, Gallery, thermal and timing reports only as clearly separated supplemental evidence."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "161b37df-5ea8-401e-8c5b-d4d63e2970a8",
+    "owner": "codex-linux-gallery",
+    "machine": "thomas-laptop",
+    "branch": "work/F5-15/thomas-laptop",
+    "claimed_at": "2026-10-19T11:32:56Z",
+    "heartbeat_at": "2026-10-19T11:32:56Z",
+    "expires_at": "2026-10-20T11:32:56Z"
+  },
   "history": [
     {
       "lease": {
