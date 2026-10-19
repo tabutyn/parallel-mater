@@ -1,7 +1,7 @@
 {
   "id": "F5-42",
   "title": "Qualify cloth-to-smoke contact",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-23"
   ],
@@ -18,6 +18,14 @@
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "36723887-c30c-41ca-aeed-2ef92b68ea9e",
+    "owner": "codex-linux-qualification",
+    "machine": "ThomasLaptop",
+    "branch": "work/F5-42/ThomasLaptop",
+    "claimed_at": "2026-10-19T16:33:34Z",
+    "heartbeat_at": "2026-10-19T16:33:34Z",
+    "expires_at": "2026-10-20T16:33:34Z"
+  },
   "history": []
 }
