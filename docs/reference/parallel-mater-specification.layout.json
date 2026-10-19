@@ -55,7 +55,7 @@
     "pipeline_create": 23,
     "pipeline_flow": 23,
     "pipeline_validity": 23,
-    "domains": 23,
+    "domains": 24,
     "domain_records": 24,
     "cloth_resources": 24,
     "rope_resources": 25,
@@ -100,9 +100,9 @@
     "step_stats": 40,
     "query_results": 41,
     "memory_budget": 41,
-    "capabilities": 41,
+    "capabilities": 42,
     "interaction_capabilities": 42,
-    "limits": 42,
+    "limits": 43,
     "formats": 43,
     "format_layouts": 43,
     "feature_matrix": 44,
@@ -285,6 +285,7 @@
     "pmCmdResetQueryPool": "query_pool",
     "pmCmdResetSimulation": "simulation_init",
     "pmCmdSetCouplings": "coupling",
+    "pmCmdSetCouplings2": "coupling",
     "pmCmdSetFluidParticles": "simulation_init",
     "pmCmdSetKinematicTargets": "body_inputs",
     "pmCmdSetRigidStates": "body_inputs",
@@ -311,6 +312,7 @@
     "PmContactEventType": "event_outputs",
     "PmCouplingParameters": "coupling",
     "PmCouplingState": "coupling",
+    "PmCouplingStateInfo": "coupling",
     "PmCouplingType": "coupling",
     "pmCreateBuffer": "buffer",
     "pmCreateCommandPool": "command_pool",
@@ -355,6 +357,8 @@
     "PmFloat2": "domain_records",
     "PmFloat3": "domain_records",
     "PmFluidCapacity": "simulation_create",
+    "PmFluidInterfaceState": "coupling",
+    "PmFluidPairMaterialState": "coupling",
     "PmFluidParticleOutput": "simulation_init",
     "pmFlushMappedMemoryRanges": "mapping",
     "PmFormat": "format_enum",
@@ -418,6 +422,7 @@
     "PmMemoryAllocateInfo": "allocation",
     "PmMemoryBarrier": "barriers",
     "PmMemoryBudget": "memory_budget",
+    "PmMemoryBudgetConfidence": "memory_budget",
     "PmMemoryHeap": "memory_types",
     "PmMemoryProperties": "memory_types",
     "PmMemoryRequirements": "requirements",
@@ -443,6 +448,7 @@
     "PmPhysicalDeviceLimits": "limits",
     "PmPhysicalDeviceProperties": "properties",
     "PmPhysicsPipeline": "base_types",
+    "PmPhysicsPipelineCouplingStateInfo": "pipeline_create",
     "PmPhysicsPipelineCreateInfo": "pipeline_create",
     "PmQueryPool": "base_types",
     "PmQueryPoolCreateInfo": "query_pool",
@@ -508,9 +514,9 @@
     "example_record",
     "example_submit"
   ],
-  "pdf_sha256": "6949a4f03aed856532f2b7b21272b2885d5a923f53009bd411a6a91ad98f2500",
+  "pdf_sha256": "011914da066966b524eb0d13744665ba58a9ffcad616d75b1570d2d8e6f2f7e6",
   "registry": {
     "path": "registry/pm.xml",
-    "sha256": "13c217d668d5c007a3aa7d5e6b4d580753f65bafbad64004848716c6c12030d7"
+    "sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af"
   }
 }
