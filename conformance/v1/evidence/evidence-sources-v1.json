@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de"
+    "sha256": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19"
   },
   "qualification_results": [
     {
@@ -66,6 +66,16 @@
       "id": "linux-thomas-laptop-slang-cpu-eed669e",
       "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json",
       "sha256": "e3ae75435330251f28ac8196012f921bf7be032541362db1fdc978f5eb7f7473"
+    },
+    {
+      "id": "macos-m4-slang-metal-16169d5-smoke-cloth-grid",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-grid-qualification.json",
+      "sha256": "0c36054158444d8a2be824a7bae3de841d9b24b1e7c110b1371e4ef4b03109c9"
+    },
+    {
+      "id": "macos-m4-slang-metal-16169d5-smoke-cloth-particle",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-particle-qualification.json",
+      "sha256": "b5e0f19fbe1665253ec1eb84db9d305e1040f62473accc9f92cd97949c418d43"
     },
     {
       "id": "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact",

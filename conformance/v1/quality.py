@@ -4710,6 +4710,297 @@ def _evaluate_smoke_fluid_drag(
     }
 
 
+def _evaluate_smoke_cloth_drag(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definitions = {fixture["id"]: fixture
+                   for fixture in profile.get("fixtures", [])
+                   if isinstance(fixture, dict) and
+                   isinstance(fixture.get("id"), str)}
+    actual_fixtures = result.get("fixtures")
+    if not isinstance(actual_fixtures, list):
+        failures.append(Failure("$.fixtures", "expected a fixture array",
+                                actual_fixtures))
+        actual_fixtures = []
+    actual_by_id: dict[str, dict[str, Any]] = {}
+    for index, fixture in enumerate(actual_fixtures):
+        if not isinstance(fixture, dict) or not isinstance(
+                fixture.get("id"), str):
+            failures.append(Failure(f"$.fixtures[{index}]",
+                                    "fixture needs a string id", fixture))
+            continue
+        identity = fixture["id"]
+        if identity in actual_by_id:
+            failures.append(Failure(f"$.fixtures[{index}].id",
+                                    "duplicate fixture id", identity))
+            continue
+        actual_by_id[identity] = fixture
+    for missing in sorted(set(definitions) - set(actual_by_id)):
+        failures.append(Failure("$.fixtures", "missing required fixture", missing))
+    for extra in sorted(set(actual_by_id) - set(definitions)):
+        failures.append(Failure("$.fixtures", "unexpected fixture", extra))
+
+    tolerances = profile.get("tolerances", {})
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+    smoke_tolerance = float(tolerances.get("smoke_state_absolute", 0.0))
+
+    def sub(first: tuple[float, float, float],
+            second: tuple[float, float, float]) -> tuple[float, float, float]:
+        return tuple(a - b for a, b in zip(first, second))
+
+    def close_contract(actual: Any, expected: Any, path: str) -> None:
+        if isinstance(expected, bool) or isinstance(expected, str):
+            if actual != expected:
+                failures.append(Failure(path,
+                                        "fixture setting differs from profile",
+                                        actual, expected))
+            return
+        if isinstance(expected, (int, float)):
+            value = _scalar(actual, path, failures)
+            if value is not None and abs(value - float(expected)) > state_tolerance:
+                failures.append(Failure(path,
+                                        "fixture setting differs from profile",
+                                        value, expected))
+            return
+        if isinstance(expected, list):
+            if not isinstance(actual, list) or len(actual) != len(expected):
+                failures.append(Failure(path,
+                                        "fixture setting differs from profile",
+                                        actual, expected))
+                return
+            for index, (value, reference) in enumerate(zip(actual, expected)):
+                close_contract(value, reference, f"{path}[{index}]")
+            return
+        if actual != expected:
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    actual, expected))
+
+    def snapshot(value: Any, path: str) -> dict[str, Any] | None:
+        if not isinstance(value, dict):
+            failures.append(Failure(path, "expected a snapshot object", value))
+            return None
+        cloth = value.get("cloth")
+        particles = value.get("smoke_particles")
+        if not isinstance(cloth, list) or len(cloth) != 3:
+            failures.append(Failure(path + ".cloth",
+                                    "expected three cloth vertices", cloth))
+            return None
+        if not isinstance(particles, list) or not particles:
+            failures.append(Failure(path + ".smoke_particles",
+                                    "expected emitted smoke particles", particles))
+            return None
+        cloth_positions: list[tuple[float, float, float]] = []
+        cloth_velocities: list[tuple[float, float, float]] = []
+        for index, vertex in enumerate(cloth):
+            vertex_path = f"{path}.cloth[{index}]"
+            if not isinstance(vertex, dict):
+                failures.append(Failure(vertex_path, "expected an object", vertex))
+                continue
+            position = _vector(vertex.get("position_m"), vertex_path +
+                               ".position_m", failures)
+            velocity = _vector(vertex.get("velocity_m_s"), vertex_path +
+                               ".velocity_m_s", failures)
+            if position is not None and velocity is not None:
+                cloth_positions.append(position)
+                cloth_velocities.append(velocity)
+        normalized_particles: list[dict[str, Any]] = []
+        for index, particle in enumerate(particles):
+            particle_path = f"{path}.smoke_particles[{index}]"
+            if not isinstance(particle, dict):
+                failures.append(Failure(particle_path, "expected an object",
+                                        particle))
+                continue
+            vectors = [_vector(particle.get(field), particle_path + "." + field,
+                               failures)
+                       for field in ("position_m", "velocity_m_s",
+                                     "vorticity_per_s")]
+            scalars = [_scalar(particle.get(field), particle_path + "." + field,
+                               failures)
+                       for field in ("age_seconds", "number_density",
+                                     "pressure_m_s2")]
+            if any(item is None for item in vectors + scalars):
+                continue
+            normalized_particles.append({
+                "vectors": [item for item in vectors if item is not None],
+                "scalars": [item for item in scalars if item is not None],
+            })
+        if (len(cloth_positions) != len(cloth) or
+                len(normalized_particles) != len(particles)):
+            return None
+        mean_velocity = tuple(sum(value[axis] for value in cloth_velocities) /
+                              len(cloth_velocities) for axis in range(3))
+        mean_plane_z = sum(value[2] for value in cloth_positions) / len(cloth_positions)
+        clearance = min(abs(item["vectors"][0][2] - mean_plane_z)
+                        for item in normalized_particles)
+        return {"velocity": mean_velocity, "smoke": normalized_particles,
+                "clearance": clearance}
+
+    def compare_smoke(first: dict[str, Any], second: dict[str, Any],
+                      path: str) -> float:
+        left = first["smoke"]
+        right = second["smoke"]
+        if len(left) != len(right):
+            failures.append(Failure(path, "drag changed smoke particle count",
+                                    len(right), len(left)))
+            return float("inf")
+        maximum = 0.0
+        for first_particle, second_particle in zip(left, right):
+            for first_vector, second_vector in zip(
+                    first_particle["vectors"], second_particle["vectors"]):
+                maximum = max(maximum, _norm(sub(first_vector, second_vector)))
+            for first_scalar, second_scalar in zip(
+                    first_particle["scalars"], second_particle["scalars"]):
+                maximum = max(maximum, abs(first_scalar - second_scalar))
+        if maximum > smoke_tolerance:
+            failures.append(Failure(path,
+                                    "drag added an unadvertised reverse smoke force",
+                                    maximum, smoke_tolerance))
+        return maximum
+
+    observations: dict[str, Any] = {}
+    sample_count = 0
+    for identity, definition in definitions.items():
+        actual = actual_by_id.get(identity)
+        if actual is None:
+            continue
+        base = f"$.fixtures[{identity}]"
+        for field, expected in definition.items():
+            if field not in ("runs",):
+                close_contract(actual.get(field), expected, base + "." + field)
+        runs = actual.get("runs")
+        if not isinstance(runs, list):
+            failures.append(Failure(base + ".runs", "expected a run array", runs))
+            continue
+        indexed = {run.get("id"): run for run in runs
+                   if isinstance(run, dict) and isinstance(run.get("id"), str)}
+        expected_runs = {"control", "forward", "stationary", "reverse"}
+        if set(indexed) != expected_runs or len(indexed) != len(runs):
+            failures.append(Failure(base + ".runs",
+                                    "expected exactly the four paired runs",
+                                    sorted(indexed), sorted(expected_runs)))
+            continue
+        states: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
+        for run_id in sorted(expected_runs):
+            initial = snapshot(indexed[run_id].get("initial"),
+                               base + f".runs[{run_id}].initial")
+            final = snapshot(indexed[run_id].get("final"),
+                             base + f".runs[{run_id}].final")
+            if initial is not None and final is not None:
+                states[run_id] = (initial, final)
+        if set(states) != expected_runs:
+            continue
+        for run_id, (initial, final) in states.items():
+            initial_speed = _norm(initial["velocity"])
+            if initial_speed > state_tolerance:
+                failures.append(Failure(base + f".runs[{run_id}].initial.cloth",
+                                        "cloth must start at rest", initial_speed,
+                                        state_tolerance))
+            minimum_clearance = float(tolerances.get(
+                "minimum_tracer_plane_clearance_m", 0.0))
+            observed_clearance = min(initial["clearance"], final["clearance"])
+            if observed_clearance < minimum_clearance:
+                failures.append(Failure(base + f".runs[{run_id}]",
+                                        "smoke tracer entered the contact clearance",
+                                        observed_clearance, minimum_clearance))
+
+        control_initial, control_final = states["control"]
+        _, forward_final = states["forward"]
+        _, stationary_final = states["stationary"]
+        _, reverse_final = states["reverse"]
+        control_drift = _norm(sub(control_final["velocity"],
+                                  control_initial["velocity"]))
+        allowed_control = float(tolerances.get(
+            "maximum_control_velocity_drift_m_s", 0.0))
+        if control_drift > allowed_control:
+            failures.append(Failure(base + ".runs[control]",
+                                    "zero-drag cloth velocity drifted",
+                                    control_drift, allowed_control))
+
+        forward_delta = sub(forward_final["velocity"],
+                            control_final["velocity"])
+        reverse_delta = sub(reverse_final["velocity"],
+                            control_final["velocity"])
+        forward_carrier = _vector(definition.get("forward_carrier_velocity_m_s"),
+                                  base + ".forward_carrier_velocity_m_s", failures)
+        reverse_carrier = _vector(definition.get("reverse_carrier_velocity_m_s"),
+                                  base + ".reverse_carrier_velocity_m_s", failures)
+
+        def response(delta: tuple[float, float, float],
+                     carrier: tuple[float, float, float] | None,
+                     run_id: str) -> tuple[float, float]:
+            if carrier is None:
+                return 0.0, float("inf")
+            denominator = sum(component * component for component in carrier)
+            fraction = (sum(component * axis for component, axis in
+                            zip(delta, carrier)) / denominator
+                        if denominator > 1.0e-12 else 0.0)
+            transverse = _norm(tuple(component - fraction * axis
+                                     for component, axis in zip(delta, carrier)))
+            minimum = float(tolerances.get("minimum_drag_response_fraction", 0.0))
+            maximum = float(tolerances.get("maximum_drag_response_fraction", 0.0))
+            if fraction < minimum or fraction > maximum:
+                failures.append(Failure(base + f".runs[{run_id}]",
+                                        "cloth drag response is outside bounds",
+                                        fraction, [minimum, maximum]))
+            allowed_transverse = float(tolerances.get(
+                "maximum_transverse_velocity_m_s", 0.0))
+            if transverse > allowed_transverse:
+                failures.append(Failure(base + f".runs[{run_id}]",
+                                        "cloth drag is not aligned with smoke flow",
+                                        transverse, allowed_transverse))
+            return fraction, transverse
+
+        forward_response, forward_transverse = response(
+            forward_delta, forward_carrier, "forward")
+        reverse_response, reverse_transverse = response(
+            reverse_delta, reverse_carrier, "reverse")
+        stationary_speed = _norm(stationary_final["velocity"])
+        allowed_stationary = float(tolerances.get(
+            "maximum_stationary_velocity_m_s", 0.0))
+        if stationary_speed > allowed_stationary:
+            failures.append(Failure(base + ".runs[stationary]",
+                                    "stationary smoke produced cloth drag",
+                                    stationary_speed, allowed_stationary))
+        symmetry_error = abs(forward_response - reverse_response)
+        allowed_symmetry = float(tolerances.get(
+            "maximum_forward_reverse_response_difference", 0.0))
+        if symmetry_error > allowed_symmetry:
+            failures.append(Failure(base + ".runs",
+                                    "forward and reverse drag responses differ",
+                                    symmetry_error, allowed_symmetry))
+        smoke_delta = compare_smoke(
+            control_final, forward_final,
+            base + ".runs[forward].final.smoke_particles")
+        observations[identity] = {
+            "control_velocity_drift_m_s": control_drift,
+            "forward_response_fraction": forward_response,
+            "reverse_response_fraction": reverse_response,
+            "forward_transverse_velocity_m_s": forward_transverse,
+            "reverse_transverse_velocity_m_s": reverse_transverse,
+            "stationary_velocity_m_s": stationary_speed,
+            "forward_reverse_response_difference": symmetry_error,
+            "minimum_tracer_plane_clearance_m": min(
+                state[stage]["clearance"] for state in states.values()
+                for stage in (0, 1)),
+            "maximum_reverse_smoke_state_delta": smoke_delta,
+        }
+        sample_count += 2
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": len(actual_by_id),
+        "sample_count": sample_count,
+        "failure_count": len(failures),
+        "observations": observations,
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def _evaluate_externally_heated_fluid(
         profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
         driver: Any, failures: list[Failure]) -> dict[str, Any]:
@@ -6607,6 +6898,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "smoke_fluid_drag":
         return _evaluate_smoke_fluid_drag(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "smoke_cloth_drag":
+        return _evaluate_smoke_cloth_drag(
             profile, result, expected_hash, driver, failures)
     if evaluation == "fluid_smoke_phase":
         return _evaluate_fluid_smoke_phase(
