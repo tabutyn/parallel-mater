@@ -1,0 +1,195 @@
+===== 00 rigid-body =====
+--------- beginning of main
+10-19 12:00:16.857 10555 10588 I ParallelMater: Physics buffers: 153511160 bytes (excludes driver-private allocations)
+10-19 12:00:16.857 10555 10588 I ParallelMater: Scene ready: RigidBody.glb; backend=vulkan; device=Mali-G710; bodies=5; particles=0
+10-19 12:00:23.770 10555 10588 I ParallelMater: FrameWindow scene=RigidBody.glb backend=vulkan frames=59 count=60 mean_ms=104.075 median_ms=103.207 p95_ms=117.116 physics_ms=101.268 render_ms=2.801 present_ms=0.000 fps=8.69 particles=0 bodies=5
+10-19 12:00:30.968 10555 10588 I ParallelMater: FrameWindow scene=RigidBody.glb backend=vulkan frames=119 count=60 mean_ms=106.880 median_ms=104.925 p95_ms=119.108 physics_ms=104.739 render_ms=2.135 present_ms=0.000 fps=8.36 particles=0 bodies=5
+
+===== 01 constraint-fixed =====
+--------- beginning of main
+10-19 12:00:33.529 10555 10588 I ParallelMater: Physics buffers: 30364912 bytes (excludes driver-private allocations)
+10-19 12:00:33.529 10555 10588 I ParallelMater: Scene ready: ConstraintFixed.glb; backend=vulkan; device=Mali-G710; bodies=50; particles=0
+10-19 12:00:45.877 10555 10588 I ParallelMater: FrameWindow scene=ConstraintFixed.glb backend=vulkan frames=59 count=60 mean_ms=193.314 median_ms=208.726 p95_ms=222.247 physics_ms=189.733 render_ms=3.574 present_ms=0.000 fps=4.86 particles=0 bodies=50
+10-19 12:00:59.954 10555 10588 I ParallelMater: FrameWindow scene=ConstraintFixed.glb backend=vulkan frames=119 count=60 mean_ms=220.954 median_ms=220.307 p95_ms=231.210 physics_ms=217.801 render_ms=3.146 present_ms=0.000 fps=4.27 particles=0 bodies=50
+
+===== 02 constraint-point =====
+--------- beginning of main
+10-19 12:01:02.208 10555 10588 I ParallelMater: Physics buffers: 153581184 bytes (excludes driver-private allocations)
+10-19 12:01:02.208 10555 10588 I ParallelMater: Scene ready: Celestial.glb; backend=vulkan; device=Mali-G710; bodies=4; particles=0
+10-19 12:01:11.156 10555 10588 I ParallelMater: FrameWindow scene=Celestial.glb backend=vulkan frames=59 count=60 mean_ms=137.344 median_ms=123.230 p95_ms=228.528 physics_ms=134.781 render_ms=2.557 present_ms=0.000 fps=6.71 particles=0 bodies=4
+10-19 12:01:24.404 10555 10588 I ParallelMater: FrameWindow scene=Celestial.glb backend=vulkan frames=119 count=60 mean_ms=207.356 median_ms=203.738 p95_ms=260.146 physics_ms=204.694 render_ms=2.655 present_ms=0.000 fps=4.53 particles=0 bodies=4
+
+===== 03 constraint-hinge =====
+--------- beginning of main
+10-19 12:01:27.105 10555 10588 I ParallelMater: Physics buffers: 154273176 bytes (excludes driver-private allocations)
+10-19 12:01:27.105 10555 10588 I ParallelMater: Scene ready: ConstraintHinge.glb; backend=vulkan; device=Mali-G710; bodies=4; particles=0
+10-19 12:01:56.236 10555 10588 I ParallelMater: FrameWindow scene=ConstraintHinge.glb backend=vulkan frames=59 count=60 mean_ms=471.543 median_ms=478.974 p95_ms=545.990 physics_ms=468.097 render_ms=3.434 present_ms=0.000 fps=2.06 particles=0 bodies=4
+10-19 12:02:22.959 10555 10588 I ParallelMater: FrameWindow scene=ConstraintHinge.glb backend=vulkan frames=119 count=60 mean_ms=430.383 median_ms=437.406 p95_ms=525.517 physics_ms=427.382 render_ms=2.994 present_ms=0.000 fps=2.25 particles=0 bodies=4
+
+===== 04 constraint-piston =====
+--------- beginning of main
+10-19 12:02:26.101 10555 10588 I ParallelMater: Physics buffers: 39457552 bytes (excludes driver-private allocations)
+10-19 12:02:26.101 10555 10588 I ParallelMater: Scene ready: ConstraintPiston.glb; backend=vulkan; device=Mali-G710; bodies=1; particles=0
+10-19 12:02:29.370 10555 10588 I ParallelMater: FrameWindow scene=ConstraintPiston.glb backend=vulkan frames=59 count=60 mean_ms=46.253 median_ms=45.962 p95_ms=54.759 physics_ms=44.263 render_ms=1.986 present_ms=0.000 fps=18.39 particles=0 bodies=1
+10-19 12:02:32.708 10555 10588 I ParallelMater: FrameWindow scene=ConstraintPiston.glb backend=vulkan frames=119 count=60 mean_ms=47.523 median_ms=47.072 p95_ms=57.231 physics_ms=45.892 render_ms=1.625 present_ms=0.000 fps=18.02 particles=0 bodies=1
+
+===== 05 constraint-generic =====
+--------- beginning of main
+10-19 12:02:34.485 10555 10588 I ParallelMater: Physics buffers: 67889104 bytes (excludes driver-private allocations)
+10-19 12:02:34.485 10555 10588 I ParallelMater: Scene ready: ConstraintGeneric.glb; backend=vulkan; device=Mali-G710; bodies=3; particles=0
+10-19 12:02:43.285 10555 10588 I ParallelMater: FrameWindow scene=ConstraintGeneric.glb backend=vulkan frames=58 count=60 mean_ms=136.233 median_ms=135.849 p95_ms=174.212 physics_ms=133.547 render_ms=2.680 present_ms=0.000 fps=6.82 particles=0 bodies=3
+10-19 12:02:48.335 10555 10588 I ParallelMater: FrameWindow scene=ConstraintGeneric.glb backend=vulkan frames=118 count=60 mean_ms=75.412 median_ms=73.995 p95_ms=89.482 physics_ms=73.478 render_ms=1.928 present_ms=0.000 fps=11.92 particles=0 bodies=3
+
+===== 06 constraint-motor-spring =====
+--------- beginning of main
+10-19 12:02:51.101 10555 10588 I ParallelMater: Physics buffers: 11611560 bytes (excludes driver-private allocations)
+10-19 12:02:51.101 10555 10588 I ParallelMater: Scene ready: ConstraintMotorSpring.glb; backend=vulkan; device=Mali-G710; bodies=9; particles=0
+10-19 12:03:02.217 10555 10588 I ParallelMater: FrameWindow scene=ConstraintMotorSpring.glb backend=vulkan frames=59 count=60 mean_ms=173.537 median_ms=176.319 p95_ms=185.764 physics_ms=170.391 render_ms=3.139 present_ms=0.000 fps=5.40 particles=0 bodies=9
+10-19 12:03:13.785 10555 10588 I ParallelMater: FrameWindow scene=ConstraintMotorSpring.glb backend=vulkan frames=119 count=60 mean_ms=178.636 median_ms=178.991 p95_ms=187.483 physics_ms=175.667 render_ms=2.962 present_ms=0.000 fps=5.19 particles=0 bodies=9
+
+===== 07 dump-truck =====
+--------- beginning of main
+10-19 12:03:15.740 10555 10588 I ParallelMater: Physics buffers: 13496128 bytes (excludes driver-private allocations)
+10-19 12:03:15.740 10555 10588 I ParallelMater: Scene ready: DumpTruck.glb; backend=vulkan; device=Mali-G710; bodies=20; particles=0
+10-19 12:03:46.034 10555 10588 I ParallelMater: FrameWindow scene=DumpTruck.glb backend=vulkan frames=59 count=60 mean_ms=490.499 median_ms=502.547 p95_ms=605.414 physics_ms=486.934 render_ms=3.557 present_ms=0.000 fps=1.98 particles=0 bodies=20
+10-19 12:04:16.912 10555 10588 I ParallelMater: FrameWindow scene=DumpTruck.glb backend=vulkan frames=119 count=60 mean_ms=499.152 median_ms=498.687 p95_ms=507.971 physics_ms=496.125 render_ms=3.019 present_ms=0.000 fps=1.94 particles=0 bodies=20
+
+===== 08 fluid =====
+--------- beginning of main
+10-19 12:04:19.172 10555 10588 I ParallelMater: Physics buffers: 12153056 bytes (excludes driver-private allocations)
+10-19 12:04:19.172 10555 10588 I ParallelMater: Scene ready: Fluid.glb; backend=vulkan; device=Mali-G710; bodies=0; particles=111
+10-19 12:04:26.695 10555 10588 I ParallelMater: FrameWindow scene=Fluid.glb backend=vulkan frames=58 count=60 mean_ms=112.717 median_ms=115.965 p95_ms=141.604 physics_ms=110.137 render_ms=2.574 present_ms=0.000 fps=7.98 particles=111 bodies=0
+10-19 12:04:34.421 10555 10588 I ParallelMater: FrameWindow scene=Fluid.glb backend=vulkan frames=118 count=60 mean_ms=116.463 median_ms=112.953 p95_ms=143.838 physics_ms=113.944 render_ms=2.511 present_ms=0.000 fps=7.77 particles=111 bodies=0
+
+===== 09 fluid-rigid =====
+--------- beginning of main
+10-19 12:04:37.583 10555 10588 I ParallelMater: Physics buffers: 107257696 bytes (excludes driver-private allocations)
+10-19 12:04:37.583 10555 10588 I ParallelMater: Scene ready: FluidRigid.glb; backend=vulkan; device=Mali-G710; bodies=4; particles=111
+10-19 12:04:49.187 10555 10588 I ParallelMater: FrameWindow scene=FluidRigid.glb backend=vulkan frames=59 count=60 mean_ms=181.886 median_ms=185.567 p95_ms=234.629 physics_ms=178.837 render_ms=3.042 present_ms=0.000 fps=5.17 particles=111 bodies=4
+10-19 12:05:00.908 10555 10588 I ParallelMater: FrameWindow scene=FluidRigid.glb backend=vulkan frames=119 count=60 mean_ms=182.524 median_ms=183.354 p95_ms=216.524 physics_ms=180.260 render_ms=2.257 present_ms=0.000 fps=5.12 particles=111 bodies=4
+
+===== 10 peg-paint =====
+--------- beginning of main
+10-19 12:05:04.468 10555 10588 I ParallelMater: Physics buffers: 210978440 bytes (excludes driver-private allocations)
+10-19 12:05:04.468 10555 10588 I ParallelMater: Scene ready: Pegs.glb; backend=vulkan; device=Mali-G710; bodies=1; particles=128
+10-19 12:05:13.667 10555 10588 I ParallelMater: FrameWindow scene=Pegs.glb backend=vulkan frames=59 count=60 mean_ms=142.547 median_ms=130.659 p95_ms=172.625 physics_ms=139.796 render_ms=2.745 present_ms=0.000 fps=6.53 particles=128 bodies=1
+10-19 12:05:21.999 10555 10588 I ParallelMater: FrameWindow scene=Pegs.glb backend=vulkan frames=119 count=60 mean_ms=127.103 median_ms=124.217 p95_ms=152.083 physics_ms=125.205 render_ms=1.892 present_ms=0.000 fps=7.21 particles=128 bodies=1
+
+===== 11 cloth =====
+--------- beginning of main
+10-19 12:05:24.929 10555 10588 I ParallelMater: Physics buffers: 21776864 bytes (excludes driver-private allocations)
+10-19 12:05:24.929 10555 10588 I ParallelMater: Scene ready: Cloth.glb; backend=vulkan; device=Mali-G710; bodies=1; particles=0
+10-19 12:05:30.292 10555 10588 I ParallelMater: FrameWindow scene=Cloth.glb backend=vulkan frames=58 count=60 mean_ms=81.349 median_ms=76.744 p95_ms=109.071 physics_ms=79.336 render_ms=2.008 present_ms=0.000 fps=11.20 particles=0 bodies=1
+10-19 12:05:35.360 10555 10588 I ParallelMater: FrameWindow scene=Cloth.glb backend=vulkan frames=118 count=60 mean_ms=76.188 median_ms=76.019 p95_ms=86.744 physics_ms=74.554 render_ms=1.628 present_ms=0.000 fps=11.85 particles=0 bodies=1
+
+===== 12 cloth-tear =====
+--------- beginning of main
+10-19 12:05:37.369 10555 10588 I ParallelMater: Physics buffers: 23527904 bytes (excludes driver-private allocations)
+10-19 12:05:37.369 10555 10588 I ParallelMater: Scene ready: ClothTear.glb; backend=vulkan; device=Mali-G710; bodies=1; particles=0
+10-19 12:05:43.487 10555 10588 I ParallelMater: FrameWindow scene=ClothTear.glb backend=vulkan frames=59 count=60 mean_ms=93.314 median_ms=87.970 p95_ms=136.856 physics_ms=90.969 render_ms=2.340 present_ms=0.000 fps=9.82 particles=0 bodies=1
+10-19 12:05:48.752 10555 10588 I ParallelMater: FrameWindow scene=ClothTear.glb backend=vulkan frames=119 count=60 mean_ms=80.697 median_ms=78.583 p95_ms=98.730 physics_ms=79.252 render_ms=1.441 present_ms=0.000 fps=11.40 particles=0 bodies=1
+
+===== 13 cloth-paint =====
+--------- beginning of main
+10-19 12:05:51.839 10555 10588 I ParallelMater: Physics buffers: 21916656 bytes (excludes driver-private allocations)
+10-19 12:05:51.839 10555 10588 I ParallelMater: Scene ready: ClothPaint.glb; backend=vulkan; device=Mali-G710; bodies=1; particles=0
+10-19 12:05:57.650 10555 10588 I ParallelMater: FrameWindow scene=ClothPaint.glb backend=vulkan frames=59 count=60 mean_ms=88.723 median_ms=83.120 p95_ms=125.412 physics_ms=86.437 render_ms=2.281 present_ms=0.000 fps=10.34 particles=0 bodies=1
+10-19 12:06:02.869 10555 10588 I ParallelMater: FrameWindow scene=ClothPaint.glb backend=vulkan frames=119 count=60 mean_ms=79.088 median_ms=75.390 p95_ms=93.111 physics_ms=77.337 render_ms=1.747 present_ms=0.000 fps=11.51 particles=0 bodies=1
+
+===== 14 cloth-water =====
+--------- beginning of main
+10-19 12:06:06.338 10555 10588 I ParallelMater: Physics buffers: 11131720 bytes (excludes driver-private allocations)
+10-19 12:06:06.339 10555 10588 I ParallelMater: Scene ready: ClothWater.glb; backend=vulkan; device=Mali-G710; bodies=0; particles=128
+10-19 12:06:15.374 10555 10588 I ParallelMater: FrameWindow scene=ClothWater.glb backend=vulkan frames=59 count=60 mean_ms=139.206 median_ms=139.406 p95_ms=161.884 physics_ms=136.955 render_ms=2.246 present_ms=0.000 fps=6.64 particles=128 bodies=0
+10-19 12:06:24.808 10555 10588 I ParallelMater: FrameWindow scene=ClothWater.glb backend=vulkan frames=119 count=60 mean_ms=146.089 median_ms=142.770 p95_ms=167.090 physics_ms=143.794 render_ms=2.288 present_ms=0.000 fps=6.37 particles=128 bodies=0
+
+===== 15 soft-body =====
+--------- beginning of main
+10-19 12:06:27.037 10555 10588 I ParallelMater: Physics buffers: 11777736 bytes (excludes driver-private allocations)
+10-19 12:06:27.037 10555 10588 I ParallelMater: Scene ready: Softbody.glb; backend=vulkan; device=Mali-G710; bodies=0; particles=0
+10-19 12:06:33.261 10555 10588 I ParallelMater: FrameWindow scene=Softbody.glb backend=vulkan frames=59 count=60 mean_ms=93.040 median_ms=93.353 p95_ms=106.162 physics_ms=90.632 render_ms=2.403 present_ms=0.000 fps=9.65 particles=0 bodies=0
+10-19 12:06:39.718 10555 10588 I ParallelMater: FrameWindow scene=Softbody.glb backend=vulkan frames=119 count=60 mean_ms=97.678 median_ms=96.388 p95_ms=112.727 physics_ms=95.569 render_ms=2.104 present_ms=0.000 fps=9.30 particles=0 bodies=0
+
+===== 16 soft-body-rigid =====
+--------- beginning of main
+10-19 12:06:41.450 10555 10588 I ParallelMater: Physics buffers: 68989400 bytes (excludes driver-private allocations)
+10-19 12:06:41.450 10555 10588 I ParallelMater: Scene ready: SoftbodyRigidBody.glb; backend=vulkan; device=Mali-G710; bodies=2; particles=0
+10-19 12:06:48.990 10555 10588 I ParallelMater: FrameWindow scene=SoftbodyRigidBody.glb backend=vulkan frames=59 count=60 mean_ms=115.744 median_ms=104.814 p95_ms=196.390 physics_ms=113.235 render_ms=2.503 present_ms=0.000 fps=7.96 particles=0 bodies=2
+10-19 12:06:55.387 10555 10588 I ParallelMater: FrameWindow scene=SoftbodyRigidBody.glb backend=vulkan frames=119 count=60 mean_ms=97.904 median_ms=94.700 p95_ms=114.378 physics_ms=96.006 render_ms=1.893 present_ms=0.000 fps=9.39 particles=0 bodies=2
+
+===== 17 soft-body-cloth =====
+--------- beginning of main
+10-19 12:06:57.970 10555 10588 I ParallelMater: Physics buffers: 22544088 bytes (excludes driver-private allocations)
+10-19 12:06:57.970 10555 10588 I ParallelMater: Scene ready: SoftbodyCloth.glb; backend=vulkan; device=Mali-G710; bodies=0; particles=0
+10-19 12:07:13.431 10555 10588 I ParallelMater: FrameWindow scene=SoftbodyCloth.glb backend=vulkan frames=57 count=60 mean_ms=244.950 median_ms=256.788 p95_ms=277.761 physics_ms=242.301 render_ms=2.643 present_ms=0.000 fps=3.88 particles=0 bodies=0
+10-19 12:07:29.886 10555 10588 I ParallelMater: FrameWindow scene=SoftbodyCloth.glb backend=vulkan frames=117 count=60 mean_ms=261.388 median_ms=259.667 p95_ms=275.560 physics_ms=258.656 render_ms=2.725 present_ms=0.000 fps=3.65 particles=0 bodies=0
+
+===== 18 soft-body-fluid =====
+--------- beginning of main
+10-19 12:07:33.041 10555 10588 I ParallelMater: Physics buffers: 22830828 bytes (excludes driver-private allocations)
+10-19 12:07:33.041 10555 10588 I ParallelMater: Scene ready: SoftbodyFluid.glb; backend=vulkan; device=Mali-G710; bodies=0; particles=20
+10-19 12:07:58.471 10555 10588 I ParallelMater: FrameWindow scene=SoftbodyFluid.glb backend=vulkan frames=59 count=60 mean_ms=409.233 median_ms=415.239 p95_ms=457.692 physics_ms=406.238 render_ms=2.988 present_ms=0.000 fps=2.36 particles=20 bodies=0
+10-19 12:08:24.411 10555 10588 I ParallelMater: FrameWindow scene=SoftbodyFluid.glb backend=vulkan frames=119 count=60 mean_ms=418.586 median_ms=418.563 p95_ms=450.101 physics_ms=416.182 render_ms=2.397 present_ms=0.000 fps=2.31 particles=20 bodies=0
+
+===== 19 rope =====
+--------- beginning of main
+10-19 12:08:28.206 10555 10588 I ParallelMater: Physics buffers: 67924712 bytes (excludes driver-private allocations)
+10-19 12:08:28.206 10555 10588 I ParallelMater: Scene ready: Rope.glb; backend=vulkan; device=Mali-G710; bodies=1; particles=0
+10-19 12:08:38.456 10555 10588 I ParallelMater: FrameWindow scene=Rope.glb backend=vulkan frames=59 count=60 mean_ms=158.395 median_ms=137.015 p95_ms=341.876 physics_ms=155.672 render_ms=2.717 present_ms=0.000 fps=5.86 particles=0 bodies=1
+10-19 12:08:53.624 10555 10588 I ParallelMater: FrameWindow scene=Rope.glb backend=vulkan frames=119 count=60 mean_ms=240.866 median_ms=228.880 p95_ms=369.868 physics_ms=238.612 render_ms=2.248 present_ms=0.000 fps=3.96 particles=0 bodies=1
+
+===== 20 rope-fluid =====
+--------- beginning of main
+10-19 12:08:57.109 10555 10588 I ParallelMater: Physics buffers: 68020984 bytes (excludes driver-private allocations)
+10-19 12:08:57.109 10555 10588 I ParallelMater: Scene ready: RopeFluid.glb; backend=vulkan; device=Mali-G710; bodies=1; particles=128
+10-19 12:09:13.535 10555 10588 I ParallelMater: FrameWindow scene=RopeFluid.glb backend=vulkan frames=59 count=60 mean_ms=260.576 median_ms=259.282 p95_ms=317.807 physics_ms=257.336 render_ms=3.234 present_ms=0.000 fps=3.65 particles=128 bodies=1
+10-19 12:09:30.958 10555 10588 I ParallelMater: FrameWindow scene=RopeFluid.glb backend=vulkan frames=119 count=60 mean_ms=276.861 median_ms=272.993 p95_ms=316.342 physics_ms=274.138 render_ms=2.714 present_ms=0.000 fps=3.45 particles=128 bodies=1
+
+===== 21 rope-soft-body =====
+--------- beginning of main
+10-19 12:09:33.901 10555 10588 I ParallelMater: Physics buffers: 48185528 bytes (excludes driver-private allocations)
+10-19 12:09:33.901 10555 10588 I ParallelMater: Scene ready: RopeSoftbody.glb; backend=vulkan; device=Mali-G710; bodies=1; particles=0
+10-19 12:09:54.280 10555 10588 I ParallelMater: FrameWindow scene=RopeSoftbody.glb backend=vulkan frames=59 count=60 mean_ms=324.982 median_ms=331.544 p95_ms=380.625 physics_ms=321.975 render_ms=3.000 present_ms=0.000 fps=2.94 particles=0 bodies=1
+10-19 12:10:16.305 10555 10588 I ParallelMater: FrameWindow scene=RopeSoftbody.glb backend=vulkan frames=119 count=60 mean_ms=352.092 median_ms=351.759 p95_ms=374.485 physics_ms=349.434 render_ms=2.650 present_ms=0.000 fps=2.73 particles=0 bodies=1
+
+===== 22 rope-cloth =====
+--------- beginning of main
+10-19 12:10:18.854 10555 10588 I ParallelMater: Physics buffers: 210971272 bytes (excludes driver-private allocations)
+10-19 12:10:18.854 10555 10588 I ParallelMater: Scene ready: RopeCloth.glb; backend=vulkan; device=Mali-G710; bodies=1; particles=0
+10-19 12:10:30.757 10555 10588 I ParallelMater: FrameWindow scene=RopeCloth.glb backend=vulkan frames=59 count=60 mean_ms=185.526 median_ms=186.776 p95_ms=217.842 physics_ms=182.541 render_ms=2.978 present_ms=0.000 fps=5.04 particles=0 bodies=1
+10-19 12:10:42.914 10555 10588 I ParallelMater: FrameWindow scene=RopeCloth.glb backend=vulkan frames=119 count=60 mean_ms=190.175 median_ms=186.896 p95_ms=210.783 physics_ms=187.497 render_ms=2.671 present_ms=0.000 fps=4.94 particles=0 bodies=1
+
+===== 23 smoke =====
+--------- beginning of main
+10-19 12:10:45.526 10555 10588 I ParallelMater: Physics buffers: 124479744 bytes (excludes driver-private allocations)
+10-19 12:10:45.526 10555 10588 I ParallelMater: Scene ready: Smoke.glb; backend=vulkan; device=Mali-G710; bodies=0; particles=0
+10-19 12:10:51.361 10555 10588 I ParallelMater: FrameWindow scene=Smoke.glb backend=vulkan frames=59 count=60 mean_ms=88.706 median_ms=87.559 p95_ms=106.259 physics_ms=86.538 render_ms=2.163 present_ms=0.000 fps=10.29 particles=0 bodies=0
+10-19 12:10:56.680 10555 10588 I ParallelMater: FrameWindow scene=Smoke.glb backend=vulkan frames=119 count=60 mean_ms=80.384 median_ms=78.984 p95_ms=92.059 physics_ms=78.762 render_ms=1.616 present_ms=0.000 fps=11.29 particles=0 bodies=0
+
+===== 24 smoke-water =====
+--------- beginning of main
+10-19 12:11:00.056 10555 10588 I ParallelMater: Physics buffers: 181669040 bytes (excludes driver-private allocations)
+10-19 12:11:00.056 10555 10588 I ParallelMater: Scene ready: SmokeWater.glb; backend=vulkan; device=Mali-G710; bodies=1; particles=128
+10-19 12:11:14.226 10555 10588 I ParallelMater: FrameWindow scene=SmokeWater.glb backend=vulkan frames=59 count=60 mean_ms=224.592 median_ms=227.759 p95_ms=252.657 physics_ms=221.236 render_ms=3.348 present_ms=0.000 fps=4.24 particles=128 bodies=1
+10-19 12:11:28.568 10555 10588 I ParallelMater: FrameWindow scene=SmokeWater.glb backend=vulkan frames=119 count=60 mean_ms=226.667 median_ms=232.542 p95_ms=262.663 physics_ms=223.751 render_ms=2.907 present_ms=0.000 fps=4.19 particles=128 bodies=1
+
+===== 25 smoke-soft-body =====
+--------- beginning of main
+10-19 12:11:31.086 10555 10588 I ParallelMater: Physics buffers: 140804584 bytes (excludes driver-private allocations)
+10-19 12:11:31.086 10555 10588 I ParallelMater: Scene ready: SmokeSoftbody.glb; backend=vulkan; device=Mali-G710; bodies=1; particles=0
+10-19 12:12:06.066 10555 10588 I ParallelMater: FrameWindow scene=SmokeSoftbody.glb backend=vulkan frames=59 count=60 mean_ms=567.688 median_ms=574.691 p95_ms=612.421 physics_ms=565.810 render_ms=1.873 present_ms=0.000 fps=1.72 particles=0 bodies=1
+10-19 12:12:42.197 10555 10588 I ParallelMater: FrameWindow scene=SmokeSoftbody.glb backend=vulkan frames=119 count=60 mean_ms=585.746 median_ms=584.379 p95_ms=620.789 physics_ms=584.107 render_ms=1.633 present_ms=0.000 fps=1.66 particles=0 bodies=1
+
+===== 26 smoke-cloth =====
+--------- beginning of main
+10-19 12:12:44.809 10555 10588 I ParallelMater: Physics buffers: 134351752 bytes (excludes driver-private allocations)
+10-19 12:12:44.809 10555 10588 I ParallelMater: Scene ready: SmokeCloth.glb; backend=vulkan; device=Mali-G710; bodies=1; particles=0
+10-19 12:12:53.812 10555 10588 I ParallelMater: FrameWindow scene=SmokeCloth.glb backend=vulkan frames=59 count=60 mean_ms=138.814 median_ms=139.314 p95_ms=160.118 physics_ms=136.128 render_ms=2.680 present_ms=0.000 fps=6.67 particles=0 bodies=1
+10-19 12:13:03.249 10555 10588 I ParallelMater: FrameWindow scene=SmokeCloth.glb backend=vulkan frames=119 count=60 mean_ms=145.491 median_ms=141.851 p95_ms=169.582 physics_ms=143.100 render_ms=2.380 present_ms=0.000 fps=6.37 particles=0 bodies=1
+
+===== 27 smoke-rope =====
+--------- beginning of main
+10-19 12:13:05.215 10555 10588 I ParallelMater: Physics buffers: 219759476 bytes (excludes driver-private allocations)
+10-19 12:13:05.215 10555 10588 I ParallelMater: Scene ready: SmokeRope.glb; backend=vulkan; device=Mali-G710; bodies=2; particles=0
+10-19 12:13:17.995 10555 10588 I ParallelMater: FrameWindow scene=SmokeRope.glb backend=vulkan frames=59 count=60 mean_ms=200.990 median_ms=203.817 p95_ms=229.662 physics_ms=197.900 render_ms=3.082 present_ms=0.000 fps=4.70 particles=0 bodies=2
+10-19 12:13:31.361 10555 10588 I ParallelMater: FrameWindow scene=SmokeRope.glb backend=vulkan frames=119 count=60 mean_ms=209.926 median_ms=207.647 p95_ms=232.163 physics_ms=207.180 render_ms=2.735 present_ms=0.000 fps=4.49 particles=0 bodies=2

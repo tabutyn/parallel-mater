@@ -1,7 +1,7 @@
 {
   "id": "F7-18",
   "title": "Qualify complete Android Gallery",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-15",
     "F7-05",
@@ -26,15 +26,31 @@
     "Every selectable scene passes its declared controls, reset, background recovery and sustained frame checks on identified hardware; unavailable scenes match driver capability records.",
     "Tracked evidence separates physics correctness, visual execution and performance and records APK, driver, source and toolchain hashes."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "51fc59df-5f9e-4bca-8d85-62ecdb32d921",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F7-18/thomas-laptop",
-    "claimed_at": "2026-10-19T13:35:12Z",
-    "heartbeat_at": "2026-10-19T13:35:12Z",
-    "expires_at": "2026-10-20T13:35:12Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F7-18-android-gallery.json",
+    "docs/roadmap/evidence/F7-18-android-gallery/capture-index.json",
+    "docs/roadmap/evidence/F7-18-android-gallery/performance.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "51fc59df-5f9e-4bca-8d85-62ecdb32d921",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F7-18/thomas-laptop",
+        "claimed_at": "2026-10-19T13:35:12Z",
+        "heartbeat_at": "2026-10-19T13:35:12Z",
+        "expires_at": "2026-10-20T13:35:12Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T14:28:50Z",
+      "reason": "Qualified all 28 Android Vulkan Gallery scenes, controls and lifecycle on Pixel 7; published direct-presentation, thermal, UI and explicit sub-target performance evidence",
+      "evidence": [
+        "docs/roadmap/evidence/F7-18-android-gallery.json",
+        "docs/roadmap/evidence/F7-18-android-gallery/capture-index.json",
+        "docs/roadmap/evidence/F7-18-android-gallery/performance.json"
+      ]
+    }
+  ]
 }

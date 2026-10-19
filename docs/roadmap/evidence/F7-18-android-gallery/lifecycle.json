@@ -1,0 +1,53 @@
+{
+  "background": {
+    "revision": "973cc228d1170938092f3c815d8a2fa591d0c50c",
+    "backend": "vulkan",
+    "frames": 29,
+    "active": false,
+    "paused": false,
+    "surface_ready": true,
+    "surface_generation": 6,
+    "render_width": 640,
+    "render_height": 288,
+    "presentation": "vulkan-direct",
+    "ordinary_readback_pixels": 0,
+    "software_presentations": 0,
+    "nonce": "c094188b-cf3a-4104-ad58-ce2cace13b8b",
+    "backgrounds": 1,
+    "foregrounds": 1
+  },
+  "foreground": {
+    "revision": "973cc228d1170938092f3c815d8a2fa591d0c50c",
+    "backend": "vulkan",
+    "frames": 29,
+    "active": true,
+    "paused": false,
+    "surface_ready": true,
+    "surface_generation": 8,
+    "render_width": 640,
+    "render_height": 288,
+    "presentation": "vulkan-direct",
+    "ordinary_readback_pixels": 0,
+    "software_presentations": 0,
+    "nonce": "c094188b-cf3a-4104-ad58-ce2cace13b8b",
+    "backgrounds": 1,
+    "foregrounds": 2
+  },
+  "resumed_surface": {
+    "revision": "973cc228d1170938092f3c815d8a2fa591d0c50c",
+    "backend": "vulkan",
+    "frames": 29,
+    "active": true,
+    "paused": false,
+    "surface_ready": true,
+    "surface_generation": 8,
+    "render_width": 640,
+    "render_height": 288,
+    "presentation": "vulkan-direct",
+    "ordinary_readback_pixels": 0,
+    "software_presentations": 0,
+    "nonce": "c094188b-cf3a-4104-ad58-ce2cace13b8b",
+    "backgrounds": 1,
+    "foregrounds": 2
+  }
+}

@@ -1,0 +1,23 @@
+--------- beginning of system
+10-19 11:09:05.568 32200 32200 D ActivityThread: Set OS env TMPDIR to /data/user/0/org.parallelmater.gallery/cache
+10-19 11:09:05.580 32200 32219 I DisplayManager: Choreographer implicitly registered for the refresh rate.
+10-19 11:09:05.650 32200 32200 D InsetsController: Setting requestedVisibleTypes to 240 (was 503)
+10-19 11:09:05.748 32200 32200 D InsetsController: hide(ime())
+10-19 11:09:05.748 32200 32200 I ImeTracker: org.parallelmater.gallery:905f2c02: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+--------- beginning of main
+10-19 11:24:14.775 32200 32200 D VRI[GalleryActivity]: visibilityChanged oldVisibility=true newVisibility=false
+10-19 11:24:19.540 32200 32200 D ViewRootImpl: Skipping stats log for color mode
+10-19 11:24:19.559 32200 32200 I Surface : Creating surface for consumer unnamed-32200-2 with slotExpansion=1 for 64 slots
+10-19 11:24:19.559 32200 32200 I Surface : Creating surface for consumer VRI[GalleryActivity]#2(BLAST Consumer)2 with slotExpansion=1 for 64 slots
+10-19 11:24:19.562 32200 32200 I Surface : Creating surface for consumer unnamed-32200-3 with slotExpansion=1 for 64 slots
+10-19 11:24:19.562 32200 32200 I Surface : Creating surface for consumer 6a3ca25 SurfaceView[org.parallelmater.gallery/org.parallelmater.gallery.GalleryActivity]#3(BLAST Consumer)3 with slotExpansion=1 for 64 slots
+10-19 11:24:19.596 32200 32200 D InsetsController: hide(ime())
+10-19 11:24:19.596 32200 32200 I ImeTracker: org.parallelmater.gallery:f6447513: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+10-19 11:24:19.846 32200 32200 D VRI[GalleryActivity]: WindowInsets changed: 810x1800 mandatorySystemGestures:[0,136,0,71]
+10-19 11:24:19.893 32200 32200 D VRI[GalleryActivity]: WindowInsets changed: mandatorySystemGestures:[0,129,0,71]
+10-19 11:24:19.975 32200 32200 D VRI[GalleryActivity]: WindowInsets changed: 1800x810 mandatorySystemGestures:[0,62,0,71]
+10-19 11:24:20.094 32200 32200 D VRI[GalleryActivity]: WindowInsets changed: 2400x1080
+10-19 11:24:23.095 32200 32200 D VRI[GalleryActivity]: visibilityChanged oldVisibility=true newVisibility=false
+10-19 11:24:23.214 32200 32200 D WindowOnBackDispatcher: setTopOnBackInvokedCallback (unwrapped): null
+10-19 11:24:23.220 32200 32200 D ViewRootImpl: Skipping stats log for color mode
+10-19 11:24:25.250 32200 32237 I ParallelMater: Gallery session destroyed
