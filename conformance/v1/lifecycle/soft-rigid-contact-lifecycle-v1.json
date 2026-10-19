@@ -1,0 +1,64 @@
+{
+  "schema": "parallel-mater-conformance-lifecycle-profile/v1",
+  "id": "soft-rigid-contact-lifecycle-v1",
+  "title": "Intrinsic soft-rigid endpoint bounded lifecycle",
+  "sources": {
+    "capacity": "include/parallel_mater/parallel_mater.h: PmSimulationCreateInfo::softBodyCount, PmSoftBodyCapacity, rigidBodyCapacity, pmCmdWriteSoftBodies and pmCmdWriteRigidBodies",
+    "qualification": "docs/ROADMAP.md: F5-49",
+    "rollback": "A rejected record-time descriptor write enqueues no partial replacement and preserves the last usable endpoint state"
+  },
+  "state_fingerprint": "SHA-256 of canonical public soft node and bound-surface outputs plus accepted endpoint label; the separately tracked rigid state uses only public output. Exclude handles, timings and driver-private state.",
+  "observation_boundary": "Complete each accepted endpoint mutation, or reject the over-capacity mutation at record time, before public readback. Generation is the harness ordinal of an accepted soft endpoint mutation, never a private driver handle.",
+  "scope": "Intrinsic endpoint lifecycle only. The exact capability has no interaction graph, so this profile does not use couplingCapacity or pmCmdSetCouplings.",
+  "cases": [
+    {
+      "id": "soft-rigid-contact-capacity-replacement-removal-rollback",
+      "families": ["soft_body", "rigid_body"],
+      "unrelated_resources": ["rigid-endpoint"],
+      "tracked_resources": ["soft-rigid-contact-endpoints", "rigid-endpoint"],
+      "track_graph": false,
+      "checkpoints": [
+        {
+          "id": "baseline",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "soft-rigid-contact-endpoints": {"active": true},
+            "rigid-endpoint": {"active": true}
+          }
+        },
+        {
+          "id": "replacement",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "soft-rigid-contact-endpoints": {"active": true, "generation_different_from": "baseline", "state_different_from": "baseline"},
+            "rigid-endpoint": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "rejected-over-capacity",
+          "expected_outcome": "PM_ERROR_INVALID_ARGUMENT",
+          "resources": {
+            "soft-rigid-contact-endpoints": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"},
+            "rigid-endpoint": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "removal",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "soft-rigid-contact-endpoints": {"active": false, "generation_different_from": "replacement", "state_different_from": "replacement"},
+            "rigid-endpoint": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "recovery",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "soft-rigid-contact-endpoints": {"active": true, "generation_different_from": "removal", "state_same_as": "baseline", "state_different_from": "removal"},
+            "rigid-endpoint": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        }
+      ]
+    }
+  ]
+}

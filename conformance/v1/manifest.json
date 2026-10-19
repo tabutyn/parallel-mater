@@ -59,6 +59,7 @@
     "conformance/v1/lifecycle/smoke-soft-drag-lifecycle-v1.json": "e26456e4df5e7860229e93530dfddd6a08842a2484a2bfbd006b6b86f0368027",
     "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31",
     "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f",
+    "conformance/v1/lifecycle/soft-rigid-contact-lifecycle-v1.json": "11a11ed96e09c8f8fcee037d029d9730a2aba3f48183b69eb6017d8164e015fb",
     "conformance/v1/lifecycle/soft-smoke-contact-lifecycle-v1.json": "eebb8182329058601310417e9d951f594bdaf53d966c670d4874adcbf12f29d2"
   },
   "quality_profile_sha256": {
@@ -81,6 +82,7 @@
     "conformance/v1/quality/rigid-brick-penetration-v1.json": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da",
     "conformance/v1/quality/rigid-kinematic-sweep-v1.json": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc",
     "conformance/v1/quality/rope-self-contact-v1.json": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113",
+    "conformance/v1/quality/soft-rigid-contact-v1.json": "2cc79bdc7ce270490c00e92dd3e00911bf10c624ed49f5c36b99d8143a96fad6",
     "conformance/v1/quality/soft-rope-attachment-v1.json": "7c43ecebb7083f0b7e4a2aeab8768f6236cf44edcd7f409022eccbea98a49549",
     "conformance/v1/quality/soft-smoke-contact-v1.json": "4ee08a7676ccf9c7198e0fbdd752db59c25bb655601e22aa15a327d70ab0ab8d",
     "conformance/v1/quality/smoke-cloth-drag-v1.json": "6984353862c9dc69f693597e92e60c9956576f080cbca2e79040e2ff923480ac",
@@ -90,7 +92,7 @@
     "conformance/v1/quality/smoke-self-viscosity-v1.json": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"
   },
   "qualification_profile_sha256": {
-    "conformance/v1/qualification/capability-obligations-v1.json": "45a66f52166b62bf72a80278e02efde22c34743c214b35d06bc1b11345b284f1"
+    "conformance/v1/qualification/capability-obligations-v1.json": "9d23925f80d28bd31429682da8e40beeca02ddd29b17d4659b30007b4fc35dd5"
   },
   "evidence_index_sha256": {
     "conformance/v1/evidence/evidence-sources-v1.json": "5437f59a272b756777ed61de5b49bb417e19a8cda83085172eb492edffc47d89",

@@ -240,6 +240,34 @@ python3 conformance/v1/quality.py \
   --report /path/to/soft-rope-quality-report.json
 ```
 
+Intrinsic soft-body/rigid CONTACT uses `soft-rigid-contact-v1`. A prepared
+four-node tetrahedron exposes a ten-vertex bound surface and strikes a centered
+dynamic cube beside a separated control. The public-state oracle reconstructs
+the surface from its bindings, counts each physical node mass once, checks
+exterior clearance, reciprocal endpoint momentum, reduced-mass impulse,
+closing speed, transverse/angular drift, and energy. This exact capability has
+no `PmCouplingState`; its graph limit is `not-applicable`. The paired
+`soft-rigid-contact-lifecycle-v1` profile therefore exercises bounded soft
+endpoint replacement, record-time over-capacity rollback, removal, and
+deterministic recovery while a public rigid endpoint stays unchanged:
+
+```text
+parallel-mater-conformance --quality soft-rigid-contact-v1 \
+  --output /path/to/soft-rigid-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/soft-rigid-contact-v1.json \
+  --actual /path/to/soft-rigid-quality-results/soft-rigid-contact-v1.json \
+  --report /path/to/soft-rigid-quality-report.json
+
+parallel-mater-conformance \
+  --lifecycle-profile soft-rigid-contact-lifecycle-v1 \
+  --output /path/to/soft-rigid-lifecycle-result.json
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/soft-rigid-contact-lifecycle-v1.json \
+  --actual /path/to/soft-rigid-lifecycle-result.json \
+  --report /path/to/soft-rigid-lifecycle-report.json
+```
+
 Soft-body-to-smoke CONTACT uses the immutable `soft-smoke-contact-v1`
 profile for particle and projected-grid smoke. Paired no-edge and CONTACT-edge
 runs derive crossing, surface clearance, normal rejection, tangential motion,
