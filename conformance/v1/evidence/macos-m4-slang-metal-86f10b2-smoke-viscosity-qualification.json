@@ -1,0 +1,92 @@
+{
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+  "execution_status": "completed",
+  "source": {
+    "commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-metal",
+    "version": "0.2.0+86f10b2",
+    "binary_sha256": "1baa3871da6a00c05b5bbe3ff9dc68c89c969f4c66b0163e27d090e88e5fa376"
+  },
+  "device": {
+    "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "vendor_id": 4203,
+    "device_id": 0,
+    "driver_version": "202618 (Apple Metal 32023.883)"
+  },
+  "toolchain": {
+    "compiler": "Apple Clang, Slang Metal",
+    "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "SMOKE",
+      "second_family": "SMOKE",
+      "scope": "SELF",
+      "mode": "VISCOSITY",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "not-applicable"
+    },
+    {
+      "first_family": "SMOKE",
+      "second_family": "SMOKE",
+      "scope": "SELF",
+      "mode": "VISCOSITY",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "not-applicable"
+    }
+  ],
+  "evidence": [
+    {
+      "scope": "analytic_invariants",
+      "contract": "quality:smoke-self-viscosity-v1",
+      "status": "passed",
+      "source_commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
+      "contract_sha256": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-smoke-viscosity.json",
+      "artifact_sha256": "6aa249cc1cb12ac25188d37fc0f30ecefceb3781e793dedaf309fbc404d322dc"
+    },
+    {
+      "scope": "compilation",
+      "contract": "registry:interaction-capabilities",
+      "status": "passed",
+      "source_commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-smoke-viscosity.json",
+      "artifact_sha256": "6aa249cc1cb12ac25188d37fc0f30ecefceb3781e793dedaf309fbc404d322dc"
+    },
+    {
+      "scope": "execution",
+      "contract": "case:smoke-grid",
+      "status": "passed",
+      "source_commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
+      "contract_sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-smoke-viscosity.json",
+      "artifact_sha256": "6aa249cc1cb12ac25188d37fc0f30ecefceb3781e793dedaf309fbc404d322dc"
+    },
+    {
+      "scope": "lifecycle_invariants",
+      "contract": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
+      "status": "passed",
+      "source_commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
+      "contract_sha256": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-smoke-viscosity.json",
+      "artifact_sha256": "6aa249cc1cb12ac25188d37fc0f30ecefceb3781e793dedaf309fbc404d322dc"
+    },
+    {
+      "scope": "reference_regression",
+      "contract": "case:smoke-grid",
+      "status": "passed",
+      "source_commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
+      "contract_sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-smoke-viscosity.json",
+      "artifact_sha256": "6aa249cc1cb12ac25188d37fc0f30ecefceb3781e793dedaf309fbc404d322dc"
+    }
+  ]
+}

@@ -3,7 +3,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "fdbd9463e7b326fe0557f2e2f597ef7e94be5378c56118a52f44383b6a3c3e5b"
+    "sha256": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a"
   },
   "expected_drivers": [
     {
@@ -54,14 +54,14 @@
       "sha256": "e3ae75435330251f28ac8196012f921bf7be032541362db1fdc978f5eb7f7473"
     },
     {
-      "id": "macos-m4-slang-metal-1d85b88-fluid-cloth-containment",
-      "path": "conformance/v1/evidence/macos-m4-slang-metal-1d85b88-fluid-cloth-containment-qualification.json",
-      "sha256": "52581f7b3759ca353bba2b5fa3bbbf3781ef7553de399767f3ad36ab0f81ff0d"
+      "id": "macos-m4-slang-metal-86f10b2-fluid-cloth-containment",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-cloth-containment-qualification.json",
+      "sha256": "e80c110bc63b6e9361ba8a6b2eecc6425ad69a9ef680f9a57f60d66cdad192f4"
     },
     {
-      "id": "macos-m4-slang-metal-663c9d4-fluid-soft-contact",
-      "path": "conformance/v1/evidence/macos-m4-slang-metal-663c9d4-fluid-soft-contact-qualification.json",
-      "sha256": "9b6128cb9b10149db2bcbd8072c1ace57c86454a8e3fe5ef9fd7a5d3bd068a15"
+      "id": "macos-m4-slang-metal-86f10b2-fluid-soft-contact",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-soft-contact-qualification.json",
+      "sha256": "24f09df70e656a5d5954a1a2160a07d05a33ceb744354bf6bb8a1e3731648389"
     },
     {
       "id": "macos-m4-slang-metal-aac6d59",
@@ -69,9 +69,9 @@
       "sha256": "4c8bacefffcaed67e300d2bdf90a683d46b0c12efeac14f6c83151ecac0bc9ef"
     },
     {
-      "id": "macos-m4-slang-metal-e566034-smoke-viscosity",
-      "path": "conformance/v1/evidence/macos-m4-slang-metal-e566034-smoke-viscosity-qualification.json",
-      "sha256": "e7f8261523a2d356137659b01aef9f61261c5391eab5f43e4965701b1acbd652"
+      "id": "macos-m4-slang-metal-86f10b2-smoke-viscosity",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-smoke-viscosity-qualification.json",
+      "sha256": "14a73a0cd8258e62ce65ed16f526577de68cdc780fd982e11a875e5c50b77651"
     },
     {
       "id": "windows-gtx1080-slang-cuda-2b04e55",

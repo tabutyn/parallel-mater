@@ -1,0 +1,163 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-30",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-metal",
+    "version": "0.2.0+86f10b2",
+    "binary_sha256": "1baa3871da6a00c05b5bbe3ff9dc68c89c969f4c66b0163e27d090e88e5fa376"
+  },
+  "device": {
+    "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "vendor_id": 4203,
+    "device_id": 0,
+    "driver_version": "202618 (Apple Metal 32023.883)"
+  },
+  "toolchain": {
+    "compiler": "Apple Clang, Slang Metal",
+    "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "8e137e4b79d818a1fae5002fd6d9e8b82d66de31bf35e45c8ee18cbc22ee872b",
+    "capabilities_sha256": "4a1e1930f58007a1c6a42af8182948ac12718dd72f1feb41ebf7c0a965d6ac80"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "SMOKE",
+      "second_family": "SMOKE",
+      "scope": "SELF",
+      "mode": "VISCOSITY",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "not-applicable"
+    },
+    {
+      "first_family": "SMOKE",
+      "second_family": "SMOKE",
+      "scope": "SELF",
+      "mode": "VISCOSITY",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "not-applicable"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:smoke-grid",
+      "sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3"
+    },
+    "quality": {
+      "id": "quality:smoke-self-viscosity-v1",
+      "sha256": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"
+    },
+    "lifecycle": {
+      "id": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
+      "sha256": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "8ed789a3e6f8fe44f070a63e27fa493e179ea0ec543e34f5667182b96bb21ac3",
+    "comparison_report_sha256": "d5e48ec037c33ccc89c84d2a9223f6fefd7d20dee2827150067430d4e3357576",
+    "reference_regression": {
+      "passed": 1,
+      "failed": 0,
+      "unsupported": 0
+    }
+  },
+  "analytic_invariants": {
+    "result_sha256": "b602653a56a815e7c4dec388eec11e4b193721b2838d4fd4d0f9e1b88a31e2ff",
+    "report_sha256": "2ede272f6af6e5a340ebcd07d949bcffdf964f1759061fb334103e8c658ee814",
+    "passed": true,
+    "sample_count": 2,
+    "failure_count": 0,
+    "observations": {
+      "particle-pressure-seeded-relative-motion": {
+        "initial_relative_rms_speed_m_s": 0.5000000370378126,
+        "relative_specific_energy_reduction_fraction": 0.04346891000169628,
+        "control_final_total_specific_kinetic_energy_m2_s2": 5.494764106964745,
+        "viscous_final_total_specific_kinetic_energy_m2_s2": 5.255912700518543,
+        "mean_velocity_residual_m_s": 0.0,
+        "maximum_speed_m_s": 3.315045733308892
+      },
+      "grid-driven-jet-relative-motion": {
+        "initial_relative_rms_speed_m_s": 0.020516036444783035,
+        "relative_specific_energy_reduction_fraction": 0.41509685211884206,
+        "control_final_total_specific_kinetic_energy_m2_s2": 0.5043949173992922,
+        "viscous_final_total_specific_kinetic_energy_m2_s2": 0.5077574565306552,
+        "mean_velocity_residual_m_s": 0.008938012405017615,
+        "maximum_speed_m_s": 1.0418560228139189
+      }
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "b4fbd70f1ffa2215208984dc541159d3c347ae7b65e6b56487fd24b0d96146d2",
+    "report_sha256": "fe77e76020503182083c65c7554e6a6e836cfba938b2c80e865948b3b0456571",
+    "passed": true,
+    "case_count": 1,
+    "checkpoint_count": 6,
+    "failure_count": 0,
+    "checkpoints": [
+      {
+        "id": "baseline",
+        "outcome": "PM_SUCCESS",
+        "particle_generation": 1,
+        "particle_state_sha256": "1a776ad1df3e5e7a1d61a721545ae6cfd028a358f6255b69d4a69e1e500b851d",
+        "grid_generation": 1,
+        "grid_state_sha256": "0a3d232880b44ee30487450fc828a15d0d45932727a744c3cd3e167956667151"
+      },
+      {
+        "id": "replacement",
+        "outcome": "PM_SUCCESS",
+        "particle_generation": 2,
+        "particle_state_sha256": "6acaa9c741b2330a04fb6ae7cd7177e71d3b43efc7b1881750475625812f6abb",
+        "grid_generation": 2,
+        "grid_state_sha256": "113926a46c68a480e076d1258682c29a4c1d889a6fafe6acfe5b15bbb2495f1b"
+      },
+      {
+        "id": "particle-capacity-rejection",
+        "outcome": "PM_ERROR_CAPACITY_EXCEEDED",
+        "particle_generation": 2,
+        "particle_state_sha256": "6acaa9c741b2330a04fb6ae7cd7177e71d3b43efc7b1881750475625812f6abb",
+        "grid_generation": 2,
+        "grid_state_sha256": "113926a46c68a480e076d1258682c29a4c1d889a6fafe6acfe5b15bbb2495f1b"
+      },
+      {
+        "id": "grid-capacity-rejection",
+        "outcome": "PM_ERROR_CAPACITY_EXCEEDED",
+        "particle_generation": 2,
+        "particle_state_sha256": "6acaa9c741b2330a04fb6ae7cd7177e71d3b43efc7b1881750475625812f6abb",
+        "grid_generation": 2,
+        "grid_state_sha256": "113926a46c68a480e076d1258682c29a4c1d889a6fafe6acfe5b15bbb2495f1b"
+      },
+      {
+        "id": "removal",
+        "outcome": "PM_SUCCESS",
+        "particle_generation": 3,
+        "particle_state_sha256": "8ef0cba3caac0cd81d28fedcd486d63e2d645fd15a68eef0210cb2b24a8aeb58",
+        "grid_generation": 3,
+        "grid_state_sha256": "8ef0cba3caac0cd81d28fedcd486d63e2d645fd15a68eef0210cb2b24a8aeb58"
+      },
+      {
+        "id": "recovery",
+        "outcome": "PM_SUCCESS",
+        "particle_generation": 4,
+        "particle_state_sha256": "1a776ad1df3e5e7a1d61a721545ae6cfd028a358f6255b69d4a69e1e500b851d",
+        "grid_generation": 4,
+        "grid_state_sha256": "0a3d232880b44ee30487450fc828a15d0d45932727a744c3cd3e167956667151"
+      }
+    ]
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case smoke-grid --output <trajectory-output>",
+    "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case smoke-grid --report <trajectory-report>",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality smoke-self-viscosity-v1 --output <quality-output>",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/smoke-self-viscosity-v1.json --actual <quality-output>/smoke-self-viscosity-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle-profile smoke-self-lifecycle-v1 --output <lifecycle-result>",
+    "python3 conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/smoke-self-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ]
+}
