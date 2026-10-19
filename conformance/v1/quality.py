@@ -9903,6 +9903,687 @@ def _evaluate_cloth_rope_attachment(
     }
 
 
+def _evaluate_rope_rigid_contact(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definitions = {fixture["id"]: fixture
+                   for fixture in profile.get("fixtures", [])
+                   if isinstance(fixture, dict) and
+                   isinstance(fixture.get("id"), str)}
+    actual_fixtures = result.get("fixtures")
+    if not isinstance(actual_fixtures, list):
+        failures.append(Failure("$.fixtures", "expected a fixture array",
+                                actual_fixtures))
+        actual_fixtures = []
+    actual_by_id: dict[str, dict[str, Any]] = {}
+    for index, fixture in enumerate(actual_fixtures):
+        if (not isinstance(fixture, dict) or
+                not isinstance(fixture.get("id"), str)):
+            failures.append(Failure(f"$.fixtures[{index}]",
+                                    "fixture needs a string id", fixture))
+            continue
+        identity = fixture["id"]
+        if identity in actual_by_id:
+            failures.append(Failure(f"$.fixtures[{index}].id",
+                                    "duplicate fixture id", identity))
+            continue
+        actual_by_id[identity] = fixture
+    for missing in sorted(set(definitions) - set(actual_by_id)):
+        failures.append(Failure("$.fixtures", "missing required fixture", missing))
+    for extra in sorted(set(actual_by_id) - set(definitions)):
+        failures.append(Failure("$.fixtures", "unexpected fixture", extra))
+
+    tolerances = profile.get("tolerances", {})
+    if not isinstance(tolerances, dict):
+        failures.append(Failure("$.profile.tolerances",
+                                "expected an object", tolerances))
+        tolerances = {}
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+
+    Vector = tuple[float, float, float]
+    Quaternion = tuple[float, float, float, float]
+
+    def add(left: Vector, right: Vector) -> Vector:
+        return tuple(a + b for a, b in zip(left, right))  # type: ignore[return-value]
+
+    def scale(value: Vector, factor: float) -> Vector:
+        return tuple(component * factor for component in value)  # type: ignore[return-value]
+
+    def dot(left: Vector, right: Vector) -> float:
+        return sum(a * b for a, b in zip(left, right))
+
+    def cross(left: Vector, right: Vector) -> Vector:
+        return (left[1] * right[2] - left[2] * right[1],
+                left[2] * right[0] - left[0] * right[2],
+                left[0] * right[1] - left[1] * right[0])
+
+    def quaternion_distance(left: Quaternion, right: Quaternion) -> float:
+        direct = math.sqrt(sum((a - b) ** 2 for a, b in zip(left, right)))
+        negated = math.sqrt(sum((a + b) ** 2 for a, b in zip(left, right)))
+        return min(direct, negated)
+
+    def normalized_quaternion(value: Quaternion, path: str) -> Quaternion:
+        length = math.sqrt(sum(component * component for component in value))
+        if abs(length - 1.0) > state_tolerance:
+            failures.append(Failure(path,
+                                    "rigid orientation is not normalized",
+                                    length, 1.0))
+        if length <= 1.0e-30:
+            return (0.0, 0.0, 0.0, 1.0)
+        return tuple(component / length for component in value)  # type: ignore[return-value]
+
+    def rotate(value: Vector, quaternion: Quaternion) -> Vector:
+        imaginary = quaternion[0], quaternion[1], quaternion[2]
+        twice_cross = scale(cross(imaginary, value), 2.0)
+        return add(value, add(scale(twice_cross, quaternion[3]),
+                              cross(imaginary, twice_cross)))
+
+    def close_contract(actual: Any, expected: Any, path: str) -> None:
+        if isinstance(expected, dict):
+            if not isinstance(actual, dict) or set(actual) != set(expected):
+                failures.append(Failure(path,
+                                        "fixture setting differs from profile",
+                                        actual, expected))
+                return
+            for key, wanted in expected.items():
+                close_contract(actual.get(key), wanted, path + "." + key)
+        elif isinstance(expected, list):
+            if not isinstance(actual, list) or len(actual) != len(expected):
+                failures.append(Failure(path,
+                                        "fixture setting differs from profile",
+                                        actual, expected))
+                return
+            for index, (item, wanted) in enumerate(zip(actual, expected)):
+                close_contract(item, wanted, f"{path}[{index}]")
+        elif _number(expected):
+            if (not _number(actual) or
+                    abs(float(actual) - float(expected)) > state_tolerance):
+                failures.append(Failure(path,
+                                        "fixture setting differs from profile",
+                                        actual, expected))
+        elif actual != expected:
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    actual, expected))
+
+    def snapshot(value: Any, path: str,
+                 node_count: int) -> dict[str, Any] | None:
+        if not isinstance(value, dict):
+            failures.append(Failure(path, "expected a snapshot object", value))
+            return None
+        raw_rope = value.get("rope")
+        raw_rigid = value.get("rigid")
+        if not isinstance(raw_rope, list) or len(raw_rope) != node_count:
+            failures.append(Failure(path + ".rope",
+                                    "rope state count differs from profile",
+                                    raw_rope, node_count))
+            return None
+        nodes: list[dict[str, Any]] = []
+        for index, node in enumerate(raw_rope):
+            item_path = f"{path}.rope[{index}]"
+            if not isinstance(node, dict) or node.get("index") != index:
+                failures.append(Failure(item_path,
+                                        "rope node order/index changed", node,
+                                        index))
+                continue
+            position = _vector(node.get("position_m"),
+                               item_path + ".position_m", failures)
+            velocity = _vector(node.get("velocity_m_s"),
+                               item_path + ".velocity_m_s", failures)
+            force = _vector(node.get("rigid_contact_force_n"),
+                            item_path + ".rigid_contact_force_n", failures)
+            if position is not None and velocity is not None and force is not None:
+                nodes.append({"position": position, "velocity": velocity,
+                              "force": force})
+        if not isinstance(raw_rigid, dict):
+            failures.append(Failure(path + ".rigid",
+                                    "expected a rigid state object", raw_rigid))
+            return None
+        rigid_position = _vector(raw_rigid.get("position_m"),
+                                 path + ".rigid.position_m", failures)
+        rigid_orientation = _quaternion(
+            raw_rigid.get("orientation_xyzw"),
+            path + ".rigid.orientation_xyzw", failures)
+        rigid_linear = _vector(raw_rigid.get("linear_velocity_m_s"),
+                               path + ".rigid.linear_velocity_m_s", failures)
+        rigid_angular = _vector(raw_rigid.get("angular_velocity_rad_s"),
+                                path + ".rigid.angular_velocity_rad_s", failures)
+        if (len(nodes) != node_count or rigid_position is None or
+                rigid_orientation is None or rigid_linear is None or
+                rigid_angular is None):
+            return None
+        rigid_orientation = normalized_quaternion(
+            rigid_orientation, path + ".rigid.orientation_xyzw")
+        return {"nodes": nodes, "rigid_position": rigid_position,
+                "rigid_orientation": rigid_orientation,
+                "rigid_linear": rigid_linear,
+                "rigid_angular": rigid_angular}
+
+    def point_triangle_distance(point: Vector, first: Vector, second: Vector,
+                                third: Vector) -> float:
+        ab = _subtract(second, first)
+        ac = _subtract(third, first)
+        ap = _subtract(point, first)
+        d1, d2 = dot(ab, ap), dot(ac, ap)
+        if d1 <= 0.0 and d2 <= 0.0:
+            return _norm(ap)
+        bp = _subtract(point, second)
+        d3, d4 = dot(ab, bp), dot(ac, bp)
+        if d3 >= 0.0 and d4 <= d3:
+            return _norm(bp)
+        vc = d1 * d4 - d3 * d2
+        if vc <= 0.0 and d1 >= 0.0 and d3 <= 0.0:
+            fraction = d1 / (d1 - d3)
+            return _norm(_subtract(point, add(first, scale(ab, fraction))))
+        cp = _subtract(point, third)
+        d5, d6 = dot(ab, cp), dot(ac, cp)
+        if d6 >= 0.0 and d5 <= d6:
+            return _norm(cp)
+        vb = d5 * d2 - d1 * d6
+        if vb <= 0.0 and d2 >= 0.0 and d6 <= 0.0:
+            fraction = d2 / (d2 - d6)
+            return _norm(_subtract(point, add(first, scale(ac, fraction))))
+        va = d3 * d6 - d5 * d4
+        if va <= 0.0 and d4 - d3 >= 0.0 and d5 - d6 >= 0.0:
+            edge = _subtract(third, second)
+            fraction = (d4 - d3) / ((d4 - d3) + (d5 - d6))
+            return _norm(_subtract(point, add(second, scale(edge, fraction))))
+        denominator = va + vb + vc
+        if abs(denominator) <= 1.0e-30:
+            return min(_norm(ap), _norm(bp), _norm(cp))
+        inverse = 1.0 / denominator
+        closest = add(first, add(scale(ab, vb * inverse),
+                                 scale(ac, vc * inverse)))
+        return _norm(_subtract(point, closest))
+
+    def segment_segment_distance(first_a: Vector, last_a: Vector,
+                                 first_b: Vector, last_b: Vector) -> float:
+        edge_a = _subtract(last_a, first_a)
+        edge_b = _subtract(last_b, first_b)
+        offset = _subtract(first_a, first_b)
+        a = dot(edge_a, edge_a)
+        e = dot(edge_b, edge_b)
+        f = dot(edge_b, offset)
+        if a <= 1.0e-30 and e <= 1.0e-30:
+            return _norm(offset)
+        if a <= 1.0e-30:
+            first_fraction = 0.0
+            second_fraction = max(0.0, min(1.0, f / e))
+        else:
+            c = dot(edge_a, offset)
+            if e <= 1.0e-30:
+                second_fraction = 0.0
+                first_fraction = max(0.0, min(1.0, -c / a))
+            else:
+                b = dot(edge_a, edge_b)
+                denominator = a * e - b * b
+                first_fraction = (max(0.0, min(1.0, (b * f - c * e) /
+                                                    denominator))
+                                  if abs(denominator) > 1.0e-30 else 0.0)
+                second_fraction = (b * first_fraction + f) / e
+                if second_fraction < 0.0:
+                    second_fraction = 0.0
+                    first_fraction = max(0.0, min(1.0, -c / a))
+                elif second_fraction > 1.0:
+                    second_fraction = 1.0
+                    first_fraction = max(0.0, min(1.0, (b - c) / a))
+        closest_a = add(first_a, scale(edge_a, first_fraction))
+        closest_b = add(first_b, scale(edge_b, second_fraction))
+        return _norm(_subtract(closest_a, closest_b))
+
+    def segment_hits_triangle(first: Vector, last: Vector, a: Vector,
+                              b: Vector, c: Vector) -> bool:
+        direction = _subtract(last, first)
+        first_edge = _subtract(b, a)
+        second_edge = _subtract(c, a)
+        trial = cross(direction, second_edge)
+        determinant = dot(first_edge, trial)
+        if abs(determinant) <= 1.0e-12:
+            return False
+        inverse = 1.0 / determinant
+        offset = _subtract(first, a)
+        u = inverse * dot(offset, trial)
+        if u < 0.0 or u > 1.0:
+            return False
+        trial2 = cross(offset, first_edge)
+        v = inverse * dot(direction, trial2)
+        if v < 0.0 or u + v > 1.0:
+            return False
+        fraction = inverse * dot(second_edge, trial2)
+        return 0.0 <= fraction <= 1.0
+
+    def point_inside_convex(point: Vector, vertices: list[Vector],
+                            triangles: list[tuple[int, int, int]]) -> bool:
+        center = tuple(sum(vertex[axis] for vertex in vertices) / len(vertices)
+                       for axis in range(3))
+        for first_index, second_index, third_index in triangles:
+            first = vertices[first_index]
+            normal = cross(_subtract(vertices[second_index], first),
+                           _subtract(vertices[third_index], first))
+            if dot(normal, _subtract(first, center)) < 0.0:
+                normal = scale(normal, -1.0)
+            if dot(normal, _subtract(point, first)) > 1.0e-10:
+                return False
+        return True
+
+    def segment_triangle_distance(first: Vector, last: Vector, a: Vector,
+                                  b: Vector, c: Vector) -> float:
+        if segment_hits_triangle(first, last, a, b, c):
+            return 0.0
+        return min(point_triangle_distance(first, a, b, c),
+                   point_triangle_distance(last, a, b, c),
+                   segment_segment_distance(first, last, a, b),
+                   segment_segment_distance(first, last, b, c),
+                   segment_segment_distance(first, last, c, a))
+
+    observations: dict[str, Any] = {}
+    sample_count = 0
+    for identity, definition in definitions.items():
+        actual = actual_by_id.get(identity)
+        if actual is None:
+            continue
+        base = f"$.fixtures[{identity}]"
+        settings = {key: value for key, value in actual.items()
+                    if key not in {"initial", "final"}}
+        close_contract(settings, definition, base)
+
+        node_count = definition.get("rope_node_count")
+        if (not isinstance(node_count, int) or isinstance(node_count, bool) or
+                node_count < 2):
+            failures.append(Failure(base + ".rope_node_count",
+                                    "quality fixture needs at least two rope nodes",
+                                    node_count))
+            continue
+        initial = snapshot(actual.get("initial"), base + ".initial", node_count)
+        final = snapshot(actual.get("final"), base + ".final", node_count)
+        if initial is None or final is None:
+            continue
+
+        prepared_raw = definition.get("prepared_rope_nodes_m")
+        prepared_velocity = _vector(
+            definition.get("prepared_rope_velocity_m_s"),
+            base + ".prepared_rope_velocity_m_s", failures)
+        if (not isinstance(prepared_raw, list) or
+                len(prepared_raw) != node_count or prepared_velocity is None):
+            failures.append(Failure(base + ".prepared_rope_nodes_m",
+                                    "invalid prepared rope state", prepared_raw))
+            continue
+        prepared = [_vector(item, f"{base}.prepared_rope_nodes_m[{index}]",
+                            failures)
+                    for index, item in enumerate(prepared_raw)]
+        if any(item is None for item in prepared):
+            continue
+        prepared_nodes = [item for item in prepared if item is not None]
+        for index, wanted in enumerate(prepared_nodes):
+            node = initial["nodes"][index]
+            if _norm(_subtract(node["position"], wanted)) > state_tolerance:
+                failures.append(Failure(
+                    f"{base}.initial.rope[{index}].position_m",
+                    "prepared rope position differs from profile",
+                    list(node["position"]), list(wanted)))
+            if _norm(_subtract(node["velocity"], prepared_velocity)) > \
+                    state_tolerance:
+                failures.append(Failure(
+                    f"{base}.initial.rope[{index}].velocity_m_s",
+                    "prepared rope velocity differs from profile",
+                    list(node["velocity"]), list(prepared_velocity)))
+            if _norm(node["force"]) > state_tolerance:
+                failures.append(Failure(
+                    f"{base}.initial.rope[{index}].rigid_contact_force_n",
+                    "initial rope contact force must be zero",
+                    list(node["force"]), 0.0))
+
+        initial_rigid_position = _vector(
+            definition.get("rigid_initial_position_m"),
+            base + ".rigid_initial_position_m", failures)
+        initial_rigid_orientation = _quaternion(
+            definition.get("rigid_initial_orientation_xyzw"),
+            base + ".rigid_initial_orientation_xyzw", failures)
+        if initial_rigid_position is None or initial_rigid_orientation is None:
+            continue
+        if _norm(_subtract(initial["rigid_position"],
+                           initial_rigid_position)) > state_tolerance:
+            failures.append(Failure(base + ".initial.rigid.position_m",
+                                    "initial rigid position differs from profile",
+                                    list(initial["rigid_position"]),
+                                    list(initial_rigid_position)))
+        if quaternion_distance(initial["rigid_orientation"],
+                               initial_rigid_orientation) > state_tolerance:
+            failures.append(Failure(base + ".initial.rigid.orientation_xyzw",
+                                    "initial rigid orientation differs from profile",
+                                    list(initial["rigid_orientation"]),
+                                    list(initial_rigid_orientation)))
+        if (_norm(initial["rigid_linear"]) > state_tolerance or
+                _norm(initial["rigid_angular"]) > state_tolerance):
+            failures.append(Failure(base + ".initial.rigid",
+                                    "initial rigid endpoint must be stationary",
+                                    {"linear": list(initial["rigid_linear"]),
+                                     "angular": list(initial["rigid_angular"])}))
+
+        vertices_raw = definition.get("rigid_geometry_vertices_m")
+        indices = definition.get("rigid_geometry_triangle_indices")
+        if not isinstance(vertices_raw, list) or not isinstance(indices, list):
+            failures.append(Failure(base + ".rigid_geometry_vertices_m",
+                                    "invalid rigid geometry", vertices_raw))
+            continue
+        vertices = [_vector(item, f"{base}.rigid_geometry_vertices_m[{index}]",
+                            failures)
+                    for index, item in enumerate(vertices_raw)]
+        if any(vertex is None for vertex in vertices):
+            continue
+        local_vertices = [vertex for vertex in vertices if vertex is not None]
+        if (not indices or len(indices) % 3 != 0 or
+                any(not isinstance(index, int) or isinstance(index, bool) or
+                    index < 0 or index >= len(local_vertices) for index in indices)):
+            failures.append(Failure(base + ".rigid_geometry_triangle_indices",
+                                    "invalid rigid triangle topology", indices))
+            continue
+        triangles = [(indices[offset], indices[offset + 1], indices[offset + 2])
+                     for offset in range(0, len(indices), 3)]
+        transformed = [add(final["rigid_position"], rotate(
+            vertex, final["rigid_orientation"])) for vertex in local_vertices]
+        clearance = float("inf")
+        for segment in range(node_count - 1):
+            first = final["nodes"][segment]["position"]
+            last = final["nodes"][segment + 1]["position"]
+            if (point_inside_convex(first, transformed, triangles) or
+                    point_inside_convex(last, transformed, triangles)):
+                clearance = 0.0
+                break
+            for first_index, second_index, third_index in triangles:
+                clearance = min(clearance, segment_triangle_distance(
+                    first, last, transformed[first_index],
+                    transformed[second_index], transformed[third_index]))
+        combined_clearance = _scalar(
+            definition.get("combined_clearance_m"),
+            base + ".combined_clearance_m", failures)
+        if combined_clearance is None or combined_clearance <= 0.0:
+            continue
+        penetration = max(0.0, combined_clearance - clearance)
+        penetration_limit = float(tolerances.get(
+            "maximum_overlap_penetration_m", 0.0))
+        if penetration > penetration_limit:
+            failures.append(Failure(base + ".final.rope",
+                                    "rope capsule overlapped transformed rigid geometry",
+                                    penetration, penetration_limit))
+
+        rope_mass = _scalar(definition.get("rope_total_mass_kg"),
+                            base + ".rope_total_mass_kg", failures)
+        rigid_mass = _scalar(definition.get("rigid_mass_kg"),
+                             base + ".rigid_mass_kg", failures)
+        timestep = _scalar(definition.get("timestep_seconds"),
+                           base + ".timestep_seconds", failures)
+        normal = _vector(definition.get("contact_normal"),
+                         base + ".contact_normal", failures)
+        inertia_raw = _vector(definition.get("rigid_inertia_diagonal_kg_m2"),
+                              base + ".rigid_inertia_diagonal_kg_m2", failures)
+        if (rope_mass is None or rope_mass <= 0.0 or rigid_mass is None or
+                rigid_mass <= 0.0 or timestep is None or timestep <= 0.0 or
+                normal is None or inertia_raw is None):
+            continue
+        unit_normal = _unit(normal)
+        if unit_normal is None:
+            failures.append(Failure(base + ".contact_normal",
+                                    "contact normal must be nonzero", normal))
+            continue
+        if abs(_norm(normal) - 1.0) > state_tolerance:
+            failures.append(Failure(base + ".contact_normal",
+                                    "contact normal must be unit length",
+                                    _norm(normal), 1.0))
+
+        node_mass = rope_mass / node_count
+        initial_rope_momentum = scale(_sum([
+            node["velocity"] for node in initial["nodes"]]), node_mass)
+        final_rope_momentum = scale(_sum([
+            node["velocity"] for node in final["nodes"]]), node_mass)
+        rope_impulse = _subtract(final_rope_momentum, initial_rope_momentum)
+        rigid_impulse = scale(_subtract(final["rigid_linear"],
+                                        initial["rigid_linear"]), rigid_mass)
+        reciprocal_residual = _norm(add(rope_impulse, rigid_impulse))
+        observed_normal = dot(rope_impulse, unit_normal)
+        impulse_activity = max(abs(observed_normal),
+                               abs(dot(rigid_impulse, unit_normal)))
+        tangent_impulse = _norm(_subtract(
+            rope_impulse, scale(unit_normal, observed_normal)))
+        initial_rope_velocity = scale(initial_rope_momentum, 1.0 / rope_mass)
+        final_rope_velocity = scale(final_rope_momentum, 1.0 / rope_mass)
+        initial_relative = _subtract(initial_rope_velocity,
+                                     initial["rigid_linear"])
+        final_relative = _subtract(final_rope_velocity, final["rigid_linear"])
+        initial_closing = max(0.0, -dot(initial_relative, unit_normal))
+        final_normal_speed = dot(final_relative, unit_normal)
+        final_closing = max(0.0, -final_normal_speed)
+        final_slip = _norm(_subtract(
+            final_relative, scale(unit_normal, final_normal_speed)))
+        expected_impulse = initial_closing / (1.0 / rope_mass +
+                                               1.0 / rigid_mass)
+        expected_error = abs(observed_normal - expected_impulse)
+        force_impulse = scale(_sum([
+            node["force"] for node in final["nodes"]]), timestep)
+        force_error = _norm(_subtract(force_impulse, rope_impulse))
+        orientation_drift = quaternion_distance(
+            final["rigid_orientation"], initial["rigid_orientation"])
+        angular_speed = _norm(final["rigid_angular"])
+
+        def kinetic(snapshot_value: dict[str, Any]) -> float:
+            rope_energy = sum(0.5 * node_mass * dot(
+                node["velocity"], node["velocity"])
+                              for node in snapshot_value["nodes"])
+            rigid_energy = 0.5 * rigid_mass * dot(
+                snapshot_value["rigid_linear"],
+                snapshot_value["rigid_linear"])
+            orientation = snapshot_value["rigid_orientation"]
+            inverse = (-orientation[0], -orientation[1], -orientation[2],
+                       orientation[3])
+            local_angular = rotate(snapshot_value["rigid_angular"], inverse)
+            rigid_energy += 0.5 * sum(
+                inertia_raw[axis] * local_angular[axis] ** 2
+                for axis in range(3))
+            return rope_energy + rigid_energy
+
+        energy_change = kinetic(final) - kinetic(initial)
+        maximum_rope_speed = max(_norm(node["velocity"])
+                                 for node in final["nodes"])
+        rigid_linear_speed = _norm(final["rigid_linear"])
+        rope_speed_limit = float(definition.get("rope_maximum_speed_m_s", 0.0)) + \
+            float(tolerances.get("maximum_speed_slack_m_s", 0.0))
+        rigid_speed_limit = float(definition.get(
+            "rigid_maximum_linear_speed_m_s", 0.0)) + float(
+                tolerances.get("maximum_speed_slack_m_s", 0.0))
+        rigid_angular_limit = float(definition.get(
+            "rigid_maximum_angular_speed_rad_s", 0.0)) + float(
+                tolerances.get("maximum_speed_slack_m_s", 0.0))
+        if maximum_rope_speed > rope_speed_limit:
+            failures.append(Failure(base + ".final.rope",
+                                    "rope speed exceeds authored maximum",
+                                    maximum_rope_speed, rope_speed_limit))
+        if rigid_linear_speed > rigid_speed_limit:
+            failures.append(Failure(base + ".final.rigid.linear_velocity_m_s",
+                                    "rigid speed exceeds authored maximum",
+                                    rigid_linear_speed, rigid_speed_limit))
+        if angular_speed > rigid_angular_limit:
+            failures.append(Failure(base + ".final.rigid.angular_velocity_rad_s",
+                                    "rigid angular speed exceeds authored maximum",
+                                    angular_speed, rigid_angular_limit))
+
+        expected_contact = definition.get("expected_contact") is True
+        control_position_error = control_velocity_error = None
+        control_momentum_change = control_contact_force = None
+        if not expected_contact:
+            control_position_error = max(_norm(_subtract(
+                node["position"], add(before["position"], scale(
+                    before["velocity"], timestep))))
+                for before, node in zip(initial["nodes"], final["nodes"]))
+            control_velocity_error = max(_norm(_subtract(
+                node["velocity"], before["velocity"]))
+                for before, node in zip(initial["nodes"], final["nodes"]))
+            control_momentum_change = _norm(rope_impulse) + _norm(rigid_impulse)
+            control_contact_force = max(_norm(node["force"])
+                                        for node in final["nodes"])
+            if control_position_error > float(tolerances.get(
+                    "maximum_control_position_error_m", 0.0)):
+                failures.append(Failure(base + ".final.rope",
+                                        "separated control is not ballistic",
+                                        control_position_error,
+                                        tolerances.get(
+                                            "maximum_control_position_error_m")))
+            if control_velocity_error > float(tolerances.get(
+                    "maximum_control_velocity_error_m_s", 0.0)):
+                failures.append(Failure(base + ".final.rope",
+                                        "separated control velocity changed",
+                                        control_velocity_error,
+                                        tolerances.get(
+                                            "maximum_control_velocity_error_m_s")))
+            if control_momentum_change > float(tolerances.get(
+                    "maximum_control_momentum_change_n_s", 0.0)):
+                failures.append(Failure(base + ".final",
+                                        "separated control exchanged momentum",
+                                        control_momentum_change,
+                                        tolerances.get(
+                                            "maximum_control_momentum_change_n_s")))
+            if control_contact_force > float(tolerances.get(
+                    "maximum_control_contact_force_n", 0.0)):
+                failures.append(Failure(base + ".final.rope",
+                                        "separated control reported contact force",
+                                        control_contact_force,
+                                        tolerances.get(
+                                            "maximum_control_contact_force_n")))
+            rigid_position_error = _norm(_subtract(
+                final["rigid_position"], initial["rigid_position"]))
+            rigid_velocity_error = _norm(final["rigid_linear"])
+            rigid_orientation_error = quaternion_distance(
+                final["rigid_orientation"], initial["rigid_orientation"])
+            if (rigid_position_error > float(tolerances.get(
+                    "maximum_control_position_error_m", 0.0)) or
+                    rigid_velocity_error > float(tolerances.get(
+                        "maximum_control_velocity_error_m_s", 0.0)) or
+                    rigid_orientation_error > state_tolerance or
+                    angular_speed > state_tolerance):
+                failures.append(Failure(base + ".final.rigid",
+                                        "separated control moved the rigid body",
+                                        {"position_error_m": rigid_position_error,
+                                         "velocity_error_m_s": rigid_velocity_error,
+                                         "orientation_error": rigid_orientation_error,
+                                         "angular_speed_rad_s": angular_speed}))
+        else:
+            declared_expected = _scalar(
+                definition.get("expected_coherent_reduced_mass_impulse_n_s"),
+                base + ".expected_coherent_reduced_mass_impulse_n_s", failures)
+            if (declared_expected is not None and
+                    abs(declared_expected - expected_impulse) > state_tolerance):
+                failures.append(Failure(
+                    base + ".expected_coherent_reduced_mass_impulse_n_s",
+                    "declared impulse differs from coherent reduced-mass oracle",
+                    declared_expected, expected_impulse))
+            if impulse_activity < float(tolerances.get(
+                    "minimum_contact_impulse_n_s", 0.0)):
+                failures.append(Failure(base + ".final",
+                                        "rope-rigid contact impulse is too small",
+                                        impulse_activity,
+                                        tolerances.get(
+                                            "minimum_contact_impulse_n_s")))
+            if reciprocal_residual > float(tolerances.get(
+                    "maximum_reciprocal_impulse_residual_n_s", 0.0)):
+                failures.append(Failure(base + ".final",
+                                        "rope and rigid impulses are not reciprocal",
+                                        reciprocal_residual,
+                                        tolerances.get(
+                                            "maximum_reciprocal_impulse_residual_n_s")))
+            if expected_error > float(tolerances.get(
+                    "maximum_expected_impulse_error_n_s", 0.0)):
+                failures.append(Failure(
+                    base + ".final.rope",
+                    "normal impulse differs from coherent reduced-mass oracle",
+                    expected_error,
+                    tolerances.get("maximum_expected_impulse_error_n_s")))
+            if force_error > float(tolerances.get(
+                    "maximum_force_impulse_residual_n_s", 0.0)):
+                failures.append(Failure(
+                    base + ".final.rope",
+                    "public rope contact force does not integrate to momentum",
+                    force_error,
+                    tolerances.get("maximum_force_impulse_residual_n_s")))
+            if tangent_impulse > float(tolerances.get(
+                    "maximum_tangential_impulse_n_s", 0.0)):
+                failures.append(Failure(base + ".final.rope",
+                                        "frictionless contact generated tangential impulse",
+                                        tangent_impulse,
+                                        tolerances.get(
+                                            "maximum_tangential_impulse_n_s")))
+            if final_slip < float(tolerances.get(
+                    "minimum_frictionless_slip_m_s", 0.0)):
+                failures.append(Failure(base + ".final",
+                                        "rope and rigid moved as a hidden attachment",
+                                        final_slip,
+                                        tolerances.get(
+                                            "minimum_frictionless_slip_m_s")))
+            if final_closing > float(tolerances.get(
+                    "maximum_final_closing_speed_m_s", 0.0)):
+                failures.append(Failure(base + ".final",
+                                        "rope and rigid remain closing after contact",
+                                        final_closing,
+                                        tolerances.get(
+                                            "maximum_final_closing_speed_m_s")))
+            if angular_speed > float(tolerances.get(
+                    "maximum_angular_speed_rad_s", 0.0)):
+                failures.append(Failure(
+                    base + ".final.rigid.angular_velocity_rad_s",
+                    "centered impact generated angular speed", angular_speed,
+                    tolerances.get("maximum_angular_speed_rad_s")))
+            if orientation_drift > float(tolerances.get(
+                    "maximum_orientation_drift", 0.0)):
+                failures.append(Failure(
+                    base + ".final.rigid.orientation_xyzw",
+                    "centered impact rotated the rigid body", orientation_drift,
+                    tolerances.get("maximum_orientation_drift")))
+            if energy_change > float(tolerances.get(
+                    "maximum_energy_increase_j", 0.0)):
+                failures.append(Failure(base + ".final",
+                                        "passive contact increased kinetic energy",
+                                        energy_change,
+                                        tolerances.get(
+                                            "maximum_energy_increase_j")))
+
+        observations[identity] = {
+            "minimum_capsule_geometry_clearance_m": clearance,
+            "maximum_overlap_penetration_m": penetration,
+            "rope_contact_impulse_n_s": list(rope_impulse),
+            "rigid_contact_impulse_n_s": list(rigid_impulse),
+            "contact_impulse_activity_n_s": impulse_activity,
+            "reciprocal_impulse_residual_n_s": reciprocal_residual,
+            "expected_normal_impulse_n_s": expected_impulse,
+            "expected_impulse_error_n_s": expected_error,
+            "rope_force_impulse_n_s": list(force_impulse),
+            "force_impulse_residual_n_s": force_error,
+            "tangential_impulse_n_s": tangent_impulse,
+            "final_frictionless_slip_m_s": final_slip,
+            "final_closing_speed_m_s": final_closing,
+            "orientation_drift": orientation_drift,
+            "angular_speed_rad_s": angular_speed,
+            "kinetic_energy_change_j": energy_change,
+            "maximum_rope_speed_m_s": maximum_rope_speed,
+            "rigid_linear_speed_m_s": rigid_linear_speed,
+            "control_position_error_m": control_position_error,
+            "control_velocity_error_m_s": control_velocity_error,
+            "control_momentum_change_n_s": control_momentum_change,
+            "control_contact_force_n": control_contact_force,
+        }
+        sample_count += 1
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": len(actual_by_id),
+        "sample_count": sample_count,
+        "failure_count": len(failures),
+        "observations": observations,
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def _evaluate_cloth_rigid_contact(
         profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
         driver: Any, failures: list[Failure]) -> dict[str, Any]:
@@ -10418,6 +11099,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "cloth_rigid_contact":
         return _evaluate_cloth_rigid_contact(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "rope_rigid_contact":
+        return _evaluate_rope_rigid_contact(
             profile, result, expected_hash, driver, failures)
     if evaluation == "fluid_rope_contact":
         return _evaluate_fluid_rope_contact(

@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "996a961586650ab94b45981863eebdd6e8b2daad7f434dd9122b519213c25f33"
+    "sha256": "ee13e18a97e0c59b5fb1fd75dd10cea8d887afa21cb690f89696fc6e6a396a1a"
   },
   "qualification_results": [
     {
@@ -220,12 +220,12 @@
     {
       "id": "windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-grid",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-grid-qualification.json",
-      "sha256": "a64d0471daef65b0a366a395ad90dea9393b1cf6842af2669bc81a42c11534d2"
+      "sha256": "520a129426c82931897f8363caf4658cfa6ca65ebd32bb5bc14b18489608e990"
     },
     {
       "id": "windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-particle",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-particle-qualification.json",
-      "sha256": "6014458233da042c4ce054f6287e03ff87e2eafd5e65af83d96bcd3ce1f1e9ff"
+      "sha256": "823d2f431b3e07493c4d31d47044d951f843e16466ec688a0c5a27234aba5ca4"
     },
     {
       "id": "windows-gtx1080-slang-d3d12-2b04e55",

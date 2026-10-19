@@ -34,7 +34,7 @@
     "particle_qualification": "PASS: 1/1 exact SMOKE_PARTICLE CONTACT capability, 0 failures",
     "grid_qualification": "PASS: 1/1 exact SMOKE_GRID CONTACT capability, 0 failures",
     "d3d12": "UNSUPPORTED: driver does not advertise smoke and rigid features; both exit-77 results are retained and grant no qualification",
-    "python_tests": "PASS: 349 tests after evidence integration",
+    "python_tests": "PASS: 363 tests after merging F5-52 and integrating evidence",
     "native_build": "PASS: conformance runner, validation layer, slang-cuda driver and slang-d3d12 driver",
     "command_inputs": "PASS: loader-style CUDA and D3D12 runners accept all pinned conformance inputs",
     "evidence_index": "PASS: 2/333 capability records qualified across 44 revisioned reports; stale, unsupported and unrecaptured records remain visible and unqualified"

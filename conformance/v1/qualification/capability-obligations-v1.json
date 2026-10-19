@@ -51,6 +51,7 @@
     {"id": "quality:fluid-self-pressure-v1", "path": "conformance/v1/quality/fluid-self-pressure-v1.json", "sha256": "4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b"},
     {"id": "quality:fluid-self-viscosity-v1", "path": "conformance/v1/quality/fluid-self-viscosity-v1.json", "sha256": "9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c"},
     {"id": "quality:rope-self-contact-v1", "path": "conformance/v1/quality/rope-self-contact-v1.json", "sha256": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113"},
+    {"id": "quality:rope-rigid-contact-v1", "path": "conformance/v1/quality/rope-rigid-contact-v1.json", "sha256": "2cd3e0ff2be4463e635bc855810b933d38c5e2b099fbb511df8360846202c9e3"},
     {"id": "quality:fluid-cloth-containment-v1", "path": "conformance/v1/quality/fluid-cloth-containment-v1.json", "sha256": "477d6494144118c9c6b108807e81576965a16a34fda5dfe672ed783b5de95b33"},
     {"id": "quality:cloth-soft-contact-v1", "path": "conformance/v1/quality/cloth-soft-contact-v1.json", "sha256": "0d67c947347d45b5bdc897df3f213513f576c01ca1bd3898b32010ec7578b7e2"},
     {"id": "quality:cloth-rigid-contact-v1", "path": "conformance/v1/quality/cloth-rigid-contact-v1.json", "sha256": "0d9b503564ce6e5405b147035d241ea1984c1273fd8df7108c52300ae9ffb909"},
@@ -506,11 +507,21 @@
       "missing": {}
     },
     {
-      "id": "rope-rigid",
-      "match": {"first_family": ["ROPE"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "id": "rope-rigid-contact",
+      "match": {"first_family": ["ROPE"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:rope-core",
+      "required": {
+        "lifecycle_invariants": ["case:rope-core"],
+        "analytic_invariants": ["quality:rope-rigid-contact-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "rope-rigid-attachment",
+      "match": {"first_family": ["ROPE"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:rope-core",
       "required": {"lifecycle_invariants": ["case:rope-core"]},
-      "missing": {"analytic_invariants": "No vendor-neutral rope-rigid quality case is registered."}
+      "missing": {"analytic_invariants": "No vendor-neutral rope-rigid ATTACHMENT quality case is registered."}
     },
     {
       "id": "smoke-rigid-contact-particle",

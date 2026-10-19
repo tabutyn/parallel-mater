@@ -268,6 +268,30 @@ python3 conformance/v1/lifecycle.py \
   --report /path/to/soft-rigid-lifecycle-report.json
 ```
 
+Intrinsic rope/rigid CONTACT uses `rope-rigid-contact-v1`. A free two-node
+rope segment receives a public preparation impulse, then strikes the centered
+face of a dynamic cube beside a separated control. The public-state oracle
+reconstructs capsule-to-mesh clearance and checks coherent reduced-mass
+impulse, reciprocal rope/body momentum, public contact-force consistency,
+frictionless tangential slip, closing speed, angular drift, energy and speed
+bounds. Both endpoint attachments are disabled and this exact capability has
+no `PmCouplingState`; its graph limit is `not-applicable`:
+
+```text
+parallel-mater-conformance --quality rope-rigid-contact-v1 \
+  --output /path/to/rope-rigid-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/rope-rigid-contact-v1.json \
+  --actual /path/to/rope-rigid-quality-results/rope-rigid-contact-v1.json \
+  --report /path/to/rope-rigid-quality-report.json
+```
+
+The existing `case:rope-core` contract remains the independent trajectory and
+lifecycle obligation. A checked physical aggregate binds both scopes to the
+same completed `rope-core` result and passing comparison report; the analytic
+fixture cannot substitute for its capacity, replacement or rollback coverage.
+Rope/rigid ATTACHMENT remains a separate exact rule with no analytic contract.
+
 Soft-body-to-smoke CONTACT uses the immutable `soft-smoke-contact-v1`
 profile for particle and projected-grid smoke. Paired no-edge and CONTACT-edge
 runs derive crossing, surface clearance, normal rejection, tangential motion,
