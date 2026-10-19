@@ -1,7 +1,7 @@
 {
   "id": "F5-45",
   "title": "Qualify soft-rope contact",
-  "status": "leased",
+  "status": "open",
   "dependencies": [
     "F5-23"
   ],
@@ -18,14 +18,22 @@
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
   "evidence": [],
-  "lease": {
-    "token": "369aa4bc-0736-4ba0-a116-d081c662f7a8",
-    "owner": "codex-macos-qualification",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F5-45/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-19T17:17:53Z",
-    "heartbeat_at": "2026-10-19T17:17:53Z",
-    "expires_at": "2026-10-20T17:17:53Z"
-  },
-  "history": []
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "369aa4bc-0736-4ba0-a116-d081c662f7a8",
+        "owner": "codex-macos-qualification",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F5-45/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-19T17:17:53Z",
+        "heartbeat_at": "2026-10-19T17:17:53Z",
+        "expires_at": "2026-10-20T17:17:53Z"
+      },
+      "outcome": "released",
+      "at": "2026-10-19T18:37:27Z",
+      "reason": "Metal physical oracle passes, but current CUDA rope-soft-body regression still exposes cross-driver rope contact-candidate drift; implementation retained on work/F5-45/Thomass-MacBook-Air pending a separately scoped shared-physics repair.",
+      "evidence": []
+    }
+  ]
 }
