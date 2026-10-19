@@ -40,6 +40,9 @@ struct CaseExecution {
 [[nodiscard]] std::string conformance_smoke_pressure_quality(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_fluid_cloth_contact_quality(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_fluid_pair_quality(
     const std::filesystem::path &temporary_output);
 [[nodiscard]] std::string conformance_adverse_lifecycle(
@@ -52,6 +55,9 @@ struct CaseExecution {
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_smoke_pressure_lifecycle(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_fluid_cloth_contact_lifecycle(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
 

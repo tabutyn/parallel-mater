@@ -51,6 +51,7 @@
     {"id": "quality:fluid-cloth-containment-v1", "path": "conformance/v1/quality/fluid-cloth-containment-v1.json", "sha256": "477d6494144118c9c6b108807e81576965a16a34fda5dfe672ed783b5de95b33"},
     {"id": "quality:fluid-soft-contact-v1", "path": "conformance/v1/quality/fluid-soft-contact-v1.json", "sha256": "40dce99005017b4b4a485f7553ea89f8f06526c88f242215a1415c8c67c9e986"},
     {"id": "quality:smoke-self-pressure-v1", "path": "conformance/v1/quality/smoke-self-pressure-v1.json", "sha256": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150"},
+    {"id": "quality:fluid-cloth-contact-v1", "path": "conformance/v1/quality/fluid-cloth-contact-v1.json", "sha256": "1216cf9e7252b5fe4c27f14639a1031e698d459a2001db60153a088ebb600445"},
     {"id": "quality:smoke-self-viscosity-v1", "path": "conformance/v1/quality/smoke-self-viscosity-v1.json", "sha256": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"},
     {"id": "quality:core-conservation-stability-v1#equal-material-pressure-contact", "path": "conformance/v1/quality/core-conservation-v1.json", "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"},
     {"id": "quality:core-conservation-stability-v1#equal-material-viscosity", "path": "conformance/v1/quality/core-conservation-v1.json", "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"},
@@ -59,6 +60,7 @@
     {"id": "lifecycle:fluid-cloth-containment-lifecycle-v1#fluid-cloth-containment-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-cloth-containment-lifecycle-v1.json", "sha256": "c96a995030b4b3e20ef77c55ab01bb7be2afdbfa2959f69c7d07be6c9bc21bb1"},
     {"id": "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-particle-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json", "sha256": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31"},
     {"id": "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-grid-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json", "sha256": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31"},
+    {"id": "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json", "sha256": "5599b5d6c5e8386830d0abb29a13feddd3a43a917912efb9e9cf4b1732a22769"},
     {"id": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json", "sha256": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f"}
   ],
   "rules": [
@@ -166,8 +168,11 @@
       "id": "fluid-cloth-contact",
       "match": {"first_family": ["FLUID"], "second_family": ["CLOTH"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:cloth-water",
-      "required": {},
-      "missing": {"lifecycle_invariants": "No exact fluid-cloth adverse graph case is registered.", "analytic_invariants": "No vendor-neutral fluid-cloth quality case is registered."}
+      "required": {
+        "lifecycle_invariants": ["lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback"],
+        "analytic_invariants": ["quality:fluid-cloth-contact-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "fluid-cloth-containment",

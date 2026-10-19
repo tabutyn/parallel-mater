@@ -431,6 +431,8 @@ struct FluidClothCouplingOptions {
     float damping{12.0F};
     float tangential_drag{1.44F};
     float maximum_force{960.0F};
+    bool contact{true};
+    bool containment{true};
     bool enabled{true};
 };
 
