@@ -87,6 +87,7 @@
     "conformance/v1/quality/rigid-brick-penetration-v1.json": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da",
     "conformance/v1/quality/rigid-kinematic-sweep-v1.json": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc",
     "conformance/v1/quality/rope-rigid-contact-v1.json": "2cd3e0ff2be4463e635bc855810b933d38c5e2b099fbb511df8360846202c9e3",
+    "conformance/v1/quality/rope-rigid-attachment-v1.json": "f11a7dd5b27e5da058a4384b2154b2db6a3ee1f8c3cc94d6333b9f8d8c5fb6d0",
     "conformance/v1/quality/rope-self-contact-v1.json": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113",
     "conformance/v1/quality/rope-smoke-contact-v1.json": "821c94ef42abeb047390383ef6fd0f28476aa5880414235defb8348532bbbc7a",
     "conformance/v1/quality/smoke-rigid-contact-v1.json": "138454122bed21dccb6c30f5e7e132ba9a1131856d88396cd8171570a4337029",
@@ -101,11 +102,11 @@
     "conformance/v1/quality/smoke-self-viscosity-v1.json": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"
   },
   "qualification_profile_sha256": {
-    "conformance/v1/qualification/capability-obligations-v1.json": "ee13e18a97e0c59b5fb1fd75dd10cea8d887afa21cb690f89696fc6e6a396a1a"
+    "conformance/v1/qualification/capability-obligations-v1.json": "f2dd575f1cb746067616aacf3d5617aace4e36ae2cf03bd141e1dcae5b861e18"
   },
   "evidence_index_sha256": {
-    "conformance/v1/evidence/evidence-sources-v1.json": "cc1f36e27bf6614ba98053bb9428bb9f73991963cb0f5cbae7480cffcc24d0ee",
-    "conformance/v1/evidence/index-v1.json": "4cfa672dbfedcf34fc41b4522ce2d0d44d590cde75798680f0c41c7022739cd3"
+    "conformance/v1/evidence/evidence-sources-v1.json": "fefb7f68f2efe1efebef5b97755d5214669034f7a5b45274de83e960095aa86f",
+    "conformance/v1/evidence/index-v1.json": "8776017a750e16666d269271b6da9963e017f16c706072e38ced9dce720795c4"
   },
   "quality_result_schema": "parallel-mater-conformance-quality-result/v1",
   "result_schema": "parallel-mater-conformance-result/v1",
