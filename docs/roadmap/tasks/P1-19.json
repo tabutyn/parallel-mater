@@ -1,7 +1,7 @@
 {
   "id": "P1-19",
   "title": "Expose cloth contact scopes and controls",
-  "status": "deferred",
+  "status": "open",
   "dependencies": [
     "P1-02"
   ],

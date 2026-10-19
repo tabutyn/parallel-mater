@@ -1,0 +1,166 @@
+{
+  "schema": "parallel-mater-roadmap-same-family-operator-plan/v1",
+  "task": "P1-02",
+  "result": "passed",
+  "source_contracts": [
+    {
+      "family": "cloth",
+      "task": "F2-12",
+      "document": "docs/INTERACTION-MODES.md#cloth-contact-scopes"
+    },
+    {
+      "family": "soft-body",
+      "task": "F2-13",
+      "document": "docs/INTERACTION-MODES.md#soft-body-surface-contact-scopes"
+    },
+    {
+      "family": "rope",
+      "task": "F2-14",
+      "document": "docs/INTERACTION-MODES.md#rope-self-segment-contact-and-attachment-scopes"
+    },
+    {
+      "family": "smoke",
+      "task": "F2-15",
+      "document": "docs/INTERACTION-MODES.md#smoke-self-and-overlapping-system-scopes"
+    }
+  ],
+  "family_plans": [
+    {
+      "family": "cloth",
+      "api_and_capability_tasks": [
+        "P1-19"
+      ],
+      "bounded_generation_tasks": [
+        "P1-20"
+      ],
+      "operator_tasks": [
+        "P1-21",
+        "P1-22"
+      ],
+      "schedule_and_lifecycle_tasks": [
+        "P1-23"
+      ],
+      "public_api_quality_gate_tasks": [
+        "P1-24"
+      ],
+      "covered_scopes": [
+        "intrinsic self contact and friction",
+        "separate-system cloth contact and friction"
+      ]
+    },
+    {
+      "family": "soft-body",
+      "api_and_capability_tasks": [
+        "P1-25"
+      ],
+      "bounded_generation_tasks": [
+        "P1-26"
+      ],
+      "operator_tasks": [
+        "P1-27",
+        "P1-28"
+      ],
+      "schedule_and_lifecycle_tasks": [
+        "P1-29"
+      ],
+      "public_api_quality_gate_tasks": [
+        "P1-30"
+      ],
+      "covered_scopes": [
+        "intrinsic bound-surface self contact and friction",
+        "separate-system bound-surface contact and friction"
+      ]
+    },
+    {
+      "family": "rope",
+      "existing_scope_audit_tasks": [
+        "P1-31"
+      ],
+      "api_and_capability_tasks": [
+        "P1-32"
+      ],
+      "bounded_generation_tasks": [
+        "P1-33"
+      ],
+      "operator_tasks": [
+        "P1-34",
+        "P1-35",
+        "P1-36"
+      ],
+      "schedule_and_lifecycle_tasks": [
+        "P1-37"
+      ],
+      "public_api_quality_gate_tasks": [
+        "P1-38"
+      ],
+      "covered_scopes": [
+        "existing sampled-node self-exclusion audit",
+        "continuous capsule-segment self contact and friction",
+        "separate-system capsule contact and friction",
+        "separate-system endpoint attachment"
+      ]
+    },
+    {
+      "family": "smoke",
+      "existing_self_quality_tasks": [
+        "F5-29",
+        "F5-30"
+      ],
+      "api_and_material_tasks": [
+        "P1-39",
+        "P1-40"
+      ],
+      "particle_pair_tasks": [
+        "P1-41",
+        "P1-42",
+        "P1-43",
+        "P1-44",
+        "P1-45"
+      ],
+      "grid_pair_tasks": [
+        "P1-46",
+        "P1-47",
+        "P1-48",
+        "P1-49",
+        "P1-50",
+        "P1-51"
+      ],
+      "mixed_pair_tasks": [
+        "P1-52",
+        "P1-53",
+        "P1-54",
+        "P1-55"
+      ],
+      "covered_scopes": [
+        "existing particle and grid self pressure and viscosity",
+        "separate particle-particle pressure, viscosity and thermal exchange",
+        "separate grid-grid pressure, viscosity and thermal exchange",
+        "separate particle-grid reciprocal drag and thermal exchange"
+      ]
+    }
+  ],
+  "rigid_body_review": {
+    "current_scope": "Body-body contact, friction and persistent constraints between bodies in one simulation are reference implementation paths.",
+    "quality_tasks": [
+      "F5-22"
+    ],
+    "remaining_gap": "API 0.2 has no separately owned rigid-system resource, so no separate-system rigid capability or implementation leaf is inferred.",
+    "future_rule": "A future separate rigid-system resource requires a new semantic contract, capability identity, implementation chain and per-driver qualification; it cannot inherit the intra-simulation claim."
+  },
+  "dependency_review": {
+    "acyclic": true,
+    "api_precedes_new_operators": true,
+    "bounded_generation_precedes_contact_or_overlap_solvers": true,
+    "operators_precede_portable_scheduling": true,
+    "advertisement_only_after_public_quality_gate": true,
+    "qualification_leaves_depend_on_vendor_neutral_physics_and_lifecycle_foundations": true
+  },
+  "activation_roots": [
+    "P1-19",
+    "P1-25",
+    "P1-31",
+    "P1-32",
+    "P1-39"
+  ],
+  "activation_policy": "After P1-02 completes, activate the independent root leaves in a planning PR. Lease one bounded leaf at a time per exclusive lock; keep every new capability unadvertised until its public-API quality gate passes on each advertising driver."
+}

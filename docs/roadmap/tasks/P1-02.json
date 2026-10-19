@@ -1,15 +1,13 @@
 {
   "id": "P1-02",
   "title": "Plan remaining same-family operators",
-  "status": "deferred",
+  "status": "done",
   "dependencies": [
     "F1-99",
     "F2-99",
     "F3-99",
     "F4-99",
-    "F5-99",
-    "F6-99",
-    "F7-99"
+    "F6-99"
   ],
   "locks": [
     "interaction-spec"
@@ -21,7 +19,33 @@
   "acceptance": [
     "Cloth, soft body, rope and smoke inter-system/self modes each have leaf tasks; rigid–rigid gaps remain explicit."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: docs/roadmap/evidence/P1-02-same-family-operator-plan.json maps cloth P1-19..P1-24, soft-body P1-25..P1-30, rope P1-31..P1-38 and smoke P1-39..P1-55 to contract, implementation, scheduling and public qualification stages",
+    "PASS: rigid intra-simulation contact and constraints remain mapped to F5-22; docs/INTERACTION-MODES.md explicitly excludes any inferred separate rigid-system capability",
+    "PASS: python3 tools/roadmap.py check --base origin/main --branch work/P1-02/Thomass-MacBook-Air; 213 task cards valid",
+    "PASS: python3 -m unittest discover -s tests/roadmap -p test_*.py; 28/28 passed"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "5bb646b5-f57c-4549-9b90-2edceaaece9c",
+        "owner": "codex-macos-physics",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/P1-02/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-19T14:21:29Z",
+        "heartbeat_at": "2026-10-19T14:21:29Z",
+        "expires_at": "2026-10-20T14:21:29Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T14:26:08Z",
+      "reason": "Mapped every specified cloth, soft-body, rope and smoke same-family scope to bounded API, generation, shared Slang operator, scheduling and qualification leaves while retaining the separate rigid-system gap",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/P1-02-same-family-operator-plan.json maps cloth P1-19..P1-24, soft-body P1-25..P1-30, rope P1-31..P1-38 and smoke P1-39..P1-55 to contract, implementation, scheduling and public qualification stages",
+        "PASS: rigid intra-simulation contact and constraints remain mapped to F5-22; docs/INTERACTION-MODES.md explicitly excludes any inferred separate rigid-system capability",
+        "PASS: python3 tools/roadmap.py check --base origin/main --branch work/P1-02/Thomass-MacBook-Air; 213 task cards valid",
+        "PASS: python3 -m unittest discover -s tests/roadmap -p test_*.py; 28/28 passed"
+      ]
+    }
+  ]
 }
