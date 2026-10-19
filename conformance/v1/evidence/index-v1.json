@@ -1892,6 +1892,57 @@
         "second_family": "RIGID_BODY"
       },
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": true,
+      "report": "linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment",
+      "rule_id": "fluid-rigid-containment",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:fluid-rigid-containment-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:fluid-rigid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:fluid-rigid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTAINMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "fluid-rigid-containment",
@@ -15306,7 +15357,7 @@
       }
     }
   ],
-  "capability_count": 310,
+  "capability_count": 311,
   "driver_count": 5,
   "drivers": [
     {
@@ -15328,6 +15379,7 @@
       "qualification_result_ids": [
         "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
         "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
         "windows-gtx1080-slang-cuda-2b04e55",
@@ -15335,10 +15387,11 @@
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle"
       ],
-      "qualified_capability_count": 0,
+      "qualified_capability_count": 1,
       "report_ids": [
         "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
         "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
         "windows-gtx1080-slang-cuda-2b04e55",
@@ -23977,8 +24030,8 @@
   "obligations_id": "capability-obligations-v1",
   "obligations_sha256": "20c3086b26c05fc00bdc2a70fc4f528cdd588271c2cc2be4409912982d60c419",
   "qualification_complete": true,
-  "qualified_capability_count": 0,
-  "report_count": 23,
+  "qualified_capability_count": 1,
+  "report_count": 24,
   "reports": [
     {
       "capability_count": 46,
@@ -24068,6 +24121,35 @@
         "version": "GCC 12.2.0; CUDA 13.1; Slang 2026.18"
       },
       "validated": false
+    },
+    {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "13010 (NVIDIA 590.44.01)",
+        "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+        "vendor_id": 4318
+      },
+      "driver": {
+        "binary_sha256": "9e12330743afd5da16647f15fa56739030b50e3214abd5979fe54948d4e604f4",
+        "name": "slang-cuda",
+        "version": "0.2.0+e3256bc"
+      },
+      "failure_count": 0,
+      "id": "linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment-qualification.json",
+      "qualified_count": 1,
+      "sha256": "48e444f77edc0e0432c67ad7fe1f3cd24662ee9d8c571fc2b5f99c430cc77452",
+      "source": {
+        "commit": "e3256bc44d289fe835685f14cd856784e548b045",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+        "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+      },
+      "validated": true
     },
     {
       "capability_count": 49,
@@ -24663,7 +24745,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "e40814dc0eb9d98e79783767130355cfc81123ef8306e44f62de0520b4719613",
+  "sources_sha256": "71c807edfacf67b8fa9a447de1cf45010abb658aca765a8be15cc0d884a8315e",
   "valid": true,
   "validation_failures": []
 }
