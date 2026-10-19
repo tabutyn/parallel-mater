@@ -1,0 +1,49 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-31",
+  "source_commit": "50011235a53359c9e3983cb020ef3dbb02e55136",
+  "captured_at": "2026-10-19",
+  "host": "windows-gtx1080",
+  "drivers": [
+    "slang-cuda",
+    "slang-d3d12"
+  ],
+  "device": "NVIDIA GeForce GTX 1080",
+  "capabilities": [
+    "FLUID/CLOTH/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE"
+  ],
+  "contracts": {
+    "trajectory": "case:cloth-water",
+    "quality": "quality:fluid-cloth-contact-v1",
+    "lifecycle": "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback"
+  },
+  "results": {
+    "cuda_trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "cuda_reference_regression": "PASS: cloth-water against the unchanged CUDA golden",
+    "cuda_analytic_invariants": "PASS: 2 contact samples, 0 failures",
+    "cuda_lifecycle_invariants": "PASS: 1 case, 5 checkpoints, 0 failures",
+    "cuda_qualification": "PASS: 1/1 exact capability, 0 failures",
+    "d3d12_trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "d3d12_reference_regression": "PASS: cloth-water against the unchanged CUDA golden",
+    "d3d12_analytic_invariants": "PASS: 2 contact samples, 0 failures",
+    "d3d12_lifecycle_invariants": "PASS: 1 case, 5 checkpoints, 0 failures",
+    "d3d12_qualification": "PASS: 1/1 exact capability, 0 failures",
+    "terminal_contact_violation_m": 0.0,
+    "first_step_momentum_error_kg_m_s": 0.00002384185791015625,
+    "final_momentum_error_kg_m_s": 0.00009872294887121507,
+    "evidence_index": "PASS: 2/256 exact capability records qualified across 14 reports"
+  },
+  "artifacts": {
+    "cuda_physical_evidence": "conformance/v1/evidence/windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact.json",
+    "cuda_qualification_result": "conformance/v1/evidence/windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact-qualification.json",
+    "d3d12_physical_evidence": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact.json",
+    "d3d12_qualification_result": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact-qualification.json",
+    "evidence_index": "conformance/v1/evidence/index-v1.json"
+  },
+  "notes": [
+    "The immutable quality fixture uses only public API inputs: one liquid particle and an open triangle with zero gravity. It independently checks signed separation, bounded contact violation and reciprocal endpoint momentum.",
+    "The open surface intentionally grants contact without containment; traversal to the opposite half-space does not broaden this record into FLUID/CLOTH CONTAINMENT.",
+    "Rejected graph overflow preserves the replacement graph and unrelated endpoint state; removal clears the graph and recovery deterministically publishes a new usable graph.",
+    "Only the exact contact tuple is qualified. All unrecaptured drivers and different fluid-cloth modes remain unqualified."
+  ]
+}

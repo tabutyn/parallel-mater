@@ -1,0 +1,83 @@
+{
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "7ab617e57ec74c0128f2a59fb3e9d9e9f667730248eda36b3f63d706ee4ee6e6",
+  "execution_status": "completed",
+  "source": {
+    "commit": "50011235a53359c9e3983cb020ef3dbb02e55136",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-d3d12",
+    "version": "0.2.0+5001123",
+    "binary_sha256": "4c9d9be98ccfced0ddfb66607a2154f50ace461242accf0bcc2b022e914f6b89"
+  },
+  "device": {
+    "name": "NVIDIA GeForce GTX 1080",
+    "vendor_id": 4318,
+    "device_id": 7040,
+    "driver_version": "NVIDIA 582.66; D3D12 adapter revision 1"
+  },
+  "toolchain": {
+    "compiler": "MSVC, Slang DXIL",
+    "version": "MSVC 19.44.35228; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "FLUID",
+      "second_family": "CLOTH",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "evidence": [
+    {
+      "scope": "compilation",
+      "contract": "registry:interaction-capabilities",
+      "status": "passed",
+      "source_commit": "50011235a53359c9e3983cb020ef3dbb02e55136",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact.json",
+      "artifact_sha256": "39b95dce41705c8bb4a230564c1822b08ec0013e2c6e22c72e20d00ccea1f4bb"
+    },
+    {
+      "scope": "execution",
+      "contract": "case:cloth-water",
+      "status": "passed",
+      "source_commit": "50011235a53359c9e3983cb020ef3dbb02e55136",
+      "contract_sha256": "b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact.json",
+      "artifact_sha256": "39b95dce41705c8bb4a230564c1822b08ec0013e2c6e22c72e20d00ccea1f4bb"
+    },
+    {
+      "scope": "reference_regression",
+      "contract": "case:cloth-water",
+      "status": "passed",
+      "source_commit": "50011235a53359c9e3983cb020ef3dbb02e55136",
+      "contract_sha256": "b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact.json",
+      "artifact_sha256": "39b95dce41705c8bb4a230564c1822b08ec0013e2c6e22c72e20d00ccea1f4bb"
+    },
+    {
+      "scope": "lifecycle_invariants",
+      "contract": "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback",
+      "status": "passed",
+      "source_commit": "50011235a53359c9e3983cb020ef3dbb02e55136",
+      "contract_sha256": "5599b5d6c5e8386830d0abb29a13feddd3a43a917912efb9e9cf4b1732a22769",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact.json",
+      "artifact_sha256": "39b95dce41705c8bb4a230564c1822b08ec0013e2c6e22c72e20d00ccea1f4bb"
+    },
+    {
+      "scope": "analytic_invariants",
+      "contract": "quality:fluid-cloth-contact-v1",
+      "status": "passed",
+      "source_commit": "50011235a53359c9e3983cb020ef3dbb02e55136",
+      "contract_sha256": "1216cf9e7252b5fe4c27f14639a1031e698d459a2001db60153a088ebb600445",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact.json",
+      "artifact_sha256": "39b95dce41705c8bb4a230564c1822b08ec0013e2c6e22c72e20d00ccea1f4bb"
+    }
+  ]
+}
