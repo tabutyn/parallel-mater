@@ -23,6 +23,7 @@ add_library(parallel-mater-conformance-runner STATIC
     src/cloth_rope_attachment.cpp
     src/smoke_quality.cpp
     src/fluid_cloth_contact.cpp
+    src/cloth_smoke_contact.cpp
     src/smoke_fluid_drag.cpp
     src/smoke_cloth_drag.cpp
     src/fluid_smoke_phase.cpp

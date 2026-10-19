@@ -1,7 +1,7 @@
 {
   "id": "F5-42",
   "title": "Qualify cloth-to-smoke contact",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,15 +17,35 @@
     "Add exact bounded capacity, replacement, removal and rollback lifecycle checks for the grid tuple; retain the particle tuple's existing lifecycle binding, and prove rejected mutations preserve the last usable state.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "36723887-c30c-41ca-aeed-2ef92b68ea9e",
-    "owner": "codex-linux-qualification",
-    "machine": "ThomasLaptop",
-    "branch": "work/F5-42/ThomasLaptop",
-    "claimed_at": "2026-10-19T16:33:34Z",
-    "heartbeat_at": "2026-10-19T16:33:34Z",
-    "expires_at": "2026-10-20T16:33:34Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F5-42-cloth-smoke-contact.json",
+    "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle.json",
+    "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle-qualification.json",
+    "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid.json",
+    "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid-qualification.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "36723887-c30c-41ca-aeed-2ef92b68ea9e",
+        "owner": "codex-linux-qualification",
+        "machine": "ThomasLaptop",
+        "branch": "work/F5-42/ThomasLaptop",
+        "claimed_at": "2026-10-19T16:33:34Z",
+        "heartbeat_at": "2026-10-19T16:33:34Z",
+        "expires_at": "2026-10-20T16:33:34Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T17:10:18Z",
+      "reason": "Published immutable particle/grid cloth-smoke CONTACT oracle, exact grid lifecycle rollback coverage, retained particle lifecycle binding, and clean physical CUDA qualification for both exact tuples.",
+      "evidence": [
+        "docs/roadmap/evidence/F5-42-cloth-smoke-contact.json",
+        "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle.json",
+        "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle-qualification.json",
+        "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid.json",
+        "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid-qualification.json"
+      ]
+    }
+  ]
 }
