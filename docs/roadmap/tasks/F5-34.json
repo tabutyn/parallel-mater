@@ -1,7 +1,7 @@
 {
   "id": "F5-34",
   "title": "Qualify fluid-rope contact",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,15 +17,31 @@
     "Retain the existing exact lifecycle binding and prove the new analytic fixture does not broaden or substitute for its capacity, replacement and rollback obligations.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "bec1a360-0edc-4aa3-941e-dd542861247a",
-    "owner": "codex-macos-qualification",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F5-34/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-19T01:39:50Z",
-    "heartbeat_at": "2026-10-19T10:57:40Z",
-    "expires_at": "2026-10-20T10:57:40Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: fluid-rope-contact-v1 on physical Apple M4 Slang Metal; 1 sample, 0 failures, zero overlap and reciprocal/distribution residuals; docs/roadmap/evidence/F5-34-fluid-rope-contact.json",
+    "PASS: adverse-capacity-three-family-v1 on physical Apple M4 Slang Metal; 2 cases, 9 checkpoints, 0 failures; exact tuple binding and index validation retained",
+    "LIMITATION RETAINED: rope-fluid executes and matches the current physical Android Vulkan capture, but fails the pre-swept-contact CUDA golden at frame 48; the Metal record remains unqualified and no tolerance or golden changed"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "bec1a360-0edc-4aa3-941e-dd542861247a",
+        "owner": "codex-macos-qualification",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F5-34/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-19T01:39:50Z",
+        "heartbeat_at": "2026-10-19T10:57:40Z",
+        "expires_at": "2026-10-20T10:57:40Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T15:10:57Z",
+      "reason": "Published and physically exercised the exact fluid-rope contact oracle and retained lifecycle binding; retained the stale CUDA trajectory failure without changing tolerances or claiming qualification",
+      "evidence": [
+        "PASS: fluid-rope-contact-v1 on physical Apple M4 Slang Metal; 1 sample, 0 failures, zero overlap and reciprocal/distribution residuals; docs/roadmap/evidence/F5-34-fluid-rope-contact.json",
+        "PASS: adverse-capacity-three-family-v1 on physical Apple M4 Slang Metal; 2 cases, 9 checkpoints, 0 failures; exact tuple binding and index validation retained",
+        "LIMITATION RETAINED: rope-fluid executes and matches the current physical Android Vulkan capture, but fails the pre-swept-contact CUDA golden at frame 48; the Metal record remains unqualified and no tolerance or golden changed"
+      ]
+    }
+  ]
 }
