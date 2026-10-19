@@ -1,0 +1,98 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-36",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "dac1c209e13c83d3c14de0d48a449f544f28009b",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+dac1c20",
+    "binary_sha256": "fb5a740e23cbf8545656115ace613a0586798d1816c4a3ad674ce5d512d84721"
+  },
+  "device": {
+    "name": "NVIDIA GeForce GTX 1080",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13000 (NVIDIA 582.66)"
+  },
+  "toolchain": {
+    "compiler": "MSVC, CUDA, Slang",
+    "version": "MSVC 19.44.35228.0; CUDA 12.9.86; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "f225fe7de8f1c740efb0976456f4f4bce0c2de15d37a9567a7ccde9c2622b6a2",
+    "capabilities_sha256": "15bb19dcfc7f4cc47b78a955231b32dae5851804ab131af6cdb1991c1ae9a2b0"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "FLUID",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "THERMAL",
+      "direction": "EXTERNAL_TO_FIRST",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:smoke-water",
+      "sha256": "cbe349e888648ef1fe6f0adb507be33888be83b988d72b4bcc5c4a23a604964c"
+    },
+    "quality": {
+      "id": "quality:externally-heated-fluid-v1",
+      "sha256": "8fa544e51d8d900d68cfe3b8711fa1129a7bc56275b1bacfa0c9bffc15a0dacf"
+    },
+    "lifecycle": {
+      "id": "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback",
+      "sha256": "8e134e408a6dd7559b2f77c412fcdb27806dcabf9b84c8e90bc39f5d6a38ee20"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "a2fc34d87f74ba6aae5efade001019f54fcacf38067fea71da20ef52a1fff4e0",
+    "comparison_report_sha256": "80c26ef929a63f6ad008af8d5e25f9c48ccb56fe902a85d8b7f9b3a477966eaa",
+    "reference_regression": {
+      "passed": 1,
+      "failed": 0,
+      "unsupported": 0
+    }
+  },
+  "analytic_invariants": {
+    "result_sha256": "dc0c5df75d2f15b3e562f6a42a0b4c210335edc72eace117510ff2d1da58da6f",
+    "report_sha256": "8571ec881f95260dfc7f58dbdae813d2f1747cf6e6203e5202f258a6b918381b",
+    "passed": true,
+    "sample_count": 8,
+    "failure_count": 0,
+    "observations": {
+      "particle-external-heating": {
+        "expected_heated_temperature_celsius": 38.12692469220182,
+        "observed_heated_temperature_celsius": 38.126922607421875,
+        "normalized_sensible_energy_change_j": 18.126922607421875,
+        "maximum_smoke_endpoint_delta": 0.0
+      }
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "6c986feb4b17e553192f16f523469fea5609bd1a404680f536210bf69c926ae9",
+    "report_sha256": "1dedbfec361e86e1049743cd471183985e891e7570d59c6aa2672de98209832c",
+    "passed": true,
+    "profile_case_count": 2,
+    "profile_checkpoint_count": 10,
+    "failure_count": 0
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case smoke-water --output <trajectory-output>",
+    "python conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case smoke-water --report <trajectory-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality externally-heated-fluid-v1 --output <quality-output>",
+    "python conformance/v1/quality.py --profile conformance/v1/quality/externally-heated-fluid-v1.json --actual <quality-result> --report <quality-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle-profile externally-heated-fluid-lifecycle-v1 --output <lifecycle-result>",
+    "python conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/externally-heated-fluid-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "The public exponential-heater oracle accounts for normalized sensible energy and observes no fluid-mechanical or smoke-endpoint mutation.",
+    "The particle and grid lifecycle cases retain the last usable graph across rejected overflow, then prove removal and deterministic recovery."
+  ]
+}

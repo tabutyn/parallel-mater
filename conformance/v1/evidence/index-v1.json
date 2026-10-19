@@ -2579,8 +2579,10 @@
       "rule_id": "fluid-smoke-thermal-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:externally-heated-fluid-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2595,8 +2597,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -2626,8 +2630,10 @@
       "rule_id": "fluid-smoke-thermal-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:externally-heated-fluid-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2642,14 +2648,67 @@
           "status": "failed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:smoke-water"
           ],
           "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "EXTERNAL_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_GRID",
+        "mode": "THERMAL",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_GRID",
+      "qualified": true,
+      "report": "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",
+      "rule_id": "fluid-smoke-thermal-grid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:externally-heated-fluid-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
         },
         "timing": {
           "contracts": [],
@@ -2673,8 +2732,10 @@
       "rule_id": "fluid-smoke-thermal-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:externally-heated-fluid-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2689,8 +2750,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -2720,8 +2783,10 @@
       "rule_id": "fluid-smoke-thermal-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:externally-heated-fluid-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2736,14 +2801,67 @@
           "status": "failed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:smoke-water"
           ],
           "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "EXTERNAL_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "THERMAL",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_PARTICLE",
+      "qualified": true,
+      "report": "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle",
+      "rule_id": "fluid-smoke-thermal-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:externally-heated-fluid-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
         },
         "timing": {
           "contracts": [],
@@ -7659,8 +7777,10 @@
       "rule_id": "fluid-smoke-thermal-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:externally-heated-fluid-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7675,8 +7795,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -7706,8 +7828,10 @@
       "rule_id": "fluid-smoke-thermal-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:externally-heated-fluid-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7722,8 +7846,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -7753,8 +7879,10 @@
       "rule_id": "fluid-smoke-thermal-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:externally-heated-fluid-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7769,8 +7897,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -7800,8 +7930,10 @@
       "rule_id": "fluid-smoke-thermal-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:externally-heated-fluid-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7816,8 +7948,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11095,7 +11229,7 @@
         "second_family": "CLOTH"
       },
       "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "fluid-cloth-contact",
       "scopes": {
@@ -11197,7 +11331,7 @@
         "second_family": "CLOTH"
       },
       "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "fluid-cloth-containment",
       "scopes": {
@@ -11299,7 +11433,7 @@
         "second_family": "FLUID"
       },
       "key_text": "FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "fluid-self-contact",
       "scopes": {
@@ -11401,7 +11535,7 @@
         "second_family": "FLUID"
       },
       "key_text": "FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "fluid-self-pressure",
       "scopes": {
@@ -11503,7 +11637,7 @@
         "second_family": "FLUID"
       },
       "key_text": "FLUID/FLUID/SELF/VISCOSITY/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "fluid-self-viscosity",
       "scopes": {
@@ -12292,8 +12426,10 @@
       "rule_id": "fluid-smoke-thermal-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:externally-heated-fluid-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -12308,8 +12444,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -12339,8 +12477,10 @@
       "rule_id": "fluid-smoke-thermal-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:externally-heated-fluid-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -12355,8 +12495,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -12386,8 +12528,10 @@
       "rule_id": "fluid-smoke-thermal-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:externally-heated-fluid-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -12402,8 +12546,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -12433,8 +12579,10 @@
       "rule_id": "fluid-smoke-thermal-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:externally-heated-fluid-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -12449,8 +12597,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -12475,7 +12625,7 @@
         "second_family": "SOFT_BODY"
       },
       "key_text": "FLUID/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "fluid-soft-body",
       "scopes": {
@@ -12577,7 +12727,7 @@
         "second_family": "RIGID_BODY"
       },
       "key_text": "RIGID_BODY/RIGID_BODY/SAME_DOMAIN/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "rigid-attachment",
       "scopes": {
@@ -12679,7 +12829,7 @@
         "second_family": "RIGID_BODY"
       },
       "key_text": "RIGID_BODY/RIGID_BODY/SAME_DOMAIN/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "rigid-contact",
       "scopes": {
@@ -13831,7 +13981,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_GRID",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "smoke-self-pressure",
       "scopes": {
@@ -13935,7 +14085,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_PARTICLE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "smoke-self-pressure",
       "scopes": {
@@ -14039,7 +14189,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "smoke-self-viscosity",
       "scopes": {
@@ -14141,7 +14291,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_PARTICLE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "smoke-self-viscosity",
       "scopes": {
@@ -14899,7 +15049,7 @@
       }
     }
   ],
-  "capability_count": 305,
+  "capability_count": 307,
   "driver_count": 5,
   "drivers": [
     {
@@ -14924,9 +15074,11 @@
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
         "windows-gtx1080-slang-cuda-2b04e55",
-        "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact"
+        "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
+        "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",
+        "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle"
       ],
-      "qualified_capability_count": 0,
+      "qualified_capability_count": 2,
       "report_ids": [
         "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
         "linux-rtx3050ti-slang-cuda-eed669e",
@@ -14934,9 +15086,11 @@
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
         "windows-gtx1080-slang-cuda-2b04e55",
         "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
+        "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",
+        "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle",
         "windows-gtx1080-physics-2026-10-16"
       ],
-      "status": "unqualified",
+      "status": "qualified",
       "unqualified_capability_count": 104
     },
     {
@@ -14962,13 +15116,13 @@
         "android-pixel7-slang-vulkan-3187375",
         "linux-rtx3050ti-slang-vulkan-eed669e"
       ],
-      "qualified_capability_count": 12,
+      "qualified_capability_count": 0,
       "report_ids": [
         "android-pixel7-slang-vulkan-3187375",
         "linux-rtx3050ti-slang-vulkan-eed669e"
       ],
       "status": "unqualified",
-      "unqualified_capability_count": 80
+      "unqualified_capability_count": 92
     },
     {
       "id": "slang-metal",
@@ -15041,7 +15195,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15667,20 +15821,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No externally heated fluid particle-smoke quality profile is registered.",
+      "actual": "quality:externally-heated-fluid-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[18].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No externally heated fluid particle-smoke quality profile is registered.",
+      "actual": "quality:externally-heated-fluid-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[18].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -15712,20 +15866,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact fluid-smoke particle thermal graph case is registered.",
+      "actual": "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[18].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke particle thermal graph case is registered.",
+      "actual": "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[18].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -15946,20 +16100,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No externally heated fluid grid-smoke quality profile is registered.",
+      "actual": "quality:externally-heated-fluid-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[21].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No externally heated fluid grid-smoke quality profile is registered.",
+      "actual": "quality:externally-heated-fluid-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[21].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -15991,20 +16145,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact fluid-smoke grid thermal graph case is registered.",
+      "actual": "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[21].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke grid thermal graph case is registered.",
+      "actual": "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[21].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -18144,7 +18298,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18153,7 +18307,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18162,7 +18316,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18171,7 +18325,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18180,7 +18334,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18189,7 +18343,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-cuda",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18583,7 +18737,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18592,7 +18746,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-d3d12",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18946,20 +19100,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No externally heated fluid particle-smoke quality profile is registered.",
+      "actual": "quality:externally-heated-fluid-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[15].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No externally heated fluid particle-smoke quality profile is registered.",
+      "actual": "quality:externally-heated-fluid-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[15].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -18982,20 +19136,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact fluid-smoke particle thermal graph case is registered.",
+      "actual": "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[15].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact fluid-smoke particle thermal graph case is registered.",
+      "actual": "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[15].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -19108,20 +19262,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No externally heated fluid grid-smoke quality profile is registered.",
+      "actual": "quality:externally-heated-fluid-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[18].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No externally heated fluid grid-smoke quality profile is registered.",
+      "actual": "quality:externally-heated-fluid-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[18].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -19144,20 +19298,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact fluid-smoke grid thermal graph case is registered.",
+      "actual": "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[18].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact fluid-smoke grid thermal graph case is registered.",
+      "actual": "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[18].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -21252,7 +21406,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21261,7 +21415,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21270,7 +21424,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21279,7 +21433,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21288,7 +21442,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21484,20 +21638,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No externally heated fluid particle-smoke quality profile is registered.",
+      "actual": "quality:externally-heated-fluid-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[15].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No externally heated fluid particle-smoke quality profile is registered.",
+      "actual": "quality:externally-heated-fluid-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[15].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -21511,20 +21665,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke particle thermal graph case is registered.",
+      "actual": "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[15].lifecycle_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No exact fluid-smoke particle thermal graph case is registered.",
+      "actual": "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[15].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -21619,20 +21773,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No externally heated fluid grid-smoke quality profile is registered.",
+      "actual": "quality:externally-heated-fluid-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[18].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No externally heated fluid grid-smoke quality profile is registered.",
+      "actual": "quality:externally-heated-fluid-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[18].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -21646,20 +21800,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke grid thermal graph case is registered.",
+      "actual": "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[18].lifecycle_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No exact fluid-smoke grid thermal graph case is registered.",
+      "actual": "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[18].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -23212,9 +23366,18 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
+      "actual": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "driver": "slang-vulkan",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23222,10 +23385,10 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+  "obligations_sha256": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
   "qualification_complete": true,
-  "qualified_capability_count": 12,
-  "report_count": 18,
+  "qualified_capability_count": 2,
+  "report_count": 20,
   "reports": [
     {
       "capability_count": 46,
@@ -23240,11 +23403,11 @@
         "name": "slang-vulkan",
         "version": "0.2.0"
       },
-      "failure_count": 68,
+      "failure_count": 69,
       "id": "android-pixel7-slang-vulkan-3187375",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json",
-      "qualified_count": 12,
+      "qualified_count": 0,
       "sha256": "90a83805efffb33bafeed7f8cf669b60b30dfa919a4f7a19ec228dd1c0186da9",
       "source": {
         "commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
@@ -23705,6 +23868,64 @@
       "validated": false
     },
     {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "13000 (NVIDIA 582.66)",
+        "name": "NVIDIA GeForce GTX 1080",
+        "vendor_id": 4318
+      },
+      "driver": {
+        "binary_sha256": "fb5a740e23cbf8545656115ace613a0586798d1816c4a3ad674ce5d512d84721",
+        "name": "slang-cuda",
+        "version": "0.2.0+dac1c20"
+      },
+      "failure_count": 0,
+      "id": "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid-qualification.json",
+      "qualified_count": 1,
+      "sha256": "4f5616586493eb241bf82200341eba8908e4981d5c1bf158b8a43d9343c7a0cd",
+      "source": {
+        "commit": "dac1c209e13c83d3c14de0d48a449f544f28009b",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "MSVC, CUDA, Slang",
+        "version": "MSVC 19.44.35228.0; CUDA 12.9.86; Slang 2026.18"
+      },
+      "validated": true
+    },
+    {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "13000 (NVIDIA 582.66)",
+        "name": "NVIDIA GeForce GTX 1080",
+        "vendor_id": 4318
+      },
+      "driver": {
+        "binary_sha256": "fb5a740e23cbf8545656115ace613a0586798d1816c4a3ad674ce5d512d84721",
+        "name": "slang-cuda",
+        "version": "0.2.0+dac1c20"
+      },
+      "failure_count": 0,
+      "id": "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle-qualification.json",
+      "qualified_count": 1,
+      "sha256": "b36dbe4ed9d658b712183a4dfacfa8701398930ee1110adfa880260aae5c2d33",
+      "source": {
+        "commit": "dac1c209e13c83d3c14de0d48a449f544f28009b",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "MSVC, CUDA, Slang",
+        "version": "MSVC 19.44.35228.0; CUDA 12.9.86; Slang 2026.18"
+      },
+      "validated": true
+    },
+    {
       "capability_count": 10,
       "device": {
         "device_id": 7040,
@@ -23765,7 +23986,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "3b5dadf6d3875d1324a51258cbd6c02c76e5c882db83386d5e49785917a7d886",
+  "sources_sha256": "34a9808835e9402a2e4b4c70506b7edc1f67dcec65819af64957d52122533063",
   "valid": true,
   "validation_failures": []
 }

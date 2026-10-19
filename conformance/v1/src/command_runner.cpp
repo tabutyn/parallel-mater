@@ -1079,7 +1079,7 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
-    constexpr std::array<std::pair<std::string_view, std::string_view>, 20U>
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 22U>
         pinned_inputs{{
             {"quality profile", "conformance/v1/quality/core-conservation-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-attachment-v1.json"},
@@ -1091,12 +1091,16 @@ void copy_particle_state(const std::vector<State> &states,
             {"quality profile", "conformance/v1/quality/smoke-self-pressure-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-cloth-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/smoke-fluid-drag-v1.json"},
+            {"quality profile",
+             "conformance/v1/quality/externally-heated-fluid-v1.json"},
             {"quality profile", "conformance/v1/quality/smoke-self-viscosity-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/fluid-cloth-containment-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json"},
+            {"lifecycle profile",
+             "conformance/v1/lifecycle/externally-heated-fluid-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json"},
             {"qualification profile",
              "conformance/v1/qualification/capability-obligations-v1.json"},
@@ -1401,6 +1405,10 @@ int conformance_command_main(int argc, char **argv) {
             else if (arguments.lifecycle_id ==
                      "smoke-fluid-drag-lifecycle-v1")
                 result = conformance_smoke_fluid_drag_lifecycle(root, &status);
+            else if (arguments.lifecycle_id ==
+                     "externally-heated-fluid-lifecycle-v1")
+                result = conformance_externally_heated_fluid_lifecycle(
+                    root, &status);
             else if (arguments.lifecycle_id == "smoke-self-lifecycle-v1")
                 result = conformance_smoke_lifecycle(root, &status);
             else
@@ -1440,13 +1448,15 @@ int conformance_command_main(int argc, char **argv) {
 #endif
             const bool smoke_fluid_drag = arguments.quality_id ==
                 "smoke-fluid-drag-v1";
+            const bool externally_heated_fluid = arguments.quality_id ==
+                "externally-heated-fluid-v1";
             if (!brick && !attachment && !rope_self_contact &&
                 !fluid_cloth_containment &&
                 !fluid_soft_contact &&
                 !fluid_rope_contact &&
                 !smoke_self_pressure && !fluid_cloth_contact &&
                 !smoke_self_viscosity && !fluid_self &&
-                !smoke_fluid_drag)
+                !smoke_fluid_drag && !externally_heated_fluid)
                 throw std::runtime_error(
                     "unknown conformance quality profile: " +
                     arguments.quality_id);
@@ -1534,6 +1544,18 @@ int conformance_command_main(int argc, char **argv) {
                 } else if (smoke_fluid_drag) {
                     ExecutionStatus status{};
                     result = conformance_smoke_fluid_drag_quality(root, &status);
+                    write_file(arguments.output /
+                                   (arguments.quality_id + ".json"),
+                               result);
+                    if (status == ExecutionStatus::unsupported) return 77;
+                    if (status == ExecutionStatus::failed) return 2;
+                    std::cout << "Quality execution completed: "
+                              << arguments.quality_id << '\n';
+                    return 0;
+                } else if (externally_heated_fluid) {
+                    ExecutionStatus status{};
+                    result = conformance_externally_heated_fluid_quality(
+                        root, &status);
                     write_file(arguments.output /
                                    (arguments.quality_id + ".json"),
                                result);

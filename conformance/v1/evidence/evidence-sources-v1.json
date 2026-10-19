@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4"
+    "sha256": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230"
   },
   "qualification_results": [
     {
@@ -101,6 +101,16 @@
       "id": "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact-qualification.json",
       "sha256": "9259964d2f6ee9e2f1ad27b130fa990835225fbca9b333e776af2f4606a1e034"
+    },
+    {
+      "id": "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid-qualification.json",
+      "sha256": "4f5616586493eb241bf82200341eba8908e4981d5c1bf158b8a43d9343c7a0cd"
+    },
+    {
+      "id": "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle-qualification.json",
+      "sha256": "b36dbe4ed9d658b712183a4dfacfa8701398930ee1110adfa880260aae5c2d33"
     },
     {
       "id": "windows-gtx1080-slang-d3d12-2b04e55",
