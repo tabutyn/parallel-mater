@@ -21,9 +21,9 @@ conformance remains required; passing the portable row tests is not sufficient.
 - `quality.py` evaluates analytic momentum, angular-momentum, dissipative-energy,
   split-population and rigid surface-separation invariants without a reference
   backend. Immutable profiles live in `quality/`.
-- `lifecycle.py` evaluates adverse capacity recovery and mixed-family graph
-  rollback without a reference backend. The immutable profile is in
-  `lifecycle/adverse-capacity-three-family-v1.json`.
+- `lifecycle.py` evaluates adverse capacity recovery, mixed-family graph
+  rollback and representation-specific smoke replacement/removal without a
+  reference backend. Immutable profiles live in `lifecycle/`.
 - `qualification.py` maps each advertised interaction record to revisioned
   evidence obligations in `qualification/capability-obligations-v1.json`.
 - `evidence_index.py` revalidates registered qualification results, retains
@@ -44,6 +44,13 @@ The separate two-case lifecycle profile covers destructive replacement at exact
 capacity and a three-family liquid/rope/soft-body graph beside an unrelated
 smoke/cloth edge. These operation-sequence cases compare state within one run;
 they do not use CUDA trajectory goldens.
+
+The smoke lifecycle profile independently exercises particle and grid smoke at
+their exact declared capacities. A single public-API sequence proves
+replacement, atomic particle/grid capacity rejection, removal, and
+deterministic recovery. The smoke self-viscosity quality profile pairs control
+and viscous public outputs for both representations and checks relative-motion
+dissipation, bounded energy, impulse residual, and authored speed limits.
 
 ## Validation tools
 
@@ -189,6 +196,19 @@ They are separate analytic obligations for the advertised same-domain rigid
 contact and attachment capabilities; neither substitutes for lifecycle or
 reference-regression evidence.
 
+Smoke self-pressure has one immutable profile with particle and projected-grid
+variants. It derives particle pressure from public density state, checks public
+grid tracer pressure activity, and bounds particle mean-velocity drift:
+
+```text
+parallel-mater-conformance --quality smoke-self-pressure-v1 \
+  --output /path/to/smoke-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/smoke-self-pressure-v1.json \
+  --actual /path/to/smoke-quality-results/smoke-self-pressure-v1.json \
+  --report /path/to/smoke-pressure-report.json
+```
+
 The `rigid-kinematic-sweep-v1` profile independently adjudicates the
 `rigid-direct` frame-21 kinematic impact. Capture all frames, then evaluate the
 raw trajectory directly:
@@ -222,6 +242,20 @@ python3 conformance/v1/lifecycle.py \
   --report /path/to/lifecycle-report.json
 ```
 
+Select the smoke-specific contract without changing platform code:
+
+```text
+PM_DRIVER_FILES=<build>/manifests/slang-metal.json \
+  <build>/parallel-mater-conformance \
+  --lifecycle-profile smoke-self-lifecycle-v1 \
+  --output /path/to/smoke-self-lifecycle-v1.json
+
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/smoke-self-lifecycle-v1.json \
+  --actual /path/to/smoke-self-lifecycle-v1.json \
+  --report /path/to/smoke-self-lifecycle-report.json
+```
+
 For an installed SDK, pass its installed corpus root explicitly:
 
 ```text
@@ -229,6 +263,19 @@ PM_DRIVER_FILES=/path/to/slang-cuda.json \
   /path/to/sdk/bin/parallel-mater-conformance --lifecycle \
   --root /path/to/sdk/share/parallel-mater \
   --output /path/to/adverse-capacity-three-family-v1.json
+```
+
+Select the smoke-specific lifecycle profile explicitly to capture bounded
+particle and grid capacity, replacement, rejected-overflow rollback, removal
+and recovery in one public-API run:
+
+```text
+parallel-mater-conformance --lifecycle smoke-self-pressure-lifecycle-v1 \
+  --output /path/to/smoke-self-pressure-lifecycle-v1.json
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json \
+  --actual /path/to/smoke-self-pressure-lifecycle-v1.json \
+  --report /path/to/smoke-lifecycle-report.json
 ```
 
 An individual producer can be checked while the other case is still absent by
@@ -269,6 +316,26 @@ python3 conformance/v1/qualification.py \
   --actual /path/to/driver-qualification.json \
   --report /path/to/qualification-report.json
 ```
+
+Do not hand-author a passing qualification result from a physical capture.
+Derive it with the same evaluator after supplying every hashed raw artifact:
+
+```text
+python3 conformance/v1/qualification.py \
+  --from-evidence conformance/v1/evidence/<physical-evidence>.json \
+  --artifact-path conformance/v1/evidence/<physical-evidence>.json \
+  --driver-binary <driver-library> \
+  --provenance <provenance.json> --capabilities <capabilities.json> \
+  --trajectory-result <trajectory.json> --trajectory-report <comparison.json> \
+  --quality-result <quality.json> --quality-report <quality-report.json> \
+  --lifecycle-result <lifecycle.json> --lifecycle-report <lifecycle-report.json> \
+  --output conformance/v1/evidence/<qualification-result>.json \
+  --report <qualification-report.json>
+```
+
+This path verifies the driver binary and every capture hash, checks provenance,
+capability identity, contract hashes and raw pass reports, then writes the
+result only after the ordinary qualification evaluator accepts it.
 
 The obligation profile covers all 49 API 0.2 interaction records. Evidence is
 keyed by both scope and immutable contract hash: compilation, execution,

@@ -1,0 +1,62 @@
+{
+  "schema": "parallel-mater-conformance-quality-profile/v1",
+  "id": "fluid-cloth-containment-v1",
+  "title": "Closed cloth fluid containment and reciprocal reaction",
+  "evaluation": "fluid_cloth_containment",
+  "sources": {
+    "capability": "docs/INTERACTION-MODES.md: FLUID/CLOTH/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+    "fixture": "conformance/v1/src/fluid_cloth_containment_quality.cpp: closed consistently oriented tetrahedron and outward fluid pulse",
+    "oracle": "Independent closed-manifold, signed-distance, volume and reciprocal-force checks over public fluid and cloth output",
+    "qualification": "docs/ROADMAP.md: F5-32"
+  },
+  "fixture": {
+    "id": "closed-tetrahedron-outward-pulse",
+    "timestep_seconds": 0.01,
+    "substeps": 1,
+    "gravity_m_s2": [0.0, 0.0, 0.0],
+    "fluid_particle_count": 1,
+    "fluid_rest_density_kg_m3": 1000.0,
+    "fluid_particle_radius_m": 0.05,
+    "fluid_support_radius_m": 0.2,
+    "fluid_rest_particle_volume_m3": 0.001,
+    "fluid_maximum_speed_m_s": 10.0,
+    "cloth_vertex_mass_kg": 1.0,
+    "cloth_thickness_m": 0.05,
+    "cloth_stretch_compliance_m_per_n": 1e-06,
+    "cloth_bending_compliance_m_per_n": 0.1,
+    "cloth_solver_iterations": 8,
+    "cloth_preserve_volume": true,
+    "cloth_target_volume_m3": 0.0,
+    "cloth_volume_compliance_m3_per_pa": 1e-07,
+    "contact_distance_m": 0.1,
+    "stiffness_n_per_m": 100.0,
+    "damping_n_s_per_m": 10.0,
+    "tangential_drag_n_s_per_m": 0.0,
+    "maximum_force_n": 100.0,
+    "two_way": true,
+    "cloth_vertices_m": [
+      [0.0, 0.0, 0.0],
+      [1.0, 0.0, 0.0],
+      [0.0, 1.0, 0.0],
+      [0.0, 0.0, 1.0]
+    ],
+    "cloth_triangle_indices": [0, 2, 1, 0, 1, 3, 0, 3, 2, 1, 2, 3],
+    "initial_particles": [
+      {
+        "stable_id": 0,
+        "position_m": [0.05, 0.2, 0.2],
+        "velocity_m_s": [-1.0, 0.0, 0.0]
+      }
+    ],
+    "oracle": "public-state-closed-manifold-signed-distance-and-reciprocal-force"
+  },
+  "tolerances": {
+    "fixture_state_absolute": 1e-06,
+    "maximum_containment_penetration_m": 0.001,
+    "maximum_leaked_particles": 0,
+    "maximum_cloth_volume_relative_error": 0.02,
+    "minimum_reaction_force_n": 1.0,
+    "maximum_reciprocal_force_residual_n": 0.001,
+    "maximum_speed_slack_m_s": 1e-05
+  }
+}

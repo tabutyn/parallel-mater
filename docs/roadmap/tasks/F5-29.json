@@ -1,7 +1,7 @@
 {
   "id": "F5-29",
   "title": "Qualify smoke self pressure",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,15 +17,27 @@
     "Add exact bounded capacity, replacement, removal and rollback lifecycle checks; a rejected mutation preserves the last usable state and recovery is deterministic.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "b43398d7-9d42-4ecb-a461-5ee1bcb30843",
-    "owner": "codex-windows-qualification",
-    "machine": "windows-gtx1080",
-    "branch": "work/F5-29/windows-gtx1080",
-    "claimed_at": "2026-10-18T23:21:16Z",
-    "heartbeat_at": "2026-10-18T23:21:16Z",
-    "expires_at": "2026-10-19T23:21:16Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F5-29-smoke-self-pressure.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "b43398d7-9d42-4ecb-a461-5ee1bcb30843",
+        "owner": "codex-windows-qualification",
+        "machine": "windows-gtx1080",
+        "branch": "work/F5-29/windows-gtx1080",
+        "claimed_at": "2026-10-18T23:21:16Z",
+        "heartbeat_at": "2026-10-18T23:21:16Z",
+        "expires_at": "2026-10-19T23:21:16Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T00:15:23Z",
+      "reason": "qualified-smoke-self-pressure-on-windows-cuda",
+      "evidence": [
+        "docs/roadmap/evidence/F5-29-smoke-self-pressure.json"
+      ]
+    }
+  ]
 }

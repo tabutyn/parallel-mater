@@ -1,0 +1,112 @@
+{
+  "schema": "parallel-mater-conformance-lifecycle-profile/v1",
+  "id": "smoke-self-pressure-lifecycle-v1",
+  "title": "Smoke self-pressure bounded lifecycle",
+  "sources": {
+    "capacity": "include/parallel_mater/parallel_mater.h: PmSmokeCapacity and pmCmdWriteSmoke",
+    "qualification": "docs/ROADMAP.md: F5-29",
+    "rollback": "docs/RESOURCE-LIFETIME.md: rejected endpoint replacement preserves the last usable state"
+  },
+  "state_fingerprint": "SHA-256 of canonical accepted public PmSmokeInfo and public PmSmokeParticleState output; exclude handles, timings and driver-private state",
+  "observation_boundary": "Complete each accepted command and read public state before the next mutation; generation is the harness ordinal of an accepted resource write, never a private driver handle",
+  "cases": [
+    {
+      "id": "smoke-particle-capacity-replacement-removal-rollback",
+      "families": ["smoke"],
+      "unrelated_resources": ["particle-control-smoke"],
+      "tracked_resources": ["particle-target-smoke", "particle-control-smoke"],
+      "track_graph": false,
+      "checkpoints": [
+        {
+          "id": "baseline",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "particle-target-smoke": {"active": true},
+            "particle-control-smoke": {"active": true}
+          }
+        },
+        {
+          "id": "replacement",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "particle-target-smoke": {"active": true, "generation_different_from": "baseline", "state_different_from": "baseline"},
+            "particle-control-smoke": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "rejected-overflow",
+          "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED",
+          "resources": {
+            "particle-target-smoke": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"},
+            "particle-control-smoke": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "removal",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "particle-target-smoke": {"active": false, "generation_different_from": "replacement", "state_different_from": "replacement"},
+            "particle-control-smoke": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "recovery",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "particle-target-smoke": {"active": true, "generation_different_from": "removal", "state_different_from": "removal"},
+            "particle-control-smoke": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        }
+      ]
+    },
+    {
+      "id": "smoke-grid-capacity-replacement-removal-rollback",
+      "families": ["smoke"],
+      "unrelated_resources": ["grid-control-smoke"],
+      "tracked_resources": ["grid-target-smoke", "grid-control-smoke"],
+      "track_graph": false,
+      "checkpoints": [
+        {
+          "id": "baseline",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "grid-target-smoke": {"active": true},
+            "grid-control-smoke": {"active": true}
+          }
+        },
+        {
+          "id": "replacement",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "grid-target-smoke": {"active": true, "generation_different_from": "baseline", "state_different_from": "baseline"},
+            "grid-control-smoke": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "rejected-overflow",
+          "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED",
+          "resources": {
+            "grid-target-smoke": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"},
+            "grid-control-smoke": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "removal",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "grid-target-smoke": {"active": false, "generation_different_from": "replacement", "state_different_from": "replacement"},
+            "grid-control-smoke": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "recovery",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "grid-target-smoke": {"active": true, "generation_different_from": "removal", "state_different_from": "removal"},
+            "grid-control-smoke": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -44,24 +44,33 @@
     "examples/assets/SoftbodyRigidBody.glb": "5d40b70591f6ef771a78d238571571b8d1c09ab8af953d447d80361e90d2c5b9"
   },
   "lifecycle_profile_sha256": {
-    "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"
+    "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
+    "conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json": "5599b5d6c5e8386830d0abb29a13feddd3a43a917912efb9e9cf4b1732a22769",
+    "conformance/v1/lifecycle/fluid-cloth-containment-lifecycle-v1.json": "c96a995030b4b3e20ef77c55ab01bb7be2afdbfa2959f69c7d07be6c9bc21bb1",
+    "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31",
+    "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f"
   },
   "quality_profile_sha256": {
     "conformance/v1/quality/core-conservation-v1.json": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
+    "conformance/v1/quality/fluid-cloth-containment-v1.json": "477d6494144118c9c6b108807e81576965a16a34fda5dfe672ed783b5de95b33",
+    "conformance/v1/quality/fluid-soft-contact-v1.json": "40dce99005017b4b4a485f7553ea89f8f06526c88f242215a1415c8c67c9e986",
     "conformance/v1/quality/fluid-self-contact-v1.json": "21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2",
     "conformance/v1/quality/fluid-self-pressure-v1.json": "4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b",
     "conformance/v1/quality/fluid-self-viscosity-v1.json": "9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c",
+    "conformance/v1/quality/fluid-cloth-contact-v1.json": "1216cf9e7252b5fe4c27f14639a1031e698d459a2001db60153a088ebb600445",
     "conformance/v1/quality/rigid-attachment-v1.json": "570add4a6e74539f46513a5baa8168bd2b81dd2ef95ff2a7f6bbb407f3afd108",
     "conformance/v1/quality/rigid-brick-penetration-v1.json": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da",
     "conformance/v1/quality/rigid-kinematic-sweep-v1.json": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc",
-    "conformance/v1/quality/rope-self-contact-v1.json": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113"
+    "conformance/v1/quality/rope-self-contact-v1.json": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113",
+    "conformance/v1/quality/smoke-self-pressure-v1.json": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150",
+    "conformance/v1/quality/smoke-self-viscosity-v1.json": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"
   },
   "qualification_profile_sha256": {
-    "conformance/v1/qualification/capability-obligations-v1.json": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341"
+    "conformance/v1/qualification/capability-obligations-v1.json": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a"
   },
   "evidence_index_sha256": {
-    "conformance/v1/evidence/evidence-sources-v1.json": "71d2360fa2c43e71d46a146470c2d2d1f8ebe41b35f09a00702f0dda989659c7",
-    "conformance/v1/evidence/index-v1.json": "478e806254b91e2b00cb2a7a57cfc07860754f8cfb04ee08e43ab6c9a33c1844"
+    "conformance/v1/evidence/evidence-sources-v1.json": "8c3610a07afc002e5d10ced0ae29a55ba9c350f109580dff0423838811129bd5",
+    "conformance/v1/evidence/index-v1.json": "2acc2d0151826cea6adefb87a18b1a586b361defb8f4cd4783dc2a1a625bd3f6"
   },
   "quality_result_schema": "parallel-mater-conformance-quality-result/v1",
   "result_schema": "parallel-mater-conformance-result/v1",

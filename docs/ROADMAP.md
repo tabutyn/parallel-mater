@@ -192,7 +192,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-12](roadmap/tasks/F5-12.json) | Publish current macOS Metal driver evidence | done | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-10, F5-11 | — |
 | [F5-13](roadmap/tasks/F5-13.json) | Expose capability qualification on iPadOS | done | F5-01, F5-08 | — |
 | [F5-14](roadmap/tasks/F5-14.json) | Publish current iPadOS Metal driver evidence | done | F5-02, F5-03, F5-05, F5-06, F5-10, F5-11, F5-13 | — |
-| [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | ready | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
+| [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | leased | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | codex-linux-gallery / thomas-laptop / 2026-10-19T23:43:01Z |
 | [F5-16](roadmap/tasks/F5-16.json) | Publish current Linux driver evidence | done | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
 | [F5-17](roadmap/tasks/F5-17.json) | Adjudicate rigid-direct reference drift | done | F5-04, F5-10 | — |
 | [F5-18](roadmap/tasks/F5-18.json) | Stabilize rigid-direct planar symmetry | done | F5-17 | — |
@@ -206,13 +206,13 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-26](roadmap/tasks/F5-26.json) | Qualify fluid self pressure | done | F5-23 | — |
 | [F5-27](roadmap/tasks/F5-27.json) | Qualify fluid self viscosity | done | F5-23 | — |
 | [F5-28](roadmap/tasks/F5-28.json) | Qualify sampled rope self contact | done | F5-23 | — |
-| [F5-29](roadmap/tasks/F5-29.json) | Qualify smoke self pressure | leased | F5-23 | codex-windows-qualification / windows-gtx1080 / 2026-10-19T23:21:16Z |
-| [F5-30](roadmap/tasks/F5-30.json) | Qualify smoke self viscosity | ready | F5-23 | — |
-| [F5-31](roadmap/tasks/F5-31.json) | Qualify fluid-cloth contact | ready | F5-23 | — |
-| [F5-32](roadmap/tasks/F5-32.json) | Qualify cloth fluid containment | ready | F5-23 | — |
-| [F5-33](roadmap/tasks/F5-33.json) | Qualify fluid-soft contact | ready | F5-23 | — |
-| [F5-34](roadmap/tasks/F5-34.json) | Qualify fluid-rope contact | ready | F5-23 | — |
-| [F5-35](roadmap/tasks/F5-35.json) | Qualify smoke-to-fluid drag | ready | F5-23 | — |
+| [F5-29](roadmap/tasks/F5-29.json) | Qualify smoke self pressure | done | F5-23 | — |
+| [F5-30](roadmap/tasks/F5-30.json) | Qualify smoke self viscosity | done | F5-23 | — |
+| [F5-31](roadmap/tasks/F5-31.json) | Qualify fluid-cloth contact | done | F5-23 | — |
+| [F5-32](roadmap/tasks/F5-32.json) | Qualify cloth fluid containment | done | F5-23 | — |
+| [F5-33](roadmap/tasks/F5-33.json) | Qualify fluid-soft contact | done | F5-23 | — |
+| [F5-34](roadmap/tasks/F5-34.json) | Qualify fluid-rope contact | leased | F5-23 | codex-macos-qualification / Thomass-MacBook-Air / 2026-10-20T01:39:50Z |
+| [F5-35](roadmap/tasks/F5-35.json) | Qualify smoke-to-fluid drag | leased | F5-23 | codex-windows-qualification / windows-gtx1080 / 2026-10-20T01:48:28Z |
 | [F5-36](roadmap/tasks/F5-36.json) | Qualify externally heated fluid | ready | F5-23 | — |
 | [F5-37](roadmap/tasks/F5-37.json) | Qualify fluid-to-smoke phase transfer | ready | F5-23 | — |
 | [F5-38](roadmap/tasks/F5-38.json) | Qualify fluid-rigid contact | ready | F5-23 | — |

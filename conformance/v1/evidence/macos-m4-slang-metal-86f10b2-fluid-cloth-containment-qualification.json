@@ -1,0 +1,83 @@
+{
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+  "execution_status": "completed",
+  "source": {
+    "commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-metal",
+    "version": "0.2.0+86f10b2",
+    "binary_sha256": "1baa3871da6a00c05b5bbe3ff9dc68c89c969f4c66b0163e27d090e88e5fa376"
+  },
+  "device": {
+    "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "vendor_id": 4203,
+    "device_id": 0,
+    "driver_version": "202618 (Apple Metal 32023.883)"
+  },
+  "toolchain": {
+    "compiler": "Apple Clang, Slang Metal",
+    "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "FLUID",
+      "second_family": "CLOTH",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTAINMENT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "evidence": [
+    {
+      "scope": "analytic_invariants",
+      "contract": "quality:fluid-cloth-containment-v1",
+      "status": "passed",
+      "source_commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
+      "contract_sha256": "477d6494144118c9c6b108807e81576965a16a34fda5dfe672ed783b5de95b33",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-cloth-containment.json",
+      "artifact_sha256": "e1393241ee8a50b048b095140caf68dcac6ee84147e2b01791beb8a516e1d2d1"
+    },
+    {
+      "scope": "compilation",
+      "contract": "registry:interaction-capabilities",
+      "status": "passed",
+      "source_commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-cloth-containment.json",
+      "artifact_sha256": "e1393241ee8a50b048b095140caf68dcac6ee84147e2b01791beb8a516e1d2d1"
+    },
+    {
+      "scope": "execution",
+      "contract": "case:cloth-water",
+      "status": "passed",
+      "source_commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
+      "contract_sha256": "b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-cloth-containment.json",
+      "artifact_sha256": "e1393241ee8a50b048b095140caf68dcac6ee84147e2b01791beb8a516e1d2d1"
+    },
+    {
+      "scope": "lifecycle_invariants",
+      "contract": "lifecycle:fluid-cloth-containment-lifecycle-v1#fluid-cloth-containment-capacity-replacement-removal-rollback",
+      "status": "passed",
+      "source_commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
+      "contract_sha256": "c96a995030b4b3e20ef77c55ab01bb7be2afdbfa2959f69c7d07be6c9bc21bb1",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-cloth-containment.json",
+      "artifact_sha256": "e1393241ee8a50b048b095140caf68dcac6ee84147e2b01791beb8a516e1d2d1"
+    },
+    {
+      "scope": "reference_regression",
+      "contract": "case:cloth-water",
+      "status": "passed",
+      "source_commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
+      "contract_sha256": "b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-cloth-containment.json",
+      "artifact_sha256": "e1393241ee8a50b048b095140caf68dcac6ee84147e2b01791beb8a516e1d2d1"
+    }
+  ]
+}

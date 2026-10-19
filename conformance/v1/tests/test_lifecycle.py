@@ -18,6 +18,7 @@ lifecycle = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = lifecycle
 SPEC.loader.exec_module(lifecycle)
 PROFILE_PATH = ROOT / "lifecycle" / "adverse-capacity-three-family-v1.json"
+SMOKE_PROFILE_PATH = ROOT / "lifecycle" / "smoke-self-lifecycle-v1.json"
 
 
 def digest(label: str) -> str:
@@ -231,6 +232,89 @@ class LifecycleTests(unittest.TestCase):
         result = valid_result(self.profile)
         result["cases"].pop()
         self.assert_rejected(result, "missing required lifecycle case")
+
+
+class SmokeLifecycleTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.profile = json.loads(
+            SMOKE_PROFILE_PATH.read_text(encoding="utf-8"))
+        cls.digest = lifecycle.profile_sha256(SMOKE_PROFILE_PATH)
+
+    def valid_result(self) -> dict:
+        baseline = [
+            resource("particle-smoke", 1, "particle-baseline"),
+            resource("grid-smoke", 1, "grid-baseline"),
+        ]
+        replacement = [
+            resource("particle-smoke", 2, "particle-replacement"),
+            resource("grid-smoke", 2, "grid-replacement"),
+        ]
+        removed = [
+            resource("particle-smoke", 3, "particle-removed", False),
+            resource("grid-smoke", 3, "grid-removed", False),
+        ]
+        recovered = [
+            resource("particle-smoke", 4, "particle-baseline"),
+            resource("grid-smoke", 4, "grid-baseline"),
+        ]
+        lifecycle_case = {
+            "id": "smoke-capacity-replacement-removal-rollback",
+            "execution_status": "completed",
+            "families": ["smoke"],
+            "unrelated_resources": [],
+            "observations": [
+                observation("baseline", "PM_SUCCESS", baseline),
+                observation("replacement", "PM_SUCCESS", replacement),
+                observation("particle-capacity-rejection",
+                            "PM_ERROR_CAPACITY_EXCEEDED",
+                            copy.deepcopy(replacement)),
+                observation("grid-capacity-rejection",
+                            "PM_ERROR_CAPACITY_EXCEEDED",
+                            copy.deepcopy(replacement)),
+                observation("removal", "PM_SUCCESS", removed),
+                observation("recovery", "PM_SUCCESS", recovered),
+            ],
+        }
+        return {
+            "schema": lifecycle.RESULT_SCHEMA,
+            "profile_id": self.profile["id"],
+            "profile_sha256": self.digest,
+            "execution_status": "completed",
+            "driver": {"name": "test-driver", "device": "test-device"},
+            "cases": [lifecycle_case],
+        }
+
+    def assert_rejected(self, result: dict, message: str) -> None:
+        report = lifecycle.evaluate(self.profile, result, self.digest)
+        self.assertFalse(report["passed"])
+        self.assertTrue(any(message in failure["message"]
+                            for failure in report["failures"]), report)
+
+    def test_complete_smoke_lifecycle_passes(self):
+        report = lifecycle.evaluate(
+            self.profile, self.valid_result(), self.digest)
+        self.assertTrue(report["passed"], report)
+        self.assertEqual(report["case_count"], 1)
+        self.assertEqual(report["checkpoint_count"], 6)
+
+    def test_capacity_rejections_are_atomic(self):
+        for checkpoint in (2, 3):
+            with self.subTest(checkpoint=checkpoint):
+                result = self.valid_result()
+                result["cases"][0]["observations"][checkpoint]["resources"][0][
+                    "state_sha256"] = digest("partial-write")
+                self.assert_rejected(result, "state_sha256 must match")
+
+    def test_removal_and_recovery_are_observable(self):
+        result = self.valid_result()
+        result["cases"][0]["observations"][4]["resources"][1]["active"] = True
+        self.assert_rejected(result, "active state mismatch")
+
+        result = self.valid_result()
+        result["cases"][0]["observations"][5]["resources"][0][
+            "state_sha256"] = digest("different-recovery")
+        self.assert_rejected(result, "state_sha256 must match")
 
 
 if __name__ == "__main__":

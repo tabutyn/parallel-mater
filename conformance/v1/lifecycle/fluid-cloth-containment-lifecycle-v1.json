@@ -1,0 +1,76 @@
+{
+  "schema": "parallel-mater-conformance-lifecycle-profile/v1",
+  "id": "fluid-cloth-containment-lifecycle-v1",
+  "title": "Fluid-cloth containment graph capacity and rollback lifecycle",
+  "sources": {
+    "capacity": "include/parallel_mater/parallel_mater.h: PmSimulationCreateInfo.couplingCapacity and pmCmdSetCouplings",
+    "rollback": "docs/API-CONTRACT.md: PM-GRAPH-001 transactional coupling replacement",
+    "qualification": "docs/ROADMAP.md: F5-32"
+  },
+  "state_fingerprint": "SHA-256 of canonical public fluid and cloth output state; exclude handles, timings and driver-private state",
+  "observation_boundary": "Complete each graph mutation and read public endpoint state before the next mutation; generation is the harness ordinal of the accepted endpoint write, never a private driver handle",
+  "cases": [
+    {
+      "id": "fluid-cloth-containment-capacity-replacement-removal-rollback",
+      "families": ["fluid", "cloth"],
+      "unrelated_resources": [],
+      "tracked_resources": ["fluid", "cloth"],
+      "track_graph": true,
+      "checkpoints": [
+        {
+          "id": "baseline",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "fluid": {"active": true},
+            "cloth": {"active": true}
+          }
+        },
+        {
+          "id": "replacement",
+          "expected_outcome": "PM_SUCCESS",
+          "graph_different_from": "baseline",
+          "resources": {
+            "fluid": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"},
+            "cloth": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "rejected-capacity",
+          "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED",
+          "graph_same_as": "replacement",
+          "resources": {
+            "fluid": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"},
+            "cloth": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"}
+          }
+        },
+        {
+          "id": "partial-failure",
+          "expected_outcome": "PM_ERROR_INVALID_STATE",
+          "graph_same_as": "replacement",
+          "resources": {
+            "fluid": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"},
+            "cloth": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"}
+          }
+        },
+        {
+          "id": "removal",
+          "expected_outcome": "PM_SUCCESS",
+          "graph_different_from": "replacement",
+          "resources": {
+            "fluid": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"},
+            "cloth": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "recovery",
+          "expected_outcome": "PM_SUCCESS",
+          "graph_same_as": "baseline",
+          "resources": {
+            "fluid": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"},
+            "cloth": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        }
+      ]
+    }
+  ]
+}
