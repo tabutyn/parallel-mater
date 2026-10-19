@@ -1,0 +1,35 @@
+{
+  "driver": {
+    "device": "unavailable",
+    "name": "unavailable"
+  },
+  "failure_count": 3,
+  "failures": [
+    {
+      "actual": "failed",
+      "limit": "completed",
+      "message": "quality execution must be completed",
+      "path": "$.execution_status"
+    },
+    {
+      "actual": "rope-segment-centered-cube-impact",
+      "limit": null,
+      "message": "missing required fixture",
+      "path": "$.fixtures"
+    },
+    {
+      "actual": "rope-segment-separated-cube-control",
+      "limit": null,
+      "message": "missing required fixture",
+      "path": "$.fixtures"
+    }
+  ],
+  "fixture_count": 0,
+  "observations": {},
+  "passed": false,
+  "profile_id": "rope-rigid-contact-v1",
+  "profile_sha256": "004a0109d3aeedb24ea54302b28dae5691a6ac89afb133d1d0ef2768e1393672",
+  "sample_count": 0,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

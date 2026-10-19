@@ -1,7 +1,7 @@
 {
   "id": "F5-52",
   "title": "Qualify rope-rigid contact",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,15 +17,31 @@
     "Retain the existing exact lifecycle binding and prove the new analytic fixture does not broaden or substitute for its capacity, replacement and rollback obligations.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "d07fb46a-7ba9-4846-85e5-20cc1f24f584",
-    "owner": "codex-linux-qualification",
-    "machine": "ThomasLaptop",
-    "branch": "work/F5-52/ThomasLaptop",
-    "claimed_at": "2026-10-19T19:37:50Z",
-    "heartbeat_at": "2026-10-19T19:37:50Z",
-    "expires_at": "2026-10-20T19:37:50Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: rope-rigid-contact-v1 on physical RTX 3050 Ti CUDA; 2 samples, 0 failures, 0.02002456 m clearance, bounded reciprocal and force residuals; docs/roadmap/evidence/F5-52-rope-rigid-contact.json",
+    "PASS: rope-core execution completed all 3 checkpoints and repeated byte-identically; exact lifecycle binding retained.",
+    "LIMITATION RETAINED: historical CUDA rope-core golden differs by 242 broad contact values; exact CUDA row remains unqualified, no golden or tolerance changed, F5-56 owns adjudication."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "d07fb46a-7ba9-4846-85e5-20cc1f24f584",
+        "owner": "codex-linux-qualification",
+        "machine": "ThomasLaptop",
+        "branch": "work/F5-52/ThomasLaptop",
+        "claimed_at": "2026-10-19T19:37:50Z",
+        "heartbeat_at": "2026-10-19T19:37:50Z",
+        "expires_at": "2026-10-20T19:37:50Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T20:05:35Z",
+      "reason": "Published and physically exercised the exact rope-rigid contact oracle; retained rope-core lifecycle binding and the stale historical golden failure without claiming qualification.",
+      "evidence": [
+        "PASS: rope-rigid-contact-v1 on physical RTX 3050 Ti CUDA; 2 samples, 0 failures, 0.02002456 m clearance, bounded reciprocal and force residuals; docs/roadmap/evidence/F5-52-rope-rigid-contact.json",
+        "PASS: rope-core execution completed all 3 checkpoints and repeated byte-identically; exact lifecycle binding retained.",
+        "LIMITATION RETAINED: historical CUDA rope-core golden differs by 242 broad contact values; exact CUDA row remains unqualified, no golden or tolerance changed, F5-56 owns adjudication."
+      ]
+    }
+  ]
 }

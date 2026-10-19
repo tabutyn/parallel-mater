@@ -3523,7 +3523,7 @@
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "rope-rigid",
+      "rule_id": "rope-rigid-attachment",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -3572,7 +3572,7 @@
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "rope-rigid",
+      "rule_id": "rope-rigid-attachment",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -3621,11 +3621,13 @@
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "rope-rigid",
+      "rule_id": "rope-rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rope-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -3670,11 +3672,13 @@
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "rope-rigid",
+      "rule_id": "rope-rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rope-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -4125,7 +4129,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
-      "qualified": true,
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-grid",
       "rule_id": "rope-smoke-drag-grid",
       "scopes": {
@@ -4278,7 +4282,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
-      "qualified": true,
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-particle",
       "rule_id": "rope-smoke-drag-particle",
       "scopes": {
@@ -9807,7 +9811,7 @@
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "rope-rigid",
+      "rule_id": "rope-rigid-attachment",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -9856,7 +9860,7 @@
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "rope-rigid",
+      "rule_id": "rope-rigid-attachment",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -9905,11 +9909,13 @@
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "rope-rigid",
+      "rule_id": "rope-rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rope-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -9954,11 +9960,13 @@
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "rope-rigid",
+      "rule_id": "rope-rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rope-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -14561,7 +14569,7 @@
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
-      "rule_id": "rope-rigid",
+      "rule_id": "rope-rigid-attachment",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -14610,7 +14618,7 @@
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "rope-rigid",
+      "rule_id": "rope-rigid-attachment",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -14659,11 +14667,13 @@
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
-      "rule_id": "rope-rigid",
+      "rule_id": "rope-rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rope-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -14708,11 +14718,13 @@
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "rope-rigid",
+      "rule_id": "rope-rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:rope-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -16797,7 +16809,7 @@
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle"
       ],
-      "qualified_capability_count": 2,
+      "qualified_capability_count": 0,
       "report_ids": [
         "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
         "linux-rtx3050ti-slang-cuda-eed669e",
@@ -16825,7 +16837,7 @@
         "windows-gtx1080-physics-2026-10-16"
       ],
       "status": "unqualified",
-      "unqualified_capability_count": 119
+      "unqualified_capability_count": 121
     },
     {
       "id": "slang-d3d12",
@@ -16961,7 +16973,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19411,20 +19423,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "actual": "quality:rope-rigid-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[43].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "actual": "quality:rope-rigid-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[43].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -19465,7 +19477,7 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "actual": "No vendor-neutral rope-rigid ATTACHMENT quality case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -19474,7 +19486,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "actual": "No vendor-neutral rope-rigid ATTACHMENT quality case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -20160,7 +20172,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20169,7 +20181,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20178,7 +20190,7 @@
     {
       "actual": "20c3086b26c05fc00bdc2a70fc4f528cdd588271c2cc2be4409912982d60c419",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20187,7 +20199,7 @@
     {
       "actual": "024f8894735a8285f1d5fb7058e639256cf5db6bc9a5ee9e2b1ff28de50ab588",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20196,7 +20208,7 @@
     {
       "actual": "024f8894735a8285f1d5fb7058e639256cf5db6bc9a5ee9e2b1ff28de50ab588",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20205,7 +20217,7 @@
     {
       "actual": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20214,7 +20226,7 @@
     {
       "actual": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20223,7 +20235,7 @@
     {
       "actual": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20232,7 +20244,7 @@
     {
       "actual": "45a66f52166b62bf72a80278e02efde22c34743c214b35d06bc1b11345b284f1",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20241,7 +20253,7 @@
     {
       "actual": "45a66f52166b62bf72a80278e02efde22c34743c214b35d06bc1b11345b284f1",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20250,7 +20262,7 @@
     {
       "actual": "cde6aa45452d69a242f4072cbd398152b24f7d715e312be5ad628c02c516fac9",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20259,7 +20271,7 @@
     {
       "actual": "b90213221d975ed2f7012844c718c13802d0538ee1150c9d70559e6dfc632da8",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20268,16 +20280,34 @@
     {
       "actual": "b90213221d975ed2f7012844c718c13802d0538ee1150c9d70559e6dfc632da8",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-particle"
     },
     {
+      "actual": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "driver": "slang-cuda",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-grid"
+    },
+    {
+      "actual": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "driver": "slang-cuda",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-particle"
+    },
+    {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20286,7 +20316,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20295,7 +20325,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20304,7 +20334,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20313,7 +20343,7 @@
     {
       "actual": "cde6aa45452d69a242f4072cbd398152b24f7d715e312be5ad628c02c516fac9",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20322,7 +20352,7 @@
     {
       "actual": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20331,7 +20361,7 @@
     {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20340,7 +20370,7 @@
     {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20776,7 +20806,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20785,7 +20815,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-d3d12",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20794,7 +20824,7 @@
     {
       "actual": "cde6aa45452d69a242f4072cbd398152b24f7d715e312be5ad628c02c516fac9",
       "driver": "slang-d3d12",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22849,20 +22879,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "actual": "quality:rope-rigid-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[40].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "actual": "quality:rope-rigid-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[40].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -22903,7 +22933,7 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "actual": "No vendor-neutral rope-rigid ATTACHMENT quality case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -22912,7 +22942,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "actual": "No vendor-neutral rope-rigid ATTACHMENT quality case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -23571,7 +23601,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23580,7 +23610,7 @@
     {
       "actual": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "driver": "slang-metal",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23589,7 +23619,7 @@
     {
       "actual": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "driver": "slang-metal",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23598,7 +23628,7 @@
     {
       "actual": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "driver": "slang-metal",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23607,7 +23637,7 @@
     {
       "actual": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "driver": "slang-metal",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23616,7 +23646,7 @@
     {
       "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
       "driver": "slang-metal",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23625,7 +23655,7 @@
     {
       "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
       "driver": "slang-metal",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23634,7 +23664,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23643,7 +23673,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23652,7 +23682,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23661,7 +23691,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -25189,20 +25219,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "actual": "quality:rope-rigid-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[40].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "actual": "quality:rope-rigid-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[40].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -25234,7 +25264,7 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "actual": "No vendor-neutral rope-rigid ATTACHMENT quality case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -25243,7 +25273,7 @@
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "actual": "No vendor-neutral rope-rigid ATTACHMENT quality case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -25668,7 +25698,7 @@
     {
       "actual": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
       "driver": "slang-vulkan",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -25677,7 +25707,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+      "expected": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -25685,9 +25715,9 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+  "obligations_sha256": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb",
   "qualification_complete": true,
-  "qualified_capability_count": 2,
+  "qualified_capability_count": 0,
   "report_count": 42,
   "reports": [
     {
@@ -25792,11 +25822,11 @@
         "name": "slang-cuda",
         "version": "0.2.0+0dc9fbf"
       },
-      "failure_count": 0,
+      "failure_count": 1,
       "id": "linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-grid",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-grid-qualification.json",
-      "qualified_count": 1,
+      "qualified_count": 0,
       "sha256": "d9e31aba46bb61dc3155881fcbf2f473ebfe6bfa9c412a3dfe11d9d17821630c",
       "source": {
         "commit": "0dc9fbf2a35181b29b6b151d87289d173158a971",
@@ -25806,7 +25836,7 @@
         "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
         "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 1,
@@ -25821,11 +25851,11 @@
         "name": "slang-cuda",
         "version": "0.2.0+0dc9fbf"
       },
-      "failure_count": 0,
+      "failure_count": 1,
       "id": "linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-particle",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-particle-qualification.json",
-      "qualified_count": 1,
+      "qualified_count": 0,
       "sha256": "a562a97b27f09a40b04baf443630af704e1ce1e28ed8fe0e76f309ea6bb6b351",
       "source": {
         "commit": "0dc9fbf2a35181b29b6b151d87289d173158a971",
@@ -25835,7 +25865,7 @@
         "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
         "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 1,
@@ -26924,7 +26954,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "e87c42bac4ce4151b8a5aa7166a4d2e2aaadff742ff1bf2e2536b0fbbdb9ade3",
+  "sources_sha256": "dc6e8a9b11dbd0cba6821a9234a81902c3471282b5c08165d1433987cc9e0e0d",
   "valid": true,
   "validation_failures": []
 }
