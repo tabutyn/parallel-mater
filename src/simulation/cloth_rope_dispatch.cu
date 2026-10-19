@@ -30,13 +30,15 @@ void sample_rope_cloth_anchor(device::ExecutionQueue stream, void *anchor_positi
 
 void apply_rope_cloth_anchor(device::ExecutionQueue stream, void *rope_positions,
     void *rope_velocities, std::uint32_t rope_count, void *anchor_positions,
-    void *anchor_velocities, std::uint32_t end, void *positions,
+    void *anchor_velocities, const void *anchor_impulses,
+    std::uint32_t end, void *positions,
     void *velocities, void *forces, const float *inverse_masses,
     std::uint32_t vertex, float maximum_acceleration, float timestep,
     float frame_inverse_timestep) noexcept {
     rope_cloth_apply_anchor<<<1U, 1U, 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(rope_positions), as<Vec3_0>(rope_velocities), rope_count,
-        as<Vec3_0>(anchor_positions), as<Vec3_0>(anchor_velocities), end,
+        as<Vec3_0>(anchor_positions), as<Vec3_0>(anchor_velocities),
+        const_cast<Vec3_0 *>(as<Vec3_0>(anchor_impulses)), end,
         as<Vec3_0>(positions), as<Vec3_0>(velocities), as<Vec3_0>(forces),
         const_cast<float *>(inverse_masses), vertex, maximum_acceleration,
         timestep, frame_inverse_timestep);

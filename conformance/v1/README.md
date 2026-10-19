@@ -196,6 +196,31 @@ They are separate analytic obligations for the advertised same-domain rigid
 contact and attachment capabilities; neither substitutes for lifecycle or
 reference-regression evidence.
 
+Cloth-rope endpoint attachment uses the immutable
+`cloth-rope-attachment-v1` profile. Its public-API fixture suspends a rope from
+a supported cloth vertex, bounds endpoint and pinned-support drift, and checks
+reciprocity by comparing the public cloth reaction with an independent rope
+momentum balance. The paired
+`cloth-rope-attachment-lifecycle-v1` profile checks exact graph capacity,
+replacement, rejected-overflow rollback, removal and deterministic recovery:
+
+```text
+parallel-mater-conformance --quality cloth-rope-attachment-v1 \
+  --output /path/to/cloth-rope-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/cloth-rope-attachment-v1.json \
+  --actual /path/to/cloth-rope-quality-results/cloth-rope-attachment-v1.json \
+  --report /path/to/cloth-rope-quality-report.json
+
+parallel-mater-conformance \
+  --lifecycle-profile cloth-rope-attachment-lifecycle-v1 \
+  --output /path/to/cloth-rope-lifecycle-result.json
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/cloth-rope-attachment-lifecycle-v1.json \
+  --actual /path/to/cloth-rope-lifecycle-result.json \
+  --report /path/to/cloth-rope-lifecycle-report.json
+```
+
 Smoke self-pressure has one immutable profile with particle and projected-grid
 variants. It derives particle pressure from public density state, checks public
 grid tracer pressure activity, and bounds particle mean-velocity drift:
