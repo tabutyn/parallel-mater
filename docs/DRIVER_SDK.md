@@ -9,13 +9,15 @@ ordinary `pm*` application symbols.
 
 | Package | Responsibility |
 |---|---|
-| `parallel_mater.h` | Stable application ABI generated from `registry/pm.xml` |
+| `parallel_mater.h` | Versioned application ABI generated from `registry/pm.xml` |
 | `libparallel-mater` | Driver/layer discovery, physical-device aggregation, dispatch |
 | `pm_driver.h` | Versioned private loader-driver ABI |
 | `pm_layer.h` | Versioned loader-layer observation and validation ABI |
-| `parallel_mater_driver_slang_cuda` | First reference driver; historical regression baseline with current quality failures still open |
-| `parallel_mater_driver_slang_d3d12` | Windows transfer driver and shared DXIL rigid-body/constraint adapter |
-| `parallel_mater_driver_slang_cpu` | Serial Slang CPU development driver; rigid capabilities and opt-in experimental liquids |
+| `parallel_mater_driver_slang_cuda` | NVIDIA GPU driver for Linux/Windows; shared Slang compiled to CUDA/PTX |
+| `parallel_mater_driver_slang_metal` | Apple GPU driver for macOS/iPadOS; shared Slang compiled to Metal libraries |
+| `parallel_mater_driver_slang_d3d12` | Windows GPU driver; shared Slang compiled to DXIL |
+| `parallel_mater_driver_slang_vulkan` | Linux/Android GPU driver; shared Slang compiled to SPIR-V |
+| `parallel_mater_driver_slang_cpu` | Serial C++ development driver for Linux/macOS; shared Slang compiled to host code |
 | `PM_LAYER_PARALLEL_MATER_validation` | Optional validation layer |
 
 ## Required driver exports
@@ -98,20 +100,28 @@ buffers, schedule physics, or implement equations.
 
 ## Reference implementation
 
-The reference drivers use the shared Slang sources in `src/slang`. CUDA,
-macOS-hosted C++, DXIL, and Vulkan SPIR-V are compiler targets of the same
-modules; they are not separate physics implementations. The D3D12 and serial
-macOS drivers advertise only the rigid capabilities their shared schedules
-execute and no unported simulation domain. Platform device code may allocate,
-transfer, bind, dispatch, and synchronize but cannot contain collision,
-constraint, material, or coupling equations.
+The reference drivers reuse the shared C++ runtime in `src/simulation` and the
+Slang physics sources in `src/slang`. A native device adapter inside each
+driver supplies allocation, transfer, binding, dispatch, synchronization,
+queries, and supported native interoperability. Collision, constraint,
+material, and coupling equations stay in Slang. The host schedules the work;
+CUDA, Metal, D3D12, and Vulkan execute the generated physics kernels on GPUs.
+Only the separately selected Slang CPU driver executes generated host code.
 
-The previous standalone Vulkan executor scaffold has been removed. The
-[loadable Vulkan preview](VULKAN.md) binds the shared portable schedule to
-SPIR-V and advertises rigid bodies, constraints, liquids, and liquid–rigid
-coupling. Other domains and native imports remain unavailable. Desktop checks
-cover this preview scope; full conformance, engine handoff, sustained performance,
-and phone qualification remain separate gates.
+CUDA, Metal, and Vulkan expose rigid bodies/constraints, liquids, cloth, ropes,
+soft bodies, smoke, paint, and implemented cross-domain interactions. D3D12
+exposes rigid bodies/constraints, liquids, cloth, and their implemented
+couplings. The CPU driver exposes rigid bodies/constraints, with explicitly
+enabled experimental liquids. Exact interaction and native-import support
+must be queried; shared source or a broad domain bit does not establish it.
+For build and execution details see [Slang](SLANG.md), [Vulkan](VULKAN.md), and
+[Metal](METAL-QUALIFICATION.md). The [qualification index](QUALIFICATION.md)
+separately records physical evidence and failures for each driver revision.
+
+These reference implementation choices are not requirements to use Slang in an
+independent driver. The loader negotiates the versioned C driver ABI and routes
+commands; an independent driver must satisfy the API's observable contracts
+and its advertised capability obligations.
 
 A hardware vendor may reuse its compiler, memory manager, queue scheduler, and
 kernel runtime between its Vulkan driver and its Parallel Mater driver. Parallel
