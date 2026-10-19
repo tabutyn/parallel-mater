@@ -1,7 +1,7 @@
 {
   "id": "P1-25",
   "title": "Expose soft-body contact scopes",
-  "status": "deferred",
+  "status": "open",
   "dependencies": [
     "P1-02"
   ],

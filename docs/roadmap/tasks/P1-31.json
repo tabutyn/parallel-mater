@@ -1,7 +1,7 @@
 {
   "id": "P1-31",
   "title": "Audit sampled-node rope self-contact",
-  "status": "deferred",
+  "status": "open",
   "dependencies": [
     "P1-02",
     "F5-02"
