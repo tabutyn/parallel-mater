@@ -1,0 +1,1509 @@
+{
+  "cases": [
+    {
+      "differences": [
+        {
+          "actual": 1,
+          "expected": 0,
+          "message": "exact value mismatch",
+          "path": "$.checkpoints[1].contacts.rigid_contact_count"
+        },
+        {
+          "actual": 1,
+          "expected": 0,
+          "message": "length mismatch",
+          "path": "$.checkpoints[1].contacts.rigid_contacts"
+        },
+        {
+          "actual": [
+            -0.09999099373817444,
+            -0.44185546040534973,
+            -0.7774973511695862,
+            0.43619176745414734
+          ],
+          "expected": [
+            -0.0923171192407608,
+            -0.435700923204422,
+            -0.7813817262649536,
+            0.43713241815567017
+          ],
+          "message": "quaternion angular error 0.021235907872049042 > 0.002",
+          "path": "$.checkpoints[1].resources[3].orientation"
+        },
+        {
+          "actual": null,
+          "expected": {
+            "body": "rigid/Icosphere/3",
+            "collider": "rigid/Plane.001/1",
+            "friction_impulse": [
+              -0.00016446903464384377,
+              -2.1978688380386302e-07,
+              -0.0031854507979005575
+            ],
+            "normal": [
+              -8.101757703116164e-05,
+              1,
+              -6.481406308012083e-05
+            ],
+            "normal_impulse": 0.018343469128012657,
+            "penetration": 9.037488780450076e-05,
+            "position": [
+              -0.1634249985218048,
+              0.00045981258153915405,
+              0.3271135985851288
+            ]
+          },
+          "message": "no one-to-one contact match within existing tolerances",
+          "path": "$.checkpoints[2].contacts.rigid_contacts[0]"
+        },
+        {
+          "actual": -0.032865989953279495,
+          "expected": 0.08943420648574829,
+          "message": "absolute error 0.12230019643902779 > 0.054471710324287416",
+          "path": "$.checkpoints[2].invariants.combined_momentum[1]"
+        },
+        {
+          "actual": 1.8189706802368164,
+          "expected": 2.401029348373413,
+          "message": "absolute error 0.5820586681365967 > 0.17005146741867067",
+          "path": "$.checkpoints[2].resources[3].angular_velocity[0]"
+        },
+        {
+          "actual": 5.8395891189575195,
+          "expected": 4.588558197021484,
+          "message": "absolute error 1.2510309219360352 > 0.341979455947876",
+          "path": "$.checkpoints[2].resources[3].angular_velocity[1]"
+        },
+        {
+          "actual": -0.7378789782524109,
+          "expected": -1.105422019958496,
+          "message": "absolute error 0.3675430417060852 > 0.1052711009979248",
+          "path": "$.checkpoints[2].resources[3].angular_velocity[2]"
+        },
+        {
+          "actual": 0.2138596922159195,
+          "expected": -0.016539156436920166,
+          "message": "absolute error 0.23039884865283966 > 0.060692984610795975",
+          "path": "$.checkpoints[2].resources[3].linear_velocity[0]"
+        },
+        {
+          "actual": -0.0070732454769313335,
+          "expected": 0.11523032188415527,
+          "message": "absolute error 0.12230356736108661 > 0.055761516094207764",
+          "path": "$.checkpoints[2].resources[3].linear_velocity[1]"
+        },
+        {
+          "actual": [
+            -0.47764772176742554,
+            0.4808275103569031,
+            0.2728572189807892,
+            0.6827932000160217
+          ],
+          "expected": [
+            -0.6032677888870239,
+            0.2709237039089203,
+            0.021066557615995407,
+            0.7498162984848022
+          ],
+          "message": "quaternion angular error 0.7186483851875005 > 0.002",
+          "path": "$.checkpoints[2].resources[3].orientation"
+        },
+        {
+          "actual": -0.16589321196079254,
+          "expected": -0.1801256537437439,
+          "message": "absolute error 0.014232441782951355 > 0.00590062826871872",
+          "path": "$.checkpoints[2].resources[3].position[0]"
+        },
+        {
+          "actual": 0.29947489500045776,
+          "expected": 0.2863364517688751,
+          "message": "absolute error 0.013138443231582642 > 0.0064973744750022894",
+          "path": "$.checkpoints[2].resources[3].position[2]"
+        },
+        {
+          "actual": 0.1616409569978714,
+          "expected": 0.28377413749694824,
+          "message": "absolute error 0.12213318049907684 > 0.006418870687484741",
+          "path": "$.checkpoints[2].resources[4].aggregate.bounds.maximum[2]"
+        },
+        {
+          "actual": -0.14084351062774658,
+          "expected": -0.08509957790374756,
+          "message": "absolute error 0.05574393272399902 > 0.005704217553138733",
+          "path": "$.checkpoints[2].resources[4].aggregate.bounds.minimum[0]"
+        },
+        {
+          "actual": -0.04841092601418495,
+          "expected": -0.03553732857108116,
+          "message": "absolute error 0.01287359744310379 > 0.005242054630070925",
+          "path": "$.checkpoints[2].resources[4].aggregate.bounds.minimum[2]"
+        },
+        {
+          "actual": 0.023826295509934425,
+          "expected": 0.03592464327812195,
+          "message": "absolute error 0.012098347768187523 > 0.00517962321639061",
+          "path": "$.checkpoints[2].resources[4].aggregate.center_of_mass[0]"
+        },
+        {
+          "actual": 0.05371677130460739,
+          "expected": 0.07868679612874985,
+          "message": "absolute error 0.024970024824142456 > 0.00539343398064375",
+          "path": "$.checkpoints[2].resources[4].aggregate.center_of_mass[2]"
+        },
+        {
+          "actual": 0.34098642554099196,
+          "expected": 0.1388281414157264,
+          "message": "absolute error 0.20215828412526554 > 0.00670493212770496",
+          "path": "$.checkpoints[2].resources[4].aggregate.kinetic_energy"
+        },
+        {
+          "actual": 2.1029238369713923,
+          "expected": 1.4207927920235124,
+          "message": "absolute error 0.6821310449478799 > 0.15514619184856962",
+          "path": "$.checkpoints[2].resources[4].aggregate.maximum_speed"
+        },
+        {
+          "actual": -0.48960167169570923,
+          "expected": -0.27238184213638306,
+          "message": "absolute error 0.21721982955932617 > 0.07448008358478547",
+          "path": "$.checkpoints[2].resources[4].aggregate.momentum[0]"
+        },
+        {
+          "actual": -0.21688611805438995,
+          "expected": -0.1467249095439911,
+          "message": "absolute error 0.07016120851039886 > 0.0608443059027195",
+          "path": "$.checkpoints[2].resources[4].aggregate.momentum[2]"
+        },
+        {
+          "actual": -0.14084351062774658,
+          "expected": -0.08509957790374756,
+          "message": "absolute error 0.05574393272399902 > 0.005704217553138733",
+          "path": "$.checkpoints[2].resources[4].samples[0].position[0]"
+        },
+        {
+          "actual": 0.09032432734966278,
+          "expected": 0.058505281805992126,
+          "message": "absolute error 0.031819045543670654 > 0.005451621636748314",
+          "path": "$.checkpoints[2].resources[4].samples[0].position[1]"
+        },
+        {
+          "actual": 0.1616409569978714,
+          "expected": 0.21120396256446838,
+          "message": "absolute error 0.049563005566596985 > 0.006056019812822342",
+          "path": "$.checkpoints[2].resources[4].samples[0].position[2]"
+        },
+        {
+          "actual": -0.6395919919013977,
+          "expected": -0.4677858352661133,
+          "message": "absolute error 0.17180615663528442 > 0.0819795995950699",
+          "path": "$.checkpoints[2].resources[4].samples[0].velocity[0]"
+        },
+        {
+          "actual": 0.22540640830993652,
+          "expected": -0.21855002641677856,
+          "message": "absolute error 0.4439564347267151 > 0.06127032041549683",
+          "path": "$.checkpoints[2].resources[4].samples[0].velocity[2]"
+        },
+        {
+          "actual": -0.12614962458610535,
+          "expected": -0.06911148875951767,
+          "message": "absolute error 0.05703813582658768 > 0.0056307481229305265",
+          "path": "$.checkpoints[2].resources[4].samples[1].position[0]"
+        },
+        {
+          "actual": 0.07927154004573822,
+          "expected": 0.04682444781064987,
+          "message": "absolute error 0.03244709223508835 > 0.005396357700228691",
+          "path": "$.checkpoints[2].resources[4].samples[1].position[1]"
+        },
+        {
+          "actual": 0.15395568311214447,
+          "expected": 0.2134571075439453,
+          "message": "absolute error 0.05950142443180084 > 0.006067285537719727",
+          "path": "$.checkpoints[2].resources[4].samples[1].position[2]"
+        },
+        {
+          "actual": -0.7008553147315979,
+          "expected": -0.5376095771789551,
+          "message": "absolute error 0.16324573755264282 > 0.0850427657365799",
+          "path": "$.checkpoints[2].resources[4].samples[1].velocity[0]"
+        },
+        {
+          "actual": 0.17884410917758942,
+          "expected": 0.08058243989944458,
+          "message": "absolute error 0.09826166927814484 > 0.058942205458879474",
+          "path": "$.checkpoints[2].resources[4].samples[1].velocity[1]"
+        },
+        {
+          "actual": 0.17487864196300507,
+          "expected": -0.29334330558776855,
+          "message": "absolute error 0.4682219475507736 > 0.06466716527938843",
+          "path": "$.checkpoints[2].resources[4].samples[1].velocity[2]"
+        },
+        {
+          "actual": -0.11101201176643372,
+          "expected": -0.05260332301259041,
+          "message": "absolute error 0.05840868875384331 > 0.005555060058832169",
+          "path": "$.checkpoints[2].resources[4].samples[2].position[0]"
+        },
+        {
+          "actual": 0.06899864971637726,
+          "expected": 0.03663239628076553,
+          "message": "absolute error 0.032366253435611725 > 0.005344993248581886",
+          "path": "$.checkpoints[2].resources[4].samples[2].position[1]"
+        },
+        {
+          "actual": 0.146055206656456,
+          "expected": 0.21800680458545685,
+          "message": "absolute error 0.07195159792900085 > 0.0060900340229272844",
+          "path": "$.checkpoints[2].resources[4].samples[2].position[2]"
+        },
+        {
+          "actual": -0.7603119015693665,
+          "expected": -0.4293321967124939,
+          "message": "absolute error 0.33097970485687256 > 0.08801559507846833",
+          "path": "$.checkpoints[2].resources[4].samples[2].velocity[0]"
+        },
+        {
+          "actual": 0.12647727131843567,
+          "expected": -0.5140714645385742,
+          "message": "absolute error 0.6405487358570099 > 0.07570357322692872",
+          "path": "$.checkpoints[2].resources[4].samples[2].velocity[2]"
+        },
+        {
+          "actual": -0.09528845548629761,
+          "expected": -0.03531511500477791,
+          "message": "absolute error 0.0599733404815197 > 0.005476442277431488",
+          "path": "$.checkpoints[2].resources[4].samples[3].position[0]"
+        },
+        {
+          "actual": 0.05984189361333847,
+          "expected": 0.02896576188504696,
+          "message": "absolute error 0.03087613172829151 > 0.005299209468066692",
+          "path": "$.checkpoints[2].resources[4].samples[3].position[1]"
+        },
+        {
+          "actual": 0.13793079555034637,
+          "expected": 0.2242855727672577,
+          "message": "absolute error 0.08635477721691132 > 0.0061214278638362886",
+          "path": "$.checkpoints[2].resources[4].samples[3].position[2]"
+        },
+        {
+          "actual": -0.8076615333557129,
+          "expected": -0.47652843594551086,
+          "message": "absolute error 0.331133097410202 > 0.09038307666778565",
+          "path": "$.checkpoints[2].resources[4].samples[3].velocity[0]"
+        },
+        {
+          "actual": 0.10753758996725082,
+          "expected": 0.04248783737421036,
+          "message": "absolute error 0.06504975259304047 > 0.05537687949836254",
+          "path": "$.checkpoints[2].resources[4].samples[3].velocity[1]"
+        },
+        {
+          "actual": 0.05840777978301048,
+          "expected": -0.5244625210762024,
+          "message": "absolute error 0.5828703008592129 > 0.07622312605381013",
+          "path": "$.checkpoints[2].resources[4].samples[3].velocity[2]"
+        },
+        {
+          "actual": -0.07905466854572296,
+          "expected": -0.019480984658002853,
+          "message": "absolute error 0.05957368388772011 > 0.005395273342728615",
+          "path": "$.checkpoints[2].resources[4].samples[4].position[0]"
+        },
+        {
+          "actual": 0.05140148103237152,
+          "expected": 0.019222132861614227,
+          "message": "absolute error 0.032179348170757294 > 0.005257007405161857",
+          "path": "$.checkpoints[2].resources[4].samples[4].position[1]"
+        },
+        {
+          "actual": 0.13003799319267273,
+          "expected": 0.2314559519290924,
+          "message": "absolute error 0.10141795873641968 > 0.006157279759645462",
+          "path": "$.checkpoints[2].resources[4].samples[4].position[2]"
+        },
+        {
+          "actual": -0.8391048908233643,
+          "expected": -0.3561163544654846,
+          "message": "absolute error 0.48298853635787964 > 0.09195524454116821",
+          "path": "$.checkpoints[2].resources[4].samples[4].velocity[0]"
+        },
+        {
+          "actual": 0.12791581451892853,
+          "expected": 0.06710423529148102,
+          "message": "absolute error 0.06081157922744751 > 0.05639579072594643",
+          "path": "$.checkpoints[2].resources[4].samples[4].velocity[1]"
+        },
+        {
+          "actual": -0.028060412034392357,
+          "expected": -0.7569125890731812,
+          "message": "absolute error 0.7288521770387888 > 0.08784562945365906",
+          "path": "$.checkpoints[2].resources[4].samples[4].velocity[2]"
+        },
+        {
+          "actual": -0.06230277940630913,
+          "expected": -0.0017965659499168396,
+          "message": "absolute error 0.06050621345639229 > 0.005311513897031546",
+          "path": "$.checkpoints[2].resources[4].samples[5].position[0]"
+        },
+        {
+          "actual": 0.0432928167283535,
+          "expected": 0.017646675929427147,
+          "message": "absolute error 0.025646140798926353 > 0.005216464083641768",
+          "path": "$.checkpoints[2].resources[4].samples[5].position[1]"
+        },
+        {
+          "actual": 0.1229175478219986,
+          "expected": 0.24050340056419373,
+          "message": "absolute error 0.11758585274219513 > 0.0062025170028209686",
+          "path": "$.checkpoints[2].resources[4].samples[5].position[2]"
+        },
+        {
+          "actual": -0.9001350402832031,
+          "expected": -0.32369354367256165,
+          "message": "absolute error 0.5764414966106415 > 0.09500675201416016",
+          "path": "$.checkpoints[2].resources[4].samples[5].velocity[0]"
+        },
+        {
+          "actual": 0.15393361449241638,
+          "expected": -0.2276717871427536,
+          "message": "absolute error 0.38160540163517 > 0.06138358935713768",
+          "path": "$.checkpoints[2].resources[4].samples[5].velocity[1]"
+        },
+        {
+          "actual": -0.20127592980861664,
+          "expected": -0.871616005897522,
+          "message": "absolute error 0.6703400760889053 > 0.0935808002948761",
+          "path": "$.checkpoints[2].resources[4].samples[5].velocity[2]"
+        },
+        {
+          "actual": -0.044515203684568405,
+          "expected": 0.011083756573498249,
+          "message": "absolute error 0.055598960258066654 > 0.005222576018422842",
+          "path": "$.checkpoints[2].resources[4].samples[6].position[0]"
+        },
+        {
+          "actual": 0.0357065312564373,
+          "expected": 0.015377846546471119,
+          "message": "absolute error 0.020328684709966183 > 0.005178532656282187",
+          "path": "$.checkpoints[2].resources[4].samples[6].position[1]"
+        },
+        {
+          "actual": 0.11810821294784546,
+          "expected": 0.25553765892982483,
+          "message": "absolute error 0.13742944598197937 > 0.0062776882946491246",
+          "path": "$.checkpoints[2].resources[4].samples[6].position[2]"
+        },
+        {
+          "actual": -0.9917416572570801,
+          "expected": 0.32021650671958923,
+          "message": "absolute error 1.3119581639766693 > 0.099587082862854",
+          "path": "$.checkpoints[2].resources[4].samples[6].velocity[0]"
+        },
+        {
+          "actual": 0.12998640537261963,
+          "expected": 0.03371632844209671,
+          "message": "absolute error 0.09627007693052292 > 0.056499320268630984",
+          "path": "$.checkpoints[2].resources[4].samples[6].velocity[1]"
+        },
+        {
+          "actual": -0.5023195743560791,
+          "expected": -1.3838268518447876,
+          "message": "absolute error 0.8815072774887085 > 0.11919134259223939",
+          "path": "$.checkpoints[2].resources[4].samples[6].velocity[2]"
+        },
+        {
+          "actual": -0.02586335875093937,
+          "expected": 0.014197032898664474,
+          "message": "absolute error 0.040060391649603844 > 0.005129316793754697",
+          "path": "$.checkpoints[2].resources[4].samples[7].position[0]"
+        },
+        {
+          "actual": 0.028959190472960472,
+          "expected": 0.014999999664723873,
+          "message": "absolute error 0.013959190808236599 > 0.005144795952364802",
+          "path": "$.checkpoints[2].resources[4].samples[7].position[1]"
+        },
+        {
+          "actual": 0.11619441211223602,
+          "expected": 0.2752162218093872,
+          "message": "absolute error 0.15902180969715118 > 0.006376081109046936",
+          "path": "$.checkpoints[2].resources[4].samples[7].position[2]"
+        },
+        {
+          "actual": -1.0514189004898071,
+          "expected": 0.05122876912355423,
+          "message": "absolute error 1.1026476696133614 > 0.10257094502449036",
+          "path": "$.checkpoints[2].resources[4].samples[7].velocity[0]"
+        },
+        {
+          "actual": 0.059898704290390015,
+          "expected": 0.0008406612323597074,
+          "message": "absolute error 0.05905804305803031 > 0.052994935214519506",
+          "path": "$.checkpoints[2].resources[4].samples[7].velocity[1]"
+        },
+        {
+          "actual": -0.8368450999259949,
+          "expected": -1.3419021368026733,
+          "message": "absolute error 0.5050570368766785 > 0.11709510684013368",
+          "path": "$.checkpoints[2].resources[4].samples[7].velocity[2]"
+        },
+        {
+          "actual": -0.006588761694729328,
+          "expected": 0.03219252824783325,
+          "message": "absolute error 0.03878128994256258 > 0.005160962641239167",
+          "path": "$.checkpoints[2].resources[4].samples[8].position[0]"
+        },
+        {
+          "actual": 0.023958997800946236,
+          "expected": 0.014999999664723873,
+          "message": "absolute error 0.008958998136222363 > 0.005119794989004731",
+          "path": "$.checkpoints[2].resources[4].samples[8].position[1]"
+        },
+        {
+          "actual": 0.11694545298814774,
+          "expected": 0.28377413749694824,
+          "message": "absolute error 0.1668286845088005 > 0.006418870687484741",
+          "path": "$.checkpoints[2].resources[4].samples[8].position[2]"
+        },
+        {
+          "actual": -1.0768333673477173,
+          "expected": -0.36327841877937317,
+          "message": "absolute error 0.7135549485683441 > 0.10384166836738587",
+          "path": "$.checkpoints[2].resources[4].samples[8].velocity[0]"
+        },
+        {
+          "actual": -0.0727434754371643,
+          "expected": 1.3491752159922044e-09,
+          "message": "absolute error 0.07274347678633952 > 0.05363717377185822",
+          "path": "$.checkpoints[2].resources[4].samples[8].velocity[1]"
+        },
+        {
+          "actual": -1.0676603317260742,
+          "expected": -0.47027963399887085,
+          "message": "absolute error 0.5973806977272034 > 0.10338301658630372",
+          "path": "$.checkpoints[2].resources[4].samples[8].velocity[2]"
+        },
+        {
+          "actual": 0.013058825396001339,
+          "expected": 0.05050675943493843,
+          "message": "absolute error 0.03744793403893709 > 0.005252533797174692",
+          "path": "$.checkpoints[2].resources[4].samples[9].position[0]"
+        },
+        {
+          "actual": 0.021537253633141518,
+          "expected": 0.015000000596046448,
+          "message": "absolute error 0.00653725303709507 > 0.005107686268165708",
+          "path": "$.checkpoints[2].resources[4].samples[9].position[1]"
+        },
+        {
+          "actual": 0.11921726167201996,
+          "expected": 0.27592286467552185,
+          "message": "absolute error 0.1567056030035019 > 0.00637961432337761",
+          "path": "$.checkpoints[2].resources[4].samples[9].position[2]"
+        },
+        {
+          "actual": -1.0719999074935913,
+          "expected": -0.22976712882518768,
+          "message": "absolute error 0.8422327786684036 > 0.10359999537467957",
+          "path": "$.checkpoints[2].resources[4].samples[9].velocity[0]"
+        },
+        {
+          "actual": -0.2194574773311615,
+          "expected": 4.4456842829276866e-07,
+          "message": "absolute error 0.2194579218995898 > 0.06097287386655808",
+          "path": "$.checkpoints[2].resources[4].samples[9].velocity[1]"
+        },
+        {
+          "actual": -1.2658464908599854,
+          "expected": -0.1588459461927414,
+          "message": "absolute error 1.107000544667244 > 0.11329232454299927",
+          "path": "$.checkpoints[2].resources[4].samples[9].velocity[2]"
+        },
+        {
+          "actual": 0.03243514522910118,
+          "expected": 0.06491414457559586,
+          "message": "absolute error 0.032478999346494675 > 0.0053245707228779795",
+          "path": "$.checkpoints[2].resources[4].samples[10].position[0]"
+        },
+        {
+          "actual": 0.020254606381058693,
+          "expected": 0.014999999664723873,
+          "message": "absolute error 0.00525460671633482 > 0.005101273031905293",
+          "path": "$.checkpoints[2].resources[4].samples[10].position[1]"
+        },
+        {
+          "actual": 0.12368293106555939,
+          "expected": 0.2621585428714752,
+          "message": "absolute error 0.13847561180591583 > 0.006310792714357376",
+          "path": "$.checkpoints[2].resources[4].samples[10].position[2]"
+        },
+        {
+          "actual": -1.019407033920288,
+          "expected": -0.14116454124450684,
+          "message": "absolute error 0.8782424926757812 > 0.10097035169601441",
+          "path": "$.checkpoints[2].resources[4].samples[10].velocity[0]"
+        },
+        {
+          "actual": -0.17538820207118988,
+          "expected": 1.1171934488629631e-09,
+          "message": "absolute error 0.17538820318838333 > 0.058769410103559495",
+          "path": "$.checkpoints[2].resources[4].samples[10].velocity[1]"
+        },
+        {
+          "actual": -1.481380581855774,
+          "expected": -0.0661042332649231,
+          "message": "absolute error 1.4152763485908508 > 0.1240690290927887",
+          "path": "$.checkpoints[2].resources[4].samples[10].velocity[2]"
+        },
+        {
+          "actual": 0.0512571707367897,
+          "expected": 0.074541375041008,
+          "message": "absolute error 0.023284204304218292 > 0.00537270687520504",
+          "path": "$.checkpoints[2].resources[4].samples[11].position[0]"
+        },
+        {
+          "actual": 0.13020364940166473,
+          "expected": 0.2447139024734497,
+          "message": "absolute error 0.11451025307178497 > 0.006223569512367248",
+          "path": "$.checkpoints[2].resources[4].samples[11].position[2]"
+        },
+        {
+          "actual": -0.9612284898757935,
+          "expected": -0.03605694696307182,
+          "message": "absolute error 0.9251715429127216 > 0.09806142449378968",
+          "path": "$.checkpoints[2].resources[4].samples[11].velocity[0]"
+        },
+        {
+          "actual": -0.211837500333786,
+          "expected": 0.0,
+          "message": "absolute error 0.211837500333786 > 0.060591875016689306",
+          "path": "$.checkpoints[2].resources[4].samples[11].velocity[1]"
+        },
+        {
+          "actual": -1.6518727540969849,
+          "expected": -0.008098398335278034,
+          "message": "absolute error 1.6437743557617068 > 0.13259363770484925",
+          "path": "$.checkpoints[2].resources[4].samples[11].velocity[2]"
+        },
+        {
+          "actual": 0.06902749836444855,
+          "expected": 0.07986944168806076,
+          "message": "absolute error 0.010841943323612213 > 0.005399347208440304",
+          "path": "$.checkpoints[2].resources[4].samples[12].position[0]"
+        },
+        {
+          "actual": 0.1391752064228058,
+          "expected": 0.22551515698432922,
+          "message": "absolute error 0.08633995056152344 > 0.0061275757849216465",
+          "path": "$.checkpoints[2].resources[4].samples[12].position[2]"
+        },
+        {
+          "actual": -0.8389919400215149,
+          "expected": -0.0029842164367437363,
+          "message": "absolute error 0.8360077235847712 > 0.09194959700107574",
+          "path": "$.checkpoints[2].resources[4].samples[12].velocity[0]"
+        },
+        {
+          "actual": 0.06067819520831108,
+          "expected": 0.0,
+          "message": "absolute error 0.06067819520831108 > 0.053033909760415554",
+          "path": "$.checkpoints[2].resources[4].samples[12].velocity[1]"
+        },
+        {
+          "actual": -1.8684519529342651,
+          "expected": 0.0010798046132549644,
+          "message": "absolute error 1.86953175754752 > 0.14342259764671328",
+          "path": "$.checkpoints[2].resources[4].samples[12].velocity[2]"
+        },
+        {
+          "actual": 0.15105734765529633,
+          "expected": 0.205913707613945,
+          "message": "absolute error 0.05485635995864868 > 0.006029568538069725",
+          "path": "$.checkpoints[2].resources[4].samples[13].position[2]"
+        },
+        {
+          "actual": -0.7604635953903198,
+          "expected": 0.0002344117092434317,
+          "message": "absolute error 0.7606980070995633 > 0.088023179769516",
+          "path": "$.checkpoints[2].resources[4].samples[13].velocity[0]"
+        },
+        {
+          "actual": 0.11298510432243347,
+          "expected": 0.0,
+          "message": "absolute error 0.11298510432243347 > 0.05564925521612168",
+          "path": "$.checkpoints[2].resources[4].samples[13].velocity[1]"
+        },
+        {
+          "actual": -1.9573497772216797,
+          "expected": 0.001666241092607379,
+          "message": "absolute error 1.959016018314287 > 0.14786748886108397",
+          "path": "$.checkpoints[2].resources[4].samples[13].velocity[2]"
+        },
+        {
+          "actual": 0.10196436941623688,
+          "expected": 0.08739732205867767,
+          "message": "absolute error 0.014567047357559204 > 0.0055098218470811845",
+          "path": "$.checkpoints[2].resources[4].samples[14].position[0]"
+        },
+        {
+          "actual": 0.16094379127025604,
+          "expected": 0.18638478219509125,
+          "message": "absolute error 0.025440990924835205 > 0.005931923910975456",
+          "path": "$.checkpoints[2].resources[4].samples[14].position[2]"
+        },
+        {
+          "actual": -1.0625295639038086,
+          "expected": 0.0026818669866770506,
+          "message": "absolute error 1.0652114308904856 > 0.10312647819519044",
+          "path": "$.checkpoints[2].resources[4].samples[14].velocity[0]"
+        },
+        {
+          "actual": -1.4363497495651245,
+          "expected": 0.0021618003956973553,
+          "message": "absolute error 1.4385115499608219 > 0.12181748747825623",
+          "path": "$.checkpoints[2].resources[4].samples[14].velocity[2]"
+        },
+        {
+          "actual": 0.12188027054071426,
+          "expected": 0.09365339577198029,
+          "message": "absolute error 0.02822687476873398 > 0.005609401352703571",
+          "path": "$.checkpoints[2].resources[4].samples[15].position[0]"
+        },
+        {
+          "actual": 0.16033829748630524,
+          "expected": 0.16746729612350464,
+          "message": "absolute error 0.007128998637199402 > 0.0058373364806175235",
+          "path": "$.checkpoints[2].resources[4].samples[15].position[2]"
+        },
+        {
+          "actual": -1.037594199180603,
+          "expected": 0.0027066858019679785,
+          "message": "absolute error 1.040300884982571 > 0.10187970995903016",
+          "path": "$.checkpoints[2].resources[4].samples[15].velocity[0]"
+        },
+        {
+          "actual": -0.6162019968032837,
+          "expected": 0.0021698549389839172,
+          "message": "absolute error 0.6183718517422676 > 0.08081009984016418",
+          "path": "$.checkpoints[2].resources[4].samples[15].velocity[2]"
+        },
+        {
+          "actual": 0.13923679292201996,
+          "expected": 0.10234890133142471,
+          "message": "absolute error 0.036887891590595245 > 0.0056961839646101",
+          "path": "$.checkpoints[2].resources[4].samples[16].position[0]"
+        },
+        {
+          "actual": -0.7928957939147949,
+          "expected": 0.001513004070147872,
+          "message": "absolute error 0.7944087979849428 > 0.08964478969573975",
+          "path": "$.checkpoints[2].resources[4].samples[16].velocity[0]"
+        },
+        {
+          "actual": -0.18206198513507843,
+          "expected": 0.0015906766057014465,
+          "message": "absolute error 0.18365266174077988 > 0.05910309925675392",
+          "path": "$.checkpoints[2].resources[4].samples[16].velocity[2]"
+        },
+        {
+          "actual": 0.15311762690544128,
+          "expected": 0.11255034059286118,
+          "message": "absolute error 0.04056728631258011 > 0.0057655881345272065",
+          "path": "$.checkpoints[2].resources[4].samples[17].position[0]"
+        },
+        {
+          "actual": -0.6136108040809631,
+          "expected": 0.0016051740385591984,
+          "message": "absolute error 0.6152159781195223 > 0.08068054020404816",
+          "path": "$.checkpoints[2].resources[4].samples[17].velocity[0]"
+        },
+        {
+          "actual": 0.16410931944847107,
+          "expected": 0.12432496249675751,
+          "message": "absolute error 0.03978435695171356 > 0.005820546597242356",
+          "path": "$.checkpoints[2].resources[4].samples[18].position[0]"
+        },
+        {
+          "actual": -0.46691638231277466,
+          "expected": 0.001449412084184587,
+          "message": "absolute error 0.46836579439695925 > 0.07334581911563874",
+          "path": "$.checkpoints[2].resources[4].samples[18].velocity[0]"
+        },
+        {
+          "actual": 0.0890825167298317,
+          "expected": 0.0015312230680137873,
+          "message": "absolute error 0.08755129366181791 > 0.05445412583649159",
+          "path": "$.checkpoints[2].resources[4].samples[18].velocity[2]"
+        },
+        {
+          "actual": 0.17148283123970032,
+          "expected": 0.13748864829540253,
+          "message": "absolute error 0.03399418294429779 > 0.005857414156198502",
+          "path": "$.checkpoints[2].resources[4].samples[19].position[0]"
+        },
+        {
+          "actual": -0.31996214389801025,
+          "expected": 0.00036045577144250274,
+          "message": "absolute error 0.32032259966945276 > 0.06599810719490051",
+          "path": "$.checkpoints[2].resources[4].samples[19].velocity[0]"
+        },
+        {
+          "actual": 0.14762073755264282,
+          "expected": 0.0005726944655179977,
+          "message": "absolute error 0.14704804308712482 > 0.057381036877632144",
+          "path": "$.checkpoints[2].resources[4].samples[19].velocity[2]"
+        },
+        {
+          "actual": 0.1751483976840973,
+          "expected": 0.15106934309005737,
+          "message": "absolute error 0.024079054594039917 > 0.005875741988420486",
+          "path": "$.checkpoints[2].resources[4].samples[20].position[0]"
+        },
+        {
+          "actual": -0.18426507711410522,
+          "expected": 6.955891876714304e-05,
+          "message": "absolute error 0.18433463603287237 > 0.059213253855705264",
+          "path": "$.checkpoints[2].resources[4].samples[20].velocity[0]"
+        },
+        {
+          "actual": 0.1730184257030487,
+          "expected": 0.00030157508444972336,
+          "message": "absolute error 0.17271685061859898 > 0.05865092128515244",
+          "path": "$.checkpoints[2].resources[4].samples[20].velocity[2]"
+        },
+        {
+          "actual": 0.17728406190872192,
+          "expected": 0.16481241583824158,
+          "message": "absolute error 0.012471646070480347 > 0.005886420309543609",
+          "path": "$.checkpoints[2].resources[4].samples[21].position[0]"
+        },
+        {
+          "actual": 0.0617392472922802,
+          "expected": 0.072390615940094,
+          "message": "absolute error 0.010651368647813797 > 0.00536195307970047",
+          "path": "$.checkpoints[2].resources[4].samples[21].position[2]"
+        },
+        {
+          "actual": -0.12073194980621338,
+          "expected": -0.00022340030409395695,
+          "message": "absolute error 0.12050854950211942 > 0.056036597490310674",
+          "path": "$.checkpoints[2].resources[4].samples[21].velocity[0]"
+        },
+        {
+          "actual": 0.17986701428890228,
+          "expected": 2.238454544567503e-05,
+          "message": "absolute error 0.1798446297434566 > 0.058993350714445114",
+          "path": "$.checkpoints[2].resources[4].samples[21].velocity[2]"
+        },
+        {
+          "actual": 0.04184126481413841,
+          "expected": 0.05786782130599022,
+          "message": "absolute error 0.016026556491851807 > 0.005289339106529951",
+          "path": "$.checkpoints[2].resources[4].samples[22].position[2]"
+        },
+        {
+          "actual": 0.1815384328365326,
+          "expected": -0.04050680622458458,
+          "message": "absolute error 0.22204523906111717 > 0.05907692164182663",
+          "path": "$.checkpoints[2].resources[4].samples[22].velocity[2]"
+        },
+        {
+          "actual": 0.17685557901859283,
+          "expected": 0.18438242375850677,
+          "message": "absolute error 0.00752684473991394 > 0.005921912118792534",
+          "path": "$.checkpoints[2].resources[4].samples[23].position[0]"
+        },
+        {
+          "actual": 0.021970856934785843,
+          "expected": 0.03884367272257805,
+          "message": "absolute error 0.016872815787792206 > 0.00519421836361289",
+          "path": "$.checkpoints[2].resources[4].samples[23].position[2]"
+        },
+        {
+          "actual": -0.023917747661471367,
+          "expected": -0.23303596675395966,
+          "message": "absolute error 0.2091182190924883 > 0.06165179833769799",
+          "path": "$.checkpoints[2].resources[4].samples[23].velocity[0]"
+        },
+        {
+          "actual": 0.17664454877376556,
+          "expected": -0.0995965227484703,
+          "message": "absolute error 0.27624107152223587 > 0.05883222743868828",
+          "path": "$.checkpoints[2].resources[4].samples[23].velocity[2]"
+        },
+        {
+          "actual": 0.0022344866301864386,
+          "expected": 0.01953108049929142,
+          "message": "absolute error 0.01729659386910498 > 0.005097655402496458",
+          "path": "$.checkpoints[2].resources[4].samples[24].position[2]"
+        },
+        {
+          "actual": -0.06882844120264053,
+          "expected": -0.3164122998714447,
+          "message": "absolute error 0.24758385866880417 > 0.06582061499357224",
+          "path": "$.checkpoints[2].resources[4].samples[24].velocity[0]"
+        },
+        {
+          "actual": 0.18289002776145935,
+          "expected": -0.07841078191995621,
+          "message": "absolute error 0.26130080968141556 > 0.05914450138807297",
+          "path": "$.checkpoints[2].resources[4].samples[24].velocity[2]"
+        },
+        {
+          "actual": -0.016069725155830383,
+          "expected": 0.0028949230909347534,
+          "message": "absolute error 0.018964648246765137 > 0.005080348625779152",
+          "path": "$.checkpoints[2].resources[4].samples[25].position[2]"
+        },
+        {
+          "actual": -0.00597488135099411,
+          "expected": -0.5018018484115601,
+          "message": "absolute error 0.49582696706056595 > 0.07509009242057801",
+          "path": "$.checkpoints[2].resources[4].samples[25].velocity[0]"
+        },
+        {
+          "actual": 0.15584272146224976,
+          "expected": 0.043903205543756485,
+          "message": "absolute error 0.11193951591849327 > 0.05779213607311249",
+          "path": "$.checkpoints[2].resources[4].samples[25].velocity[2]"
+        },
+        {
+          "actual": -0.03559952601790428,
+          "expected": -0.017040302976965904,
+          "message": "absolute error 0.018559223040938377 > 0.0051779976300895215",
+          "path": "$.checkpoints[2].resources[4].samples[26].position[2]"
+        },
+        {
+          "actual": -0.3681323528289795,
+          "expected": -0.17365840077400208,
+          "message": "absolute error 0.19447395205497742 > 0.06840661764144898",
+          "path": "$.checkpoints[2].resources[4].samples[26].velocity[0]"
+        },
+        {
+          "actual": 0.18545909225940704,
+          "expected": 0.1764618456363678,
+          "message": "absolute error 0.008997246623039246 > 0.005927295461297035",
+          "path": "$.checkpoints[2].resources[4].samples[27].position[0]"
+        },
+        {
+          "actual": -0.04841092601418495,
+          "expected": -0.03553732857108116,
+          "message": "absolute error 0.01287359744310379 > 0.005242054630070925",
+          "path": "$.checkpoints[2].resources[4].samples[27].position[2]"
+        },
+        {
+          "actual": -0.28923356533050537,
+          "expected": -0.5213306546211243,
+          "message": "absolute error 0.2320970892906189 > 0.07606653273105622",
+          "path": "$.checkpoints[2].resources[4].samples[27].velocity[0]"
+        },
+        {
+          "actual": 0.17638662457466125,
+          "expected": -0.08508523553609848,
+          "message": "absolute error 0.26147186011075974 > 0.05881933122873306",
+          "path": "$.checkpoints[2].resources[4].samples[27].velocity[2]"
+        },
+        {
+          "actual": 0.2048284113407135,
+          "expected": 0.18989047408103943,
+          "message": "absolute error 0.014937937259674072 > 0.006024142056703568",
+          "path": "$.checkpoints[2].resources[4].samples[28].position[0]"
+        },
+        {
+          "actual": -0.04372693598270416,
+          "expected": -0.02081381529569626,
+          "message": "absolute error 0.022913120687007904 > 0.005218634679913521",
+          "path": "$.checkpoints[2].resources[4].samples[28].position[2]"
+        },
+        {
+          "actual": -0.38988131284713745,
+          "expected": -0.6940511465072632,
+          "message": "absolute error 0.30416983366012573 > 0.08470255732536316",
+          "path": "$.checkpoints[2].resources[4].samples[28].velocity[0]"
+        },
+        {
+          "actual": 0.5925873517990112,
+          "expected": 0.07244513183832169,
+          "message": "absolute error 0.5201422199606895 > 0.07962936758995057",
+          "path": "$.checkpoints[2].resources[4].samples[28].velocity[2]"
+        },
+        {
+          "actual": -0.023941613733768463,
+          "expected": -0.013160173781216145,
+          "message": "absolute error 0.010781439952552319 > 0.005119708068668842",
+          "path": "$.checkpoints[2].resources[4].samples[29].position[2]"
+        },
+        {
+          "actual": -0.6409949064254761,
+          "expected": -0.8943189978599548,
+          "message": "absolute error 0.25332409143447876 > 0.09471594989299775",
+          "path": "$.checkpoints[2].resources[4].samples[29].velocity[0]"
+        },
+        {
+          "actual": -0.02596280910074711,
+          "expected": -0.020568696781992912,
+          "message": "absolute error 0.005394112318754196 > 0.005129814045503735",
+          "path": "$.checkpoints[2].resources[4].samples[30].position[2]"
+        },
+        {
+          "actual": -0.5980253219604492,
+          "expected": -0.7017405033111572,
+          "message": "absolute error 0.10371518135070801 > 0.08508702516555786",
+          "path": "$.checkpoints[2].resources[4].samples[30].velocity[0]"
+        },
+        {
+          "actual": 0.21189987659454346,
+          "expected": 2.9683478715014644e-06,
+          "message": "absolute error 0.21189690824667196 > 0.060594993829727176",
+          "path": "$.checkpoints[2].resources[4].samples[30].velocity[1]"
+        },
+        {
+          "actual": 0.4722585082054138,
+          "expected": 0.07300955802202225,
+          "message": "absolute error 0.39924895018339157 > 0.0736129254102707",
+          "path": "$.checkpoints[2].resources[4].samples[30].velocity[2]"
+        },
+        {
+          "actual": 0.1743191033601761,
+          "expected": 0.18741580843925476,
+          "message": "absolute error 0.013096705079078674 > 0.005937079042196274",
+          "path": "$.checkpoints[2].resources[4].samples[31].position[0]"
+        },
+        {
+          "actual": 0.03213347867131233,
+          "expected": 0.019870055839419365,
+          "message": "absolute error 0.012263422831892967 > 0.005160667393356562",
+          "path": "$.checkpoints[2].resources[4].samples[31].position[1]"
+        },
+        {
+          "actual": -0.02280587889254093,
+          "expected": -0.0013953862944617867,
+          "message": "absolute error 0.021410492598079145 > 0.005114029394462705",
+          "path": "$.checkpoints[2].resources[4].samples[31].position[2]"
+        },
+        {
+          "actual": -0.6586446762084961,
+          "expected": -0.5352898836135864,
+          "message": "absolute error 0.12335479259490967 > 0.0829322338104248",
+          "path": "$.checkpoints[2].resources[4].samples[31].velocity[0]"
+        },
+        {
+          "actual": 0.2735486924648285,
+          "expected": 0.11737874150276184,
+          "message": "absolute error 0.15616995096206665 > 0.06367743462324144",
+          "path": "$.checkpoints[2].resources[4].samples[31].velocity[1]"
+        },
+        {
+          "actual": -0.06620914489030838,
+          "expected": 0.06380993872880936,
+          "message": "absolute error 0.13001908361911774 > 0.05331045724451542",
+          "path": "$.checkpoints[2].resources[4].samples[31].velocity[2]"
+        },
+        {
+          "actual": 0.1545972228050232,
+          "expected": 0.17388342320919037,
+          "message": "absolute error 0.019286200404167175 > 0.005869417116045952",
+          "path": "$.checkpoints[2].resources[4].samples[32].position[0]"
+        },
+        {
+          "actual": -0.0246024988591671,
+          "expected": -0.008747049607336521,
+          "message": "absolute error 0.015855449251830578 > 0.005123012494295836",
+          "path": "$.checkpoints[2].resources[4].samples[32].position[2]"
+        },
+        {
+          "actual": -0.5727786421775818,
+          "expected": -0.4863039255142212,
+          "message": "absolute error 0.0864747166633606 > 0.0786389321088791",
+          "path": "$.checkpoints[2].resources[4].samples[32].velocity[0]"
+        },
+        {
+          "actual": -0.4002470374107361,
+          "expected": 0.12133322656154633,
+          "message": "absolute error 0.5215802639722824 > 0.07001235187053681",
+          "path": "$.checkpoints[2].resources[4].samples[32].velocity[1]"
+        },
+        {
+          "actual": -0.17421342432498932,
+          "expected": -0.019547004252672195,
+          "message": "absolute error 0.15466642007231712 > 0.05871067121624947",
+          "path": "$.checkpoints[2].resources[4].samples[32].velocity[2]"
+        },
+        {
+          "actual": 0.1374557912349701,
+          "expected": 0.1546017825603485,
+          "message": "absolute error 0.017145991325378418 > 0.005773008912801743",
+          "path": "$.checkpoints[2].resources[4].samples[33].position[0]"
+        },
+        {
+          "actual": 0.02314591221511364,
+          "expected": 0.02878194861114025,
+          "message": "absolute error 0.005636036396026611 > 0.0051439097430557015",
+          "path": "$.checkpoints[2].resources[4].samples[33].position[1]"
+        },
+        {
+          "actual": -0.03219185769557953,
+          "expected": -0.012165791355073452,
+          "message": "absolute error 0.020026066340506077 > 0.0051609592884778975",
+          "path": "$.checkpoints[2].resources[4].samples[33].position[2]"
+        },
+        {
+          "actual": -0.4470336139202118,
+          "expected": -0.1158960685133934,
+          "message": "absolute error 0.3311375454068184 > 0.0723516806960106",
+          "path": "$.checkpoints[2].resources[4].samples[33].velocity[1]"
+        },
+        {
+          "actual": -0.42595261335372925,
+          "expected": -0.23024731874465942,
+          "message": "absolute error 0.19570529460906982 > 0.07129763066768646",
+          "path": "$.checkpoints[2].resources[4].samples[33].velocity[2]"
+        },
+        {
+          "actual": 0.11937635391950607,
+          "expected": 0.14260104298591614,
+          "message": "absolute error 0.023224689066410065 > 0.005713005214929581",
+          "path": "$.checkpoints[2].resources[4].samples[34].position[0]"
+        },
+        {
+          "actual": -0.034172173589468,
+          "expected": -0.003967187367379665,
+          "message": "absolute error 0.030204986222088337 > 0.00517086086794734",
+          "path": "$.checkpoints[2].resources[4].samples[34].position[2]"
+        },
+        {
+          "actual": -0.6731795072555542,
+          "expected": -0.567409098148346,
+          "message": "absolute error 0.10577040910720825 > 0.08365897536277772",
+          "path": "$.checkpoints[2].resources[4].samples[34].velocity[0]"
+        },
+        {
+          "actual": 0.10110770910978317,
+          "expected": 0.12358168512582779,
+          "message": "absolute error 0.022473976016044617 > 0.005617908425629139",
+          "path": "$.checkpoints[2].resources[4].samples[35].position[0]"
+        },
+        {
+          "actual": -0.026208894327282906,
+          "expected": 0.001980592031031847,
+          "message": "absolute error 0.028189486358314753 > 0.005131044471636414",
+          "path": "$.checkpoints[2].resources[4].samples[35].position[2]"
+        },
+        {
+          "actual": -0.7340450286865234,
+          "expected": -0.5538246631622314,
+          "message": "absolute error 0.180220365524292 > 0.08670225143432617",
+          "path": "$.checkpoints[2].resources[4].samples[35].velocity[0]"
+        },
+        {
+          "actual": -0.36462825536727905,
+          "expected": -0.18847404420375824,
+          "message": "absolute error 0.1761542111635208 > 0.06823141276836396",
+          "path": "$.checkpoints[2].resources[4].samples[35].velocity[2]"
+        },
+        {
+          "actual": 0.09070324152708054,
+          "expected": 0.1128314808011055,
+          "message": "absolute error 0.022128239274024963 > 0.005564157404005528",
+          "path": "$.checkpoints[2].resources[4].samples[36].position[0]"
+        },
+        {
+          "actual": -0.00921209529042244,
+          "expected": 0.018760593608021736,
+          "message": "absolute error 0.027972688898444176 > 0.005093802968040109",
+          "path": "$.checkpoints[2].resources[4].samples[36].position[2]"
+        },
+        {
+          "actual": -0.8704032301902771,
+          "expected": -0.2503875195980072,
+          "message": "absolute error 0.6200157105922699 > 0.09352016150951387",
+          "path": "$.checkpoints[2].resources[4].samples[36].velocity[0]"
+        },
+        {
+          "actual": -0.4480985105037689,
+          "expected": 0.0059247687458992004,
+          "message": "absolute error 0.4540232792496681 > 0.07240492552518846",
+          "path": "$.checkpoints[2].resources[4].samples[36].velocity[2]"
+        },
+        {
+          "actual": 0.07352059334516525,
+          "expected": 0.09299369156360626,
+          "message": "absolute error 0.01947309821844101 > 0.0054649684578180315",
+          "path": "$.checkpoints[2].resources[4].samples[37].position[0]"
+        },
+        {
+          "actual": 0.000882137508597225,
+          "expected": 0.02065710723400116,
+          "message": "absolute error 0.019774969725403935 > 0.005103285536170006",
+          "path": "$.checkpoints[2].resources[4].samples[37].position[2]"
+        },
+        {
+          "actual": -0.42137643694877625,
+          "expected": -0.23006179928779602,
+          "message": "absolute error 0.19131463766098022 > 0.07106882184743882",
+          "path": "$.checkpoints[2].resources[4].samples[37].velocity[0]"
+        },
+        {
+          "actual": 0.316246896982193,
+          "expected": 0.21853424608707428,
+          "message": "absolute error 0.09771265089511871 > 0.06581234484910965",
+          "path": "$.checkpoints[2].resources[4].samples[37].velocity[2]"
+        },
+        {
+          "actual": 0.06946848332881927,
+          "expected": 0.08141568303108215,
+          "message": "absolute error 0.011947199702262878 > 0.005407078415155411",
+          "path": "$.checkpoints[2].resources[4].samples[38].position[0]"
+        },
+        {
+          "actual": 0.02038980834186077,
+          "expected": 0.004437569063156843,
+          "message": "absolute error 0.015952239278703928 > 0.005101949041709304",
+          "path": "$.checkpoints[2].resources[4].samples[38].position[2]"
+        },
+        {
+          "actual": 0.2248525768518448,
+          "expected": -0.4094579517841339,
+          "message": "absolute error 0.6343105286359787 > 0.0704728975892067",
+          "path": "$.checkpoints[2].resources[4].samples[38].velocity[0]"
+        },
+        {
+          "actual": 0.44878432154655457,
+          "expected": 0.3469512164592743,
+          "message": "absolute error 0.10183310508728027 > 0.07243921607732773",
+          "path": "$.checkpoints[2].resources[4].samples[38].velocity[2]"
+        },
+        {
+          "actual": 0.0634283572435379,
+          "expected": 0.07887405902147293,
+          "message": "absolute error 0.015445701777935028 > 0.005394370295107365",
+          "path": "$.checkpoints[2].resources[4].samples[39].position[0]"
+        },
+        {
+          "actual": 0.03776637837290764,
+          "expected": 0.023076899349689484,
+          "message": "absolute error 0.014689479023218155 > 0.0051888318918645385",
+          "path": "$.checkpoints[2].resources[4].samples[39].position[2]"
+        },
+        {
+          "actual": -0.35331815481185913,
+          "expected": 0.42991888523101807,
+          "message": "absolute error 0.7832370400428772 > 0.07149594426155091",
+          "path": "$.checkpoints[2].resources[4].samples[39].velocity[0]"
+        },
+        {
+          "actual": -0.031493522226810455,
+          "expected": 0.20133771002292633,
+          "message": "absolute error 0.23283123224973679 > 0.06006688550114632",
+          "path": "$.checkpoints[2].resources[4].samples[39].velocity[1]"
+        },
+        {
+          "actual": 0.2977893352508545,
+          "expected": 0.4089522659778595,
+          "message": "absolute error 0.111162930727005 > 0.07044761329889299",
+          "path": "$.checkpoints[2].resources[4].samples[39].velocity[2]"
+        },
+        {
+          "actual": 0.049447063356637955,
+          "expected": 0.07149320095777512,
+          "message": "absolute error 0.02204613760113716 > 0.005357466004788876",
+          "path": "$.checkpoints[2].resources[4].samples[40].position[0]"
+        },
+        {
+          "actual": 0.04574129730463028,
+          "expected": 0.03498203307390213,
+          "message": "absolute error 0.01075926423072815 > 0.005228706486523151",
+          "path": "$.checkpoints[2].resources[4].samples[40].position[2]"
+        },
+        {
+          "actual": -0.26758360862731934,
+          "expected": -0.18785995244979858,
+          "message": "absolute error 0.07972365617752075 > 0.06337918043136598",
+          "path": "$.checkpoints[2].resources[4].samples[40].velocity[1]"
+        },
+        {
+          "actual": 0.5384547710418701,
+          "expected": 0.3682570457458496,
+          "message": "absolute error 0.1701977252960205 > 0.07692273855209351",
+          "path": "$.checkpoints[2].resources[4].samples[40].velocity[2]"
+        },
+        {
+          "actual": 0.03728005662560463,
+          "expected": 0.05772962048649788,
+          "message": "absolute error 0.02044956386089325 > 0.0052886481024324895",
+          "path": "$.checkpoints[2].resources[4].samples[41].position[0]"
+        },
+        {
+          "actual": 0.057662397623062134,
+          "expected": 0.04205866903066635,
+          "message": "absolute error 0.015603728592395782 > 0.0052883119881153105",
+          "path": "$.checkpoints[2].resources[4].samples[41].position[2]"
+        },
+        {
+          "actual": -0.4976724088191986,
+          "expected": -0.1712605506181717,
+          "message": "absolute error 0.3264118582010269 > 0.07488362044095993",
+          "path": "$.checkpoints[2].resources[4].samples[41].velocity[0]"
+        },
+        {
+          "actual": 0.20678424835205078,
+          "expected": 0.493202805519104,
+          "message": "absolute error 0.2864185571670532 > 0.0746601402759552",
+          "path": "$.checkpoints[2].resources[4].samples[41].velocity[2]"
+        },
+        {
+          "actual": 0.022199857980012894,
+          "expected": 0.045709166675806046,
+          "message": "absolute error 0.023509308695793152 > 0.00522854583337903",
+          "path": "$.checkpoints[2].resources[4].samples[42].position[0]"
+        },
+        {
+          "actual": 0.05475597828626633,
+          "expected": 0.061866097152233124,
+          "message": "absolute error 0.007110118865966797 > 0.005309330485761166",
+          "path": "$.checkpoints[2].resources[4].samples[42].position[1]"
+        },
+        {
+          "actual": 0.06647995114326477,
+          "expected": 0.05052898824214935,
+          "message": "absolute error 0.015950962901115417 > 0.005332399755716324",
+          "path": "$.checkpoints[2].resources[4].samples[42].position[2]"
+        },
+        {
+          "actual": -0.553067147731781,
+          "expected": -0.25210443139076233,
+          "message": "absolute error 0.3009627163410187 > 0.07765335738658906",
+          "path": "$.checkpoints[2].resources[4].samples[42].velocity[0]"
+        },
+        {
+          "actual": 0.16572129726409912,
+          "expected": 0.41348353028297424,
+          "message": "absolute error 0.24776223301887512 > 0.07067417651414871",
+          "path": "$.checkpoints[2].resources[4].samples[42].velocity[2]"
+        },
+        {
+          "actual": 0.008352736942470074,
+          "expected": 0.0352761410176754,
+          "message": "absolute error 0.026923404075205326 > 0.005176380705088377",
+          "path": "$.checkpoints[2].resources[4].samples[43].position[0]"
+        },
+        {
+          "actual": 0.06820870190858841,
+          "expected": 0.07638649642467499,
+          "message": "absolute error 0.008177794516086578 > 0.005381932482123375",
+          "path": "$.checkpoints[2].resources[4].samples[43].position[1]"
+        },
+        {
+          "actual": 0.07142142951488495,
+          "expected": 0.05932941660284996,
+          "message": "absolute error 0.012092012912034988 > 0.005357107147574425",
+          "path": "$.checkpoints[2].resources[4].samples[43].position[2]"
+        },
+        {
+          "actual": -0.6345788836479187,
+          "expected": -0.49942469596862793,
+          "message": "absolute error 0.13515418767929077 > 0.08172894418239593",
+          "path": "$.checkpoints[2].resources[4].samples[43].velocity[0]"
+        },
+        {
+          "actual": 0.14016997814178467,
+          "expected": 0.2503553330898285,
+          "message": "absolute error 0.11018535494804382 > 0.06251776665449144",
+          "path": "$.checkpoints[2].resources[4].samples[43].velocity[2]"
+        },
+        {
+          "actual": -0.004688197281211615,
+          "expected": 0.023074638098478317,
+          "message": "absolute error 0.027762835379689932 > 0.005115373190492391",
+          "path": "$.checkpoints[2].resources[4].samples[44].position[0]"
+        },
+        {
+          "actual": 0.08316034078598022,
+          "expected": 0.09105585515499115,
+          "message": "absolute error 0.007895514369010925 > 0.005455279275774956",
+          "path": "$.checkpoints[2].resources[4].samples[44].position[1]"
+        },
+        {
+          "actual": 0.07329627871513367,
+          "expected": 0.0650797113776207,
+          "message": "absolute error 0.00821656733751297 > 0.005366481393575669",
+          "path": "$.checkpoints[2].resources[4].samples[44].position[2]"
+        },
+        {
+          "actual": -0.6205125451087952,
+          "expected": -0.48834294080734253,
+          "message": "absolute error 0.13216960430145264 > 0.08102562725543977",
+          "path": "$.checkpoints[2].resources[4].samples[44].velocity[0]"
+        },
+        {
+          "actual": 0.07990243285894394,
+          "expected": 0.2147422581911087,
+          "message": "absolute error 0.13483982533216476 > 0.06073711290955544",
+          "path": "$.checkpoints[2].resources[4].samples[44].velocity[2]"
+        },
+        {
+          "actual": -0.016228727996349335,
+          "expected": 0.011260315775871277,
+          "message": "absolute error 0.02748904377222061 > 0.005081143639981747",
+          "path": "$.checkpoints[2].resources[4].samples[45].position[0]"
+        },
+        {
+          "actual": 0.0994059145450592,
+          "expected": 0.10664520412683487,
+          "message": "absolute error 0.007239289581775665 > 0.0055332260206341745",
+          "path": "$.checkpoints[2].resources[4].samples[45].position[1]"
+        },
+        {
+          "actual": -0.6090407967567444,
+          "expected": -0.5084095597267151,
+          "message": "absolute error 0.1006312370300293 > 0.08045203983783722",
+          "path": "$.checkpoints[2].resources[4].samples[45].velocity[0]"
+        },
+        {
+          "actual": -0.007472852244973183,
+          "expected": 0.10213347524404526,
+          "message": "absolute error 0.10960632748901844 > 0.05510667376220227",
+          "path": "$.checkpoints[2].resources[4].samples[45].velocity[2]"
+        },
+        {
+          "actual": -0.025652838870882988,
+          "expected": 0.00014572397049050778,
+          "message": "absolute error 0.025798562841373496 > 0.005128264194354415",
+          "path": "$.checkpoints[2].resources[4].samples[46].position[0]"
+        },
+        {
+          "actual": 0.11694890260696411,
+          "expected": 0.12309254705905914,
+          "message": "absolute error 0.006143644452095032 > 0.005615462735295296",
+          "path": "$.checkpoints[2].resources[4].samples[46].position[1]"
+        },
+        {
+          "actual": -0.5978862643241882,
+          "expected": -0.5041471719741821,
+          "message": "absolute error 0.0937390923500061 > 0.07989431321620942",
+          "path": "$.checkpoints[2].resources[4].samples[46].velocity[0]"
+        },
+        {
+          "actual": -0.08453766256570816,
+          "expected": 0.05516776815056801,
+          "message": "absolute error 0.13970543071627617 > 0.054226883128285414",
+          "path": "$.checkpoints[2].resources[4].samples[46].velocity[2]"
+        },
+        {
+          "actual": -0.03368504345417023,
+          "expected": -0.009651756845414639,
+          "message": "absolute error 0.02403328660875559 > 0.005168425217270851",
+          "path": "$.checkpoints[2].resources[4].samples[47].position[0]"
+        },
+        {
+          "actual": -0.14128708839416504,
+          "expected": 0.0017920138780027628,
+          "message": "absolute error 0.1430791022721678 > 0.05706435441970825",
+          "path": "$.checkpoints[2].resources[4].samples[47].velocity[2]"
+        },
+        {
+          "actual": -0.04063834622502327,
+          "expected": -0.01857033558189869,
+          "message": "absolute error 0.02206801064312458 > 0.005203191731125116",
+          "path": "$.checkpoints[2].resources[4].samples[48].position[0]"
+        },
+        {
+          "actual": -0.18350142240524292,
+          "expected": -0.0916396751999855,
+          "message": "absolute error 0.09186174720525742 > 0.05917507112026215",
+          "path": "$.checkpoints[2].resources[4].samples[48].velocity[2]"
+        },
+        {
+          "actual": -0.046843837946653366,
+          "expected": -0.026790492236614227,
+          "message": "absolute error 0.02005334571003914 > 0.005234219189733267",
+          "path": "$.checkpoints[2].resources[4].samples[49].position[0]"
+        },
+        {
+          "actual": -0.5714659690856934,
+          "expected": -0.4922713339328766,
+          "message": "absolute error 0.07919463515281677 > 0.07857329845428468",
+          "path": "$.checkpoints[2].resources[4].samples[49].velocity[0]"
+        },
+        {
+          "actual": -0.22604207694530487,
+          "expected": -0.1276043951511383,
+          "message": "absolute error 0.09843768179416656 > 0.06130210384726525",
+          "path": "$.checkpoints[2].resources[4].samples[49].velocity[2]"
+        },
+        {
+          "actual": -0.05251986160874367,
+          "expected": -0.034183256328105927,
+          "message": "absolute error 0.01833660528063774 > 0.005262599308043719",
+          "path": "$.checkpoints[2].resources[4].samples[50].position[0]"
+        },
+        {
+          "actual": -0.2621660828590393,
+          "expected": -0.1928263008594513,
+          "message": "absolute error 0.06933978199958801 > 0.06310830414295197",
+          "path": "$.checkpoints[2].resources[4].samples[50].velocity[2]"
+        },
+        {
+          "actual": -0.05765660107135773,
+          "expected": -0.04095018655061722,
+          "message": "absolute error 0.01670641452074051 > 0.005288283005356789",
+          "path": "$.checkpoints[2].resources[4].samples[51].position[0]"
+        },
+        {
+          "actual": -0.06210729852318764,
+          "expected": -0.04714794084429741,
+          "message": "absolute error 0.014959357678890228 > 0.005310536492615939",
+          "path": "$.checkpoints[2].resources[4].samples[52].position[0]"
+        },
+        {
+          "actual": -0.06582421064376831,
+          "expected": -0.05270824581384659,
+          "message": "absolute error 0.013115964829921722 > 0.005329121053218842",
+          "path": "$.checkpoints[2].resources[4].samples[53].position[0]"
+        },
+        {
+          "actual": -0.0688566118478775,
+          "expected": -0.057550255209207535,
+          "message": "absolute error 0.011306356638669968 > 0.005344283059239388",
+          "path": "$.checkpoints[2].resources[4].samples[54].position[0]"
+        },
+        {
+          "actual": -0.07130242884159088,
+          "expected": -0.06173582747578621,
+          "message": "absolute error 0.009566601365804672 > 0.0053565121442079545",
+          "path": "$.checkpoints[2].resources[4].samples[55].position[0]"
+        },
+        {
+          "actual": -0.07319141924381256,
+          "expected": -0.06538505852222443,
+          "message": "absolute error 0.007806360721588135 > 0.005365957096219063",
+          "path": "$.checkpoints[2].resources[4].samples[56].position[0]"
+        },
+        {
+          "actual": -0.07467402517795563,
+          "expected": -0.06848566234111786,
+          "message": "absolute error 0.0061883628368377686 > 0.005373370125889778",
+          "path": "$.checkpoints[2].resources[4].samples[57].position[0]"
+        },
+        {
+          "actual": -0.13428112864494324,
+          "expected": -0.20183031260967255,
+          "message": "absolute error 0.06754918396472931 > 0.06009151563048363",
+          "path": "$.checkpoints[2].resources[4].samples[67].velocity[2]"
+        }
+      ],
+      "id": "rope-core",
+      "passed": false,
+      "reason": "",
+      "status": "failed"
+    }
+  ],
+  "failed": 1,
+  "passed": 0,
+  "schema": "parallel-mater-conformance-report/v1",
+  "scope": "reference_regression",
+  "unsupported": 0
+}

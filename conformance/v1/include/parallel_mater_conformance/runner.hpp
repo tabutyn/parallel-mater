@@ -47,6 +47,9 @@ struct CaseExecution {
 [[nodiscard]] std::string conformance_rope_rigid_contact_quality(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_rope_rigid_attachment_quality(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_fluid_rigid_contact_quality(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);

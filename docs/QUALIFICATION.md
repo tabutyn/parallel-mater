@@ -730,6 +730,44 @@ pins both attempts, binaries, raw outputs, reports and hashes.
 The obligation matrix binds the analytic profile only to
 `ROPE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE` and
 retains `case:rope-core` independently for trajectory and lifecycle evidence.
-Rope-rigid ATTACHMENT remains a separate exact rule with its own missing
-analytic contract for F5-53. Historical and unrecaptured drivers remain
-visible and unqualified.
+Rope-rigid ATTACHMENT remains a separate exact rule; its F5-53 analytic
+contract and physical result are documented below. Historical and unrecaptured
+drivers remain visible and unqualified.
+
+### F5-53 rope-rigid attachment quality
+
+Clean source `1b362ad54f8842a503d98bacd8c30f625477e368` adds the immutable
+`rope-rigid-attachment-v1` profile without changing a solver or backend path.
+Its public-API fixture attaches the first endpoint of a five-node rope directly
+to an off-center `0.2 m` local anchor on a force-driven dynamic cube. Over four
+zero-gravity steps, the independent oracle reconstructs the transformed anchor
+from public rigid state and checks endpoint drift, free-rope and rigid momentum,
+public constraint-force impulse, angular reaction, rope length and inactive
+contact state without reading driver-private data.
+
+Physical RTX 3050 Ti CUDA passes the analytic sample twice with byte-identical
+raw output. Final attachment drift is `2.250640657308347e-09 m`. The body
+attachment impulse is `[0.0002832858881447464, -0.01702868938446045, 0] N s`;
+reciprocal linear and public constraint-force residuals are
+`1.6535544015115795e-07 N s` and `1.144409181158083e-07 N s`. The off-center
+anchor produces `[0, 0, -0.003386819362640381] N m s` angular reaction with
+`2.78533134179422e-06 N m s` residual and `4.021114826202393 rad/s` rigid
+angular speed. Contact force remains zero and maximum rope-length error is
+`2.126754256731589e-08 m`.
+
+The existing `rope-core` case again completes all three checkpoints, but the
+comparison retains the same 242 differences and byte-identical failed report
+from F5-52 against the historical CUDA golden. No tolerance or golden changes
+here; F5-56 owns the required same-revision CUDA/Metal adjudication. The exact
+CUDA record therefore remains unqualified, no passing result is registered in
+the evidence-source registry, and its advertisement is retained because the
+independent physical contract passes repeatably. The
+[versioned F5-53 evidence](roadmap/evidence/F5-53-rope-rigid-attachment.json)
+pins the clean source, production driver, binaries, raw outputs and reports.
+
+The obligation matrix binds the analytic profile only to
+`ROPE/RIGID_BODY/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE` and
+retains `case:rope-core` independently for trajectory and lifecycle evidence.
+The analytic fixture cannot substitute for that exact binding, and the separate
+rope-rigid CONTACT profile cannot qualify ATTACHMENT. Historical and
+unrecaptured drivers remain visible and unqualified.
