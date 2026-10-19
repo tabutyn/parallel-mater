@@ -14,7 +14,7 @@
     "host_compiler": "12.2.0"
   },
   "glb_sha256": {
-    "examples/assets/Cloth.glb": "ba43629a87690a90910a550d3b4edfaa33341258ce04e7c4ee035624878ebca6",
+    "examples/assets/Cloth.glb": "f4dc3dd53aa6f2459ef3032bbbd4711406a049f31bb7b2a7ea9bf3006b503033",
     "examples/assets/ClothTear.glb": "70d83b88395001ff074174cdc9247889796c6a21d4a1a9f552f71cb591828405",
     "examples/assets/ClothWater.glb": "2d27f380ef01c8a20998d4a4f0e05574d111a14faaf0e199780be415a02c6782",
     "examples/assets/ConstraintFixed.glb": "c4aa05878338908ac420a059f4de25b767c4a1f3b573c5f41aee6841e5852bdc",
