@@ -1810,7 +1810,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
           "contracts": [
@@ -1822,7 +1822,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -1861,7 +1861,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
           "contracts": [
@@ -1873,7 +1873,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -1910,7 +1910,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
           "contracts": [],
@@ -1920,7 +1920,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -1957,7 +1957,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
           "contracts": [],
@@ -1967,7 +1967,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -5711,7 +5711,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
           "contracts": [
@@ -5723,7 +5723,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -5760,7 +5760,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
           "contracts": [],
@@ -5770,7 +5770,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -7138,7 +7138,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
           "contracts": [
@@ -7150,7 +7150,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -7189,7 +7189,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
           "contracts": [
@@ -7201,7 +7201,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -7238,7 +7238,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
           "contracts": [],
@@ -7248,7 +7248,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -7285,7 +7285,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
           "contracts": [],
@@ -7295,7 +7295,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -11913,7 +11913,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
           "contracts": [
@@ -11925,7 +11925,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -11964,7 +11964,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
           "contracts": [
@@ -11976,7 +11976,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -12013,7 +12013,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
           "contracts": [],
@@ -12023,7 +12023,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -12060,7 +12060,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
           "contracts": [],
@@ -12070,7 +12070,7 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -15375,13 +15375,37 @@
       "report": "linux-thomas-laptop-slang-cpu-eed669e"
     },
     {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-cpu",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[19].contract_sha256",
+      "report": "linux-thomas-laptop-slang-cpu-eed669e"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-cpu",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[20].contract_sha256",
+      "report": "linux-thomas-laptop-slang-cpu-eed669e"
+    },
+    {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "linux-thomas-laptop-slang-cpu-eed669e"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "fluid-rigid: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
     },
     {
       "case": "cloth-tear",
@@ -16462,6 +16486,24 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[23].execution",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
+    },
+    {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[23].execution",
+      "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
       "actual": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
@@ -16480,20 +16522,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-cuda",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[23].reference_regression",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-cuda",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[23].reference_regression",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -16534,6 +16576,24 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[24].execution",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
+    },
+    {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[24].execution",
+      "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
       "actual": "No exact fluid-rigid containment adverse graph case is registered.",
       "driver": "slang-cuda",
       "expected": null,
@@ -16552,20 +16612,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-cuda",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[24].reference_regression",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-cuda",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[24].reference_regression",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -18469,6 +18529,24 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-cuda",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[19].contract_sha256",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-cuda",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[20].contract_sha256",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
+    },
+    {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-cuda",
       "expected": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
@@ -18478,9 +18556,27 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-cuda",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[32].contract_sha256",
+      "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-cuda",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[7].contract_sha256",
+      "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18489,7 +18585,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18498,7 +18594,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18507,7 +18603,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18516,7 +18612,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18525,7 +18621,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-cuda",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18534,7 +18630,7 @@
     {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18543,11 +18639,17 @@
     {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "fluid-rigid: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
     },
     {
       "case": "cloth-tear",
@@ -18836,6 +18938,15 @@
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-d3d12",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[7].execution",
+      "report": "windows-gtx1080-slang-d3d12-2b04e55"
+    },
+    {
       "actual": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback",
       "driver": "slang-d3d12",
       "expected": null,
@@ -18845,11 +18956,11 @@
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-d3d12",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[7].reference_regression",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
@@ -18872,6 +18983,15 @@
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-d3d12",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[8].execution",
+      "report": "windows-gtx1080-slang-d3d12-2b04e55"
+    },
+    {
       "actual": "No exact fluid-rigid containment adverse graph case is registered.",
       "driver": "slang-d3d12",
       "expected": null,
@@ -18881,11 +19001,11 @@
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-d3d12",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[8].reference_regression",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
@@ -18935,9 +19055,27 @@
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-d3d12",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[14].contract_sha256",
+      "report": "windows-gtx1080-slang-d3d12-2b04e55"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-d3d12",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[5].contract_sha256",
+      "report": "windows-gtx1080-slang-d3d12-2b04e55"
+    },
+    {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18946,7 +19084,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-d3d12",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19660,6 +19798,24 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[20].execution",
+      "report": "ipados-m1-slang-metal-9f7e72e"
+    },
+    {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[20].execution",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
       "actual": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
@@ -19678,20 +19834,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-metal",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[20].reference_regression",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-metal",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[20].reference_regression",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -19732,6 +19888,24 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[21].execution",
+      "report": "ipados-m1-slang-metal-9f7e72e"
+    },
+    {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[21].execution",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
       "actual": "No exact fluid-rigid containment adverse graph case is registered.",
       "driver": "slang-metal",
       "expected": null,
@@ -19750,20 +19924,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-metal",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[21].reference_regression",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-metal",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[21].reference_regression",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -21601,12 +21775,48 @@
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-metal",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[28].contract_sha256",
+      "report": "ipados-m1-slang-metal-9f7e72e"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-metal",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[28].contract_sha256",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-metal",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[5].contract_sha256",
+      "report": "ipados-m1-slang-metal-9f7e72e"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-metal",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[5].contract_sha256",
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21615,7 +21825,7 @@
     {
       "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
       "driver": "slang-metal",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21624,7 +21834,7 @@
     {
       "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
       "driver": "slang-metal",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21633,7 +21843,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21642,7 +21852,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21651,7 +21861,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21660,7 +21870,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22135,6 +22345,24 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[20].execution",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[20].execution",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
       "actual": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
@@ -22153,20 +22381,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-vulkan",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[20].reference_regression",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-vulkan",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[20].reference_regression",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -22198,6 +22426,24 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[21].execution",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[21].execution",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
       "actual": "No exact fluid-rigid containment adverse graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -22216,20 +22462,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-vulkan",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[21].reference_regression",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-vulkan",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[21].reference_regression",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -23584,9 +23830,45 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-vulkan",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[17].contract_sha256",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-vulkan",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[19].contract_sha256",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-vulkan",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[20].contract_sha256",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-vulkan",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[45].contract_sha256",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
       "actual": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
       "driver": "slang-vulkan",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23595,7 +23877,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+      "expected": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23603,7 +23885,7 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
+  "obligations_sha256": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
   "qualification_complete": true,
   "qualified_capability_count": 0,
   "report_count": 22,
@@ -23621,7 +23903,7 @@
         "name": "slang-vulkan",
         "version": "0.2.0"
       },
-      "failure_count": 69,
+      "failure_count": 73,
       "id": "android-pixel7-slang-vulkan-3187375",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json",
@@ -23652,7 +23934,7 @@
         "name": "slang-metal",
         "version": "0.2.0+9f7e72e"
       },
-      "failure_count": 147,
+      "failure_count": 151,
       "id": "ipados-m1-slang-metal-9f7e72e",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e-qualification.json",
@@ -23711,7 +23993,7 @@
         "name": "slang-cuda",
         "version": "0.2.0+eed669e"
       },
-      "failure_count": 156,
+      "failure_count": 160,
       "id": "linux-rtx3050ti-slang-cuda-eed669e",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-eed669e-qualification.json",
@@ -23740,7 +24022,7 @@
         "name": "slang-vulkan",
         "version": "0.2.0+eed669e"
       },
-      "failure_count": 146,
+      "failure_count": 150,
       "id": "linux-rtx3050ti-slang-vulkan-eed669e",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-qualification.json",
@@ -23769,7 +24051,7 @@
         "name": "slang-cpu",
         "version": "0.2.0+eed669e"
       },
-      "failure_count": 6,
+      "failure_count": 8,
       "id": "linux-thomas-laptop-slang-cpu-eed669e",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json",
@@ -23943,7 +24225,7 @@
         "name": "slang-metal",
         "version": "0.2.0+aac6d59"
       },
-      "failure_count": 148,
+      "failure_count": 152,
       "id": "macos-m4-slang-metal-aac6d59",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json",
@@ -23973,7 +24255,7 @@
         "name": "slang-cuda",
         "version": null
       },
-      "failure_count": 5,
+      "failure_count": 6,
       "id": "windows-gtx1080-physics-2026-10-16:slang-cuda",
       "kind": "legacy-physics",
       "path": "conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json",
@@ -23991,7 +24273,7 @@
         "slang": "2026.18",
         "version": "19.44.35228.0"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 0,
@@ -24007,7 +24289,7 @@
         "name": "slang-d3d12",
         "version": null
       },
-      "failure_count": 5,
+      "failure_count": 6,
       "id": "windows-gtx1080-physics-2026-10-16:slang-d3d12",
       "kind": "legacy-physics",
       "path": "conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json",
@@ -24025,7 +24307,7 @@
         "slang": "2026.18",
         "version": "19.44.35228.0"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 1,
@@ -24098,7 +24380,7 @@
         "name": "slang-cuda",
         "version": "0.2.0+2b04e55"
       },
-      "failure_count": 176,
+      "failure_count": 180,
       "id": "windows-gtx1080-slang-cuda-2b04e55",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-2b04e55-qualification.json",
@@ -24214,7 +24496,7 @@
         "name": "slang-d3d12",
         "version": "0.2.0+2b04e55"
       },
-      "failure_count": 34,
+      "failure_count": 38,
       "id": "windows-gtx1080-slang-d3d12-2b04e55",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-qualification.json",
@@ -24262,7 +24544,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "2e9c2652aa541801c2dbb07cb9db5a1f5240309d5c6a513cb5d4ce9a184e0c51",
+  "sources_sha256": "7148c618eb13b60da83476a9ad54621ced69338426a8738df05eab213a89d858",
   "valid": true,
   "validation_failures": []
 }

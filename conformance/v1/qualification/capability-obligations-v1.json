@@ -35,7 +35,7 @@
     {"id": "case:soft-body-fluid", "path": "conformance/v1/cases/soft-body-fluid.json", "sha256": "935838337761fc3a0fb6bbe4cc787953b27e8cfa7dcb4cb7adb17eb85a3fd653"},
     {"id": "case:rope-fluid", "path": "conformance/v1/cases/rope-fluid.json", "sha256": "368a65ec45f88baebc53e252dcbf8b95e3775b205714deed1006210dd5d13d27"},
     {"id": "case:smoke-water", "path": "conformance/v1/cases/smoke-water.json", "sha256": "cbe349e888648ef1fe6f0adb507be33888be83b988d72b4bcc5c4a23a604964c"},
-    {"id": "case:fluid-rigid", "path": "conformance/v1/cases/fluid-rigid.json", "sha256": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9"},
+    {"id": "case:fluid-rigid", "path": "conformance/v1/cases/fluid-rigid.json", "sha256": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"},
     {"id": "case:soft-body-cloth", "path": "conformance/v1/cases/soft-body-cloth.json", "sha256": "779b5f55f4db0b9f0952d0d8607c1221ca2c50a52bc2dca2b95dff70ea5e6f4a"},
     {"id": "case:rope-cloth", "path": "conformance/v1/cases/rope-cloth.json", "sha256": "28280bb786efb6a69ead8bfed2f76ef1ac145672de29fbd2d625f69e89eda792"},
     {"id": "case:smoke-cloth", "path": "conformance/v1/cases/smoke-cloth.json", "sha256": "8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc"},
