@@ -1,7 +1,7 @@
 {
   "id": "F5-51",
   "title": "Qualify smoke-to-rope drag",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-23"
   ],
@@ -18,6 +18,14 @@
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "cdec17d6-1ee5-4216-b2fe-453ac82cde2f",
+    "owner": "codex-linux-qualification",
+    "machine": "ThomasLaptop",
+    "branch": "work/F5-51/ThomasLaptop",
+    "claimed_at": "2026-10-19T19:20:31Z",
+    "heartbeat_at": "2026-10-19T19:20:31Z",
+    "expires_at": "2026-10-20T19:20:31Z"
+  },
   "history": []
 }
