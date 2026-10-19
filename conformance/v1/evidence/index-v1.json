@@ -876,6 +876,57 @@
         "direction": "BIDIRECTIONAL",
         "first_family": "FLUID",
         "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "CLOTH"
+      },
+      "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
+      "rule_id": "fluid-cloth-contact",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:fluid-cloth-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:cloth-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:cloth-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
         "mode": "CONTAINMENT",
         "scope": "DISTINCT_FAMILY",
         "second_family": "CLOTH"
@@ -5101,6 +5152,57 @@
             "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback"
           ],
           "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:cloth-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-d3d12",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "CLOTH"
+      },
+      "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact",
+      "rule_id": "fluid-cloth-contact",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:fluid-cloth-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:cloth-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -12415,7 +12517,7 @@
       }
     }
   ],
-  "capability_count": 255,
+  "capability_count": 257,
   "driver_count": 5,
   "drivers": [
     {
@@ -12437,31 +12539,35 @@
       "qualification_result_ids": [
         "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
         "linux-rtx3050ti-slang-cuda-eed669e",
-        "windows-gtx1080-slang-cuda-2b04e55"
+        "windows-gtx1080-slang-cuda-2b04e55",
+        "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact"
       ],
       "qualified_capability_count": 0,
       "report_ids": [
         "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
         "linux-rtx3050ti-slang-cuda-eed669e",
         "windows-gtx1080-slang-cuda-2b04e55",
+        "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
         "windows-gtx1080-physics-2026-10-16"
       ],
       "status": "unqualified",
-      "unqualified_capability_count": 101
+      "unqualified_capability_count": 102
     },
     {
       "id": "slang-d3d12",
       "label": "D3D12",
       "qualification_result_ids": [
-        "windows-gtx1080-slang-d3d12-2b04e55"
+        "windows-gtx1080-slang-d3d12-2b04e55",
+        "windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact"
       ],
       "qualified_capability_count": 0,
       "report_ids": [
         "windows-gtx1080-slang-d3d12-2b04e55",
+        "windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact",
         "windows-gtx1080-physics-2026-10-16"
       ],
       "status": "unqualified",
-      "unqualified_capability_count": 10
+      "unqualified_capability_count": 11
     },
     {
       "id": "slang-vulkan",
@@ -15675,6 +15781,15 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
+      "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "driver": "slang-cuda",
+      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact"
+    },
+    {
       "case": "cloth-tear",
       "driver": "slang-d3d12",
       "kind": "historical_baseline_failure",
@@ -16067,6 +16182,15 @@
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
+    },
+    {
+      "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "driver": "slang-d3d12",
+      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact"
     },
     {
       "case": "parallel-mater-d3d12-coupling-lifecycle-tests",
@@ -20083,7 +20207,7 @@
   "obligations_sha256": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
   "qualification_complete": true,
   "qualified_capability_count": 0,
-  "report_count": 13,
+  "report_count": 15,
   "reports": [
     {
       "capability_count": 46,
@@ -20445,6 +20569,35 @@
       "validated": false
     },
     {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "NVIDIA 582.66; CUDA API 13000",
+        "name": "NVIDIA GeForce GTX 1080",
+        "vendor_id": 4318
+      },
+      "driver": {
+        "binary_sha256": "573e1bab2e9dd5374064e900dd499c13e0062ab368c3d432ce3aefda5030848e",
+        "name": "slang-cuda",
+        "version": "0.2.0+5001123"
+      },
+      "failure_count": 1,
+      "id": "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact-qualification.json",
+      "qualified_count": 0,
+      "sha256": "9259964d2f6ee9e2f1ad27b130fa990835225fbca9b333e776af2f4606a1e034",
+      "source": {
+        "commit": "50011235a53359c9e3983cb020ef3dbb02e55136",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "MSVC, NVIDIA CUDA Compiler, Slang",
+        "version": "MSVC 19.44.35228; CUDA 12.9.86; Slang 2026.18"
+      },
+      "validated": false
+    },
+    {
       "capability_count": 10,
       "device": {
         "device_id": 7040,
@@ -20472,11 +20625,40 @@
         "version": "MSVC 19.44.35228; Slang 2026.18"
       },
       "validated": false
+    },
+    {
+      "capability_count": 1,
+      "device": {
+        "device_id": 7040,
+        "driver_version": "NVIDIA 582.66; D3D12 adapter revision 1",
+        "name": "NVIDIA GeForce GTX 1080",
+        "vendor_id": 4318
+      },
+      "driver": {
+        "binary_sha256": "4c9d9be98ccfced0ddfb66607a2154f50ace461242accf0bcc2b022e914f6b89",
+        "name": "slang-d3d12",
+        "version": "0.2.0+5001123"
+      },
+      "failure_count": 1,
+      "id": "windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact-qualification.json",
+      "qualified_count": 0,
+      "sha256": "83bcf2d6774892aa5c26b19ee883714af232aafc4b1cb9d0c9048cf2abdb968f",
+      "source": {
+        "commit": "50011235a53359c9e3983cb020ef3dbb02e55136",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "MSVC, Slang DXIL",
+        "version": "MSVC 19.44.35228; Slang 2026.18"
+      },
+      "validated": false
     }
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "fc4a0312640b19e358d13db0f6c43c7edacc36356cdfe5230d48358f53270891",
+  "sources_sha256": "66d5a87eb4d7822b6d2692f836950dc3572826ed0880d7d899b65b6b173da39a",
   "valid": true,
   "validation_failures": []
 }
