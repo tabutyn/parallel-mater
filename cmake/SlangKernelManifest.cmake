@@ -43,7 +43,8 @@ set(PARALLEL_MATER_SLANG_fluid_ENTRIES
     fluid_apply_miscible_pair_viscosity
     fluid_reconstruct_immiscible_interface_normals
     fluid_reconstruct_immiscible_interface_curvature
-    fluid_apply_immiscible_pair_pressure_capillarity)
+    fluid_apply_immiscible_pair_pressure_capillarity
+    fluid_apply_immiscible_pair_viscosity)
 
 set(PARALLEL_MATER_SLANG_geometry_constraints_ENTRIES
     prepare_avbd_kernel solve_avbd_kernel solve_avbd_stage_kernel)
