@@ -20,13 +20,14 @@ void sample_rope_cloth_anchor(device::ExecutionQueue stream, void *anchor_positi
 
 void apply_rope_cloth_anchor(device::ExecutionQueue stream, void *rope_positions,
     void *rope_velocities, std::uint32_t rope_count, void *anchor_positions,
-    void *anchor_velocities, std::uint32_t end, void *positions,
+    void *anchor_velocities, const void *anchor_impulses,
+    std::uint32_t end, void *positions,
     void *velocities, void *forces, const float *inverse_masses,
     std::uint32_t vertex, float maximum_acceleration, float timestep,
     float frame_inverse_timestep) noexcept {
     (void)metal::launch(stream, "rope_cloth_apply_anchor", 1U,
         rope_positions, rope_velocities, rope_count,
-        anchor_positions, anchor_velocities, end,
+        anchor_positions, anchor_velocities, anchor_impulses, end,
         positions, velocities, forces,
         inverse_masses, vertex, maximum_acceleration,
         timestep, frame_inverse_timestep);

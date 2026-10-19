@@ -1,0 +1,50 @@
+{
+  "schema": "parallel-mater-conformance-quality-profile/v1",
+  "id": "cloth-rope-attachment-v1",
+  "title": "Bidirectional cloth-rope endpoint attachment",
+  "evaluation": "cloth_rope_attachment",
+  "sources": {
+    "capability": "docs/INTERACTION-MODES.md: CLOTH/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+    "fixture": "conformance/v1/src/cloth_rope_attachment.cpp: public-API supported cloth vertex and hanging rope",
+    "oracle": "Independent public endpoint separation and rope momentum balance against the public cloth reaction",
+    "qualification": "docs/ROADMAP.md: F5-41"
+  },
+  "units": "SI: metres, kilograms, seconds, metres per second, newtons and metres per newton",
+  "fixtures": [
+    {
+      "id": "supported-hanging-rope",
+      "timestep_seconds": 0.008333333333333333,
+      "step_count": 120,
+      "substeps": 1,
+      "gravity_m_s2": [0.0, -9.81, 0.0],
+      "cloth_vertex_mass_kg": 0.25,
+      "cloth_vertices_m": [[0.0, 0.0, 0.0], [-0.1, 0.1, 0.0], [0.1, 0.1, 0.0]],
+      "cloth_triangle_indices": [0, 1, 2],
+      "cloth_inverse_masses_per_kg": [4.0, 0.0, 0.0],
+      "cloth_stretch_compliance_m_per_n": 1e-7,
+      "cloth_velocity_damping_per_s": 0.0,
+      "cloth_solver_iterations": 8,
+      "rope_centerline_m": [[0.0, 0.0, 0.0], [0.0, -0.2, 0.0]],
+      "rope_node_spacing_m": 0.05,
+      "rope_radius_m": 0.025,
+      "rope_total_mass_kg": 0.5,
+      "rope_stretch_compliance_m_per_n": 1e-7,
+      "rope_velocity_damping_per_s": 0.0,
+      "rope_solver_iterations": 8,
+      "attached_rope_end": "first",
+      "attached_cloth_vertex": 0,
+      "anchor_effective_mass_kg": 0.25,
+      "maximum_cloth_acceleration_m_s2": 500.0,
+      "oracle": "public-endpoint-drift-and-reciprocal-constraint-reaction"
+    }
+  ],
+  "tolerances": {
+    "fixture_state_absolute": 1e-6,
+    "maximum_attachment_drift_m": 1e-5,
+    "minimum_reaction_force_n": 0.01,
+    "maximum_reciprocal_force_residual_n": 0.05,
+    "maximum_pinned_vertex_drift_m": 1e-6,
+    "maximum_transverse_drift_m": 1e-5,
+    "maximum_speed_m_s": 20.00001
+  }
+}

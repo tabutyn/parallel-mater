@@ -1,0 +1,105 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-41",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "e09edbe8da9149854e2a4e9eaff2aac883e92e12",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-metal",
+    "version": "0.2.0+e09edbe",
+    "binary_sha256": "db73bee7730689b8a6afd94d77a300c3e41d328e4c26b54368a03783adebfa09"
+  },
+  "device": {
+    "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "vendor_id": 4203,
+    "device_id": 0,
+    "driver_version": "202618 (Apple Metal 32023.883)"
+  },
+  "toolchain": {
+    "compiler": "Apple Clang, Slang Metal",
+    "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "d559f6c07217fd82a775499740dda33bb45ba9f3fc5c2c133ceef8de0400b8d9",
+    "capabilities_sha256": "4a1e1930f58007a1c6a42af8182948ac12718dd72f1feb41ebf7c0a965d6ac80"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "CLOTH",
+      "second_family": "ROPE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "ATTACHMENT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:rope-cloth",
+      "sha256": "28280bb786efb6a69ead8bfed2f76ef1ac145672de29fbd2d625f69e89eda792"
+    },
+    "quality": {
+      "id": "quality:cloth-rope-attachment-v1",
+      "sha256": "774081efcc918b9c7c144c0189fb24d72f511d44cadd40510d07e7dc9a760023"
+    },
+    "lifecycle": {
+      "id": "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback",
+      "sha256": "d03f1609c66a4c5f5b827ee581274dd1860e95b8459dc653576d663445d0e9c4"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "acd97652095c9eee5248dd0b31d0c9ffcdbb1c31338bb1c49784b9b4bd4e36c8",
+    "comparison_report_sha256": "27d82e4fe0a024b7082b35e8ab0483c3bf578d3d16f51fa0680a00ce206137cb",
+    "reference_regression": {
+      "passed": 1,
+      "failed": 0,
+      "unsupported": 0
+    }
+  },
+  "analytic_invariants": {
+    "result_sha256": "55cf9191c8b50399ad8234ef4ce34380d534be066700ded1a5b608369828f752",
+    "report_sha256": "16cae17b7072ceda104b99c6d7bce6849fc0f1fc66edb0c7ca240235956557d1",
+    "passed": true,
+    "sample_count": 1,
+    "failure_count": 0,
+    "observations": {
+      "supported-hanging-rope": {
+        "initial_attachment_drift_m": 0.0,
+        "final_attachment_drift_m": 0.0,
+        "cloth_reaction_force_n": [0.0, -3.923981189727783, 0.0],
+        "rope_reaction_force_n": [0.0, 3.9240033974647526, 0.0],
+        "reciprocal_force_residual_n": 0.000022207736969370728,
+        "maximum_pinned_vertex_drift_m": 0.0,
+        "maximum_transverse_drift_m": 0.0,
+        "maximum_speed_m_s": 0.13072408735752106
+      }
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "c05387c38a610660186e567056ebb12d6414be6ca97aa2ea69af57dbb99bdf33",
+    "report_sha256": "964e89fdd299cebcca82d0619b041aedcb0c75cf1e0346d83fc21b9e862770ae",
+    "passed": true,
+    "profile_case_count": 1,
+    "profile_checkpoint_count": 5,
+    "failure_count": 0
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --check-inputs",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case rope-cloth --output <trajectory-output>",
+    "python conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case rope-cloth --report <trajectory-report>",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality cloth-rope-attachment-v1 --output <quality-output>",
+    "python conformance/v1/quality.py --profile conformance/v1/quality/cloth-rope-attachment-v1.json --actual <quality-output>/cloth-rope-attachment-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle-profile cloth-rope-attachment-lifecycle-v1 --output <lifecycle-result>",
+    "python conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/cloth-rope-attachment-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "The analytic oracle uses only public cloth and rope outputs. It derives the rope-side attachment force from the dynamic rope nodes' momentum change after subtracting gravity, independently of driver-private constraint state.",
+    "The public cloth reaction now reports the actual shared-Slang anchor impulse; the canonical rope-cloth trajectory remains byte-for-byte within its unchanged reference contract.",
+    "The lifecycle case proves exact capacity, destructive replacement, rejected overflow rollback, removal and deterministic recovery without replacing either endpoint resource.",
+    "The physics equations remain in shared Slang; this evidence qualifies that implementation through the Apple Metal device adapter."
+  ]
+}

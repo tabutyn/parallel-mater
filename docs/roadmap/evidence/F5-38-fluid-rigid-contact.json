@@ -1,0 +1,54 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-38",
+  "source_commit": "4e09ecbd48d1ef6717e327f8050fbebff7651a97",
+  "captured_at": "2026-10-19",
+  "host": "Thomass-MacBook-Air",
+  "driver": "slang-metal",
+  "device": "Apple M4",
+  "capabilities": [
+    "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE"
+  ],
+  "contracts": {
+    "trajectory": "case:fluid-rigid",
+    "quality": "quality:fluid-rigid-contact-v1",
+    "lifecycle": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback"
+  },
+  "results": {
+    "trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "reference_regression": "PASS: fluid-rigid against the CUDA golden with the case-specific chaotic contact-count envelope",
+    "analytic_invariants": "PASS: 1 sample, 0 failures",
+    "predicted_penetration_m": 0.0050000002980232355,
+    "final_clearance_m": 4.470348355378739e-09,
+    "expected_normal_impulse_n_s": 0.7333333373069765,
+    "observed_normal_impulse_n_s": 0.73333340883255,
+    "reciprocal_impulse_residual_n_s": 0.0,
+    "contact_event_impulse_error_n_s": 0.0,
+    "contact_normal_alignment": 1.0,
+    "kinetic_energy_change_j": -0.32999999245007405,
+    "lifecycle_invariants": "PASS: 1 profile case, 5 checkpoints, 0 failures",
+    "qualification": "PASS: 1/1 exact contact capability, 0 failures",
+    "python_conformance_tests": "PASS: 199 tests",
+    "native_build": "PASS: conformance runner, Slang Metal driver and validation layer",
+    "command_inputs": "PASS: all pinned conformance inputs match the manifest"
+  },
+  "artifacts": {
+    "provenance": "docs/roadmap/evidence/F5-38-4e09ecb-metal-provenance.json",
+    "capabilities": "docs/roadmap/evidence/F5-38-4e09ecb-metal-capabilities.json",
+    "trajectory_result": "docs/roadmap/evidence/F5-38-4e09ecb-metal-fluid-rigid.json",
+    "trajectory_report": "docs/roadmap/evidence/F5-38-4e09ecb-metal-fluid-rigid-report.json",
+    "quality_result": "docs/roadmap/evidence/F5-38-4e09ecb-metal-quality-result.json",
+    "quality_report": "docs/roadmap/evidence/F5-38-4e09ecb-metal-quality-report.json",
+    "lifecycle_result": "docs/roadmap/evidence/F5-38-4e09ecb-metal-lifecycle-result.json",
+    "lifecycle_report": "docs/roadmap/evidence/F5-38-4e09ecb-metal-lifecycle-report.json",
+    "physical_evidence": "conformance/v1/evidence/macos-m4-slang-metal-4e09ecb-fluid-rigid-contact.json",
+    "qualification": "conformance/v1/evidence/macos-m4-slang-metal-4e09ecb-fluid-rigid-contact-qualification.json"
+  },
+  "notes": [
+    "The public-state oracle proves exterior non-overlap, the independent reduced-mass impulse, reciprocal endpoint response, contact-event agreement and non-increasing energy without reading private state.",
+    "API 0.2 requires CONTACT and CONTAINMENT flags in the same descriptor, but this open exterior fixture binds and qualifies CONTACT only; F5-39 retains the separate closed-volume containment obligation.",
+    "The canonical trajectory keeps all state, momentum, energy and clearance tolerances unchanged. Only chaotic manifold sample counts have a bounded fluid-rigid-specific envelope.",
+    "The lifecycle fixture proves exact capacity, destructive replacement, rejected overflow rollback, removal and deterministic recovery.",
+    "The physics equations remain in shared Slang; this evidence qualifies that implementation through the Apple Metal device adapter."
+  ]
+}

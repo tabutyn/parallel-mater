@@ -1,7 +1,7 @@
 {
   "id": "F5-39",
   "title": "Qualify rigid fluid containment",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,15 +17,33 @@
     "Add exact bounded capacity, replacement, removal and rollback lifecycle checks; a rejected mutation preserves the last usable state and recovery is deterministic.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "82c15393-1644-402f-ade3-e75d8fdb4dcc",
-    "owner": "codex-linux-qualification",
-    "machine": "ThomasLaptop",
-    "branch": "work/F5-39/ThomasLaptop",
-    "claimed_at": "2026-10-19T15:58:11Z",
-    "heartbeat_at": "2026-10-19T15:58:11Z",
-    "expires_at": "2026-10-20T15:58:11Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/roadmap/evidence/F5-39-rigid-fluid-containment.json",
+    "PASS: conformance/v1/evidence/linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment-qualification.json qualifies 1/1 exact capability with 0 failures",
+    "PASS: fluid-rigid CUDA reference regression, closed-manifold reciprocal containment oracle, and five-checkpoint lifecycle report",
+    "PASS: 211 portable conformance tests and clean Slang CUDA native build"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "82c15393-1644-402f-ade3-e75d8fdb4dcc",
+        "owner": "codex-linux-qualification",
+        "machine": "ThomasLaptop",
+        "branch": "work/F5-39/ThomasLaptop",
+        "claimed_at": "2026-10-19T15:58:11Z",
+        "heartbeat_at": "2026-10-19T15:58:11Z",
+        "expires_at": "2026-10-20T15:58:11Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T16:31:41Z",
+      "reason": "Published exact vendor-neutral rigid fluid containment quality and lifecycle contracts, qualified them on RTX 3050 Ti Slang CUDA, and retained the pre-integration reference failure.",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/F5-39-rigid-fluid-containment.json",
+        "PASS: conformance/v1/evidence/linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment-qualification.json qualifies 1/1 exact capability with 0 failures",
+        "PASS: fluid-rigid CUDA reference regression, closed-manifold reciprocal containment oracle, and five-checkpoint lifecycle report",
+        "PASS: 211 portable conformance tests and clean Slang CUDA native build"
+      ]
+    }
+  ]
 }

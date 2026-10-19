@@ -212,8 +212,10 @@
       "rule_id": "cloth-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-rope-attachment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -228,8 +230,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -259,8 +263,10 @@
       "rule_id": "cloth-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-rope-attachment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -275,8 +281,10 @@
           "status": "failed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -1792,11 +1800,13 @@
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "fluid-rigid",
+      "rule_id": "fluid-rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -1808,17 +1818,19 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -1839,11 +1851,13 @@
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "fluid-rigid",
+      "rule_id": "fluid-rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -1855,17 +1869,70 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTAINMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment",
+      "rule_id": "fluid-rigid-containment",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:fluid-rigid-containment-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:fluid-rigid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:fluid-rigid"
+          ],
+          "status": "passed"
         },
         "timing": {
           "contracts": [],
@@ -1886,11 +1953,13 @@
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "fluid-rigid",
+      "rule_id": "fluid-rigid-containment",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rigid-containment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -1902,17 +1971,19 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -1933,11 +2004,13 @@
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "fluid-rigid",
+      "rule_id": "fluid-rigid-containment",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rigid-containment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -1949,17 +2022,19 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -5685,11 +5760,13 @@
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "windows-gtx1080-slang-d3d12-2b04e55",
-      "rule_id": "fluid-rigid",
+      "rule_id": "fluid-rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -5701,17 +5778,19 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -5732,11 +5811,13 @@
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "windows-gtx1080-slang-d3d12-2b04e55",
-      "rule_id": "fluid-rigid",
+      "rule_id": "fluid-rigid-containment",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rigid-containment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -5748,17 +5829,19 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -5978,8 +6061,10 @@
       "rule_id": "cloth-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-rope-attachment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -5994,8 +6079,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -6025,8 +6112,10 @@
       "rule_id": "cloth-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-rope-attachment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6041,8 +6130,61 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
           "contracts": [],
-          "status": "missing_contract"
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "ATTACHMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "key_text": "CLOTH/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": true,
+      "report": "macos-m4-slang-metal-e09edbe-cloth-rope-attachment",
+      "rule_id": "cloth-rope",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:cloth-rope-attachment-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -7108,11 +7250,13 @@
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "fluid-rigid",
+      "rule_id": "fluid-rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7124,17 +7268,70 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact",
+      "rule_id": "fluid-rigid-contact",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:fluid-rigid-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:fluid-rigid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:fluid-rigid"
+          ],
+          "status": "passed"
         },
         "timing": {
           "contracts": [],
@@ -7155,11 +7352,13 @@
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "fluid-rigid",
+      "rule_id": "fluid-rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7171,17 +7370,19 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -7202,11 +7403,13 @@
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "fluid-rigid",
+      "rule_id": "fluid-rigid-containment",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rigid-containment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7218,17 +7421,19 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -7249,11 +7454,13 @@
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "fluid-rigid",
+      "rule_id": "fluid-rigid-containment",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rigid-containment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7265,17 +7472,19 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -7651,7 +7860,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_GRID",
-      "qualified": true,
+      "qualified": false,
       "report": "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid",
       "rule_id": "fluid-smoke-phase-grid",
       "scopes": {
@@ -7804,7 +8013,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_PARTICLE",
-      "qualified": true,
+      "qualified": false,
       "report": "macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle",
       "rule_id": "fluid-smoke-phase-particle",
       "scopes": {
@@ -10796,8 +11005,10 @@
       "rule_id": "cloth-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-rope-attachment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -10812,8 +11023,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -10843,8 +11056,10 @@
       "rule_id": "cloth-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-rope-attachment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -10859,8 +11074,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11875,11 +12092,13 @@
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
-      "rule_id": "fluid-rigid",
+      "rule_id": "fluid-rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11891,17 +12110,19 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -11922,11 +12143,13 @@
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "fluid-rigid",
+      "rule_id": "fluid-rigid-contact",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11938,17 +12161,19 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -11969,11 +12194,13 @@
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
-      "rule_id": "fluid-rigid",
+      "rule_id": "fluid-rigid-containment",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rigid-containment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11985,17 +12212,19 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -12016,11 +12245,13 @@
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "fluid-rigid",
+      "rule_id": "fluid-rigid-containment",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rigid-containment-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -12032,17 +12263,19 @@
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:fluid-rigid"
           ],
-          "status": "failed"
+          "status": "invalid"
         },
         "timing": {
           "contracts": [],
@@ -15199,7 +15432,7 @@
       }
     }
   ],
-  "capability_count": 309,
+  "capability_count": 312,
   "driver_count": 5,
   "drivers": [
     {
@@ -15221,6 +15454,7 @@
       "qualification_result_ids": [
         "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
         "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
         "windows-gtx1080-slang-cuda-2b04e55",
@@ -15232,6 +15466,7 @@
       "report_ids": [
         "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
         "linux-rtx3050ti-slang-cuda-eed669e",
+        "linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
         "windows-gtx1080-slang-cuda-2b04e55",
@@ -15241,7 +15476,7 @@
         "windows-gtx1080-physics-2026-10-16"
       ],
       "status": "unqualified",
-      "unqualified_capability_count": 106
+      "unqualified_capability_count": 107
     },
     {
       "id": "slang-d3d12",
@@ -15279,6 +15514,8 @@
       "label": "Metal",
       "qualification_result_ids": [
         "ipados-m1-slang-metal-9f7e72e",
+        "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact",
+        "macos-m4-slang-metal-e09edbe-cloth-rope-attachment",
         "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid",
         "macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle",
         "macos-m4-slang-metal-86f10b2-fluid-cloth-containment",
@@ -15286,9 +15523,11 @@
         "macos-m4-slang-metal-86f10b2-smoke-viscosity",
         "macos-m4-slang-metal-aac6d59"
       ],
-      "qualified_capability_count": 2,
+      "qualified_capability_count": 1,
       "report_ids": [
         "ipados-m1-slang-metal-9f7e72e",
+        "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact",
+        "macos-m4-slang-metal-e09edbe-cloth-rope-attachment",
         "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid",
         "macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle",
         "macos-m4-slang-metal-86f10b2-fluid-cloth-containment",
@@ -15297,7 +15536,7 @@
         "macos-m4-slang-metal-aac6d59"
       ],
       "status": "unqualified",
-      "unqualified_capability_count": 96
+      "unqualified_capability_count": 99
     }
   ],
   "known_failures": [
@@ -15347,13 +15586,37 @@
       "report": "linux-thomas-laptop-slang-cpu-eed669e"
     },
     {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-cpu",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[19].contract_sha256",
+      "report": "linux-thomas-laptop-slang-cpu-eed669e"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-cpu",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[20].contract_sha256",
+      "report": "linux-thomas-laptop-slang-cpu-eed669e"
+    },
+    {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "linux-thomas-laptop-slang-cpu-eed669e"
+    },
+    {
+      "driver": "slang-cuda",
+      "kind": "case_validation",
+      "message": "fluid-rigid: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
     },
     {
       "case": "cloth-tear",
@@ -16398,20 +16661,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "actual": "quality:fluid-rigid-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[23].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "actual": "quality:fluid-rigid-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[23].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -16434,56 +16697,74 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "actual": "case:fluid-rigid",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[23].execution",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
+    },
+    {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[23].execution",
+      "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[23].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "actual": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[23].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-cuda",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[23].reference_regression",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-cuda",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[23].reference_regression",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "actual": "quality:fluid-rigid-containment-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[24].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "actual": "quality:fluid-rigid-containment-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[24].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -16506,38 +16787,56 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "actual": "case:fluid-rigid",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[24].execution",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
+    },
+    {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[24].execution",
+      "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback",
+      "driver": "slang-cuda",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[24].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "actual": "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[24].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-cuda",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[24].reference_regression",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-cuda",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[24].reference_regression",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -16596,20 +16895,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral cloth-rope attachment quality case is registered.",
+      "actual": "quality:cloth-rope-attachment-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[26].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral cloth-rope attachment quality case is registered.",
+      "actual": "quality:cloth-rope-attachment-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[26].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -16641,20 +16940,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact cloth-rope adverse graph case is registered.",
+      "actual": "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[26].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact cloth-rope adverse graph case is registered.",
+      "actual": "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[26].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -18441,6 +18740,24 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-cuda",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[19].contract_sha256",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-cuda",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[20].contract_sha256",
+      "report": "linux-rtx3050ti-slang-cuda-eed669e"
+    },
+    {
       "actual": "10f92a7f0da05c294cef4b63c079d26213b01d31fd5c34c2ca53397aefdb4372",
       "driver": "slang-cuda",
       "expected": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
@@ -18450,9 +18767,27 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-cuda",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[32].contract_sha256",
+      "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-cuda",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[7].contract_sha256",
+      "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18461,16 +18796,25 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
+      "actual": "20c3086b26c05fc00bdc2a70fc4f528cdd588271c2cc2be4409912982d60c419",
+      "driver": "slang-cuda",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment"
+    },
+    {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18479,7 +18823,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18488,7 +18832,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18497,7 +18841,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-cuda",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18506,7 +18850,7 @@
     {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18515,11 +18859,17 @@
     {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle"
+    },
+    {
+      "driver": "slang-d3d12",
+      "kind": "case_validation",
+      "message": "fluid-rigid: stale case hash",
+      "report": "windows-gtx1080-physics-2026-10-16"
     },
     {
       "case": "cloth-tear",
@@ -18790,11 +19140,11 @@
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
-      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "actual": "quality:fluid-rigid-contact-v1",
       "driver": "slang-d3d12",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[7].analytic_invariants",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
@@ -18808,29 +19158,38 @@
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
-      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "actual": "case:fluid-rigid",
       "driver": "slang-d3d12",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[7].execution",
+      "report": "windows-gtx1080-slang-d3d12-2b04e55"
+    },
+    {
+      "actual": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback",
+      "driver": "slang-d3d12",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[7].lifecycle_invariants",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-d3d12",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[7].reference_regression",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
-      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "actual": "quality:fluid-rigid-containment-v1",
       "driver": "slang-d3d12",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[8].analytic_invariants",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
@@ -18844,20 +19203,29 @@
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
-      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "actual": "case:fluid-rigid",
       "driver": "slang-d3d12",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[8].execution",
+      "report": "windows-gtx1080-slang-d3d12-2b04e55"
+    },
+    {
+      "actual": "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback",
+      "driver": "slang-d3d12",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[8].lifecycle_invariants",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-d3d12",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[8].reference_regression",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
@@ -18907,9 +19275,27 @@
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-d3d12",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[14].contract_sha256",
+      "report": "windows-gtx1080-slang-d3d12-2b04e55"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-d3d12",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[5].contract_sha256",
+      "report": "windows-gtx1080-slang-d3d12-2b04e55"
+    },
+    {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18918,7 +19304,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-d3d12",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19596,20 +19982,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "actual": "quality:fluid-rigid-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[20].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "actual": "quality:fluid-rigid-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[20].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -19632,56 +20018,74 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "actual": "case:fluid-rigid",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[20].execution",
+      "report": "ipados-m1-slang-metal-9f7e72e"
+    },
+    {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[20].execution",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[20].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "actual": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[20].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-metal",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[20].reference_regression",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-metal",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[20].reference_regression",
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "actual": "quality:fluid-rigid-containment-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[21].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "actual": "quality:fluid-rigid-containment-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[21].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -19704,38 +20108,56 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "actual": "case:fluid-rigid",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[21].execution",
+      "report": "ipados-m1-slang-metal-9f7e72e"
+    },
+    {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[21].execution",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback",
+      "driver": "slang-metal",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[21].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "actual": "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[21].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-metal",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[21].reference_regression",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-metal",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[21].reference_regression",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -19794,20 +20216,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral cloth-rope attachment quality case is registered.",
+      "actual": "quality:cloth-rope-attachment-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[23].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral cloth-rope attachment quality case is registered.",
+      "actual": "quality:cloth-rope-attachment-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[23].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -19830,20 +20252,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact cloth-rope adverse graph case is registered.",
+      "actual": "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[23].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact cloth-rope adverse graph case is registered.",
+      "actual": "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[23].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -21573,21 +21995,84 @@
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[0].contract_sha256",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-metal",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[28].contract_sha256",
+      "report": "ipados-m1-slang-metal-9f7e72e"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-metal",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[28].contract_sha256",
+      "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-metal",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[5].contract_sha256",
+      "report": "ipados-m1-slang-metal-9f7e72e"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-metal",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[5].contract_sha256",
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
+      "actual": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
+      "driver": "slang-metal",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact"
+    },
+    {
+      "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "driver": "slang-metal",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid"
+    },
+    {
+      "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "driver": "slang-metal",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle"
+    },
+    {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21596,7 +22081,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21605,7 +22090,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21614,7 +22099,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22062,20 +22547,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "actual": "quality:fluid-rigid-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[20].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "actual": "quality:fluid-rigid-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[20].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -22089,56 +22574,74 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "actual": "case:fluid-rigid",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[20].execution",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[20].execution",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[20].lifecycle_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "actual": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[20].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-vulkan",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[20].reference_regression",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-vulkan",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[20].reference_regression",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "actual": "quality:fluid-rigid-containment-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[21].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "actual": "quality:fluid-rigid-containment-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[21].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -22152,38 +22655,56 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "actual": "case:fluid-rigid",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[21].execution",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "case:fluid-rigid",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[21].execution",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[21].lifecycle_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "actual": "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[21].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-vulkan",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[21].reference_regression",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "failed",
+      "actual": "case:fluid-rigid",
       "driver": "slang-vulkan",
-      "expected": "passed",
+      "expected": null,
       "kind": "qualification_failure",
-      "message": "required evidence did not pass",
+      "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[21].reference_regression",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -22233,20 +22754,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral cloth-rope attachment quality case is registered.",
+      "actual": "quality:cloth-rope-attachment-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[23].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No vendor-neutral cloth-rope attachment quality case is registered.",
+      "actual": "quality:cloth-rope-attachment-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[23].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -22260,20 +22781,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact cloth-rope adverse graph case is registered.",
+      "actual": "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[23].lifecycle_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No exact cloth-rope adverse graph case is registered.",
+      "actual": "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[23].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -23538,9 +24059,45 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-vulkan",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[17].contract_sha256",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-vulkan",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[19].contract_sha256",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-vulkan",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[20].contract_sha256",
+      "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "driver": "slang-vulkan",
+      "expected": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[45].contract_sha256",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
       "actual": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
       "driver": "slang-vulkan",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23549,7 +24106,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23557,10 +24114,10 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
+  "obligations_sha256": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
   "qualification_complete": true,
-  "qualified_capability_count": 2,
-  "report_count": 22,
+  "qualified_capability_count": 1,
+  "report_count": 25,
   "reports": [
     {
       "capability_count": 46,
@@ -23575,7 +24132,7 @@
         "name": "slang-vulkan",
         "version": "0.2.0"
       },
-      "failure_count": 69,
+      "failure_count": 73,
       "id": "android-pixel7-slang-vulkan-3187375",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json",
@@ -23606,7 +24163,7 @@
         "name": "slang-metal",
         "version": "0.2.0+9f7e72e"
       },
-      "failure_count": 147,
+      "failure_count": 151,
       "id": "ipados-m1-slang-metal-9f7e72e",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e-qualification.json",
@@ -23652,6 +24209,35 @@
       "validated": false
     },
     {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "13010 (NVIDIA 590.44.01)",
+        "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+        "vendor_id": 4318
+      },
+      "driver": {
+        "binary_sha256": "9e12330743afd5da16647f15fa56739030b50e3214abd5979fe54948d4e604f4",
+        "name": "slang-cuda",
+        "version": "0.2.0+e3256bc"
+      },
+      "failure_count": 1,
+      "id": "linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment-qualification.json",
+      "qualified_count": 0,
+      "sha256": "48e444f77edc0e0432c67ad7fe1f3cd24662ee9d8c571fc2b5f99c430cc77452",
+      "source": {
+        "commit": "e3256bc44d289fe835685f14cd856784e548b045",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+        "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+      },
+      "validated": false
+    },
+    {
       "capability_count": 49,
       "device": {
         "device_id": 0,
@@ -23665,7 +24251,7 @@
         "name": "slang-cuda",
         "version": "0.2.0+eed669e"
       },
-      "failure_count": 156,
+      "failure_count": 160,
       "id": "linux-rtx3050ti-slang-cuda-eed669e",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-eed669e-qualification.json",
@@ -23694,7 +24280,7 @@
         "name": "slang-vulkan",
         "version": "0.2.0+eed669e"
       },
-      "failure_count": 146,
+      "failure_count": 150,
       "id": "linux-rtx3050ti-slang-vulkan-eed669e",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-qualification.json",
@@ -23723,7 +24309,7 @@
         "name": "slang-cpu",
         "version": "0.2.0+eed669e"
       },
-      "failure_count": 6,
+      "failure_count": 8,
       "id": "linux-thomas-laptop-slang-cpu-eed669e",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json",
@@ -23750,23 +24336,23 @@
       "driver": {
         "binary_sha256": "dae53b75933a4f6143debc7dcfeb8e0ce71820749f0c9659cb6a20d3161c7a9d",
         "name": "slang-metal",
-        "version": "0.2.0+7161cca"
+        "version": "0.2.0+4e09ecb"
       },
-      "failure_count": 0,
-      "id": "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid",
+      "failure_count": 1,
+      "id": "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact",
       "kind": "capability-qualification",
-      "path": "conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid-qualification.json",
-      "qualified_count": 1,
-      "sha256": "c60cd0ab1db21b6866d487fe90422d462e8a5ce3033ac27beb128c2806d8c99c",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-4e09ecb-fluid-rigid-contact-qualification.json",
+      "qualified_count": 0,
+      "sha256": "ed16738f43f7bf5453ad814ac3f1fba6e485c9e8926bdadcff6a94fe94501acb",
       "source": {
-        "commit": "7161ccaaa421c82ff14c939a4c5b74d87602e0c6",
+        "commit": "4e09ecbd48d1ef6717e327f8050fbebff7651a97",
         "dirty": false
       },
       "toolchain": {
         "compiler": "Apple Clang, Slang Metal",
         "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 1,
@@ -23781,11 +24367,40 @@
         "name": "slang-metal",
         "version": "0.2.0+7161cca"
       },
-      "failure_count": 0,
+      "failure_count": 1,
+      "id": "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid-qualification.json",
+      "qualified_count": 0,
+      "sha256": "c60cd0ab1db21b6866d487fe90422d462e8a5ce3033ac27beb128c2806d8c99c",
+      "source": {
+        "commit": "7161ccaaa421c82ff14c939a4c5b74d87602e0c6",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "Apple Clang, Slang Metal",
+        "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+      },
+      "validated": false
+    },
+    {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "202618 (Apple Metal 32023.883)",
+        "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+        "vendor_id": 4203
+      },
+      "driver": {
+        "binary_sha256": "dae53b75933a4f6143debc7dcfeb8e0ce71820749f0c9659cb6a20d3161c7a9d",
+        "name": "slang-metal",
+        "version": "0.2.0+7161cca"
+      },
+      "failure_count": 1,
       "id": "macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle-qualification.json",
-      "qualified_count": 1,
+      "qualified_count": 0,
       "sha256": "c0430e156e5ec7e81635810eba978c40e15e9133fc75f5700190bc6c105249c1",
       "source": {
         "commit": "7161ccaaa421c82ff14c939a4c5b74d87602e0c6",
@@ -23795,7 +24410,7 @@
         "compiler": "Apple Clang, Slang Metal",
         "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 1,
@@ -23897,7 +24512,7 @@
         "name": "slang-metal",
         "version": "0.2.0+aac6d59"
       },
-      "failure_count": 148,
+      "failure_count": 152,
       "id": "macos-m4-slang-metal-aac6d59",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json",
@@ -23914,6 +24529,35 @@
       "validated": false
     },
     {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "202618 (Apple Metal 32023.883)",
+        "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+        "vendor_id": 4203
+      },
+      "driver": {
+        "binary_sha256": "db73bee7730689b8a6afd94d77a300c3e41d328e4c26b54368a03783adebfa09",
+        "name": "slang-metal",
+        "version": "0.2.0+e09edbe"
+      },
+      "failure_count": 0,
+      "id": "macos-m4-slang-metal-e09edbe-cloth-rope-attachment",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-e09edbe-cloth-rope-attachment-qualification.json",
+      "qualified_count": 1,
+      "sha256": "025204e8e30b67bf2f43ea6c3324b11936057df423398042e55429c7b016918a",
+      "source": {
+        "commit": "e09edbe8da9149854e2a4e9eaff2aac883e92e12",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "Apple Clang, Slang Metal",
+        "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+      },
+      "validated": true
+    },
+    {
       "capability_count": 0,
       "case_coverage_count": 17,
       "device": {
@@ -23927,7 +24571,7 @@
         "name": "slang-cuda",
         "version": null
       },
-      "failure_count": 5,
+      "failure_count": 6,
       "id": "windows-gtx1080-physics-2026-10-16:slang-cuda",
       "kind": "legacy-physics",
       "path": "conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json",
@@ -23945,7 +24589,7 @@
         "slang": "2026.18",
         "version": "19.44.35228.0"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 0,
@@ -23961,7 +24605,7 @@
         "name": "slang-d3d12",
         "version": null
       },
-      "failure_count": 5,
+      "failure_count": 6,
       "id": "windows-gtx1080-physics-2026-10-16:slang-d3d12",
       "kind": "legacy-physics",
       "path": "conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json",
@@ -23979,7 +24623,7 @@
         "slang": "2026.18",
         "version": "19.44.35228.0"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 1,
@@ -24052,7 +24696,7 @@
         "name": "slang-cuda",
         "version": "0.2.0+2b04e55"
       },
-      "failure_count": 176,
+      "failure_count": 180,
       "id": "windows-gtx1080-slang-cuda-2b04e55",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-2b04e55-qualification.json",
@@ -24168,7 +24812,7 @@
         "name": "slang-d3d12",
         "version": "0.2.0+2b04e55"
       },
-      "failure_count": 34,
+      "failure_count": 38,
       "id": "windows-gtx1080-slang-d3d12-2b04e55",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-qualification.json",
@@ -24216,7 +24860,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "a20321b51cefdcf262327e4b8bd760186ee9de003aee2710bf596e549081dd19",
+  "sources_sha256": "57930a664a0d03dfde486d1373072d701f55bd794dd5d2d013dea584e1c56034",
   "valid": true,
   "validation_failures": []
 }

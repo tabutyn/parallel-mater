@@ -331,6 +331,21 @@ class ComparatorTests(unittest.TestCase):
         case["world"]["chaotic_envelope"] = False
         self.assertFalse(self.compare(expected, actual, case).passed)
 
+    def test_case_can_bound_chaotic_contact_count_variation(self):
+        case = case_document()
+        case["world"]["chaotic_envelope"] = True
+        case["tolerances"]["values"]["chaotic_contact_count"] = {
+            "abs": 1.0, "rel": 0.7}
+        expected = result({"name": "contact-count"})
+        expected["checkpoints"][0]["rigid_contact_count"] = 89
+
+        actual = json.loads(json.dumps(expected))
+        actual["checkpoints"][0]["rigid_contact_count"] = 265
+        self.assertTrue(self.compare(expected, actual, case).passed)
+
+        actual["checkpoints"][0]["rigid_contact_count"] = 500
+        self.assertFalse(self.compare(expected, actual, case).passed)
+
 
 if __name__ == "__main__":
     unittest.main()

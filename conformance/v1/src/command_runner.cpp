@@ -1079,7 +1079,7 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
-    constexpr std::array<std::pair<std::string_view, std::string_view>, 26U>
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 32U>
         pinned_inputs{{
             {"quality profile", "conformance/v1/quality/core-conservation-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-attachment-v1.json"},
@@ -1089,6 +1089,9 @@ void copy_particle_state(const std::vector<State> &states,
             {"quality profile", "conformance/v1/quality/fluid-soft-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-rope-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/cloth-soft-contact-v1.json"},
+            {"quality profile", "conformance/v1/quality/fluid-rigid-containment-v1.json"},
+            {"quality profile", "conformance/v1/quality/fluid-rigid-contact-v1.json"},
+            {"quality profile", "conformance/v1/quality/cloth-rope-attachment-v1.json"},
             {"quality profile", "conformance/v1/quality/smoke-self-pressure-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-cloth-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/smoke-fluid-drag-v1.json"},
@@ -1101,6 +1104,9 @@ void copy_particle_state(const std::vector<State> &states,
             {"lifecycle profile", "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/cloth-soft-contact-lifecycle-v1.json"},
+            {"lifecycle profile", "conformance/v1/lifecycle/fluid-rigid-containment-lifecycle-v1.json"},
+            {"lifecycle profile", "conformance/v1/lifecycle/fluid-rigid-contact-lifecycle-v1.json"},
+            {"lifecycle profile", "conformance/v1/lifecycle/cloth-rope-attachment-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/fluid-smoke-phase-lifecycle-v1.json"},
             {"lifecycle profile",
@@ -1410,6 +1416,17 @@ int conformance_command_main(int argc, char **argv) {
                      "cloth-soft-contact-lifecycle-v1")
                 result = conformance_cloth_soft_contact_lifecycle(root, &status);
             else if (arguments.lifecycle_id ==
+                     "fluid-rigid-containment-lifecycle-v1")
+                result = conformance_fluid_rigid_containment_lifecycle(
+                    root, &status);
+            else if (arguments.lifecycle_id ==
+                     "fluid-rigid-contact-lifecycle-v1")
+                result = conformance_fluid_rigid_contact_lifecycle(root, &status);
+            else if (arguments.lifecycle_id ==
+                     "cloth-rope-attachment-lifecycle-v1")
+                result = conformance_cloth_rope_attachment_lifecycle(
+                    root, &status);
+            else if (arguments.lifecycle_id ==
                      "smoke-fluid-drag-lifecycle-v1")
                 result = conformance_smoke_fluid_drag_lifecycle(root, &status);
             else if (arguments.lifecycle_id ==
@@ -1444,6 +1461,12 @@ int conformance_command_main(int argc, char **argv) {
                 "fluid-rope-contact-v1";
             const bool cloth_soft_contact = arguments.quality_id ==
                 "cloth-soft-contact-v1";
+            const bool fluid_rigid_containment = arguments.quality_id ==
+                "fluid-rigid-containment-v1";
+            const bool fluid_rigid_contact = arguments.quality_id ==
+                "fluid-rigid-contact-v1";
+            const bool cloth_rope_attachment = arguments.quality_id ==
+                "cloth-rope-attachment-v1";
             const bool smoke_self_pressure = arguments.quality_id ==
                 "smoke-self-pressure-v1";
             const bool fluid_cloth_contact = arguments.quality_id ==
@@ -1469,6 +1492,9 @@ int conformance_command_main(int argc, char **argv) {
                 !fluid_soft_contact &&
                 !fluid_rope_contact &&
                 !cloth_soft_contact &&
+                !fluid_rigid_contact &&
+                !fluid_rigid_containment &&
+                !cloth_rope_attachment &&
                 !smoke_self_pressure && !fluid_cloth_contact &&
                 !smoke_self_viscosity && !fluid_self &&
                 !smoke_fluid_drag && !fluid_smoke_phase &&
@@ -1502,7 +1528,9 @@ int conformance_command_main(int argc, char **argv) {
                     return 0;
 #endif
                 } else if (fluid_cloth_containment || fluid_soft_contact ||
-                           fluid_rope_contact || cloth_soft_contact) {
+                           fluid_rope_contact || fluid_rigid_contact ||
+                           fluid_rigid_containment ||
+                           cloth_rope_attachment || cloth_soft_contact) {
                     ExecutionStatus status{};
                     if (fluid_cloth_containment)
                         result = conformance_fluid_cloth_containment_quality(
@@ -1513,10 +1541,19 @@ int conformance_command_main(int argc, char **argv) {
                     else if (fluid_rope_contact)
                         result = conformance_fluid_rope_contact_quality(
                             root, &status);
-                    else
+                    else if (cloth_soft_contact)
                         result = conformance_cloth_soft_contact_quality(
                             root, &status);
-                    if (status != ExecutionStatus::completed) {
+                    else if (fluid_rigid_contact)
+                        result = conformance_fluid_rigid_contact_quality(
+                            root, &status);
+                    else if (fluid_rigid_containment)
+                        result = conformance_fluid_rigid_containment_quality(
+                            root, &status);
+                    else
+                        result = conformance_cloth_rope_attachment_quality(
+                            root, &status);
+                    if (status != ExecutionStatus::completed && result.empty()) {
                         Json unavailable = Json::object();
                         unavailable["schema"] =
                             "parallel-mater-conformance-quality-result/v1";

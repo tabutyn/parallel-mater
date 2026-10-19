@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19"
+    "sha256": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432"
   },
   "qualification_results": [
     {
@@ -53,6 +53,11 @@
       "sha256": "24e12069e812795774a83cb2450c27e1680847fadf65eff0594ddb06b6afe8f8"
     },
     {
+      "id": "linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment-qualification.json",
+      "sha256": "48e444f77edc0e0432c67ad7fe1f3cd24662ee9d8c571fc2b5f99c430cc77452"
+    },
+    {
       "id": "linux-rtx3050ti-slang-vulkan-eed669e",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-qualification.json",
       "sha256": "040b04c96c547304c9609366c891eb22ae019f75e1dafc05591a0a0658cf6b1b"
@@ -61,6 +66,16 @@
       "id": "linux-thomas-laptop-slang-cpu-eed669e",
       "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json",
       "sha256": "e3ae75435330251f28ac8196012f921bf7be032541362db1fdc978f5eb7f7473"
+    },
+    {
+      "id": "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-4e09ecb-fluid-rigid-contact-qualification.json",
+      "sha256": "ed16738f43f7bf5453ad814ac3f1fba6e485c9e8926bdadcff6a94fe94501acb"
+    },
+    {
+      "id": "macos-m4-slang-metal-e09edbe-cloth-rope-attachment",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-e09edbe-cloth-rope-attachment-qualification.json",
+      "sha256": "025204e8e30b67bf2f43ea6c3324b11936057df423398042e55429c7b016918a"
     },
     {
       "id": "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid",

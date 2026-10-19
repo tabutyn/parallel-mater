@@ -33,7 +33,8 @@ void rope_cloth_sample_anchor(
 void rope_cloth_apply_anchor(
     uniform PMBuffer<Vec3> rope_positions, uniform PMBuffer<Vec3> rope_velocities,
     uniform uint rope_count, uniform PMBuffer<Vec3> soft_anchor_positions,
-    uniform PMBuffer<Vec3> soft_anchor_velocities, uniform uint end,
+    uniform PMBuffer<Vec3> soft_anchor_velocities,
+    uniform PMBuffer<Vec3> soft_anchor_impulses, uniform uint end,
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities, uniform PMBuffer<Vec3> forces,
     uniform PMBuffer<float> inverse_masses, uniform uint vertex,
     uniform float maximum_acceleration, uniform float dt,
@@ -50,7 +51,7 @@ void rope_cloth_apply_anchor(
     velocities[vertex] = add(velocities[vertex], deltaVelocity);
     positions[vertex] = add(positions[vertex], correction);
     forces[vertex] = add(forces[vertex],
-        multiply(deltaVelocity, frame_inverse_dt / inverseMass));
+        multiply(soft_anchor_impulses[end], frame_inverse_dt));
     uint node = end != 0u ? rope_count - 1u : 0u;
     rope_positions[node] = positions[vertex];
     soft_anchor_positions[end] = positions[vertex];

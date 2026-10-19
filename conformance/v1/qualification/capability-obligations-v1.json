@@ -35,7 +35,7 @@
     {"id": "case:soft-body-fluid", "path": "conformance/v1/cases/soft-body-fluid.json", "sha256": "935838337761fc3a0fb6bbe4cc787953b27e8cfa7dcb4cb7adb17eb85a3fd653"},
     {"id": "case:rope-fluid", "path": "conformance/v1/cases/rope-fluid.json", "sha256": "368a65ec45f88baebc53e252dcbf8b95e3775b205714deed1006210dd5d13d27"},
     {"id": "case:smoke-water", "path": "conformance/v1/cases/smoke-water.json", "sha256": "cbe349e888648ef1fe6f0adb507be33888be83b988d72b4bcc5c4a23a604964c"},
-    {"id": "case:fluid-rigid", "path": "conformance/v1/cases/fluid-rigid.json", "sha256": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9"},
+    {"id": "case:fluid-rigid", "path": "conformance/v1/cases/fluid-rigid.json", "sha256": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"},
     {"id": "case:soft-body-cloth", "path": "conformance/v1/cases/soft-body-cloth.json", "sha256": "779b5f55f4db0b9f0952d0d8607c1221ca2c50a52bc2dca2b95dff70ea5e6f4a"},
     {"id": "case:rope-cloth", "path": "conformance/v1/cases/rope-cloth.json", "sha256": "28280bb786efb6a69ead8bfed2f76ef1ac145672de29fbd2d625f69e89eda792"},
     {"id": "case:smoke-cloth", "path": "conformance/v1/cases/smoke-cloth.json", "sha256": "8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc"},
@@ -54,6 +54,9 @@
     {"id": "quality:cloth-soft-contact-v1", "path": "conformance/v1/quality/cloth-soft-contact-v1.json", "sha256": "0d67c947347d45b5bdc897df3f213513f576c01ca1bd3898b32010ec7578b7e2"},
     {"id": "quality:fluid-soft-contact-v1", "path": "conformance/v1/quality/fluid-soft-contact-v1.json", "sha256": "40dce99005017b4b4a485f7553ea89f8f06526c88f242215a1415c8c67c9e986"},
     {"id": "quality:fluid-rope-contact-v1", "path": "conformance/v1/quality/fluid-rope-contact-v1.json", "sha256": "462b1b2249fc9b928b5f983f648c0486aaf0ebf0f7ee2fb354637ea39f214a89"},
+    {"id": "quality:fluid-rigid-contact-v1", "path": "conformance/v1/quality/fluid-rigid-contact-v1.json", "sha256": "3f91da38345cab59a2cc37487fe4fa243bf211b91f4bd3a0b70163206d07f9a3"},
+    {"id": "quality:fluid-rigid-containment-v1", "path": "conformance/v1/quality/fluid-rigid-containment-v1.json", "sha256": "d6ea84babcdc0ede00303f4960336320b165ac3a573e196725a5b69abe31f7f6"},
+    {"id": "quality:cloth-rope-attachment-v1", "path": "conformance/v1/quality/cloth-rope-attachment-v1.json", "sha256": "774081efcc918b9c7c144c0189fb24d72f511d44cadd40510d07e7dc9a760023"},
     {"id": "quality:smoke-self-pressure-v1", "path": "conformance/v1/quality/smoke-self-pressure-v1.json", "sha256": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150"},
     {"id": "quality:fluid-cloth-contact-v1", "path": "conformance/v1/quality/fluid-cloth-contact-v1.json", "sha256": "1216cf9e7252b5fe4c27f14639a1031e698d459a2001db60153a088ebb600445"},
     {"id": "quality:smoke-self-viscosity-v1", "path": "conformance/v1/quality/smoke-self-viscosity-v1.json", "sha256": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"},
@@ -65,6 +68,9 @@
     {"id": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery", "path": "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json", "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"},
     {"id": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback", "path": "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json", "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"},
     {"id": "lifecycle:fluid-cloth-containment-lifecycle-v1#fluid-cloth-containment-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-cloth-containment-lifecycle-v1.json", "sha256": "c96a995030b4b3e20ef77c55ab01bb7be2afdbfa2959f69c7d07be6c9bc21bb1"},
+    {"id": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-rigid-contact-lifecycle-v1.json", "sha256": "b77ce14642b8d6535b57e26e919397fab2cdc5cdf89d8ae8f82cf5bb643259ea"},
+    {"id": "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-rigid-containment-lifecycle-v1.json", "sha256": "bc4730838161caa3c77c54c65e58f14fee1fdf4095b26432fea8738ddae6fff0"},
+    {"id": "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/cloth-rope-attachment-lifecycle-v1.json", "sha256": "d03f1609c66a4c5f5b827ee581274dd1860e95b8459dc653576d663445d0e9c4"},
     {"id": "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-particle-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json", "sha256": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31"},
     {"id": "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-grid-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json", "sha256": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31"},
     {"id": "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json", "sha256": "5599b5d6c5e8386830d0abb29a13feddd3a43a917912efb9e9cf4b1732a22769"},
@@ -279,11 +285,24 @@
       "missing": {}
     },
     {
-      "id": "fluid-rigid",
-      "match": {"first_family": ["FLUID"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "CONTAINMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "id": "fluid-rigid-contact",
+      "match": {"first_family": ["FLUID"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:fluid-rigid",
-      "required": {},
-      "missing": {"lifecycle_invariants": "No exact fluid-rigid adverse graph case is registered.", "analytic_invariants": "No vendor-neutral fluid-rigid quality case is registered."}
+      "required": {
+        "lifecycle_invariants": ["lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback"],
+        "analytic_invariants": ["quality:fluid-rigid-contact-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "fluid-rigid-containment",
+      "match": {"first_family": ["FLUID"], "second_family": ["RIGID_BODY"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTAINMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:fluid-rigid",
+      "required": {
+        "lifecycle_invariants": ["lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback"],
+        "analytic_invariants": ["quality:fluid-rigid-containment-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "cloth-soft-body",
@@ -299,8 +318,11 @@
       "id": "cloth-rope",
       "match": {"first_family": ["CLOTH"], "second_family": ["ROPE"], "scope": ["DISTINCT_FAMILY"], "mode": ["ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:rope-cloth",
-      "required": {},
-      "missing": {"lifecycle_invariants": "No exact cloth-rope adverse graph case is registered.", "analytic_invariants": "No vendor-neutral cloth-rope attachment quality case is registered."}
+      "required": {
+        "lifecycle_invariants": ["lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"],
+        "analytic_invariants": ["quality:cloth-rope-attachment-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "cloth-smoke-particle",
