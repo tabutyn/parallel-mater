@@ -3927,7 +3927,7 @@
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-pressure",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -3946,8 +3946,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -3974,7 +3976,7 @@
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-pressure",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -3993,8 +3995,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -4021,7 +4025,7 @@
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-pressure",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -4040,8 +4044,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -4068,7 +4074,7 @@
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-pressure",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -4087,8 +4093,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -4115,11 +4123,13 @@
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-viscosity",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-self-viscosity-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -4134,8 +4144,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -4162,11 +4174,13 @@
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-viscosity",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-self-viscosity-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -4181,8 +4195,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -4209,11 +4225,13 @@
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-viscosity",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-self-viscosity-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -4228,8 +4246,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -4256,11 +4276,13 @@
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-viscosity",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-self-viscosity-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -4275,8 +4297,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -8821,7 +8845,7 @@
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-pressure",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -8840,8 +8864,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -8868,7 +8894,7 @@
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-pressure",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -8887,8 +8913,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -8915,7 +8943,7 @@
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-pressure",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -8934,8 +8962,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -8962,7 +8992,7 @@
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-pressure",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -8981,8 +9011,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -9009,11 +9041,13 @@
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-viscosity",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-self-viscosity-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -9028,8 +9062,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -9056,11 +9092,13 @@
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-viscosity",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-self-viscosity-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -9075,8 +9113,61 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
           "contracts": [],
-          "status": "missing_contract"
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "VISCOSITY",
+        "scope": "SELF",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID",
+      "qualified": true,
+      "report": "macos-m4-slang-metal-e566034-smoke-viscosity",
+      "rule_id": "smoke-self-viscosity",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:smoke-self-viscosity-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -9103,11 +9194,13 @@
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-viscosity",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-self-viscosity-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -9122,8 +9215,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -9150,11 +9245,13 @@
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-viscosity",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-self-viscosity-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -9169,8 +9266,61 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
           "contracts": [],
-          "status": "missing_contract"
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "VISCOSITY",
+        "scope": "SELF",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_PARTICLE",
+      "qualified": true,
+      "report": "macos-m4-slang-metal-e566034-smoke-viscosity",
+      "rule_id": "smoke-self-viscosity",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:smoke-self-viscosity-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -11544,7 +11694,7 @@
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-pressure",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -11563,8 +11713,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11591,7 +11743,7 @@
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-pressure",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -11610,8 +11762,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11638,11 +11792,13 @@
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-viscosity",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-self-viscosity-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11657,8 +11813,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11685,11 +11843,13 @@
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_PARTICLE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "smoke-self",
+      "rule_id": "smoke-self-viscosity",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-self-viscosity-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11704,8 +11864,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -12053,7 +12215,7 @@
       }
     }
   ],
-  "capability_count": 251,
+  "capability_count": 253,
   "driver_count": 5,
   "drivers": [
     {
@@ -12119,14 +12281,16 @@
       "label": "Metal",
       "qualification_result_ids": [
         "ipados-m1-slang-metal-9f7e72e",
-        "macos-m4-slang-metal-aac6d59"
+        "macos-m4-slang-metal-aac6d59",
+        "macos-m4-slang-metal-e566034-smoke-viscosity"
       ],
-      "qualified_capability_count": 0,
+      "qualified_capability_count": 2,
       "report_ids": [
         "ipados-m1-slang-metal-9f7e72e",
-        "macos-m4-slang-metal-aac6d59"
+        "macos-m4-slang-metal-aac6d59",
+        "macos-m4-slang-metal-e566034-smoke-viscosity"
       ],
-      "status": "unqualified",
+      "status": "qualified",
       "unqualified_capability_count": 92
     }
   ],
@@ -12179,7 +12343,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
+      "expected": "3ba94772916dc0fa40b5767cbfe5572e7036a4ab9dd23a8f6be58e425d12136b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -12337,20 +12501,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "quality:smoke-self-viscosity-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[10].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "quality:smoke-self-viscosity-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[10].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -12373,20 +12537,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[10].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[10].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -15055,7 +15219,7 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "No vendor-neutral smoke self-pressure quality case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -15064,7 +15228,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "No vendor-neutral smoke self-pressure quality case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -15091,38 +15255,38 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[7].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[7].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "quality:smoke-self-viscosity-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[8].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "quality:smoke-self-viscosity-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[8].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -15145,25 +15309,25 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[8].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[8].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "No vendor-neutral smoke self-pressure quality case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -15172,7 +15336,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "No vendor-neutral smoke self-pressure quality case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -15199,20 +15363,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[9].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[9].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -15246,7 +15410,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
+      "expected": "3ba94772916dc0fa40b5767cbfe5572e7036a4ab9dd23a8f6be58e425d12136b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15255,7 +15419,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
+      "expected": "3ba94772916dc0fa40b5767cbfe5572e7036a4ab9dd23a8f6be58e425d12136b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15264,7 +15428,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
+      "expected": "3ba94772916dc0fa40b5767cbfe5572e7036a4ab9dd23a8f6be58e425d12136b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15658,7 +15822,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
+      "expected": "3ba94772916dc0fa40b5767cbfe5572e7036a4ab9dd23a8f6be58e425d12136b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -17956,7 +18120,7 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "No vendor-neutral smoke self-pressure quality case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -17965,7 +18129,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "No vendor-neutral smoke self-pressure quality case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -17992,38 +18156,38 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[4].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[4].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "quality:smoke-self-viscosity-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[5].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "quality:smoke-self-viscosity-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[5].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -18046,25 +18210,25 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[5].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[5].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "No vendor-neutral smoke self-pressure quality case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -18073,7 +18237,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "No vendor-neutral smoke self-pressure quality case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -18100,38 +18264,38 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[6].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[6].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "quality:smoke-self-viscosity-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[7].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "quality:smoke-self-viscosity-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[7].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -18154,20 +18318,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[7].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[7].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -18282,7 +18446,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
+      "expected": "3ba94772916dc0fa40b5767cbfe5572e7036a4ab9dd23a8f6be58e425d12136b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18291,7 +18455,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
+      "expected": "3ba94772916dc0fa40b5767cbfe5572e7036a4ab9dd23a8f6be58e425d12136b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19432,7 +19596,7 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "No vendor-neutral smoke self-pressure quality case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -19450,20 +19614,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[4].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "quality:smoke-self-viscosity-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[5].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -19477,16 +19641,16 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[5].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "No vendor-neutral smoke self-pressure quality case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -19504,20 +19668,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[6].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral smoke self-system quality case is registered.",
+      "actual": "quality:smoke-self-viscosity-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[7].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -19531,11 +19695,11 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact smoke self-system replacement/capacity case is registered.",
+      "actual": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[7].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -19587,7 +19751,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
+      "expected": "3ba94772916dc0fa40b5767cbfe5572e7036a4ab9dd23a8f6be58e425d12136b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19595,10 +19759,10 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "f8862f2793eed4fa9b4ce9bcca8244edb61b943c6b1129e3fd92ecfc819d8341",
+  "obligations_sha256": "3ba94772916dc0fa40b5767cbfe5572e7036a4ab9dd23a8f6be58e425d12136b",
   "qualification_complete": true,
-  "qualified_capability_count": 0,
-  "report_count": 10,
+  "qualified_capability_count": 2,
+  "report_count": 11,
   "reports": [
     {
       "capability_count": 46,
@@ -19776,6 +19940,35 @@
       "validated": false
     },
     {
+      "capability_count": 2,
+      "device": {
+        "device_id": 0,
+        "driver_version": "202618 (Apple Metal 32023.883)",
+        "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+        "vendor_id": 4203
+      },
+      "driver": {
+        "binary_sha256": "063a4dbbaff84f58cbbef012f994296af375dadd9f60368ad13f3c47aab71846",
+        "name": "slang-metal",
+        "version": "0.2.0+e566034"
+      },
+      "failure_count": 0,
+      "id": "macos-m4-slang-metal-e566034-smoke-viscosity",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-e566034-smoke-viscosity-qualification.json",
+      "qualified_count": 2,
+      "sha256": "7d9d3b86c8f2b68e253bc738bd135cbae6b91acc7faa9bb4f59711605ee32ad9",
+      "source": {
+        "commit": "e5660347bba4efb02148119b70d1985c38ee8f51",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "Apple Clang, Slang Metal",
+        "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+      },
+      "validated": true
+    },
+    {
       "capability_count": 0,
       "case_coverage_count": 17,
       "device": {
@@ -19904,7 +20097,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "71d2360fa2c43e71d46a146470c2d2d1f8ebe41b35f09a00702f0dda989659c7",
+  "sources_sha256": "ae2dba717a6e9dcd452ce43ced31e23179054d3d5b0cb6ef5fed162af07daa28",
   "valid": true,
   "validation_failures": []
 }
