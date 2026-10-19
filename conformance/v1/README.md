@@ -389,6 +389,36 @@ python3 conformance/v1/lifecycle.py \
   --report /path/to/smoke-rigid-lifecycle-report.json
 ```
 
+Smoke-to-rigid-body DRAG uses `smoke-rigid-drag-v1` for particle and
+projected-grid smoke. Six paired public-state runs isolate zero-drag,
+forward-flow, stationary-flow, and reverse-flow behavior. The oracle requires
+non-vacuous velocity-dependent rigid and tracer response, forward/reverse
+symmetry, geometric separation beyond the contact distance, unchanged public
+pressure, and bounded speed. Particle smoke additionally proves reciprocal
+momentum and dissipative energy from its public effective mass; grid tracers
+do not stand in for the private Eulerian field's mass or energy.
+`smoke-rigid-drag-lifecycle-v1` supplies separate exact adverse graph cases
+for particle and grid representations. These contracts make DRAG evidence
+disjoint from the neighboring smoke-rigid CONTACT contracts; they do not by
+themselves register a physical driver qualification result.
+
+```text
+parallel-mater-conformance --quality smoke-rigid-drag-v1 \
+  --output /path/to/smoke-rigid-drag-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/smoke-rigid-drag-v1.json \
+  --actual /path/to/smoke-rigid-drag-quality-results/smoke-rigid-drag-v1.json \
+  --report /path/to/smoke-rigid-drag-quality-report.json
+
+parallel-mater-conformance \
+  --lifecycle-profile smoke-rigid-drag-lifecycle-v1 \
+  --output /path/to/smoke-rigid-drag-lifecycle-result.json
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/smoke-rigid-drag-lifecycle-v1.json \
+  --actual /path/to/smoke-rigid-drag-lifecycle-result.json \
+  --report /path/to/smoke-rigid-drag-lifecycle-report.json
+```
+
 Smoke-to-rope DRAG uses `smoke-rope-drag-v1` for particle and projected-grid
 smoke. Six public-state runs pair zero-drag controls with forward, stationary,
 and reverse carrier flow around a free two-node rope. The oracle bounds signed

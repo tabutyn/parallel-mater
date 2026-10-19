@@ -259,16 +259,22 @@ def smoke_rigid_contact_result(profile: dict, material: str,
                    "BIDIRECTIONAL", material)
     ]
     prefix = material.removeprefix("SMOKE_").lower()
-    lifecycle_contract = (
-        "lifecycle:smoke-rigid-contact-lifecycle-v1#" + prefix +
-        "-smoke-rigid-contact-capacity-replacement-removal-rollback")
+    if mode == "DRAG":
+        lifecycle_contract = (
+            "lifecycle:smoke-rigid-drag-lifecycle-v1#" + prefix +
+            "-smoke-rigid-drag-capacity-replacement-removal-rollback")
+        quality_contract = "quality:smoke-rigid-drag-v1"
+    else:
+        lifecycle_contract = (
+            "lifecycle:smoke-rigid-contact-lifecycle-v1#" + prefix +
+            "-smoke-rigid-contact-capacity-replacement-removal-rollback")
+        quality_contract = "quality:smoke-rigid-contact-v1"
     result["evidence"] = [
         evidence(profile, "compilation", "registry:interaction-capabilities"),
         evidence(profile, "execution", "case:smoke-grid"),
         evidence(profile, "reference_regression", "case:smoke-grid"),
         evidence(profile, "lifecycle_invariants", lifecycle_contract),
-        evidence(profile, "analytic_invariants",
-                 "quality:smoke-rigid-contact-v1"),
+        evidence(profile, "analytic_invariants", quality_contract),
     ]
     return result
 
@@ -910,7 +916,7 @@ class QualificationTests(unittest.TestCase):
                     wrong_drag, "required evidence is missing")
                 self.assertEqual(rejected_drag["qualified_count"], 0)
 
-    def test_smoke_rigid_contact_contracts_are_exact_and_disjoint_from_drag(self):
+    def test_smoke_rigid_contact_and_drag_contracts_are_exact_and_disjoint(self):
         contracts = contract_map(self.profile)
         expected_contracts = {
             "quality:smoke-rigid-contact-v1":
@@ -921,6 +927,14 @@ class QualificationTests(unittest.TestCase):
             ("lifecycle:smoke-rigid-contact-lifecycle-v1#"
              "grid-smoke-rigid-contact-capacity-replacement-removal-rollback"):
                 ROOT / "lifecycle" / "smoke-rigid-contact-lifecycle-v1.json",
+            "quality:smoke-rigid-drag-v1":
+                ROOT / "quality" / "smoke-rigid-drag-v1.json",
+            ("lifecycle:smoke-rigid-drag-lifecycle-v1#"
+             "particle-smoke-rigid-drag-capacity-replacement-removal-rollback"):
+                ROOT / "lifecycle" / "smoke-rigid-drag-lifecycle-v1.json",
+            ("lifecycle:smoke-rigid-drag-lifecycle-v1#"
+             "grid-smoke-rigid-drag-capacity-replacement-removal-rollback"):
+                ROOT / "lifecycle" / "smoke-rigid-drag-lifecycle-v1.json",
         }
         for contract_id, path in expected_contracts.items():
             with self.subTest(contract=contract_id):
@@ -949,11 +963,28 @@ class QualificationTests(unittest.TestCase):
 
                 drag = smoke_rigid_contact_result(
                     self.profile, material, "DRAG")
-                drag_report = self.assert_rejected(
-                    drag, "qualification contract is missing")
-                self.assertEqual(drag_report["qualified_count"], 0)
+                drag_report = self.evaluate(drag)
+                self.assertTrue(drag_report["passed"], drag_report)
+                self.assertEqual(drag_report["qualified_count"], 1)
                 self.assertEqual(drag_report["capabilities"][0]["rule_id"],
-                                 "smoke-rigid-drag")
+                                 "smoke-rigid-drag-" + suffix)
+
+                contact_quality = copy.deepcopy(drag)
+                contact_quality["evidence"][-1] = evidence(
+                    self.profile, "analytic_invariants",
+                    "quality:smoke-rigid-contact-v1")
+                rejected_quality = self.assert_rejected(
+                    contact_quality, "required evidence is missing")
+                self.assertEqual(rejected_quality["qualified_count"], 0)
+
+                contact_lifecycle = copy.deepcopy(drag)
+                contact_lifecycle["evidence"][-2] = evidence(
+                    self.profile, "lifecycle_invariants",
+                    "lifecycle:smoke-rigid-contact-lifecycle-v1#" + suffix +
+                    "-smoke-rigid-contact-capacity-replacement-removal-rollback")
+                rejected_lifecycle = self.assert_rejected(
+                    contact_lifecycle, "required evidence is missing")
+                self.assertEqual(rejected_lifecycle["qualified_count"], 0)
 
     def test_soft_rope_attachment_quality_cannot_qualify_contact(self):
         report = self.evaluate(
