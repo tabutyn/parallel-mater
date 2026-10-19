@@ -70,8 +70,8 @@
         "machine": "thomas-laptop",
         "branch": "work/F5-15/thomas-laptop",
         "claimed_at": "2026-10-19T11:32:56Z",
-        "heartbeat_at": "2026-10-19T11:56:01Z",
-        "expires_at": "2026-10-20T11:56:01Z"
+        "heartbeat_at": "2026-10-19T11:32:56Z",
+        "expires_at": "2026-10-20T11:32:56Z"
       },
       "outcome": "completed",
       "at": "2026-10-19T13:27:21Z",
