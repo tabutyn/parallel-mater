@@ -1,0 +1,27 @@
+{
+  "id": "P1-59",
+  "title": "Complete D3D12 common-domain parity",
+  "status": "open",
+  "dependencies": [
+    "F4-04",
+    "F5-10",
+    "F7-06"
+  ],
+  "locks": [
+    "d3d12-common-domain-parity"
+  ],
+  "requires": [
+    "Windows host with a physical Direct3D 12 device and the current shared Slang toolchain"
+  ],
+  "scope": "Make the production Slang D3D12 adapter execute and advertise the existing API 0.2 common-domain schedules already implemented in shared Slang but still stubbed or disabled on D3D12: rope, soft body, smoke, paint and their existing cross-domain couplings. Compile and bind those schedules through the thin native D3D12 command/resource adapter, remove the corresponding unadvertised dispatch stubs, and preserve one shared physics implementation. Do not add new interaction modes, material models, backend-specific physics, CUDA-only qualified capabilities or relaxed evidence tolerances.",
+  "acceptance": [
+    "Generate reflection-derived D3D12 bindings for every existing shared Slang dispatch interface required by rope, soft body, smoke, paint and their API 0.2 cross-domain couplings; remove the corresponding generated fallback stubs and keep native D3D12 code limited to command, resource, synchronization and window/render adaptation.",
+    "Advertise rope, softBodies, smoke and paint only after their complete shared schedules execute. D3D12 capability enumeration must then match the existing common API 0.2 domain/coupling records without enabling miscible/equal-fluid or any future P1 interaction record that lacks its independent qualification gate.",
+    "Run every capability-applicable common Gallery scene for at least five seconds, including repeated scene switching, reset, interaction controls and submission reuse, with no unsupported result, crash, validation error or backend-specific fallback for the newly enabled domains.",
+    "Capture physical GTX 1080 D3D12 execution, unchanged reference regression, analytic-quality and lifecycle evidence for the newly advertised records. Compare the same-revision shared cases against CUDA where available; preserve every failure and do not qualify a record until all exact obligations pass.",
+    "Build and test the D3D12 driver, loader, shared Gallery, generated DXIL/reflection bindings, conformance runner and roadmap/evidence checks from D: artifacts, then update capability and qualification documentation to the measured result."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
