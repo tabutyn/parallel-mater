@@ -1,0 +1,56 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-41",
+  "source_commit": "e09edbe8da9149854e2a4e9eaff2aac883e92e12",
+  "captured_at": "2026-10-19",
+  "host": "Thomass-MacBook-Air",
+  "driver": "slang-metal",
+  "device": "Apple M4",
+  "capabilities": [
+    "CLOTH/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE"
+  ],
+  "contracts": {
+    "trajectory": "case:rope-cloth",
+    "quality": "quality:cloth-rope-attachment-v1",
+    "lifecycle": "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"
+  },
+  "results": {
+    "trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "reference_regression": "PASS: rope-cloth against the unchanged CUDA golden",
+    "analytic_invariants": "PASS: 1 sample, 0 failures",
+    "initial_attachment_drift_m": 0.0,
+    "final_attachment_drift_m": 0.0,
+    "cloth_reaction_force_y_n": -3.923981189727783,
+    "rope_reaction_force_y_n": 3.9240033974647526,
+    "reciprocal_force_residual_n": 0.000022207736969370728,
+    "maximum_pinned_vertex_drift_m": 0.0,
+    "maximum_transverse_drift_m": 0.0,
+    "maximum_speed_m_s": 0.13072408735752106,
+    "lifecycle_invariants": "PASS: 1 profile case, 5 checkpoints, 0 failures",
+    "qualification": "PASS: 1/1 exact attachment capability, 0 failures",
+    "python_conformance_tests": "PASS: 206 tests",
+    "roadmap_tests": "PASS: 31 tests",
+    "native_tests": "PASS: 98 tests",
+    "slang_targets": "PASS: Metal, CUDA and Vulkan validation",
+    "command_inputs": "PASS: all pinned conformance inputs match the manifest"
+  },
+  "artifacts": {
+    "provenance": "docs/roadmap/evidence/F5-41-e09edbe-metal-provenance.json",
+    "capabilities": "docs/roadmap/evidence/F5-41-e09edbe-metal-capabilities.json",
+    "trajectory_result": "docs/roadmap/evidence/F5-41-e09edbe-metal-rope-cloth.json",
+    "trajectory_report": "docs/roadmap/evidence/F5-41-e09edbe-metal-rope-cloth-report.json",
+    "quality_result": "docs/roadmap/evidence/F5-41-e09edbe-metal-quality-result.json",
+    "quality_report": "docs/roadmap/evidence/F5-41-e09edbe-metal-quality-report.json",
+    "lifecycle_result": "docs/roadmap/evidence/F5-41-e09edbe-metal-lifecycle-result.json",
+    "lifecycle_report": "docs/roadmap/evidence/F5-41-e09edbe-metal-lifecycle-report.json",
+    "physical_evidence": "conformance/v1/evidence/macos-m4-slang-metal-e09edbe-cloth-rope-attachment.json",
+    "qualification": "conformance/v1/evidence/macos-m4-slang-metal-e09edbe-cloth-rope-attachment-qualification.json"
+  },
+  "notes": [
+    "The immutable public-API fixture suspends a rope from a supported cloth vertex and uses SI units with bounded endpoint, support, symmetry, speed and reciprocal-force tolerances.",
+    "The independent oracle derives the rope-side reaction from dynamic-node momentum change after subtracting gravity; it never reads driver-private constraint state.",
+    "The shared Slang output fix reports the actual accumulated anchor impulse while preserving the canonical simulation trajectory.",
+    "The lifecycle fixture proves exact capacity, replacement, rejected-overflow rollback, removal, recovery and endpoint preservation.",
+    "The physics equations remain shared across drivers; this evidence qualifies their execution through the Apple Metal adapter."
+  ]
+}

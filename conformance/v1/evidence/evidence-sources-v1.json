@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "20c3086b26c05fc00bdc2a70fc4f528cdd588271c2cc2be4409912982d60c419"
+    "sha256": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432"
   },
   "qualification_results": [
     {
@@ -71,6 +71,11 @@
       "id": "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-4e09ecb-fluid-rigid-contact-qualification.json",
       "sha256": "ed16738f43f7bf5453ad814ac3f1fba6e485c9e8926bdadcff6a94fe94501acb"
+    },
+    {
+      "id": "macos-m4-slang-metal-e09edbe-cloth-rope-attachment",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-e09edbe-cloth-rope-attachment-qualification.json",
+      "sha256": "025204e8e30b67bf2f43ea6c3324b11936057df423398042e55429c7b016918a"
     },
     {
       "id": "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid",

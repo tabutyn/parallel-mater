@@ -6138,6 +6138,342 @@ def _evaluate_fluid_rigid_containment(
     }
 
 
+def _evaluate_cloth_rope_attachment(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definitions = {fixture["id"]: fixture
+                   for fixture in profile.get("fixtures", [])
+                   if isinstance(fixture, dict) and
+                   isinstance(fixture.get("id"), str)}
+    actual_fixtures = result.get("fixtures")
+    if not isinstance(actual_fixtures, list):
+        failures.append(Failure("$.fixtures", "expected a fixture array",
+                                actual_fixtures))
+        actual_fixtures = []
+    actual_by_id: dict[str, dict[str, Any]] = {}
+    for index, fixture in enumerate(actual_fixtures):
+        if not isinstance(fixture, dict) or not isinstance(
+                fixture.get("id"), str):
+            failures.append(Failure(f"$.fixtures[{index}]",
+                                    "fixture needs a string id", fixture))
+            continue
+        identity = fixture["id"]
+        if identity in actual_by_id:
+            failures.append(Failure(f"$.fixtures[{index}].id",
+                                    "duplicate fixture id", identity))
+            continue
+        actual_by_id[identity] = fixture
+    for missing in sorted(set(definitions) - set(actual_by_id)):
+        failures.append(Failure("$.fixtures", "missing required fixture", missing))
+    for extra in sorted(set(actual_by_id) - set(definitions)):
+        failures.append(Failure("$.fixtures", "unexpected fixture", extra))
+
+    tolerances = profile.get("tolerances", {})
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+
+    def add(left: tuple[float, float, float],
+            right: tuple[float, float, float]) -> tuple[float, float, float]:
+        return tuple(a + b for a, b in zip(left, right))  # type: ignore[return-value]
+
+    def close_number(actual: Any, expected: Any, path: str) -> None:
+        value = _scalar(actual, path, failures)
+        reference = _scalar(expected, path.replace(
+            "$.fixtures", "$.profile.fixtures"), failures)
+        if value is not None and reference is not None and abs(
+                value - reference) > state_tolerance:
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    value, reference))
+
+    def close_vector(actual: Any, expected: Any, path: str) -> None:
+        value = _vector(actual, path, failures)
+        reference = _vector(expected, path.replace(
+            "$.fixtures", "$.profile.fixtures"), failures)
+        if value is not None and reference is not None and _norm(
+                _subtract(value, reference)) > state_tolerance:
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    list(value), list(reference)))
+
+    def vector_array(actual: Any, expected: Any, path: str) -> list[
+            tuple[float, float, float]]:
+        if not isinstance(actual, list) or not isinstance(expected, list) or len(
+                actual) != len(expected):
+            failures.append(Failure(path, "fixture vector array differs from profile",
+                                    actual, expected))
+            return []
+        parsed = []
+        for index, (value, reference) in enumerate(zip(actual, expected)):
+            close_vector(value, reference, f"{path}[{index}]")
+            vector = _vector(value, f"{path}[{index}]", failures)
+            if vector is not None:
+                parsed.append(vector)
+        return parsed
+
+    def scalar_array(actual: Any, expected: Any, path: str) -> list[float]:
+        if not isinstance(actual, list) or not isinstance(expected, list) or len(
+                actual) != len(expected):
+            failures.append(Failure(path, "fixture scalar array differs from profile",
+                                    actual, expected))
+            return []
+        parsed = []
+        for index, (value, reference) in enumerate(zip(actual, expected)):
+            item_path = f"{path}[{index}]"
+            close_number(value, reference, item_path)
+            scalar = _scalar(value, item_path, failures)
+            if scalar is not None:
+                parsed.append(scalar)
+        return parsed
+
+    def snapshot(value: Any, path: str, cloth_count: int,
+                 rope_count: int) -> dict[str, Any] | None:
+        if not isinstance(value, dict):
+            failures.append(Failure(path, "expected a snapshot object", value))
+            return None
+        cloth = value.get("cloth")
+        rope = value.get("rope")
+        if not isinstance(cloth, list) or len(cloth) != cloth_count:
+            failures.append(Failure(path + ".cloth",
+                                    "cloth state count differs from profile",
+                                    len(cloth) if isinstance(cloth, list) else cloth,
+                                    cloth_count))
+            return None
+        if not isinstance(rope, list) or len(rope) != rope_count:
+            failures.append(Failure(path + ".rope",
+                                    "rope state count differs from profile",
+                                    len(rope) if isinstance(rope, list) else rope,
+                                    rope_count))
+            return None
+
+        def states(items: list[Any], base: str,
+                   force_name: str) -> list[dict[str, Any]]:
+            parsed = []
+            for index, item in enumerate(items):
+                item_path = f"{base}[{index}]"
+                if not isinstance(item, dict):
+                    failures.append(Failure(item_path,
+                                            "expected a state object", item))
+                    continue
+                if item.get("index") != index:
+                    failures.append(Failure(item_path + ".index",
+                                            "public state order changed",
+                                            item.get("index"), index))
+                position = _vector(item.get("position_m"),
+                                   item_path + ".position_m", failures)
+                velocity = _vector(item.get("velocity_m_s"),
+                                   item_path + ".velocity_m_s", failures)
+                force = _vector(item.get(force_name),
+                                item_path + "." + force_name, failures)
+                if position is not None and velocity is not None and force is not None:
+                    parsed.append({"position": position, "velocity": velocity,
+                                   "force": force})
+            return parsed
+
+        cloth_states = states(cloth, path + ".cloth",
+                              "rope_reaction_force_n")
+        rope_states = states(rope, path + ".rope", "constraint_force_n")
+        if len(cloth_states) != cloth_count or len(rope_states) != rope_count:
+            return None
+        return {"cloth": cloth_states, "rope": rope_states}
+
+    observations: dict[str, Any] = {}
+    sample_count = 0
+    for identity, definition in definitions.items():
+        actual = actual_by_id.get(identity)
+        if actual is None:
+            continue
+        base = f"$.fixtures[{identity}]"
+        for field in ("id", "step_count", "substeps",
+                      "cloth_triangle_indices", "cloth_solver_iterations",
+                      "rope_solver_iterations", "attached_rope_end",
+                      "attached_cloth_vertex", "oracle"):
+            if actual.get(field) != definition.get(field):
+                failures.append(Failure(base + "." + field,
+                                        "fixture setting differs from profile",
+                                        actual.get(field), definition.get(field)))
+        for field in ("timestep_seconds", "cloth_vertex_mass_kg",
+                      "cloth_stretch_compliance_m_per_n",
+                      "cloth_velocity_damping_per_s",
+                      "rope_node_spacing_m", "rope_radius_m",
+                      "rope_total_mass_kg",
+                      "rope_stretch_compliance_m_per_n",
+                      "rope_velocity_damping_per_s",
+                      "anchor_effective_mass_kg",
+                      "maximum_cloth_acceleration_m_s2"):
+            close_number(actual.get(field), definition.get(field),
+                         base + "." + field)
+        close_vector(actual.get("gravity_m_s2"),
+                     definition.get("gravity_m_s2"),
+                     base + ".gravity_m_s2")
+        cloth_vertices = vector_array(
+            actual.get("cloth_vertices_m"), definition.get("cloth_vertices_m"),
+            base + ".cloth_vertices_m")
+        inverse_masses = scalar_array(
+            actual.get("cloth_inverse_masses_per_kg"),
+            definition.get("cloth_inverse_masses_per_kg"),
+            base + ".cloth_inverse_masses_per_kg")
+        rope_centerline = vector_array(
+            actual.get("rope_centerline_m"),
+            definition.get("rope_centerline_m"),
+            base + ".rope_centerline_m")
+        spacing = _scalar(definition.get("rope_node_spacing_m"),
+                          base + ".rope_node_spacing_m", failures)
+        rope_count = 0
+        if len(rope_centerline) == 2 and spacing is not None and spacing > 0.0:
+            rope_count = round(_norm(_subtract(
+                rope_centerline[1], rope_centerline[0])) / spacing) + 1
+        initial = snapshot(actual.get("initial"), base + ".initial",
+                           len(cloth_vertices), rope_count)
+        previous = snapshot(actual.get("previous"), base + ".previous",
+                            len(cloth_vertices), rope_count)
+        final = snapshot(actual.get("final"), base + ".final",
+                         len(cloth_vertices), rope_count)
+        if (initial is None or previous is None or final is None or
+                not cloth_vertices or rope_count < 2):
+            continue
+
+        for index, expected in enumerate(cloth_vertices):
+            position = initial["cloth"][index]["position"]
+            if _norm(_subtract(position, expected)) > state_tolerance:
+                failures.append(Failure(
+                    f"{base}.initial.cloth[{index}].position_m",
+                    "initial cloth state differs from profile",
+                    list(position), list(expected)))
+            if _norm(initial["cloth"][index]["velocity"]) > state_tolerance:
+                failures.append(Failure(
+                    f"{base}.initial.cloth[{index}].velocity_m_s",
+                    "initial cloth velocity must be zero",
+                    list(initial["cloth"][index]["velocity"]), 0.0))
+        for index in range(rope_count):
+            fraction = index / (rope_count - 1)
+            expected = tuple(rope_centerline[0][axis] + fraction * (
+                rope_centerline[1][axis] - rope_centerline[0][axis])
+                             for axis in range(3))
+            position = initial["rope"][index]["position"]
+            if _norm(_subtract(position, expected)) > state_tolerance:
+                failures.append(Failure(
+                    f"{base}.initial.rope[{index}].position_m",
+                    "initial rope state differs from the public centerline",
+                    list(position), list(expected)))
+            if _norm(initial["rope"][index]["velocity"]) > state_tolerance:
+                failures.append(Failure(
+                    f"{base}.initial.rope[{index}].velocity_m_s",
+                    "initial rope velocity must be zero",
+                    list(initial["rope"][index]["velocity"]), 0.0))
+
+        attached_vertex = definition.get("attached_cloth_vertex")
+        if not isinstance(attached_vertex, int) or isinstance(
+                attached_vertex, bool) or attached_vertex < 0 or attached_vertex >= len(
+                    final["cloth"]):
+            failures.append(Failure(base + ".attached_cloth_vertex",
+                                    "invalid attached cloth vertex",
+                                    attached_vertex))
+            continue
+        endpoint = 0 if definition.get("attached_rope_end") == "first" else rope_count - 1
+        initial_drift = _norm(_subtract(
+            initial["cloth"][attached_vertex]["position"],
+            initial["rope"][endpoint]["position"]))
+        final_drift = _norm(_subtract(
+            final["cloth"][attached_vertex]["position"],
+            final["rope"][endpoint]["position"]))
+        drift_limit = float(tolerances.get("maximum_attachment_drift_m", 0.0))
+        if initial_drift > state_tolerance:
+            failures.append(Failure(base + ".initial",
+                                    "attachment endpoints do not start coincident",
+                                    initial_drift, state_tolerance))
+        if final_drift > drift_limit:
+            failures.append(Failure(base + ".final",
+                                    "cloth-rope attachment drift exceeds profile",
+                                    final_drift, drift_limit))
+
+        pinned_drift = 0.0
+        for index, inverse_mass in enumerate(inverse_masses):
+            if inverse_mass == 0.0:
+                pinned_drift = max(pinned_drift, _norm(_subtract(
+                    final["cloth"][index]["position"], cloth_vertices[index])))
+        pinned_limit = float(tolerances.get("maximum_pinned_vertex_drift_m", 0.0))
+        if pinned_drift > pinned_limit:
+            failures.append(Failure(base + ".final.cloth",
+                                    "pinned cloth support moved",
+                                    pinned_drift, pinned_limit))
+
+        cloth_reaction = _sum([state["force"] for state in final["cloth"]])
+        rope_mass = float(definition.get("rope_total_mass_kg", 0.0))
+        frame_dt = float(definition.get("timestep_seconds", 0.0))
+        gravity = _vector(definition.get("gravity_m_s2"),
+                          base + ".gravity_m_s2", failures)
+        node_mass = rope_mass / rope_count
+        dynamic_indices = [index for index in range(rope_count)
+                           if index != endpoint]
+        dynamic_mass = node_mass * len(dynamic_indices)
+        previous_momentum = tuple(node_mass * value for value in _sum(
+            [previous["rope"][index]["velocity"]
+             for index in dynamic_indices]))
+        final_momentum = tuple(node_mass * value for value in _sum(
+            [final["rope"][index]["velocity"]
+             for index in dynamic_indices]))
+        if gravity is None or frame_dt <= 0.0:
+            continue
+        rope_reaction = tuple(
+            (final_momentum[axis] - previous_momentum[axis]) / frame_dt -
+            dynamic_mass * gravity[axis] for axis in range(3))
+        reaction_activity = max(_norm(cloth_reaction), _norm(rope_reaction))
+        reaction_residual = _norm(add(cloth_reaction, rope_reaction))
+        activity_limit = float(tolerances.get("minimum_reaction_force_n", 0.0))
+        residual_limit = float(tolerances.get(
+            "maximum_reciprocal_force_residual_n", 0.0))
+        if reaction_activity < activity_limit:
+            failures.append(Failure(base + ".final",
+                                    "attachment reaction is too small",
+                                    reaction_activity, activity_limit))
+        if reaction_residual > residual_limit:
+            failures.append(Failure(base + ".final",
+                                    "cloth and rope reactions are not reciprocal",
+                                    reaction_residual, residual_limit))
+
+        transverse = max(abs(state["position"][2])
+                         for state in final["cloth"] + final["rope"])
+        transverse_limit = float(tolerances.get(
+            "maximum_transverse_drift_m", 0.0))
+        if transverse > transverse_limit:
+            failures.append(Failure(base + ".final",
+                                    "attachment introduced transverse drift",
+                                    transverse, transverse_limit))
+        maximum_speed = max(_norm(state["velocity"])
+                            for state in final["cloth"] + final["rope"])
+        speed_limit = float(tolerances.get("maximum_speed_m_s", 0.0))
+        if maximum_speed > speed_limit:
+            failures.append(Failure(base + ".final",
+                                    "endpoint speed exceeds profile",
+                                    maximum_speed, speed_limit))
+
+        observations[identity] = {
+            "initial_attachment_drift_m": initial_drift,
+            "final_attachment_drift_m": final_drift,
+            "cloth_reaction_force_n": list(cloth_reaction),
+            "rope_reaction_force_n": list(rope_reaction),
+            "dynamic_rope_mass_kg": dynamic_mass,
+            "reaction_activity_n": reaction_activity,
+            "reciprocal_force_residual_n": reaction_residual,
+            "maximum_pinned_vertex_drift_m": pinned_drift,
+            "maximum_transverse_drift_m": transverse,
+            "maximum_speed_m_s": maximum_speed,
+        }
+        sample_count += 1
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": len(actual_by_id),
+        "sample_count": sample_count,
+        "failure_count": len(failures),
+        "observations": observations,
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def evaluate(profile: dict[str, Any], result: dict[str, Any],
              expected_hash: str) -> dict[str, Any]:
     failures: list[Failure] = []
@@ -6204,6 +6540,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "fluid_rigid_containment":
         return _evaluate_fluid_rigid_containment(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "cloth_rope_attachment":
+        return _evaluate_cloth_rope_attachment(
             profile, result, expected_hash, driver, failures)
     if evaluation == "smoke_self_viscosity":
         return _evaluate_smoke_self_viscosity(
