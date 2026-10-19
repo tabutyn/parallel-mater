@@ -220,7 +220,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-40](roadmap/tasks/F5-40.json) | Qualify cloth-soft contact | leased | F5-23 | codex-windows-qualification / windows-gtx1080 / 2026-10-20T16:06:51Z |
 | [F5-41](roadmap/tasks/F5-41.json) | Qualify cloth-rope attachment | done | F5-23 | — |
 | [F5-42](roadmap/tasks/F5-42.json) | Qualify cloth-to-smoke contact | leased | F5-23 | codex-linux-qualification / ThomasLaptop / 2026-10-20T16:33:34Z |
-| [F5-43](roadmap/tasks/F5-43.json) | Qualify smoke-to-cloth drag | ready | F5-23 | — |
+| [F5-43](roadmap/tasks/F5-43.json) | Qualify smoke-to-cloth drag | leased | F5-23 | codex-macos-qualification / Thomass-MacBook-Air / 2026-10-20T16:53:02Z |
 | [F5-44](roadmap/tasks/F5-44.json) | Qualify cloth-rigid contact | ready | F5-23 | — |
 | [F5-45](roadmap/tasks/F5-45.json) | Qualify soft-rope contact | ready | F5-23 | — |
 | [F5-46](roadmap/tasks/F5-46.json) | Qualify soft-rope attachment | ready | F5-23 | — |
