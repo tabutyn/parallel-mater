@@ -40,9 +40,17 @@ PmCouplingState pair_edge(PmInteractionMaterialProfile profile) {
 } // namespace
 
 int main(int argc, char **argv) {
-    const bool miscible = argc == 2 &&
-        std::string_view(argv[1]) == "--miscible";
-    PM_CHECK(argc == 1 || miscible);
+    bool miscible = false;
+    bool resource_fixture = false;
+    for (int index = 1; index < argc; ++index) {
+        const std::string_view argument = argv[index];
+        if (argument == "--miscible")
+            miscible = true;
+        else if (argument == "--resource-fixture")
+            resource_fixture = true;
+        else
+            PM_CHECK(false);
+    }
     const auto profile = miscible ? PM_INTERACTION_MATERIAL_MISCIBLE
                                   : PM_INTERACTION_MATERIAL_EQUAL;
     Context context;
@@ -268,7 +276,11 @@ int main(int argc, char **argv) {
                                        &crowded_views[index]) == PM_SUCCESS);
     PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
              PM_SUCCESS);
-    PM_CHECK(context.submit() == PM_ERROR_CAPACITY_EXCEEDED);
+    const auto crowded_result = context.submit();
+    // The private host resource fixture executes lifecycle code but no fluid
+    // kernels. Qualified simulation backends must report the kernel counter.
+    PM_CHECK(crowded_result == (resource_fixture
+        ? PM_SUCCESS : PM_ERROR_CAPACITY_EXCEEDED));
 
     context.begin();
     PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, working_pipeline) ==
