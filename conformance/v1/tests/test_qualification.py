@@ -293,6 +293,8 @@ def soft_rigid_contact_result(profile: dict,
 
 
 def rope_rigid_contact_result(profile: dict, mode: str = "CONTACT") -> dict:
+    quality_contract = ("quality:rope-rigid-contact-v1" if mode == "CONTACT"
+                        else "quality:rope-rigid-attachment-v1")
     result = valid_equal_fluid_result(profile)
     result["advertised_capabilities"] = [
         capability("ROPE", "RIGID_BODY", "DISTINCT_FAMILY", mode,
@@ -303,8 +305,7 @@ def rope_rigid_contact_result(profile: dict, mode: str = "CONTACT") -> dict:
         evidence(profile, "execution", "case:rope-core"),
         evidence(profile, "reference_regression", "case:rope-core"),
         evidence(profile, "lifecycle_invariants", "case:rope-core"),
-        evidence(profile, "analytic_invariants",
-                 "quality:rope-rigid-contact-v1"),
+        evidence(profile, "analytic_invariants", quality_contract),
     ]
     return result
 
@@ -657,7 +658,7 @@ class QualificationTests(unittest.TestCase):
         report = self.assert_rejected(nearby, "required evidence is missing")
         self.assertEqual(report["qualified_count"], 0)
 
-    def test_rope_rigid_contact_is_exact_and_attachment_remains_missing(self):
+    def test_rope_rigid_contact_and_attachment_are_exact(self):
         contracts = contract_map(self.profile)
         profile_path = ROOT / "quality" / "rope-rigid-contact-v1.json"
         self.assertEqual(
@@ -680,19 +681,40 @@ class QualificationTests(unittest.TestCase):
                 contact["capabilities"][0]["scopes"][scope]["status"],
                 "passed")
 
-        attachment = self.assert_rejected(
-            rope_rigid_contact_result(self.profile, "ATTACHMENT"),
-            "qualification contract is missing")
-        self.assertEqual(attachment["qualified_count"], 0)
+        attachment_profile_path = (
+            ROOT / "quality" / "rope-rigid-attachment-v1.json")
+        self.assertEqual(
+            contracts["quality:rope-rigid-attachment-v1"]["path"],
+            attachment_profile_path.relative_to(REPOSITORY).as_posix())
+        self.assertEqual(
+            contracts["quality:rope-rigid-attachment-v1"]["sha256"],
+            qualification.profile_sha256(attachment_profile_path))
+
+        attachment = self.evaluate(
+            rope_rigid_contact_result(self.profile, "ATTACHMENT"))
+        self.assertTrue(attachment["passed"], attachment)
+        self.assertEqual(attachment["qualified_count"], 1)
         self.assertEqual(attachment["capabilities"][0]["rule_id"],
                          "rope-rigid-attachment")
-        self.assertEqual(attachment["capabilities"][0]["scopes"]
-                         ["analytic_invariants"]["status"],
-                         "missing_contract")
+        self.assertEqual(attachment["capabilities"][0][
+            "max_graph_edges_per_simulation"], "not-applicable")
+        for scope in ("execution", "reference_regression",
+                      "lifecycle_invariants", "analytic_invariants"):
+            self.assertEqual(
+                attachment["capabilities"][0]["scopes"][scope]["status"],
+                "passed")
+
+        substituted = rope_rigid_contact_result(self.profile, "ATTACHMENT")
+        substituted["evidence"][-1] = evidence(
+            self.profile, "analytic_invariants",
+            "quality:rope-rigid-contact-v1")
+        report = self.assert_rejected(
+            substituted, "required evidence is missing")
+        self.assertEqual(report["qualified_count"], 0)
         self.assertIn(
             {"scope": "analytic_invariants",
              "contract": "quality:rope-rigid-contact-v1"},
-            attachment["unused_evidence"])
+            report["unused_evidence"])
 
     def test_rope_rigid_contact_rejects_contract_substitution(self):
         result = rope_rigid_contact_result(self.profile)
@@ -706,6 +728,49 @@ class QualificationTests(unittest.TestCase):
         self.assertEqual(
             {item["contract"] for item in report["unused_evidence"]},
             {"case:rigid-direct", "quality:fluid-rigid-contact-v1"})
+
+    def test_rope_rigid_attachment_requires_analytic_evidence(self):
+        result = rope_rigid_contact_result(self.profile, "ATTACHMENT")
+        result["evidence"] = [
+            item for item in result["evidence"]
+            if item["scope"] != "analytic_invariants"
+        ]
+
+        report = self.assert_rejected(result, "required evidence is missing")
+        self.assertEqual(report["qualified_count"], 0)
+        self.assertEqual(report["capabilities"][0]["rule_id"],
+                         "rope-rigid-attachment")
+        analytic = report["capabilities"][0]["scopes"]["analytic_invariants"]
+        self.assertEqual(analytic["contracts"],
+                         ["quality:rope-rigid-attachment-v1"])
+        self.assertEqual(analytic["status"], "missing_evidence")
+
+    def test_rope_rigid_contact_and_attachment_reject_profile_substitution(self):
+        cases = (
+            ("CONTACT", "quality:rope-rigid-attachment-v1",
+             "quality:rope-rigid-contact-v1"),
+            ("ATTACHMENT", "quality:rope-rigid-contact-v1",
+             "quality:rope-rigid-attachment-v1"),
+        )
+        for mode, substitute, required in cases:
+            with self.subTest(mode=mode):
+                result = rope_rigid_contact_result(self.profile, mode)
+                result["evidence"][-1] = evidence(
+                    self.profile, "analytic_invariants", substitute)
+
+                report = self.assert_rejected(
+                    result, "required evidence is missing")
+                self.assertEqual(report["qualified_count"], 0)
+                analytic = report["capabilities"][0]["scopes"][
+                    "analytic_invariants"]
+                self.assertEqual(analytic["contracts"], [required])
+                self.assertEqual(analytic["status"], "missing_evidence")
+                self.assertIn(
+                    {"scope": "analytic_invariants", "contract": substitute},
+                    report["unused_evidence"])
+                self.assertNotIn(
+                    {"scope": "analytic_invariants", "contract": required},
+                    report["unused_evidence"])
 
     def test_soft_smoke_contact_and_drag_contracts_are_exact(self):
         contracts = contract_map(self.profile)

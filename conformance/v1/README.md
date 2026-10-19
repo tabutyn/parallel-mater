@@ -290,7 +290,27 @@ The existing `case:rope-core` contract remains the independent trajectory and
 lifecycle obligation. A checked physical aggregate binds both scopes to the
 same completed `rope-core` result and passing comparison report; the analytic
 fixture cannot substitute for its capacity, replacement or rollback coverage.
-Rope/rigid ATTACHMENT remains a separate exact rule with no analytic contract.
+
+Intrinsic rope/rigid ATTACHMENT uses `rope-rigid-attachment-v1`. A public
+force drives a dynamic cube through an off-center native rope endpoint while
+the other endpoint remains free. The public-state oracle reconstructs the
+rotated local anchor, bounds endpoint drift, and checks reciprocal rigid/free-
+rope linear impulse, endpoint constraint-force consistency, off-center angular
+reaction, inactive contact force, segment length, and speed limits. No
+`PmCouplingState` exists for this graph-free capability:
+
+```text
+parallel-mater-conformance --quality rope-rigid-attachment-v1 \
+  --output /path/to/rope-rigid-attachment-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/rope-rigid-attachment-v1.json \
+  --actual /path/to/rope-rigid-attachment-quality-results/rope-rigid-attachment-v1.json \
+  --report /path/to/rope-rigid-attachment-quality-report.json
+```
+
+`case:rope-core` remains independently required for rope-rigid attachment
+trajectory and lifecycle evidence. The attachment fixture does not broaden or
+replace that binding.
 
 Soft-body-to-smoke CONTACT uses the immutable `soft-smoke-contact-v1`
 profile for particle and projected-grid smoke. Paired no-edge and CONTACT-edge
