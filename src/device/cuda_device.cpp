@@ -220,6 +220,10 @@ class CudaServices final : public Services {
         return from_cuda(concurrent_managed_access_ ? cudaStreamSynchronize(stream_)
                                                    : cudaDeviceSynchronize());
     }
+    [[nodiscard]] PmResult write_host(void *pointer,
+                                      PmDeviceSize size) noexcept override {
+        return read_host(pointer, size);
+    }
     [[nodiscard]] PmResult map_host(void *pointer, PmDeviceSize size) noexcept override {
         return read_host(pointer, size);
     }

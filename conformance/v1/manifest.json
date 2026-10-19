@@ -47,6 +47,7 @@
     "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
     "conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json": "5599b5d6c5e8386830d0abb29a13feddd3a43a917912efb9e9cf4b1732a22769",
     "conformance/v1/lifecycle/fluid-cloth-containment-lifecycle-v1.json": "c96a995030b4b3e20ef77c55ab01bb7be2afdbfa2959f69c7d07be6c9bc21bb1",
+    "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json": "e3f0b451c271add83153c0e1a3f22f1784465a568b289facacb46a5fab44c1c1",
     "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31",
     "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f"
   },
@@ -63,15 +64,16 @@
     "conformance/v1/quality/rigid-brick-penetration-v1.json": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da",
     "conformance/v1/quality/rigid-kinematic-sweep-v1.json": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc",
     "conformance/v1/quality/rope-self-contact-v1.json": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113",
+    "conformance/v1/quality/smoke-fluid-drag-v1.json": "ef28c4f4446365aa787aac9605098772f00e68f1ebf958b2023b6cafdba1c3e1",
     "conformance/v1/quality/smoke-self-pressure-v1.json": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150",
     "conformance/v1/quality/smoke-self-viscosity-v1.json": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"
   },
   "qualification_profile_sha256": {
-    "conformance/v1/qualification/capability-obligations-v1.json": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b"
+    "conformance/v1/qualification/capability-obligations-v1.json": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92"
   },
   "evidence_index_sha256": {
-    "conformance/v1/evidence/evidence-sources-v1.json": "66d5a87eb4d7822b6d2692f836950dc3572826ed0880d7d899b65b6b173da39a",
-    "conformance/v1/evidence/index-v1.json": "05f62d5ce9b75279a859501e990639ea8a3c61f6be228d49963434779d3e8789"
+    "conformance/v1/evidence/evidence-sources-v1.json": "27bed750a82781a858a666456e75410d11b2115ab8f2b023c6163921e285c90f",
+    "conformance/v1/evidence/index-v1.json": "9b1607d142140c195889b10bb1da130426f22d5f0a17bc66472a2fec2dff0c2a"
   },
   "quality_result_schema": "parallel-mater-conformance-quality-result/v1",
   "result_schema": "parallel-mater-conformance-result/v1",
