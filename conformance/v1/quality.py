@@ -4742,12 +4742,61 @@ def _evaluate_smoke_cloth_drag(
         failures.append(Failure("$.fixtures", "unexpected fixture", extra))
 
     tolerances = profile.get("tolerances", {})
+    soft_mode = profile.get("evaluation") == "smoke_soft_drag"
     state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
     smoke_tolerance = float(tolerances.get("smoke_state_absolute", 0.0))
 
     def sub(first: tuple[float, float, float],
             second: tuple[float, float, float]) -> tuple[float, float, float]:
         return tuple(a - b for a, b in zip(first, second))
+
+    def dot(first: tuple[float, float, float],
+            second: tuple[float, float, float]) -> float:
+        return sum(a * b for a, b in zip(first, second))
+
+    def add(first: tuple[float, float, float],
+            second: tuple[float, float, float]) -> tuple[float, float, float]:
+        return tuple(a + b for a, b in zip(first, second))
+
+    def scale(value: tuple[float, float, float],
+              factor: float) -> tuple[float, float, float]:
+        return tuple(component * factor for component in value)
+
+    def closest_on_triangle(
+            point: tuple[float, float, float],
+            first: tuple[float, float, float],
+            second: tuple[float, float, float],
+            third: tuple[float, float, float]) -> tuple[float, float, float]:
+        first_second = sub(second, first)
+        first_third = sub(third, first)
+        first_point = sub(point, first)
+        d1, d2 = dot(first_second, first_point), dot(first_third, first_point)
+        if d1 <= 0.0 and d2 <= 0.0:
+            return first
+        second_point = sub(point, second)
+        d3 = dot(first_second, second_point)
+        d4 = dot(first_third, second_point)
+        if d3 >= 0.0 and d4 <= d3:
+            return second
+        vc = d1 * d4 - d3 * d2
+        if vc <= 0.0 and d1 >= 0.0 and d3 <= 0.0:
+            return add(first, scale(first_second, d1 / (d1 - d3)))
+        third_point = sub(point, third)
+        d5 = dot(first_second, third_point)
+        d6 = dot(first_third, third_point)
+        if d6 >= 0.0 and d5 <= d6:
+            return third
+        vb = d5 * d2 - d1 * d6
+        if vb <= 0.0 and d2 >= 0.0 and d6 <= 0.0:
+            return add(first, scale(first_third, d2 / (d2 - d6)))
+        va = d3 * d6 - d5 * d4
+        if va <= 0.0 and (d4 - d3) >= 0.0 and (d5 - d6) >= 0.0:
+            edge = sub(third, second)
+            weight = (d4 - d3) / ((d4 - d3) + (d5 - d6))
+            return add(second, scale(edge, weight))
+        denominator = 1.0 / (va + vb + vc)
+        return add(first, add(scale(first_second, vb * denominator),
+                              scale(first_third, vc * denominator)))
 
     def close_contract(actual: Any, expected: Any, path: str) -> None:
         if isinstance(expected, bool) or isinstance(expected, str):
@@ -4776,15 +4825,21 @@ def _evaluate_smoke_cloth_drag(
             failures.append(Failure(path, "fixture setting differs from profile",
                                     actual, expected))
 
-    def snapshot(value: Any, path: str) -> dict[str, Any] | None:
+    def snapshot(value: Any, path: str,
+                 definition: dict[str, Any]) -> dict[str, Any] | None:
         if not isinstance(value, dict):
             failures.append(Failure(path, "expected a snapshot object", value))
             return None
         cloth = value.get("cloth")
         particles = value.get("smoke_particles")
-        if not isinstance(cloth, list) or len(cloth) != 3:
+        expected_nodes = definition.get("cloth_vertices_m")
+        expected_count = len(expected_nodes) if isinstance(
+            expected_nodes, list) else 0
+        if (not isinstance(cloth, list) or len(cloth) != expected_count or
+                expected_count == 0):
             failures.append(Failure(path + ".cloth",
-                                    "expected three cloth vertices", cloth))
+                                    "unexpected deformable node count", cloth,
+                                    expected_count))
             return None
         if not isinstance(particles, list) or not particles:
             failures.append(Failure(path + ".smoke_particles",
@@ -4828,13 +4883,93 @@ def _evaluate_smoke_cloth_drag(
         if (len(cloth_positions) != len(cloth) or
                 len(normalized_particles) != len(particles)):
             return None
+        surface_positions = cloth_positions
+        if soft_mode:
+            raw_surface = value.get("cloth_surface_vertices_m")
+            expected_surface = definition.get("cloth_surface_vertices_m")
+            expected_surface_count = len(expected_surface) if isinstance(
+                expected_surface, list) else 0
+            if (not isinstance(raw_surface, list) or
+                    len(raw_surface) != expected_surface_count or
+                    expected_surface_count == 0):
+                failures.append(Failure(
+                    path + ".cloth_surface_vertices_m",
+                    "unexpected public soft surface vertex count",
+                    raw_surface, expected_surface_count))
+                return None
+            parsed_surface = [
+                _vector(item,
+                        f"{path}.cloth_surface_vertices_m[{index}]", failures)
+                for index, item in enumerate(raw_surface)]
+            if any(item is None for item in parsed_surface):
+                return None
+            surface_positions = [item for item in parsed_surface
+                                 if item is not None]
+            bindings = definition.get("cloth_surface_bindings")
+            if not isinstance(bindings, list) or len(bindings) != len(
+                    surface_positions):
+                failures.append(Failure(
+                    path + ".cloth_surface_vertices_m",
+                    "soft surface bindings are incomplete", bindings))
+                return None
+            reconstruction_limit = float(tolerances.get(
+                "maximum_surface_reconstruction_error_m", 0.0))
+            for index, (surface, binding) in enumerate(zip(
+                    surface_positions, bindings)):
+                if (not isinstance(binding, dict) or
+                        not isinstance(binding.get("nodes"), list) or
+                        not isinstance(binding.get("weights"), list)):
+                    failures.append(Failure(
+                        path + f".cloth_surface_vertices_m[{index}]",
+                        "invalid soft surface binding", binding))
+                    continue
+                reconstructed = (0.0, 0.0, 0.0)
+                valid = True
+                for node, weight in zip(binding["nodes"], binding["weights"]):
+                    if (not isinstance(node, int) or isinstance(node, bool) or
+                            node < 0 or node >= len(cloth_positions) or
+                            not isinstance(weight, (int, float)) or
+                            isinstance(weight, bool)):
+                        valid = False
+                        break
+                    reconstructed = add(
+                        reconstructed,
+                        scale(cloth_positions[node], float(weight)))
+                if not valid:
+                    failures.append(Failure(
+                        path + f".cloth_surface_vertices_m[{index}]",
+                        "invalid soft surface binding", binding))
+                    continue
+                error = _norm(sub(surface, reconstructed))
+                if error > reconstruction_limit:
+                    failures.append(Failure(
+                        path + f".cloth_surface_vertices_m[{index}]",
+                        "public soft surface does not match node bindings",
+                        error, reconstruction_limit))
         mean_velocity = tuple(sum(value[axis] for value in cloth_velocities) /
                               len(cloth_velocities) for axis in range(3))
-        mean_plane_z = sum(value[2] for value in cloth_positions) / len(cloth_positions)
-        clearance = min(abs(item["vectors"][0][2] - mean_plane_z)
-                        for item in normalized_particles)
+        raw_indices = definition.get("cloth_triangle_indices")
+        if (not isinstance(raw_indices, list) or not raw_indices or
+                len(raw_indices) % 3 != 0 or
+                any(not isinstance(index, int) or isinstance(index, bool) or
+                    index < 0 or index >= len(surface_positions)
+                    for index in raw_indices)):
+            failures.append(Failure(path + ".cloth_triangle_indices",
+                                    "invalid public surface triangles",
+                                    raw_indices))
+            return None
+        clearance = float("inf")
+        for particle in normalized_particles:
+            point = particle["vectors"][0]
+            for offset in range(0, len(raw_indices), 3):
+                first, second, third = (surface_positions[raw_indices[offset + i]]
+                                        for i in range(3))
+                closest = closest_on_triangle(point, first, second, third)
+                clearance = min(clearance, _norm(sub(point, closest)))
         return {"velocity": mean_velocity, "smoke": normalized_particles,
-                "clearance": clearance}
+                "clearance": clearance, "positions": cloth_positions,
+                "velocities": cloth_velocities,
+                "surface": surface_positions}
 
     def compare_smoke(first: dict[str, Any], second: dict[str, Any],
                       path: str) -> float:
@@ -4874,18 +5009,22 @@ def _evaluate_smoke_cloth_drag(
             continue
         indexed = {run.get("id"): run for run in runs
                    if isinstance(run, dict) and isinstance(run.get("id"), str)}
-        expected_runs = {"control", "forward", "stationary", "reverse"}
+        expected_runs = ({"forward-control", "forward",
+                          "stationary-control", "stationary",
+                          "reverse-control", "reverse"}
+                         if soft_mode else
+                         {"control", "forward", "stationary", "reverse"})
         if set(indexed) != expected_runs or len(indexed) != len(runs):
             failures.append(Failure(base + ".runs",
-                                    "expected exactly the four paired runs",
+                                    "expected exactly the paired drag runs",
                                     sorted(indexed), sorted(expected_runs)))
             continue
         states: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
         for run_id in sorted(expected_runs):
             initial = snapshot(indexed[run_id].get("initial"),
-                               base + f".runs[{run_id}].initial")
+                               base + f".runs[{run_id}].initial", definition)
             final = snapshot(indexed[run_id].get("final"),
-                             base + f".runs[{run_id}].final")
+                             base + f".runs[{run_id}].final", definition)
             if initial is not None and final is not None:
                 states[run_id] = (initial, final)
         if set(states) != expected_runs:
@@ -4904,23 +5043,57 @@ def _evaluate_smoke_cloth_drag(
                                         "smoke tracer entered the contact clearance",
                                         observed_clearance, minimum_clearance))
 
-        control_initial, control_final = states["control"]
+        if soft_mode:
+            control_pairs = {
+                "forward": "forward-control",
+                "stationary": "stationary-control",
+                "reverse": "reverse-control",
+            }
+            for run_id, control_id in control_pairs.items():
+                control_initial = states[control_id][0]
+                test_initial = states[run_id][0]
+                paired_delta = max(
+                    [_norm(sub(first, second)) for first, second in zip(
+                        control_initial["positions"],
+                        test_initial["positions"])] +
+                    [_norm(sub(first, second)) for first, second in zip(
+                        control_initial["velocities"],
+                        test_initial["velocities"])] +
+                    [_norm(sub(first, second)) for first, second in zip(
+                        control_initial["surface"], test_initial["surface"])]
+                )
+                if paired_delta > state_tolerance:
+                    failures.append(Failure(
+                        base + f".runs[{run_id}].initial.cloth",
+                        "paired initial soft body differs from control",
+                        paired_delta, state_tolerance))
+                compare_smoke(
+                    control_initial, test_initial,
+                    base + f".runs[{run_id}].initial.smoke_particles")
+            forward_control_initial, forward_control_final = states[
+                "forward-control"]
+            _, stationary_control_final = states["stationary-control"]
+            _, reverse_control_final = states["reverse-control"]
+        else:
+            forward_control_initial, forward_control_final = states["control"]
+            stationary_control_final = forward_control_final
+            reverse_control_final = forward_control_final
         _, forward_final = states["forward"]
         _, stationary_final = states["stationary"]
         _, reverse_final = states["reverse"]
-        control_drift = _norm(sub(control_final["velocity"],
-                                  control_initial["velocity"]))
+        control_drift = _norm(sub(forward_control_final["velocity"],
+                                  forward_control_initial["velocity"]))
         allowed_control = float(tolerances.get(
             "maximum_control_velocity_drift_m_s", 0.0))
         if control_drift > allowed_control:
-            failures.append(Failure(base + ".runs[control]",
+            failures.append(Failure(base + ".runs[forward-control]",
                                     "zero-drag cloth velocity drifted",
                                     control_drift, allowed_control))
 
         forward_delta = sub(forward_final["velocity"],
-                            control_final["velocity"])
+                            forward_control_final["velocity"])
         reverse_delta = sub(reverse_final["velocity"],
-                            control_final["velocity"])
+                            reverse_control_final["velocity"])
         forward_carrier = _vector(definition.get("forward_carrier_velocity_m_s"),
                                   base + ".forward_carrier_velocity_m_s", failures)
         reverse_carrier = _vector(definition.get("reverse_carrier_velocity_m_s"),
@@ -4955,7 +5128,9 @@ def _evaluate_smoke_cloth_drag(
             forward_delta, forward_carrier, "forward")
         reverse_response, reverse_transverse = response(
             reverse_delta, reverse_carrier, "reverse")
-        stationary_speed = _norm(stationary_final["velocity"])
+        stationary_speed = _norm(sub(
+            stationary_final["velocity"],
+            stationary_control_final["velocity"]))
         allowed_stationary = float(tolerances.get(
             "maximum_stationary_velocity_m_s", 0.0))
         if stationary_speed > allowed_stationary:
@@ -4970,8 +5145,41 @@ def _evaluate_smoke_cloth_drag(
                                     "forward and reverse drag responses differ",
                                     symmetry_error, allowed_symmetry))
         smoke_delta = compare_smoke(
-            control_final, forward_final,
+            forward_control_final, forward_final,
             base + ".runs[forward].final.smoke_particles")
+        if soft_mode:
+            smoke_delta = max(
+                smoke_delta,
+                compare_smoke(
+                    stationary_control_final, stationary_final,
+                    base + ".runs[stationary].final.smoke_particles"),
+                compare_smoke(
+                    reverse_control_final, reverse_final,
+                    base + ".runs[reverse].final.smoke_particles"))
+            timestep = float(definition.get("timestep_seconds", 0.0))
+            acceleration = max(_norm(forward_delta), _norm(reverse_delta)) / max(
+                timestep, 1.0e-30)
+            acceleration_limit = float(definition.get(
+                "maximum_wind_acceleration_m_s2", 0.0)) + float(
+                    tolerances.get("maximum_acceleration_slack_m_s2", 0.0))
+            if acceleration > acceleration_limit:
+                failures.append(Failure(
+                    base + ".runs", "soft body drag exceeds acceleration cap",
+                    acceleration, acceleration_limit))
+            speed_limit = float(definition.get(
+                "soft_body_maximum_speed_m_s", 0.0)) + float(
+                    tolerances.get("maximum_speed_slack_m_s", 0.0))
+            maximum_speed = max(
+                _norm(velocity) for state in states.values()
+                for snapshot_state in state
+                for velocity in snapshot_state["velocities"])
+            if maximum_speed > speed_limit:
+                failures.append(Failure(
+                    base + ".runs", "soft body node exceeds speed cap",
+                    maximum_speed, speed_limit))
+        else:
+            acceleration = None
+            maximum_speed = None
         observations[identity] = {
             "control_velocity_drift_m_s": control_drift,
             "forward_response_fraction": forward_response,
@@ -4984,8 +5192,10 @@ def _evaluate_smoke_cloth_drag(
                 state[stage]["clearance"] for state in states.values()
                 for stage in (0, 1)),
             "maximum_reverse_smoke_state_delta": smoke_delta,
+            "maximum_drag_acceleration_m_s2": acceleration,
+            "maximum_soft_body_node_speed_m_s": maximum_speed,
         }
-        sample_count += 2
+        sample_count += 3 if soft_mode else 2
 
     return {
         "schema": REPORT_SCHEMA,
@@ -5000,6 +5210,49 @@ def _evaluate_smoke_cloth_drag(
         "observations": observations,
         "failures": [asdict(failure) for failure in failures],
     }
+
+
+def _evaluate_smoke_soft_drag(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    """Reuse the public deformable drag oracle with soft-body names."""
+    key_map = {
+        "soft_body": "cloth",
+        "soft_body_nodes_m": "cloth_vertices_m",
+        "soft_body_surface_vertices_m": "cloth_surface_vertices_m",
+        "soft_body_surface_triangle_indices": "cloth_triangle_indices",
+        "soft_body_surface_bindings": "cloth_surface_bindings",
+        "soft_body_node_mass_kg": "cloth_vertex_mass_kg",
+        "soft_body_node_radius_m": "cloth_thickness_m",
+        "soft_body_velocity_damping_per_s": "cloth_velocity_damping_per_s",
+        "soft_body_solver_iterations": "cloth_solver_iterations",
+        "minimum_tracer_surface_clearance_m":
+            "minimum_tracer_plane_clearance_m",
+    }
+
+    def remap(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {key_map.get(key, key): remap(item)
+                    for key, item in value.items()}
+        if isinstance(value, list):
+            return [remap(item) for item in value]
+        return copy.deepcopy(value)
+
+    report = _evaluate_smoke_cloth_drag(
+        remap(profile), remap(result), expected_hash, driver, failures)
+    inverse = {target: source for source, target in key_map.items()}
+    for failure in report["failures"]:
+        path = failure["path"]
+        for target, source in inverse.items():
+            path = path.replace(target, source)
+        failure["path"] = path
+        failure["message"] = failure["message"].replace(
+            "cloth", "soft body")
+    for observation in report["observations"].values():
+        if "minimum_tracer_plane_clearance_m" in observation:
+            observation["minimum_tracer_surface_clearance_m"] = observation.pop(
+                "minimum_tracer_plane_clearance_m")
+    return report
 
 
 def _evaluate_externally_heated_fluid(
@@ -7928,6 +8181,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "smoke_cloth_drag":
         return _evaluate_smoke_cloth_drag(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "smoke_soft_drag":
+        return _evaluate_smoke_soft_drag(
             profile, result, expected_hash, driver, failures)
     if evaluation == "fluid_smoke_phase":
         return _evaluate_fluid_smoke_phase(

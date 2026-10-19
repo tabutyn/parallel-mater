@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463"
+    "sha256": "45a66f52166b62bf72a80278e02efde22c34743c214b35d06bc1b11345b284f1"
   },
   "qualification_results": [
     {
@@ -81,6 +81,16 @@
       "id": "linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-particle",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-particle-qualification.json",
       "sha256": "4e9caec409215c789531ba034077a15a5c02722fcaf72707fa9cdd67f5f1aa92"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-grid",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-grid-qualification.json",
+      "sha256": "8209317bb73a3ba79731d3e0e8020d6039ec3600d5df8fcec27f2ddeccd29982"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle-qualification.json",
+      "sha256": "b7448ca5a554f7328a4ce0e8d74899d8eaed2864077840528ec1045231666d7f"
     },
     {
       "id": "linux-rtx3050ti-slang-vulkan-eed669e",

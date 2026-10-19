@@ -56,6 +56,7 @@
     "conformance/v1/lifecycle/fluid-smoke-phase-lifecycle-v1.json": "0ca00a3e49008f07fd0a2297487de7678fdbc0fae8f38306b05a1e7d3aec8ae4",
     "conformance/v1/lifecycle/smoke-cloth-grid-drag-lifecycle-v1.json": "7322bab0d2368931c9620eb9711f977a7ed4bf28ab3e5f1ec523c8ad9261b1a1",
     "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json": "e3f0b451c271add83153c0e1a3f22f1784465a568b289facacb46a5fab44c1c1",
+    "conformance/v1/lifecycle/smoke-soft-drag-lifecycle-v1.json": "e26456e4df5e7860229e93530dfddd6a08842a2484a2bfbd006b6b86f0368027",
     "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31",
     "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f",
     "conformance/v1/lifecycle/soft-smoke-contact-lifecycle-v1.json": "eebb8182329058601310417e9d951f594bdaf53d966c670d4874adcbf12f29d2"
@@ -83,16 +84,17 @@
     "conformance/v1/quality/soft-rope-attachment-v1.json": "7c43ecebb7083f0b7e4a2aeab8768f6236cf44edcd7f409022eccbea98a49549",
     "conformance/v1/quality/soft-smoke-contact-v1.json": "4ee08a7676ccf9c7198e0fbdd752db59c25bb655601e22aa15a327d70ab0ab8d",
     "conformance/v1/quality/smoke-cloth-drag-v1.json": "6984353862c9dc69f693597e92e60c9956576f080cbca2e79040e2ff923480ac",
+    "conformance/v1/quality/smoke-soft-drag-v1.json": "b7d5c09ba966e1ddbd8c7580ee6868f9d9e4de62462b069d9fb0e749904b766c",
     "conformance/v1/quality/smoke-fluid-drag-v1.json": "ef28c4f4446365aa787aac9605098772f00e68f1ebf958b2023b6cafdba1c3e1",
     "conformance/v1/quality/smoke-self-pressure-v1.json": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150",
     "conformance/v1/quality/smoke-self-viscosity-v1.json": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"
   },
   "qualification_profile_sha256": {
-    "conformance/v1/qualification/capability-obligations-v1.json": "e720940cd41245689c0044775be812e34a96828b02598d03a70e495b29ecc463"
+    "conformance/v1/qualification/capability-obligations-v1.json": "45a66f52166b62bf72a80278e02efde22c34743c214b35d06bc1b11345b284f1"
   },
   "evidence_index_sha256": {
-    "conformance/v1/evidence/evidence-sources-v1.json": "9bc9dc1b76f76e901197f8d412444557d828732862c8ed80efc8a6d11cea7431",
-    "conformance/v1/evidence/index-v1.json": "97eb0c1f8951820617c16877abe1d72ce609d0f45f18d46339f78af31eeeea9f"
+    "conformance/v1/evidence/evidence-sources-v1.json": "5437f59a272b756777ed61de5b49bb417e19a8cda83085172eb492edffc47d89",
+    "conformance/v1/evidence/index-v1.json": "707cfd8c3f190ccb7d857647d3e8b0b93799dfb1de18a9e348706671939aa466"
   },
   "quality_result_schema": "parallel-mater-conformance-quality-result/v1",
   "result_schema": "parallel-mater-conformance-result/v1",

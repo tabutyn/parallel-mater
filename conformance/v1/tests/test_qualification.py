@@ -198,19 +198,26 @@ def soft_smoke_contact_result(profile: dict, material: str,
         capability("SOFT_BODY", "SMOKE", "DISTINCT_FAMILY", mode,
                    direction, material)
     ]
-    lifecycle_contract = (
-        "lifecycle:adverse-capacity-three-family-v1#"
-        "three-family-partial-rollback"
-        if material == "SMOKE_PARTICLE" else
-        "lifecycle:soft-smoke-contact-lifecycle-v1#"
-        "grid-soft-smoke-contact-capacity-replacement-removal-rollback")
+    if mode == "DRAG":
+        prefix = material.removeprefix("SMOKE_").lower()
+        lifecycle_contract = (
+            "lifecycle:smoke-soft-drag-lifecycle-v1#" + prefix +
+            "-smoke-soft-drag-capacity-replacement-removal-rollback")
+        quality_contract = "quality:smoke-soft-drag-v1"
+    else:
+        lifecycle_contract = (
+            "lifecycle:adverse-capacity-three-family-v1#"
+            "three-family-partial-rollback"
+            if material == "SMOKE_PARTICLE" else
+            "lifecycle:soft-smoke-contact-lifecycle-v1#"
+            "grid-soft-smoke-contact-capacity-replacement-removal-rollback")
+        quality_contract = "quality:soft-smoke-contact-v1"
     result["evidence"] = [
         evidence(profile, "compilation", "registry:interaction-capabilities"),
         evidence(profile, "execution", "case:smoke-soft-body"),
         evidence(profile, "reference_regression", "case:smoke-soft-body"),
         evidence(profile, "lifecycle_invariants", lifecycle_contract),
-        evidence(profile, "analytic_invariants",
-                 "quality:soft-smoke-contact-v1"),
+        evidence(profile, "analytic_invariants", quality_contract),
     ]
     return result
 
@@ -484,7 +491,7 @@ class QualificationTests(unittest.TestCase):
         report = self.assert_rejected(result, "required evidence is missing")
         self.assertEqual(report["qualified_count"], 0)
 
-    def test_soft_smoke_contact_contracts_do_not_qualify_drag(self):
+    def test_soft_smoke_contact_and_drag_contracts_are_exact(self):
         contracts = contract_map(self.profile)
         expected_contracts = {
             "quality:soft-smoke-contact-v1":
@@ -492,6 +499,14 @@ class QualificationTests(unittest.TestCase):
             ("lifecycle:soft-smoke-contact-lifecycle-v1#"
              "grid-soft-smoke-contact-capacity-replacement-removal-rollback"):
                 ROOT / "lifecycle" / "soft-smoke-contact-lifecycle-v1.json",
+            "quality:smoke-soft-drag-v1":
+                ROOT / "quality" / "smoke-soft-drag-v1.json",
+            ("lifecycle:smoke-soft-drag-lifecycle-v1#"
+             "particle-smoke-soft-drag-capacity-replacement-removal-rollback"):
+                ROOT / "lifecycle" / "smoke-soft-drag-lifecycle-v1.json",
+            ("lifecycle:smoke-soft-drag-lifecycle-v1#"
+             "grid-smoke-soft-drag-capacity-replacement-removal-rollback"):
+                ROOT / "lifecycle" / "smoke-soft-drag-lifecycle-v1.json",
         }
         for contract_id, path in expected_contracts.items():
             with self.subTest(contract=contract_id):
@@ -511,12 +526,21 @@ class QualificationTests(unittest.TestCase):
                                  "soft-body-smoke-contact-" + suffix)
 
             with self.subTest(material=material, mode="DRAG"):
-                report = self.assert_rejected(
-                    soft_smoke_contact_result(self.profile, material, "DRAG"),
-                    "qualification contract is missing")
-                self.assertEqual(report["qualified_count"], 0)
+                report = self.evaluate(
+                    soft_smoke_contact_result(self.profile, material, "DRAG"))
+                self.assertTrue(report["passed"], report)
+                self.assertEqual(report["qualified_count"], 1)
                 self.assertEqual(report["capabilities"][0]["rule_id"],
                                  "soft-body-smoke-drag-" + suffix)
+
+                wrong = soft_smoke_contact_result(
+                    self.profile, material, "DRAG")
+                wrong["evidence"][-1] = evidence(
+                    self.profile, "analytic_invariants",
+                    "quality:soft-smoke-contact-v1")
+                report = self.assert_rejected(
+                    wrong, "required evidence is missing")
+                self.assertEqual(report["qualified_count"], 0)
                 self.assertIn(
                     "quality:soft-smoke-contact-v1",
                     {item["contract"] for item in report["unused_evidence"]})

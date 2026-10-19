@@ -1,0 +1,83 @@
+{
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "45a66f52166b62bf72a80278e02efde22c34743c214b35d06bc1b11345b284f1",
+  "execution_status": "completed",
+  "source": {
+    "commit": "8bbbeb88d37280113e5ca07d7b0bef4ce18de92d",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+8bbbeb8",
+    "binary_sha256": "52854125dc55b8d9cb507967045d759c4ec2edeed50e9d140686d3f1e7dfbb0c"
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13010 (NVIDIA 590.44.01)"
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "SOFT_BODY",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "DRAG",
+      "direction": "SECOND_TO_FIRST",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "evidence": [
+    {
+      "scope": "analytic_invariants",
+      "contract": "quality:smoke-soft-drag-v1",
+      "status": "passed",
+      "source_commit": "8bbbeb88d37280113e5ca07d7b0bef4ce18de92d",
+      "contract_sha256": "b7d5c09ba966e1ddbd8c7580ee6868f9d9e4de62462b069d9fb0e749904b766c",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle.json",
+      "artifact_sha256": "3c61c22a2997390680f2cdf87c6f6580437eef0cafbfe7d7e7895a4106e3677f"
+    },
+    {
+      "scope": "compilation",
+      "contract": "registry:interaction-capabilities",
+      "status": "passed",
+      "source_commit": "8bbbeb88d37280113e5ca07d7b0bef4ce18de92d",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle.json",
+      "artifact_sha256": "3c61c22a2997390680f2cdf87c6f6580437eef0cafbfe7d7e7895a4106e3677f"
+    },
+    {
+      "scope": "execution",
+      "contract": "case:smoke-soft-body",
+      "status": "passed",
+      "source_commit": "8bbbeb88d37280113e5ca07d7b0bef4ce18de92d",
+      "contract_sha256": "a3566fe480be274b850d10f10b88ee4f3ea22e59d5cae5ccf9a652fa7d6b9cb8",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle.json",
+      "artifact_sha256": "3c61c22a2997390680f2cdf87c6f6580437eef0cafbfe7d7e7895a4106e3677f"
+    },
+    {
+      "scope": "lifecycle_invariants",
+      "contract": "lifecycle:smoke-soft-drag-lifecycle-v1#particle-smoke-soft-drag-capacity-replacement-removal-rollback",
+      "status": "passed",
+      "source_commit": "8bbbeb88d37280113e5ca07d7b0bef4ce18de92d",
+      "contract_sha256": "e26456e4df5e7860229e93530dfddd6a08842a2484a2bfbd006b6b86f0368027",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle.json",
+      "artifact_sha256": "3c61c22a2997390680f2cdf87c6f6580437eef0cafbfe7d7e7895a4106e3677f"
+    },
+    {
+      "scope": "reference_regression",
+      "contract": "case:smoke-soft-body",
+      "status": "passed",
+      "source_commit": "8bbbeb88d37280113e5ca07d7b0bef4ce18de92d",
+      "contract_sha256": "a3566fe480be274b850d10f10b88ee4f3ea22e59d5cae5ccf9a652fa7d6b9cb8",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle.json",
+      "artifact_sha256": "3c61c22a2997390680f2cdf87c6f6580437eef0cafbfe7d7e7895a4106e3677f"
+    }
+  ]
+}
