@@ -51,7 +51,7 @@
       "rigid_angular_damping_per_s": 0.0,
       "rigid_maximum_linear_speed_m_s": 10.0,
       "rigid_maximum_angular_speed_rad_s": 10.0,
-      "rigid_collision_margin_m": 0.0,
+      "rigid_collision_margin_m": 0.005,
       "coupling_contact_distance_m": 0.05,
       "coupling_friction": 0.0,
       "coupling_maximum_acceleration_m_s2": 1000.0,

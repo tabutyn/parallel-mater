@@ -15377,7 +15377,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18480,7 +18480,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18489,7 +18489,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18498,7 +18498,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18507,7 +18507,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18516,7 +18516,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18525,7 +18525,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-cuda",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18534,7 +18534,7 @@
     {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18543,7 +18543,7 @@
     {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18937,7 +18937,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18946,7 +18946,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-d3d12",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21606,7 +21606,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21615,7 +21615,7 @@
     {
       "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
       "driver": "slang-metal",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21624,7 +21624,7 @@
     {
       "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
       "driver": "slang-metal",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21633,7 +21633,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21642,7 +21642,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21651,7 +21651,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21660,7 +21660,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23586,7 +23586,7 @@
     {
       "actual": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
       "driver": "slang-vulkan",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23595,7 +23595,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+      "expected": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23603,7 +23603,7 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "038bc8f926f4e4aa1414e3f53f08680e372dd550f2e5d8f06f56f18abe6d6a85",
+  "obligations_sha256": "b9b1f928a2cfb450df6df205c9ddfd1881b7cb4db2b0995ec39b7dd7b92e47af",
   "qualification_complete": true,
   "qualified_capability_count": 0,
   "report_count": 22,
@@ -24262,7 +24262,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "bd9d3e7345886d8ec5000b6cea6dbbc538e436f4e2c6f025c0bef1fc043b2958",
+  "sources_sha256": "2e9c2652aa541801c2dbb07cb9db5a1f5240309d5c6a513cb5d4ce9a184e0c51",
   "valid": true,
   "validation_failures": []
 }

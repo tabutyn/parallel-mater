@@ -53,7 +53,7 @@
     {"id": "quality:fluid-cloth-containment-v1", "path": "conformance/v1/quality/fluid-cloth-containment-v1.json", "sha256": "477d6494144118c9c6b108807e81576965a16a34fda5dfe672ed783b5de95b33"},
     {"id": "quality:fluid-soft-contact-v1", "path": "conformance/v1/quality/fluid-soft-contact-v1.json", "sha256": "40dce99005017b4b4a485f7553ea89f8f06526c88f242215a1415c8c67c9e986"},
     {"id": "quality:fluid-rope-contact-v1", "path": "conformance/v1/quality/fluid-rope-contact-v1.json", "sha256": "462b1b2249fc9b928b5f983f648c0486aaf0ebf0f7ee2fb354637ea39f214a89"},
-    {"id": "quality:fluid-rigid-contact-v1", "path": "conformance/v1/quality/fluid-rigid-contact-v1.json", "sha256": "0038ce6ae357da06b87f9b0223644981a1ca3d55992e838a9bf7bc67a5d4e570"},
+    {"id": "quality:fluid-rigid-contact-v1", "path": "conformance/v1/quality/fluid-rigid-contact-v1.json", "sha256": "3f91da38345cab59a2cc37487fe4fa243bf211b91f4bd3a0b70163206d07f9a3"},
     {"id": "quality:smoke-self-pressure-v1", "path": "conformance/v1/quality/smoke-self-pressure-v1.json", "sha256": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150"},
     {"id": "quality:fluid-cloth-contact-v1", "path": "conformance/v1/quality/fluid-cloth-contact-v1.json", "sha256": "1216cf9e7252b5fe4c27f14639a1031e698d459a2001db60153a088ebb600445"},
     {"id": "quality:smoke-self-viscosity-v1", "path": "conformance/v1/quality/smoke-self-viscosity-v1.json", "sha256": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"},

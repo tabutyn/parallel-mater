@@ -30,6 +30,7 @@ constexpr float particle_radius = 0.05F;
 constexpr float particle_mass = 1.0F;
 constexpr float rigid_mass = 2.0F;
 constexpr float cube_half_extent = 0.1F;
+constexpr float rigid_collision_margin = 0.005F;
 constexpr float cube_inertia =
     (1.0F / 6.0F) * rigid_mass * (2.0F * cube_half_extent) *
     (2.0F * cube_half_extent);
@@ -160,7 +161,7 @@ void require_contact_capability(const Context &context) {
     body.angularDamping = 0.0F;
     body.maximumLinearSpeed = 10.0F;
     body.maximumAngularSpeed = 10.0F;
-    body.collisionMargin = 0.0F;
+    body.collisionMargin = rigid_collision_margin;
     return body;
 }
 
@@ -311,17 +312,31 @@ void initialize_endpoints(Context &context, const FixtureObjects &fixture,
                             PM_FORMAT_PARTICLE_STATE, 1U,
                             sizeof(PmParticleState)};
     const PmRigidBodyInfo body = rigid_body(fixture.geometry);
-    context.begin();
-    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, fixture.pipeline) ==
-             PM_SUCCESS);
-    PM_CHECK(pmCmdSetFluidParticles(context.commands, fixture.simulation, 0U,
-                                    &view) == PM_SUCCESS);
-    PM_CHECK(pmCmdWriteRigidBodies(context.commands, fixture.simulation, 0U, 1U,
-                                   &body) == PM_SUCCESS);
-    if (snapshot != nullptr) record_endpoint_copies(context, fixture);
-    PM_CHECK(context.submit() == PM_SUCCESS);
-    if (snapshot != nullptr)
+    const auto submit_stage = [&](const char *label, const auto &record) {
+        context.begin();
+        PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, fixture.pipeline) ==
+                 PM_SUCCESS);
+        record();
+        const PmResult submitted = context.submit();
+        if (submitted != PM_SUCCESS)
+            throw std::runtime_error(std::string("fluid-rigid ") + label +
+                                     " failed: " +
+                                     std::to_string(submitted));
+    };
+    submit_stage("fluid initialization", [&] {
+        PM_CHECK(pmCmdSetFluidParticles(context.commands, fixture.simulation, 0U,
+                                        &view) == PM_SUCCESS);
+    });
+    submit_stage("rigid initialization", [&] {
+        PM_CHECK(pmCmdWriteRigidBodies(context.commands, fixture.simulation, 0U,
+                                       1U, &body) == PM_SUCCESS);
+    });
+    if (snapshot != nullptr) {
+        submit_stage("initial capture", [&] {
+            record_endpoint_copies(context, fixture);
+        });
         *snapshot = read_snapshot(context, fixture, false);
+    }
 }
 
 struct QualityRun {
@@ -622,7 +637,8 @@ std::string conformance_fluid_rigid_contact_quality(
         fixture["rigid_angular_damping_per_s"] = 0.0;
         fixture["rigid_maximum_linear_speed_m_s"] = 10.0;
         fixture["rigid_maximum_angular_speed_rad_s"] = 10.0;
-        fixture["rigid_collision_margin_m"] = 0.0;
+        fixture["rigid_collision_margin_m"] =
+            static_cast<double>(rigid_collision_margin);
         fixture["coupling_contact_distance_m"] =
             static_cast<double>(particle_radius);
         fixture["coupling_friction"] = 0.0;
