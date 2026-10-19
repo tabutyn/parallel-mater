@@ -97,6 +97,44 @@ if(PARALLEL_MATER_SLANG_CPU_LIQUIDS)
         COMMAND parallel-mater-fluid-pair-neighbor-index-tests)
     set_tests_properties(parallel-mater-fluid-pair-neighbor-index-tests
         PROPERTIES LABELS "slang;fluid;coupling")
+
+    add_executable(parallel-mater-fluid-interface-reconstruction-tests
+        fluid_interface_reconstruction_tests.cpp
+        ../../src/simulation/cpu_fluid_dispatch.cpp
+        ../../src/simulation/cpu_primitives.cpp)
+    add_dependencies(parallel-mater-fluid-interface-reconstruction-tests
+        parallel-mater-driver-slang-cpu)
+    target_compile_features(parallel-mater-fluid-interface-reconstruction-tests
+        PRIVATE cxx_std_20)
+    target_include_directories(
+        parallel-mater-fluid-interface-reconstruction-tests PRIVATE
+        ../../src/device/cpu_compat ../../src ../../include
+        "${PARALLEL_MATER_SLANG_CPU_GENERATED_DIR}"
+        "${PARALLEL_MATER_SLANG_CPP_INCLUDE_DIR}")
+    add_test(NAME parallel-mater-fluid-interface-reconstruction-tests
+        COMMAND parallel-mater-fluid-interface-reconstruction-tests)
+    set_tests_properties(parallel-mater-fluid-interface-reconstruction-tests
+        PROPERTIES LABELS "slang;fluid;coupling;immiscible")
+
+    add_executable(parallel-mater-fluid-immiscible-pressure-capillarity-tests
+        fluid_immiscible_pressure_capillarity_tests.cpp
+        ../../src/simulation/cpu_fluid_dispatch.cpp
+        ../../src/simulation/cpu_primitives.cpp)
+    add_dependencies(parallel-mater-fluid-immiscible-pressure-capillarity-tests
+        parallel-mater-driver-slang-cpu)
+    target_compile_features(
+        parallel-mater-fluid-immiscible-pressure-capillarity-tests
+        PRIVATE cxx_std_20)
+    target_include_directories(
+        parallel-mater-fluid-immiscible-pressure-capillarity-tests PRIVATE
+        ../../src/device/cpu_compat ../../src ../../include
+        "${PARALLEL_MATER_SLANG_CPU_GENERATED_DIR}"
+        "${PARALLEL_MATER_SLANG_CPP_INCLUDE_DIR}")
+    add_test(NAME parallel-mater-fluid-immiscible-pressure-capillarity-tests
+        COMMAND parallel-mater-fluid-immiscible-pressure-capillarity-tests)
+    set_tests_properties(
+        parallel-mater-fluid-immiscible-pressure-capillarity-tests
+        PROPERTIES LABELS "slang;fluid;coupling;immiscible")
 endif()
 
 if(APPLE AND TARGET parallel-mater-slang-metal-kernels)
