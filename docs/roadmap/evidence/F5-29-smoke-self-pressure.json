@@ -1,0 +1,165 @@
+{
+  "schema": "parallel-mater-roadmap-smoke-self-pressure-evidence/v1",
+  "task": "F5-29",
+  "source": {
+    "commit": "7356e02212d83c9bc61f0ca88d3f7f27f41e92ff",
+    "dirty": false,
+    "branch": "work/F5-29/windows-gtx1080",
+    "lease_token": "b43398d7-9d42-4ecb-a461-5ee1bcb30843"
+  },
+  "canonical_hash_normalization": "UTF-8 bytes with CRLF normalized to LF for JSON contracts, matching conformance input verification",
+  "host": {
+    "hostname": "Thomas-Desktop",
+    "operating_system": "Microsoft Windows 10.0.26200.9711",
+    "architecture": "x86_64",
+    "cpu": "AMD Ryzen 5 5500",
+    "gpu": "NVIDIA GeForce GTX 1080",
+    "pci_device_id": "0x1B8010DE",
+    "nvidia_driver": "582.66"
+  },
+  "toolchain": {
+    "host_compiler": "MSVC 19.44.35228.0",
+    "cuda": "12.9.86",
+    "cmake": "4.4.2",
+    "slang": "2026.18",
+    "python": "3.12.9"
+  },
+  "capabilities": [
+    {
+      "first_family": "SMOKE",
+      "second_family": "SMOKE",
+      "scope": "SELF",
+      "mode": "PRESSURE",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "SMOKE_PARTICLE"
+    },
+    {
+      "first_family": "SMOKE",
+      "second_family": "SMOKE",
+      "scope": "SELF",
+      "mode": "PRESSURE",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "SMOKE_GRID"
+    }
+  ],
+  "profiles": {
+    "quality": {
+      "id": "smoke-self-pressure-v1",
+      "path": "conformance/v1/quality/smoke-self-pressure-v1.json",
+      "sha256": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150",
+      "oracle": "public particle density-pressure equation plus public tracer samples of projected grid pressure",
+      "units": "SI metres, seconds and metres per second; pressure and density are implementation-defined public scalars",
+      "retained_thresholds": {
+        "particle_pressure_equation_absolute": 0.0001,
+        "particle_pressure_activity_minimum": 0.01,
+        "grid_pressure_activity_minimum": 0.000001,
+        "maximum_speed_slack_m_s": 0.00001,
+        "particle_mean_velocity_drift_absolute_m_s": 0.05
+      }
+    },
+    "lifecycle": {
+      "id": "smoke-self-pressure-lifecycle-v1",
+      "path": "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json",
+      "sha256": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31",
+      "cases": [
+        "smoke-particle-capacity-replacement-removal-rollback",
+        "smoke-grid-capacity-replacement-removal-rollback"
+      ]
+    }
+  },
+  "qualification_obligations": {
+    "path": "conformance/v1/qualification/capability-obligations-v1.json",
+    "sha256": "a0a3861e8eb61262dbfa7d06f1e1780d2d59cce1fba5f5de3ef916330f720087",
+    "exact_rule": "smoke-self-pressure",
+    "trajectory_contract": "case:smoke-grid",
+    "lifecycle_invariants": [
+      "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-particle-capacity-replacement-removal-rollback",
+      "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-grid-capacity-replacement-removal-rollback"
+    ],
+    "analytic_invariants": "quality:smoke-self-pressure-v1",
+    "viscosity_rule": "smoke-self-viscosity",
+    "viscosity_status": "independently unqualified"
+  },
+  "runner": {
+    "path": "build-f5-29-windows/Release/parallel-mater-conformance.exe",
+    "sha256": "9370e88d2eb9fd6939d4459cbd604f7975ff6333eb3e69fc671b307e4e04023d",
+    "cuda_validation_layer_sha256": "ed3dcdb7caefe27285ee6bbcfc51822c2eba4e517d2b4c5f88f99f384c784157",
+    "d3d12_validation_layer_sha256": "473878d08fffe05a8df51594f15383e721e1cd812bce94350a616f0cf925f0a3"
+  },
+  "drivers": {
+    "slang-cuda": {
+      "binary_sha256": "63ddc06d8f63fe000b8814951334ed58f5a58ef37820ca623f08c6ceb8828b31",
+      "advertised": true,
+      "trajectory": {
+        "result": "docs/roadmap/evidence/F5-29-7356e02-cuda-smoke-grid.json",
+        "result_sha256": "0ab222568ea823b3307fca5a78c6e0555e1e0cbfd6da485c7f430854e44467b1",
+        "report": "docs/roadmap/evidence/F5-29-7356e02-cuda-smoke-grid-report.json",
+        "report_sha256": "d5e48ec037c33ccc89c84d2a9223f6fefd7d20dee2827150067430d4e3357576",
+        "passed": true
+      },
+      "lifecycle": {
+        "result": "docs/roadmap/evidence/F5-29-7356e02-cuda-lifecycle-result.json",
+        "result_sha256": "6ef6a037627293a20c9a95dc5d6f953894e38f22650439314e24d278d6964aaa",
+        "report": "docs/roadmap/evidence/F5-29-7356e02-cuda-lifecycle-report.json",
+        "report_sha256": "1e8274d6a81e4690f463b0a4c05c778b17ee63275dc675369f755721da644329",
+        "passed": true
+      },
+      "quality": {
+        "result": "docs/roadmap/evidence/F5-29-7356e02-cuda-quality-result.json",
+        "result_sha256": "c35b456acbf2a84cf76eb6693d5b9e025b5d1e0b79214465ccd9bcaef02ea687",
+        "report": "docs/roadmap/evidence/F5-29-7356e02-cuda-quality-report.json",
+        "report_sha256": "10fb9577a42f6a894cf912e81bf15d0979531c84875c26791ea96a9e0c3cf375",
+        "passed": true
+      }
+    },
+    "slang-d3d12": {
+      "binary_sha256": "265b51ce36b3eb4115001b12c5facb47481048f7fb8372de89267b4477939c37",
+      "advertised": false,
+      "lifecycle_result": "docs/roadmap/evidence/F5-29-7356e02-d3d12-lifecycle-result.json",
+      "lifecycle_result_sha256": "2481a047ae8e71d1ee6569ccd662da258a23b6302c04ae42d4ab0e5c97fc7772",
+      "quality_result": "docs/roadmap/evidence/F5-29-7356e02-d3d12-quality-result.json",
+      "quality_result_sha256": "2ef31bf0906ca6fa244301d7f474cee2ec7b8161bcf0236f38d5f1b2e383db5e",
+      "passed": false,
+      "reason": "selected device does not expose smoke; both profiles returned unsupported (77)"
+    }
+  },
+  "observations": {
+    "trajectory": "smoke-grid passed the canonical CUDA golden comparison",
+    "lifecycle": {
+      "case_count": 2,
+      "checkpoint_count": 10,
+      "failure_count": 0
+    },
+    "particle": {
+      "maximum_absolute_pressure": 100.0,
+      "maximum_pressure_equation_error": 0.0,
+      "mean_velocity_drift_m_s": 0.047486430593880344
+    },
+    "grid": {
+      "maximum_absolute_pressure": 0.003504612948745489
+    }
+  },
+  "validation": {
+    "physical_quality": "CUDA passed 96/96 public pressure samples on the physical GTX 1080",
+    "physical_lifecycle": "CUDA passed 10/10 capacity, replacement, rejected-overflow rollback, removal and recovery checkpoints",
+    "reference_regression": "CUDA smoke-grid passed 1/1 canonical golden comparison",
+    "unsupported_preserved": "D3D12 did not advertise smoke; both unsupported raw results are retained and grant no qualification",
+    "python_conformance_tests": "116/116 passed",
+    "evidence_index": "rebuilt with all 10 historical reports and 0/251 qualified records; failures retained",
+    "roadmap_check": "211 task cards, dependencies, locks, history and generated roadmap passed",
+    "input_manifest": "passed for both exact-commit runners"
+  },
+  "reproduction": [
+    "Configure clean Windows CUDA and D3D12 builds with PARALLEL_MATER_BUILD_CONFORMANCE=ON and PARALLEL_MATER_SOURCE_REVISION=7356e02212d83c9bc61f0ca88d3f7f27f41e92ff.",
+    "Build parallel-mater-conformance, parallel-mater-layer-validation and the selected production driver in Release configuration.",
+    "Set PM_DRIVER_FILES and PM_LAYER_FILES to the selected build manifests.",
+    "Run --case smoke-grid, --lifecycle smoke-self-pressure-lifecycle-v1 and --quality smoke-self-pressure-v1.",
+    "Evaluate with compare.py, lifecycle.py and quality.py, then rebuild evidence_index.py."
+  ],
+  "limitations": [
+    "This evidence qualifies only the exact particle and grid smoke self-pressure tuples on the captured CUDA binary and named physical device.",
+    "The particle oracle checks a public density-pressure equation and bounded mean-velocity drift; the projected-grid oracle checks public tracer pressure activity under the authored emitter and boundary field.",
+    "Smoke viscosity remains a separate unqualified rule and is not broadened by this evidence.",
+    "D3D12 and all historical or unrecaptured drivers remain unqualified for these records."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "case_count": 2,
+  "checkpoint_count": 10,
+  "driver": {
+    "device": "NVIDIA GeForce GTX 1080",
+    "name": "slang-cuda"
+  },
+  "failure_count": 0,
+  "failures": [],
+  "passed": true,
+  "profile_id": "smoke-self-pressure-lifecycle-v1",
+  "profile_sha256": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31",
+  "schema": "parallel-mater-conformance-lifecycle-report/v1",
+  "scope": "lifecycle_invariants"
+}

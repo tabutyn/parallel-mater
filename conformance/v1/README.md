@@ -21,9 +21,9 @@ conformance remains required; passing the portable row tests is not sufficient.
 - `quality.py` evaluates analytic momentum, angular-momentum, dissipative-energy,
   split-population and rigid surface-separation invariants without a reference
   backend. Immutable profiles live in `quality/`.
-- `lifecycle.py` evaluates adverse capacity recovery and mixed-family graph
-  rollback without a reference backend. The immutable profile is in
-  `lifecycle/adverse-capacity-three-family-v1.json`.
+- `lifecycle.py` evaluates adverse capacity recovery, mixed-family graph
+  rollback and representation-specific smoke replacement/removal without a
+  reference backend. Immutable profiles live in `lifecycle/`.
 - `qualification.py` maps each advertised interaction record to revisioned
   evidence obligations in `qualification/capability-obligations-v1.json`.
 - `evidence_index.py` revalidates registered qualification results, retains
@@ -189,6 +189,19 @@ They are separate analytic obligations for the advertised same-domain rigid
 contact and attachment capabilities; neither substitutes for lifecycle or
 reference-regression evidence.
 
+Smoke self-pressure has one immutable profile with particle and projected-grid
+variants. It derives particle pressure from public density state, checks public
+grid tracer pressure activity, and bounds particle mean-velocity drift:
+
+```text
+parallel-mater-conformance --quality smoke-self-pressure-v1 \
+  --output /path/to/smoke-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/smoke-self-pressure-v1.json \
+  --actual /path/to/smoke-quality-results/smoke-self-pressure-v1.json \
+  --report /path/to/smoke-pressure-report.json
+```
+
 The `rigid-kinematic-sweep-v1` profile independently adjudicates the
 `rigid-direct` frame-21 kinematic impact. Capture all frames, then evaluate the
 raw trajectory directly:
@@ -229,6 +242,19 @@ PM_DRIVER_FILES=/path/to/slang-cuda.json \
   /path/to/sdk/bin/parallel-mater-conformance --lifecycle \
   --root /path/to/sdk/share/parallel-mater \
   --output /path/to/adverse-capacity-three-family-v1.json
+```
+
+Select the smoke-specific lifecycle profile explicitly to capture bounded
+particle and grid capacity, replacement, rejected-overflow rollback, removal
+and recovery in one public-API run:
+
+```text
+parallel-mater-conformance --lifecycle smoke-self-pressure-lifecycle-v1 \
+  --output /path/to/smoke-self-pressure-lifecycle-v1.json
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json \
+  --actual /path/to/smoke-self-pressure-lifecycle-v1.json \
+  --report /path/to/smoke-lifecycle-report.json
 ```
 
 An individual producer can be checked while the other case is still absent by
