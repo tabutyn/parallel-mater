@@ -1,0 +1,49 @@
+{
+  "id": "F6-16",
+  "title": "Make retained evidence hashes checkout-portable",
+  "status": "done",
+  "dependencies": [
+    "F6-07",
+    "F6-09",
+    "F6-10"
+  ],
+  "locks": [
+    "roadmap-evidence-hashing"
+  ],
+  "requires": [
+    "Any development host; Windows CRLF checkout for regression verification"
+  ],
+  "scope": "Make the retained F6-07, F6-09 and F6-10 text-evidence integrity checks independent of Git checkout line endings without changing pinned artifacts, recorded hashes or binary hashing semantics.",
+  "acceptance": [
+    "Use one shared canonical text hashing rule that normalizes CRLF to LF while retaining lone carriage returns and every other byte; archives and binary artifacts remain byte-exact.",
+    "Add focused regression coverage proving LF and CRLF text hash identically while non-line-ending text and binary changes remain visible.",
+    "Pass the F6-07, F6-09 and F6-10 evidence tests plus the full roadmap suite on Windows without rewriting any retained evidence or stored hash."
+  ],
+  "evidence": [
+    "PASS: python -m unittest tests.roadmap.test_evidence_hash tests.roadmap.test_f6_07_evidence tests.roadmap.test_f6_09_evidence tests.roadmap.test_f6_10_evidence -v (9/9).",
+    "PASS: python -m unittest discover -s tests/roadmap -p test_*.py -v (31/31).",
+    "REVIEW: No files under docs/roadmap/evidence, conformance/v1/golden, or tests/gallery/assets changed; archive and binary hashing remains byte-exact."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "36322fd5-d304-4449-943b-cc9fdbcfe677",
+        "owner": "codex-windows-portability",
+        "machine": "windows-gtx1080",
+        "branch": "work/F6-16/windows-gtx1080",
+        "claimed_at": "2026-10-19T15:55:30Z",
+        "heartbeat_at": "2026-10-19T15:55:30Z",
+        "expires_at": "2026-10-20T15:55:30Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T15:59:02Z",
+      "reason": "Made retained text-evidence hashes independent of Git CRLF checkout conversion without changing pinned artifacts or binary hashes.",
+      "evidence": [
+        "PASS: python -m unittest tests.roadmap.test_evidence_hash tests.roadmap.test_f6_07_evidence tests.roadmap.test_f6_09_evidence tests.roadmap.test_f6_10_evidence -v (9/9).",
+        "PASS: python -m unittest discover -s tests/roadmap -p test_*.py -v (31/31).",
+        "REVIEW: No files under docs/roadmap/evidence, conformance/v1/golden, or tests/gallery/assets changed; archive and binary hashing remains byte-exact."
+      ]
+    }
+  ]
+}

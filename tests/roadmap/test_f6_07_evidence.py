@@ -3,20 +3,17 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 import re
 import tarfile
 import unittest
 
+from tests.roadmap.evidence_hash import byte_sha256, text_sha256
+
 
 ROOT = Path(__file__).resolve().parents[2]
 EVIDENCE = ROOT / "docs/roadmap/evidence/F6-07"
-
-
-def digest(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
 
 
 class LegacyHingeEvidenceTests(unittest.TestCase):
@@ -29,16 +26,18 @@ class LegacyHingeEvidenceTests(unittest.TestCase):
             (EVIDENCE / "cuda-reproduction.json").read_text(encoding="utf-8"))
         snapshot = reproduction["snapshot"]
 
-        self.assertEqual(digest(metadata_path.read_bytes()),
+        self.assertEqual(text_sha256(metadata_path.read_bytes()),
                          snapshot["metadata_sha256"])
-        self.assertEqual(digest(patch_path.read_bytes()),
+        self.assertEqual(text_sha256(patch_path.read_bytes()),
                          snapshot["unstaged_patch_sha256"])
-        self.assertEqual(digest(archive_path.read_bytes()),
+        self.assertEqual(byte_sha256(archive_path.read_bytes()),
                          snapshot["working_files_archive_sha256"])
 
         with tarfile.open(archive_path, "r:gz") as archive:
-            files = {member.name: digest(archive.extractfile(member).read())
-                     for member in archive.getmembers() if member.isfile()}
+            files = {
+                member.name: byte_sha256(archive.extractfile(member).read())
+                for member in archive.getmembers() if member.isfile()
+            }
         self.assertEqual(metadata["sha256"], files)
         self.assertEqual(len(files), snapshot["verified_working_file_count"])
 
@@ -60,12 +59,12 @@ class LegacyHingeEvidenceTests(unittest.TestCase):
             section = patch[start:end]
             hunks = list(re.finditer(r"^@@ .*?@@.*$", section, re.MULTILINE))
             if not hunks:
-                expected[f"{path}#binary"] = digest(section.encode())
+                expected[f"{path}#binary"] = byte_sha256(section.encode())
                 continue
             for hunk_index, hunk in enumerate(hunks, 1):
                 hunk_end = (hunks[hunk_index].start()
                             if hunk_index < len(hunks) else len(section))
-                expected[f"{path}#h{hunk_index}"] = digest(
+                expected[f"{path}#h{hunk_index}"] = byte_sha256(
                     section[hunk.start():hunk_end].encode())
 
         capture_id = "tests/gallery/hinge_top_capture.hpp#untracked"
