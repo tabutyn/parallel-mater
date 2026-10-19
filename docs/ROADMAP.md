@@ -346,7 +346,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-55](roadmap/tasks/P1-55.json) | Qualify mixed smoke pair modes | deferred | P1-54, F5-02, F5-03 | — |
 | [P1-56](roadmap/tasks/P1-56.json) | Expose immiscible interface state | done | P1-04 | — |
 | [P1-57](roadmap/tasks/P1-57.json) | Expose interface thermal conductance | deferred | P1-15, P1-56 | — |
-| [P1-58](roadmap/tasks/P1-58.json) | Release fluid-pair interface storage | ready | P1-10 | — |
+| [P1-58](roadmap/tasks/P1-58.json) | Release fluid-pair interface storage | leased | P1-10 | codex-ci-repair / thomas-desktop / 2026-10-20T12:06:48Z |
 
 ### P2. Deferred engine integration
 
