@@ -21,6 +21,7 @@ add_library(parallel-mater-conformance-runner STATIC
     src/cloth_rigid_contact.cpp
     src/fluid_rigid_containment.cpp
     src/fluid_rigid_contact.cpp
+    src/smoke_rigid_contact.cpp
     src/soft_rigid_contact.cpp
     src/cloth_rope_attachment.cpp
     src/soft_rope_attachment.cpp

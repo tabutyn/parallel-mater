@@ -318,6 +318,33 @@ python3 conformance/v1/lifecycle.py \
   --report /path/to/rope-smoke-lifecycle-report.json
 ```
 
+Smoke-to-rigid-body CONTACT uses `smoke-rigid-contact-v1` for particle and
+projected-grid smoke. Paired no-edge and CONTACT-edge runs send one public
+smoke tracer through the negative face of a dynamic cube. The independent
+oracle reconstructs that face from public rigid position and orientation,
+then checks shell clearance, relative normal rejection, reciprocal rigid
+impulse, finite bounded state, and a stationary no-edge rigid control. Zero
+wind drag isolates CONTACT even though API 0.2 bundles CONTACT and DRAG in one
+descriptor. Two exact graph cases cover capacity, replacement, rejected-
+overflow rollback, removal, and recovery while retaining both endpoints:
+
+```text
+parallel-mater-conformance --quality smoke-rigid-contact-v1 \
+  --output /path/to/smoke-rigid-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/smoke-rigid-contact-v1.json \
+  --actual /path/to/smoke-rigid-quality-results/smoke-rigid-contact-v1.json \
+  --report /path/to/smoke-rigid-quality-report.json
+
+parallel-mater-conformance \
+  --lifecycle-profile smoke-rigid-contact-lifecycle-v1 \
+  --output /path/to/smoke-rigid-lifecycle-result.json
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/smoke-rigid-contact-lifecycle-v1.json \
+  --actual /path/to/smoke-rigid-lifecycle-result.json \
+  --report /path/to/smoke-rigid-lifecycle-report.json
+```
+
 Smoke-to-soft-body DRAG uses `smoke-soft-drag-v1` for particle and projected-
 grid smoke. Six public-state runs pair zero-drag controls with forward,
 stationary, and reverse carrier flow. The oracle bounds signed soft-node

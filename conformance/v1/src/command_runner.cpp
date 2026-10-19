@@ -1079,7 +1079,7 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
-    constexpr std::array<std::pair<std::string_view, std::string_view>, 47U>
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 49U>
         pinned_inputs{{
             {"quality profile", "conformance/v1/quality/core-conservation-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-attachment-v1.json"},
@@ -1092,6 +1092,7 @@ void copy_particle_state(const std::vector<State> &states,
             {"quality profile", "conformance/v1/quality/cloth-rigid-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-rigid-containment-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-rigid-contact-v1.json"},
+            {"quality profile", "conformance/v1/quality/smoke-rigid-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/soft-rigid-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/cloth-rope-attachment-v1.json"},
             {"quality profile", "conformance/v1/quality/soft-rope-attachment-v1.json"},
@@ -1116,6 +1117,7 @@ void copy_particle_state(const std::vector<State> &states,
             {"lifecycle profile", "conformance/v1/lifecycle/cloth-rigid-contact-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/fluid-rigid-containment-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/fluid-rigid-contact-lifecycle-v1.json"},
+            {"lifecycle profile", "conformance/v1/lifecycle/smoke-rigid-contact-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/soft-rigid-contact-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/cloth-rope-attachment-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json"},
@@ -1453,6 +1455,9 @@ int conformance_command_main(int argc, char **argv) {
                      "fluid-rigid-contact-lifecycle-v1")
                 result = conformance_fluid_rigid_contact_lifecycle(root, &status);
             else if (arguments.lifecycle_id ==
+                     "smoke-rigid-contact-lifecycle-v1")
+                result = conformance_smoke_rigid_contact_lifecycle(root, &status);
+            else if (arguments.lifecycle_id ==
                      "soft-rigid-contact-lifecycle-v1")
                 result = conformance_soft_rigid_contact_lifecycle(root, &status);
             else if (arguments.lifecycle_id ==
@@ -1507,6 +1512,8 @@ int conformance_command_main(int argc, char **argv) {
                 "fluid-rigid-containment-v1";
             const bool fluid_rigid_contact = arguments.quality_id ==
                 "fluid-rigid-contact-v1";
+            const bool smoke_rigid_contact = arguments.quality_id ==
+                "smoke-rigid-contact-v1";
             const bool soft_rigid_contact = arguments.quality_id ==
                 "soft-rigid-contact-v1";
             const bool cloth_rope_attachment = arguments.quality_id ==
@@ -1550,6 +1557,7 @@ int conformance_command_main(int argc, char **argv) {
                 !cloth_soft_contact &&
                 !cloth_rigid_contact &&
                 !fluid_rigid_contact &&
+                !smoke_rigid_contact &&
                 !soft_rigid_contact &&
                 !fluid_rigid_containment &&
                 !cloth_rope_attachment &&
@@ -1591,6 +1599,7 @@ int conformance_command_main(int argc, char **argv) {
 #endif
                 } else if (fluid_cloth_containment || fluid_soft_contact ||
                            fluid_rope_contact || fluid_rigid_contact ||
+                           smoke_rigid_contact ||
                            soft_rigid_contact ||
                            fluid_rigid_containment ||
                            cloth_rope_attachment || soft_rope_attachment ||
@@ -1613,6 +1622,9 @@ int conformance_command_main(int argc, char **argv) {
                             root, &status);
                     else if (fluid_rigid_contact)
                         result = conformance_fluid_rigid_contact_quality(
+                            root, &status);
+                    else if (smoke_rigid_contact)
+                        result = conformance_smoke_rigid_contact_quality(
                             root, &status);
                     else if (soft_rigid_contact)
                         result = conformance_soft_rigid_contact_quality(
