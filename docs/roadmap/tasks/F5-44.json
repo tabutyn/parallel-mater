@@ -19,8 +19,8 @@
   ],
   "evidence": [
     "PASS: CUDA and D3D12 cloth-core trajectory comparison, cloth-rigid-contact-v1 physical-quality profile, and lifecycle profile all pass from source 59eb0ce.",
-    "PASS: Both backend qualification reports qualify 1/1 exact CLOTH/RIGID_BODY contact capability; evidence index includes 37 reports.",
-    "PASS: Merged conformance suite passes 299 tests; roadmap suite passes 31 tests; rebuilt CUDA and D3D12 native command-input and lifecycle-output gates pass 2/2 each.",
+    "PASS: Both backend qualification reports qualify 1/1 exact CLOTH/RIGID_BODY contact capability; evidence index includes 38 reports.",
+    "PASS: Merged conformance suite passes 312 tests; roadmap suite passes 31 tests; rebuilt CUDA and D3D12 native command-input and lifecycle-output gates pass 2/2 each.",
     "PASS: F6-07/F6-09/F6-10 portability tests pass 6/6 on Windows."
   ],
   "lease": null,
@@ -40,8 +40,8 @@
       "reason": "Qualified exact cloth-rigid contact through the public API on Windows CUDA and D3D12, including static-container contact orientation.",
       "evidence": [
         "PASS: CUDA and D3D12 cloth-core trajectory comparison, cloth-rigid-contact-v1 physical-quality profile, and lifecycle profile all pass from source 59eb0ce.",
-        "PASS: Both backend qualification reports qualify 1/1 exact CLOTH/RIGID_BODY contact capability; evidence index includes 37 reports.",
-        "PASS: Merged conformance suite passes 299 tests; roadmap suite passes 31 tests; rebuilt CUDA and D3D12 native command-input and lifecycle-output gates pass 2/2 each.",
+        "PASS: Both backend qualification reports qualify 1/1 exact CLOTH/RIGID_BODY contact capability; evidence index includes 38 reports.",
+        "PASS: Merged conformance suite passes 312 tests; roadmap suite passes 31 tests; rebuilt CUDA and D3D12 native command-input and lifecycle-output gates pass 2/2 each.",
         "PASS: F6-07/F6-09/F6-10 portability tests pass 6/6 on Windows."
       ]
     }

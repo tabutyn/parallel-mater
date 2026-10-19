@@ -1,0 +1,57 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-49",
+  "source_commit": "73965770b9b18b9c497fcd8e45cc892aee2694a0",
+  "captured_at": "2026-10-19",
+  "host": "ThomasLaptop",
+  "driver": "slang-cuda",
+  "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+  "capabilities": [
+    "SOFT_BODY/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE"
+  ],
+  "contracts": {
+    "trajectory": "case:soft-body-core",
+    "quality": "quality:soft-rigid-contact-v1",
+    "lifecycle": "lifecycle:soft-rigid-contact-lifecycle-v1#soft-rigid-contact-capacity-replacement-removal-rollback"
+  },
+  "results": {
+    "trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "reference_regression": "PASS: soft-body-core against the canonical CUDA golden",
+    "analytic_invariants": "PASS: 2 samples, 0 failures",
+    "expected_normal_impulse_n_s": 1.0,
+    "observed_normal_impulse_n_s": 1.0000004768371582,
+    "reciprocal_impulse_residual_n_s": 0.0,
+    "final_node_clearance_m": 0.004999810159206382,
+    "maximum_surface_face_penetration_m": 0.0,
+    "maximum_surface_reconstruction_error_m": 2.6203927124981416e-08,
+    "unique_node_count": 4,
+    "surface_vertex_count": 10,
+    "minimum_binding_incidence": 4,
+    "separated_control_impulse_n_s": 0.0,
+    "lifecycle": "PASS: 1 exact endpoint case, 5 checkpoints, 0 failures",
+    "qualification": "PASS: 1/1 exact soft-rigid contact capability, 0 failures",
+    "python_tests": "PASS: 300 tests after evidence integration",
+    "native_build": "PASS: conformance runner and slang-cuda driver",
+    "command_inputs": "PASS: all pinned conformance inputs match the manifest",
+    "evidence_index": "PASS: 1/325 capability records qualified across 36 revisioned reports; stale and unrecaptured records remain visible and unqualified"
+  },
+  "artifacts": {
+    "provenance": "docs/roadmap/evidence/F5-49-7396577-cuda-provenance.json",
+    "capabilities": "docs/roadmap/evidence/F5-49-7396577-cuda-capabilities.json",
+    "trajectory_result": "docs/roadmap/evidence/F5-49-7396577-cuda-soft-body-core.json",
+    "trajectory_report": "docs/roadmap/evidence/F5-49-7396577-cuda-soft-body-core-report.json",
+    "quality_result": "docs/roadmap/evidence/F5-49-7396577-cuda-quality-result.json",
+    "quality_report": "docs/roadmap/evidence/F5-49-7396577-cuda-quality-report.json",
+    "lifecycle_result": "docs/roadmap/evidence/F5-49-7396577-cuda-lifecycle-result.json",
+    "lifecycle_report": "docs/roadmap/evidence/F5-49-7396577-cuda-lifecycle-report.json",
+    "physical_evidence": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7396577-soft-rigid-contact.json",
+    "qualification": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7396577-soft-rigid-contact-qualification.json"
+  },
+  "notes": [
+    "The immutable oracle uses a four-node tetrahedron and a ten-vertex bound surface; its public-state reconstruction proves contact on the rendered surface while momentum uses four unique node masses exactly once.",
+    "The centered impact transfers the reduced-mass impulse with equal-and-opposite endpoint momentum, zero tangential impulse, zero closing speed and no public surface penetration.",
+    "A separated paired control remains ballistic and transfers no impulse.",
+    "Intrinsic contact advertises the not-applicable graph-capacity sentinel and the lifecycle mutates only the soft endpoint while preserving the rigid endpoint.",
+    "The supplementary reference uses soft-body-core because its canonical scene exercises the soft endpoint against rigid geometry without the unrelated dynamic rigid-rigid contacts present in the legacy soft-body-rigid gallery scene."
+  ]
+}

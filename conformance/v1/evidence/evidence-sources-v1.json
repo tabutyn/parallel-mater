@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "249e9c03519a29bb06e7e670227e55a3fdbaa34a71288e2037bf9e6de1eb16d1"
+    "sha256": "cde6aa45452d69a242f4072cbd398152b24f7d715e312be5ad628c02c516fac9"
   },
   "qualification_results": [
     {
@@ -91,6 +91,11 @@
       "id": "linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle-qualification.json",
       "sha256": "b7448ca5a554f7328a4ce0e8d74899d8eaed2864077840528ec1045231666d7f"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-7396577-soft-rigid-contact",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7396577-soft-rigid-contact-qualification.json",
+      "sha256": "09e4745066819966de512f658fd4ed0f21f9e62d985e1d405485f03ac48b6741"
     },
     {
       "id": "linux-rtx3050ti-slang-vulkan-eed669e",
@@ -175,7 +180,7 @@
     {
       "id": "windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact-qualification.json",
-      "sha256": "d8670a1669fe95ee858c2dc163cff55e0b0e005a759d64f80767c61bb4034f7b"
+      "sha256": "b4c548d96addaaade0bb43885412cc2fdd81a3f7c25e92c5a6ff51a7c2b388e5"
     },
     {
       "id": "windows-gtx1080-slang-cuda-b191454-cloth-soft-contact",
@@ -205,7 +210,7 @@
     {
       "id": "windows-gtx1080-slang-d3d12-59eb0ce-cloth-rigid-contact",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-59eb0ce-cloth-rigid-contact-qualification.json",
-      "sha256": "9dc516bfb407e54b4855fd6c50de1a44279e8e6eb7773be1efe04f468cc790a1"
+      "sha256": "12b814121f8c1bc3cbedabd4bdff86a947df39bdc3bf7a12e795edb90c161014"
     }
   ],
   "schema": "parallel-mater-evidence-sources/v1",
