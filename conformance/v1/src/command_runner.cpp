@@ -1422,6 +1422,10 @@ int conformance_command_main(int argc, char **argv) {
                 result = conformance_cloth_smoke_contact_lifecycle(
                     root, &status);
             else if (arguments.lifecycle_id ==
+                     "soft-smoke-contact-lifecycle-v1")
+                result = conformance_soft_smoke_contact_lifecycle(
+                    root, &status);
+            else if (arguments.lifecycle_id ==
                      "cloth-soft-contact-lifecycle-v1")
                 result = conformance_cloth_soft_contact_lifecycle(root, &status);
             else if (arguments.lifecycle_id ==
@@ -1488,6 +1492,8 @@ int conformance_command_main(int argc, char **argv) {
                 "fluid-cloth-contact-v1";
             const bool cloth_smoke_contact = arguments.quality_id ==
                 "cloth-smoke-contact-v1";
+            const bool soft_smoke_contact = arguments.quality_id ==
+                "soft-smoke-contact-v1";
             const bool smoke_self_viscosity = arguments.quality_id ==
                 "smoke-self-viscosity-v1";
 #if defined(PM_CONFORMANCE_DEVICE_FIXTURES)
@@ -1516,7 +1522,7 @@ int conformance_command_main(int argc, char **argv) {
                 !cloth_rope_attachment &&
                 !soft_rope_attachment &&
                 !smoke_self_pressure && !fluid_cloth_contact &&
-                !cloth_smoke_contact &&
+                !cloth_smoke_contact && !soft_smoke_contact &&
                 !smoke_self_viscosity && !fluid_self &&
                 !smoke_fluid_drag && !smoke_cloth_drag && !fluid_smoke_phase &&
                 !externally_heated_fluid)
@@ -1625,6 +1631,18 @@ int conformance_command_main(int argc, char **argv) {
                 } else if (cloth_smoke_contact) {
                     ExecutionStatus status{};
                     result = conformance_cloth_smoke_contact_quality(
+                        root, &status);
+                    write_file(arguments.output /
+                                   (arguments.quality_id + ".json"),
+                               result);
+                    if (status == ExecutionStatus::unsupported) return 77;
+                    if (status == ExecutionStatus::failed) return 2;
+                    std::cout << "Quality execution completed: "
+                              << arguments.quality_id << '\n';
+                    return 0;
+                } else if (soft_smoke_contact) {
+                    ExecutionStatus status{};
+                    result = conformance_soft_smoke_contact_quality(
                         root, &status);
                     write_file(arguments.output /
                                    (arguments.quality_id + ".json"),

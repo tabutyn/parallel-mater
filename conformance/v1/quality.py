@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import math
@@ -5891,6 +5892,52 @@ def _evaluate_cloth_smoke_contact(
     }
 
 
+def _evaluate_soft_smoke_contact(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    """Reuse the public triangulated-surface oracle with soft-body names."""
+    key_map = {
+        "soft_body_surface_vertices_m": "cloth_vertices_m",
+        "soft_body_surface_velocities_m_s": "cloth_velocities_m_s",
+        "soft_body_surface_triangle_indices": "cloth_triangle_indices",
+        "soft_body_dynamic": "cloth_dynamic",
+        "soft_body_node_mass_kg": "cloth_vertex_mass_kg",
+        "soft_body_node_radius_m": "cloth_thickness_m",
+        "maximum_soft_body_position_difference_m":
+            "maximum_cloth_position_difference_m",
+        "maximum_soft_body_velocity_difference_m_s":
+            "maximum_cloth_velocity_difference_m_s",
+        "soft_body_surface_normal": "cloth_normal",
+    }
+
+    def remap(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {key_map.get(key, key): remap(item)
+                    for key, item in value.items()}
+        if isinstance(value, list):
+            return [remap(item) for item in value]
+        return copy.deepcopy(value)
+
+    report = _evaluate_cloth_smoke_contact(
+        remap(profile), remap(result), expected_hash, driver, failures)
+    inverse = {target: source for source, target in key_map.items()}
+    for failure in report["failures"]:
+        path = failure["path"]
+        for target, source in inverse.items():
+            path = path.replace(target, source)
+        failure["path"] = path
+        message = failure["message"]
+        message = message.replace("cloth surface", "soft body surface")
+        message = message.replace("cloth triangle", "soft body surface triangle")
+        message = message.replace("cloth vertex", "soft body surface vertex")
+        message = message.replace("cloth state", "soft body surface state")
+        message = message.replace("cloth differs", "soft body surface differs")
+        message = message.replace(
+            "cloth received", "soft body received")
+        failure["message"] = message
+    return report
+
+
 def _evaluate_fluid_cloth_contact(
         profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
         driver: Any, failures: list[Failure]) -> dict[str, Any]:
@@ -7854,6 +7901,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "cloth_smoke_contact":
         return _evaluate_cloth_smoke_contact(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "soft_smoke_contact":
+        return _evaluate_soft_smoke_contact(
             profile, result, expected_hash, driver, failures)
     if evaluation == "fluid_cloth_contact":
         return _evaluate_fluid_cloth_contact(
