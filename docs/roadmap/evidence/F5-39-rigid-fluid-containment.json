@@ -1,0 +1,57 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-39",
+  "source_commit": "e3256bc44d289fe835685f14cd856784e548b045",
+  "captured_at": "2026-10-19",
+  "host": "ThomasLaptop",
+  "driver": "slang-cuda",
+  "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+  "capabilities": [
+    "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE"
+  ],
+  "contracts": {
+    "trajectory": "case:fluid-rigid",
+    "quality": "quality:fluid-rigid-containment-v1",
+    "lifecycle": "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback"
+  },
+  "results": {
+    "trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "reference_regression": "PASS: fluid-rigid against the reviewed F5-38 CUDA golden and case-specific chaotic contact-count envelope",
+    "analytic_invariants": "PASS: 1 sample, 0 failures",
+    "closed_consistently_oriented_manifold": true,
+    "final_particle_signed_distance_m": -0.05000000447034836,
+    "maximum_containment_penetration_m": 0.0,
+    "leaked_particle_count": 0,
+    "reaction_impulse_n_s": 0.7333335280418396,
+    "reciprocal_momentum_residual_kg_m_s": 0.0,
+    "tangential_momentum_kg_m_s": 0.0,
+    "rigid_angular_speed_rad_s": 0.0,
+    "kinetic_energy_change_j": -0.32999998052912094,
+    "lifecycle_invariants": "PASS: 1 profile case, 5 checkpoints, 0 failures",
+    "qualification": "PASS: 1/1 exact containment capability, 0 failures",
+    "native_build": "PASS: conformance runner, Slang CUDA driver and validation layer",
+    "command_inputs": "PASS: all pinned conformance inputs match the manifest",
+    "evidence_index": "PASS: 1/311 capability records qualified; stale and unrecaptured records remain visible and unqualified"
+  },
+  "artifacts": {
+    "provenance": "docs/roadmap/evidence/F5-39-e3256bc-cuda-provenance.json",
+    "capabilities": "docs/roadmap/evidence/F5-39-e3256bc-cuda-capabilities.json",
+    "trajectory_result": "docs/roadmap/evidence/F5-39-e3256bc-cuda-fluid-rigid.json",
+    "trajectory_report": "docs/roadmap/evidence/F5-39-e3256bc-cuda-fluid-rigid-report.json",
+    "quality_result": "docs/roadmap/evidence/F5-39-e3256bc-cuda-quality-result.json",
+    "quality_report": "docs/roadmap/evidence/F5-39-e3256bc-cuda-quality-report.json",
+    "lifecycle_result": "docs/roadmap/evidence/F5-39-e3256bc-cuda-lifecycle-result.json",
+    "lifecycle_report": "docs/roadmap/evidence/F5-39-e3256bc-cuda-lifecycle-report.json",
+    "physical_evidence": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment.json",
+    "qualification": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment-qualification.json",
+    "retained_preintegration_failure_result": "docs/roadmap/evidence/F5-39-000396d-cuda-fluid-rigid.json",
+    "retained_preintegration_failure_report": "docs/roadmap/evidence/F5-39-000396d-cuda-vs-golden-report.json"
+  },
+  "notes": [
+    "The public-state oracle validates the closed oriented mesh in the final rigid frame, zero leakage, bounded penetration, reciprocal endpoint momentum, non-vacuous reaction and non-increasing energy without reading private state.",
+    "API 0.2 requires CONTACT and CONTAINMENT flags in the same descriptor, but this interior fixture binds and qualifies CONTAINMENT only; the merged F5-38 exterior fixture independently qualifies CONTACT.",
+    "The pre-integration CUDA capture failed the older fluid-rigid contact-count golden by 1 and 159 samples. That failure remains committed verbatim. F5-38 independently reviewed and merged the case-specific chaotic count envelope before the final F5-39 capture; F5-39 changes no trajectory tolerance or golden.",
+    "The lifecycle fixture proves exact capacity, destructive replacement, rejected overflow rollback, removal, endpoint preservation and deterministic recovery.",
+    "Only the exact recaptured CUDA containment record qualifies. Older or unrecaptured driver records remain unqualified after the obligation hash changed."
+  ]
+}

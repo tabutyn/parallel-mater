@@ -1,0 +1,102 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-39",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "e3256bc44d289fe835685f14cd856784e548b045",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+e3256bc",
+    "binary_sha256": "9e12330743afd5da16647f15fa56739030b50e3214abd5979fe54948d4e604f4"
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13010 (NVIDIA 590.44.01)"
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "591ee55d1671a0535d07826263c24aa1a2ec3e49c903861a85b0bd5eb435f45f",
+    "capabilities_sha256": "4f1f17830a833fc6c7cbb6e6f768649b74ed7084d0f526da37c448d74d63e6e5"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "FLUID",
+      "second_family": "RIGID_BODY",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTAINMENT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:fluid-rigid",
+      "sha256": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+    },
+    "quality": {
+      "id": "quality:fluid-rigid-containment-v1",
+      "sha256": "d6ea84babcdc0ede00303f4960336320b165ac3a573e196725a5b69abe31f7f6"
+    },
+    "lifecycle": {
+      "id": "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback",
+      "sha256": "bc4730838161caa3c77c54c65e58f14fee1fdf4095b26432fea8738ddae6fff0"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "548910ba4ca611e984a9cc513663a58c5bf29715ed9092d966fd8f7a83714257",
+    "comparison_report_sha256": "57199ea570bb06daf31eda4e614a939daaaaaae2e48d22b57f089c73ab5cca71",
+    "reference_regression": {"passed": 1, "failed": 0, "unsupported": 0}
+  },
+  "analytic_invariants": {
+    "result_sha256": "39fe1debbd5fd2913eedf24429bb3d57dbefb255c6e12926b978f0f022c53c2c",
+    "report_sha256": "f9d4eeab9b4da06e6d2094a33f9f8ae9689f76d744854715410f1fcff19175e8",
+    "passed": true,
+    "sample_count": 1,
+    "failure_count": 0,
+    "observations": {
+      "closed-cube-interior-outward-pulse": {
+        "closed_consistently_oriented_manifold": true,
+        "final_particle_signed_distance_m": -0.05000000447034836,
+        "kinetic_energy_change_j": -0.32999998052912094,
+        "leaked_particle_count": 0,
+        "maximum_containment_penetration_m": 0.0,
+        "reaction_impulse_n_s": 0.7333335280418396,
+        "reciprocal_momentum_residual_kg_m_s": 0.0,
+        "rigid_angular_speed_rad_s": 0.0,
+        "rigid_translation_m": 0.0,
+        "tangential_momentum_kg_m_s": 0.0
+      }
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "40e4d0b873ddd9111a25393cf2401e178da0d4b1a9d0c0791f6603a0ae2f370c",
+    "report_sha256": "775b77e0ebe6f863d2004d1775bd8c5bd5fb9a483c961982295676272fde5472",
+    "passed": true,
+    "profile_case_count": 1,
+    "profile_checkpoint_count": 5,
+    "failure_count": 0
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --case fluid-rigid --output <trajectory-output>",
+    "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case fluid-rigid --report <trajectory-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --quality fluid-rigid-containment-v1 --output <quality-output>",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/fluid-rigid-containment-v1.json --actual <quality-output>/fluid-rigid-containment-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --lifecycle-profile fluid-rigid-containment-lifecycle-v1 --output <lifecycle-result>",
+    "python3 conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/fluid-rigid-containment-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "The analytic oracle uses only public fluid and rigid-body outputs and validates the closed oriented mesh in the rigid body's final frame.",
+    "The interior outward pulse proves zero leakage, bounded penetration, a non-vacuous reciprocal boundary reaction and non-increasing energy without claiming exterior contact.",
+    "The canonical fluid-rigid trajectory passes the independently reviewed case-specific chaotic contact-count envelope merged by F5-38; F5-39 changes no trajectory tolerance or golden.",
+    "The lifecycle case proves exact capacity, destructive replacement, rejected overflow rollback, removal, endpoint preservation and deterministic recovery."
+  ]
+}

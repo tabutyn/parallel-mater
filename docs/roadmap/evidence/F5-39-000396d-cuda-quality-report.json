@@ -1,0 +1,32 @@
+{
+  "driver": {
+    "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "device_id": 0,
+    "driver_version": "13010",
+    "name": "slang-cuda",
+    "vendor_id": 4318
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 1,
+  "observations": {
+    "closed-cube-interior-outward-pulse": {
+      "closed_consistently_oriented_manifold": true,
+      "final_particle_signed_distance_m": -0.05000000447034836,
+      "kinetic_energy_change_j": -0.32999998052912094,
+      "leaked_particle_count": 0,
+      "maximum_containment_penetration_m": 0.0,
+      "reaction_impulse_n_s": 0.7333335280418396,
+      "reciprocal_momentum_residual_kg_m_s": 0.0,
+      "rigid_angular_speed_rad_s": 0.0,
+      "rigid_translation_m": 0.0,
+      "tangential_momentum_kg_m_s": 0.0
+    }
+  },
+  "passed": true,
+  "profile_id": "fluid-rigid-containment-v1",
+  "profile_sha256": "d6ea84babcdc0ede00303f4960336320b165ac3a573e196725a5b69abe31f7f6",
+  "sample_count": 1,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176"
+    "sha256": "20c3086b26c05fc00bdc2a70fc4f528cdd588271c2cc2be4409912982d60c419"
   },
   "qualification_results": [
     {
@@ -51,6 +51,11 @@
       "id": "linux-rtx3050ti-slang-cuda-eed669e",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-eed669e-qualification.json",
       "sha256": "24e12069e812795774a83cb2450c27e1680847fadf65eff0594ddb06b6afe8f8"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment-qualification.json",
+      "sha256": "48e444f77edc0e0432c67ad7fe1f3cd24662ee9d8c571fc2b5f99c430cc77452"
     },
     {
       "id": "linux-rtx3050ti-slang-vulkan-eed669e",
