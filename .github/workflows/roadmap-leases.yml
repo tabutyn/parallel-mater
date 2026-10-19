@@ -2,16 +2,22 @@ name: Roadmap leases
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, closed]
   push:
     branches: [main]
   merge_group:
   workflow_dispatch:
+
+concurrency:
+  group: roadmap-leases-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
   lease-contract:
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
     name: Roadmap lease contract
     runs-on: ubuntu-latest
     timeout-minutes: 5

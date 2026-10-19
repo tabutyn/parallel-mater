@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "b90213221d975ed2f7012844c718c13802d0538ee1150c9d70559e6dfc632da8"
+    "sha256": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a"
   },
   "qualification_results": [
     {
@@ -106,6 +106,16 @@
       "id": "linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-particle",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-particle-qualification.json",
       "sha256": "70b83ac0072416f864e27e965e843654c7325c957e1a5b7920ed297810b61055"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-grid",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-grid-qualification.json",
+      "sha256": "d9e31aba46bb61dc3155881fcbf2f473ebfe6bfa9c412a3dfe11d9d17821630c"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-particle",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-particle-qualification.json",
+      "sha256": "a562a97b27f09a40b04baf443630af704e1ce1e28ed8fe0e76f309ea6bb6b351"
     },
     {
       "id": "linux-rtx3050ti-slang-vulkan-eed669e",
