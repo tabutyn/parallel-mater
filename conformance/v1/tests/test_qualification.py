@@ -292,6 +292,23 @@ def soft_rigid_contact_result(profile: dict,
     return result
 
 
+def rope_rigid_contact_result(profile: dict, mode: str = "CONTACT") -> dict:
+    result = valid_equal_fluid_result(profile)
+    result["advertised_capabilities"] = [
+        capability("ROPE", "RIGID_BODY", "DISTINCT_FAMILY", mode,
+                   "BIDIRECTIONAL", "ENDPOINT_NATIVE", "not-applicable")
+    ]
+    result["evidence"] = [
+        evidence(profile, "compilation", "registry:interaction-capabilities"),
+        evidence(profile, "execution", "case:rope-core"),
+        evidence(profile, "reference_regression", "case:rope-core"),
+        evidence(profile, "lifecycle_invariants", "case:rope-core"),
+        evidence(profile, "analytic_invariants",
+                 "quality:rope-rigid-contact-v1"),
+    ]
+    return result
+
+
 def fluid_soft_aggregate(profile: dict) -> tuple[dict, dict, list[dict]]:
     contracts = contract_map(profile)
     advertised = capability(
@@ -350,6 +367,66 @@ def fluid_soft_aggregate(profile: dict) -> tuple[dict, dict, list[dict]]:
         "vendor_id": 1,
         "device_id": 2,
         "driver_version": 456,
+    }
+    return aggregate, provenance, [advertised]
+
+
+def rope_rigid_contact_aggregate(
+        profile: dict) -> tuple[dict, dict, list[dict]]:
+    contracts = contract_map(profile)
+    advertised = capability(
+        "ROPE", "RIGID_BODY", "DISTINCT_FAMILY", "CONTACT",
+        "BIDIRECTIONAL", "ENDPOINT_NATIVE", "not-applicable")
+    trajectory = {
+        "id": "case:rope-core",
+        "sha256": contracts["case:rope-core"]["sha256"],
+    }
+    aggregate = {
+        "schema": qualification.ROADMAP_EVIDENCE_SCHEMA,
+        "source": {"commit": SOURCE_COMMIT, "dirty": False},
+        "driver": {
+            "name": "test-driver",
+            "version": "1.2.3",
+            "binary_sha256": digest("driver"),
+        },
+        "device": {
+            "name": "test-device",
+            "vendor_id": 1,
+            "device_id": 2,
+            "driver_version": "456 (test)",
+        },
+        "toolchain": {"compiler": "test-compiler", "version": "7.8.9"},
+        "advertised_capabilities": [advertised],
+        "contracts": {
+            "trajectory": trajectory,
+            "quality": {
+                "id": "quality:rope-rigid-contact-v1",
+                "sha256": contracts[
+                    "quality:rope-rigid-contact-v1"]["sha256"],
+            },
+            "lifecycle": copy.deepcopy(trajectory),
+        },
+        "trajectory": {
+            "execution_status": "completed",
+            "reference_regression": {
+                "passed": 1, "failed": 0, "unsupported": 0,
+            },
+        },
+        "analytic_invariants": {
+            "passed": True, "sample_count": 1, "failure_count": 0,
+            "observations": {},
+        },
+        "lifecycle_invariants": {
+            "passed": True, "failure_count": 0,
+        },
+    }
+    provenance = {
+        "source_commit": SOURCE_COMMIT,
+        "device_name": "test-device",
+        "vendor_id": 1,
+        "device_id": 2,
+        "driver_version": 456,
+        "host_compiler": "test-compiler",
     }
     return aggregate, provenance, [advertised]
 
@@ -580,6 +657,56 @@ class QualificationTests(unittest.TestCase):
         report = self.assert_rejected(nearby, "required evidence is missing")
         self.assertEqual(report["qualified_count"], 0)
 
+    def test_rope_rigid_contact_is_exact_and_attachment_remains_missing(self):
+        contracts = contract_map(self.profile)
+        profile_path = ROOT / "quality" / "rope-rigid-contact-v1.json"
+        self.assertEqual(
+            contracts["quality:rope-rigid-contact-v1"]["path"],
+            profile_path.relative_to(REPOSITORY).as_posix())
+        self.assertEqual(
+            contracts["quality:rope-rigid-contact-v1"]["sha256"],
+            qualification.profile_sha256(profile_path))
+
+        contact = self.evaluate(rope_rigid_contact_result(self.profile))
+        self.assertTrue(contact["passed"], contact)
+        self.assertEqual(contact["qualified_count"], 1)
+        self.assertEqual(contact["capabilities"][0]["rule_id"],
+                         "rope-rigid-contact")
+        self.assertEqual(contact["capabilities"][0][
+            "max_graph_edges_per_simulation"], "not-applicable")
+        for scope in ("execution", "reference_regression",
+                      "lifecycle_invariants", "analytic_invariants"):
+            self.assertEqual(
+                contact["capabilities"][0]["scopes"][scope]["status"],
+                "passed")
+
+        attachment = self.assert_rejected(
+            rope_rigid_contact_result(self.profile, "ATTACHMENT"),
+            "qualification contract is missing")
+        self.assertEqual(attachment["qualified_count"], 0)
+        self.assertEqual(attachment["capabilities"][0]["rule_id"],
+                         "rope-rigid-attachment")
+        self.assertEqual(attachment["capabilities"][0]["scopes"]
+                         ["analytic_invariants"]["status"],
+                         "missing_contract")
+        self.assertIn(
+            {"scope": "analytic_invariants",
+             "contract": "quality:rope-rigid-contact-v1"},
+            attachment["unused_evidence"])
+
+    def test_rope_rigid_contact_rejects_contract_substitution(self):
+        result = rope_rigid_contact_result(self.profile)
+        result["evidence"][-2] = evidence(
+            self.profile, "lifecycle_invariants", "case:rigid-direct")
+        result["evidence"][-1] = evidence(
+            self.profile, "analytic_invariants",
+            "quality:fluid-rigid-contact-v1")
+        report = self.assert_rejected(result, "required evidence is missing")
+        self.assertEqual(report["qualified_count"], 0)
+        self.assertEqual(
+            {item["contract"] for item in report["unused_evidence"]},
+            {"case:rigid-direct", "quality:fluid-rigid-contact-v1"})
+
     def test_soft_smoke_contact_and_drag_contracts_are_exact(self):
         contracts = contract_map(self.profile)
         expected_contracts = {
@@ -760,6 +887,132 @@ class QualificationTests(unittest.TestCase):
         self.assertEqual(report["qualified_count"], 1)
         self.assertEqual(report["capabilities"][0]["rule_id"],
                          "fluid-soft-body")
+
+    def test_checked_producer_derives_exact_rope_rigid_contact(self):
+        aggregate, provenance, capabilities = rope_rigid_contact_aggregate(
+            self.profile)
+        result = qualification.derive_result(
+            self.profile, aggregate, self.digest,
+            "conformance/v1/evidence/test-rope-rigid.json",
+            digest("rope-rigid-aggregate"), provenance, capabilities)
+        report = self.evaluate(result)
+        self.assertTrue(report["passed"], report)
+        self.assertEqual(report["qualified_count"], 1)
+        self.assertEqual(report["capabilities"][0]["rule_id"],
+                         "rope-rigid-contact")
+
+    def test_case_lifecycle_capture_requires_exact_trajectory_reuse(self):
+        aggregate, provenance, _ = rope_rigid_contact_aggregate(self.profile)
+        contracts = contract_map(self.profile)
+        trajectory_result = {
+            "schema": "parallel-mater-conformance-result/v1",
+            "case_id": "rope-core",
+            "case_sha256": contracts["case:rope-core"]["sha256"],
+            "execution_status": "completed",
+            "provenance": copy.deepcopy(provenance),
+        }
+        trajectory_report = {
+            "schema": "parallel-mater-conformance-report/v1",
+            "scope": "reference_regression",
+            "passed": 1,
+            "failed": 0,
+            "unsupported": 0,
+            "cases": [{
+                "id": "rope-core", "passed": True,
+                "status": "passed", "reason": "", "differences": [],
+            }],
+        }
+        quality_sha = contracts["quality:rope-rigid-contact-v1"]["sha256"]
+        quality_result = {
+            "schema": "parallel-mater-conformance-quality-result/v1",
+            "profile_id": "rope-rigid-contact-v1",
+            "profile_sha256": quality_sha,
+            "execution_status": "completed",
+        }
+        quality_report = {
+            "schema": "parallel-mater-conformance-quality-report/v1",
+            "profile_id": "rope-rigid-contact-v1",
+            "profile_sha256": quality_sha,
+            "passed": True,
+            "failure_count": 0,
+            "sample_count": 1,
+            "observations": {},
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+
+            def write(name: str, value: dict) -> pathlib.Path:
+                path = root / name
+                path.write_text(json.dumps(value), encoding="utf-8")
+                return path
+
+            driver = root / "driver.bin"
+            driver.write_bytes(b"driver")
+            paths = {
+                "driver_binary": driver,
+                "provenance": write("provenance.json", provenance),
+                "capabilities": write("capabilities.json", {}),
+                "trajectory_result": write(
+                    "trajectory.json", trajectory_result),
+                "trajectory_report": write(
+                    "trajectory-report.json", trajectory_report),
+                "quality_result": write("quality.json", quality_result),
+                "quality_report": write(
+                    "quality-report.json", quality_report),
+                "lifecycle_result": write(
+                    "lifecycle.json", trajectory_result),
+                "lifecycle_report": write(
+                    "lifecycle-report.json", trajectory_report),
+            }
+            aggregate["driver"]["binary_sha256"] = (
+                qualification.file_sha256(driver))
+            aggregate["captures"] = {
+                "provenance_sha256": qualification.file_sha256(
+                    paths["provenance"]),
+                "capabilities_sha256": qualification.file_sha256(
+                    paths["capabilities"]),
+            }
+            aggregate["trajectory"].update({
+                "execution_result_sha256": qualification.file_sha256(
+                    paths["trajectory_result"]),
+                "comparison_report_sha256": qualification.file_sha256(
+                    paths["trajectory_report"]),
+            })
+            aggregate["analytic_invariants"].update({
+                "result_sha256": qualification.file_sha256(
+                    paths["quality_result"]),
+                "report_sha256": qualification.file_sha256(
+                    paths["quality_report"]),
+            })
+            aggregate["lifecycle_invariants"].update({
+                "result_sha256": aggregate["trajectory"]
+                ["execution_result_sha256"],
+                "report_sha256": aggregate["trajectory"]
+                ["comparison_report_sha256"],
+            })
+
+            qualification._verify_capture_hashes(aggregate, paths)
+            qualification._verify_capture_results(aggregate, paths)
+
+            for field in ("result_sha256", "report_sha256"):
+                with self.subTest(field=field):
+                    mismatched = copy.deepcopy(aggregate)
+                    mismatched["lifecycle_invariants"][field] = digest(field)
+                    with self.assertRaisesRegex(
+                            ValueError,
+                            "case lifecycle must exactly reuse its trajectory capture"):
+                        qualification._verify_capture_results(
+                            mismatched, paths)
+
+            wrong_contract = copy.deepcopy(aggregate)
+            wrong_contract["contracts"]["lifecycle"] = {
+                "id": "case:rigid-direct",
+                "sha256": contracts["case:rigid-direct"]["sha256"],
+            }
+            with self.assertRaisesRegex(
+                    ValueError,
+                    "case lifecycle must exactly reuse its trajectory capture"):
+                qualification._verify_capture_results(wrong_contract, paths)
 
     def test_checked_producer_rejects_unproved_claims(self):
         aggregate, provenance, capabilities = fluid_soft_aggregate(self.profile)
