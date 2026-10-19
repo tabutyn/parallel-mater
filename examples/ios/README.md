@@ -137,15 +137,16 @@ python3 scripts/Deploy-Gallery.py ipad --device DEVICE_ID \
 
 This path does not reuse Gallery scene results. It executes the canonical
 30-case registry through the public `pm*` API, the fixed 300-frame/eight-brick
-independent penetration oracle, the equal-fluid quality fixture, and both
-adverse lifecycle fixtures. Metal currently does not advertise separate-system
+independent penetration oracle, the equal-fluid quality fixture, the fluid-rope
+contact fixture, and the adverse lifecycle fixtures. Metal currently does not
+advertise separate-system
 equal-fluid coupling, so that fixture records `unsupported`. The adverse
 lifecycle artifact now contains both cases and all exact checkpoint
 fingerprints. Collection records it as captured pending host evaluation; only a
 passing `conformance/v1/lifecycle.py` report promotes it to lifecycle
 qualification.
 
-The app writes 35 raw artifacts under
+The app writes 36 raw artifacts under
 `Documents/physics-qualification/` and updates a nonce-bound manifest only
 after all attempts finish. The host verifies the installed app executable and
 embedded Metal-driver SHA-256 against the staged bundle, source revision,

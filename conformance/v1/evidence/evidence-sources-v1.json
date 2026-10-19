@@ -3,7 +3,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee"
+    "sha256": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92"
   },
   "expected_drivers": [
     {
@@ -96,12 +96,12 @@
     {
       "id": "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle-qualification.json",
-      "sha256": "6597fe02bc7111b4a696a8f06bd2ffb396251d9f4e989ac77d973176e7bf3c95"
+      "sha256": "1953ac99c2211062d910160c4f949f42be4fa52352190207518ae12e69b22e48"
     },
     {
       "id": "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid-qualification.json",
-      "sha256": "a724b7031fac5e6c0bf04b73cdb170a9b0d919105303ce521b879c4c422a1713"
+      "sha256": "a027d1c595544e2ecffc7e700b91dd9f688dbd52f08a9769da54d3aa1cc8c662"
     }
   ],
   "supplemental_reports": [

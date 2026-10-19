@@ -1079,7 +1079,7 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
-    constexpr std::array<std::pair<std::string_view, std::string_view>, 19U>
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 20U>
         pinned_inputs{{
             {"quality profile", "conformance/v1/quality/core-conservation-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-attachment-v1.json"},
@@ -1087,6 +1087,7 @@ void copy_particle_state(const std::vector<State> &states,
             {"quality profile", "conformance/v1/quality/rigid-kinematic-sweep-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-cloth-containment-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-soft-contact-v1.json"},
+            {"quality profile", "conformance/v1/quality/fluid-rope-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/smoke-self-pressure-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-cloth-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/smoke-fluid-drag-v1.json"},
@@ -1421,6 +1422,8 @@ int conformance_command_main(int argc, char **argv) {
                 "fluid-cloth-containment-v1";
             const bool fluid_soft_contact = arguments.quality_id ==
                 "fluid-soft-contact-v1";
+            const bool fluid_rope_contact = arguments.quality_id ==
+                "fluid-rope-contact-v1";
             const bool smoke_self_pressure = arguments.quality_id ==
                 "smoke-self-pressure-v1";
             const bool fluid_cloth_contact = arguments.quality_id ==
@@ -1432,6 +1435,7 @@ int conformance_command_main(int argc, char **argv) {
             if (!brick && !attachment && !rope_self_contact &&
                 !fluid_cloth_containment &&
                 !fluid_soft_contact &&
+                !fluid_rope_contact &&
                 !smoke_self_pressure && !fluid_cloth_contact &&
                 !smoke_self_viscosity && !smoke_fluid_drag)
                 throw std::runtime_error(
@@ -1445,12 +1449,18 @@ int conformance_command_main(int argc, char **argv) {
                     result = conformance_rigid_attachment_quality(root);
                 } else if (rope_self_contact) {
                     result = conformance_rope_self_contact_quality(root);
-                } else if (fluid_cloth_containment || fluid_soft_contact) {
+                } else if (fluid_cloth_containment || fluid_soft_contact ||
+                           fluid_rope_contact) {
                     ExecutionStatus status{};
-                    result = fluid_cloth_containment
-                        ? conformance_fluid_cloth_containment_quality(
-                              root, &status)
-                        : conformance_fluid_soft_contact_quality(root, &status);
+                    if (fluid_cloth_containment)
+                        result = conformance_fluid_cloth_containment_quality(
+                            root, &status);
+                    else if (fluid_soft_contact)
+                        result = conformance_fluid_soft_contact_quality(
+                            root, &status);
+                    else
+                        result = conformance_fluid_rope_contact_quality(
+                            root, &status);
                     if (status != ExecutionStatus::completed) {
                         Json unavailable = Json::object();
                         unavailable["schema"] =

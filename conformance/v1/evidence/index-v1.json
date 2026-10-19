@@ -1983,8 +1983,10 @@
       "rule_id": "fluid-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rope-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2032,8 +2034,10 @@
       "rule_id": "fluid-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rope-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7161,8 +7165,10 @@
       "rule_id": "fluid-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rope-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7210,8 +7216,10 @@
       "rule_id": "fluid-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rope-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11108,8 +11116,10 @@
       "rule_id": "fluid-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rope-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -12789,7 +12799,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "expected": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -13262,20 +13272,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral fluid-rope quality case is registered.",
+      "actual": "quality:fluid-rope-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[16].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral fluid-rope quality case is registered.",
+      "actual": "quality:fluid-rope-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[16].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -15892,7 +15902,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "expected": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15901,7 +15911,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "expected": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15910,7 +15920,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "expected": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15919,7 +15929,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-cuda",
-      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "expected": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -16313,7 +16323,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "expected": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -16322,7 +16332,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-d3d12",
-      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "expected": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -16559,20 +16569,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral fluid-rope quality case is registered.",
+      "actual": "quality:fluid-rope-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[13].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral fluid-rope quality case is registered.",
+      "actual": "quality:fluid-rope-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[13].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -18982,7 +18992,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "expected": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18991,7 +19001,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "expected": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19000,7 +19010,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "expected": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19009,7 +19019,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "expected": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19018,7 +19028,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "expected": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19133,11 +19143,11 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral fluid-rope quality case is registered.",
+      "actual": "quality:fluid-rope-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[13].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -20332,7 +20342,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "expected": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20340,7 +20350,7 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+  "obligations_sha256": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
   "qualification_complete": true,
   "qualified_capability_count": 2,
   "report_count": 17,
@@ -20693,7 +20703,7 @@
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid-qualification.json",
       "qualified_count": 1,
-      "sha256": "a724b7031fac5e6c0bf04b73cdb170a9b0d919105303ce521b879c4c422a1713",
+      "sha256": "a027d1c595544e2ecffc7e700b91dd9f688dbd52f08a9769da54d3aa1cc8c662",
       "source": {
         "commit": "03c78b1f397158d90c7fa7055aa9cda1f966a50c",
         "dirty": false
@@ -20722,7 +20732,7 @@
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle-qualification.json",
       "qualified_count": 1,
-      "sha256": "6597fe02bc7111b4a696a8f06bd2ffb396251d9f4e989ac77d973176e7bf3c95",
+      "sha256": "1953ac99c2211062d910160c4f949f42be4fa52352190207518ae12e69b22e48",
       "source": {
         "commit": "03c78b1f397158d90c7fa7055aa9cda1f966a50c",
         "dirty": false
@@ -20852,7 +20862,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "a2f7a620b2aa43e8876bbd3c3383a9307b3ec007100c6cfc7459e112b3e62be4",
+  "sources_sha256": "27bed750a82781a858a666456e75410d11b2115ab8f2b023c6163921e285c90f",
   "valid": true,
   "validation_failures": []
 }

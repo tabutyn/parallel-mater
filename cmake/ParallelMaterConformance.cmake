@@ -10,6 +10,7 @@ add_library(parallel-mater-conformance-runner STATIC
     conformance/v1/src/rope_quality.cpp
     conformance/v1/src/fluid_cloth_containment_quality.cpp
     conformance/v1/src/fluid_soft_contact_quality.cpp
+    conformance/v1/src/fluid_rope_contact_quality.cpp
     conformance/v1/src/smoke_quality.cpp
     conformance/v1/src/fluid_cloth_contact.cpp
     conformance/v1/src/smoke_fluid_drag.cpp
@@ -37,7 +38,8 @@ if(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION)
     target_compile_definitions(parallel-mater-conformance-runner PRIVATE
         PM_QUALITY_PROFILE_SHA256="a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"
         PM_FLUID_SELF_CONTACT_PROFILE_SHA256="21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2"
-        PM_FLUID_SELF_PRESSURE_PROFILE_SHA256="4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b")
+        PM_FLUID_SELF_PRESSURE_PROFILE_SHA256="4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b"
+        PM_FLUID_SELF_VISCOSITY_PROFILE_SHA256="9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c")
 endif()
 parallel_mater_enable_warnings(parallel-mater-conformance-runner)
 

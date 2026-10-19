@@ -1397,7 +1397,7 @@ Status SimulationRuntime::add_fluid_rope_coupling(
     if (!owner) return failure(StatusCode::out_of_memory, "fluid rope coupling allocation failed");
     StorageAllocator allocator;
     status = simulation::visit_fluid_rope_storage(*owner,
-        impl_->ropes[options.rope.index]->data.count, allocator);
+        fluid->options.capacity, allocator);
     if (!status) return status;
     *owner->contact_count = 0U;
     *owner->maximum_penetration = 0.0F;

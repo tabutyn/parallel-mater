@@ -1,0 +1,30 @@
+{
+  "id": "P1-58",
+  "title": "Release fluid-pair interface storage",
+  "status": "leased",
+  "dependencies": [
+    "P1-10"
+  ],
+  "locks": [
+    "runtime-memory"
+  ],
+  "requires": [
+    "Any development host"
+  ],
+  "scope": "Restore bounded fluid-pair graph replacement by releasing every phase-label, interface reconstruction and diagnostic allocation when a graph owner retires; change no public API or capability advertisement.",
+  "acceptance": [
+    "The host fluid-pair graph lifecycle replaces both endpoints repeatedly without exhausting bound persistent or scratch simulation memory.",
+    "Existing invalid-graph rollback, reset, overflow and recovery checks remain passing under the public-API host fixture."
+  ],
+  "evidence": [],
+  "lease": {
+    "token": "e63d016a-76c9-4fe3-9dfb-cedbbce6932b",
+    "owner": "codex-ci-repair",
+    "machine": "thomas-desktop",
+    "branch": "work/P1-58/thomas-desktop",
+    "claimed_at": "2026-10-19T12:06:48Z",
+    "heartbeat_at": "2026-10-19T12:06:48Z",
+    "expires_at": "2026-10-20T12:06:48Z"
+  },
+  "history": []
+}
