@@ -54,6 +54,11 @@
       "sha256": "e3ae75435330251f28ac8196012f921bf7be032541362db1fdc978f5eb7f7473"
     },
     {
+      "id": "macos-m4-slang-metal-1d85b88-fluid-cloth-containment",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-1d85b88-fluid-cloth-containment-qualification.json",
+      "sha256": "d4f990abb3dfcf9281573d80f73e9ab263a7e65a925daa9369add31d2994e173"
+    },
+    {
       "id": "macos-m4-slang-metal-aac6d59",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json",
       "sha256": "4c8bacefffcaed67e300d2bdf90a683d46b0c12efeac14f6c83151ecac0bc9ef"
