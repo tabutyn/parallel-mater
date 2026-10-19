@@ -1717,6 +1717,284 @@ def _evaluate_smoke_self_viscosity(
     }
 
 
+
+def _evaluate_smoke_self_pressure(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definitions = {fixture["id"]: fixture
+                   for fixture in profile.get("fixtures", [])
+                   if isinstance(fixture, dict) and
+                   isinstance(fixture.get("id"), str)}
+    actual_fixtures = result.get("fixtures")
+    if not isinstance(actual_fixtures, list):
+        failures.append(Failure("$.fixtures", "expected a fixture array",
+                                actual_fixtures))
+        actual_fixtures = []
+    actual_by_id: dict[str, dict[str, Any]] = {}
+    for index, fixture in enumerate(actual_fixtures):
+        if not isinstance(fixture, dict) or not isinstance(
+                fixture.get("id"), str):
+            failures.append(Failure(f"$.fixtures[{index}]",
+                                    "fixture needs a string id", fixture))
+            continue
+        identity = fixture["id"]
+        if identity in actual_by_id:
+            failures.append(Failure(f"$.fixtures[{index}].id",
+                                    "duplicate fixture id", identity))
+            continue
+        actual_by_id[identity] = fixture
+    for missing in sorted(set(definitions) - set(actual_by_id)):
+        failures.append(Failure("$.fixtures", "missing required fixture", missing))
+    for extra in sorted(set(actual_by_id) - set(definitions)):
+        failures.append(Failure("$.fixtures", "unexpected fixture", extra))
+
+    tolerances = profile.get("tolerances", {})
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+    age_tolerance = float(tolerances.get(
+        "aged_particle_age_absolute_seconds", state_tolerance))
+    expected_per_step = tolerances.get("expected_particles_per_step")
+    if not isinstance(expected_per_step, int) or isinstance(
+            expected_per_step, bool) or expected_per_step <= 0:
+        failures.append(Failure(
+            "$.profile.tolerances.expected_particles_per_step",
+            "expected a positive integer", expected_per_step))
+        expected_per_step = 0
+
+    integer_fields = ("step_count", "substeps", "capacity",
+                      "grid_resolution", "grid_vertical_resolution",
+                      "grid_pressure_iterations")
+    scalar_fields = ("timestep_seconds", "particles_per_second",
+                     "lifetime_seconds", "particle_radius_m",
+                     "rest_number_density", "pressure_stiffness",
+                     "maximum_speed_m_s", "grid_pressure_tolerance",
+                     "grid_edge_length_m")
+    vector_fields = ("gravity_m_s2", "emitter_center_m",
+                     "initial_velocity_m_s", "wind_m_s",
+                     "grid_minimum_m")
+
+    def close_scalar(value: Any, expected: Any, path: str) -> None:
+        actual_number = _scalar(value, path, failures)
+        expected_number = _scalar(expected, path.replace(
+            "$.fixtures", "$.profile.fixtures"), failures)
+        if (actual_number is not None and expected_number is not None and
+                abs(actual_number - expected_number) > state_tolerance):
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    actual_number, expected_number))
+
+    def close_vector(value: Any, expected: Any, path: str) -> None:
+        actual_vector = _vector(value, path, failures)
+        expected_vector = _vector(expected, path.replace(
+            "$.fixtures", "$.profile.fixtures"), failures)
+        if (actual_vector is not None and expected_vector is not None and
+                max(abs(a - b) for a, b in zip(
+                    actual_vector, expected_vector)) > state_tolerance):
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    list(actual_vector), list(expected_vector)))
+
+    def close_extents(value: Any, expected: Any, path: str) -> None:
+        if (not isinstance(value, list) or len(value) != 2 or
+                not all(_number(item) for item in value)):
+            failures.append(Failure(path, "expected two finite components", value))
+            return
+        if (not isinstance(expected, list) or len(expected) != 2 or
+                not all(_number(item) for item in expected)):
+            failures.append(Failure(path.replace(
+                "$.fixtures", "$.profile.fixtures"),
+                "expected two finite components", expected))
+            return
+        if max(abs(float(a) - float(b)) for a, b in zip(
+                value, expected)) > state_tolerance:
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    value, expected))
+
+    def particles(value: Any, path: str, expected_count: int) -> list[dict[str, Any]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a particle array", value))
+            return []
+        if len(value) != expected_count:
+            failures.append(Failure(path, "particle count differs from profile",
+                                    len(value), expected_count))
+        parsed: list[dict[str, Any]] = []
+        for index, particle in enumerate(value):
+            item_path = f"{path}[{index}]"
+            if not isinstance(particle, dict):
+                failures.append(Failure(item_path,
+                                        "expected a particle object", particle))
+                continue
+            if particle.get("index") != index:
+                failures.append(Failure(item_path + ".index",
+                                        "particle order/index changed",
+                                        particle.get("index"), index))
+            valid = True
+            for name in ("position_m", "velocity_m_s", "vorticity_per_s"):
+                valid = _vector(particle.get(name), item_path + "." + name,
+                                failures) is not None and valid
+            for name in ("age_seconds", "number_density", "pressure"):
+                valid = _scalar(particle.get(name), item_path + "." + name,
+                                failures) is not None and valid
+            if valid:
+                parsed.append(particle)
+        return parsed
+
+    sample_count = 0
+    observations: dict[str, Any] = {}
+    for identity, definition in definitions.items():
+        actual = actual_by_id.get(identity)
+        if actual is None:
+            continue
+        base = f"$.fixtures[{identity}]"
+        for field in ("representation", "oracle"):
+            if actual.get(field) != definition.get(field):
+                failures.append(Failure(base + "." + field,
+                                        "fixture setting differs from profile",
+                                        actual.get(field), definition.get(field)))
+        for field in integer_fields:
+            if actual.get(field) != definition.get(field):
+                failures.append(Failure(base + "." + field,
+                                        "fixture setting differs from profile",
+                                        actual.get(field), definition.get(field)))
+        for field in scalar_fields:
+            close_scalar(actual.get(field), definition.get(field),
+                         base + "." + field)
+        for field in vector_fields:
+            close_vector(actual.get(field), definition.get(field),
+                         base + "." + field)
+        close_extents(actual.get("emitter_half_extents_m"),
+                      definition.get("emitter_half_extents_m"),
+                      base + ".emitter_half_extents_m")
+
+        first = particles(actual.get("first_particles"),
+                          base + ".first_particles", expected_per_step)
+        second = particles(actual.get("second_particles"),
+                           base + ".second_particles", 2 * expected_per_step)
+        final = particles(actual.get("final_particles"),
+                          base + ".final_particles", 3 * expected_per_step)
+        maximum_speed = float(definition.get("maximum_speed_m_s", 0.0)) + float(
+            tolerances.get("maximum_speed_slack_m_s", 0.0))
+        timestep = float(definition.get("timestep_seconds", 0.0))
+        maximum_pressure = 0.0
+        maximum_equation_error = 0.0
+        for index, particle in enumerate(first):
+            age = float(particle["age_seconds"])
+            pressure = float(particle["pressure"])
+            density = float(particle["number_density"])
+            if abs(age) > age_tolerance:
+                failures.append(Failure(
+                    f"{base}.first_particles[{index}].age_seconds",
+                    "new particle age must be zero", age, 0.0))
+            if abs(pressure) > state_tolerance or abs(density) > state_tolerance:
+                failures.append(Failure(
+                    f"{base}.first_particles[{index}]",
+                    "new particle pressure state must be zero",
+                    {"pressure": pressure, "number_density": density}, 0.0))
+        for index, particle in enumerate(second):
+            expected_age = timestep if index < expected_per_step else 0.0
+            age = float(particle["age_seconds"])
+            if abs(age - expected_age) > age_tolerance:
+                failures.append(Failure(
+                    f"{base}.second_particles[{index}].age_seconds",
+                    "second checkpoint particle age is incorrect",
+                    age, expected_age))
+        for index, particle in enumerate(final):
+            age = float(particle["age_seconds"])
+            pressure = float(particle["pressure"])
+            density = float(particle["number_density"])
+            velocity = tuple(float(component)
+                             for component in particle["velocity_m_s"])
+            if density < 0.0:
+                failures.append(Failure(
+                    f"{base}.final_particles[{index}].number_density",
+                    "number density must be nonnegative", density, 0.0))
+            if _norm(velocity) > maximum_speed:
+                failures.append(Failure(
+                    f"{base}.final_particles[{index}].velocity_m_s",
+                    "particle speed exceeds authored maximum",
+                    _norm(velocity), maximum_speed))
+            if index < 2 * expected_per_step:
+                expected_age = (2 * timestep if index < expected_per_step
+                                else timestep)
+                if abs(age - expected_age) > age_tolerance:
+                    failures.append(Failure(
+                        f"{base}.final_particles[{index}].age_seconds",
+                        "aged particle did not advance to its checkpoint age",
+                        age, expected_age))
+                if (definition.get("representation") == "particle" or
+                        index < expected_per_step):
+                    maximum_pressure = max(maximum_pressure, abs(pressure))
+                    sample_count += 1
+            elif abs(age) > age_tolerance:
+                failures.append(Failure(
+                    f"{base}.final_particles[{index}].age_seconds",
+                    "second emission must remain new", age, 0.0))
+
+        mean_velocity_drift = 0.0
+        if (definition.get("representation") == "particle" and final):
+            initial_velocity = tuple(float(component) for component in
+                                     definition["initial_velocity_m_s"])
+            mean_velocity = tuple(
+                sum(float(item["velocity_m_s"][component]) for item in final) /
+                len(final) for component in range(3))
+            mean_velocity_drift = _norm(tuple(
+                actual - expected for actual, expected in
+                zip(mean_velocity, initial_velocity)))
+            drift_tolerance = float(tolerances.get(
+                "particle_mean_velocity_drift_absolute_m_s", 0.0))
+            if mean_velocity_drift > drift_tolerance:
+                failures.append(Failure(
+                    base + ".final_particles",
+                    "closed particle pressure introduced net velocity drift",
+                    mean_velocity_drift, drift_tolerance))
+
+        if (definition.get("representation") == "particle" and second and
+                final):
+            rest = float(definition.get("rest_number_density", 0.0))
+            stiffness = float(definition.get("pressure_stiffness", 0.0))
+            equation_tolerance = float(tolerances.get(
+                "particle_pressure_equation_absolute", 0.0))
+            for index in range(min(2 * expected_per_step, len(second),
+                                   len(final))):
+                density = float(final[index]["number_density"])
+                previous = float(second[index]["pressure"])
+                expected = min(100.0, stiffness * max(0.0, density / rest - 1.0) +
+                               previous * math.exp(-timestep / 0.05))
+                actual_pressure = float(final[index]["pressure"])
+                error = abs(actual_pressure - expected)
+                maximum_equation_error = max(maximum_equation_error, error)
+                if error > equation_tolerance:
+                    failures.append(Failure(
+                        f"{base}.final_particles[{index}].pressure",
+                        "particle pressure differs from public density oracle",
+                        actual_pressure, expected))
+            minimum = float(tolerances.get(
+                "particle_pressure_activity_minimum", 0.0))
+        else:
+            minimum = float(tolerances.get(
+                "grid_pressure_activity_minimum", 0.0))
+        if maximum_pressure < minimum:
+            failures.append(Failure(base + ".final_particles",
+                                    "pressure response is too small",
+                                    maximum_pressure, minimum))
+        observations[identity] = {
+            "maximum_absolute_pressure": maximum_pressure,
+            "maximum_particle_equation_error": maximum_equation_error,
+            "particle_mean_velocity_drift_m_s": mean_velocity_drift,
+        }
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": len(actual_by_id),
+        "sample_count": sample_count,
+        "failure_count": len(failures),
+        "observations": observations,
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def evaluate(profile: dict[str, Any], result: dict[str, Any],
              expected_hash: str) -> dict[str, Any]:
     failures: list[Failure] = []
@@ -1759,6 +2037,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             mode=evaluation.removeprefix("fluid_self_"))
     if evaluation == "rope_self_contact":
         return _evaluate_rope_self_contact(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "smoke_self_pressure":
+        return _evaluate_smoke_self_pressure(
             profile, result, expected_hash, driver, failures)
     if evaluation == "smoke_self_viscosity":
         return _evaluate_smoke_self_viscosity(
