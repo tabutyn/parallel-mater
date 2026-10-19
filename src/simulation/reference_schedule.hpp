@@ -2032,6 +2032,7 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
             for (auto &coupling :
                  impl_->fluid_cloth_couplings) {
                 if (!coupling.alive || !coupling.options.enabled ||
+                    !coupling.options.contact ||
                     !(coupling.options.fluid == fluid_id)) continue;
                 if (coupling.options.cloth.index >= impl_->cloths.size())
                     continue;
@@ -2222,6 +2223,7 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
             for (const auto &coupling :
                  impl_->fluid_cloth_couplings) {
                 if (!coupling.alive || !coupling.options.enabled ||
+                    !coupling.options.containment ||
                     !(coupling.options.fluid == fluid_id) ||
                     coupling.options.cloth.index >= impl_->cloths.size())
                     continue;
