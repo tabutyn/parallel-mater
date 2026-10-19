@@ -47,6 +47,7 @@
     "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
     "conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json": "5599b5d6c5e8386830d0abb29a13feddd3a43a917912efb9e9cf4b1732a22769",
     "conformance/v1/lifecycle/fluid-cloth-containment-lifecycle-v1.json": "c96a995030b4b3e20ef77c55ab01bb7be2afdbfa2959f69c7d07be6c9bc21bb1",
+    "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json": "e3f0b451c271add83153c0e1a3f22f1784465a568b289facacb46a5fab44c1c1",
     "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31",
     "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f"
   },
@@ -62,11 +63,12 @@
     "conformance/v1/quality/rigid-brick-penetration-v1.json": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da",
     "conformance/v1/quality/rigid-kinematic-sweep-v1.json": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc",
     "conformance/v1/quality/rope-self-contact-v1.json": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113",
+    "conformance/v1/quality/smoke-fluid-drag-v1.json": "ef28c4f4446365aa787aac9605098772f00e68f1ebf958b2023b6cafdba1c3e1",
     "conformance/v1/quality/smoke-self-pressure-v1.json": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150",
     "conformance/v1/quality/smoke-self-viscosity-v1.json": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"
   },
   "qualification_profile_sha256": {
-    "conformance/v1/qualification/capability-obligations-v1.json": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a"
+    "conformance/v1/qualification/capability-obligations-v1.json": "a2256e50d07e8266d0cfa93a1101feae5ad20351ca9be4b421372f5a8c25e874"
   },
   "evidence_index_sha256": {
     "conformance/v1/evidence/evidence-sources-v1.json": "8c3610a07afc002e5d10ced0ae29a55ba9c350f109580dff0423838811129bd5",

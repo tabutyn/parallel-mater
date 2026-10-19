@@ -202,12 +202,52 @@
       "missing": {"analytic_invariants": "No vendor-neutral fluid-rope quality case is registered."}
     },
     {
-      "id": "fluid-smoke",
-      "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG", "THERMAL", "PHASE"], "direction": ["SECOND_TO_FIRST", "EXTERNAL_TO_FIRST", "FIRST_TO_SECOND_TRANSFER"], "material_profile": ["SMOKE_PARTICLE", "SMOKE_GRID"]},
-      "mode_directions": [["DRAG", "SECOND_TO_FIRST"], ["THERMAL", "EXTERNAL_TO_FIRST"], ["PHASE", "FIRST_TO_SECOND_TRANSFER"]],
+      "id": "fluid-smoke-drag-particle",
+      "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE"]},
+      "trajectory_contract": "case:smoke-water",
+      "required": {
+        "lifecycle_invariants": ["lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback"],
+        "analytic_invariants": ["quality:smoke-fluid-drag-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "fluid-smoke-drag-grid",
+      "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_GRID"]},
+      "trajectory_contract": "case:smoke-water",
+      "required": {
+        "lifecycle_invariants": ["lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback"],
+        "analytic_invariants": ["quality:smoke-fluid-drag-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "fluid-smoke-thermal-particle",
+      "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["THERMAL"], "direction": ["EXTERNAL_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE"]},
       "trajectory_contract": "case:smoke-water",
       "required": {},
-      "missing": {"lifecycle_invariants": "No exact fluid-smoke adverse graph case is registered.", "analytic_invariants": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered."}
+      "missing": {"lifecycle_invariants": "No exact fluid-smoke particle thermal graph case is registered.", "analytic_invariants": "No externally heated fluid particle-smoke quality profile is registered."}
+    },
+    {
+      "id": "fluid-smoke-thermal-grid",
+      "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["THERMAL"], "direction": ["EXTERNAL_TO_FIRST"], "material_profile": ["SMOKE_GRID"]},
+      "trajectory_contract": "case:smoke-water",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact fluid-smoke grid thermal graph case is registered.", "analytic_invariants": "No externally heated fluid grid-smoke quality profile is registered."}
+    },
+    {
+      "id": "fluid-smoke-phase-particle",
+      "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["PHASE"], "direction": ["FIRST_TO_SECOND_TRANSFER"], "material_profile": ["SMOKE_PARTICLE"]},
+      "trajectory_contract": "case:smoke-water",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact fluid-smoke particle phase graph case is registered.", "analytic_invariants": "No fluid-to-particle-smoke phase quality profile is registered."}
+    },
+    {
+      "id": "fluid-smoke-phase-grid",
+      "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["PHASE"], "direction": ["FIRST_TO_SECOND_TRANSFER"], "material_profile": ["SMOKE_GRID"]},
+      "trajectory_contract": "case:smoke-water",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact fluid-smoke grid phase graph case is registered.", "analytic_invariants": "No fluid-to-grid-smoke phase quality profile is registered."}
     },
     {
       "id": "fluid-rigid",

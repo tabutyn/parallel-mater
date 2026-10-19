@@ -3026,6 +3026,299 @@ def _evaluate_smoke_self_pressure(
     }
 
 
+def _evaluate_smoke_fluid_drag(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definitions = {fixture["id"]: fixture
+                   for fixture in profile.get("fixtures", [])
+                   if isinstance(fixture, dict) and
+                   isinstance(fixture.get("id"), str)}
+    actual_fixtures = result.get("fixtures")
+    if not isinstance(actual_fixtures, list):
+        failures.append(Failure("$.fixtures", "expected a fixture array",
+                                actual_fixtures))
+        actual_fixtures = []
+    actual_by_id: dict[str, dict[str, Any]] = {}
+    for index, fixture in enumerate(actual_fixtures):
+        if not isinstance(fixture, dict) or not isinstance(
+                fixture.get("id"), str):
+            failures.append(Failure(f"$.fixtures[{index}]",
+                                    "fixture needs a string id", fixture))
+            continue
+        identity = fixture["id"]
+        if identity in actual_by_id:
+            failures.append(Failure(f"$.fixtures[{index}].id",
+                                    "duplicate fixture id", identity))
+            continue
+        actual_by_id[identity] = fixture
+    for missing in sorted(set(definitions) - set(actual_by_id)):
+        failures.append(Failure("$.fixtures", "missing required fixture", missing))
+    for extra in sorted(set(actual_by_id) - set(definitions)):
+        failures.append(Failure("$.fixtures", "unexpected fixture", extra))
+
+    tolerances = profile.get("tolerances", {})
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+    smoke_tolerance = float(tolerances.get("smoke_state_absolute", 0.0))
+
+    def sub(first: tuple[float, float, float],
+            second: tuple[float, float, float]) -> tuple[float, float, float]:
+        return tuple(a - b for a, b in zip(first, second))
+
+    def close_number(actual: Any, expected: Any, path: str) -> None:
+        value = _scalar(actual, path, failures)
+        reference = _scalar(expected, path.replace(
+            "$.fixtures", "$.profile.fixtures"), failures)
+        if (value is not None and reference is not None and
+                abs(value - reference) > state_tolerance):
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    value, reference))
+
+    def close_vector(actual: Any, expected: Any, path: str) -> None:
+        value = _vector(list(actual) if isinstance(actual, tuple) else actual,
+                        path, failures)
+        reference = _vector(expected, path.replace(
+            "$.fixtures", "$.profile.fixtures"), failures)
+        if (value is not None and reference is not None and
+                _norm(sub(value, reference)) > state_tolerance):
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    list(value), list(reference)))
+
+    def close_sequence(actual: Any, expected: Any, path: str) -> None:
+        if (not isinstance(actual, list) or not isinstance(expected, list) or
+                len(actual) != len(expected)):
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    actual, expected))
+            return
+        values = [_scalar(item, f"{path}[{index}]", failures)
+                  for index, item in enumerate(actual)]
+        references = [_scalar(item, f"{path}.profile[{index}]", failures)
+                      for index, item in enumerate(expected)]
+        if (all(item is not None for item in values + references) and
+                any(abs(value - reference) > state_tolerance
+                    for value, reference in zip(values, references))):
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    actual, expected))
+
+    def snapshot(value: Any, path: str) -> dict[str, Any] | None:
+        if not isinstance(value, dict):
+            failures.append(Failure(path, "expected a snapshot object", value))
+            return None
+        fluid = value.get("fluid")
+        particles = value.get("smoke_particles")
+        if not isinstance(fluid, dict):
+            failures.append(Failure(path + ".fluid",
+                                    "expected a fluid object", fluid))
+            return None
+        if not isinstance(particles, list) or not particles:
+            failures.append(Failure(path + ".smoke_particles",
+                                    "expected emitted smoke particles", particles))
+            return None
+        position = _vector(fluid.get("position_m"), path +
+                           ".fluid.position_m", failures)
+        velocity = _vector(fluid.get("velocity_m_s"), path +
+                           ".fluid.velocity_m_s", failures)
+        if position is None or velocity is None:
+            return None
+        normalized_particles: list[dict[str, Any]] = []
+        for index, particle in enumerate(particles):
+            particle_path = f"{path}.smoke_particles[{index}]"
+            if not isinstance(particle, dict):
+                failures.append(Failure(particle_path, "expected an object",
+                                        particle))
+                continue
+            vectors = []
+            for field in ("position_m", "velocity_m_s", "vorticity_per_s"):
+                vector = _vector(particle.get(field), particle_path + "." +
+                                 field, failures)
+                vectors.append(vector)
+            scalars = []
+            for field in ("age_seconds", "number_density", "pressure_m_s2"):
+                scalar = _scalar(particle.get(field), particle_path + "." +
+                                 field, failures)
+                scalars.append(scalar)
+            if any(item is None for item in vectors + scalars):
+                continue
+            normalized_particles.append({
+                "vectors": [item for item in vectors if item is not None],
+                "scalars": [item for item in scalars if item is not None],
+            })
+        if len(normalized_particles) != len(particles):
+            return None
+        return {"position": position, "velocity": velocity,
+                "smoke": normalized_particles}
+
+    def compare_smoke(first: dict[str, Any], second: dict[str, Any],
+                      path: str) -> float:
+        a = first["smoke"]
+        b = second["smoke"]
+        if len(a) != len(b):
+            failures.append(Failure(path, "drag changed smoke particle count",
+                                    len(b), len(a)))
+            return float("inf")
+        maximum = 0.0
+        for left, right in zip(a, b):
+            for left_vector, right_vector in zip(
+                    left["vectors"], right["vectors"]):
+                maximum = max(maximum, _norm(sub(left_vector, right_vector)))
+            for left_scalar, right_scalar in zip(
+                    left["scalars"], right["scalars"]):
+                maximum = max(maximum, abs(left_scalar - right_scalar))
+        if maximum > smoke_tolerance:
+            failures.append(Failure(path,
+                                    "drag added an unadvertised reverse smoke force",
+                                    maximum, smoke_tolerance))
+        return maximum
+
+    observations: dict[str, Any] = {}
+    sample_count = 0
+    for identity, definition in definitions.items():
+        actual = actual_by_id.get(identity)
+        if actual is None:
+            continue
+        base = f"$.fixtures[{identity}]"
+        for field in ("id", "representation", "warmup_step_count", "substeps",
+                      "smoke_particle_capacity", "smoke_grid_resolution",
+                      "smoke_grid_vertical_resolution", "declared_mode_flags",
+                      "exercised_mode", "oracle"):
+            if actual.get(field) != definition.get(field):
+                failures.append(Failure(base + "." + field,
+                                        "fixture setting differs from profile",
+                                        actual.get(field), definition.get(field)))
+        for field in ("timestep_seconds", "fluid_initial_temperature_celsius",
+                      "fluid_particle_radius_m", "fluid_support_radius_m",
+                      "fluid_rest_density_kg_m3",
+                      "fluid_rest_particle_volume_m3",
+                      "smoke_emission_rate_per_s", "smoke_lifetime_seconds",
+                      "smoke_particle_radius_m", "smoke_rest_number_density",
+                      "smoke_maximum_speed_m_s", "smoke_grid_edge_length_m",
+                      "thermal_transfer_rate_per_s",
+                      "boiling_temperature_celsius", "control_wind_drag_per_s",
+                      "test_wind_drag_per_s"):
+            close_number(actual.get(field), definition.get(field),
+                         base + "." + field)
+        for field in ("gravity_m_s2", "fluid_initial_position_m",
+                      "smoke_emitter_center_m", "smoke_grid_minimum_m",
+                      "carrier_velocity_m_s",
+                      "test_fluid_initial_velocity_m_s",
+                      "matched_fluid_initial_velocity_m_s"):
+            close_vector(actual.get(field), definition.get(field),
+                         base + "." + field)
+        close_sequence(actual.get("smoke_emitter_half_extents_m"),
+                       definition.get("smoke_emitter_half_extents_m"),
+                       base + ".smoke_emitter_half_extents_m")
+        runs = actual.get("runs")
+        if not isinstance(runs, list):
+            failures.append(Failure(base + ".runs", "expected a run array", runs))
+            continue
+        indexed = {run.get("id"): run for run in runs
+                   if isinstance(run, dict) and isinstance(run.get("id"), str)}
+        expected_runs = {"control", "drag", "matched-control", "matched-drag"}
+        if set(indexed) != expected_runs or len(indexed) != len(runs):
+            failures.append(Failure(base + ".runs",
+                                    "expected exactly the four paired runs",
+                                    sorted(indexed), sorted(expected_runs)))
+            continue
+        states: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
+        for run_id in sorted(expected_runs):
+            initial = snapshot(indexed[run_id].get("initial"),
+                               base + f".runs[{run_id}].initial")
+            final = snapshot(indexed[run_id].get("final"),
+                             base + f".runs[{run_id}].final")
+            if initial is not None and final is not None:
+                states[run_id] = (initial, final)
+        if set(states) != expected_runs:
+            continue
+
+        control_initial, control_final = states["control"]
+        drag_initial, drag_final = states["drag"]
+        matched_control_initial, matched_control_final = states["matched-control"]
+        matched_drag_initial, matched_drag_final = states["matched-drag"]
+        close_vector(control_initial["velocity"],
+                     definition["test_fluid_initial_velocity_m_s"],
+                     base + ".runs[control].initial.fluid.velocity_m_s")
+        close_vector(control_initial["position"],
+                     definition["fluid_initial_position_m"],
+                     base + ".runs[control].initial.fluid.position_m")
+        close_vector(drag_initial["velocity"],
+                     definition["test_fluid_initial_velocity_m_s"],
+                     base + ".runs[drag].initial.fluid.velocity_m_s")
+        close_vector(matched_control_initial["velocity"],
+                     definition["matched_fluid_initial_velocity_m_s"],
+                     base + ".runs[matched-control].initial.fluid.velocity_m_s")
+        close_vector(matched_drag_initial["velocity"],
+                     definition["matched_fluid_initial_velocity_m_s"],
+                     base + ".runs[matched-drag].initial.fluid.velocity_m_s")
+
+        control_drift = _norm(sub(control_final["velocity"],
+                                  control_initial["velocity"]))
+        allowed_control = float(tolerances.get(
+            "maximum_control_velocity_drift_m_s", 0.0))
+        if control_drift > allowed_control:
+            failures.append(Failure(base + ".runs[control]",
+                                    "zero-drag control velocity drifted",
+                                    control_drift, allowed_control))
+        delta = sub(drag_final["velocity"], control_final["velocity"])
+        carrier = _vector(definition.get("carrier_velocity_m_s"),
+                          base + ".carrier_velocity_m_s", failures)
+        if carrier is not None:
+            relative = sub(carrier, control_final["velocity"])
+            denominator = sum(component * component for component in relative)
+            response = (sum(component * axis for component, axis in
+                            zip(delta, relative)) / denominator
+                        if denominator > 1.0e-12 else 0.0)
+            transverse = _norm(tuple(component - response * axis
+                                     for component, axis in zip(delta, relative)))
+            minimum = float(tolerances.get(
+                "minimum_drag_response_fraction", 0.0))
+            maximum = float(tolerances.get(
+                "maximum_drag_response_fraction", 0.0))
+            if response < minimum or response > maximum:
+                failures.append(Failure(base + ".runs[drag]",
+                                        "fluid drag response is outside bounds",
+                                        response, [minimum, maximum]))
+            allowed_transverse = float(tolerances.get(
+                "maximum_transverse_velocity_m_s", 0.0))
+            if transverse > allowed_transverse:
+                failures.append(Failure(base + ".runs[drag]",
+                                        "fluid drag is not aligned with smoke flow",
+                                        transverse, allowed_transverse))
+        matched_difference = _norm(sub(matched_drag_final["velocity"],
+                                       matched_control_final["velocity"]))
+        allowed_matched = float(tolerances.get(
+            "maximum_matched_velocity_difference_m_s", 0.0))
+        if matched_difference > allowed_matched:
+            failures.append(Failure(base + ".runs[matched-drag]",
+                                    "matched flow produced drag",
+                                    matched_difference, allowed_matched))
+        reverse_delta = compare_smoke(control_final, drag_final,
+                                      base + ".runs[drag].final.smoke_particles")
+        matched_reverse_delta = compare_smoke(
+            matched_control_final, matched_drag_final,
+            base + ".runs[matched-drag].final.smoke_particles")
+        observations[identity] = {
+            "control_velocity_drift_m_s": control_drift,
+            "drag_velocity_delta_m_s": list(delta),
+            "matched_velocity_difference_m_s": matched_difference,
+            "maximum_reverse_smoke_state_delta": max(
+                reverse_delta, matched_reverse_delta),
+        }
+        sample_count += 2
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": len(actual_by_id),
+        "sample_count": sample_count,
+        "failure_count": len(failures),
+        "observations": observations,
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def _evaluate_fluid_cloth_contact(
         profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
         driver: Any, failures: list[Failure]) -> dict[str, Any]:
@@ -3372,6 +3665,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "smoke_self_viscosity":
         return _evaluate_smoke_self_viscosity(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "smoke_fluid_drag":
+        return _evaluate_smoke_fluid_drag(
             profile, result, expected_hash, driver, failures)
     if evaluation != "system_exchange":
         failures.append(Failure("$.profile.evaluation",
