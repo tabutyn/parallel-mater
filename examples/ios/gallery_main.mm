@@ -626,6 +626,17 @@ UIImage *frame_image(const GallerySession &session) {
     save(@"physics-qualification/quality/core-conservation-stability-v1.json",
          parallel_mater::conformance::conformance_fluid_pair_quality(fluidTemporary),
          @"physical-quality", @"unsupported");
+    parallel_mater::conformance::ExecutionStatus fluidRopeStatus{};
+    const auto fluidRope =
+        parallel_mater::conformance::conformance_fluid_rope_contact_quality(
+            root, &fluidRopeStatus);
+    NSString *fluidRopeStatusText = @"failed";
+    if (fluidRopeStatus == parallel_mater::conformance::ExecutionStatus::completed)
+        fluidRopeStatusText = @"completed";
+    else if (fluidRopeStatus == parallel_mater::conformance::ExecutionStatus::unsupported)
+        fluidRopeStatusText = @"unsupported";
+    save(@"physics-qualification/quality/fluid-rope-contact-v1.json",
+         fluidRope, @"physical-quality", fluidRopeStatusText);
     save(@"physics-qualification/lifecycle/adverse-capacity-three-family-v1.json",
          parallel_mater::conformance::conformance_adverse_lifecycle(root),
          @"adverse-lifecycle", @"captured");
@@ -680,7 +691,8 @@ UIImage *frame_image(const GallerySession &session) {
         @"failed":@(failed)};
     summary[@"physical_quality"] = @{
         @"rigid_brick":@"completed",
-        @"equal_fluid":@"unsupported-not-advertised"};
+        @"equal_fluid":@"unsupported-not-advertised",
+        @"fluid_rope_contact":fluidRopeStatusText};
     summary[@"adverse_lifecycle"] = @{
         @"status":@"captured-pending-host-evaluation",
         @"reason":@"The artifact contains exact checkpoints; lifecycle.py determines qualification."};
