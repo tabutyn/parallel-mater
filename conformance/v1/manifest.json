@@ -14,7 +14,7 @@
     "host_compiler": "12.2.0"
   },
   "glb_sha256": {
-    "examples/assets/Cloth.glb": "ba43629a87690a90910a550d3b4edfaa33341258ce04e7c4ee035624878ebca6",
+    "examples/assets/Cloth.glb": "f4dc3dd53aa6f2459ef3032bbbd4711406a049f31bb7b2a7ea9bf3006b503033",
     "examples/assets/ClothTear.glb": "70d83b88395001ff074174cdc9247889796c6a21d4a1a9f552f71cb591828405",
     "examples/assets/ClothWater.glb": "2d27f380ef01c8a20998d4a4f0e05574d111a14faaf0e199780be415a02c6782",
     "examples/assets/ConstraintFixed.glb": "c4aa05878338908ac420a059f4de25b767c4a1f3b573c5f41aee6841e5852bdc",
@@ -45,6 +45,7 @@
   },
   "lifecycle_profile_sha256": {
     "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
+    "conformance/v1/lifecycle/cloth-rigid-contact-lifecycle-v1.json": "271515deca0bb595e3da0da91373c44db6d6295b14c98342e01501536869a4e5",
     "conformance/v1/lifecycle/cloth-smoke-contact-lifecycle-v1.json": "3ccfe472f7bcfad66f2b092a63fccadc88fdc268cb59ae65c12cc9d541c55d0d",
     "conformance/v1/lifecycle/cloth-rope-attachment-lifecycle-v1.json": "d03f1609c66a4c5f5b827ee581274dd1860e95b8459dc653576d663445d0e9c4",
     "conformance/v1/lifecycle/cloth-soft-contact-lifecycle-v1.json": "10d28df6b1b1756da1c1b21b76e214aa554a8e753a370a2951d99fffbcdd7b35",
@@ -63,6 +64,7 @@
     "conformance/v1/lifecycle/soft-smoke-contact-lifecycle-v1.json": "eebb8182329058601310417e9d951f594bdaf53d966c670d4874adcbf12f29d2"
   },
   "quality_profile_sha256": {
+    "conformance/v1/quality/cloth-rigid-contact-v1.json": "0d9b503564ce6e5405b147035d241ea1984c1273fd8df7108c52300ae9ffb909",
     "conformance/v1/quality/cloth-smoke-contact-v1.json": "39d221db1df6d6b6f73c650df4004b81ce4541203a359edf2654f7172c1c8029",
     "conformance/v1/quality/cloth-rope-attachment-v1.json": "774081efcc918b9c7c144c0189fb24d72f511d44cadd40510d07e7dc9a760023",
     "conformance/v1/quality/cloth-soft-contact-v1.json": "0d67c947347d45b5bdc897df3f213513f576c01ca1bd3898b32010ec7578b7e2",
@@ -92,11 +94,11 @@
     "conformance/v1/quality/smoke-self-viscosity-v1.json": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"
   },
   "qualification_profile_sha256": {
-    "conformance/v1/qualification/capability-obligations-v1.json": "9d23925f80d28bd31429682da8e40beeca02ddd29b17d4659b30007b4fc35dd5"
+    "conformance/v1/qualification/capability-obligations-v1.json": "cde6aa45452d69a242f4072cbd398152b24f7d715e312be5ad628c02c516fac9"
   },
   "evidence_index_sha256": {
-    "conformance/v1/evidence/evidence-sources-v1.json": "2781f4bcbf714669658661d8bf0df5098e9e416e5895afd1f570e9d7bc0d1d34",
-    "conformance/v1/evidence/index-v1.json": "ddda76ddf08044a9ae2e95742b1b986ea35e8982f52447f864c4e9c391d47ae7"
+    "conformance/v1/evidence/evidence-sources-v1.json": "5827b78778bc1876e0e876eb07cb37b423837086d79bdba4a1ffe3aee5f7f9cd",
+    "conformance/v1/evidence/index-v1.json": "09d5800fc8fca50a18ddb10e821fd814ef62476765741aa29d97c15d6814068e"
   },
   "quality_result_schema": "parallel-mater-conformance-quality-result/v1",
   "result_schema": "parallel-mater-conformance-result/v1",

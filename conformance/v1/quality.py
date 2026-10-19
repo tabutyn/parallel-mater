@@ -8646,6 +8646,467 @@ def _evaluate_cloth_rope_attachment(
     }
 
 
+def _evaluate_cloth_rigid_contact(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definition = profile.get("fixture")
+    actual = result.get("fixture")
+    if not isinstance(definition, dict):
+        failures.append(Failure("$.profile.fixture",
+                                "expected a fixture object", definition))
+        definition = {}
+    if not isinstance(actual, dict):
+        failures.append(Failure("$.fixture", "expected a fixture object", actual))
+        actual = {}
+    tolerances = profile.get("tolerances")
+    if not isinstance(tolerances, dict):
+        failures.append(Failure("$.profile.tolerances",
+                                "expected an object", tolerances))
+        tolerances = {}
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+
+    for field in ("id", "graph_policy", "substeps",
+                  "cloth_solver_iterations", "cloth_preserve_volume",
+                  "contact_cloth_vertex_index", "two_way", "oracle"):
+        if actual.get(field) != definition.get(field):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "fixture setting differs from profile",
+                                    actual.get(field), definition.get(field)))
+
+    for field in (
+            "preparation_timestep_seconds", "timestep_seconds",
+            "cloth_vertex_mass_kg", "cloth_thickness_m",
+            "cloth_stretch_compliance_m_per_n",
+            "cloth_bending_compliance_m_per_n", "cloth_velocity_damping",
+            "cloth_contact_friction", "rigid_mass_kg", "rigid_friction",
+            "rigid_restitution", "rigid_linear_damping_per_s",
+            "rigid_angular_damping_per_s", "rigid_maximum_linear_speed_m_s",
+            "rigid_maximum_angular_speed_rad_s", "rigid_collision_margin_m"):
+        value = _scalar(actual.get(field), f"$.fixture.{field}", failures)
+        wanted = _scalar(definition.get(field),
+                         f"$.profile.fixture.{field}", failures)
+        if (value is not None and wanted is not None and
+                abs(value - wanted) > state_tolerance):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "fixture setting differs from profile",
+                                    value, wanted))
+
+    def vectors(value: Any, path: str) -> list[tuple[float, float, float]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a vector array", value))
+            return []
+        parsed: list[tuple[float, float, float]] = []
+        for index, item in enumerate(value):
+            vector = _vector(item, f"{path}[{index}]", failures)
+            if vector is not None:
+                parsed.append(vector)
+        return parsed
+
+    def compare_vector(field: str) -> tuple[float, float, float] | None:
+        value = _vector(actual.get(field), f"$.fixture.{field}", failures)
+        wanted = _vector(definition.get(field),
+                         f"$.profile.fixture.{field}", failures)
+        if (value is not None and wanted is not None and
+                _norm(_subtract(value, wanted)) > state_tolerance):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "fixture setting differs from profile",
+                                    list(value), list(wanted)))
+        return value
+
+    def compare_vectors(field: str) -> list[tuple[float, float, float]]:
+        values = vectors(actual.get(field), f"$.fixture.{field}")
+        wanted = vectors(definition.get(field),
+                         f"$.profile.fixture.{field}")
+        if len(values) != len(wanted):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "vector count differs from profile",
+                                    len(values), len(wanted)))
+        else:
+            for index, (value, expected) in enumerate(zip(values, wanted)):
+                if _norm(_subtract(value, expected)) > state_tolerance:
+                    failures.append(Failure(
+                        f"$.fixture.{field}[{index}]",
+                        "public input differs from profile",
+                        list(value), list(expected)))
+        return values
+
+    compare_vector("preparation_gravity_m_s2")
+    compare_vector("gravity_m_s2")
+    prepared_velocity = compare_vector("prepared_cloth_velocity_m_s")
+    compare_vector("rigid_initial_position_m")
+    authored_vertices = compare_vectors("authored_cloth_vertices_m")
+    prepared_vertices = compare_vectors("prepared_cloth_vertices_m")
+    rigid_vertices = compare_vectors("rigid_geometry_vertices_m")
+    inertia = compare_vector("rigid_inertia_diagonal_kg_m2")
+
+    inverse_value = actual.get("cloth_inverse_masses_kg_inverse")
+    inverse_expected = definition.get("cloth_inverse_masses_kg_inverse")
+    inverse_masses: list[float] = []
+    if not isinstance(inverse_value, list) or not isinstance(
+            inverse_expected, list) or len(inverse_value) != len(
+                inverse_expected):
+        failures.append(Failure(
+            "$.fixture.cloth_inverse_masses_kg_inverse",
+            "inverse-mass array differs from profile", inverse_value,
+            inverse_expected))
+    else:
+        for index, (item, wanted) in enumerate(zip(inverse_value,
+                                                   inverse_expected)):
+            value = _scalar(item,
+                            f"$.fixture.cloth_inverse_masses_kg_inverse[{index}]",
+                            failures)
+            expected = _scalar(
+                wanted,
+                f"$.profile.fixture.cloth_inverse_masses_kg_inverse[{index}]",
+                failures)
+            if value is None:
+                continue
+            inverse_masses.append(value)
+            if value <= 0.0:
+                failures.append(Failure(
+                    f"$.fixture.cloth_inverse_masses_kg_inverse[{index}]",
+                    "quality fixture requires positive inverse mass", value,
+                    "> 0"))
+            if expected is not None and abs(value - expected) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.cloth_inverse_masses_kg_inverse[{index}]",
+                    "fixture setting differs from profile", value, expected))
+
+    for field in ("cloth_triangle_indices",
+                  "rigid_geometry_triangle_indices",
+                  "impact_face_vertex_indices"):
+        if actual.get(field) != definition.get(field):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "topology differs from profile",
+                                    actual.get(field), definition.get(field)))
+
+    initial_orientation = _quaternion(
+        actual.get("rigid_initial_orientation_xyzw"),
+        "$.fixture.rigid_initial_orientation_xyzw", failures)
+    expected_orientation = _quaternion(
+        definition.get("rigid_initial_orientation_xyzw"),
+        "$.profile.fixture.rigid_initial_orientation_xyzw", failures)
+    if (initial_orientation is not None and expected_orientation is not None and
+            math.sqrt(sum((a - b) ** 2 for a, b in zip(
+                initial_orientation, expected_orientation))) > state_tolerance):
+        failures.append(Failure(
+            "$.fixture.rigid_initial_orientation_xyzw",
+            "fixture setting differs from profile", list(initial_orientation),
+            list(expected_orientation)))
+
+    def cloth_states(value: Any, path: str) -> list[dict[str, Any]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a cloth state array", value))
+            return []
+        parsed: list[dict[str, Any]] = []
+        for index, item in enumerate(value):
+            item_path = f"{path}[{index}]"
+            if not isinstance(item, dict) or item.get("index") != index:
+                failures.append(Failure(item_path,
+                                        "cloth state index mismatch", item))
+                continue
+            position = _vector(item.get("position_m"),
+                               item_path + ".position_m", failures)
+            velocity = _vector(item.get("velocity_m_s"),
+                               item_path + ".velocity_m_s", failures)
+            force = _vector(item.get("rigid_contact_force_n"),
+                            item_path + ".rigid_contact_force_n", failures)
+            if position is not None and velocity is not None and force is not None:
+                parsed.append({"position": position, "velocity": velocity,
+                               "force": force})
+        return parsed
+
+    def rigid_state(value: Any, path: str) -> dict[str, Any] | None:
+        if not isinstance(value, dict):
+            failures.append(Failure(path, "expected a rigid state object", value))
+            return None
+        position = _vector(value.get("position_m"), path + ".position_m",
+                           failures)
+        orientation = _quaternion(value.get("orientation_xyzw"),
+                                  path + ".orientation_xyzw", failures)
+        linear = _vector(value.get("linear_velocity_m_s"),
+                         path + ".linear_velocity_m_s", failures)
+        angular = _vector(value.get("angular_velocity_rad_s"),
+                          path + ".angular_velocity_rad_s", failures)
+        if None in (position, orientation, linear, angular):
+            return None
+        return {"position": position, "orientation": orientation,
+                "linear": linear, "angular": angular}
+
+    def snapshot(value: Any, path: str) -> tuple[
+            list[dict[str, Any]], dict[str, Any] | None]:
+        if not isinstance(value, dict):
+            failures.append(Failure(path, "expected a snapshot object", value))
+            return [], None
+        return (cloth_states(value.get("cloth"), path + ".cloth"),
+                rigid_state(value.get("rigid"), path + ".rigid"))
+
+    initial_cloth, initial_rigid = snapshot(actual.get("initial"),
+                                             "$.fixture.initial")
+    final_cloth, final_rigid = snapshot(actual.get("final"),
+                                         "$.fixture.final")
+    expected_count = len(prepared_vertices)
+    for phase, states in (("initial", initial_cloth),
+                          ("final", final_cloth)):
+        if len(states) != expected_count:
+            failures.append(Failure(f"$.fixture.{phase}.cloth",
+                                    "cloth state count differs from profile",
+                                    len(states), expected_count))
+
+    if len(initial_cloth) == expected_count and prepared_velocity is not None:
+        for index, state in enumerate(initial_cloth):
+            if _norm(_subtract(state["position"],
+                               prepared_vertices[index])) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.initial.cloth[{index}].position_m",
+                    "initial cloth state differs from prepared public input",
+                    list(state["position"]), list(prepared_vertices[index])))
+            if _norm(_subtract(state["velocity"],
+                               prepared_velocity)) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.initial.cloth[{index}].velocity_m_s",
+                    "initial cloth velocity differs from preparation oracle",
+                    list(state["velocity"]), list(prepared_velocity)))
+            if _norm(state["force"]) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.initial.cloth[{index}].rigid_contact_force_n",
+                    "initial contact force must be zero",
+                    list(state["force"]), 0.0))
+
+    zero = (0.0, 0.0, 0.0)
+    if initial_rigid is not None and initial_orientation is not None:
+        rigid_initial_position = _vector(
+            definition.get("rigid_initial_position_m"),
+            "$.profile.fixture.rigid_initial_position_m", failures)
+        if (rigid_initial_position is not None and
+                _norm(_subtract(initial_rigid["position"],
+                                rigid_initial_position)) > state_tolerance):
+            failures.append(Failure("$.fixture.initial.rigid.position_m",
+                                    "initial rigid state differs from profile",
+                                    list(initial_rigid["position"]),
+                                    list(rigid_initial_position)))
+        if _norm(initial_rigid["linear"]) > state_tolerance or _norm(
+                initial_rigid["angular"]) > state_tolerance:
+            failures.append(Failure("$.fixture.initial.rigid",
+                                    "initial rigid velocity must be zero",
+                                    initial_rigid, 0.0))
+
+    contact_index = definition.get("contact_cloth_vertex_index")
+    rigid_mass_value = _scalar(definition.get("rigid_mass_kg"),
+                               "$.profile.fixture.rigid_mass_kg", failures)
+    timestep = _scalar(definition.get("timestep_seconds"),
+                       "$.profile.fixture.timestep_seconds", failures)
+    normal = (-1.0, 0.0, 0.0)
+    cloth_impulse = rigid_impulse = force_impulse = None
+    impulse_activity = reciprocal_residual = expected_impulse = None
+    expected_error = force_error = tangential_impulse = None
+    final_penetration = final_slip = final_closing = None
+    energy_increase = orientation_drift = maximum_speed = None
+
+    valid_index = (isinstance(contact_index, int) and
+                   not isinstance(contact_index, bool) and
+                   0 <= contact_index < len(initial_cloth) and
+                   contact_index < len(final_cloth) and
+                   contact_index < len(inverse_masses))
+    if not valid_index:
+        failures.append(Failure("$.profile.fixture.contact_cloth_vertex_index",
+                                "invalid contact cloth vertex", contact_index))
+    elif initial_rigid is not None and final_rigid is not None and \
+            rigid_mass_value is not None and rigid_mass_value > 0.0 and \
+            timestep is not None and timestep > 0.0:
+        cloth_impulses = []
+        for index, (before, after) in enumerate(zip(initial_cloth, final_cloth)):
+            mass = 1.0 / inverse_masses[index]
+            cloth_impulses.append(tuple(mass * component for component in
+                _subtract(after["velocity"], before["velocity"])))
+        cloth_impulse = _sum(cloth_impulses)
+        rigid_impulse = tuple(rigid_mass_value * component for component in
+                              _subtract(final_rigid["linear"],
+                                        initial_rigid["linear"]))
+        reciprocal_residual = _norm(tuple(a + b for a, b in zip(
+            cloth_impulse, rigid_impulse)))
+        impulse_activity = max(_norm(cloth_impulse), _norm(rigid_impulse))
+        if impulse_activity < float(tolerances.get(
+                "minimum_contact_impulse_n_s", 0.0)):
+            failures.append(Failure("$.fixture.final",
+                                    "cloth-rigid contact impulse is too small",
+                                    impulse_activity,
+                                    tolerances.get("minimum_contact_impulse_n_s")))
+        if reciprocal_residual > float(tolerances.get(
+                "maximum_reciprocal_impulse_residual_n_s", 0.0)):
+            failures.append(Failure("$.fixture.final",
+                                    "cloth and rigid impulses are not reciprocal",
+                                    reciprocal_residual,
+                                    tolerances.get(
+                                        "maximum_reciprocal_impulse_residual_n_s")))
+
+        relative_initial = _subtract(
+            initial_cloth[contact_index]["velocity"],
+            initial_rigid["linear"])
+        closing = max(0.0, -sum(a * b for a, b in zip(
+            relative_initial, normal)))
+        denominator = inverse_masses[contact_index] + 1.0 / rigid_mass_value
+        expected_impulse = closing / denominator
+        expected_vector = tuple(expected_impulse * component
+                                for component in normal)
+        expected_error = _norm(_subtract(cloth_impulse, expected_vector))
+        if expected_error > float(tolerances.get(
+                "maximum_expected_impulse_error_n_s", 0.0)):
+            failures.append(Failure("$.fixture.final.cloth",
+                                    "contact impulse differs from reduced-mass oracle",
+                                    expected_error,
+                                    tolerances.get(
+                                        "maximum_expected_impulse_error_n_s")))
+
+        total_force = _sum([state["force"] for state in final_cloth])
+        force_impulse = tuple(component * timestep for component in total_force)
+        force_error = _norm(_subtract(force_impulse, cloth_impulse))
+        if force_error > float(tolerances.get(
+                "maximum_force_impulse_residual_n_s", 0.0)):
+            failures.append(Failure("$.fixture.final.cloth",
+                                    "public contact force does not integrate to the cloth impulse",
+                                    force_error,
+                                    tolerances.get(
+                                        "maximum_force_impulse_residual_n_s")))
+
+        normal_component = sum(a * b for a, b in zip(cloth_impulse, normal))
+        tangential_impulse = _norm(tuple(
+            cloth_impulse[axis] - normal_component * normal[axis]
+            for axis in range(3)))
+        if tangential_impulse > float(tolerances.get(
+                "maximum_tangential_impulse_n_s", 0.0)):
+            failures.append(Failure("$.fixture.final.cloth",
+                                    "frictionless contact generated tangential impulse",
+                                    tangential_impulse,
+                                    tolerances.get(
+                                        "maximum_tangential_impulse_n_s")))
+
+        relative_final = _subtract(
+            final_cloth[contact_index]["velocity"], final_rigid["linear"])
+        final_normal_speed = sum(a * b for a, b in zip(relative_final, normal))
+        final_closing = max(0.0, -final_normal_speed)
+        if final_closing > float(tolerances.get(
+                "maximum_final_closing_speed_m_s", 0.0)):
+            failures.append(Failure("$.fixture.final",
+                                    "cloth and rigid remain closing after contact",
+                                    final_closing,
+                                    tolerances.get(
+                                        "maximum_final_closing_speed_m_s")))
+        tangent_velocity = tuple(
+            relative_final[axis] - final_normal_speed * normal[axis]
+            for axis in range(3))
+        final_slip = _norm(tangent_velocity)
+        if final_slip < float(tolerances.get(
+                "minimum_frictionless_slip_m_s", 0.0)):
+            failures.append(Failure("$.fixture.final",
+                                    "cloth and rigid moved as a hidden attachment",
+                                    final_slip,
+                                    tolerances.get(
+                                        "minimum_frictionless_slip_m_s")))
+
+        face_indices = definition.get("impact_face_vertex_indices")
+        if isinstance(face_indices, list) and face_indices and rigid_vertices:
+            face_x = min(rigid_vertices[index][0] for index in face_indices
+                         if isinstance(index, int) and
+                         0 <= index < len(rigid_vertices))
+            envelope_x = (final_rigid["position"][0] + face_x -
+                          float(definition.get("rigid_collision_margin_m", 0.0)) -
+                          float(definition.get("cloth_thickness_m", 0.0)))
+            final_penetration = max(
+                0.0, final_cloth[contact_index]["position"][0] - envelope_x)
+            if final_penetration > float(tolerances.get(
+                    "maximum_overlap_penetration_m", 0.0)):
+                failures.append(Failure(
+                    f"$.fixture.final.cloth[{contact_index}].position_m",
+                    "cloth vertex overlapped the rigid contact envelope",
+                    final_penetration,
+                    tolerances.get("maximum_overlap_penetration_m")))
+
+        orientation_drift = min(
+            math.sqrt(sum((a - b) ** 2 for a, b in zip(
+                final_rigid["orientation"], initial_rigid["orientation"]))),
+            math.sqrt(sum((a + b) ** 2 for a, b in zip(
+                final_rigid["orientation"], initial_rigid["orientation"]))))
+        if orientation_drift > float(tolerances.get(
+                "maximum_orientation_drift", 0.0)):
+            failures.append(Failure("$.fixture.final.rigid.orientation_xyzw",
+                                    "centered impact rotated the rigid body",
+                                    orientation_drift,
+                                    tolerances.get("maximum_orientation_drift")))
+        angular_speed = _norm(final_rigid["angular"])
+        if angular_speed > float(tolerances.get(
+                "maximum_angular_speed_rad_s", 0.0)):
+            failures.append(Failure("$.fixture.final.rigid.angular_velocity_rad_s",
+                                    "centered impact generated angular speed",
+                                    angular_speed,
+                                    tolerances.get(
+                                        "maximum_angular_speed_rad_s")))
+
+        def kinetic(cloth: list[dict[str, Any]],
+                    rigid: dict[str, Any]) -> float:
+            cloth_energy = sum(0.5 / inverse_masses[index] *
+                               _norm(state["velocity"]) ** 2
+                               for index, state in enumerate(cloth))
+            rigid_energy = 0.5 * rigid_mass_value * _norm(rigid["linear"]) ** 2
+            if inertia is not None:
+                rigid_energy += 0.5 * sum(
+                    inertia[axis] * rigid["angular"][axis] ** 2
+                    for axis in range(3))
+            return cloth_energy + rigid_energy
+        energy_increase = kinetic(final_cloth, final_rigid) - kinetic(
+            initial_cloth, initial_rigid)
+        if energy_increase > float(tolerances.get(
+                "maximum_energy_increase_j", 0.0)):
+            failures.append(Failure("$.fixture.final",
+                                    "passive contact increased kinetic energy",
+                                    energy_increase,
+                                    tolerances.get("maximum_energy_increase_j")))
+
+        maximum_speed = max(
+            [_norm(state["velocity"]) for state in final_cloth] +
+            [_norm(final_rigid["linear"])])
+        speed_limit = max(
+            float(definition.get("rigid_maximum_linear_speed_m_s", 0.0)),
+            20.0) + float(tolerances.get("maximum_speed_slack_m_s", 0.0))
+        if maximum_speed > speed_limit:
+            failures.append(Failure("$.fixture.final",
+                                    "endpoint speed exceeds authored maximum",
+                                    maximum_speed, speed_limit))
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": 1 if actual else 0,
+        "sample_count": len(final_cloth),
+        "failure_count": len(failures),
+        "observations": {
+            "maximum_overlap_penetration_m": final_penetration,
+            "cloth_contact_impulse_n_s": list(cloth_impulse)
+                if cloth_impulse is not None else None,
+            "rigid_contact_impulse_n_s": list(rigid_impulse)
+                if rigid_impulse is not None else None,
+            "contact_impulse_activity_n_s": impulse_activity,
+            "reciprocal_impulse_residual_n_s": reciprocal_residual,
+            "expected_normal_impulse_n_s": expected_impulse,
+            "expected_impulse_error_n_s": expected_error,
+            "cloth_force_impulse_n_s": list(force_impulse)
+                if force_impulse is not None else None,
+            "force_impulse_residual_n_s": force_error,
+            "tangential_impulse_n_s": tangential_impulse,
+            "final_frictionless_slip_m_s": final_slip,
+            "final_closing_speed_m_s": final_closing,
+            "orientation_drift": orientation_drift,
+            "energy_increase_j": energy_increase,
+            "maximum_endpoint_speed_m_s": maximum_speed,
+        },
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def evaluate(profile: dict[str, Any], result: dict[str, Any],
              expected_hash: str) -> dict[str, Any]:
     failures: list[Failure] = []
@@ -8697,6 +9158,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "cloth_soft_contact":
         return _evaluate_cloth_soft_contact(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "cloth_rigid_contact":
+        return _evaluate_cloth_rigid_contact(
             profile, result, expected_hash, driver, failures)
     if evaluation == "fluid_rope_contact":
         return _evaluate_fluid_rope_contact(
