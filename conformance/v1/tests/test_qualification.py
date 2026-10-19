@@ -231,16 +231,22 @@ def rope_smoke_contact_result(profile: dict, material: str,
                    direction, material)
     ]
     prefix = material.removeprefix("SMOKE_").lower()
-    lifecycle_contract = (
-        "lifecycle:rope-smoke-contact-lifecycle-v1#" + prefix +
-        "-rope-smoke-contact-capacity-replacement-removal-rollback")
+    if mode == "DRAG":
+        lifecycle_contract = (
+            "lifecycle:smoke-rope-drag-lifecycle-v1#" + prefix +
+            "-smoke-rope-drag-capacity-replacement-removal-rollback")
+        quality_contract = "quality:smoke-rope-drag-v1"
+    else:
+        lifecycle_contract = (
+            "lifecycle:rope-smoke-contact-lifecycle-v1#" + prefix +
+            "-rope-smoke-contact-capacity-replacement-removal-rollback")
+        quality_contract = "quality:rope-smoke-contact-v1"
     result["evidence"] = [
         evidence(profile, "compilation", "registry:interaction-capabilities"),
         evidence(profile, "execution", "case:smoke-rope"),
         evidence(profile, "reference_regression", "case:smoke-rope"),
         evidence(profile, "lifecycle_invariants", lifecycle_contract),
-        evidence(profile, "analytic_invariants",
-                 "quality:rope-smoke-contact-v1"),
+        evidence(profile, "analytic_invariants", quality_contract),
     ]
     return result
 
@@ -639,6 +645,14 @@ class QualificationTests(unittest.TestCase):
             ("lifecycle:rope-smoke-contact-lifecycle-v1#"
              "grid-rope-smoke-contact-capacity-replacement-removal-rollback"):
                 ROOT / "lifecycle" / "rope-smoke-contact-lifecycle-v1.json",
+            "quality:smoke-rope-drag-v1":
+                ROOT / "quality" / "smoke-rope-drag-v1.json",
+            ("lifecycle:smoke-rope-drag-lifecycle-v1#"
+             "particle-smoke-rope-drag-capacity-replacement-removal-rollback"):
+                ROOT / "lifecycle" / "smoke-rope-drag-lifecycle-v1.json",
+            ("lifecycle:smoke-rope-drag-lifecycle-v1#"
+             "grid-smoke-rope-drag-capacity-replacement-removal-rollback"):
+                ROOT / "lifecycle" / "smoke-rope-drag-lifecycle-v1.json",
         }
         for contract_id, path in expected_contracts.items():
             with self.subTest(contract=contract_id):
@@ -660,18 +674,27 @@ class QualificationTests(unittest.TestCase):
                 wrong = rope_smoke_contact_result(self.profile, material)
                 wrong["evidence"][-1] = evidence(
                     self.profile, "analytic_invariants",
-                    "quality:soft-smoke-contact-v1")
+                    "quality:smoke-rope-drag-v1")
                 rejected = self.assert_rejected(
                     wrong, "required evidence is missing")
                 self.assertEqual(rejected["qualified_count"], 0)
 
                 drag = rope_smoke_contact_result(
                     self.profile, material, "DRAG")
-                drag_report = self.assert_rejected(
-                    drag, "qualification contract is missing")
-                self.assertEqual(drag_report["qualified_count"], 0)
+                drag_report = self.evaluate(drag)
+                self.assertTrue(drag_report["passed"], drag_report)
+                self.assertEqual(drag_report["qualified_count"], 1)
                 self.assertEqual(drag_report["capabilities"][0]["rule_id"],
                                  "rope-smoke-drag-" + suffix)
+
+                wrong_drag = rope_smoke_contact_result(
+                    self.profile, material, "DRAG")
+                wrong_drag["evidence"][-1] = evidence(
+                    self.profile, "analytic_invariants",
+                    "quality:rope-smoke-contact-v1")
+                rejected_drag = self.assert_rejected(
+                    wrong_drag, "required evidence is missing")
+                self.assertEqual(rejected_drag["qualified_count"], 0)
 
     def test_soft_rope_attachment_quality_cannot_qualify_contact(self):
         report = self.evaluate(
