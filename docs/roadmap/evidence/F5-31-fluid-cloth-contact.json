@@ -31,7 +31,7 @@
     "terminal_contact_violation_m": 0.0,
     "first_step_momentum_error_kg_m_s": 0.00002384185791015625,
     "final_momentum_error_kg_m_s": 0.00009872294887121507,
-    "evidence_index": "PASS: 2/256 exact capability records qualified across 14 reports"
+    "evidence_index": "PASS: both F5-31 records qualified; merged index has 6/257 qualified records across 15 reports"
   },
   "artifacts": {
     "cuda_physical_evidence": "conformance/v1/evidence/windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact.json",
