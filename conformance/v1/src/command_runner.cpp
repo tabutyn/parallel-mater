@@ -1079,7 +1079,7 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
-    constexpr std::array<std::pair<std::string_view, std::string_view>, 53U>
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 55U>
         pinned_inputs{{
             {"quality profile", "conformance/v1/quality/core-conservation-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-attachment-v1.json"},
