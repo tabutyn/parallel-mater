@@ -1,0 +1,63 @@
+{
+  "schema": "parallel-mater-conformance-lifecycle-profile/v1",
+  "id": "cloth-soft-contact-lifecycle-v1",
+  "title": "Cloth-soft-body contact graph bounded lifecycle",
+  "sources": {
+    "capacity": "include/parallel_mater/parallel_mater.h: PmSimulationCreateInfo::couplingCapacity and pmCmdSetCouplings",
+    "qualification": "docs/ROADMAP.md: F5-40",
+    "rollback": "docs/RESOURCE-LIFETIME.md: rejected graph replacement preserves the last usable graph"
+  },
+  "state_fingerprint": "SHA-256 of the canonical accepted public CONTACT-only PmCouplingState plus public cloth, soft-node and bound-surface outputs; exclude handles, timings and driver-private state",
+  "observation_boundary": "Complete each graph mutation and zero-gravity step before public readback; generation is the harness ordinal of an accepted graph mutation, never a private driver handle",
+  "cases": [
+    {
+      "id": "cloth-soft-contact-capacity-replacement-removal-rollback",
+      "families": ["cloth", "soft_body"],
+      "unrelated_resources": ["cloth-soft-endpoints"],
+      "tracked_resources": ["cloth-soft-contact-graph", "cloth-soft-endpoints"],
+      "track_graph": false,
+      "checkpoints": [
+        {
+          "id": "baseline",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "cloth-soft-contact-graph": {"active": true},
+            "cloth-soft-endpoints": {"active": true}
+          }
+        },
+        {
+          "id": "replacement",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "cloth-soft-contact-graph": {"active": true, "generation_different_from": "baseline", "state_different_from": "baseline"},
+            "cloth-soft-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "rejected-overflow",
+          "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED",
+          "resources": {
+            "cloth-soft-contact-graph": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"},
+            "cloth-soft-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "removal",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "cloth-soft-contact-graph": {"active": false, "generation_different_from": "replacement", "state_different_from": "replacement"},
+            "cloth-soft-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "recovery",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "cloth-soft-contact-graph": {"active": true, "generation_different_from": "removal", "state_different_from": "removal"},
+            "cloth-soft-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        }
+      ]
+    }
+  ]
+}

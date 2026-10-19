@@ -1,0 +1,103 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-40",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "b191454c979d8620341e63140ba1478f14707df8",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+b191454",
+    "binary_sha256": "fe6ffe84dab14cf258b081bb95b918883504aeab6a919fcb2c167a9e155026b0"
+  },
+  "device": {
+    "name": "NVIDIA GeForce GTX 1080",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13000 (NVIDIA 582.66)"
+  },
+  "toolchain": {
+    "compiler": "MSVC, CUDA, Slang",
+    "version": "MSVC 19.44.35228.0; CUDA 12.9.86; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "c4af2abb295d73c253b0bc98a57a5346c8c8995ad85575386c2b5dcddb872be1",
+    "capabilities_sha256": "15bb19dcfc7f4cc47b78a955231b32dae5851804ab131af6cdb1991c1ae9a2b0"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "CLOTH",
+      "second_family": "SOFT_BODY",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:soft-body-cloth",
+      "sha256": "779b5f55f4db0b9f0952d0d8607c1221ca2c50a52bc2dca2b95dff70ea5e6f4a"
+    },
+    "quality": {
+      "id": "quality:cloth-soft-contact-v1",
+      "sha256": "0d67c947347d45b5bdc897df3f213513f576c01ca1bd3898b32010ec7578b7e2"
+    },
+    "lifecycle": {
+      "id": "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback",
+      "sha256": "10d28df6b1b1756da1c1b21b76e214aa554a8e753a370a2951d99fffbcdd7b35"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "deea621f3eb1aa43987647c0a971782d90a8f81fca04e350f54afb797c81158e",
+    "comparison_report_sha256": "82b0d34ed795fa49394aeddf6b478ede16c5ae64cd9a3c29ade22642bd4d0cf6",
+    "reference_regression": {
+      "passed": 1,
+      "failed": 0,
+      "unsupported": 0
+    }
+  },
+  "analytic_invariants": {
+    "result_sha256": "13e4d1e0303a31b2300778c538bb5f15dd8e73b31ae09913251033387cc482bc",
+    "report_sha256": "2106e6931a06ee64443c441131ebe1cfc93f8aad2c41d106e25d8a2547a33fbc",
+    "passed": true,
+    "sample_count": 4,
+    "failure_count": 0,
+    "observations": {
+      "maximum_overlap_penetration_m": 0.0,
+      "final_contact_separation_m": 0.10000001245074716,
+      "reciprocal_impulse_residual_n_s": 0.0,
+      "reciprocal_force_residual_n": 1.9073486328125e-06,
+      "endpoint_force_impulse_residual_n_s": 3.337860099428269e-08,
+      "expected_impulse_error_n_s": 6.527560097824292e-05,
+      "tangential_impulse_n_s": 0.0,
+      "final_frictionless_slip_m_s": 0.9999998693768936,
+      "maximum_surface_reconstruction_error_m": 2.2799903162828172e-08,
+      "minimum_binding_incidence_per_node": 4
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "bff03fbd1d3333a3452badf90aefbcdefad2921beb6ed84d537553020e3a1bc7",
+    "report_sha256": "7c1744aa611025e6036478e2b590921138f6cfa38806f60c490eb81c623ebf22",
+    "passed": true,
+    "case_count": 1,
+    "checkpoint_count": 5,
+    "failure_count": 0
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case soft-body-cloth --output <trajectory-output>",
+    "python conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case soft-body-cloth --report <trajectory-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality cloth-soft-contact-v1 --output <quality-output>",
+    "python conformance/v1/quality.py --profile conformance/v1/quality/cloth-soft-contact-v1.json --actual <quality-result> --report <quality-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle cloth-soft-contact-lifecycle-v1 --output <lifecycle-result>",
+    "python conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/cloth-soft-contact-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "The public fixture prepares a bound soft surface against one cloth triangle, then independently checks clearance, reciprocal impulse and force, frictionless slip, and unique bound-node effective mass.",
+    "The lifecycle case proves bounded graph replacement, rejected-overflow rollback, removal, recovery, and unchanged public cloth, soft-node, and bound-surface state.",
+    "Only the exact CLOTH/SOFT_BODY CONTACT tuple is qualified; all other records remain unchanged."
+  ]
+}

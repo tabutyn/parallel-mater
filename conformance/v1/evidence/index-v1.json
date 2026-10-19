@@ -722,8 +722,10 @@
       "rule_id": "cloth-soft-body",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-soft-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -738,8 +740,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -769,8 +773,10 @@
       "rule_id": "cloth-soft-body",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-soft-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -785,8 +791,61 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:soft-body-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
           "contracts": [],
-          "status": "missing_contract"
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SOFT_BODY"
+      },
+      "key_text": "CLOTH/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "windows-gtx1080-slang-cuda-b191454-cloth-soft-contact",
+      "rule_id": "cloth-soft-body",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:cloth-soft-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:soft-body-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -6850,8 +6909,10 @@
       "rule_id": "cloth-soft-body",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-soft-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6866,8 +6927,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -6897,8 +6960,10 @@
       "rule_id": "cloth-soft-body",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-soft-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6913,8 +6978,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11767,8 +11834,10 @@
       "rule_id": "cloth-soft-body",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-soft-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11783,8 +11852,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11814,8 +11885,10 @@
       "rule_id": "cloth-soft-body",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-soft-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11830,8 +11903,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -15708,7 +15783,7 @@
       }
     }
   ],
-  "capability_count": 316,
+  "capability_count": 317,
   "driver_count": 5,
   "drivers": [
     {
@@ -15735,6 +15810,7 @@
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
         "windows-gtx1080-slang-cuda-2b04e55",
         "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
+        "windows-gtx1080-slang-cuda-b191454-cloth-soft-contact",
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle"
       ],
@@ -15747,12 +15823,13 @@
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
         "windows-gtx1080-slang-cuda-2b04e55",
         "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
+        "windows-gtx1080-slang-cuda-b191454-cloth-soft-contact",
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle",
         "windows-gtx1080-physics-2026-10-16"
       ],
       "status": "unqualified",
-      "unqualified_capability_count": 107
+      "unqualified_capability_count": 108
     },
     {
       "id": "slang-d3d12",
@@ -15886,7 +15963,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -17121,20 +17198,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral cloth-soft-body quality case is registered.",
+      "actual": "quality:cloth-soft-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[25].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral cloth-soft-body quality case is registered.",
+      "actual": "quality:cloth-soft-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[25].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -17157,20 +17234,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact cloth-soft-body adverse graph case is registered.",
+      "actual": "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[25].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact cloth-soft-body adverse graph case is registered.",
+      "actual": "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[25].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -19067,7 +19144,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19076,7 +19153,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19085,7 +19162,7 @@
     {
       "actual": "20c3086b26c05fc00bdc2a70fc4f528cdd588271c2cc2be4409912982d60c419",
       "driver": "slang-cuda",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19094,7 +19171,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19103,7 +19180,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19112,7 +19189,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19121,16 +19198,25 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-cuda",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact"
     },
     {
+      "actual": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "driver": "slang-cuda",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "windows-gtx1080-slang-cuda-b191454-cloth-soft-contact"
+    },
+    {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19139,7 +19225,7 @@
     {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19575,7 +19661,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19584,7 +19670,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-d3d12",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20442,20 +20528,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral cloth-soft-body quality case is registered.",
+      "actual": "quality:cloth-soft-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[22].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral cloth-soft-body quality case is registered.",
+      "actual": "quality:cloth-soft-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[22].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -20478,20 +20564,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact cloth-soft-body adverse graph case is registered.",
+      "actual": "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[22].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact cloth-soft-body adverse graph case is registered.",
+      "actual": "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[22].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -22316,7 +22402,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22325,7 +22411,7 @@
     {
       "actual": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "driver": "slang-metal",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22334,7 +22420,7 @@
     {
       "actual": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "driver": "slang-metal",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22343,7 +22429,7 @@
     {
       "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
       "driver": "slang-metal",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22352,7 +22438,7 @@
     {
       "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
       "driver": "slang-metal",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22361,7 +22447,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22370,7 +22456,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22379,7 +22465,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22388,7 +22474,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22998,20 +23084,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral cloth-soft-body quality case is registered.",
+      "actual": "quality:cloth-soft-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[22].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No vendor-neutral cloth-soft-body quality case is registered.",
+      "actual": "quality:cloth-soft-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[22].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -23025,20 +23111,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact cloth-soft-body adverse graph case is registered.",
+      "actual": "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[22].lifecycle_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No exact cloth-soft-body adverse graph case is registered.",
+      "actual": "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[22].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -24386,7 +24472,7 @@
     {
       "actual": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
       "driver": "slang-vulkan",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -24395,7 +24481,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "expected": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -24403,10 +24489,10 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+  "obligations_sha256": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19",
   "qualification_complete": true,
   "qualified_capability_count": 4,
-  "report_count": 27,
+  "report_count": 28,
   "reports": [
     {
       "capability_count": 46,
@@ -24632,7 +24718,7 @@
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-grid-qualification.json",
       "qualified_count": 2,
-      "sha256": "4af8cf47785a32dd9edcdf75e75b5be276d2f2b44f6e09a33e024013ce8485f4",
+      "sha256": "0c36054158444d8a2be824a7bae3de841d9b24b1e7c110b1371e4ef4b03109c9",
       "source": {
         "commit": "16169d5dd4421af8c97247f590f51f8c8eb1283d",
         "dirty": false
@@ -24661,7 +24747,7 @@
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-particle-qualification.json",
       "qualified_count": 2,
-      "sha256": "f229dd9dcf7c1f3abd5eadb2deaa09721dcfde10dd3cc89ba6a48262c36677bc",
+      "sha256": "b5e0f19fbe1665253ec1eb84db9d305e1040f62473accc9f92cd97949c418d43",
       "source": {
         "commit": "16169d5dd4421af8c97247f590f51f8c8eb1283d",
         "dirty": false
@@ -25097,6 +25183,35 @@
         "vendor_id": 4318
       },
       "driver": {
+        "binary_sha256": "fe6ffe84dab14cf258b081bb95b918883504aeab6a919fcb2c167a9e155026b0",
+        "name": "slang-cuda",
+        "version": "0.2.0+b191454"
+      },
+      "failure_count": 1,
+      "id": "windows-gtx1080-slang-cuda-b191454-cloth-soft-contact",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact-qualification.json",
+      "qualified_count": 0,
+      "sha256": "e2e9ec3c4a4ef5b7c12f6271ad1ba29872f186f1fe9869814f6d96a63fd8d7f1",
+      "source": {
+        "commit": "b191454c979d8620341e63140ba1478f14707df8",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "MSVC, CUDA, Slang",
+        "version": "MSVC 19.44.35228.0; CUDA 12.9.86; Slang 2026.18"
+      },
+      "validated": false
+    },
+    {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "13000 (NVIDIA 582.66)",
+        "name": "NVIDIA GeForce GTX 1080",
+        "vendor_id": 4318
+      },
+      "driver": {
         "binary_sha256": "fb5a740e23cbf8545656115ace613a0586798d1816c4a3ad674ce5d512d84721",
         "name": "slang-cuda",
         "version": "0.2.0+dac1c20"
@@ -25207,7 +25322,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "4835adb207e70324271fc71a9cda8cafb00c05fcf75a080cd31a8b2d91ff965d",
+  "sources_sha256": "9859a670c89874417e4647333857e9aa769086eac00aee38e2d0809c86ec0b62",
   "valid": true,
   "validation_failures": []
 }

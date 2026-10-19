@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82"
+    "sha256": "8c584a0183fe4cc685c449b0fe1c9d7167d44060464a5a13604bf78588b54f19"
   },
   "qualification_results": [
     {
@@ -70,12 +70,12 @@
     {
       "id": "macos-m4-slang-metal-16169d5-smoke-cloth-grid",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-grid-qualification.json",
-      "sha256": "4af8cf47785a32dd9edcdf75e75b5be276d2f2b44f6e09a33e024013ce8485f4"
+      "sha256": "0c36054158444d8a2be824a7bae3de841d9b24b1e7c110b1371e4ef4b03109c9"
     },
     {
       "id": "macos-m4-slang-metal-16169d5-smoke-cloth-particle",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-particle-qualification.json",
-      "sha256": "f229dd9dcf7c1f3abd5eadb2deaa09721dcfde10dd3cc89ba6a48262c36677bc"
+      "sha256": "b5e0f19fbe1665253ec1eb84db9d305e1040f62473accc9f92cd97949c418d43"
     },
     {
       "id": "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact",
@@ -136,6 +136,11 @@
       "id": "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact-qualification.json",
       "sha256": "9259964d2f6ee9e2f1ad27b130fa990835225fbca9b333e776af2f4606a1e034"
+    },
+    {
+      "id": "windows-gtx1080-slang-cuda-b191454-cloth-soft-contact",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact-qualification.json",
+      "sha256": "e2e9ec3c4a4ef5b7c12f6271ad1ba29872f186f1fe9869814f6d96a63fd8d7f1"
     },
     {
       "id": "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",
