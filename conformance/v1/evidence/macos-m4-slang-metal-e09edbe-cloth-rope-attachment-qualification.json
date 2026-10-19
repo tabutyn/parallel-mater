@@ -1,0 +1,83 @@
+{
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "bc9a38789c519c4b4a094f0c8bd49adf3a6887834dd7e539409b1c32497bf683",
+  "execution_status": "completed",
+  "source": {
+    "commit": "e09edbe8da9149854e2a4e9eaff2aac883e92e12",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-metal",
+    "version": "0.2.0+e09edbe",
+    "binary_sha256": "db73bee7730689b8a6afd94d77a300c3e41d328e4c26b54368a03783adebfa09"
+  },
+  "device": {
+    "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "vendor_id": 4203,
+    "device_id": 0,
+    "driver_version": "202618 (Apple Metal 32023.883)"
+  },
+  "toolchain": {
+    "compiler": "Apple Clang, Slang Metal",
+    "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "CLOTH",
+      "second_family": "ROPE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "ATTACHMENT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "evidence": [
+    {
+      "scope": "analytic_invariants",
+      "contract": "quality:cloth-rope-attachment-v1",
+      "status": "passed",
+      "source_commit": "e09edbe8da9149854e2a4e9eaff2aac883e92e12",
+      "contract_sha256": "774081efcc918b9c7c144c0189fb24d72f511d44cadd40510d07e7dc9a760023",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-e09edbe-cloth-rope-attachment.json",
+      "artifact_sha256": "31b8d323c35d243871405982a2016e84db8c05fe552192628982a9c95d5b4b04"
+    },
+    {
+      "scope": "compilation",
+      "contract": "registry:interaction-capabilities",
+      "status": "passed",
+      "source_commit": "e09edbe8da9149854e2a4e9eaff2aac883e92e12",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-e09edbe-cloth-rope-attachment.json",
+      "artifact_sha256": "31b8d323c35d243871405982a2016e84db8c05fe552192628982a9c95d5b4b04"
+    },
+    {
+      "scope": "execution",
+      "contract": "case:rope-cloth",
+      "status": "passed",
+      "source_commit": "e09edbe8da9149854e2a4e9eaff2aac883e92e12",
+      "contract_sha256": "28280bb786efb6a69ead8bfed2f76ef1ac145672de29fbd2d625f69e89eda792",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-e09edbe-cloth-rope-attachment.json",
+      "artifact_sha256": "31b8d323c35d243871405982a2016e84db8c05fe552192628982a9c95d5b4b04"
+    },
+    {
+      "scope": "lifecycle_invariants",
+      "contract": "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback",
+      "status": "passed",
+      "source_commit": "e09edbe8da9149854e2a4e9eaff2aac883e92e12",
+      "contract_sha256": "d03f1609c66a4c5f5b827ee581274dd1860e95b8459dc653576d663445d0e9c4",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-e09edbe-cloth-rope-attachment.json",
+      "artifact_sha256": "31b8d323c35d243871405982a2016e84db8c05fe552192628982a9c95d5b4b04"
+    },
+    {
+      "scope": "reference_regression",
+      "contract": "case:rope-cloth",
+      "status": "passed",
+      "source_commit": "e09edbe8da9149854e2a4e9eaff2aac883e92e12",
+      "contract_sha256": "28280bb786efb6a69ead8bfed2f76ef1ac145672de29fbd2d625f69e89eda792",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-e09edbe-cloth-rope-attachment.json",
+      "artifact_sha256": "31b8d323c35d243871405982a2016e84db8c05fe552192628982a9c95d5b4b04"
+    }
+  ]
+}

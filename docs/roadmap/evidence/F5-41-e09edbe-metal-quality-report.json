@@ -1,0 +1,40 @@
+{
+  "driver": {
+    "device": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "device_id": 0,
+    "driver_version": "202618",
+    "name": "slang-metal",
+    "vendor_id": 4203
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 1,
+  "observations": {
+    "supported-hanging-rope": {
+      "cloth_reaction_force_n": [
+        0.0,
+        -3.923981189727783,
+        0.0
+      ],
+      "dynamic_rope_mass_kg": 0.4,
+      "final_attachment_drift_m": 0.0,
+      "initial_attachment_drift_m": 0.0,
+      "maximum_pinned_vertex_drift_m": 0.0,
+      "maximum_speed_m_s": 0.13072408735752106,
+      "maximum_transverse_drift_m": 0.0,
+      "reaction_activity_n": 3.9240033974647526,
+      "reciprocal_force_residual_n": 2.2207736969370728e-05,
+      "rope_reaction_force_n": [
+        0.0,
+        3.9240033974647526,
+        0.0
+      ]
+    }
+  },
+  "passed": true,
+  "profile_id": "cloth-rope-attachment-v1",
+  "profile_sha256": "774081efcc918b9c7c144c0189fb24d72f511d44cadd40510d07e7dc9a760023",
+  "sample_count": 1,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

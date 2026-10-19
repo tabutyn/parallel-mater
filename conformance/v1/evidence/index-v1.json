@@ -6087,6 +6087,57 @@
     {
       "driver": "slang-metal",
       "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "ATTACHMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "key_text": "CLOTH/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": true,
+      "report": "macos-m4-slang-metal-e09edbe-cloth-rope-attachment",
+      "rule_id": "cloth-rope",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:cloth-rope-attachment-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
         "direction": "FIRST_TO_SECOND",
         "first_family": "CLOTH",
         "material_profile": "SMOKE_GRID",
@@ -15302,7 +15353,7 @@
       }
     }
   ],
-  "capability_count": 310,
+  "capability_count": 311,
   "driver_count": 5,
   "drivers": [
     {
@@ -15383,6 +15434,7 @@
       "qualification_result_ids": [
         "ipados-m1-slang-metal-9f7e72e",
         "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact",
+        "macos-m4-slang-metal-e09edbe-cloth-rope-attachment",
         "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid",
         "macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle",
         "macos-m4-slang-metal-86f10b2-fluid-cloth-containment",
@@ -15390,10 +15442,11 @@
         "macos-m4-slang-metal-86f10b2-smoke-viscosity",
         "macos-m4-slang-metal-aac6d59"
       ],
-      "qualified_capability_count": 0,
+      "qualified_capability_count": 1,
       "report_ids": [
         "ipados-m1-slang-metal-9f7e72e",
         "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact",
+        "macos-m4-slang-metal-e09edbe-cloth-rope-attachment",
         "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid",
         "macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle",
         "macos-m4-slang-metal-86f10b2-fluid-cloth-containment",
@@ -23973,8 +24026,8 @@
   "obligations_id": "capability-obligations-v1",
   "obligations_sha256": "bc9a38789c519c4b4a094f0c8bd49adf3a6887834dd7e539409b1c32497bf683",
   "qualification_complete": true,
-  "qualified_capability_count": 0,
-  "report_count": 23,
+  "qualified_capability_count": 1,
+  "report_count": 24,
   "reports": [
     {
       "capability_count": 46,
@@ -24357,6 +24410,35 @@
       "validated": false
     },
     {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "202618 (Apple Metal 32023.883)",
+        "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+        "vendor_id": 4203
+      },
+      "driver": {
+        "binary_sha256": "db73bee7730689b8a6afd94d77a300c3e41d328e4c26b54368a03783adebfa09",
+        "name": "slang-metal",
+        "version": "0.2.0+e09edbe"
+      },
+      "failure_count": 0,
+      "id": "macos-m4-slang-metal-e09edbe-cloth-rope-attachment",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-e09edbe-cloth-rope-attachment-qualification.json",
+      "qualified_count": 1,
+      "sha256": "3688bf90455e23ea52033b484030ad0dc2d75221757061fb0936e1252d1a95cf",
+      "source": {
+        "commit": "e09edbe8da9149854e2a4e9eaff2aac883e92e12",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "Apple Clang, Slang Metal",
+        "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+      },
+      "validated": true
+    },
+    {
       "capability_count": 0,
       "case_coverage_count": 17,
       "device": {
@@ -24659,7 +24741,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "2c953aee69bfa4b5feca8ac642dbc46cb3d5c5e3f42eb00b323796e4148cde5b",
+  "sources_sha256": "71cfabb9e01208b11b314f2b4ff0a7e4e640a293cdc36395204e20c13005d82c",
   "valid": true,
   "validation_failures": []
 }

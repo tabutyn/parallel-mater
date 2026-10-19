@@ -68,6 +68,11 @@
       "sha256": "ed16738f43f7bf5453ad814ac3f1fba6e485c9e8926bdadcff6a94fe94501acb"
     },
     {
+      "id": "macos-m4-slang-metal-e09edbe-cloth-rope-attachment",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-e09edbe-cloth-rope-attachment-qualification.json",
+      "sha256": "3688bf90455e23ea52033b484030ad0dc2d75221757061fb0936e1252d1a95cf"
+    },
+    {
       "id": "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid-qualification.json",
       "sha256": "c60cd0ab1db21b6866d487fe90422d462e8a5ce3033ac27beb128c2806d8c99c"
