@@ -254,7 +254,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F6-12](roadmap/tasks/F6-12.json) | Keep installed corpus manifest synchronized | done | F5-24, F6-04 | — |
 | [F6-13](roadmap/tasks/F6-13.json) | Package the conformance runner source closure | done | F6-12 | — |
 | [F6-14](roadmap/tasks/F6-14.json) | Remove workstation paths from installed evidence | done | F6-04, F6-12 | — |
-| [F6-15](roadmap/tasks/F6-15.json) | Orient project documentation around users | ready | — | — |
+| [F6-15](roadmap/tasks/F6-15.json) | Orient project documentation around users | leased | — | codex-docs-audit / Thomass-MacBook-Air / 2026-10-20T13:07:34Z |
 | [F6-99](roadmap/tasks/F6-99.json) | Review F6 exit evidence | done | F6-01, F6-02, F6-03, F6-04, F6-05, F6-06, F6-07, F6-08, F6-09, F6-10, F6-11, F6-12, F6-13, F6-14 | — |
 
 ### F7. Shared Gallery application
