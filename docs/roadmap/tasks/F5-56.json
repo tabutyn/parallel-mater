@@ -1,7 +1,7 @@
 {
   "id": "F5-56",
   "title": "Align rope contact candidates across GPU drivers",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-46",
     "F6-11"
@@ -20,6 +20,14 @@
     "Re-run rope core, self-contact, winding, release, soft-rope contact and soft-rope attachment reference, analytic-quality and lifecycle coverage, with bounded performance and threadgroup-memory evidence and no newly hidden failure."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "5ff54157-a748-49f3-933f-36d1344096d2",
+    "owner": "codex-macos-rope-parity",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F5-56/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-19T18:42:26Z",
+    "heartbeat_at": "2026-10-19T18:42:26Z",
+    "expires_at": "2026-10-20T18:42:26Z"
+  },
   "history": []
 }
