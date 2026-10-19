@@ -1,15 +1,13 @@
 {
   "id": "P1-02",
   "title": "Plan remaining same-family operators",
-  "status": "deferred",
+  "status": "open",
   "dependencies": [
     "F1-99",
     "F2-99",
     "F3-99",
     "F4-99",
-    "F5-99",
-    "F6-99",
-    "F7-99"
+    "F6-99"
   ],
   "locks": [
     "interaction-spec"
