@@ -215,7 +215,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-35](roadmap/tasks/F5-35.json) | Qualify smoke-to-fluid drag | done | F5-23 | — |
 | [F5-36](roadmap/tasks/F5-36.json) | Qualify externally heated fluid | done | F5-23 | — |
 | [F5-37](roadmap/tasks/F5-37.json) | Qualify fluid-to-smoke phase transfer | done | F5-23 | — |
-| [F5-38](roadmap/tasks/F5-38.json) | Qualify fluid-rigid contact | ready | F5-23 | — |
+| [F5-38](roadmap/tasks/F5-38.json) | Qualify fluid-rigid contact | leased | F5-23 | codex-macos-qualification / Thomass-MacBook-Air / 2026-10-20T15:53:45Z |
 | [F5-39](roadmap/tasks/F5-39.json) | Qualify rigid fluid containment | ready | F5-23 | — |
 | [F5-40](roadmap/tasks/F5-40.json) | Qualify cloth-soft contact | ready | F5-23 | — |
 | [F5-41](roadmap/tasks/F5-41.json) | Qualify cloth-rope attachment | ready | F5-23 | — |
