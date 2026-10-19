@@ -1,21 +1,22 @@
 {
   "id": "F5-56",
-  "title": "Align rope contact candidates across GPU drivers",
+  "title": "Align coupled rope state across GPU drivers",
   "status": "open",
   "dependencies": [
     "F5-46",
     "F6-11"
   ],
   "locks": [
-    "shared-rope-contact-candidates"
+    "shared-rope-contact-candidates",
+    "shared-rope-coupled-state"
   ],
   "requires": [
     "Physical CUDA reference device and physical Apple GPU on one reviewed revision"
   ],
-  "scope": "Diagnose and correct shared Slang rope rigid/soft contact candidate selection so Metal and CUDA satisfy the unchanged rope-soft-body reference regression. Keep every physics equation and selection rule shared; do not add a backend-specific physics path, relax comparison tolerances or replace the CUDA reference without independent physical adjudication.",
+  "scope": "Diagnose and correct the shared Slang coupled rope state update and its downstream rigid/soft contact candidate selection so Metal and CUDA satisfy the unchanged rope-soft-body reference regression. Keep every physics equation, canonicalization rule and selection rule shared; leave uncoupled rope behavior unchanged and do not add a backend-specific physics path, relax comparison tolerances or replace the CUDA reference without independent physical adjudication.",
   "acceptance": [
     "Capture same-revision CUDA and Metal traces beginning before the first divergence, with stable rope, body and triangle identifiers plus BVH visitation, candidate inputs, region, fraction, weights, normal, depth, exact floating-point bits and rejection reason.",
-    "Correct only the shared Slang contact candidate selection or reduction with deterministic ordering and tie-breaking derived from physical geometry; preserve thin driver adapters and the common simulation schedule.",
+    "Correct only the shared Slang coupled rope state update and contact candidate reduction: bound target-specific sub-ULP feedback on a binary grid below contact tolerances, deterministically order physically equivalent swept witnesses, preserve the ordinary uncoupled entry point, thin driver adapters and the common simulation schedule.",
     "Run the unchanged rope-soft-body comparator on physical CUDA and Metal and require both to pass. If the shared correction intentionally changes CUDA, retain the old raw capture and refresh the versioned golden only after an independent physical oracle approves the new behavior.",
     "Re-run rope core, self-contact, winding, release, soft-rope contact and soft-rope attachment reference, analytic-quality and lifecycle coverage, with bounded performance and threadgroup-memory evidence and no newly hidden failure."
   ],
