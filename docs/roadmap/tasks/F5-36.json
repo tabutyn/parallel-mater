@@ -1,7 +1,7 @@
 {
   "id": "F5-36",
   "title": "Qualify externally heated fluid",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,15 +17,31 @@
     "Add exact bounded capacity, replacement, removal and rollback lifecycle checks; a rejected mutation preserves the last usable state and recovery is deterministic.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "848d5bca-0ab3-43e0-8e0c-cfc619b422f1",
-    "owner": "codex-windows-qualification",
-    "machine": "windows-gtx1080",
-    "branch": "work/F5-36/windows-gtx1080",
-    "claimed_at": "2026-10-19T14:36:10Z",
-    "heartbeat_at": "2026-10-19T14:36:10Z",
-    "expires_at": "2026-10-20T14:36:10Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: GTX 1080 slang-cuda smoke-water regression plus externally-heated-fluid-v1, 8/8 samples and 0 failures; docs/roadmap/evidence/F5-36-externally-heated-fluid.json",
+    "PASS: externally-heated-fluid-lifecycle-v1 particle/grid capacity, replacement, rejected-overflow rollback, removal and recovery, 10/10 checkpoints; docs/roadmap/evidence/F5-36-dac1c20-cuda-lifecycle-report.json",
+    "PASS: exact particle and grid qualification, evidence index, 178 Python conformance tests and 2/2 compiled CLI tests; conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle-qualification.json and conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid-qualification.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "848d5bca-0ab3-43e0-8e0c-cfc619b422f1",
+        "owner": "codex-windows-qualification",
+        "machine": "windows-gtx1080",
+        "branch": "work/F5-36/windows-gtx1080",
+        "claimed_at": "2026-10-19T14:36:10Z",
+        "heartbeat_at": "2026-10-19T14:36:10Z",
+        "expires_at": "2026-10-20T14:36:10Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T15:27:16Z",
+      "reason": "Published and physically qualified exact particle/grid externally heated fluid analytic and lifecycle contracts",
+      "evidence": [
+        "PASS: GTX 1080 slang-cuda smoke-water regression plus externally-heated-fluid-v1, 8/8 samples and 0 failures; docs/roadmap/evidence/F5-36-externally-heated-fluid.json",
+        "PASS: externally-heated-fluid-lifecycle-v1 particle/grid capacity, replacement, rejected-overflow rollback, removal and recovery, 10/10 checkpoints; docs/roadmap/evidence/F5-36-dac1c20-cuda-lifecycle-report.json",
+        "PASS: exact particle and grid qualification, evidence index, 178 Python conformance tests and 2/2 compiled CLI tests; conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle-qualification.json and conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid-qualification.json"
+      ]
+    }
+  ]
 }
