@@ -1,0 +1,49 @@
+{
+  "driver": {
+    "device": "Mali-G710",
+    "name": "slang-vulkan"
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 1,
+  "observations": {
+    "closed_consistently_oriented_surface": true,
+    "contact_impulse_activity_n_s": 0.8187241793880373,
+    "expected_impulse_error_n_s": 0.0003004395748493571,
+    "expected_unique_bound_node_impulse_n_s": 0.8186769279202747,
+    "final_particle_signed_distance_m": 0.10000000082914741,
+    "fluid_contact_impulse_n_s": [
+      -0.818724125623703,
+      -0.00020980472618248314,
+      -0.00020980536646675318
+    ],
+    "fluid_reaction_force_n": [
+      -81.8724136352539,
+      -0.0209804717451334,
+      -0.020980536937713623
+    ],
+    "maximum_endpoint_speed_m_s": 0.24559663357626363,
+    "maximum_overlap_penetration_m": 0.0,
+    "maximum_surface_reconstruction_error_m": 3.140110530402601e-08,
+    "minimum_binding_incidence_per_node": 4,
+    "reciprocal_force_residual_n": 0.0,
+    "reciprocal_impulse_residual_n_s": 7.275957614183426e-12,
+    "soft_body_contact_impulse_n_s": [
+      0.818724125623703,
+      0.00020980473345844075,
+      0.00020980536646675318
+    ],
+    "soft_body_reaction_force_n": [
+      81.8724136352539,
+      0.0209804717451334,
+      0.020980536937713623
+    ],
+    "soft_force_impulse_residual_n_s": 1.0728848377611054e-08
+  },
+  "passed": true,
+  "profile_id": "fluid-soft-contact-v1",
+  "profile_sha256": "40dce99005017b4b4a485f7553ea89f8f06526c88f242215a1415c8c67c9e986",
+  "sample_count": 1,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

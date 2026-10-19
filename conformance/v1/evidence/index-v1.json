@@ -1246,7 +1246,7 @@
           "contracts": [
             "quality:fluid-self-viscosity-v1"
           ],
-          "status": "missing_contract"
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -1297,7 +1297,7 @@
           "contracts": [
             "quality:fluid-self-viscosity-v1"
           ],
-          "status": "missing_contract"
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -3154,7 +3154,7 @@
           "contracts": [
             "quality:rope-self-contact-v1"
           ],
-          "status": "missing_contract"
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -3205,7 +3205,7 @@
           "contracts": [
             "quality:rope-self-contact-v1"
           ],
-          "status": "missing_contract"
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -5388,7 +5388,7 @@
           "contracts": [
             "quality:fluid-self-viscosity-v1"
           ],
-          "status": "missing_contract"
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6760,7 +6760,7 @@
           "contracts": [
             "quality:fluid-self-viscosity-v1"
           ],
-          "status": "missing_contract"
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6811,7 +6811,7 @@
           "contracts": [
             "quality:fluid-self-viscosity-v1"
           ],
-          "status": "missing_contract"
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -8269,7 +8269,7 @@
           "contracts": [
             "quality:rope-self-contact-v1"
           ],
-          "status": "missing_contract"
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -8320,7 +8320,7 @@
           "contracts": [
             "quality:rope-self-contact-v1"
           ],
-          "status": "missing_contract"
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -10296,6 +10296,53 @@
       },
       "key_text": "CLOTH/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "cloth-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:cloth-core"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:cloth-core"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "CLOTH/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "cloth-rigid",
       "scopes": {
@@ -10324,6 +10371,53 @@
             "case:cloth-core"
           ],
           "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "ATTACHMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "key_text": "CLOTH/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "cloth-rope",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-cloth"
+          ],
+          "status": "passed"
         },
         "timing": {
           "contracts": [],
@@ -10390,6 +10484,53 @@
       },
       "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "cloth-smoke-grid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "cloth-smoke-grid",
       "scopes": {
@@ -10412,6 +10553,55 @@
         "lifecycle_invariants": {
           "contracts": [],
           "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "cloth-smoke-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -10486,6 +10676,53 @@
       },
       "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "cloth-smoke-grid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "cloth-smoke-grid",
       "scopes": {
@@ -10508,6 +10745,55 @@
         "lifecycle_invariants": {
           "contracts": [],
           "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "cloth-smoke-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -10582,6 +10868,53 @@
       },
       "key_text": "CLOTH/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "cloth-soft-body",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:soft-body-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:soft-body-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SOFT_BODY"
+      },
+      "key_text": "CLOTH/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "cloth-soft-body",
       "scopes": {
@@ -10608,6 +10941,57 @@
         "reference_regression": {
           "contracts": [
             "case:soft-body-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "CLOTH"
+      },
+      "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": true,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "fluid-cloth-contact",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:fluid-cloth-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:cloth-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:cloth-water"
           ],
           "status": "passed"
         },
@@ -10655,6 +11039,57 @@
             "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback"
           ],
           "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:cloth-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTAINMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "CLOTH"
+      },
+      "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": true,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "fluid-cloth-containment",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:fluid-cloth-containment-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:cloth-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:fluid-cloth-containment-lifecycle-v1#fluid-cloth-containment-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -10730,6 +11165,57 @@
         "second_family": "FLUID"
       },
       "key_text": "FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": true,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "fluid-self-contact",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:fluid-self-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:fluid-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:fluid-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "SELF",
+        "second_family": "FLUID"
+      },
+      "key_text": "FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-self-contact",
@@ -10757,6 +11243,57 @@
             "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"
           ],
           "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:fluid-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "PRESSURE",
+        "scope": "SELF",
+        "second_family": "FLUID"
+      },
+      "key_text": "FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": true,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "fluid-self-pressure",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:fluid-self-pressure-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:fluid-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -10832,6 +11369,57 @@
         "second_family": "FLUID"
       },
       "key_text": "FLUID/FLUID/SELF/VISCOSITY/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": true,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "fluid-self-viscosity",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:fluid-self-viscosity-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:fluid-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:fluid-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "VISCOSITY",
+        "scope": "SELF",
+        "second_family": "FLUID"
+      },
+      "key_text": "FLUID/FLUID/SELF/VISCOSITY/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-self-viscosity",
@@ -10840,7 +11428,7 @@
           "contracts": [
             "quality:fluid-self-viscosity-v1"
           ],
-          "status": "missing_contract"
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -10884,6 +11472,53 @@
       },
       "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "fluid-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:fluid-rigid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:fluid-rigid"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-rigid",
       "scopes": {
@@ -10896,6 +11531,53 @@
             "registry:interaction-capabilities"
           ],
           "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:fluid-rigid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:fluid-rigid"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTAINMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "fluid-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -10978,6 +11660,57 @@
       },
       "key_text": "FLUID/ROPE/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "fluid-rope",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:fluid-rope-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-fluid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-fluid"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "key_text": "FLUID/ROPE/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-rope",
       "scopes": {
@@ -11029,6 +11762,53 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "fluid-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-smoke",
       "scopes": {
@@ -11041,6 +11821,53 @@
             "registry:interaction-capabilities"
           ],
           "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "fluid-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11123,6 +11950,53 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_GRID",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "fluid-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "FIRST_TO_SECOND_TRANSFER",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_GRID",
+        "mode": "PHASE",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_GRID",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-smoke",
       "scopes": {
@@ -11135,6 +12009,53 @@
             "registry:interaction-capabilities"
           ],
           "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "FIRST_TO_SECOND_TRANSFER",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "PHASE",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "fluid-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11217,6 +12138,53 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_GRID",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "fluid-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "EXTERNAL_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_GRID",
+        "mode": "THERMAL",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_GRID",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-smoke",
       "scopes": {
@@ -11229,6 +12197,53 @@
             "registry:interaction-capabilities"
           ],
           "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "EXTERNAL_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "THERMAL",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "fluid-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11310,6 +12325,57 @@
         "second_family": "SOFT_BODY"
       },
       "key_text": "FLUID/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": true,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "fluid-soft-body",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:fluid-soft-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:soft-body-fluid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:soft-body-fluid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SOFT_BODY"
+      },
+      "key_text": "FLUID/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "fluid-soft-body",
@@ -11361,6 +12427,57 @@
         "second_family": "RIGID_BODY"
       },
       "key_text": "RIGID_BODY/RIGID_BODY/SAME_DOMAIN/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": true,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "rigid-attachment",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:rigid-attachment-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:compound-weld-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "case:compound-weld-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:compound-weld-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "RIGID_BODY",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "ATTACHMENT",
+        "scope": "SAME_DOMAIN",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "RIGID_BODY/RIGID_BODY/SAME_DOMAIN/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "rigid-attachment",
@@ -11392,6 +12509,57 @@
         "reference_regression": {
           "contracts": [
             "case:compound-weld-lifecycle"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "RIGID_BODY",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "SAME_DOMAIN",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "RIGID_BODY/RIGID_BODY/SAME_DOMAIN/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": true,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "rigid-contact",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:rigid-brick-penetration-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rigid-direct"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "case:rigid-direct"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rigid-direct"
           ],
           "status": "passed"
         },
@@ -11464,6 +12632,55 @@
       },
       "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "rope-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "ROPE",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "ATTACHMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "rope-rigid",
       "scopes": {
@@ -11476,6 +12693,55 @@
             "registry:interaction-capabilities"
           ],
           "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "ROPE",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "ROPE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "rope-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11562,6 +12828,57 @@
       },
       "key_text": "ROPE/ROPE/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "rope-self",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:rope-self-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-core"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "ROPE",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "SELF",
+        "second_family": "ROPE"
+      },
+      "key_text": "ROPE/ROPE/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "rope-self",
       "scopes": {
@@ -11569,7 +12886,7 @@
           "contracts": [
             "quality:rope-self-contact-v1"
           ],
-          "status": "missing_contract"
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11613,6 +12930,53 @@
       },
       "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "rope-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "ROPE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "rope-smoke",
       "scopes": {
@@ -11625,6 +12989,53 @@
             "registry:interaction-capabilities"
           ],
           "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "ROPE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "rope-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11707,6 +13118,53 @@
       },
       "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "rope-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "ROPE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "rope-smoke",
       "scopes": {
@@ -11719,6 +13177,53 @@
             "registry:interaction-capabilities"
           ],
           "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "ROPE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "rope-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11801,6 +13306,53 @@
       },
       "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "smoke-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/SMOKE_GRID",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "smoke-rigid",
       "scopes": {
@@ -11813,6 +13365,53 @@
             "registry:interaction-capabilities"
           ],
           "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "smoke-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11895,6 +13494,53 @@
       },
       "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "smoke-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL/SMOKE_GRID",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "smoke-rigid",
       "scopes": {
@@ -11907,6 +13553,53 @@
             "registry:interaction-capabilities"
           ],
           "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "smoke-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -11988,6 +13681,58 @@
         "second_family": "SMOKE"
       },
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_GRID",
+      "qualified": true,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "smoke-self-pressure",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:smoke-self-pressure-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-particle-capacity-replacement-removal-rollback",
+            "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-grid-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "PRESSURE",
+        "scope": "SELF",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "smoke-self-pressure",
@@ -12016,6 +13761,58 @@
             "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-grid-capacity-replacement-removal-rollback"
           ],
           "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "PRESSURE",
+        "scope": "SELF",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_PARTICLE",
+      "qualified": true,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "smoke-self-pressure",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:smoke-self-pressure-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-particle-capacity-replacement-removal-rollback",
+            "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-grid-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -12092,6 +13889,57 @@
         "second_family": "SMOKE"
       },
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID",
+      "qualified": true,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "smoke-self-viscosity",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:smoke-self-viscosity-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "VISCOSITY",
+        "scope": "SELF",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "smoke-self-viscosity",
@@ -12119,6 +13967,57 @@
             "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
           ],
           "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "VISCOSITY",
+        "scope": "SELF",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_PARTICLE",
+      "qualified": true,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "smoke-self-viscosity",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:smoke-self-viscosity-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -12195,6 +14094,53 @@
       },
       "key_text": "SOFT_BODY/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "soft-body-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:soft-body-rigid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:soft-body-rigid"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SOFT_BODY",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "SOFT_BODY/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "soft-body-rigid",
       "scopes": {
@@ -12242,6 +14188,55 @@
       },
       "key_text": "SOFT_BODY/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "soft-body-rope",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-soft-body"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SOFT_BODY",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "ATTACHMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "key_text": "SOFT_BODY/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "soft-body-rope",
       "scopes": {
@@ -12266,6 +14261,55 @@
             "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
           ],
           "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-soft-body"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SOFT_BODY",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "key_text": "SOFT_BODY/ROPE/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "soft-body-rope",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -12340,6 +14384,53 @@
       },
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "soft-body-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "soft-body-smoke",
       "scopes": {
@@ -12352,6 +14443,53 @@
             "registry:interaction-capabilities"
           ],
           "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "soft-body-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -12434,6 +14572,53 @@
       },
       "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "soft-body-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
+      "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
       "rule_id": "soft-body-smoke",
       "scopes": {
@@ -12446,6 +14631,53 @@
             "registry:interaction-capabilities"
           ],
           "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-soft-body"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-vulkan",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "SOFT_BODY",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "SOFT_BODY/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "android-pixel7-slang-vulkan-3187375",
+      "rule_id": "soft-body-smoke",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
         },
         "execution": {
           "contracts": [
@@ -12517,7 +14749,7 @@
       }
     }
   ],
-  "capability_count": 257,
+  "capability_count": 303,
   "driver_count": 5,
   "drivers": [
     {
@@ -12573,14 +14805,16 @@
       "id": "slang-vulkan",
       "label": "Vulkan",
       "qualification_result_ids": [
+        "android-pixel7-slang-vulkan-3187375",
         "linux-rtx3050ti-slang-vulkan-eed669e"
       ],
-      "qualified_capability_count": 0,
+      "qualified_capability_count": 12,
       "report_ids": [
+        "android-pixel7-slang-vulkan-3187375",
         "linux-rtx3050ti-slang-vulkan-eed669e"
       ],
       "status": "unqualified",
-      "unqualified_capability_count": 46
+      "unqualified_capability_count": 80
     },
     {
       "id": "slang-metal",
@@ -12589,16 +14823,16 @@
         "ipados-m1-slang-metal-9f7e72e",
         "macos-m4-slang-metal-86f10b2-fluid-cloth-containment",
         "macos-m4-slang-metal-86f10b2-fluid-soft-contact",
-        "macos-m4-slang-metal-aac6d59",
-        "macos-m4-slang-metal-86f10b2-smoke-viscosity"
+        "macos-m4-slang-metal-86f10b2-smoke-viscosity",
+        "macos-m4-slang-metal-aac6d59"
       ],
       "qualified_capability_count": 0,
       "report_ids": [
         "ipados-m1-slang-metal-9f7e72e",
         "macos-m4-slang-metal-86f10b2-fluid-cloth-containment",
         "macos-m4-slang-metal-86f10b2-fluid-soft-contact",
-        "macos-m4-slang-metal-aac6d59",
-        "macos-m4-slang-metal-86f10b2-smoke-viscosity"
+        "macos-m4-slang-metal-86f10b2-smoke-viscosity",
+        "macos-m4-slang-metal-aac6d59"
       ],
       "status": "unqualified",
       "unqualified_capability_count": 96
@@ -12653,7 +14887,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "expected": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -14138,7 +16372,7 @@
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "unknown required contract",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[2].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
@@ -14147,7 +16381,7 @@
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "unknown required contract",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[2].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -15479,7 +17713,7 @@
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "unknown required contract",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[6].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
@@ -15488,7 +17722,7 @@
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "unknown required contract",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[6].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -15756,7 +17990,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "expected": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15765,7 +17999,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "expected": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15774,7 +18008,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "expected": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15783,7 +18017,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-cuda",
-      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "expected": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15936,7 +18170,7 @@
       "driver": "slang-d3d12",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "unknown required contract",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[2].analytic_invariants",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
@@ -16177,7 +18411,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "expected": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -16186,7 +18420,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-d3d12",
-      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "expected": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -17480,7 +19714,7 @@
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "unknown required contract",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[2].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
@@ -17489,7 +19723,7 @@
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "unknown required contract",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[2].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -18110,7 +20344,7 @@
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "unknown required contract",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[3].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
@@ -18119,7 +20353,7 @@
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "unknown required contract",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[3].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -18846,7 +21080,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "expected": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18855,7 +21089,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "expected": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18864,29 +21098,29 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "expected": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "macos-m4-slang-metal-86f10b2-fluid-soft-contact"
     },
     {
-      "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
-      "driver": "slang-metal",
-      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
-      "kind": "qualification_failure",
-      "message": "obligations hash mismatch",
-      "path": "$.obligations_sha256",
-      "report": "macos-m4-slang-metal-aac6d59"
-    },
-    {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "expected": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "macos-m4-slang-metal-86f10b2-smoke-viscosity"
+    },
+    {
+      "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
+      "driver": "slang-metal",
+      "expected": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "macos-m4-slang-metal-aac6d59"
     },
     {
       "actual": "quality:fluid-self-contact-v1",
@@ -19024,6 +21258,24 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
+      "actual": "failed",
+      "driver": "slang-vulkan",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[13].reference_regression",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[14].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
       "driver": "slang-vulkan",
       "expected": null,
@@ -19048,7 +21300,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[14].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[14].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[15].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -19075,7 +21345,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[15].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[15].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[16].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -19102,7 +21390,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[16].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[16].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[17].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -19129,7 +21435,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[17].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[17].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[18].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -19156,7 +21480,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[18].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[18].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[19].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
@@ -19175,6 +21517,15 @@
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[19].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[19].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No exact fluid-smoke adverse graph case is registered.",
@@ -19219,6 +21570,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[20].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[20].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
@@ -19237,6 +21597,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[20].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[20].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
@@ -19246,7 +21615,25 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[20].reference_regression",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-vulkan",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[20].reference_regression",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral fluid-rigid quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[21].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral fluid-rigid quality case is registered.",
@@ -19273,6 +21660,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[21].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact fluid-rigid adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[21].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
@@ -19282,7 +21678,25 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[21].reference_regression",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-vulkan",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[21].reference_regression",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral cloth-soft-body quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[22].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral cloth-soft-body quality case is registered.",
@@ -19309,7 +21723,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[22].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact cloth-soft-body adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[22].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral cloth-rope attachment quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[23].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral cloth-rope attachment quality case is registered.",
@@ -19336,7 +21768,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[23].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact cloth-rope adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[23].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[24].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral cloth-smoke quality case is registered.",
@@ -19372,6 +21822,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[25].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[25].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
@@ -19399,6 +21858,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[26].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[26].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
@@ -19417,7 +21885,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[26].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[26].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[27].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
@@ -19444,7 +21930,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[27].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[27].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral cloth-rigid quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[28].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral cloth-rigid quality case is registered.",
@@ -19471,6 +21975,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[28].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact cloth-rigid adverse lifecycle case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[28].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
@@ -19480,7 +21993,25 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[28].reference_regression",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-vulkan",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[28].reference_regression",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral soft-body-rope quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[29].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral soft-body-rope quality case is registered.",
@@ -19516,6 +22047,15 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[29].reference_regression",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-vulkan",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[29].reference_regression",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
@@ -19523,7 +22063,7 @@
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "unknown required contract",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[2].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -19544,6 +22084,15 @@
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[2].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral soft-body-rope quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[30].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral soft-body-rope quality case is registered.",
@@ -19579,7 +22128,25 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[30].reference_regression",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-vulkan",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[30].reference_regression",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[31].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
@@ -19606,7 +22173,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[31].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[31].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[32].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
@@ -19633,7 +22218,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[32].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[32].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[33].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
@@ -19660,7 +22263,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[33].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[33].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[34].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral soft-body-smoke quality case is registered.",
@@ -19687,7 +22308,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[34].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact soft-body-smoke adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[34].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral soft-body-rigid quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[35].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral soft-body-rigid quality case is registered.",
@@ -19714,6 +22353,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[35].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact soft-body-rigid adverse lifecycle case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[35].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
@@ -19723,7 +22371,25 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[35].reference_regression",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-vulkan",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[35].reference_regression",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral rope-smoke quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[36].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral rope-smoke quality case is registered.",
@@ -19750,7 +22416,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[36].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact rope-smoke adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[36].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral rope-smoke quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[37].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral rope-smoke quality case is registered.",
@@ -19777,7 +22461,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[37].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact rope-smoke adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[37].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral rope-smoke quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[38].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral rope-smoke quality case is registered.",
@@ -19804,7 +22506,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[38].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact rope-smoke adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[38].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral rope-smoke quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[39].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral rope-smoke quality case is registered.",
@@ -19831,6 +22551,15 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[39].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact rope-smoke adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[39].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
@@ -19838,7 +22567,7 @@
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "unknown required contract",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[3].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -19858,7 +22587,25 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[3].reference_regression",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-vulkan",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[3].reference_regression",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[40].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral rope-rigid quality case is registered.",
@@ -19885,7 +22632,25 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[40].reference_regression",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-vulkan",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[40].reference_regression",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral rope-rigid quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[41].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral rope-rigid quality case is registered.",
@@ -19912,7 +22677,25 @@
       "kind": "qualification_failure",
       "message": "required evidence did not pass",
       "path": "$.advertised_capabilities[41].reference_regression",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "failed",
+      "driver": "slang-vulkan",
+      "expected": "passed",
+      "kind": "qualification_failure",
+      "message": "required evidence did not pass",
+      "path": "$.advertised_capabilities[41].reference_regression",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral smoke-rigid quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[42].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral smoke-rigid quality case is registered.",
@@ -19939,7 +22722,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[42].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact smoke-rigid adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[42].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral smoke-rigid quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[43].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral smoke-rigid quality case is registered.",
@@ -19966,7 +22767,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[43].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact smoke-rigid adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[43].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral smoke-rigid quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[44].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral smoke-rigid quality case is registered.",
@@ -19993,7 +22812,25 @@
       "kind": "qualification_failure",
       "message": "qualification contract is missing",
       "path": "$.advertised_capabilities[44].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "No exact smoke-rigid adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[44].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No vendor-neutral smoke-rigid quality case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[45].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No vendor-neutral smoke-rigid quality case is registered.",
@@ -20012,6 +22849,15 @@
       "message": "required evidence metadata is invalid",
       "path": "$.advertised_capabilities[45].compilation",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "No exact smoke-rigid adverse graph case is registered.",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "qualification contract is missing",
+      "path": "$.advertised_capabilities[45].lifecycle_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "No exact smoke-rigid adverse graph case is registered.",
@@ -20196,7 +23042,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "expected": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20204,11 +23050,42 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+  "obligations_sha256": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
   "qualification_complete": true,
-  "qualified_capability_count": 0,
-  "report_count": 15,
+  "qualified_capability_count": 12,
+  "report_count": 16,
   "reports": [
+    {
+      "capability_count": 46,
+      "device": {
+        "device_id": 2824994816,
+        "driver_version": "v1.r54p3-00eac0.1848e3b066182d5bb5a345ab256f13ee",
+        "name": "Mali-G710",
+        "vendor_id": 5045
+      },
+      "driver": {
+        "binary_sha256": "343dbd3121af1d8b91c8b50c72c6b85e0c0bfa9e730e1b20f0682e1e75257931",
+        "name": "slang-vulkan",
+        "version": "0.2.0"
+      },
+      "failure_count": 68,
+      "id": "android-pixel7-slang-vulkan-3187375",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json",
+      "qualified_count": 12,
+      "sha256": "fff92b43ce54b4acad3a05e45b8abf45843ae9c2681d7ae898da5134b7082b58",
+      "source": {
+        "commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "Android Clang",
+        "ndk": "29.0.14206865",
+        "slang": "2026.18",
+        "version": "Android (13989888, +pgo, +bolt, +lto, +mlgo, based on r563880c) Clang 21.0.0 (https://android.googlesource.com/toolchain/llvm-project 5e96669f06077099aa41290cdb4c5e6fa0f59349)"
+      },
+      "validated": false
+    },
     {
       "capability_count": 46,
       "device": {
@@ -20658,7 +23535,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "66d5a87eb4d7822b6d2692f836950dc3572826ed0880d7d899b65b6b173da39a",
+  "sources_sha256": "1080720fd62167a875a0cc96cd49c8e5c6afa193ecd600706e264eef477ca6fd",
   "valid": true,
   "validation_failures": []
 }

@@ -1,0 +1,14 @@
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 42240 bytes
+Parallel Mater Vulkan allocation: 512 bytes
+Parallel Mater Vulkan allocation: 416 bytes
+Parallel Mater Vulkan pipeline: queries/export_smoke_particles/256/push (38760 bytes; grid=1,1,1)
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 927488 bytes
+Parallel Mater Vulkan allocation: 512 bytes
+Parallel Mater Vulkan allocation: 416 bytes
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_initialize_cells/256/buffer (397552 bytes; grid=8,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_initialize_faces/256/buffer (397552 bytes; grid=9,1,1)
+Parallel Mater Vulkan pipeline: queries/export_smoke_particles/256/push (38760 bytes; grid=1,1,1)

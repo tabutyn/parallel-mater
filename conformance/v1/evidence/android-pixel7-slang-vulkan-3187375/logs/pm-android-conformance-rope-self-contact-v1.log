@@ -1,0 +1,9 @@
+Quality execution completed: rope-self-contact-v1
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 7117056 bytes
+Parallel Mater Vulkan allocation: 256 bytes
+Parallel Mater Vulkan allocation: 3670336 bytes
+Parallel Mater Vulkan allocation: 144 bytes
+Parallel Mater Vulkan pipeline: rope/rope_advance/128/push (808788 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: queries/export_rope_nodes/256/push (38760 bytes; grid=1,1,1)

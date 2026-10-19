@@ -1,0 +1,65 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-15",
+  "source": {
+    "commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+    "dirty": false,
+    "branch": "work/F5-15/thomas-laptop",
+    "lease_token": "161b37df-5ea8-401e-8c5b-d4d63e2970a8"
+  },
+  "captured_at": "2026-10-19",
+  "device": {
+    "manufacturer": "Google",
+    "model": "Pixel 7",
+    "product": "panther",
+    "android_version": "17",
+    "api_level": "37",
+    "security_patch": "2026-09-05",
+    "gpu": "Mali-G710",
+    "vulkan_api_version": "1.4.343",
+    "vulkan_instance_api_version": "1.4.0",
+    "vulkan_driver_id": 9,
+    "vulkan_driver_info": "v1.r54p3-00eac0.1848e3b066182d5bb5a345ab256f13ee"
+  },
+  "toolchain": {
+    "compiler": "Android Clang 21.0.0 (r563880c)",
+    "ndk": "29.0.14206865",
+    "slang": "2026.18"
+  },
+  "binaries": {
+    "apk_sha256": "d9d8ff13329a8a0c4d7ae7e6049542aa6fc6c1c7134d81f9dfbfb83318a15436",
+    "driver_sha256": "343dbd3121af1d8b91c8b50c72c6b85e0c0bfa9e730e1b20f0682e1e75257931"
+  },
+  "results": {
+    "device_executions": "PASS: 25/25",
+    "public_api_trajectories": "PASS: 30/30 completed on the device",
+    "analytic_quality": "PASS: 12/12 profiles",
+    "adverse_lifecycle": "PASS: 5/5 profiles",
+    "cuda_golden_reference": "FAIL: 15/30 exact comparisons passed and 15/30 had numerical differences",
+    "qualification": "12/46 advertised capabilities qualified; 68 explicit failures retained"
+  },
+  "contract_hashes": {
+    "device_capture_obligations": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+    "published_qualification_obligations": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
+    "note": "The published registry adds the already executed fluid-self-viscosity and rope-self-contact quality contract entries. Their immutable fixture hashes and every other executed contract hash are retained in android-capture.json."
+  },
+  "artifacts": {
+    "capture_package": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375",
+    "capture_index": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/capture-index.json",
+    "device_capture": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/android-capture.json",
+    "qualification_result": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json",
+    "reference_report": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+    "evidence_index": "conformance/v1/evidence/index-v1.json"
+  },
+  "validation": [
+    "The clean Android Vulkan build and all device binaries were produced from the pinned source commit.",
+    "The publication tool verifies the captured Vulkan driver and APK hashes before copying results.",
+    "The package contains per-run device logs, raw public API outputs, analytic and lifecycle reports, and a hash index for 113 files.",
+    "The generated evidence index, conformance manifest, roadmap graph, Python compilation and whitespace checks pass."
+  ],
+  "limitations": [
+    "Fifteen CUDA golden comparisons differ numerically on Mali; exact per-case differences remain in reports/reference.json and grant no reference qualification.",
+    "Several advertised capability tuples still lack exact registered analytic or lifecycle contracts; each gap remains an explicit qualification failure.",
+    "Gallery rendering, controls, background recovery, sustained runtime, timing and thermal evidence belong to F7-18 and are not claimed here."
+  ]
+}

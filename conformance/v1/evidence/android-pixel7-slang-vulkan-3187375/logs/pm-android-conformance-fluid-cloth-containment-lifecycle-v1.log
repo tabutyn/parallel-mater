@@ -1,0 +1,26 @@
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 28 bytes
+Parallel Mater Vulkan allocation: 41216 bytes
+Parallel Mater Vulkan allocation: 512 bytes
+Parallel Mater Vulkan pipeline: fluid/fluid_copy_initial/128/buffer (152404 bytes; grid=1,1,1)
+Parallel Mater Vulkan allocation: 368 bytes
+Parallel Mater Vulkan pipeline: soft_body/deformable_predict/128/push (73836 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: soft_body/deformable_project_links/128/push (73836 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: cloth/cloth_project_volume/128/push (21464 bytes; grid=1,1,1)
+Parallel Mater Vulkan allocation: 144 bytes
+Parallel Mater Vulkan pipeline: geometry_soft_body/deformable_collide/128/push (153512 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: fluid/fluid_emit_cells/128/buffer (152404 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: primitives/pm_radix_histogram_u64/256/push (8484 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: primitives/pm_radix_prefix_u32/1/push (8484 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: primitives/pm_radix_scatter_u64_u32/256/push (8484 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: fluid/fluid_compute_forces/128/buffer (152404 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: fluid_cloth/fluid_cloth_containment_forces/128/push (34760 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: fluid_cloth/cloth_apply_fluid_forces/128/push (34760 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: fluid/fluid_integrate/128/buffer (152404 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: fluid_cloth/fluid_project_inside_cloth/128/push (34760 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: queries/export_fluid_particles/256/push (38760 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: queries/export_cloth_vertices/256/push (38760 bytes; grid=1,1,1)
+Parallel Mater Vulkan allocation: 144 bytes
+Parallel Mater Vulkan allocation: 144 bytes
+Parallel Mater Vulkan allocation: 144 bytes

@@ -1,0 +1,16 @@
+PASS: public-API fluid self-viscosity sample on Mali-G710
+Quality execution completed: fluid-self-viscosity-v1
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 56 bytes
+Parallel Mater Vulkan allocation: 39168 bytes
+Parallel Mater Vulkan allocation: 256 bytes
+Parallel Mater Vulkan allocation: 112 bytes
+Parallel Mater Vulkan pipeline: fluid/fluid_copy_initial/128/buffer (152404 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: fluid/fluid_emit_cells/128/buffer (152404 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: primitives/pm_radix_histogram_u64/256/push (8484 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: primitives/pm_radix_prefix_u32/1/push (8484 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: primitives/pm_radix_scatter_u64_u32/256/push (8484 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: fluid/fluid_compute_forces/128/buffer (152404 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: fluid/fluid_integrate/128/buffer (152404 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: queries/export_fluid_particles/256/push (38760 bytes; grid=1,1,1)

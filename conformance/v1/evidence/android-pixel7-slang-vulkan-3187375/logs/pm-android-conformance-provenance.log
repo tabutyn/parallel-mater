@@ -1,0 +1,12 @@
+{"api_version":8192,"device_id":2824994816,"device_name":"Mali-G710","driver_version":226504704,"host_compiler":"Android (13989888, +pgo, +bolt, +lto, +mlgo, based on r563880c) Clang 21.0.0 (https://android.googlesource.com/toolchain/llvm-project 5e96669f06077099aa41290cdb4c5e6fa0f59349)","source_commit":"31873756cdac28020010f4b7e8d6f1f947cc4e63","vendor_id":5045}
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 240 bytes
+Parallel Mater Vulkan allocation: 1792 bytes
+Parallel Mater Vulkan allocation: 240 bytes
+Parallel Mater Vulkan allocation: 1792 bytes
+Parallel Mater Vulkan allocation: 240 bytes
+Parallel Mater Vulkan allocation: 1792 bytes
+Parallel Mater Vulkan allocation: 35644416 bytes
+Parallel Mater Vulkan allocation: 256 bytes
+Parallel Mater Vulkan allocation: 3670432 bytes

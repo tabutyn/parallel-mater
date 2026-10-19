@@ -1,0 +1,506 @@
+{
+  "capture_date": "2026-10-19",
+  "claims": {
+    "adverse_lifecycle": true,
+    "analytic_quality": true,
+    "cuda_reference_regression": false,
+    "gallery_scene_sweep": false,
+    "public_api_physics": true,
+    "thermal": false,
+    "timing": false
+  },
+  "device": {
+    "android_version": "17",
+    "device_id": 2824994816,
+    "driver_version": "v1.r54p3-00eac0.1848e3b066182d5bb5a345ab256f13ee",
+    "model": "Pixel 7",
+    "name": "Mali-G710",
+    "vendor_id": 5045,
+    "vulkan_api_version": "1.4.343"
+  },
+  "driver": {
+    "binary_sha256": "343dbd3121af1d8b91c8b50c72c6b85e0c0bfa9e730e1b20f0682e1e75257931",
+    "name": "slang-vulkan",
+    "version": "0.2.0"
+  },
+  "file_count": 113,
+  "files": [
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/android-capture.json",
+      "sha256": "236f0133ba6e59e4073e711cd7214d95fc99ab3e17a46e39024e8b5cc7bf1e70"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-async-tests.log",
+      "sha256": "a6c9854ecc67d6898f1a651f90d024074c5bde78e6d7c67c3750d36d4e03460b"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-command-tests.log",
+      "sha256": "aa615715bf13cc0e12ffd0b5ac1e235f0debf369540fcc4c0e5eea8950b8048e"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-adverse-capacity-three-family-v1.log",
+      "sha256": "cb534f53df335f60111fa9ad5127d460db188ebe748f4ab58b73ed39320b6ba6"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-all.log",
+      "sha256": "60271e2d360b964e2bfcad2c3c5edb3fe2a74c0a7b2e50e95b1689061caeb84e"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-capabilities.log",
+      "sha256": "12c5293c2745ae675fd4ed6f420bec49d6597b7ff8a3f1f9f91e1df8fde3130a"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-check-inputs.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-fluid-cloth-contact-lifecycle-v1.log",
+      "sha256": "e5cc4bf863af96c13592f00dd969266abc7a44d96ad3f9b987797f602a05b86a"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-fluid-cloth-contact-v1.log",
+      "sha256": "37522dd60412ef00b8615f1e8a2f915d886423edfa09f1cbefe0b8ca1977e75c"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-fluid-cloth-containment-lifecycle-v1.log",
+      "sha256": "b0f58a7e0345ec5123de6fb7909c8c352d66a701f24282674a0702699ab093e2"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-fluid-cloth-containment-v1.log",
+      "sha256": "ea9efdf99aaeb57adcd8d313ba5ecd7a9f60b03f0e124b539efe99b4b0d15c20"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-fluid-rope-contact-v1.log",
+      "sha256": "42ebae7355b399c90a20e0553ea3aab0294a24e568c83aca1318873dc168e442"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-fluid-self-contact-v1.log",
+      "sha256": "5f8806cdddb1b3ed5a2915eda040f7e6fc2309f8be8e906cf114a4f15708cadf"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-fluid-self-pressure-v1.log",
+      "sha256": "78ea272d723d52d1777a24401d0bf4506b2c2bd4511e17abf616dfecaec21a5c"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-fluid-self-viscosity-v1.log",
+      "sha256": "a87239a138532c0354df43551b2fef9147005387ac24747ef8724b4267c5110c"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-fluid-soft-contact-v1.log",
+      "sha256": "6d7d565ecbe8a9f350662a1c5044d9913c277bf2720012b36b743a9587263058"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-provenance.log",
+      "sha256": "cbf1e30cbd93e610b4740baacfd0c80d3c62a196540e1db012e3bc9a38a2735f"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-rigid-attachment-v1.log",
+      "sha256": "24f8a78ae7d6371d87c418b6a6458e67e57d589ebb2104f0ce0219753d1d0f85"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-rigid-brick-penetration-v1.log",
+      "sha256": "a18c0201c2344593f3765995317cc94583decf1f3553f6269f68dcbfcabce6d9"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-rope-self-contact-v1.log",
+      "sha256": "5b80108f00dc38673f0d090c60f196016c7cac97d3ffc8d00f12ede30c4d4615"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-smoke-self-lifecycle-v1.log",
+      "sha256": "19583da93e2d2eb7ae897f7832511adea74f40e161836a33575496f72027f84b"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-smoke-self-pressure-lifecycle-v1.log",
+      "sha256": "fd4ef6855ab0ca8a17c803479e314f0000ae53d1efc9d91647ebc1690cff0695"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-smoke-self-pressure-v1.log",
+      "sha256": "01179d46bd587dfa7a4503012927a3dc95a1b3b66436c82adc8a7f6e58a14291"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-conformance-smoke-self-viscosity-v1.log",
+      "sha256": "e6748717327d4f51f7d9c3c6a3ef9817af68ce12a9299ad0f97d118d21e53bb5"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-device-contracts-vulkan-info.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/logs/pm-android-liquid-tests.log",
+      "sha256": "c1a3a502052eeb554cb1d3b0796e1e404358f4e7b62de36898ac36d94aeac7c6"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/capabilities.json",
+      "sha256": "4a1e1930f58007a1c6a42af8182948ac12718dd72f1feb41ebf7c0a965d6ac80"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/cloth-core.json",
+      "sha256": "b207d3a6a4ded6cc2d3e317916a500bf92d5530f5796577fc1e5a9c44e68b099"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/cloth-tear.json",
+      "sha256": "7b4ec0f184c1364a138e2e4f9aa64505626f34fdf5ae08bb5bd2dfa9b4b46fd6"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/cloth-water.json",
+      "sha256": "0eb13f989899162d4dd6f213c446325b57e99dc9cbefea2eafa7c84f319bd05a"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/compound-weld-lifecycle.json",
+      "sha256": "d4da37edcafb3c69fee07a042be2ec639a8390638b2a60df1c543badbc505d0b"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/constraint-breaking.json",
+      "sha256": "5b4c7ee0822349a05ec8640de9404822569bcf773e73b5b066badd2e3bc3ba83"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/constraint-fixed.json",
+      "sha256": "608458c1162d8c9b4702a1c1d56404bcb8a74122c522cc1a9ea7dc7828f65b2b"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/constraint-generic-spring.json",
+      "sha256": "e23a925a2d4fb1dc13fb40d01d687e1862a92dc0789655f1943af72f09dbb69b"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/constraint-generic.json",
+      "sha256": "2b31c15e037f3ac113578e3b7472e3f13a4ae9d59a0c9683e7037232ecc2ab08"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/constraint-hinge.json",
+      "sha256": "4191947313819e62ebaa05c07983cc0d1c6370d257ef7032973a6d96054b41af"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/constraint-motor.json",
+      "sha256": "95243cef7b9c90c06d991b640df55bd3e2e035e86e04d5950e84bd0e2927e830"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/constraint-piston.json",
+      "sha256": "f7a37075905efb1ad4aa2db9a2dde4c952ff34bdf5ba71d642806055fc5cec73"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/constraint-point.json",
+      "sha256": "25d58f0ede228620641152183175527667c2e985286b1c8b5027bc4fecc3a0ac"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/constraint-slider.json",
+      "sha256": "19b91aa2cf8c54494f789f6c3bb44dde3e8b9dcd80a7c9a914ee7c41b8dbbaa4"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/fluid-lifecycle.json",
+      "sha256": "4bcff8047948617b0e2c217cc8e9363738fa7a67c8ac39e9fddb2925ad7a8dde"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/fluid-rigid.json",
+      "sha256": "4aa5606ed1cc8932aa378936cd5992c4f0644397a28316ad0d9d7e2b1903893f"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/passive-active.json",
+      "sha256": "7b408ff096a3628c098be0415ad5694d04aaceb7e8beebf0397e9d01ac9ebf7a"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/rigid-direct.json",
+      "sha256": "5c3a8817f8df8f5abf8c2df48a694b6884888ae48f87865289f7049dbb5a4438"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/rope-cloth.json",
+      "sha256": "6f13a6dc0bfcdea40171645230bfe06acc42659ffba80351a650f97feb656516"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/rope-core.json",
+      "sha256": "452b94c2962f7f81477573307bfbc9a74e3cf4155cfccc33cb740bb4df4a24bf"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/rope-fluid.json",
+      "sha256": "e0cfdd8d42419ec5092a856c22245e3f121e85ba44ef616e65596ac6e7dc8387"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/rope-soft-body.json",
+      "sha256": "63e30b6d12364f1dd6d65b09d9c821ef2f8fc198bfe2580ccf4b877d2222a098"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/smoke-cloth.json",
+      "sha256": "fd792202de2cc5c27a2c6ecf9e710ba34884995df11c3b137ec81028603050dd"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/smoke-grid.json",
+      "sha256": "914345f34e161480d1cd57a3f3d7d3776ce86f61a785b66b3008b4d118bbf58b"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/smoke-rope.json",
+      "sha256": "9f2defd6fca8afab075fa464dea8d24d9d5be34af002352a986360b89b72f09a"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/smoke-soft-body.json",
+      "sha256": "0084b1071ef94febba9fe0e6f2d5058d3f9f487c14df5a9e39f0635d85e094c5"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/smoke-water.json",
+      "sha256": "67dda1cd1847b1202bfba383c5e759e8db60df1d23bb41a67b0001957e1fe3ba"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/soft-body-cloth.json",
+      "sha256": "7d3ada62289e93434be73ae423e47b17bedeaa453f578d13e82d0a4e3036ddb4"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/soft-body-core.json",
+      "sha256": "2a1ab50108fce9393bc17783f495484996036780390faf3f2cbdb4510f8b21ed"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/soft-body-fluid.json",
+      "sha256": "b4cf944944d17ca496e8e6e3eb20cbd15d1bcf4dc51c2c493f9cb5be5f08c97b"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/soft-body-rigid.json",
+      "sha256": "b9a9583a8f3daf6a0303b12e07a5556b28780df08ad4fcac807d65263c208b04"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/lifecycle/adverse-capacity-three-family-v1.json",
+      "sha256": "b476c7dc2c015aa9eaa2c50c3c9a0f1050a394907b3355f3ae9b66310ef759e1"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/lifecycle/fluid-cloth-contact-lifecycle-v1.json",
+      "sha256": "6295d128d9f54730d6390e1cba8cabc8362b856118e2f8ef2ac67d4aa9b504cb"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/lifecycle/fluid-cloth-containment-lifecycle-v1.json",
+      "sha256": "80f157535eb3997a1370a7dfdcd5bd54ea8efb9607a6294af37a92b4251f9ec4"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/lifecycle/smoke-self-lifecycle-v1.json",
+      "sha256": "edd04cca5013a40b506ec56d8b59b2d3a549288720fae3870ea6f9e5fb811c8d"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/lifecycle/smoke-self-pressure-lifecycle-v1.json",
+      "sha256": "e4fc225d5bbc50f73b9da890ef336c2b219479ad7cba986ab7c35ce3baebd6b1"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/provenance.json",
+      "sha256": "4f63e53f76bfb437d758210db146fb1a5f4063ddfc770fa48e4a84ab2f32a677"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/quality/fluid-cloth-contact-v1.json",
+      "sha256": "f587e2ae59f1434b49d18c13dc1f4e7f866171b47e541121c96b068c8d289742"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/quality/fluid-cloth-containment-v1.json",
+      "sha256": "589612b30f9754716bc4445c29df9ae7badf6041b506149f25ba0b336589eaca"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/quality/fluid-rope-contact-v1.json",
+      "sha256": "7fb0af3cfc4098b3b0dfffb8cb4e4a824bdf84a0ebb42451231756701cd975c3"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/quality/fluid-self-contact-v1.json",
+      "sha256": "58eaf00393114248b166e3f88200fe277f4309c7f45e45ae2f7ef317ac01801a"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/quality/fluid-self-pressure-v1.json",
+      "sha256": "a9620ebaec488861592846098f429e7a46748b3ae9e1a55a2c0f3cdc94c6e1cc"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/quality/fluid-self-viscosity-v1.json",
+      "sha256": "153ca7ac36c0785a288f945be620d0fd350d2d6e51a5ba2a6c5388eb071ae5d9"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/quality/fluid-soft-contact-v1.json",
+      "sha256": "4c21d6f0939bfb20a4e3a6bfded3edc5dfdb5ab3d9483001e0e3d79f29edeaec"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/quality/rigid-attachment-v1.json",
+      "sha256": "5ca2f481e68548b5966d93f3d9497f67ed9ae3e10004c686be2e7ec79c7c7aa5"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/quality/rigid-brick-penetration-v1.json",
+      "sha256": "2ca598e48c963f83da945fcb42124e07b02cc541625bd806615c22b4d7eb5e6c"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/quality/rope-self-contact-v1.json",
+      "sha256": "e72fc59e087287b83a79052d308fd4835b5a3664705493234933af5d99cc020a"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/quality/smoke-self-pressure-v1.json",
+      "sha256": "b8b02115431a8d3992ae927bfbc518c7bb24f15cc36a88e563b87410b43181da"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/quality/smoke-self-viscosity-v1.json",
+      "sha256": "3bfa93f700cc7e9516551a2e4804d3c5b54f1ab7d85c08f42d3c58e697823090"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/vulkan.json",
+      "sha256": "d9ac1724b331537a1c090e571300dda760f08ef884aec2ddcb93bb1daebbe254"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/adverse-capacity-three-family-v1.json",
+      "sha256": "956bf5c24d490e6d8c0fed7b922c54276adb18ece9b2e1719cc31143d3e06c99"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/adverse-capacity-three-family-v1.log",
+      "sha256": "703fd155bb7f1d4ac49936ee2327c52b34da9a01d7afcc4800705a572d97bd83"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/fluid-cloth-contact-lifecycle-v1.json",
+      "sha256": "6ec7886a1b1541c0ab22d562c74b32c5633c0a3e81f4ae73115ed13869ddabbd"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/fluid-cloth-contact-lifecycle-v1.log",
+      "sha256": "7a264d7d8102ba3308248d9939487d2a9b4734ec439d83291ef9307caa1fa45c"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/fluid-cloth-containment-lifecycle-v1.json",
+      "sha256": "7ff79f974818a7a5ab82a47dd9c595fc52555469f714e82104e063a445a9b950"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/fluid-cloth-containment-lifecycle-v1.log",
+      "sha256": "faee2b03f88c20a1449daf95c565cda56cacb8ecfde81cae59ae2251ac6cbdbc"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/smoke-self-lifecycle-v1.json",
+      "sha256": "27cbf4b2785e4c0ce196e097d223e027c6a84b00d389c9409a58b8b44fa68839"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/smoke-self-lifecycle-v1.log",
+      "sha256": "faee2b03f88c20a1449daf95c565cda56cacb8ecfde81cae59ae2251ac6cbdbc"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/smoke-self-pressure-lifecycle-v1.json",
+      "sha256": "26b2d9bee75a5b20f1f6415717bc3323b7dc248d1d194718dff1f63a26c7c372"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/smoke-self-pressure-lifecycle-v1.log",
+      "sha256": "f94212d990b87172bb1c8b68894aecd29286056fbb22eb43dddc6744c4443c82"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-cloth-contact-v1.json",
+      "sha256": "a618d900fc2f64bff2ce4234125ece6370f82c76e6997391d359c1f4a2272321"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-cloth-contact-v1.log",
+      "sha256": "b65761a738b34fbae32354331c4caa6303e1d1ffccf901e3d9063d7359db2400"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-cloth-containment-v1.json",
+      "sha256": "a0cec463e3c53c3dc6a87620bf469c5ab2dea220d5ac7b63a524d8aa468e0692"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-cloth-containment-v1.log",
+      "sha256": "577af074f725816efa281249008097996fe01ba547a81e02f8467b1645cd6c28"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-rope-contact-v1.json",
+      "sha256": "5392a57a5855fc0d5e17eb22f47238791feeaa1d2d4c4794afde041b3af5b87d"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-rope-contact-v1.log",
+      "sha256": "577af074f725816efa281249008097996fe01ba547a81e02f8467b1645cd6c28"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-self-contact-v1.json",
+      "sha256": "f12430d47989fad34bfc586307103655cc401a996930b4f455f7e4a5b836d09e"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-self-contact-v1.log",
+      "sha256": "577af074f725816efa281249008097996fe01ba547a81e02f8467b1645cd6c28"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-self-pressure-v1.json",
+      "sha256": "583cc5966ada537895a315741cc2ab1970fecccefba7caee4ac8356dab731027"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-self-pressure-v1.log",
+      "sha256": "577af074f725816efa281249008097996fe01ba547a81e02f8467b1645cd6c28"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-self-viscosity-v1.json",
+      "sha256": "27752dcd38f18c320cc6f8bf7b6e582f7a87171e6cdd347772ff3c85ecb2216e"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-self-viscosity-v1.log",
+      "sha256": "577af074f725816efa281249008097996fe01ba547a81e02f8467b1645cd6c28"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-soft-contact-v1.json",
+      "sha256": "dc028ac3363681f4ff8a6e497335e14fa01289d085845fa4c24001272c63ffe9"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-soft-contact-v1.log",
+      "sha256": "577af074f725816efa281249008097996fe01ba547a81e02f8467b1645cd6c28"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/rigid-attachment-v1.json",
+      "sha256": "a33c9ecde8117db316ff455b5f90d5ef2677c0bc2f5f7d9acbaac44222e48b97"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/rigid-attachment-v1.log",
+      "sha256": "b9a471c5816cc045378b51db69525be3f7b681f97b88f7acd1794ce1931d0106"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/rigid-brick-penetration-v1.json",
+      "sha256": "b7053d148a01b06901cf6074ecf6e9ee41d4b5b6aa4ac4c5dc1fd4df06c37c5a"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/rigid-brick-penetration-v1.log",
+      "sha256": "577af074f725816efa281249008097996fe01ba547a81e02f8467b1645cd6c28"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/rope-self-contact-v1.json",
+      "sha256": "a8870e242a9ca08d3c441630522585aae8d8f08e95c19132cb8ad0530604af25"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/rope-self-contact-v1.log",
+      "sha256": "577af074f725816efa281249008097996fe01ba547a81e02f8467b1645cd6c28"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/smoke-self-pressure-v1.json",
+      "sha256": "fe5fb7137ef6dc412a500b7c5c4280800ea4655608eba064c8351946d1a71ee9"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/smoke-self-pressure-v1.log",
+      "sha256": "1259514537f29b036216c19ee75aa22a659f45fdfb5999e072cd5563c6817b97"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/smoke-self-viscosity-v1.json",
+      "sha256": "0a6bb9065667fbe494a0089373eac1d1f4964564959e42070f0571529ab3244a"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/smoke-self-viscosity-v1.log",
+      "sha256": "b65761a738b34fbae32354331c4caa6303e1d1ffccf901e3d9063d7359db2400"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.log",
+      "sha256": "82b2e9e91bc80579459e926071c26f27ced0f41c192e5431eb4746ec692a2677"
+    },
+    {
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/results.json",
+      "sha256": "11be7c6398958694968292eb2498b302a5c3c105f7509d46b9e8a063a6762d92"
+    }
+  ],
+  "id": "android-pixel7-slang-vulkan-3187375",
+  "limitations": [
+    "The CUDA golden trajectory comparison has 15 numerical mismatches; exact per-case differences are retained in reports/reference.json.",
+    "Gallery rendering, lifecycle recovery, sustained runtime, thermal behavior and timing remain separate F7-18 evidence."
+  ],
+  "schema": "parallel-mater-android-device-capture/v1",
+  "source": {
+    "commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+    "dirty": false
+  },
+  "summary": {
+    "device_runs_passed": 25,
+    "device_runs_total": 25,
+    "lifecycle_profiles_passed": 5,
+    "quality_profiles_passed": 12,
+    "trajectory_failed": 15,
+    "trajectory_passed": 15,
+    "trajectory_unsupported": 0
+  },
+  "toolchain": {
+    "compiler": "Android Clang",
+    "ndk": "29.0.14206865",
+    "slang": "2026.18",
+    "version": "Android (13989888, +pgo, +bolt, +lto, +mlgo, based on r563880c) Clang 21.0.0 (https://android.googlesource.com/toolchain/llvm-project 5e96669f06077099aa41290cdb4c5e6fa0f59349)"
+  }
+}

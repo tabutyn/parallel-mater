@@ -1,0 +1,47 @@
+Quality execution completed: smoke-self-pressure-v1
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 7134464 bytes
+Parallel Mater Vulkan allocation: 256 bytes
+Parallel Mater Vulkan allocation: 3676192 bytes
+Parallel Mater Vulkan pipeline: geometry_smoke/smoke_emit/128/buffer (94676 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: queries/export_smoke_particles/256/push (38760 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: geometry_smoke/smoke_emit_cells/128/buffer (94676 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: primitives/pm_radix_histogram_u64/256/push (8484 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: primitives/pm_radix_prefix_u32/1/push (8484 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: primitives/pm_radix_scatter_u64_u32/256/push (8484 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: geometry_smoke/smoke_density_pressure/128/buffer (94676 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: geometry_smoke/smoke_compute_vorticity/128/buffer (94676 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: geometry_smoke/smoke_pair_forces/128/buffer (94676 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: geometry_smoke/smoke_advect/128/buffer (94676 bytes; grid=1,1,1)
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 1048576 bytes
+Parallel Mater Vulkan allocation: 7577088 bytes
+Parallel Mater Vulkan allocation: 256 bytes
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_initialize_cells/256/buffer (397552 bytes; grid=8,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_initialize_faces/256/buffer (397552 bytes; grid=9,1,1)
+Parallel Mater Vulkan allocation: 3676192 bytes
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_clear_obstacles/256/buffer (397552 bytes; grid=9,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_resolve_particle_fields/256/buffer (397552 bytes; grid=8,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_mark_domain_boundaries/256/buffer (397552 bytes; grid=9,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_restrict_open/256/buffer (397552 bytes; grid=2,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_advect_face/256/buffer (397552 bytes; grid=9,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_correct_face/256/buffer (397552 bytes; grid=9,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_cell_diagnostics/256/buffer (397552 bytes; grid=8,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_subgrid_force/256/buffer (397552 bytes; grid=8,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_apply_face_forces/256/buffer (397552 bytes; grid=9,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_apply_face_boundaries/256/buffer (397552 bytes; grid=9,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_divergence/256/buffer (397552 bytes; grid=8,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_pressure_smooth/256/buffer (397552 bytes; grid=8,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_pressure_residual/256/buffer (397552 bytes; grid=8,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_restrict_residual/256/buffer (397552 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_prolong_add/256/buffer (397552 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_reset_residual/1/buffer (397552 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_compare_residual/1/buffer (397552 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_project_face/256/buffer (397552 bytes; grid=9,1,1)
+Parallel Mater Vulkan pipeline: geometry_smoke/smoke_emit/128/buffer (94676 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: queries/export_smoke_particles/256/push (38760 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_splat_particles/128/buffer (397552 bytes; grid=1,1,1)
+Parallel Mater Vulkan pipeline: smoke_grid/smoke_grid_trace/128/buffer (397552 bytes; grid=1,1,1)

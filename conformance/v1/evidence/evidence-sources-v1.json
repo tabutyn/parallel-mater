@@ -1,9 +1,8 @@
 {
-  "schema": "parallel-mater-evidence-sources/v1",
-  "id": "driver-evidence-sources-v1",
-  "obligations": {
-    "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b"
+  "documentation": {
+    "begin_marker": "<!-- BEGIN GENERATED DRIVER EVIDENCE -->",
+    "end_marker": "<!-- END GENERATED DRIVER EVIDENCE -->",
+    "path": "docs/QUALIFICATION.md"
   },
   "expected_drivers": [
     {
@@ -27,7 +26,17 @@
       "label": "Metal"
     }
   ],
+  "id": "driver-evidence-sources-v1",
+  "obligations": {
+    "path": "conformance/v1/qualification/capability-obligations-v1.json",
+    "sha256": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c"
+  },
   "qualification_results": [
+    {
+      "id": "android-pixel7-slang-vulkan-3187375",
+      "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json",
+      "sha256": "fff92b43ce54b4acad3a05e45b8abf45843ae9c2681d7ae898da5134b7082b58"
+    },
     {
       "id": "ipados-m1-slang-metal-9f7e72e",
       "path": "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e-qualification.json",
@@ -64,14 +73,14 @@
       "sha256": "24f09df70e656a5d5954a1a2160a07d05a33ceb744354bf6bb8a1e3731648389"
     },
     {
-      "id": "macos-m4-slang-metal-aac6d59",
-      "path": "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json",
-      "sha256": "4c8bacefffcaed67e300d2bdf90a683d46b0c12efeac14f6c83151ecac0bc9ef"
-    },
-    {
       "id": "macos-m4-slang-metal-86f10b2-smoke-viscosity",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-smoke-viscosity-qualification.json",
       "sha256": "14a73a0cd8258e62ce65ed16f526577de68cdc780fd982e11a875e5c50b77651"
+    },
+    {
+      "id": "macos-m4-slang-metal-aac6d59",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json",
+      "sha256": "4c8bacefffcaed67e300d2bdf90a683d46b0c12efeac14f6c83151ecac0bc9ef"
     },
     {
       "id": "windows-gtx1080-slang-cuda-2b04e55",
@@ -94,27 +103,23 @@
       "sha256": "83bcf2d6774892aa5c26b19ee883714af232aafc4b1cb9d0c9048cf2abdb968f"
     }
   ],
+  "schema": "parallel-mater-evidence-sources/v1",
   "supplemental_reports": [
     {
+      "drivers": [
+        {
+          "binary_path": "build-cuda-slang-vs2022/Release/parallel_mater_driver_slang_cuda.dll",
+          "id": "slang-cuda"
+        },
+        {
+          "binary_path": "build-cuda-slang-vs2022/Release/parallel_mater_driver_slang_d3d12.dll",
+          "id": "slang-d3d12"
+        }
+      ],
       "id": "windows-gtx1080-physics-2026-10-16",
       "kind": "legacy-physics-v1",
       "path": "conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json",
-      "sha256": "c77dc237b572e7e35614993f90c66902b70ee081480ebd64f3a623b7b50c3620",
-      "drivers": [
-        {
-          "id": "slang-cuda",
-          "binary_path": "build-cuda-slang-vs2022/Release/parallel_mater_driver_slang_cuda.dll"
-        },
-        {
-          "id": "slang-d3d12",
-          "binary_path": "build-cuda-slang-vs2022/Release/parallel_mater_driver_slang_d3d12.dll"
-        }
-      ]
+      "sha256": "c77dc237b572e7e35614993f90c66902b70ee081480ebd64f3a623b7b50c3620"
     }
-  ],
-  "documentation": {
-    "path": "docs/QUALIFICATION.md",
-    "begin_marker": "<!-- BEGIN GENERATED DRIVER EVIDENCE -->",
-    "end_marker": "<!-- END GENERATED DRIVER EVIDENCE -->"
-  }
+  ]
 }

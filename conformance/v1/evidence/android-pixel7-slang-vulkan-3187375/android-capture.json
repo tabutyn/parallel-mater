@@ -1,0 +1,476 @@
+{
+  "apk_sha256": "d9d8ff13329a8a0c4d7ae7e6049542aa6fc6c1c7134d81f9dfbfb83318a15436",
+  "capture_date": "2026-10-19",
+  "contracts": {
+    "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
+    "conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json": "5599b5d6c5e8386830d0abb29a13feddd3a43a917912efb9e9cf4b1732a22769",
+    "conformance/v1/lifecycle/fluid-cloth-containment-lifecycle-v1.json": "c96a995030b4b3e20ef77c55ab01bb7be2afdbfa2959f69c7d07be6c9bc21bb1",
+    "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f",
+    "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31",
+    "conformance/v1/qualification/capability-obligations-v1.json": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+    "conformance/v1/quality/core-conservation-v1.json": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
+    "conformance/v1/quality/fluid-cloth-contact-v1.json": "1216cf9e7252b5fe4c27f14639a1031e698d459a2001db60153a088ebb600445",
+    "conformance/v1/quality/fluid-cloth-containment-v1.json": "477d6494144118c9c6b108807e81576965a16a34fda5dfe672ed783b5de95b33",
+    "conformance/v1/quality/fluid-rope-contact-v1.json": "462b1b2249fc9b928b5f983f648c0486aaf0ebf0f7ee2fb354637ea39f214a89",
+    "conformance/v1/quality/fluid-self-contact-v1.json": "21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2",
+    "conformance/v1/quality/fluid-self-pressure-v1.json": "4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b",
+    "conformance/v1/quality/fluid-self-viscosity-v1.json": "9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c",
+    "conformance/v1/quality/fluid-soft-contact-v1.json": "40dce99005017b4b4a485f7553ea89f8f06526c88f242215a1415c8c67c9e986",
+    "conformance/v1/quality/rigid-attachment-v1.json": "570add4a6e74539f46513a5baa8168bd2b81dd2ef95ff2a7f6bbb407f3afd108",
+    "conformance/v1/quality/rigid-brick-penetration-v1.json": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da",
+    "conformance/v1/quality/rigid-kinematic-sweep-v1.json": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc",
+    "conformance/v1/quality/rope-self-contact-v1.json": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113",
+    "conformance/v1/quality/smoke-self-pressure-v1.json": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150",
+    "conformance/v1/quality/smoke-self-viscosity-v1.json": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"
+  },
+  "device": {
+    "android_version": "17",
+    "api_level": "37",
+    "device_id": 2824994816,
+    "gpu": "Mali-G710",
+    "manufacturer": "Google",
+    "model": "Pixel 7",
+    "product": "panther",
+    "security_patch": "2026-09-05",
+    "vendor_id": 5045,
+    "vulkan_api_version": "1.4.343",
+    "vulkan_driver_id": 9,
+    "vulkan_driver_info": "v1.r54p3-00eac0.1848e3b066182d5bb5a345ab256f13ee",
+    "vulkan_driver_name": "Mali-G710",
+    "vulkan_driver_version": 226504704,
+    "vulkan_instance_api_version": "1.4.0"
+  },
+  "driver_sha256": "343dbd3121af1d8b91c8b50c72c6b85e0c0bfa9e730e1b20f0682e1e75257931",
+  "evaluations": [
+    {
+      "kind": "reference",
+      "passed": false,
+      "profile": "all-cases",
+      "report": "reports/reference.json",
+      "returncode": 1
+    },
+    {
+      "kind": "quality",
+      "passed": true,
+      "profile": "rigid-brick-penetration-v1",
+      "report": "reports/quality/rigid-brick-penetration-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "quality",
+      "passed": true,
+      "profile": "rigid-attachment-v1",
+      "report": "reports/quality/rigid-attachment-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "quality",
+      "passed": true,
+      "profile": "rope-self-contact-v1",
+      "report": "reports/quality/rope-self-contact-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "quality",
+      "passed": true,
+      "profile": "fluid-self-contact-v1",
+      "report": "reports/quality/fluid-self-contact-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "quality",
+      "passed": true,
+      "profile": "fluid-self-pressure-v1",
+      "report": "reports/quality/fluid-self-pressure-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "quality",
+      "passed": true,
+      "profile": "fluid-self-viscosity-v1",
+      "report": "reports/quality/fluid-self-viscosity-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "quality",
+      "passed": true,
+      "profile": "fluid-cloth-containment-v1",
+      "report": "reports/quality/fluid-cloth-containment-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "quality",
+      "passed": true,
+      "profile": "fluid-soft-contact-v1",
+      "report": "reports/quality/fluid-soft-contact-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "quality",
+      "passed": true,
+      "profile": "fluid-rope-contact-v1",
+      "report": "reports/quality/fluid-rope-contact-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "quality",
+      "passed": true,
+      "profile": "smoke-self-pressure-v1",
+      "report": "reports/quality/smoke-self-pressure-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "quality",
+      "passed": true,
+      "profile": "fluid-cloth-contact-v1",
+      "report": "reports/quality/fluid-cloth-contact-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "quality",
+      "passed": true,
+      "profile": "smoke-self-viscosity-v1",
+      "report": "reports/quality/smoke-self-viscosity-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "lifecycle",
+      "passed": true,
+      "profile": "adverse-capacity-three-family-v1",
+      "report": "reports/lifecycle/adverse-capacity-three-family-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "lifecycle",
+      "passed": true,
+      "profile": "fluid-cloth-containment-lifecycle-v1",
+      "report": "reports/lifecycle/fluid-cloth-containment-lifecycle-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "lifecycle",
+      "passed": true,
+      "profile": "smoke-self-pressure-lifecycle-v1",
+      "report": "reports/lifecycle/smoke-self-pressure-lifecycle-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "lifecycle",
+      "passed": true,
+      "profile": "fluid-cloth-contact-lifecycle-v1",
+      "report": "reports/lifecycle/fluid-cloth-contact-lifecycle-v1.json",
+      "returncode": 0
+    },
+    {
+      "kind": "lifecycle",
+      "passed": true,
+      "profile": "smoke-self-lifecycle-v1",
+      "report": "reports/lifecycle/smoke-self-lifecycle-v1.json",
+      "returncode": 0
+    }
+  ],
+  "native_runs": [
+    {
+      "arguments": [],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-command-tests"
+    },
+    {
+      "arguments": [],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-async-tests"
+    },
+    {
+      "arguments": [],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-liquid-tests"
+    },
+    {
+      "arguments": [
+        "--check-inputs",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--provenance",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--capabilities",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--case",
+        "all",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/cases"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--quality",
+        "rigid-brick-penetration-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/quality"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--quality",
+        "rigid-attachment-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/quality"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--quality",
+        "rope-self-contact-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/quality"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--quality",
+        "fluid-self-contact-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/quality"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--quality",
+        "fluid-self-pressure-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/quality"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--quality",
+        "fluid-self-viscosity-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/quality"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--quality",
+        "fluid-cloth-containment-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/quality"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--quality",
+        "fluid-soft-contact-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/quality"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--quality",
+        "fluid-rope-contact-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/quality"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--quality",
+        "smoke-self-pressure-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/quality"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--quality",
+        "fluid-cloth-contact-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/quality"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--quality",
+        "smoke-self-viscosity-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/quality"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--lifecycle-profile",
+        "adverse-capacity-three-family-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/lifecycle/adverse-capacity-three-family-v1.json"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--lifecycle-profile",
+        "fluid-cloth-containment-lifecycle-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/lifecycle/fluid-cloth-containment-lifecycle-v1.json"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--lifecycle-profile",
+        "smoke-self-pressure-lifecycle-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/lifecycle/smoke-self-pressure-lifecycle-v1.json"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--lifecycle-profile",
+        "fluid-cloth-contact-lifecycle-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/lifecycle/fluid-cloth-contact-lifecycle-v1.json"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--lifecycle-profile",
+        "smoke-self-lifecycle-v1",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/lifecycle/smoke-self-lifecycle-v1.json"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-conformance"
+    },
+    {
+      "arguments": [
+        "--contract",
+        "vulkan-info",
+        "--root",
+        "/data/local/tmp/parallel-mater-qualification",
+        "--output",
+        "/data/local/tmp/parallel-mater-qualification/results/vulkan.json"
+      ],
+      "passed": true,
+      "returncode": 0,
+      "test": "pm-android-device-contracts"
+    }
+  ],
+  "schema": "parallel-mater-android-vulkan-qualification-capture/v1",
+  "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+  "toolchain": {
+    "compiler": "Android (13989888, +pgo, +bolt, +lto, +mlgo, based on r563880c) Clang 21.0.0 (https://android.googlesource.com/toolchain/llvm-project 5e96669f06077099aa41290cdb4c5e6fa0f59349)",
+    "ndk": "29.0.14206865",
+    "slang": "2026.18"
+  }
+}

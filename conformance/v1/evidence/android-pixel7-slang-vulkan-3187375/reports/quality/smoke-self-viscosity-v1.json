@@ -1,0 +1,40 @@
+{
+  "driver": {
+    "device": "Mali-G710",
+    "device_id": 2824994816,
+    "driver_version": "226504704",
+    "name": "slang-vulkan",
+    "vendor_id": 5045
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 2,
+  "observations": {
+    "grid-driven-jet-relative-motion": {
+      "control_final_relative_specific_kinetic_energy_m2_s2": 0.002791557144040094,
+      "control_final_total_specific_kinetic_energy_m2_s2": 0.5043948897582373,
+      "initial_relative_rms_speed_m_s": 0.020516048100356746,
+      "maximum_speed_m_s": 1.0418562619444867,
+      "mean_velocity_residual_m_s": 0.008938094176634619,
+      "relative_specific_energy_reduction_fraction": 0.41509646423243074,
+      "viscous_final_relative_specific_kinetic_energy_m2_s2": 0.0016327916438462688,
+      "viscous_final_total_specific_kinetic_energy_m2_s2": 0.5077574885368583
+    },
+    "particle-pressure-seeded-relative-motion": {
+      "control_final_relative_specific_kinetic_energy_m2_s2": 5.494764106964745,
+      "control_final_total_specific_kinetic_energy_m2_s2": 5.494764106964745,
+      "initial_relative_rms_speed_m_s": 0.5000000370378126,
+      "maximum_speed_m_s": 3.315045733308892,
+      "mean_velocity_residual_m_s": 0.0,
+      "relative_specific_energy_reduction_fraction": 0.04346891000169628,
+      "viscous_final_relative_specific_kinetic_energy_m2_s2": 5.255912700518543,
+      "viscous_final_total_specific_kinetic_energy_m2_s2": 5.255912700518543
+    }
+  },
+  "passed": true,
+  "profile_id": "smoke-self-viscosity-v1",
+  "profile_sha256": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff",
+  "sample_count": 2,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

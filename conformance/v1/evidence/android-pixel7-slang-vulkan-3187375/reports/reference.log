@@ -1,0 +1,1079 @@
+FAIL cloth-core
+  $.checkpoints[0].resources[0].id: exact value mismatch
+  $.checkpoints[0].resources[1].id: exact value mismatch
+  $.checkpoints[1].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[1].contacts.rigid_contacts: length mismatch
+  $.checkpoints[1].invariants.combined_momentum[1]: absolute error 3.9679093956947327 > 0.25883548259735106
+  $.checkpoints[1].resources[0].id: exact value mismatch
+  $.checkpoints[1].resources[1].id: exact value mismatch
+  $.checkpoints[1].resources[1].linear_velocity[1]: absolute error 3.8924142073010444 > 0.24462291002273562
+  $.checkpoints[1].resources[1].orientation: quaternion angular error 0.0029032780217939248 > 0.002
+  $.checkpoints[1].resources[1].position[1]: absolute error 0.33205080032348633 > 0.00728043019771576
+  $.checkpoints[1].resources[2].aggregate.bounds.maximum[2]: absolute error 0.01031329482793808 > 0.005405272841453553
+  $.checkpoints[1].resources[2].aggregate.kinetic_energy: absolute error 0.03383783307671704 > 0.005387819120446438
+  $.checkpoints[1].resources[2].aggregate.maximum_speed: absolute error 0.5238748261877352 > 0.011932801323219446
+  $.checkpoints[1].resources[2].aggregate.momentum[1]: absolute error 0.07550297677516937 > 0.06421296149492264
+  $.checkpoints[1].resources[2].samples[4].velocity[0]: absolute error 0.07628916949033737 > 0.05731062814593316
+  $.checkpoints[1].resources[2].samples[4].velocity[1]: absolute error 0.06374358385801315 > 0.05655603334307671
+  $.checkpoints[1].resources[2].samples[5].velocity[0]: absolute error 0.06840705126523972 > 0.059248255938291555
+  $.checkpoints[1].resources[2].samples[5].velocity[1]: absolute error 0.07862090319395065 > 0.05949430391192437
+  $.checkpoints[1].resources[2].samples[6].velocity[0]: absolute error 0.11690139025449753 > 0.0613611213862896
+  $.checkpoints[1].resources[2].samples[7].velocity[0]: absolute error 0.1185607835650444 > 0.05939845964312554
+  $.checkpoints[1].resources[2].samples[9].position[2]: absolute error 0.011837521800771356 > 0.005045928368344903
+  $.checkpoints[1].resources[2].samples[9].velocity[0]: absolute error 0.059251779690384865 > 0.05400972329080105
+  $.checkpoints[1].resources[2].samples[10].position[2]: absolute error 0.01470631593838334 > 0.0050804587081074715
+  $.checkpoints[1].resources[2].samples[10].velocity[0]: absolute error 0.19995687156915665 > 0.056433009356260305
+  $.checkpoints[1].resources[2].samples[10].velocity[1]: absolute error 0.5756091624498367 > 0.07064120620489121
+  $.checkpoints[1].resources[2].samples[18].position[2]: absolute error 0.007013710215687752 > 0.005130626643076539
+  $.checkpoints[1].resources[2].samples[18].velocity[0]: absolute error 0.17031668114941567 > 0.058456467837095266
+  $.checkpoints[1].resources[2].samples[18].velocity[1]: absolute error 0.36348578333854675 > 0.08582161366939545
+  $.checkpoints[1].resources[2].samples[18].velocity[2]: absolute error 0.20881219184957445 > 0.06027368679642678
+  $.checkpoints[1].resources[2].samples[19].position[1]: absolute error 0.008656173944473267 > 0.007190425395965577
+  $.checkpoints[1].resources[2].samples[19].velocity[1]: absolute error 0.16516685485839844 > 0.07101671546697617
+  $.checkpoints[1].resources[2].samples[19].velocity[2]: absolute error 0.15918060392141342 > 0.06190520748496056
+  $.checkpoints[1].resources[2].samples[20].velocity[0]: absolute error 0.11409758776426315 > 0.05956439897418023
+  $.checkpoints[1].resources[2].samples[21].velocity[0]: absolute error 0.09414195292629302 > 0.054863023385405545
+  $.checkpoints[2].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[2].contacts.rigid_contacts: length mismatch
+  $.checkpoints[2].invariants.combined_momentum[0]: absolute error 0.05700003542006016 > 0.05435053296387196
+  $.checkpoints[2].invariants.combined_momentum[1]: absolute error 7.7574184611439705 > 0.43652961254119876
+  $.checkpoints[2].invariants.combined_momentum[2]: absolute error 0.07955997064709663 > 0.053774557635188104
+  $.checkpoints[2].resources[0].id: exact value mismatch
+  $.checkpoints[2].resources[1].angular_velocity[0]: absolute error 0.13335811719298363 > 0.05405814424157143
+  $.checkpoints[2].resources[1].angular_velocity[2]: absolute error 0.1807032786309719 > 0.060352837294340135
+  $.checkpoints[2].resources[1].id: exact value mismatch
+  $.checkpoints[2].resources[1].linear_velocity[1]: absolute error 7.722202534030657 > 0.4361565351486206
+  $.checkpoints[2].resources[1].orientation: quaternion angular error 0.06783076081718921 > 0.002
+  $.checkpoints[2].resources[1].position[0]: absolute error 0.013059194199740887 > 0.0050430869543924926
+  $.checkpoints[2].resources[1].position[1]: absolute error 2.7977887094020844 > 0.016709136962890624
+  $.checkpoints[2].resources[2].aggregate.bounds.maximum[2]: absolute error 0.03478741645812988 > 0.005829432979226112
+  $.checkpoints[2].resources[2].aggregate.bounds.minimum[0]: absolute error 0.012234210968017578 > 0.010122075080871581
+  $.checkpoints[2].resources[2].aggregate.bounds.minimum[2]: absolute error 0.05381087213754654 > 0.0054778318852186205
+  $.checkpoints[2].resources[2].aggregate.center_of_mass[2]: absolute error 0.012408247217535973 > 0.005120994374155998
+  $.checkpoints[2].resources[2].aggregate.kinetic_energy: absolute error 0.03131039163380494 > 0.005182065826996813
+  $.checkpoints[2].resources[2].aggregate.maximum_speed: absolute error 0.9993963381226297 > 0.011445357912647437
+  $.checkpoints[2].resources[2].aggregate.momentum[0]: absolute error 0.06680373847484589 > 0.05421510487794876
+  $.checkpoints[2].resources[2].samples[5].velocity[0]: absolute error 0.07025241293013096 > 0.05468206368386746
+  $.checkpoints[2].resources[2].samples[5].velocity[1]: absolute error 0.06628989614546299 > 0.05248336773365736
+  $.checkpoints[2].resources[2].samples[6].velocity[0]: absolute error 0.1208495981991291 > 0.05866746827960015
+  $.checkpoints[2].resources[2].samples[6].velocity[1]: absolute error 0.08906363695859909 > 0.052584934048354626
+  $.checkpoints[2].resources[2].samples[6].velocity[2]: absolute error 0.06937579065561295 > 0.056788875162601476
+  $.checkpoints[2].resources[2].samples[7].position[2]: absolute error 0.005206516943871975 > 0.0050789554696530105
+  $.checkpoints[2].resources[2].samples[7].velocity[0]: absolute error 0.15034674480557442 > 0.05985622331500054
+  $.checkpoints[2].resources[2].samples[7].velocity[1]: absolute error 0.11561392620205879 > 0.05337886773049832
+  $.checkpoints[2].resources[2].samples[8].position[0]: absolute error 0.010948419570922852 > 0.010082165598869323
+  $.checkpoints[2].resources[2].samples[8].position[2]: absolute error 0.011393599212169647 > 0.005110110780224204
+  $.checkpoints[2].resources[2].samples[8].velocity[0]: absolute error 0.18339155800640583 > 0.06066017076373101
+  $.checkpoints[2].resources[2].samples[8].velocity[1]: absolute error 0.18098829314112663 > 0.05664758607745171
+  $.checkpoints[2].resources[2].samples[8].velocity[2]: absolute error 0.1484919935464859 > 0.054255771264433865
+  $.checkpoints[2].resources[2].samples[9].position[0]: absolute error 0.022190093994140625 > 0.01011359453201294
+  $.checkpoints[2].resources[2].samples[9].position[2]: absolute error 0.05671254824846983 > 0.005322988927364349
+  $.checkpoints[2].resources[2].samples[9].velocity[0]: absolute error 0.13438223348930478 > 0.05701379701495171
+  $.checkpoints[2].resources[2].samples[9].velocity[1]: absolute error 0.1719331555068493 > 0.05680136606097222
+  $.checkpoints[2].resources[2].samples[9].velocity[2]: absolute error 0.749130979180336 > 0.09147414565086365
+  $.checkpoints[2].resources[2].samples[10].position[0]: absolute error 0.021304666996002197 > 0.010083214044570923
+  $.checkpoints[2].resources[2].samples[10].position[2]: absolute error 0.18872329592704773 > 0.005829432979226112
+  $.checkpoints[2].resources[2].samples[10].velocity[0]: absolute error 0.21371840126812458 > 0.062220858782529836
+  $.checkpoints[2].resources[2].samples[10].velocity[1]: absolute error 0.4868745282292366 > 0.07762227952480316
+  $.checkpoints[2].resources[2].samples[10].velocity[2]: absolute error 0.2408757545053959 > 0.06394158452749253
+  $.checkpoints[2].resources[2].samples[18].position[1]: absolute error 0.018611416220664978 > 0.006006237715482712
+  $.checkpoints[2].resources[2].samples[18].position[2]: absolute error 0.017886847257614136 > 0.0052658915333449845
+  $.checkpoints[2].resources[2].samples[19].position[1]: absolute error 0.01673412322998047 > 0.007210390418767929
+  $.checkpoints[2].resources[2].samples[19].position[2]: absolute error 0.011348883155733347 > 0.005090873492881656
+  $.checkpoints[2].resources[2].samples[19].velocity[0]: absolute error 0.07464408315718174 > 0.054609822854399685
+  $.checkpoints[2].resources[2].samples[19].velocity[1]: absolute error 0.07054566568695009 > 0.05338637791574002
+  $.checkpoints[2].resources[2].samples[19].velocity[2]: absolute error 0.35961995273828506 > 0.07349436730146408
+  $.checkpoints[2].resources[2].samples[20].position[1]: absolute error 0.011587083339691162 > 0.008448554873466492
+  $.checkpoints[2].resources[2].samples[20].position[2]: absolute error 0.024046299047768116 > 0.00516916448250413
+  $.checkpoints[2].resources[2].samples[20].velocity[0]: absolute error 0.05591868981719017 > 0.05453901253640652
+  $.checkpoints[2].resources[2].samples[20].velocity[2]: absolute error 0.09516655653715134 > 0.06019114181399346
+  $.checkpoints[2].resources[2].samples[21].velocity[0]: absolute error 0.07510184869170189 > 0.05578212700784207
+  $.checkpoints[2].resources[2].samples[21].velocity[2]: absolute error 0.14455865416675806 > 0.05793089494109154
+  $.checkpoints[2].resources[2].samples[22].velocity[0]: absolute error 0.07781981863081455 > 0.055064725503325467
+  $.checkpoints[2].resources[2].samples[22].velocity[2]: absolute error 0.13513456098735332 > 0.0582641713321209
+  $.checkpoints[2].resources[2].samples[23].position[2]: absolute error 0.005196822690777481 > 0.005030326074920595
+FAIL cloth-tear
+  $.checkpoints[1].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[1].contacts.rigid_contacts: length mismatch
+  $.checkpoints[1].invariants.combined_momentum[1]: absolute error 659.9247490502894 > 33.04524536132812
+  $.checkpoints[1].invariants.combined_momentum[2]: absolute error 0.29608310759067535 > 0.06259310990571976
+  $.checkpoints[1].resources[1].angular_velocity[0]: absolute error 0.06148975808173418 > 0.052314900979399684
+  $.checkpoints[1].resources[1].angular_velocity[2]: absolute error 0.17866348614916205 > 0.059182445704936984
+  $.checkpoints[1].resources[1].linear_velocity[1]: absolute error 18.854989687912166 > 0.9927212715148926
+  $.checkpoints[1].resources[1].orientation: quaternion angular error 0.40734075857452334 > 0.002
+  $.checkpoints[1].resources[1].position[0]: absolute error 0.03697717469185591 > 0.00524384330958128
+  $.checkpoints[1].resources[1].position[1]: absolute error 18.819712162017822 > 0.09682494163513185
+  $.checkpoints[1].resources[1].position[2]: absolute error 0.18028736114501953 > 0.017566477060317994
+  $.checkpoints[2].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[2].contacts.rigid_contacts: length mismatch
+  $.checkpoints[2].invariants.combined_momentum[0]: absolute error 5.526653982698917 > 0.33048276901245116
+  $.checkpoints[2].invariants.combined_momentum[1]: absolute error 1039.6617164611816 > 53.8396728515625
+  $.checkpoints[2].invariants.combined_momentum[2]: absolute error 463.1842586994171 > 23.379010009765626
+  $.checkpoints[2].invariants.element_count: exact value mismatch
+  $.checkpoints[2].resources[1].angular_velocity[0]: absolute error 2.062084436416626 > 0.15499961376190186
+  $.checkpoints[2].resources[1].angular_velocity[1]: absolute error 0.3514235462062061 > 0.06792719215154648
+  $.checkpoints[2].resources[1].angular_velocity[2]: absolute error 0.1603364497423172 > 0.06553521007299423
+  $.checkpoints[2].resources[1].linear_velocity[0]: absolute error 0.15755067323334515 > 0.057996720820665364
+  $.checkpoints[2].resources[1].linear_velocity[1]: absolute error 29.713215947151184 > 1.58684778213501
+  $.checkpoints[2].resources[1].linear_velocity[2]: absolute error 13.25227789580822 > 0.7165431499481202
+  $.checkpoints[2].resources[1].orientation: quaternion angular error 1.6550532765940074 > 0.002
+  $.checkpoints[2].resources[1].position[0]: absolute error 0.1772874128073454 > 0.005970208942890167
+  $.checkpoints[2].resources[1].position[1]: absolute error 68.79615926742554 > 0.3456972885131836
+  $.checkpoints[2].resources[1].position[2]: absolute error 9.678440809249878 > 0.06010847091674804
+  $.checkpoints[2].resources[2].aggregate.bounds.maximum[2]: absolute error 0.061535194516181946 > 0.005307677164673805
+  $.checkpoints[2].resources[2].aggregate.bounds.minimum[1]: absolute error 1.4887378215789795 > 0.012443689107894899
+  $.checkpoints[2].resources[2].aggregate.bounds.minimum[2]: absolute error 3.2712945342063904 > 0.022512590885162356
+  $.checkpoints[2].resources[2].aggregate.center_of_mass[0]: absolute error 0.05013031791895628 > 0.005241237692534924
+  $.checkpoints[2].resources[2].aggregate.center_of_mass[1]: absolute error 0.43686485290527344 > 0.0099379962682724
+  $.checkpoints[2].resources[2].aggregate.center_of_mass[2]: absolute error 0.7869779616594315 > 0.009649528861045838
+  $.checkpoints[2].resources[2].aggregate.kinetic_energy: absolute error 0.6323672289561261 > 0.00816187377017606
+  $.checkpoints[2].resources[2].aggregate.mass: absolute error 0.9510000451700762 > 0.015200000484474004
+  $.checkpoints[2].resources[2].aggregate.maximum_speed: absolute error 2.4603228816782416 > 0.017356147297806428
+  $.checkpoints[2].resources[2].aggregate.momentum[1]: absolute error 0.30035881511867046 > 0.06503422260284425
+  $.checkpoints[2].resources[2].aggregate.momentum[2]: absolute error 0.6484212479554117 > 0.08227293193340302
+  $.checkpoints[2].resources[2].count: exact value mismatch
+  $.checkpoints[2].resources[2].minimum_clearance: absolute error 1.4887378215789795 > 0.012443689107894899
+  $.checkpoints[2].resources[2].samples[9].position[1]: absolute error 0.00855746865272522 > 0.007369676083326339
+  $.checkpoints[2].resources[2].samples[10].position[1]: absolute error 0.009758219122886658 > 0.0061561714857816694
+  $.checkpoints[2].resources[2].samples[10].position[2]: absolute error 0.009721025824546814 > 0.0056192192435264585
+  $.checkpoints[2].resources[2].samples[18].position[0]: absolute error 0.010449767112731934 > 0.009975188076496125
+  $.checkpoints[2].resources[2].samples[19].position[0]: absolute error 0.02345097064971924 > 0.00995784968137741
+  $.checkpoints[2].resources[2].samples[19].position[2]: absolute error 0.017566978931427002 > 0.005968418270349503
+  $.checkpoints[2].resources[2].samples[20].position[0]: absolute error 0.02326035499572754 > 0.009945236742496491
+  $.checkpoints[2].resources[2].samples[20].position[2]: absolute error 0.019558176398277283 > 0.006159398406744003
+  $.checkpoints[2].resources[2].samples[21].position[0]: absolute error 0.014795064926147461 > 0.009941765666007997
+  $.checkpoints[2].resources[2].samples[21].position[2]: absolute error 0.009970158338546753 > 0.0061292236298322676
+  $.checkpoints[2].resources[2].topology.vertex_count: exact value mismatch
+  $.checkpoints[3].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[3].contacts.rigid_contacts: length mismatch
+  $.checkpoints[3].invariants.combined_momentum[0]: absolute error 0.3975154161453247 > 0.06617438942193986
+  $.checkpoints[3].invariants.combined_momentum[1]: absolute error 1640.463885691017 > 82.07542114257812
+  $.checkpoints[3].invariants.combined_momentum[2]: absolute error 1100.0350060239434 > 55.05625610351562
+  $.checkpoints[3].invariants.element_count: exact value mismatch
+  $.checkpoints[3].resources[1].angular_velocity[2]: absolute error 0.13318605907261372 > 0.055570248141884805
+  $.checkpoints[3].resources[1].linear_velocity[1]: absolute error 46.87168130401278 > 2.393583488464355
+  $.checkpoints[3].resources[1].linear_velocity[2]: absolute error 31.4309508492006 > 1.621607303619385
+  $.checkpoints[3].resources[1].orientation: quaternion angular error 1.5551039548094763 > 0.002
+  $.checkpoints[3].resources[1].position[0]: absolute error 0.25307791493833065 > 0.0063828533887863165
+  $.checkpoints[3].resources[1].position[1]: absolute error 185.52321663498878 > 0.9303486633300782
+  $.checkpoints[3].resources[1].position[2]: absolute error 77.40069055557251 > 0.3987337112426758
+  $.checkpoints[3].resources[2].aggregate.bounds.maximum[2]: absolute error 0.06153521314263344 > 0.005307677257806063
+  $.checkpoints[3].resources[2].aggregate.bounds.minimum[1]: absolute error 5.744215965270996 > 0.03372107982635498
+  $.checkpoints[3].resources[2].aggregate.bounds.minimum[2]: absolute error 7.557827904820442 > 0.043945755958557126
+  $.checkpoints[3].resources[2].aggregate.center_of_mass[0]: absolute error 0.05335328448563814 > 0.0052573195286095145
+  $.checkpoints[3].resources[2].aggregate.center_of_mass[1]: absolute error 0.5246228575706482 > 0.009938458800315856
+  $.checkpoints[3].resources[2].aggregate.center_of_mass[2]: absolute error 0.8901044577360153 > 0.010165812969207764
+  $.checkpoints[3].resources[2].aggregate.kinetic_energy: absolute error 0.0440132634104886 > 0.005220066321444226
+  $.checkpoints[3].resources[2].aggregate.mass: absolute error 0.9510000451700762 > 0.015200000484474004
+  $.checkpoints[3].resources[2].aggregate.maximum_speed: absolute error 2.004656984880039 > 0.01502380101247559
+  $.checkpoints[3].resources[2].count: exact value mismatch
+  $.checkpoints[3].resources[2].minimum_clearance: absolute error 5.744215965270996 > 0.03372107982635498
+  $.checkpoints[3].resources[2].samples[7].position[2]: absolute error 0.007089003920555115 > 0.006120054572820664
+  $.checkpoints[3].resources[2].samples[9].position[1]: absolute error 0.0089702308177948 > 0.0073724760115146636
+  $.checkpoints[3].resources[2].samples[10].position[1]: absolute error 0.010038405656814575 > 0.00615824356675148
+  $.checkpoints[3].resources[2].samples[10].position[2]: absolute error 0.010274119675159454 > 0.005617986731231213
+  $.checkpoints[3].resources[2].samples[18].position[0]: absolute error 0.010134398937225342 > 0.009975100755691527
+  $.checkpoints[3].resources[2].samples[18].position[1]: absolute error 0.006441965699195862 > 0.006214379072189332
+  $.checkpoints[3].resources[2].samples[19].position[0]: absolute error 0.022761106491088867 > 0.009957723915576935
+  $.checkpoints[3].resources[2].samples[19].position[2]: absolute error 0.015494048595428467 > 0.005957616493105888
+  $.checkpoints[3].resources[2].samples[20].position[0]: absolute error 0.022648155689239502 > 0.009945121705532075
+  $.checkpoints[3].resources[2].samples[20].position[2]: absolute error 0.018409952521324158 > 0.006154483333230019
+  $.checkpoints[3].resources[2].samples[21].position[0]: absolute error 0.014391899108886719 > 0.009941668212413789
+  $.checkpoints[3].resources[2].samples[21].position[2]: absolute error 0.010653600096702576 > 0.006134804263710976
+  $.checkpoints[3].resources[2].topology.vertex_count: exact value mismatch
+PASS cloth-water
+PASS compound-weld-lifecycle
+PASS constraint-breaking
+FAIL constraint-fixed
+  $.checkpoints[1].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[1].contacts.rigid_contacts: length mismatch
+  $.checkpoints[1].invariants.combined_momentum[0]: absolute error 4.687932014465332 > 0.25190147399902346
+  $.checkpoints[1].invariants.combined_momentum[2]: absolute error 2.0965113639831543 > 0.18862619400024414
+  $.checkpoints[1].resources[1].angular_velocity[0]: absolute error 0.02218737476505339 > 0.020485552921891213
+  $.checkpoints[1].resources[1].angular_velocity[2]: absolute error 0.04774363711476326 > 0.020684326738119124
+  $.checkpoints[1].resources[1].linear_velocity[0]: absolute error 0.04860125109553337 > 0.02069636456668377
+  $.checkpoints[1].resources[1].linear_velocity[2]: absolute error 0.02258653682656586 > 0.020494286715984345
+  $.checkpoints[1].resources[1].orientation: quaternion angular error 0.014397042762723402 > 0.002
+  $.checkpoints[1].resources[1].position[0]: absolute error 0.013292551040649414 > 0.006422163486480713
+  $.checkpoints[1].resources[1].position[2]: absolute error 0.006176703260280192 > 0.0020157973747700455
+  $.checkpoints[1].resources[2].orientation: quaternion angular error 0.00732243153481433 > 0.002
+  $.checkpoints[1].resources[3].orientation: quaternion angular error 0.007328903533955122 > 0.002
+  $.checkpoints[1].resources[4].orientation: quaternion angular error 0.0073150159880219934 > 0.002
+  $.checkpoints[1].resources[5].orientation: quaternion angular error 0.007301504836270916 > 0.002
+  $.checkpoints[1].resources[6].angular_velocity[2]: absolute error 0.05687665939331055 > 0.05671908855438232
+  $.checkpoints[1].resources[6].orientation: quaternion angular error 0.007339332431426272 > 0.002
+  $.checkpoints[1].resources[7].orientation: quaternion angular error 0.007334252623851183 > 0.002
+  $.checkpoints[1].resources[8].orientation: quaternion angular error 0.007133955991673917 > 0.002
+  $.checkpoints[1].resources[9].orientation: quaternion angular error 0.007347295242434577 > 0.002
+  $.checkpoints[1].resources[10].orientation: quaternion angular error 0.007176484811223966 > 0.002
+  $.checkpoints[1].resources[11].angular_velocity[2]: absolute error 0.056883931159973145 > 0.05671941757202148
+  $.checkpoints[1].resources[11].orientation: quaternion angular error 0.007319905532800672 > 0.002
+  $.checkpoints[1].resources[12].orientation: quaternion angular error 0.007326785996224626 > 0.002
+  $.checkpoints[1].resources[13].orientation: quaternion angular error 0.007309727019844866 > 0.002
+  $.checkpoints[1].resources[14].orientation: quaternion angular error 0.007336532214352943 > 0.002
+  $.checkpoints[1].resources[15].orientation: quaternion angular error 0.007325587550012166 > 0.002
+  $.checkpoints[1].resources[16].orientation: quaternion angular error 0.007341329818169929 > 0.002
+  $.checkpoints[1].resources[17].orientation: quaternion angular error 0.007330700846109112 > 0.002
+  $.checkpoints[1].resources[18].orientation: quaternion angular error 0.0073158193847349 > 0.002
+  $.checkpoints[1].resources[19].orientation: quaternion angular error 0.0073262502616524275 > 0.002
+  $.checkpoints[1].resources[20].orientation: quaternion angular error 0.007332048304502149 > 0.002
+  $.checkpoints[1].resources[21].orientation: quaternion angular error 0.0073225165237613445 > 0.002
+  $.checkpoints[1].resources[22].orientation: quaternion angular error 0.007341707305445267 > 0.002
+  $.checkpoints[1].resources[23].orientation: quaternion angular error 0.007315698106597591 > 0.002
+  $.checkpoints[1].resources[24].orientation: quaternion angular error 0.007315949233336101 > 0.002
+  $.checkpoints[1].resources[25].orientation: quaternion angular error 0.007313171595903662 > 0.002
+  $.checkpoints[1].resources[26].orientation: quaternion angular error 0.007318933095046416 > 0.002
+  $.checkpoints[1].resources[27].orientation: quaternion angular error 0.007335750000459654 > 0.002
+  $.checkpoints[1].resources[28].orientation: quaternion angular error 0.007311242154251991 > 0.002
+  $.checkpoints[1].resources[29].orientation: quaternion angular error 0.0073179252049656324 > 0.002
+  $.checkpoints[1].resources[30].orientation: quaternion angular error 0.007341199943076297 > 0.002
+  $.checkpoints[1].resources[31].angular_velocity[2]: absolute error 0.056742191314697266 > 0.05671636104583741
+  $.checkpoints[1].resources[31].orientation: quaternion angular error 0.007340802128867229 > 0.002
+  $.checkpoints[1].resources[32].orientation: quaternion angular error 0.007333177671265435 > 0.002
+  $.checkpoints[1].resources[33].orientation: quaternion angular error 0.007350825031251852 > 0.002
+  $.checkpoints[1].resources[34].orientation: quaternion angular error 0.007329337234086147 > 0.002
+  $.checkpoints[1].resources[35].orientation: quaternion angular error 0.007317521627931096 > 0.002
+  $.checkpoints[1].resources[36].orientation: quaternion angular error 0.007317963114828591 > 0.002
+  $.checkpoints[1].resources[37].orientation: quaternion angular error 0.007343680683075334 > 0.002
+  $.checkpoints[1].resources[38].orientation: quaternion angular error 0.007153878006312271 > 0.002
+  $.checkpoints[1].resources[39].orientation: quaternion angular error 0.007327684103574376 > 0.002
+  $.checkpoints[1].resources[40].orientation: quaternion angular error 0.007317276922881639 > 0.002
+  $.checkpoints[1].resources[41].orientation: quaternion angular error 0.007327294326771628 > 0.002
+  $.checkpoints[1].resources[42].orientation: quaternion angular error 0.00734167653696525 > 0.002
+  $.checkpoints[1].resources[43].orientation: quaternion angular error 0.007319561043544495 > 0.002
+  $.checkpoints[1].resources[44].orientation: quaternion angular error 0.007323170622200631 > 0.002
+  $.checkpoints[1].resources[45].orientation: quaternion angular error 0.007304156939637887 > 0.002
+  $.checkpoints[1].resources[46].orientation: quaternion angular error 0.007342780393709469 > 0.002
+  $.checkpoints[1].resources[47].orientation: quaternion angular error 0.007346172341445928 > 0.002
+  $.checkpoints[1].resources[48].orientation: quaternion angular error 0.007330826825370791 > 0.002
+  $.checkpoints[1].resources[49].orientation: quaternion angular error 0.007325393400834139 > 0.002
+  $.checkpoints[1].resources[50].angular_velocity[0]: absolute error 0.022221147315576673 > 0.020485339537262916
+  $.checkpoints[1].resources[50].angular_velocity[2]: absolute error 0.0477433018386364 > 0.02068432331085205
+  $.checkpoints[1].resources[50].linear_velocity[0]: absolute error 0.08413814380764961 > 0.021208073198795318
+  $.checkpoints[1].resources[50].linear_velocity[1]: absolute error 0.042192840948700905 > 0.02068085767328739
+  $.checkpoints[1].resources[50].linear_velocity[2]: absolute error 0.039184571243822575 > 0.020856242179870605
+  $.checkpoints[1].resources[50].orientation: quaternion angular error 0.014397438354765828 > 0.002
+  $.checkpoints[1].resources[50].position[0]: absolute error 0.02294301986694336 > 0.005090745687484742
+  $.checkpoints[1].resources[50].position[1]: absolute error 0.011609792709350586 > 0.005527461767196656
+  $.checkpoints[1].resources[50].position[2]: absolute error 0.010676920413970947 > 0.002977442860603333
+  $.checkpoints[2].contacts.rigid_contacts[0]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[1]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[2]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].invariants.combined_momentum[0]: absolute error 5.983876466751099 > 0.08800398349761963
+  $.checkpoints[2].invariants.combined_momentum[1]: absolute error 0.5134281516075134 > 0.041104037761688236
+  $.checkpoints[2].invariants.combined_momentum[2]: absolute error 0.8345712423324585 > 0.06649692535400391
+  $.checkpoints[2].resources[1].angular_velocity[2]: absolute error 0.05126743018627167 > 0.021091355085372927
+  $.checkpoints[2].resources[1].linear_velocity[0]: absolute error 0.05217437958344817 > 0.021110395267605782
+  $.checkpoints[2].resources[1].orientation: quaternion angular error 0.042056077998344966 > 0.002
+  $.checkpoints[2].resources[1].position[0]: absolute error 0.039925575256347656 > 0.0064441275596618655
+  $.checkpoints[2].resources[1].position[2]: absolute error 0.015456183929927647 > 0.002031984239816666
+  $.checkpoints[2].resources[2].angular_velocity[0]: absolute error 0.12490478157997131 > 0.032416350841522217
+  $.checkpoints[2].resources[2].angular_velocity[2]: absolute error 0.1530887484550476 > 0.03653356432914734
+  $.checkpoints[2].resources[2].orientation: quaternion angular error 0.04692853828106937 > 0.002
+  $.checkpoints[2].resources[2].position[0]: absolute error 0.0037870407104492188 > 0.003474194884300232
+  $.checkpoints[2].resources[2].position[2]: absolute error 0.0027279406785964966 > 0.0022053379714488982
+  $.checkpoints[2].resources[3].angular_velocity[0]: absolute error 0.120900958776474 > 0.03240817070007324
+  $.checkpoints[2].resources[3].angular_velocity[2]: absolute error 0.15173101425170898 > 0.03652294158935547
+  $.checkpoints[2].resources[3].orientation: quaternion angular error 0.04737481223579367 > 0.002
+  $.checkpoints[2].resources[3].position[0]: absolute error 0.0037969350814819336 > 0.0034742066860198977
+  $.checkpoints[2].resources[4].angular_velocity[0]: absolute error 0.12523570656776428 > 0.0324307382106781
+  $.checkpoints[2].resources[4].angular_velocity[2]: absolute error 0.15575307607650757 > 0.036543503999710084
+  $.checkpoints[2].resources[4].orientation: quaternion angular error 0.046610387684331844 > 0.002
+  $.checkpoints[2].resources[4].position[2]: absolute error 0.0027249306440353394 > 0.002205352783203125
+  $.checkpoints[2].resources[5].angular_velocity[0]: absolute error 0.12640458345413208 > 0.032432248592376714
+  $.checkpoints[2].resources[5].angular_velocity[2]: absolute error 0.1607080101966858 > 0.036541686058044434
+  $.checkpoints[2].resources[5].orientation: quaternion angular error 0.046002186892009404 > 0.002
+  $.checkpoints[2].resources[6].angular_velocity[0]: absolute error 0.12046054005622864 > 0.0324089503288269
+  $.checkpoints[2].resources[6].angular_velocity[2]: absolute error 0.14799779653549194 > 0.036524453163146973
+  $.checkpoints[2].resources[6].orientation: quaternion angular error 0.047800471370922824 > 0.002
+  $.checkpoints[2].resources[6].position[2]: absolute error 0.0027755796909332275 > 0.0022054229825735094
+  $.checkpoints[2].resources[7].angular_velocity[0]: absolute error 0.11876261234283447 > 0.03240279793739319
+  $.checkpoints[2].resources[7].angular_velocity[2]: absolute error 0.15331107378005981 > 0.03652432441711426
+  $.checkpoints[2].resources[7].orientation: quaternion angular error 0.047362272596801834 > 0.002
+  $.checkpoints[2].resources[8].angular_velocity[0]: absolute error 0.1691935658454895 > 0.03240619659423828
+  $.checkpoints[2].resources[8].angular_velocity[2]: absolute error 0.2191193699836731 > 0.036524205207824706
+  $.checkpoints[2].resources[8].orientation: quaternion angular error 0.0369055856125742 > 0.002
+  $.checkpoints[2].resources[8].position[2]: absolute error 0.0022792592644691467 > 0.002204428404569626
+  $.checkpoints[2].resources[9].angular_velocity[0]: absolute error 0.11891645193099976 > 0.03240482926368714
+  $.checkpoints[2].resources[9].angular_velocity[2]: absolute error 0.14723247289657593 > 0.036524057388305664
+  $.checkpoints[2].resources[9].orientation: quaternion angular error 0.04799126155559621 > 0.002
+  $.checkpoints[2].resources[10].angular_velocity[0]: absolute error 0.16542649269104004 > 0.03240619659423828
+  $.checkpoints[2].resources[10].angular_velocity[2]: absolute error 0.21104180812835693 > 0.036524205207824706
+  $.checkpoints[2].resources[10].orientation: quaternion angular error 0.03769306280885596 > 0.002
+  $.checkpoints[2].resources[10].position[2]: absolute error 0.002324521541595459 > 0.0022045189291238785
+  $.checkpoints[2].resources[11].angular_velocity[0]: absolute error 0.1212543249130249 > 0.03240482926368714
+  $.checkpoints[2].resources[11].angular_velocity[2]: absolute error 0.15221840143203735 > 0.036524057388305664
+  $.checkpoints[2].resources[11].orientation: quaternion angular error 0.04732227629296126 > 0.002
+  $.checkpoints[2].resources[12].angular_velocity[0]: absolute error 0.11998504400253296 > 0.03240619659423828
+  $.checkpoints[2].resources[12].angular_velocity[2]: absolute error 0.15414810180664062 > 0.036524205207824706
+  $.checkpoints[2].resources[12].orientation: quaternion angular error 0.04718025607031424 > 0.002
+  $.checkpoints[2].resources[12].position[2]: absolute error 0.0028027892112731934 > 0.002205475464463234
+  $.checkpoints[2].resources[13].angular_velocity[0]: absolute error 0.12335589528083801 > 0.03240482926368714
+  $.checkpoints[2].resources[13].angular_velocity[2]: absolute error 0.1563149094581604 > 0.036524057388305664
+  $.checkpoints[2].resources[13].orientation: quaternion angular error 0.0466871947893872 > 0.002
+  $.checkpoints[2].resources[14].angular_velocity[0]: absolute error 0.12105393409729004 > 0.03239979267120362
+  $.checkpoints[2].resources[14].angular_velocity[2]: absolute error 0.14909034967422485 > 0.03653722763061523
+  $.checkpoints[2].resources[14].orientation: quaternion angular error 0.04765290703888135 > 0.002
+  $.checkpoints[2].resources[15].angular_velocity[0]: absolute error 0.12107422947883606 > 0.03240482926368714
+  $.checkpoints[2].resources[15].angular_velocity[2]: absolute error 0.15341120958328247 > 0.036524057388305664
+  $.checkpoints[2].resources[15].orientation: quaternion angular error 0.04719741459822837 > 0.002
+  $.checkpoints[2].resources[16].angular_velocity[0]: absolute error 0.12008070945739746 > 0.03239979267120362
+  $.checkpoints[2].resources[16].angular_velocity[2]: absolute error 0.1493014097213745 > 0.03653722763061523
+  $.checkpoints[2].resources[16].orientation: quaternion angular error 0.047723714421402275 > 0.002
+  $.checkpoints[2].resources[17].angular_velocity[0]: absolute error 0.11990708112716675 > 0.03240482926368714
+  $.checkpoints[2].resources[17].angular_velocity[2]: absolute error 0.1547272801399231 > 0.036524057388305664
+  $.checkpoints[2].resources[17].orientation: quaternion angular error 0.047167072851169826 > 0.002
+  $.checkpoints[2].resources[18].angular_velocity[0]: absolute error 0.12291857600212097 > 0.03239764094352722
+  $.checkpoints[2].resources[18].angular_velocity[2]: absolute error 0.15828430652618408 > 0.036537317037582395
+  $.checkpoints[2].resources[18].orientation: quaternion angular error 0.04653946513295279 > 0.002
+  $.checkpoints[2].resources[19].angular_velocity[0]: absolute error 0.12045353651046753 > 0.03240426063537598
+  $.checkpoints[2].resources[19].angular_velocity[2]: absolute error 0.1553371548652649 > 0.036524802446365356
+  $.checkpoints[2].resources[19].orientation: quaternion angular error 0.047045195166484796 > 0.002
+  $.checkpoints[2].resources[20].angular_velocity[0]: absolute error 0.11940813064575195 > 0.03239979267120362
+  $.checkpoints[2].resources[20].angular_velocity[2]: absolute error 0.15304166078567505 > 0.03653722763061523
+  $.checkpoints[2].resources[20].orientation: quaternion angular error 0.04738556412308227 > 0.002
+  $.checkpoints[2].resources[21].angular_velocity[0]: absolute error 0.12186494469642639 > 0.03240482926368714
+  $.checkpoints[2].resources[21].angular_velocity[2]: absolute error 0.1545962691307068 > 0.036524057388305664
+  $.checkpoints[2].resources[21].orientation: quaternion angular error 0.04700351775893639 > 0.002
+  $.checkpoints[2].resources[22].angular_velocity[0]: absolute error 0.11700969934463501 > 0.03241682052612305
+  $.checkpoints[2].resources[22].angular_velocity[2]: absolute error 0.15045547485351562 > 0.03652637958526611
+  $.checkpoints[2].resources[22].orientation: quaternion angular error 0.04781671673357666 > 0.002
+  $.checkpoints[2].resources[22].position[0]: absolute error 0.003803730010986328 > 0.0034982517957687378
+  $.checkpoints[2].resources[23].angular_velocity[0]: absolute error 0.12247270345687866 > 0.03240817070007324
+  $.checkpoints[2].resources[23].angular_velocity[2]: absolute error 0.15716934204101562 > 0.03652294158935547
+  $.checkpoints[2].resources[23].orientation: quaternion angular error 0.0466825693928708 > 0.002
+  $.checkpoints[2].resources[23].position[0]: absolute error 0.0037244558334350586 > 0.0034982538223266605
+  $.checkpoints[2].resources[24].angular_velocity[0]: absolute error 0.12471222877502441 > 0.03244144201278687
+  $.checkpoints[2].resources[24].angular_velocity[2]: absolute error 0.15533095598220825 > 0.036562479734420776
+  $.checkpoints[2].resources[24].orientation: quaternion angular error 0.046686967388092304 > 0.002
+  $.checkpoints[2].resources[25].angular_velocity[0]: absolute error 0.12369835376739502 > 0.0324259090423584
+  $.checkpoints[2].resources[25].angular_velocity[2]: absolute error 0.15618592500686646 > 0.03652850270271302
+  $.checkpoints[2].resources[25].orientation: quaternion angular error 0.04669401494883537 > 0.002
+  $.checkpoints[2].resources[26].angular_velocity[0]: absolute error 0.12321320176124573 > 0.03241093635559082
+  $.checkpoints[2].resources[26].angular_velocity[2]: absolute error 0.1593540906906128 > 0.0365486741065979
+  $.checkpoints[2].resources[26].orientation: quaternion angular error 0.04640901879769966 > 0.002
+  $.checkpoints[2].resources[26].position[0]: absolute error 0.0036880970001220703 > 0.003474170207977295
+  $.checkpoints[2].resources[27].angular_velocity[0]: absolute error 0.120289146900177 > 0.03241010904312134
+  $.checkpoints[2].resources[27].angular_velocity[2]: absolute error 0.15167683362960815 > 0.03654771327972412
+  $.checkpoints[2].resources[27].orientation: quaternion angular error 0.0474246003868146 > 0.002
+  $.checkpoints[2].resources[27].position[0]: absolute error 0.003788888454437256 > 0.003474170207977295
+  $.checkpoints[2].resources[28].angular_velocity[0]: absolute error 0.12442716956138611 > 0.03243497490882874
+  $.checkpoints[2].resources[28].angular_velocity[2]: absolute error 0.15550869703292847 > 0.03656043648719788
+  $.checkpoints[2].resources[28].orientation: quaternion angular error 0.04667805036082029 > 0.002
+  $.checkpoints[2].resources[29].angular_velocity[0]: absolute error 0.12405014038085938 > 0.032434834241867064
+  $.checkpoints[2].resources[29].angular_velocity[2]: absolute error 0.15927988290786743 > 0.036560316085815434
+  $.checkpoints[2].resources[29].orientation: quaternion angular error 0.04634084815855694 > 0.002
+  $.checkpoints[2].resources[30].angular_velocity[0]: absolute error 0.11898744106292725 > 0.032411367893218995
+  $.checkpoints[2].resources[30].angular_velocity[2]: absolute error 0.14652395248413086 > 0.03654864549636841
+  $.checkpoints[2].resources[30].orientation: quaternion angular error 0.04806536289055723 > 0.002
+  $.checkpoints[2].resources[31].angular_velocity[0]: absolute error 0.11909204721450806 > 0.032409873008728024
+  $.checkpoints[2].resources[31].angular_velocity[2]: absolute error 0.15104323625564575 > 0.036548126935958866
+  $.checkpoints[2].resources[31].orientation: quaternion angular error 0.04758496675401868 > 0.002
+  $.checkpoints[2].resources[32].angular_velocity[0]: absolute error 0.11986410617828369 > 0.03241096615791321
+  $.checkpoints[2].resources[32].angular_velocity[2]: absolute error 0.15208840370178223 > 0.03654683709144592
+  $.checkpoints[2].resources[32].orientation: quaternion angular error 0.04736389296026631 > 0.002
+  $.checkpoints[2].resources[33].angular_velocity[0]: absolute error 0.113514244556427 > 0.032409517765045165
+  $.checkpoints[2].resources[33].angular_velocity[2]: absolute error 0.14595556259155273 > 0.03654933333396912
+  $.checkpoints[2].resources[33].orientation: quaternion angular error 0.04858885460312767 > 0.002
+  $.checkpoints[2].resources[34].angular_velocity[0]: absolute error 0.12226760387420654 > 0.03241096615791321
+  $.checkpoints[2].resources[34].angular_velocity[2]: absolute error 0.15302389860153198 > 0.03654683709144592
+  $.checkpoints[2].resources[34].orientation: quaternion angular error 0.04716875753799596 > 0.002
+  $.checkpoints[2].resources[35].angular_velocity[0]: absolute error 0.1240662932395935 > 0.032409517765045165
+  $.checkpoints[2].resources[35].angular_velocity[2]: absolute error 0.15285450220108032 > 0.03654933333396912
+  $.checkpoints[2].resources[35].orientation: quaternion angular error 0.04704406600326778 > 0.002
+  $.checkpoints[2].resources[36].angular_velocity[0]: absolute error 0.12085893750190735 > 0.03241096615791321
+  $.checkpoints[2].resources[36].angular_velocity[2]: absolute error 0.15277725458145142 > 0.03654683709144592
+  $.checkpoints[2].resources[36].orientation: quaternion angular error 0.04727751080706934 > 0.002
+  $.checkpoints[2].resources[37].angular_velocity[0]: absolute error 0.12025141716003418 > 0.032409517765045165
+  $.checkpoints[2].resources[37].angular_velocity[2]: absolute error 0.14882636070251465 > 0.03654933333396912
+  $.checkpoints[2].resources[37].orientation: quaternion angular error 0.04771202898583579 > 0.002
+  $.checkpoints[2].resources[38].angular_velocity[0]: absolute error 0.16453030705451965 > 0.03239979267120362
+  $.checkpoints[2].resources[38].angular_velocity[2]: absolute error 0.21364140510559082 > 0.03653722763061523
+  $.checkpoints[2].resources[38].orientation: quaternion angular error 0.03748404546227795 > 0.002
+  $.checkpoints[2].resources[39].angular_velocity[0]: absolute error 0.11856299638748169 > 0.03239979267120362
+  $.checkpoints[2].resources[39].angular_velocity[2]: absolute error 0.1547541618347168 > 0.03653722763061523
+  $.checkpoints[2].resources[39].orientation: quaternion angular error 0.04729477326266711 > 0.002
+  $.checkpoints[2].resources[40].angular_velocity[0]: absolute error 0.12340766191482544 > 0.03239979267120362
+  $.checkpoints[2].resources[40].angular_velocity[2]: absolute error 0.15718990564346313 > 0.03653722763061523
+  $.checkpoints[2].resources[40].orientation: quaternion angular error 0.046624259506344454 > 0.002
+  $.checkpoints[2].resources[41].angular_velocity[0]: absolute error 0.12251904606819153 > 0.03239979267120362
+  $.checkpoints[2].resources[41].angular_velocity[2]: absolute error 0.15620285272598267 > 0.03653722763061523
+  $.checkpoints[2].resources[41].orientation: quaternion angular error 0.04681621212685584 > 0.002
+  $.checkpoints[2].resources[42].angular_velocity[0]: absolute error 0.11638408899307251 > 0.03239764094352722
+  $.checkpoints[2].resources[42].angular_velocity[2]: absolute error 0.15148049592971802 > 0.036537317037582395
+  $.checkpoints[2].resources[42].orientation: quaternion angular error 0.04777021505376346 > 0.002
+  $.checkpoints[2].resources[43].angular_velocity[0]: absolute error 0.12152132391929626 > 0.03239764094352722
+  $.checkpoints[2].resources[43].angular_velocity[2]: absolute error 0.15620100498199463 > 0.036537317037582395
+  $.checkpoints[2].resources[43].orientation: quaternion angular error 0.046844683061180815 > 0.002
+  $.checkpoints[2].resources[44].angular_velocity[0]: absolute error 0.12152880430221558 > 0.03239979267120362
+  $.checkpoints[2].resources[44].angular_velocity[2]: absolute error 0.1541028618812561 > 0.03653722763061523
+  $.checkpoints[2].resources[44].orientation: quaternion angular error 0.0471017689300355 > 0.002
+  $.checkpoints[2].resources[45].angular_velocity[0]: absolute error 0.12581005692481995 > 0.03239979267120362
+  $.checkpoints[2].resources[45].angular_velocity[2]: absolute error 0.15810495615005493 > 0.03653722763061523
+  $.checkpoints[2].resources[45].orientation: quaternion angular error 0.046329222980615314 > 0.002
+  $.checkpoints[2].resources[46].angular_velocity[0]: absolute error 0.11858099699020386 > 0.03241682052612305
+  $.checkpoints[2].resources[46].angular_velocity[2]: absolute error 0.1493738293647766 > 0.03652637958526611
+  $.checkpoints[2].resources[46].orientation: quaternion angular error 0.047808655284774404 > 0.002
+  $.checkpoints[2].resources[46].position[0]: absolute error 0.00382155179977417 > 0.0034982517957687378
+  $.checkpoints[2].resources[47].angular_velocity[0]: absolute error 0.120059072971344 > 0.03241682052612305
+  $.checkpoints[2].resources[47].angular_velocity[2]: absolute error 0.14787393808364868 > 0.03652637958526611
+  $.checkpoints[2].resources[47].orientation: quaternion angular error 0.04784531367401097 > 0.002
+  $.checkpoints[2].resources[47].position[0]: absolute error 0.0038436055183410645 > 0.0034982517957687378
+  $.checkpoints[2].resources[48].angular_velocity[0]: absolute error 0.12317785620689392 > 0.03244144201278687
+  $.checkpoints[2].resources[48].angular_velocity[2]: absolute error 0.15133672952651978 > 0.036562479734420776
+  $.checkpoints[2].resources[48].orientation: quaternion angular error 0.047226543379382556 > 0.002
+  $.checkpoints[2].resources[49].angular_velocity[0]: absolute error 0.12367194890975952 > 0.03244144201278687
+  $.checkpoints[2].resources[49].angular_velocity[2]: absolute error 0.15067648887634277 > 0.036562479734420776
+  $.checkpoints[2].resources[49].orientation: quaternion angular error 0.04727723373910305 > 0.002
+  $.checkpoints[2].resources[50].angular_velocity[2]: absolute error 0.05126959551125765 > 0.02109139323234558
+  $.checkpoints[2].resources[50].linear_velocity[0]: absolute error 0.08902309089899063 > 0.021897320300340653
+  $.checkpoints[2].resources[50].linear_velocity[1]: absolute error 0.037689633667469025 > 0.020838447734713553
+  $.checkpoints[2].resources[50].orientation: quaternion angular error 0.042056386257271816 > 0.002
+  $.checkpoints[2].resources[50].position[0]: absolute error 0.06885671615600586 > 0.005128916263580322
+  $.checkpoints[2].resources[50].position[1]: absolute error 0.03380906581878662 > 0.005549471855163574
+  $.checkpoints[2].resources[50].position[2]: absolute error 0.02680632472038269 > 0.0029815675616264347
+FAIL constraint-generic-spring
+  $.checkpoints[1].contacts.rigid_contacts[0]: no one-to-one contact match within existing tolerances
+  $.checkpoints[1].contacts.rigid_contacts[1]: no one-to-one contact match within existing tolerances
+  $.checkpoints[1].contacts.rigid_contacts[2]: no one-to-one contact match within existing tolerances
+  $.checkpoints[1].contacts.rigid_contacts[3]: no one-to-one contact match within existing tolerances
+  $.checkpoints[1].resources[3].angular_velocity[2]: absolute error 0.02616703510284424 > 0.023713921904563905
+  $.checkpoints[1].resources[3].position[0]: absolute error 0.003226250410079956 > 0.002486609071493149
+  $.checkpoints[1].resources[3].position[2]: absolute error 0.002072652201353442 > 0.0020041453251615168
+  $.checkpoints[2].contacts.rigid_contacts[0]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[1]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[2]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[3]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].resources[2].position[0]: absolute error 0.00431385263800621 > 0.002048963874578476
+  $.checkpoints[2].resources[2].position[2]: absolute error 0.0023727471803738354 > 0.002004745599348098
+  $.checkpoints[2].resources[3].angular_velocity[0]: absolute error 0.05509946000609034 > 0.02110202193260193
+  $.checkpoints[2].resources[3].angular_velocity[2]: absolute error 0.10840821266174316 > 0.035729792118072506
+  $.checkpoints[2].resources[3].linear_velocity[0]: absolute error 0.038583338260650635 > 0.026589226126670838
+  $.checkpoints[2].resources[3].orientation: quaternion angular error 0.03196362287261931 > 0.002
+  $.checkpoints[2].resources[3].position[0]: absolute error 0.012905985116958618 > 0.0026259757280349735
+  $.checkpoints[2].resources[3].position[2]: absolute error 0.0071188059942528525 > 0.0020142379198223354
+FAIL constraint-generic
+  $.checkpoints[1].contacts.rigid_contacts[0]: no one-to-one contact match within existing tolerances
+  $.checkpoints[1].contacts.rigid_contacts[1]: no one-to-one contact match within existing tolerances
+  $.checkpoints[1].contacts.rigid_contacts[2]: no one-to-one contact match within existing tolerances
+  $.checkpoints[1].contacts.rigid_contacts[3]: no one-to-one contact match within existing tolerances
+  $.checkpoints[1].contacts.rigid_contacts[4]: no one-to-one contact match within existing tolerances
+  $.checkpoints[1].resources[3].angular_velocity[2]: absolute error 0.024500571191310883 > 0.02242542415857315
+  $.checkpoints[1].resources[3].position[0]: absolute error 0.003286033868789673 > 0.002487240970134735
+  $.checkpoints[1].resources[3].position[2]: absolute error 0.0020696105038229273 > 0.0020041392268612982
+  $.checkpoints[2].contacts.rigid_contacts[0]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[1]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[2]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[3]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[4]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].resources[2].angular_velocity[0]: absolute error 0.027564828615460613 > 0.02055129509419203
+  $.checkpoints[2].resources[2].orientation: quaternion angular error 0.006373909868805658 > 0.002
+  $.checkpoints[2].resources[2].position[0]: absolute error 0.0040162838995456696 > 0.0020451630428433417
+  $.checkpoints[2].resources[2].position[2]: absolute error 0.0022839608653093535 > 0.0020045679728500545
+  $.checkpoints[2].resources[3].angular_velocity[0]: absolute error 0.06214090306013986 > 0.0212428330630064
+  $.checkpoints[2].resources[3].angular_velocity[2]: absolute error 0.0947490930557251 > 0.03480624556541443
+  $.checkpoints[2].resources[3].linear_velocity[0]: absolute error 0.033835843205451965 > 0.025454420447349548
+  $.checkpoints[2].resources[3].orientation: quaternion angular error 0.029659415983381777 > 0.002
+  $.checkpoints[2].resources[3].position[0]: absolute error 0.012037605047225952 > 0.0026145787239074706
+  $.checkpoints[2].resources[3].position[2]: absolute error 0.00684885418117176 > 0.002013697862625122
+FAIL constraint-hinge
+  $.checkpoints[1].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[1].contacts.rigid_contacts: length mismatch
+  $.checkpoints[1].invariants.combined_momentum[1]: absolute error 0.06310904026031494 > 0.023188844919204712
+  $.checkpoints[1].resources[0].orientation: quaternion angular error 0.054239820426177525 > 0.002
+  $.checkpoints[1].resources[1].orientation: quaternion angular error 0.027270017975711134 > 0.002
+  $.checkpoints[1].resources[2].orientation: quaternion angular error 0.011699031247372036 > 0.002
+  $.checkpoints[1].resources[4].linear_velocity[1]: absolute error 0.0631701722741127 > 0.023188686072826387
+  $.checkpoints[1].resources[4].position[1]: absolute error 0.015257835388183594 > 0.014860685348510743
+  $.checkpoints[2].contacts.rigid_contacts[0]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[1]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[2]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[3]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[4]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[5]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[6]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].invariants.combined_momentum[1]: absolute error 0.04485735297203064 > 0.021368384659290314
+  $.checkpoints[2].resources[0].angular_velocity[2]: absolute error 0.08707847818732262 > 0.02265943378210068
+  $.checkpoints[2].resources[0].orientation: quaternion angular error 0.013014707621219377 > 0.002
+  $.checkpoints[2].resources[1].angular_velocity[2]: absolute error 0.04490738362073898 > 0.021370966732501984
+  $.checkpoints[2].resources[1].orientation: quaternion angular error 0.006707939056861059 > 0.002
+  $.checkpoints[2].resources[2].angular_velocity[2]: absolute error 0.023283404298126698 > 0.0207103455811739
+  $.checkpoints[2].resources[2].orientation: quaternion angular error 0.0034739054876059736 > 0.002
+  $.checkpoints[2].resources[4].linear_velocity[1]: absolute error 0.04488158039748669 > 0.021369219571352006
+  $.checkpoints[2].resources[7].applied_impulse: absolute error 0.0027582868933677673 > 0.0021518612504005433
+  $.checkpoints[2].resources[9].applied_impulse: absolute error 0.006778232753276825 > 0.0021958356350660325
+FAIL constraint-motor
+  $.checkpoints[1].contacts.rigid_contacts[0]: no one-to-one contact match within existing tolerances
+  $.checkpoints[1].contacts.rigid_contacts[1]: no one-to-one contact match within existing tolerances
+  $.checkpoints[1].contacts.rigid_contacts[2]: no one-to-one contact match within existing tolerances
+  $.checkpoints[1].contacts.rigid_contacts[4]: no one-to-one contact match within existing tolerances
+  $.checkpoints[1].contacts.rigid_contacts[7]: no one-to-one contact match within existing tolerances
+  $.checkpoints[1].resources[6].applied_impulse: absolute error 0.005378015339374542 > 0.002176109850406647
+  $.checkpoints[2].contacts.rigid_contacts[0]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[1]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[2]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[3]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[4]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[5]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[6]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].contacts.rigid_contacts[7]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].resources[6].applied_impulse: absolute error 0.004989884793758392 > 0.0021739068031311035
+  $.checkpoints[2].resources[7].applied_impulse: absolute error 0.003704443573951721 > 0.0021724041998386384
+PASS constraint-piston
+FAIL constraint-point
+  $.checkpoints[1].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[1].contacts.rigid_contacts: length mismatch
+  $.checkpoints[1].invariants.combined_momentum[0]: absolute error 15.697022438049316 > 0.33403974533081054
+  $.checkpoints[1].invariants.combined_momentum[1]: absolute error 4.289865672588348 > 0.10571531295776368
+  $.checkpoints[1].invariants.combined_momentum[2]: absolute error 21.988974452018738 > 0.45930175781250004
+  $.checkpoints[1].resources[2].angular_velocity[0]: absolute error 2.874866709113121 > 0.07539367198944091
+  $.checkpoints[1].resources[2].angular_velocity[1]: absolute error 0.7211348848650232 > 0.03439478635787964
+  $.checkpoints[1].resources[2].angular_velocity[2]: absolute error 0.3945360779762268 > 0.034356576204299924
+  $.checkpoints[1].resources[2].linear_velocity[0]: absolute error 0.16689318418502808 > 0.026029762625694276
+  $.checkpoints[1].resources[2].linear_velocity[2]: absolute error 1.2212647944688797 > 0.0435493016242981
+  $.checkpoints[1].resources[2].orientation: quaternion angular error 0.940395554548923 > 0.002
+  $.checkpoints[1].resources[2].position[0]: absolute error 0.15861225128173828 > 0.006437532901763916
+  $.checkpoints[1].resources[2].position[2]: absolute error 0.29999062418937683 > 0.003586938381195068
+  $.checkpoints[1].resources[3].angular_velocity[0]: absolute error 0.24844002723693848 > 0.07610651016235352
+  $.checkpoints[1].resources[3].angular_velocity[1]: absolute error 3.655131995677948 > 0.0783414077758789
+  $.checkpoints[1].resources[3].angular_velocity[2]: absolute error 9.694788038730621 > 0.2000031280517578
+  $.checkpoints[1].resources[3].linear_velocity[0]: absolute error 3.9544400572776794 > 0.09315861225128175
+  $.checkpoints[1].resources[3].linear_velocity[1]: absolute error 0.07261673919856548 > 0.021378998458385468
+  $.checkpoints[1].resources[3].orientation: quaternion angular error 1.8159896273364518 > 0.002
+  $.checkpoints[1].resources[3].position[0]: absolute error 0.6989860534667969 > 0.00751253080368042
+  $.checkpoints[1].resources[3].position[1]: absolute error 0.010171502828598022 > 0.0028538880944252013
+  $.checkpoints[1].resources[3].position[2]: absolute error 0.33347898721694946 > 0.004260652303695678
+  $.checkpoints[1].resources[4].angular_velocity[0]: absolute error 5.348937273025513 > 0.11309045791625977
+  $.checkpoints[1].resources[4].angular_velocity[1]: absolute error 0.6631649658083916 > 0.034760183095932005
+  $.checkpoints[1].resources[4].angular_velocity[2]: absolute error 4.876309394836426 > 0.07610792636871339
+  $.checkpoints[1].resources[4].linear_velocity[0]: absolute error 1.840963900089264 > 0.044026196002960205
+  $.checkpoints[1].resources[4].linear_velocity[1]: absolute error 0.25966065749526024 > 0.025266860723495484
+  $.checkpoints[1].resources[4].linear_velocity[2]: absolute error 1.701787680387497 > 0.048106796741485595
+  $.checkpoints[1].resources[4].orientation: quaternion angular error 1.9156198623742884 > 0.002
+  $.checkpoints[1].resources[4].position[0]: absolute error 0.7761437296867371 > 0.005145988702774048
+  $.checkpoints[1].resources[4].position[1]: absolute error 0.13160526752471924 > 0.0028335429430007934
+  $.checkpoints[1].resources[4].position[2]: absolute error 1.7965550422668457 > 0.009707691192626954
+  $.checkpoints[1].resources[5].angular_velocity[0]: absolute error 63.455146968364716 > 1.27521240234375
+  $.checkpoints[1].resources[5].angular_velocity[1]: absolute error 2.823189437389374 > 0.06170214176177978
+  $.checkpoints[1].resources[5].angular_velocity[2]: absolute error 21.273872137069702 > 0.5015838623046875
+  $.checkpoints[1].resources[5].linear_velocity[0]: absolute error 10.068511843681335 > 0.24539615631103515
+  $.checkpoints[1].resources[5].linear_velocity[1]: absolute error 4.478677738457918 > 0.10950019836425781
+  $.checkpoints[1].resources[5].linear_velocity[2]: absolute error 24.928910821676254 > 0.5126480865478515
+  $.checkpoints[1].resources[5].orientation: quaternion angular error 2.3731626275150934 > 0.002
+  $.checkpoints[1].resources[5].position[0]: absolute error 1.5395302176475525 > 0.006672754764556885
+  $.checkpoints[1].resources[5].position[1]: absolute error 0.3564465045928955 > 0.0035464375019073485
+  $.checkpoints[1].resources[5].position[2]: absolute error 3.2566747665405273 > 0.012627910614013672
+  $.checkpoints[2].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[2].contacts.rigid_contacts: length mismatch
+  $.checkpoints[2].invariants.combined_momentum[0]: absolute error 4.423693895339966 > 0.10868611335754395
+  $.checkpoints[2].invariants.combined_momentum[1]: absolute error 2.4779472947120667 > 0.06339388370513917
+  $.checkpoints[2].invariants.combined_momentum[2]: absolute error 13.095991790294647 > 0.28218156814575196
+  $.checkpoints[2].resources[2].angular_velocity[0]: absolute error 1.9653691090643406 > 0.05995328664779663
+  $.checkpoints[2].resources[2].angular_velocity[1]: absolute error 0.7589515522122383 > 0.035651280879974365
+  $.checkpoints[2].resources[2].angular_velocity[2]: absolute error 1.6261673793196678 > 0.05065049171447754
+  $.checkpoints[2].resources[2].linear_velocity[0]: absolute error 0.5957213044166565 > 0.03312619209289551
+  $.checkpoints[2].resources[2].linear_velocity[2]: absolute error 0.8404197450727224 > 0.036700937747955326
+  $.checkpoints[2].resources[2].orientation: quaternion angular error 2.23031718351728 > 0.002
+  $.checkpoints[2].resources[2].position[0]: absolute error 0.3526573181152344 > 0.006325771808624267
+  $.checkpoints[2].resources[2].position[2]: absolute error 0.7805377840995789 > 0.004586663722991944
+  $.checkpoints[2].resources[3].angular_velocity[0]: absolute error 11.65869402885437 > 0.21286945343017577
+  $.checkpoints[2].resources[3].angular_velocity[1]: absolute error 4.755911111831665 > 0.09942934513092042
+  $.checkpoints[2].resources[3].angular_velocity[2]: absolute error 4.972123026847839 > 0.14911407470703125
+  $.checkpoints[2].resources[3].linear_velocity[0]: absolute error 6.752025544643402 > 0.16838116645812987
+  $.checkpoints[2].resources[3].linear_velocity[1]: absolute error 0.5226551294326782 > 0.03262568593025208
+  $.checkpoints[2].resources[3].linear_velocity[2]: absolute error 7.396287977695465 > 0.1514833927154541
+  $.checkpoints[2].resources[3].orientation: quaternion angular error 1.5540905074569775 > 0.002
+  $.checkpoints[2].resources[3].position[0]: absolute error 1.3626422882080078 > 0.008352043628692627
+  $.checkpoints[2].resources[3].position[1]: absolute error 0.3165830075740814 > 0.0034662679433822632
+  $.checkpoints[2].resources[3].position[2]: absolute error 2.375462293624878 > 0.004583104372024536
+  $.checkpoints[2].resources[4].angular_velocity[0]: absolute error 0.5823866128921509 > 0.06131875514984131
+  $.checkpoints[2].resources[4].angular_velocity[1]: absolute error 1.0052160322666168 > 0.03569169640541077
+  $.checkpoints[2].resources[4].angular_velocity[2]: absolute error 2.557116389274597 > 0.060303421020507814
+  $.checkpoints[2].resources[4].linear_velocity[0]: absolute error 3.746180295944214 > 0.07848327636718751
+  $.checkpoints[2].resources[4].linear_velocity[1]: absolute error 2.9068268164992332 > 0.0759643030166626
+  $.checkpoints[2].resources[4].linear_velocity[2]: absolute error 5.873137533664703 > 0.1508056354522705
+  $.checkpoints[2].resources[4].orientation: quaternion angular error 2.5635463365456093 > 0.002
+  $.checkpoints[2].resources[4].position[0]: absolute error 0.6485177278518677 > 0.005880141973495484
+  $.checkpoints[2].resources[4].position[1]: absolute error 0.4625905454158783 > 0.0037582837343215943
+  $.checkpoints[2].resources[4].position[2]: absolute error 3.311008334159851 > 0.012248817443847657
+  $.checkpoints[2].resources[5].angular_velocity[0]: absolute error 1.4835461489325041 > 0.04967092752456665
+  $.checkpoints[2].resources[5].angular_velocity[1]: absolute error 0.7844450173184896 > 0.03568888902664184
+  $.checkpoints[2].resources[5].angular_velocity[2]: absolute error 2.015154080867319 > 0.06030309200286865
+  $.checkpoints[2].resources[5].linear_velocity[0]: absolute error 0.822127598504153 > 0.03644255757331848
+  $.checkpoints[2].resources[5].linear_velocity[1]: absolute error 0.10860960621278082 > 0.022172204554080963
+  $.checkpoints[2].resources[5].linear_velocity[2]: absolute error 0.6669859035459069 > 0.03333972334861755
+  $.checkpoints[2].resources[5].orientation: quaternion angular error 2.986339917554895 > 0.002
+  $.checkpoints[2].resources[5].position[0]: absolute error 0.36159849166870117 > 0.004583095788955689
+  $.checkpoints[2].resources[5].position[1]: absolute error 0.049718230962753296 > 0.0028331024646759033
+  $.checkpoints[2].resources[5].position[2]: absolute error 0.30393552780151367 > 0.006234642505645752
+  $.checkpoints[2].resources[6].applied_impulse: absolute error 0.0021951571106910706 > 0.0020778110325336456
+  $.checkpoints[2].resources[7].applied_impulse: absolute error 0.08105146139860153 > 0.0022349362820386887
+  $.checkpoints[2].resources[8].applied_impulse: absolute error 0.01785425841808319 > 0.0021089389249682425
+  $.checkpoints[2].resources[9].applied_impulse: absolute error 8005.713615547866 > 16.0135
+FAIL constraint-slider
+  $.checkpoints[2].invariants.combined_momentum[2]: absolute error 0.021254281047731638 > 0.02035147923976183
+  $.checkpoints[2].resources[3].orientation: quaternion angular error 0.0053245583023595 > 0.002
+  $.checkpoints[2].resources[3].position[2]: absolute error 0.002256827661767602 > 0.0020037878977600485
+PASS fluid-lifecycle
+FAIL fluid-rigid
+  $.checkpoints[2].contacts.rigid_contact_count: absolute error 164.0 > 25.35
+  $.checkpoints[2].invariants.equal_and_opposite_transfer.observable_contact_count: absolute error 164.0 > 82.25
+FAIL passive-active
+  $.checkpoints[1].invariants.combined_momentum[0]: absolute error 46.66106986999512 > 1.5129595947265626
+  $.checkpoints[1].invariants.combined_momentum[1]: absolute error 13.535755157470703 > 1.0991024017333986
+  $.checkpoints[1].invariants.combined_momentum[2]: absolute error 41.95705318450928 > 1.0339540100097657
+  $.checkpoints[1].resources[2].angular_velocity[0]: absolute error 26.027027130126953 > 0.37113845825195313
+  $.checkpoints[1].resources[2].angular_velocity[1]: absolute error 4.587273478507996 > 0.08138457775115968
+  $.checkpoints[1].resources[2].angular_velocity[2]: absolute error 15.698443174362183 > 0.3249241447448731
+  $.checkpoints[1].resources[2].linear_velocity[0]: absolute error 15.162723541259766 > 0.5163324737548828
+  $.checkpoints[1].resources[2].linear_velocity[2]: absolute error 23.366498231887817 > 0.5411153793334961
+  $.checkpoints[1].resources[2].orientation: quaternion angular error 2.995195767085648 > 0.002
+  $.checkpoints[1].resources[2].position[0]: absolute error 2.2720088958740234 > 0.012730908393859864
+  $.checkpoints[1].resources[2].position[1]: absolute error 0.18736767768859863 > 0.009314715385437012
+  $.checkpoints[1].resources[2].position[2]: absolute error 2.5130491852760315 > 0.007571557998657227
+  $.checkpoints[1].resources[3].angular_velocity[0]: absolute error 8.398864269256592 > 0.14474385261535644
+  $.checkpoints[1].resources[3].angular_velocity[1]: absolute error 18.503206729888916 > 0.4618603897094727
+  $.checkpoints[1].resources[3].angular_velocity[2]: absolute error 0.5538215637207031 > 0.3552753829956055
+  $.checkpoints[1].resources[3].linear_velocity[0]: absolute error 31.49834632873535 > 1.0166271209716797
+  $.checkpoints[1].resources[3].linear_velocity[1]: absolute error 13.782773971557617 > 0.7886686706542969
+  $.checkpoints[1].resources[3].linear_velocity[2]: absolute error 18.590556621551514 > 0.5128386688232421
+  $.checkpoints[1].resources[3].orientation: quaternion angular error 2.0521520198173864 > 0.002
+  $.checkpoints[1].resources[3].position[0]: absolute error 3.6741905212402344 > 0.02013642692565918
+  $.checkpoints[1].resources[3].position[1]: absolute error 1.5598831176757812 > 0.015041411399841309
+  $.checkpoints[1].resources[3].position[2]: absolute error 2.115148425102234 > 0.007584394931793213
+  $.checkpoints[2].contacts.rigid_contacts[0]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].invariants.combined_momentum[0]: absolute error 45.88228797912598 > 1.4892060852050781
+  $.checkpoints[2].invariants.combined_momentum[1]: absolute error 13.435020446777344 > 0.9706915283203126
+  $.checkpoints[2].invariants.combined_momentum[2]: absolute error 41.31750440597534 > 0.9827051544189453
+  $.checkpoints[2].resources[2].angular_velocity[0]: absolute error 25.00673770904541 > 0.357373161315918
+  $.checkpoints[2].resources[2].angular_velocity[1]: absolute error 4.4074320793151855 > 0.07897787094116211
+  $.checkpoints[2].resources[2].angular_velocity[2]: absolute error 15.083105206489563 > 0.312971305847168
+  $.checkpoints[2].resources[2].linear_velocity[0]: absolute error 14.922186851501465 > 0.50845703125
+  $.checkpoints[2].resources[2].linear_velocity[2]: absolute error 22.995593786239624 > 0.5328438568115235
+  $.checkpoints[2].resources[2].orientation: quaternion angular error 2.135716365885746 > 0.002
+  $.checkpoints[2].resources[2].position[0]: absolute error 8.288363456726074 > 0.032424640655517575
+  $.checkpoints[2].resources[2].position[1]: absolute error 0.28534984588623047 > 0.023339839935302732
+  $.checkpoints[2].resources[2].position[2]: absolute error 11.784496307373047 > 0.02824857711791992
+  $.checkpoints[2].resources[3].angular_velocity[0]: absolute error 8.069673538208008 > 0.13985400199890136
+  $.checkpoints[2].resources[3].angular_velocity[1]: absolute error 17.777875661849976 > 0.4445394134521485
+  $.checkpoints[2].resources[3].angular_velocity[2]: absolute error 0.5321636199951172 > 0.3421329498291016
+  $.checkpoints[2].resources[3].linear_velocity[0]: absolute error 30.998661041259766 > 1.0008134460449218
+  $.checkpoints[2].resources[3].linear_velocity[1]: absolute error 13.564208984375 > 0.6986238861083984
+  $.checkpoints[2].resources[3].linear_velocity[2]: absolute error 18.29543685913086 > 0.5050159072875977
+  $.checkpoints[2].resources[3].orientation: quaternion angular error 2.1652313307859146 > 0.002
+  $.checkpoints[2].resources[3].position[0]: absolute error 16.17227554321289 > 0.05968108367919922
+  $.checkpoints[2].resources[3].position[1]: absolute error 7.028703689575195 > 0.04396369552612305
+  $.checkpoints[2].resources[3].position[2]: absolute error 9.491573095321655 > 0.027139434814453127
+  $.checkpoints[2].resources[4].angular_velocity[1]: absolute error 0.02748577669262886 > 0.021607919186353686
+  $.checkpoints[2].resources[4].angular_velocity[2]: absolute error 0.0782352015376091 > 0.02243722140789032
+  $.checkpoints[2].resources[4].linear_velocity[0]: absolute error 0.038558062398806214 > 0.020706843584775925
+  $.checkpoints[2].resources[4].linear_velocity[1]: absolute error 0.11380589008331299 > 0.05448184490203857
+  $.checkpoints[2].resources[4].orientation: quaternion angular error 0.031884096710479856 > 0.002
+  $.checkpoints[2].resources[4].position[0]: absolute error 0.006906330585479736 > 0.0031663633584976198
+  $.checkpoints[2].resources[4].position[1]: absolute error 0.018355607986450195 > 0.006891354560852051
+  $.checkpoints[2].resources[4].position[2]: absolute error 0.020487546920776367 > 0.002589774966239929
+PASS rigid-direct
+PASS rope-cloth
+FAIL rope-core
+  $.checkpoints[1].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[1].contacts.rigid_contacts: length mismatch
+  $.checkpoints[1].invariants.combined_momentum[1]: absolute error 0.2887052744626999 > 0.07076024562120438
+  $.checkpoints[1].resources[3].angular_velocity[0]: absolute error 0.26339006423950195 > 0.16866133213043213
+  $.checkpoints[1].resources[3].angular_velocity[1]: absolute error 0.33284854888916016 > 0.19479744434356688
+  $.checkpoints[1].resources[3].angular_velocity[2]: absolute error 1.7519466876983643 > 0.29984774589538576
+  $.checkpoints[1].resources[3].linear_velocity[1]: absolute error 0.28005868196487427 > 0.06830858141183854
+  $.checkpoints[1].resources[3].orientation: quaternion angular error 0.022424944109424052 > 0.002
+  $.checkpoints[1].resources[4].aggregate.kinetic_energy: absolute error 0.04856935148328567 > 0.014678689851678261
+  $.checkpoints[1].resources[4].aggregate.maximum_speed: absolute error 0.057984736103831924 > 0.017959425045941488
+  $.checkpoints[1].resources[4].samples[0].velocity[0]: absolute error 0.3506331443786621 > 0.179538106918335
+  $.checkpoints[1].resources[4].samples[0].velocity[1]: absolute error 0.3905209004878998 > 0.0667624592781067
+  $.checkpoints[1].resources[4].samples[1].velocity[1]: absolute error 0.13617480359971523 > 0.056024720519781114
+  $.checkpoints[1].resources[4].samples[1].velocity[2]: absolute error 0.25028339587152004 > 0.06101878881454468
+  $.checkpoints[1].resources[4].samples[2].velocity[1]: absolute error 0.19895321130752563 > 0.060260656476020816
+  $.checkpoints[1].resources[4].samples[2].velocity[2]: absolute error 0.4318750500679016 > 0.06536736488342286
+  $.checkpoints[1].resources[4].samples[4].velocity[2]: absolute error 0.17202822864055634 > 0.06852748543024063
+  $.checkpoints[1].resources[4].samples[22].velocity[1]: absolute error 0.05950416624546051 > 0.05806766524910927
+  $.checkpoints[2].contacts.rigid_contacts[0]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].invariants.combined_momentum[1]: absolute error 0.12612855061888695 > 0.054471710324287416
+  $.checkpoints[2].invariants.combined_momentum[2]: absolute error 0.08946461975574493 > 0.06510369777679444
+  $.checkpoints[2].resources[3].angular_velocity[0]: absolute error 0.3374307155609131 > 0.17005146741867067
+  $.checkpoints[2].resources[3].angular_velocity[1]: absolute error 0.9062824249267578 > 0.3247420310974121
+  $.checkpoints[2].resources[3].linear_velocity[0]: absolute error 0.2201181799173355 > 0.06017895117402077
+  $.checkpoints[2].resources[3].linear_velocity[1]: absolute error 0.10303871054202318 > 0.055761516094207764
+  $.checkpoints[2].resources[3].orientation: quaternion angular error 0.6446204476581686 > 0.002
+  $.checkpoints[2].resources[3].position[0]: absolute error 0.023176580667495728 > 0.00590062826871872
+  $.checkpoints[2].resources[3].position[2]: absolute error 0.020847290754318237 > 0.006535918712615967
+  $.checkpoints[2].resources[4].aggregate.bounds.maximum[0]: absolute error 0.007168307900428772 > 0.00607729084789753
+  $.checkpoints[2].resources[4].aggregate.bounds.maximum[2]: absolute error 0.10724276304244995 > 0.006418870687484741
+  $.checkpoints[2].resources[4].aggregate.bounds.minimum[0]: absolute error 0.04854142665863037 > 0.0056682050228118895
+  $.checkpoints[2].resources[4].aggregate.bounds.minimum[2]: absolute error 0.010915573686361313 > 0.005232264511287213
+  $.checkpoints[2].resources[4].aggregate.center_of_mass[0]: absolute error 0.00923592783510685 > 0.00517962321639061
+  $.checkpoints[2].resources[4].aggregate.center_of_mass[2]: absolute error 0.023264069110155106 > 0.00539343398064375
+  $.checkpoints[2].resources[4].aggregate.kinetic_energy: absolute error 0.20157793721134915 > 0.006702030393135378
+  $.checkpoints[2].resources[4].aggregate.maximum_speed: absolute error 0.7132535024445315 > 0.01567023147234022
+  $.checkpoints[2].resources[4].aggregate.momentum[0]: absolute error 0.22556915879249573 > 0.07489755004644394
+  $.checkpoints[2].resources[4].aggregate.momentum[2]: absolute error 0.06293545663356781 > 0.06048301830887795
+  $.checkpoints[2].resources[4].samples[0].position[0]: absolute error 0.04854142665863037 > 0.0056682050228118895
+  $.checkpoints[2].resources[4].samples[0].position[1]: absolute error 0.021823406219482422 > 0.005401643440127373
+  $.checkpoints[2].resources[4].samples[0].position[2]: absolute error 0.03467258810997009 > 0.006056019812822342
+  $.checkpoints[2].resources[4].samples[0].velocity[0]: absolute error 0.14035439491271973 > 0.08040701150894165
+  $.checkpoints[2].resources[4].samples[0].velocity[1]: absolute error 0.06377121806144714 > 0.06271764636039734
+  $.checkpoints[2].resources[4].samples[0].velocity[2]: absolute error 0.3483942449092865 > 0.060927501320838934
+  $.checkpoints[2].resources[4].samples[1].position[0]: absolute error 0.04981546849012375 > 0.005594634786248207
+  $.checkpoints[2].resources[4].samples[1].position[1]: absolute error 0.02252032607793808 > 0.00534672386944294
+  $.checkpoints[2].resources[4].samples[1].position[2]: absolute error 0.044670939445495605 > 0.006067285537719727
+  $.checkpoints[2].resources[4].samples[1].velocity[0]: absolute error 0.1368512511253357 > 0.08372304141521454
+  $.checkpoints[2].resources[4].samples[1].velocity[1]: absolute error 0.10462865233421326 > 0.05926055461168289
+  $.checkpoints[2].resources[4].samples[1].velocity[2]: absolute error 0.395244300365448 > 0.06466716527938843
+  $.checkpoints[2].resources[4].samples[2].position[0]: absolute error 0.05115890130400658 > 0.005518811121582985
+  $.checkpoints[2].resources[4].samples[2].position[1]: absolute error 0.022391006350517273 > 0.005295117013156414
+  $.checkpoints[2].resources[4].samples[2].position[2]: absolute error 0.05700506269931793 > 0.0060900340229272844
+  $.checkpoints[2].resources[4].samples[2].velocity[0]: absolute error 0.30278629064559937 > 0.08660592436790467
+  $.checkpoints[2].resources[4].samples[2].velocity[2]: absolute error 0.5693514756858349 > 0.07570357322692872
+  $.checkpoints[2].resources[4].samples[3].position[0]: absolute error 0.052802618592977524 > 0.005440588667988777
+  $.checkpoints[2].resources[4].samples[3].position[1]: absolute error 0.020603904500603676 > 0.005247848331928253
+  $.checkpoints[2].resources[4].samples[3].position[2]: absolute error 0.07121853530406952 > 0.0061214278638362886
+  $.checkpoints[2].resources[4].samples[3].velocity[0]: absolute error 0.3225400745868683 > 0.08995342552661896
+  $.checkpoints[2].resources[4].samples[3].velocity[1]: absolute error 0.05937192589044571 > 0.055092988163232805
+  $.checkpoints[2].resources[4].samples[3].velocity[2]: absolute error 0.4880031608045101 > 0.07622312605381013
+  $.checkpoints[2].resources[4].samples[4].position[0]: absolute error 0.05229400470852852 > 0.005358874946832657
+  $.checkpoints[2].resources[4].samples[4].position[1]: absolute error 0.021998737007379532 > 0.005206104349344969
+  $.checkpoints[2].resources[4].samples[4].position[2]: absolute error 0.08615323901176453 > 0.006157279759645462
+  $.checkpoints[2].resources[4].samples[4].velocity[0]: absolute error 0.5029163360595703 > 0.09295163452625275
+  $.checkpoints[2].resources[4].samples[4].velocity[2]: absolute error 0.622251033782959 > 0.08784562945365906
+  $.checkpoints[2].resources[4].samples[5].position[0]: absolute error 0.052780792117118835 > 0.0052728867903351784
+  $.checkpoints[2].resources[4].samples[5].position[1]: absolute error 0.016444498673081398 > 0.0051704558730125425
+  $.checkpoints[2].resources[4].samples[5].position[2]: absolute error 0.10230603814125061 > 0.0062025170028209686
+  $.checkpoints[2].resources[4].samples[5].velocity[0]: absolute error 0.6061041057109833 > 0.09648988246917725
+  $.checkpoints[2].resources[4].samples[5].velocity[1]: absolute error 0.2335223932750523 > 0.06138358935713768
+  $.checkpoints[2].resources[4].samples[5].velocity[2]: absolute error 0.6358655691146851 > 0.0935808002948761
+  $.checkpoints[2].resources[4].samples[6].position[0]: absolute error 0.047699795104563236 > 0.005183080192655325
+  $.checkpoints[2].resources[4].samples[6].position[1]: absolute error 0.013147619552910328 > 0.005142627330496907
+  $.checkpoints[2].resources[4].samples[6].position[2]: absolute error 0.12393522262573242 > 0.0062776882946491246
+  $.checkpoints[2].resources[4].samples[6].velocity[0]: absolute error 1.2951294481754303 > 0.09874564707279206
+  $.checkpoints[2].resources[4].samples[6].velocity[1]: absolute error 0.1214754730463028 > 0.05438795723021031
+  $.checkpoints[2].resources[4].samples[6].velocity[2]: absolute error 1.104201227426529 > 0.11919134259223939
+  $.checkpoints[2].resources[4].samples[7].position[0]: absolute error 0.03219718486070633 > 0.0050900007598102094
+  $.checkpoints[2].resources[4].samples[7].position[1]: absolute error 0.009179464541375637 > 0.0051208973210304974
+  $.checkpoints[2].resources[4].samples[7].position[2]: absolute error 0.14923886954784393 > 0.006376081109046936
+  $.checkpoints[2].resources[4].samples[7].velocity[0]: absolute error 1.0864825323224068 > 0.10176268815994263
+  $.checkpoints[2].resources[4].samples[7].velocity[1]: absolute error 0.10740639001596719 > 0.05532828643918038
+  $.checkpoints[2].resources[4].samples[7].velocity[2]: absolute error 0.8771072030067444 > 0.11709510684013368
+  $.checkpoints[2].resources[4].samples[8].position[0]: absolute error 0.03086722851730883 > 0.005160962641239167
+  $.checkpoints[2].resources[4].samples[8].position[1]: absolute error 0.0054739052429795265 > 0.0051023695245385175
+  $.checkpoints[2].resources[4].samples[8].position[2]: absolute error 0.16093870252370834 > 0.006418870687484741
+  $.checkpoints[2].resources[4].samples[8].velocity[0]: absolute error 0.7204285562038422 > 0.10418534874916077
+  $.checkpoints[2].resources[4].samples[8].velocity[1]: absolute error 0.14926239983054423 > 0.057463119924068454
+  $.checkpoints[2].resources[4].samples[8].velocity[2]: absolute error 0.24219602346420288 > 0.0856237828731537
+  $.checkpoints[2].resources[4].samples[9].position[0]: absolute error 0.029368797317147255 > 0.005252533797174692
+  $.checkpoints[2].resources[4].samples[9].position[2]: absolute error 0.1529253125190735 > 0.00637961432337761
+  $.checkpoints[2].resources[4].samples[9].velocity[0]: absolute error 0.8558831959962845 > 0.10428251624107361
+  $.checkpoints[2].resources[4].samples[9].velocity[1]: absolute error 0.19649816802862574 > 0.05982488617300988
+  $.checkpoints[2].resources[4].samples[9].velocity[2]: absolute error 0.9330632239580154 > 0.10459545850753785
+  $.checkpoints[2].resources[4].samples[10].position[0]: absolute error 0.024307142943143845 > 0.0053245707228779795
+  $.checkpoints[2].resources[4].samples[10].position[2]: absolute error 0.13511821627616882 > 0.006310792714357376
+  $.checkpoints[2].resources[4].samples[10].velocity[0]: absolute error 0.8845566511154175 > 0.10128605961799622
+  $.checkpoints[2].resources[4].samples[10].velocity[1]: absolute error 0.2310591053213713 > 0.0615529552102089
+  $.checkpoints[2].resources[4].samples[10].velocity[2]: absolute error 1.3253557085990906 > 0.11957299709320068
+  $.checkpoints[2].resources[4].samples[11].position[0]: absolute error 0.015069227665662766 > 0.00537270687520504
+  $.checkpoints[2].resources[4].samples[11].position[2]: absolute error 0.11130405962467194 > 0.006223569512367248
+  $.checkpoints[2].resources[4].samples[11].velocity[0]: absolute error 0.8992268927395344 > 0.09676419198513031
+  $.checkpoints[2].resources[4].samples[11].velocity[1]: absolute error 0.23884254693984985 > 0.0619421273469925
+  $.checkpoints[2].resources[4].samples[11].velocity[2]: absolute error 1.6503204954788089 > 0.13292094469070437
+  $.checkpoints[2].resources[4].samples[12].position[2]: absolute error 0.0813608318567276 > 0.0061275757849216465
+  $.checkpoints[2].resources[4].samples[12].velocity[0]: absolute error 0.6847494337707758 > 0.08438668251037598
+  $.checkpoints[2].resources[4].samples[12].velocity[1]: absolute error 0.07054456323385239 > 0.05352722816169262
+  $.checkpoints[2].resources[4].samples[12].velocity[2]: absolute error 2.0200398036977276 > 0.15094799995422364
+  $.checkpoints[2].resources[4].samples[13].position[0]: absolute error 0.006844818592071533 > 0.005451433435082436
+  $.checkpoints[2].resources[4].samples[13].position[2]: absolute error 0.047769710421562195 > 0.006029568538069725
+  $.checkpoints[2].resources[4].samples[13].velocity[0]: absolute error 0.7531761989521328 > 0.08764708936214448
+  $.checkpoints[2].resources[4].samples[13].velocity[2]: absolute error 1.962361269397661 > 0.14803475141525269
+  $.checkpoints[2].resources[4].samples[14].position[0]: absolute error 0.020869292318820953 > 0.005541333071887493
+  $.checkpoints[2].resources[4].samples[14].position[2]: absolute error 0.019653216004371643 > 0.005931923910975456
+  $.checkpoints[2].resources[4].samples[14].velocity[0]: absolute error 1.1148733056616038 > 0.10560957193374634
+  $.checkpoints[2].resources[4].samples[14].velocity[2]: absolute error 1.2107234592549503 > 0.11042808294296265
+  $.checkpoints[2].resources[4].samples[15].position[0]: absolute error 0.034309521317481995 > 0.005639814585447311
+  $.checkpoints[2].resources[4].samples[15].velocity[0]: absolute error 0.9982304961886257 > 0.0997761905193329
+  $.checkpoints[2].resources[4].samples[15].velocity[2]: absolute error 0.4475371614098549 > 0.07226836532354355
+  $.checkpoints[2].resources[4].samples[16].position[0]: absolute error 0.04231942445039749 > 0.005723341628909111
+  $.checkpoints[2].resources[4].samples[16].velocity[0]: absolute error 0.7846994397696108 > 0.08915932178497316
+  $.checkpoints[2].resources[4].samples[16].velocity[2]: absolute error 0.12024915963411331 > 0.05593292415142059
+  $.checkpoints[2].resources[4].samples[17].position[0]: absolute error 0.04617372900247574 > 0.005793620347976685
+  $.checkpoints[2].resources[4].samples[17].position[2]: absolute error 0.006315320730209351 > 0.00569371335208416
+  $.checkpoints[2].resources[4].samples[17].velocity[0]: absolute error 0.663879117462784 > 0.08311369717121125
+  $.checkpoints[2].resources[4].samples[18].position[0]: absolute error 0.04559706151485443 > 0.00584961012005806
+  $.checkpoints[2].resources[4].samples[18].position[2]: absolute error 0.005908362567424774 > 0.005611314028501511
+  $.checkpoints[2].resources[4].samples[18].velocity[0]: absolute error 0.5008248448139057 > 0.07496877163648606
+  $.checkpoints[2].resources[4].samples[18].velocity[2]: absolute error 0.11085282801650465 > 0.05561920255422592
+  $.checkpoints[2].resources[4].samples[19].position[0]: absolute error 0.03950771689414978 > 0.005884981825947762
+  $.checkpoints[2].resources[4].samples[19].velocity[0]: absolute error 0.3089014556608163 > 0.06542704999446869
+  $.checkpoints[2].resources[4].samples[19].velocity[2]: absolute error 0.18428904004395008 > 0.059243086725473404
+  $.checkpoints[2].resources[4].samples[20].position[0]: absolute error 0.029203996062278748 > 0.005901366695761681
+  $.checkpoints[2].resources[4].samples[20].velocity[0]: absolute error 0.23077489465504186 > 0.06153526678681374
+  $.checkpoints[2].resources[4].samples[20].velocity[2]: absolute error 0.1975379979412537 > 0.05989197865128518
+  $.checkpoints[2].resources[4].samples[21].position[0]: absolute error 0.017398253083229065 > 0.005911053344607353
+  $.checkpoints[2].resources[4].samples[21].position[2]: absolute error 0.008238770067691803 > 0.00536195307970047
+  $.checkpoints[2].resources[4].samples[21].velocity[0]: absolute error 0.13947002380155027 > 0.056984671205282215
+  $.checkpoints[2].resources[4].samples[21].velocity[2]: absolute error 0.20670772788798786 > 0.06033650562167168
+  $.checkpoints[2].resources[4].samples[22].position[2]: absolute error 0.01364126056432724 > 0.005289339106529951
+  $.checkpoints[2].resources[4].samples[22].velocity[2]: absolute error 0.24782465025782585 > 0.060365892201662066
+  $.checkpoints[2].resources[4].samples[23].position[2]: absolute error 0.014300061389803886 > 0.00519421836361289
+  $.checkpoints[2].resources[4].samples[23].velocity[0]: absolute error 0.20911162719130516 > 0.06165179833769799
+  $.checkpoints[2].resources[4].samples[23].velocity[2]: absolute error 0.29879046231508255 > 0.05995969697833062
+  $.checkpoints[2].resources[4].samples[24].position[2]: absolute error 0.014900992158800364 > 0.005097655402496458
+  $.checkpoints[2].resources[4].samples[24].velocity[0]: absolute error 0.48610758781433105 > 0.06582061499357224
+  $.checkpoints[2].resources[4].samples[24].velocity[2]: absolute error 0.27066371589899063 > 0.05961264669895172
+  $.checkpoints[2].resources[4].samples[25].position[0]: absolute error 0.0075435638427734375 > 0.00588021345436573
+  $.checkpoints[2].resources[4].samples[25].position[2]: absolute error 0.0180300734937191 > 0.005075675752013922
+  $.checkpoints[2].resources[4].samples[25].velocity[0]: absolute error 0.48276686668395996 > 0.07509009242057801
+  $.checkpoints[2].resources[4].samples[25].velocity[2]: absolute error 0.17254578694701195 > 0.06082244962453842
+  $.checkpoints[2].resources[4].samples[26].position[0]: absolute error 0.010315611958503723 > 0.0058970066905021665
+  $.checkpoints[2].resources[4].samples[26].position[2]: absolute error 0.017746342346072197 > 0.0051739332266151905
+  $.checkpoints[2].resources[4].samples[26].velocity[2]: absolute error 0.12679442763328552 > 0.05901760384440422
+  $.checkpoints[2].resources[4].samples[27].position[0]: absolute error 0.019086286425590515 > 0.005977740660309792
+  $.checkpoints[2].resources[4].samples[27].position[2]: absolute error 0.010915573686361313 > 0.005232264511287213
+  $.checkpoints[2].resources[4].samples[27].velocity[0]: absolute error 0.2946045696735382 > 0.07606653273105622
+  $.checkpoints[2].resources[4].samples[27].velocity[2]: absolute error 0.2702907547354698 > 0.05926027595996857
+  $.checkpoints[2].resources[4].samples[28].position[0]: absolute error 0.02556769549846649 > 0.00607729084789753
+  $.checkpoints[2].resources[4].samples[28].position[2]: absolute error 0.024802174419164658 > 0.005228079948574305
+  $.checkpoints[2].resources[4].samples[28].velocity[0]: absolute error 0.43407177925109863 > 0.08470255732536316
+  $.checkpoints[2].resources[4].samples[28].velocity[2]: absolute error 0.903850756585598 > 0.09881479442119599
+  $.checkpoints[2].resources[4].samples[29].position[0]: absolute error 0.006993934512138367 > 0.006041449308395386
+  $.checkpoints[2].resources[4].samples[29].position[2]: absolute error 0.01846879255026579 > 0.0051581448316574095
+  $.checkpoints[2].resources[4].samples[29].velocity[1]: absolute error 0.16293446719646454 > 0.05814672335982323
+  $.checkpoints[2].resources[4].samples[29].velocity[2]: absolute error 0.17648518085479736 > 0.07769449949264527
+  $.checkpoints[2].resources[4].samples[30].position[1]: absolute error 0.01537624467164278 > 0.005151881221681833
+  $.checkpoints[2].resources[4].samples[30].position[2]: absolute error 0.00548718124628067 > 0.005130279390141368
+  $.checkpoints[2].resources[4].samples[30].velocity[1]: absolute error 0.42418352957884053 > 0.07120932489633561
+  $.checkpoints[2].resources[4].samples[30].velocity[2]: absolute error 0.12978119775652885 > 0.05365047790110111
+  $.checkpoints[2].resources[4].samples[31].position[0]: absolute error 0.016772761940956116 > 0.005937079042196274
+  $.checkpoints[2].resources[4].samples[31].position[1]: absolute error 0.013084357604384422 > 0.005164772067219019
+  $.checkpoints[2].resources[4].samples[31].position[2]: absolute error 0.03270431549753994 > 0.005170498508960009
+  $.checkpoints[2].resources[4].samples[31].velocity[0]: absolute error 0.3457651138305664 > 0.09405274987220764
+  $.checkpoints[2].resources[4].samples[31].velocity[1]: absolute error 0.4141255021095276 > 0.0648373380303383
+  $.checkpoints[2].resources[4].samples[32].position[0]: absolute error 0.02134600281715393 > 0.005869417116045952
+  $.checkpoints[2].resources[4].samples[32].position[1]: absolute error 0.006255121901631355 > 0.00516267778351903
+  $.checkpoints[2].resources[4].samples[32].position[2]: absolute error 0.030326000414788723 > 0.005195365250110626
+  $.checkpoints[2].resources[4].samples[32].velocity[0]: absolute error 0.2490701675415039 > 0.08676870465278626
+  $.checkpoints[2].resources[4].samples[32].velocity[1]: absolute error 0.6102100163698196 > 0.07444383949041367
+  $.checkpoints[2].resources[4].samples[32].velocity[2]: absolute error 0.20947794243693352 > 0.06145124733448029
+  $.checkpoints[2].resources[4].samples[33].position[0]: absolute error 0.01960165798664093 > 0.005773008912801743
+  $.checkpoints[2].resources[4].samples[33].position[1]: absolute error 0.008646033704280853 > 0.0051439097430557015
+  $.checkpoints[2].resources[4].samples[33].position[2]: absolute error 0.034105741418898106 > 0.005231357663869858
+  $.checkpoints[2].resources[4].samples[33].velocity[0]: absolute error 0.25239297747612 > 0.08275782763957978
+  $.checkpoints[2].resources[4].samples[33].velocity[1]: absolute error 0.38472024351358414 > 0.07503081560134889
+  $.checkpoints[2].resources[4].samples[33].velocity[2]: absolute error 0.18418800830841064 > 0.07072176635265351
+  $.checkpoints[2].resources[4].samples[34].position[0]: absolute error 0.026729770004749298 > 0.005713005214929581
+  $.checkpoints[2].resources[4].samples[34].position[2]: absolute error 0.03808141965419054 > 0.005210243035107851
+  $.checkpoints[2].resources[4].samples[34].velocity[0]: absolute error 0.10619819164276123 > 0.08368036448955536
+  $.checkpoints[2].resources[4].samples[34].velocity[1]: absolute error 0.5940655991435051 > 0.07828113138675691
+  $.checkpoints[2].resources[4].samples[34].velocity[2]: absolute error 0.32312528789043427 > 0.07771669328212738
+  $.checkpoints[2].resources[4].samples[35].position[0]: absolute error 0.026349633932113647 > 0.005617908425629139
+  $.checkpoints[2].resources[4].samples[35].position[2]: absolute error 0.03713487880304456 > 0.005175771433860063
+  $.checkpoints[2].resources[4].samples[36].position[0]: absolute error 0.023390576243400574 > 0.005564157404005528
+  $.checkpoints[2].resources[4].samples[36].position[2]: absolute error 0.03557275980710983 > 0.005093802968040109
+  $.checkpoints[2].resources[4].samples[36].velocity[0]: absolute error 0.7957769930362701 > 0.10230822563171388
+  $.checkpoints[2].resources[4].samples[36].velocity[2]: absolute error 0.38052476197481155 > 0.06872999966144562
+  $.checkpoints[2].resources[4].samples[37].position[0]: absolute error 0.015368521213531494 > 0.0054649684578180315
+  $.checkpoints[2].resources[4].samples[37].position[2]: absolute error 0.02142174367327243 > 0.005103285536170006
+  $.checkpoints[2].resources[4].samples[37].velocity[0]: absolute error 0.26104608178138733 > 0.07455539405345918
+  $.checkpoints[2].resources[4].samples[37].velocity[2]: absolute error 0.18444770574569702 > 0.06092671230435372
+  $.checkpoints[2].resources[4].samples[38].position[0]: absolute error 0.012814357876777649 > 0.005407078415155411
+  $.checkpoints[2].resources[4].samples[38].position[2]: absolute error 0.012520129326730967 > 0.005084788491949439
+  $.checkpoints[2].resources[4].samples[38].velocity[0]: absolute error 0.7447097897529602 > 0.0704728975892067
+  $.checkpoints[2].resources[4].samples[38].velocity[1]: absolute error 0.1673051193356514 > 0.06099875420331955
+  $.checkpoints[2].resources[4].samples[38].velocity[2]: absolute error 0.09279918670654297 > 0.07198752015829087
+  $.checkpoints[2].resources[4].samples[39].position[0]: absolute error 0.015768587589263916 > 0.005394370295107365
+  $.checkpoints[2].resources[4].samples[39].position[2]: absolute error 0.011308759450912476 > 0.0051719282940030096
+  $.checkpoints[2].resources[4].samples[39].velocity[0]: absolute error 0.8203204572200775 > 0.07149594426155091
+  $.checkpoints[2].resources[4].samples[39].velocity[1]: absolute error 0.24651044607162476 > 0.06006688550114632
+  $.checkpoints[2].resources[4].samples[39].velocity[2]: absolute error 0.07708629965782166 > 0.07044761329889299
+  $.checkpoints[2].resources[4].samples[40].position[0]: absolute error 0.02108309045433998 > 0.005357466004788876
+  $.checkpoints[2].resources[4].samples[40].position[2]: absolute error 0.011785626411437988 > 0.005233838297426701
+  $.checkpoints[2].resources[4].samples[40].velocity[0]: absolute error 0.17224624752998352 > 0.07777088582515718
+  $.checkpoints[2].resources[4].samples[41].position[0]: absolute error 0.018776588141918182 > 0.0052886481024324895
+  $.checkpoints[2].resources[4].samples[41].position[2]: absolute error 0.01654106006026268 > 0.005292998645454646
+  $.checkpoints[2].resources[4].samples[41].velocity[0]: absolute error 0.43943099677562714 > 0.08053457736968994
+  $.checkpoints[2].resources[4].samples[41].velocity[1]: absolute error 0.06592834927141666 > 0.054594967141747476
+  $.checkpoints[2].resources[4].samples[41].velocity[2]: absolute error 0.3804880678653717 > 0.0746601402759552
+  $.checkpoints[2].resources[4].samples[42].position[0]: absolute error 0.02173037827014923 > 0.00522854583337903
+  $.checkpoints[2].resources[4].samples[42].position[1]: absolute error 0.00669470801949501 > 0.005309330485761166
+  $.checkpoints[2].resources[4].samples[42].position[2]: absolute error 0.015804387629032135 > 0.005331666879355907
+  $.checkpoints[2].resources[4].samples[42].velocity[0]: absolute error 0.2469029724597931 > 0.07495037019252777
+  $.checkpoints[2].resources[4].samples[42].velocity[2]: absolute error 0.21197523176670074 > 0.07067417651414871
+  $.checkpoints[2].resources[4].samples[43].position[0]: absolute error 0.025696280412375927 > 0.005176380705088377
+  $.checkpoints[2].resources[4].samples[43].position[1]: absolute error 0.008146420121192932 > 0.005381932482123375
+  $.checkpoints[2].resources[4].samples[43].position[2]: absolute error 0.011364791542291641 > 0.005353471040725708
+  $.checkpoints[2].resources[4].samples[43].velocity[1]: absolute error 0.06049860268831253 > 0.05634250789880753
+  $.checkpoints[2].resources[4].samples[43].velocity[2]: absolute error 0.07084757089614868 > 0.06251776665449144
+  $.checkpoints[2].resources[4].samples[44].position[0]: absolute error 0.02603330067358911 > 0.005115373190492391
+  $.checkpoints[2].resources[4].samples[44].position[1]: absolute error 0.007525354623794556 > 0.005455279275774956
+  $.checkpoints[2].resources[4].samples[44].position[2]: absolute error 0.008088544011116028 > 0.005365841276943684
+  $.checkpoints[2].resources[4].samples[44].velocity[0]: absolute error 0.13282537460327148 > 0.0810584157705307
+  $.checkpoints[2].resources[4].samples[44].velocity[2]: absolute error 0.13531527668237686 > 0.06073711290955544
+  $.checkpoints[2].resources[4].samples[45].position[0]: absolute error 0.025580030865967274 > 0.00507159857545048
+  $.checkpoints[2].resources[4].samples[45].position[1]: absolute error 0.006745196878910065 > 0.0055332260206341745
+  $.checkpoints[2].resources[4].samples[45].velocity[0]: absolute error 0.09764450788497925 > 0.08030270338058472
+  $.checkpoints[2].resources[4].samples[45].velocity[2]: absolute error 0.09238336700946093 > 0.05510667376220227
+  $.checkpoints[2].resources[4].samples[46].position[0]: absolute error 0.023482786418753676 > 0.005116685312241316
+  $.checkpoints[2].resources[4].samples[46].velocity[0]: absolute error 0.13848727941513062 > 0.08213172256946563
+  $.checkpoints[2].resources[4].samples[46].velocity[2]: absolute error 0.14912338182330132 > 0.05469778068363667
+  $.checkpoints[2].resources[4].samples[47].position[0]: absolute error 0.021387589164078236 > 0.005155196730047464
+  $.checkpoints[2].resources[4].samples[47].velocity[0]: absolute error 0.08915817737579346 > 0.07997642457485199
+  $.checkpoints[2].resources[4].samples[47].velocity[2]: absolute error 0.1396436693612486 > 0.056892582774162294
+  $.checkpoints[2].resources[4].samples[48].position[0]: absolute error 0.019738418981432915 > 0.005191543772816658
+  $.checkpoints[2].resources[4].samples[48].velocity[2]: absolute error 0.070022813975811 > 0.058083124458789825
+  $.checkpoints[2].resources[4].samples[49].position[0]: absolute error 0.018132269382476807 > 0.0052246138080954555
+  $.checkpoints[2].resources[4].samples[49].velocity[2]: absolute error 0.08140243589878082 > 0.060450341552495956
+  $.checkpoints[2].resources[4].samples[50].position[0]: absolute error 0.016655832529067993 > 0.00525419544428587
+  $.checkpoints[2].resources[4].samples[51].position[0]: absolute error 0.015298742800951004 > 0.005281244646757841
+  $.checkpoints[2].resources[4].samples[52].position[0]: absolute error 0.013898950070142746 > 0.005305234454572201
+  $.checkpoints[2].resources[4].samples[53].position[0]: absolute error 0.01244433969259262 > 0.005325762927532196
+  $.checkpoints[2].resources[4].samples[54].position[0]: absolute error 0.01095535233616829 > 0.005342528037726879
+  $.checkpoints[2].resources[4].samples[55].position[0]: absolute error 0.009423363953828812 > 0.005355795957148075
+  $.checkpoints[2].resources[4].samples[56].position[0]: absolute error 0.007812589406967163 > 0.005365988239645958
+  $.checkpoints[2].resources[4].samples[57].position[0]: absolute error 0.006257660686969757 > 0.005373716615140438
+  $.checkpoints[2].resources[4].samples[57].velocity[0]: absolute error 0.08120208978652954 > 0.07198792546987534
+  $.checkpoints[2].resources[4].samples[67].velocity[2]: absolute error 0.061928510665893555 > 0.06009151563048363
+FAIL rope-fluid
+  $.checkpoints[2].resources[5].aggregate.maximum_speed: absolute error 0.25271547546698575 > 0.13682414102513663
+FAIL rope-soft-body
+  $.checkpoints[1].invariants.combined_momentum[2]: absolute error 0.12824293971061707 > 0.0712725654244423
+  $.checkpoints[1].invariants.equal_and_opposite_transfer.combined_momentum[2]: absolute error 0.12824293971061707 > 0.0712725654244423
+  $.checkpoints[1].resources[2].angular_velocity[0]: absolute error 0.6993862390518188 > 0.1483858585357666
+  $.checkpoints[1].resources[2].linear_velocity[2]: absolute error 0.11462089419364929 > 0.06922541111707688
+  $.checkpoints[1].resources[2].orientation: quaternion angular error 0.02225974475311237 > 0.002
+  $.checkpoints[1].resources[4].aggregate.kinetic_energy: absolute error 0.010905408813370598 > 0.00749133598172636
+  $.checkpoints[1].resources[4].aggregate.maximum_speed: absolute error 0.033263901044988 > 0.013135716006014632
+  $.checkpoints[1].resources[4].samples[1].velocity[1]: absolute error 0.05966431647539139 > 0.05836649835109711
+  $.checkpoints[1].resources[4].samples[1].velocity[2]: absolute error 0.07400436699390411 > 0.059662846475839616
+  $.checkpoints[1].resources[4].samples[2].velocity[1]: absolute error 0.06098300218582153 > 0.05395720340311527
+  $.checkpoints[1].resources[4].samples[24].velocity[1]: absolute error 0.06719329487532377 > 0.05397998802363873
+  $.checkpoints[1].resources[4].samples[26].velocity[1]: absolute error 0.11419611424207687 > 0.060765611380338674
+  $.checkpoints[1].resources[4].samples[27].velocity[1]: absolute error 0.0802091509103775 > 0.065556800365448
+  $.checkpoints[1].resources[4].samples[28].position[1]: absolute error 0.00519203394651413 > 0.005159409679472446
+  $.checkpoints[1].resources[4].samples[29].position[2]: absolute error 0.00625281035900116 > 0.0057562882453203205
+  $.checkpoints[1].resources[4].samples[30].position[1]: absolute error 0.005259290337562561 > 0.005221193674951792
+  $.checkpoints[1].resources[4].samples[30].position[2]: absolute error 0.006967797875404358 > 0.005750809982419014
+  $.checkpoints[1].resources[4].samples[31].position[2]: absolute error 0.0079612135887146 > 0.005743501633405685
+  $.checkpoints[1].resources[4].samples[31].velocity[0]: absolute error 0.07687291502952576 > 0.06616935282945634
+  $.checkpoints[1].resources[4].samples[31].velocity[1]: absolute error 0.1430360972881317 > 0.07062080800533295
+  $.checkpoints[2].contacts.rigid_contacts[0]: no one-to-one contact match within existing tolerances
+  $.checkpoints[2].invariants.combined_momentum[1]: absolute error 0.21494120359420776 > 0.06759427636861802
+  $.checkpoints[2].invariants.equal_and_opposite_transfer.combined_momentum[1]: absolute error 0.21494120359420776 > 0.06759427636861802
+  $.checkpoints[2].resources[2].angular_velocity[1]: absolute error 0.2229243516921997 > 0.11484922170639039
+  $.checkpoints[2].resources[2].linear_velocity[1]: absolute error 0.19534293585456908 > 0.059928964078426364
+  $.checkpoints[2].resources[2].orientation: quaternion angular error 0.3256988129054587 > 0.002
+  $.checkpoints[2].resources[2].position[0]: absolute error 0.010607004165649414 > 0.009475470483303071
+  $.checkpoints[2].resources[2].position[1]: absolute error 0.006221368908882141 > 0.005799386203289032
+  $.checkpoints[2].resources[2].position[2]: absolute error 0.029722012171987444 > 0.005152710527181625
+  $.checkpoints[2].resources[3].aggregate.maximum_speed: absolute error 0.017899840074700524 > 0.0056411145624092425
+  $.checkpoints[2].resources[3].samples[1].velocity[0]: absolute error 0.06441974453628063 > 0.05172841344028711
+  $.checkpoints[2].resources[3].samples[3].velocity[0]: absolute error 0.06440822966396809 > 0.05171638112515212
+  $.checkpoints[2].resources[3].samples[5].velocity[0]: absolute error 0.06449557654559612 > 0.051698242872953416
+  $.checkpoints[2].resources[3].samples[7].velocity[0]: absolute error 0.0646801833063364 > 0.051674894988536835
+  $.checkpoints[2].resources[3].samples[9].velocity[0]: absolute error 0.06495435163378716 > 0.05164711456745863
+  $.checkpoints[2].resources[3].samples[11].velocity[0]: absolute error 0.06532883271574974 > 0.051649593748152256
+  $.checkpoints[2].resources[3].samples[13].velocity[0]: absolute error 0.0663471557199955 > 0.05168365687131882
+  $.checkpoints[2].resources[3].samples[15].velocity[0]: absolute error 0.06770261377096176 > 0.05174503345042467
+  $.checkpoints[2].resources[3].samples[17].velocity[0]: absolute error 0.06824050098657608 > 0.051804416067898276
+  $.checkpoints[2].resources[3].samples[19].velocity[0]: absolute error 0.06871967017650604 > 0.051862672157585624
+  $.checkpoints[2].resources[3].samples[21].velocity[0]: absolute error 0.06904156319797039 > 0.05191747639328242
+  $.checkpoints[2].resources[3].samples[23].velocity[0]: absolute error 0.06876391731202602 > 0.051982412301003936
+  $.checkpoints[2].resources[3].samples[25].velocity[0]: absolute error 0.06852009519934654 > 0.05202664118260145
+  $.checkpoints[2].resources[3].samples[27].velocity[0]: absolute error 0.06887667812407017 > 0.052060100436210635
+  $.checkpoints[2].resources[3].samples[29].velocity[0]: absolute error 0.0691581629216671 > 0.05208312422037125
+  $.checkpoints[2].resources[3].samples[31].velocity[0]: absolute error 0.06936007179319859 > 0.052094920910894876
+  $.checkpoints[2].resources[4].aggregate.bounds.minimum[0]: absolute error 0.025135457515716553 > 0.010112670660018922
+  $.checkpoints[2].resources[4].aggregate.kinetic_energy: absolute error 0.03130216352434517 > 0.006008743008003398
+  $.checkpoints[2].resources[4].aggregate.maximum_speed: absolute error 0.28152867008164817 > 0.011528617989293864
+  $.checkpoints[2].resources[4].aggregate.momentum[0]: absolute error 0.06232425197958946 > 0.055032373219728474
+  $.checkpoints[2].resources[4].samples[0].position[0]: absolute error 0.025135457515716553 > 0.010112670660018922
+  $.checkpoints[2].resources[4].samples[0].position[1]: absolute error 0.024978816509246826 > 0.005809143930673599
+  $.checkpoints[2].resources[4].samples[0].position[2]: absolute error 0.008938483893871307 > 0.005419724881649018
+  $.checkpoints[2].resources[4].samples[0].velocity[0]: absolute error 0.1692790389060974 > 0.09623875916004182
+  $.checkpoints[2].resources[4].samples[0].velocity[1]: absolute error 0.1405211091041565 > 0.09159792065620423
+  $.checkpoints[2].resources[4].samples[1].position[0]: absolute error 0.021558761596679688 > 0.010091822147369384
+  $.checkpoints[2].resources[4].samples[1].position[1]: absolute error 0.023827657103538513 > 0.00571457713842392
+  $.checkpoints[2].resources[4].samples[1].position[2]: absolute error 0.010698549449443817 > 0.00545981202274561
+  $.checkpoints[2].resources[4].samples[1].velocity[0]: absolute error 0.3295896053314209 > 0.09990352392196655
+  $.checkpoints[2].resources[4].samples[1].velocity[1]: absolute error 0.18698513507843018 > 0.09209019243717194
+  $.checkpoints[2].resources[4].samples[1].velocity[2]: absolute error 0.05825744103640318 > 0.052330389618873596
+  $.checkpoints[2].resources[4].samples[2].position[0]: absolute error 0.01683521270751953 > 0.010066618323326112
+  $.checkpoints[2].resources[4].samples[2].position[1]: absolute error 0.022489100694656372 > 0.005620722770690918
+  $.checkpoints[2].resources[4].samples[2].position[2]: absolute error 0.012074552476406097 > 0.00550116628408432
+  $.checkpoints[2].resources[4].samples[2].velocity[0]: absolute error 0.18104112148284912 > 0.08924027681350709
+  $.checkpoints[2].resources[4].samples[2].velocity[1]: absolute error 0.18317371606826782 > 0.09182623028755188
+  $.checkpoints[2].resources[4].samples[3].position[0]: absolute error 0.012891054153442383 > 0.010011340975761413
+  $.checkpoints[2].resources[4].samples[3].position[1]: absolute error 0.01972191035747528 > 0.00553028866648674
+  $.checkpoints[2].resources[4].samples[3].position[2]: absolute error 0.014169134199619293 > 0.005532715022563935
+  $.checkpoints[2].resources[4].samples[3].velocity[0]: absolute error 0.35220828652381897 > 0.09254753291606904
+  $.checkpoints[2].resources[4].samples[3].velocity[1]: absolute error 0.21673977375030518 > 0.09029916226863861
+  $.checkpoints[2].resources[4].samples[3].velocity[2]: absolute error 0.25365228205919266 > 0.06177733764052391
+  $.checkpoints[2].resources[4].samples[4].position[1]: absolute error 0.016879886388778687 > 0.00544129628688097
+  $.checkpoints[2].resources[4].samples[4].position[2]: absolute error 0.016009226441383362 > 0.005564875230193138
+  $.checkpoints[2].resources[4].samples[4].velocity[0]: absolute error 0.1316063106060028 > 0.07906620502471924
+  $.checkpoints[2].resources[4].samples[4].velocity[1]: absolute error 0.20274734497070312 > 0.08746918141841889
+  $.checkpoints[2].resources[4].samples[5].position[1]: absolute error 0.013485342264175415 > 0.005356299690902233
+  $.checkpoints[2].resources[4].samples[5].position[2]: absolute error 0.018569059669971466 > 0.005588739290833473
+  $.checkpoints[2].resources[4].samples[5].velocity[0]: absolute error 0.09489178657531738 > 0.07517924308776856
+  $.checkpoints[2].resources[4].samples[5].velocity[1]: absolute error 0.20707100629806519 > 0.08503888249397279
+  $.checkpoints[2].resources[4].samples[6].position[1]: absolute error 0.009410422295331955 > 0.005280345845967531
+  $.checkpoints[2].resources[4].samples[6].position[2]: absolute error 0.020777679979801178 > 0.005599944703280926
+  $.checkpoints[2].resources[4].samples[6].velocity[1]: absolute error 0.23114576935768127 > 0.08141348659992217
+  $.checkpoints[2].resources[4].samples[6].velocity[2]: absolute error 0.09345630742609501 > 0.053504989668726924
+  $.checkpoints[2].resources[4].samples[7].position[1]: absolute error 0.006420891731977463 > 0.005213885139673948
+  $.checkpoints[2].resources[4].samples[7].position[2]: absolute error 0.021268978714942932 > 0.005608621723949909
+  $.checkpoints[2].resources[4].samples[7].velocity[1]: absolute error 0.1939508020877838 > 0.07498360425233841
+  $.checkpoints[2].resources[4].samples[7].velocity[2]: absolute error 0.1722562313079834 > 0.05525628663599491
+  $.checkpoints[2].resources[4].samples[8].position[2]: absolute error 0.02025742083787918 > 0.0056195612251758575
+  $.checkpoints[2].resources[4].samples[8].velocity[1]: absolute error 0.19231313467025757 > 0.07048013657331467
+  $.checkpoints[2].resources[4].samples[9].position[2]: absolute error 0.017528317868709564 > 0.00563325323164463
+  $.checkpoints[2].resources[4].samples[9].velocity[0]: absolute error 0.06748691201210022 > 0.06453150510787964
+  $.checkpoints[2].resources[4].samples[9].velocity[1]: absolute error 0.2842971086502075 > 0.07019413858652115
+  $.checkpoints[2].resources[4].samples[10].position[2]: absolute error 0.013326123356819153 > 0.005647754147648811
+  $.checkpoints[2].resources[4].samples[10].velocity[0]: absolute error 0.06644514203071594 > 0.06409430056810379
+  $.checkpoints[2].resources[4].samples[10].velocity[1]: absolute error 0.20320765674114227 > 0.06418423056602479
+  $.checkpoints[2].resources[4].samples[10].velocity[2]: absolute error 0.11575689911842346 > 0.06207227259874344
+  $.checkpoints[2].resources[4].samples[11].position[2]: absolute error 0.00888039916753769 > 0.005663679763674736
+  $.checkpoints[2].resources[4].samples[11].velocity[0]: absolute error 0.06455020606517792 > 0.06401325017213821
+  $.checkpoints[2].resources[4].samples[11].velocity[1]: absolute error 0.10430046822875738 > 0.055603886023163795
+  $.checkpoints[2].resources[4].samples[11].velocity[2]: absolute error 0.10354095697402954 > 0.06442976295948029
+  $.checkpoints[2].resources[4].samples[12].position[2]: absolute error 0.006327271461486816 > 0.005687512829899788
+  $.checkpoints[2].resources[4].samples[24].position[2]: absolute error 0.005873441696166992 > 0.005819816663861275
+  $.checkpoints[2].resources[4].samples[25].position[2]: absolute error 0.005881220102310181 > 0.005816963538527489
+  $.checkpoints[2].resources[4].samples[26].position[2]: absolute error 0.005834028124809265 > 0.005811913087964058
+PASS smoke-cloth
+PASS smoke-grid
+PASS smoke-rope
+PASS smoke-soft-body
+PASS smoke-water
+PASS soft-body-cloth
+PASS soft-body-core
+PASS soft-body-fluid
+FAIL soft-body-rigid
+  $.checkpoints[1].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[1].contacts.rigid_contacts: length mismatch
+  $.checkpoints[1].invariants.combined_momentum[1]: absolute error 778.4950375258923 > 38.961572265625
+  $.checkpoints[1].invariants.equal_and_opposite_transfer.combined_momentum[1]: absolute error 778.4950375258923 > 38.961572265625
+  $.checkpoints[1].invariants.equal_and_opposite_transfer.observable_contact_count: exact value mismatch
+  $.checkpoints[1].resources[1].linear_velocity[1]: absolute error 3.8924706654706824 > 0.24462291002273562
+  $.checkpoints[1].resources[1].position[1]: absolute error 0.7765490114688873 > 0.010005048513412475
+  $.checkpoints[1].resources[2].linear_velocity[1]: absolute error 3.892455040671848 > 0.24462263584136962
+  $.checkpoints[1].resources[2].position[1]: absolute error 0.7765474021434784 > 0.010005048513412475
+  $.checkpoints[1].resources[4].maximum_strain: absolute error 0.028426839049452424 > 0.006978875322818337
+  $.checkpoints[2].contacts.rigid_contact_count: exact value mismatch
+  $.checkpoints[2].contacts.rigid_contacts: length mismatch
+  $.checkpoints[2].invariants.combined_momentum[0]: absolute error 0.12408465147018433 > 0.05519160442054272
+  $.checkpoints[2].invariants.combined_momentum[1]: absolute error 1544.6303975880146 > 77.27310180664062
+  $.checkpoints[2].invariants.combined_momentum[2]: absolute error 0.06985393911600113 > 0.0577159233391285
+  $.checkpoints[2].invariants.equal_and_opposite_transfer.combined_momentum[0]: absolute error 0.12408465147018433 > 0.05519160442054272
+  $.checkpoints[2].invariants.equal_and_opposite_transfer.combined_momentum[1]: absolute error 1544.6303975880146 > 77.27310180664062
+  $.checkpoints[2].invariants.equal_and_opposite_transfer.combined_momentum[2]: absolute error 0.06985393911600113 > 0.0577159233391285
+  $.checkpoints[2].invariants.equal_and_opposite_transfer.observable_contact_count: exact value mismatch
+  $.checkpoints[2].resources[1].linear_velocity[1]: absolute error 7.723162677799337 > 0.4361576080322266
+  $.checkpoints[2].resources[1].position[1]: absolute error 3.4073855876922607 > 0.01703187942504883
+  $.checkpoints[2].resources[2].linear_velocity[1]: absolute error 7.723128180448839 > 0.4361570358276367
+  $.checkpoints[2].resources[2].orientation: quaternion angular error 0.027664471195473717 > 0.002
+  $.checkpoints[2].resources[2].position[1]: absolute error 3.404344320297241 > 0.017016673088073732
+  $.checkpoints[2].resources[4].maximum_strain: absolute error 0.01954192200469973 > 0.0069693216035926165
