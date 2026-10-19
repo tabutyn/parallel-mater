@@ -6,8 +6,8 @@
   "sources": {
     "capability": "docs/INTERACTION-MODES.md: SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL with SMOKE_PARTICLE and SMOKE_GRID",
     "fixture": "conformance/v1/src/smoke_rigid_drag.cpp: paired public-API zero-drag controls at equal air density and forward-flow, stationary-flow and reverse-flow runs",
-    "oracle": "Public rigid velocity must follow public carrier flow while persistent public smoke tracers carry the opposite response; the particle representation must conserve the independently derived public effective-particle momentum, and both representations must remain geometrically outside the authored contact distance",
-    "tolerances": "Explicit immutable inputs, bounded signed rigid and smoke response fractions, transverse drift, stationary response, forward/reverse symmetry, reciprocal momentum, non-contact clearance, particle contact-pressure sentinel, particle energy and public speed caps"
+    "oracle": "Public rigid velocity must follow public carrier flow; particle tracers must carry the opposite reciprocal response while grid tracers must change by a bounded paired magnitude. Both representations must remain geometrically outside the authored contact distance",
+    "tolerances": "Explicit immutable inputs, bounded signed rigid and smoke response fractions, transverse drift, stationary response, forward/reverse symmetry, reciprocal particle momentum and force, non-contact clearance, particle energy and public speed caps"
   },
   "units": "SI: metres, kilograms, seconds, metres per second, radians per second, kilograms per cubic metre, square metres per second and metres squared per second squared",
   "fixtures": [
@@ -131,13 +131,13 @@
     "maximum_rigid_drag_response_fraction": 0.5,
     "minimum_smoke_drag_response_fraction": 0.000001,
     "maximum_smoke_drag_response_fraction": 0.8,
-    "maximum_transverse_velocity_m_s": 0.1,
-    "maximum_stationary_velocity_m_s": 0.01,
-    "maximum_forward_reverse_response_difference": 0.1,
-    "maximum_reciprocal_momentum_residual_kg_m_s": 0.001,
+    "maximum_transverse_velocity_m_s": 0.0005,
+    "maximum_stationary_velocity_m_s": 0.0005,
+    "maximum_forward_reverse_response_difference": 0.005,
+    "maximum_reciprocal_momentum_residual_kg_m_s": 0.00001,
+    "maximum_reciprocal_force_residual_n": 0.0005,
     "minimum_non_contact_clearance_m": 0.012,
-    "maximum_pressure_delta_m_s2": 0.00001,
-    "maximum_energy_increase_j": 0.01,
+    "maximum_energy_increase_j": 0.00001,
     "maximum_speed_slack_m_s": 0.001,
     "maximum_angular_speed_rad_s": 0.5
   }
