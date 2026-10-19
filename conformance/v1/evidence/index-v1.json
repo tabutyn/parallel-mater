@@ -2391,8 +2391,10 @@
       "rule_id": "fluid-smoke-phase-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-smoke-phase-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2407,8 +2409,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -2438,8 +2442,10 @@
       "rule_id": "fluid-smoke-phase-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-smoke-phase-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2454,8 +2460,10 @@
           "status": "failed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -2485,8 +2493,10 @@
       "rule_id": "fluid-smoke-phase-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-smoke-phase-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2501,8 +2511,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -2532,8 +2544,10 @@
       "rule_id": "fluid-smoke-phase-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-smoke-phase-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2548,8 +2562,10 @@
           "status": "failed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -7471,8 +7487,10 @@
       "rule_id": "fluid-smoke-phase-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-smoke-phase-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7487,8 +7505,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -7518,8 +7538,10 @@
       "rule_id": "fluid-smoke-phase-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-smoke-phase-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7534,8 +7556,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -7565,8 +7589,10 @@
       "rule_id": "fluid-smoke-phase-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-smoke-phase-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7581,8 +7607,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -7612,8 +7640,10 @@
       "rule_id": "fluid-smoke-phase-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-smoke-phase-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7628,8 +7658,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11095,7 +11127,7 @@
         "second_family": "CLOTH"
       },
       "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "fluid-cloth-contact",
       "scopes": {
@@ -11197,7 +11229,7 @@
         "second_family": "CLOTH"
       },
       "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "fluid-cloth-containment",
       "scopes": {
@@ -11299,7 +11331,7 @@
         "second_family": "FLUID"
       },
       "key_text": "FLUID/FLUID/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "fluid-self-contact",
       "scopes": {
@@ -11401,7 +11433,7 @@
         "second_family": "FLUID"
       },
       "key_text": "FLUID/FLUID/SELF/PRESSURE/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "fluid-self-pressure",
       "scopes": {
@@ -11503,7 +11535,7 @@
         "second_family": "FLUID"
       },
       "key_text": "FLUID/FLUID/SELF/VISCOSITY/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "fluid-self-viscosity",
       "scopes": {
@@ -12104,8 +12136,10 @@
       "rule_id": "fluid-smoke-phase-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-smoke-phase-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -12120,8 +12154,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -12151,8 +12187,10 @@
       "rule_id": "fluid-smoke-phase-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-smoke-phase-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -12167,8 +12205,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -12198,8 +12238,10 @@
       "rule_id": "fluid-smoke-phase-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-smoke-phase-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -12214,8 +12256,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -12245,8 +12289,10 @@
       "rule_id": "fluid-smoke-phase-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-smoke-phase-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -12261,8 +12307,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -12475,7 +12523,7 @@
         "second_family": "SOFT_BODY"
       },
       "key_text": "FLUID/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "fluid-soft-body",
       "scopes": {
@@ -12577,7 +12625,7 @@
         "second_family": "RIGID_BODY"
       },
       "key_text": "RIGID_BODY/RIGID_BODY/SAME_DOMAIN/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "rigid-attachment",
       "scopes": {
@@ -12679,7 +12727,7 @@
         "second_family": "RIGID_BODY"
       },
       "key_text": "RIGID_BODY/RIGID_BODY/SAME_DOMAIN/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "rigid-contact",
       "scopes": {
@@ -13831,7 +13879,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_GRID",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "smoke-self-pressure",
       "scopes": {
@@ -13935,7 +13983,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "SMOKE/SMOKE/SELF/PRESSURE/BIDIRECTIONAL/SMOKE_PARTICLE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "smoke-self-pressure",
       "scopes": {
@@ -14039,7 +14087,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "smoke-self-viscosity",
       "scopes": {
@@ -14141,7 +14189,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_PARTICLE",
-      "qualified": true,
+      "qualified": false,
       "report": "android-pixel7-slang-vulkan-3187375",
       "rule_id": "smoke-self-viscosity",
       "scopes": {
@@ -14962,13 +15010,13 @@
         "android-pixel7-slang-vulkan-3187375",
         "linux-rtx3050ti-slang-vulkan-eed669e"
       ],
-      "qualified_capability_count": 12,
+      "qualified_capability_count": 0,
       "report_ids": [
         "android-pixel7-slang-vulkan-3187375",
         "linux-rtx3050ti-slang-vulkan-eed669e"
       ],
       "status": "unqualified",
-      "unqualified_capability_count": 80
+      "unqualified_capability_count": 92
     },
     {
       "id": "slang-metal",
@@ -15041,7 +15089,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15739,20 +15787,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No fluid-to-particle-smoke phase quality profile is registered.",
+      "actual": "quality:fluid-smoke-phase-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[19].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No fluid-to-particle-smoke phase quality profile is registered.",
+      "actual": "quality:fluid-smoke-phase-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[19].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -15784,20 +15832,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact fluid-smoke particle phase graph case is registered.",
+      "actual": "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[19].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke particle phase graph case is registered.",
+      "actual": "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[19].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -16018,20 +16066,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No fluid-to-grid-smoke phase quality profile is registered.",
+      "actual": "quality:fluid-smoke-phase-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[22].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No fluid-to-grid-smoke phase quality profile is registered.",
+      "actual": "quality:fluid-smoke-phase-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[22].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -16063,20 +16111,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact fluid-smoke grid phase graph case is registered.",
+      "actual": "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[22].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke grid phase graph case is registered.",
+      "actual": "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[22].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -18144,7 +18192,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18153,7 +18201,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18162,7 +18210,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18171,7 +18219,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18180,7 +18228,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18189,7 +18237,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-cuda",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18583,7 +18631,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18592,7 +18640,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-d3d12",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19000,20 +19048,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No fluid-to-particle-smoke phase quality profile is registered.",
+      "actual": "quality:fluid-smoke-phase-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[16].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No fluid-to-particle-smoke phase quality profile is registered.",
+      "actual": "quality:fluid-smoke-phase-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[16].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -19036,20 +19084,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact fluid-smoke particle phase graph case is registered.",
+      "actual": "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[16].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact fluid-smoke particle phase graph case is registered.",
+      "actual": "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[16].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -19162,20 +19210,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No fluid-to-grid-smoke phase quality profile is registered.",
+      "actual": "quality:fluid-smoke-phase-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[19].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No fluid-to-grid-smoke phase quality profile is registered.",
+      "actual": "quality:fluid-smoke-phase-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[19].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -19198,20 +19246,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact fluid-smoke grid phase graph case is registered.",
+      "actual": "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[19].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact fluid-smoke grid phase graph case is registered.",
+      "actual": "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[19].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -21252,7 +21300,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21261,7 +21309,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21270,7 +21318,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21279,7 +21327,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21288,7 +21336,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -21529,20 +21577,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No fluid-to-particle-smoke phase quality profile is registered.",
+      "actual": "quality:fluid-smoke-phase-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[16].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No fluid-to-particle-smoke phase quality profile is registered.",
+      "actual": "quality:fluid-smoke-phase-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[16].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -21556,20 +21604,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke particle phase graph case is registered.",
+      "actual": "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[16].lifecycle_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No exact fluid-smoke particle phase graph case is registered.",
+      "actual": "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[16].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -21664,20 +21712,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No fluid-to-grid-smoke phase quality profile is registered.",
+      "actual": "quality:fluid-smoke-phase-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[19].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No fluid-to-grid-smoke phase quality profile is registered.",
+      "actual": "quality:fluid-smoke-phase-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[19].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -21691,20 +21739,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke grid phase graph case is registered.",
+      "actual": "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[19].lifecycle_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No exact fluid-smoke grid phase graph case is registered.",
+      "actual": "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[19].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -23212,9 +23260,18 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
+      "actual": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "driver": "slang-vulkan",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+      "expected": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23222,9 +23279,9 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+  "obligations_sha256": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b",
   "qualification_complete": true,
-  "qualified_capability_count": 12,
+  "qualified_capability_count": 0,
   "report_count": 18,
   "reports": [
     {
@@ -23240,11 +23297,11 @@
         "name": "slang-vulkan",
         "version": "0.2.0"
       },
-      "failure_count": 68,
+      "failure_count": 69,
       "id": "android-pixel7-slang-vulkan-3187375",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json",
-      "qualified_count": 12,
+      "qualified_count": 0,
       "sha256": "90a83805efffb33bafeed7f8cf669b60b30dfa919a4f7a19ec228dd1c0186da9",
       "source": {
         "commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
@@ -23765,7 +23822,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "3b5dadf6d3875d1324a51258cbd6c02c76e5c882db83386d5e49785917a7d886",
+  "sources_sha256": "2fcd8b2d5c71dbede89ffa508549db9da01e1d0f378934ee70024f629b29f2e2",
   "valid": true,
   "validation_failures": []
 }

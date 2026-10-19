@@ -3424,6 +3424,369 @@ def _evaluate_smoke_self_pressure(
     }
 
 
+def _evaluate_fluid_smoke_phase(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definitions = {fixture["id"]: fixture
+                   for fixture in profile.get("fixtures", [])
+                   if isinstance(fixture, dict) and
+                   isinstance(fixture.get("id"), str)}
+    actual_fixtures = result.get("fixtures")
+    if not isinstance(actual_fixtures, list):
+        failures.append(Failure("$.fixtures", "expected a fixture array",
+                                actual_fixtures))
+        actual_fixtures = []
+    actual_by_id: dict[str, dict[str, Any]] = {}
+    for index, fixture in enumerate(actual_fixtures):
+        if not isinstance(fixture, dict) or not isinstance(
+                fixture.get("id"), str):
+            failures.append(Failure(f"$.fixtures[{index}]",
+                                    "fixture needs a string id", fixture))
+            continue
+        identity = fixture["id"]
+        if identity in actual_by_id:
+            failures.append(Failure(f"$.fixtures[{index}].id",
+                                    "duplicate fixture id", identity))
+            continue
+        actual_by_id[identity] = fixture
+    for missing in sorted(set(definitions) - set(actual_by_id)):
+        failures.append(Failure("$.fixtures", "missing required fixture", missing))
+    for extra in sorted(set(actual_by_id) - set(definitions)):
+        failures.append(Failure("$.fixtures", "unexpected fixture", extra))
+
+    tolerances = profile.get("tolerances", {})
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+    control_tolerance = float(tolerances.get("control_state_absolute", 0.0))
+    velocity_tolerance = float(tolerances.get("velocity_match_m_s", 0.0))
+    momentum_tolerance = float(
+        tolerances.get("momentum_residual_kg_m_s", 0.0))
+    energy_tolerance = float(
+        tolerances.get("kinetic_energy_residual_j", 0.0))
+    age_tolerance = float(tolerances.get("smoke_age_seconds", 0.0))
+
+    def sub(first: tuple[float, float, float],
+            second: tuple[float, float, float]) -> tuple[float, float, float]:
+        return tuple(a - b for a, b in zip(first, second))
+
+    def sum_vectors(values: list[tuple[float, float, float]]) -> \
+            tuple[float, float, float]:
+        return tuple(sum(value[axis] for value in values) for axis in range(3))
+
+    def close_number(actual: Any, expected: Any, path: str) -> None:
+        value = _scalar(actual, path, failures)
+        reference = _scalar(expected, path + ".profile", failures)
+        if (value is not None and reference is not None and
+                abs(value - reference) > state_tolerance):
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    value, reference))
+
+    def close_vector(actual: Any, expected: Any, path: str) -> None:
+        value = _vector(actual, path, failures)
+        reference = _vector(expected, path + ".profile", failures)
+        if (value is not None and reference is not None and
+                _norm(sub(value, reference)) > state_tolerance):
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    list(value), list(reference)))
+
+    def close_vector_sequence(actual: Any, expected: Any, path: str) -> None:
+        if (not isinstance(actual, list) or not isinstance(expected, list) or
+                len(actual) != len(expected)):
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    actual, expected))
+            return
+        for index, (value, reference) in enumerate(zip(actual, expected)):
+            close_vector(value, reference, f"{path}[{index}]")
+
+    def snapshot(value: Any, path: str) -> dict[str, Any] | None:
+        if not isinstance(value, dict):
+            failures.append(Failure(path, "expected a snapshot object", value))
+            return None
+        fluid = value.get("fluid")
+        smoke = value.get("smoke_particles")
+        if not isinstance(fluid, list):
+            failures.append(Failure(path + ".fluid",
+                                    "expected a fluid array", fluid))
+            return None
+        if not isinstance(smoke, list):
+            failures.append(Failure(path + ".smoke_particles",
+                                    "expected a smoke array", smoke))
+            return None
+        normalized_fluid: list[dict[str, Any]] = []
+        for index, particle in enumerate(fluid):
+            particle_path = f"{path}.fluid[{index}]"
+            if not isinstance(particle, dict):
+                failures.append(Failure(particle_path, "expected an object",
+                                        particle))
+                continue
+            position = _vector(particle.get("position_m"),
+                               particle_path + ".position_m", failures)
+            velocity = _vector(particle.get("velocity_m_s"),
+                               particle_path + ".velocity_m_s", failures)
+            temperature = _scalar(particle.get("temperature_celsius"),
+                                  particle_path + ".temperature_celsius",
+                                  failures)
+            stable_id = particle.get("stable_id")
+            if (not isinstance(stable_id, int) or isinstance(stable_id, bool) or
+                    stable_id < 0):
+                failures.append(Failure(particle_path + ".stable_id",
+                                        "expected a non-negative integer",
+                                        stable_id))
+                stable_id = None
+            if (position is not None and velocity is not None and
+                    temperature is not None and stable_id is not None):
+                normalized_fluid.append({
+                    "position": position, "velocity": velocity,
+                    "temperature": temperature, "stable_id": stable_id,
+                })
+        normalized_smoke: list[dict[str, Any]] = []
+        for index, particle in enumerate(smoke):
+            particle_path = f"{path}.smoke_particles[{index}]"
+            if not isinstance(particle, dict):
+                failures.append(Failure(particle_path, "expected an object",
+                                        particle))
+                continue
+            position = _vector(particle.get("position_m"),
+                               particle_path + ".position_m", failures)
+            velocity = _vector(particle.get("velocity_m_s"),
+                               particle_path + ".velocity_m_s", failures)
+            age = _scalar(particle.get("age_seconds"),
+                          particle_path + ".age_seconds", failures)
+            if position is not None and velocity is not None and age is not None:
+                normalized_smoke.append({
+                    "position": position, "velocity": velocity, "age": age,
+                })
+        if (len(normalized_fluid) != len(fluid) or
+                len(normalized_smoke) != len(smoke)):
+            return None
+        return {"fluid": normalized_fluid, "smoke": normalized_smoke}
+
+    def count_accounting(initial: dict[str, Any], final: dict[str, Any],
+                         particle_mass: float, path: str) -> float:
+        consumed = len(initial["fluid"]) - len(final["fluid"])
+        emitted = len(final["smoke"]) - len(initial["smoke"])
+        residual = abs(float(consumed - emitted) * particle_mass)
+        if consumed < 0 or emitted < 0 or residual > state_tolerance:
+            failures.append(Failure(path,
+                                    "phase mass accounting is not balanced",
+                                    {"consumed": consumed, "emitted": emitted,
+                                     "residual_kg": residual}, 0.0))
+        return residual
+
+    def transfer_accounting(
+            sources: list[dict[str, Any]], smoke: list[dict[str, Any]],
+            particle_mass: float, path: str) -> tuple[float, float]:
+        unmatched = list(range(len(smoke)))
+        for source in sources:
+            if not unmatched:
+                break
+            best = min(unmatched, key=lambda index: _norm(sub(
+                smoke[index]["velocity"], source["velocity"])))
+            difference = _norm(sub(smoke[best]["velocity"],
+                                   source["velocity"]))
+            if difference > velocity_tolerance:
+                failures.append(Failure(path,
+                                        "emitted smoke lost source identity",
+                                        difference, velocity_tolerance))
+            unmatched.remove(best)
+        if len(sources) != len(smoke):
+            failures.append(Failure(path,
+                                    "source and emitted identity counts differ",
+                                    len(smoke), len(sources)))
+        source_momentum = sum_vectors([source["velocity"] for source in sources])
+        smoke_momentum = sum_vectors([particle["velocity"] for particle in smoke])
+        momentum_residual = particle_mass * _norm(sub(
+            smoke_momentum, source_momentum))
+        if momentum_residual > momentum_tolerance:
+            failures.append(Failure(path,
+                                    "phase momentum accounting is outside bounds",
+                                    momentum_residual, momentum_tolerance))
+        source_energy = 0.5 * particle_mass * sum(
+            _norm(source["velocity"]) ** 2 for source in sources)
+        smoke_energy = 0.5 * particle_mass * sum(
+            _norm(particle["velocity"]) ** 2 for particle in smoke)
+        energy_residual = abs(smoke_energy - source_energy)
+        if energy_residual > energy_tolerance:
+            failures.append(Failure(path,
+                                    "phase kinetic-energy accounting is outside bounds",
+                                    energy_residual, energy_tolerance))
+        return momentum_residual, energy_residual
+
+    observations: dict[str, Any] = {}
+    sample_count = 0
+    for identity, definition in definitions.items():
+        actual = actual_by_id.get(identity)
+        if actual is None:
+            continue
+        base = f"$.fixtures[{identity}]"
+        for field in ("id", "representation", "substeps",
+                      "single_smoke_particle_capacity",
+                      "bounded_fluid_particle_count",
+                      "bounded_smoke_particle_capacity",
+                      "smoke_grid_resolution",
+                      "smoke_grid_vertical_resolution", "declared_mode_flags",
+                      "exercised_mode", "oracle"):
+            if actual.get(field) != definition.get(field):
+                failures.append(Failure(base + "." + field,
+                                        "fixture setting differs from profile",
+                                        actual.get(field), definition.get(field)))
+        for field in ("timestep_seconds", "fluid_initial_temperature_celsius",
+                      "fluid_particle_radius_m", "fluid_support_radius_m",
+                      "fluid_rest_density_kg_m3",
+                      "fluid_rest_particle_volume_m3", "fluid_particle_mass_kg",
+                      "smoke_emission_rate_per_s", "smoke_lifetime_seconds",
+                      "smoke_particle_radius_m", "smoke_rest_number_density",
+                      "smoke_maximum_speed_m_s", "smoke_grid_edge_length_m",
+                      "thermal_transfer_rate_per_s",
+                      "control_boiling_temperature_celsius",
+                      "transfer_boiling_temperature_celsius",
+                      "wind_drag_per_s", "steam_rise_speed_m_s"):
+            close_number(actual.get(field), definition.get(field),
+                         base + "." + field)
+        for field in ("gravity_m_s2", "single_source_position_m",
+                      "single_source_velocity_m_s", "smoke_emitter_center_m",
+                      "smoke_grid_minimum_m"):
+            close_vector(actual.get(field), definition.get(field),
+                         base + "." + field)
+        close_vector_sequence(actual.get("bounded_source_positions_m"),
+                              definition.get("bounded_source_positions_m"),
+                              base + ".bounded_source_positions_m")
+        close_vector_sequence(actual.get("bounded_source_velocities_m_s"),
+                              definition.get("bounded_source_velocities_m_s"),
+                              base + ".bounded_source_velocities_m_s")
+        if actual.get("smoke_emitter_half_extents_m") != \
+                definition.get("smoke_emitter_half_extents_m"):
+            failures.append(Failure(base + ".smoke_emitter_half_extents_m",
+                                    "fixture setting differs from profile",
+                                    actual.get("smoke_emitter_half_extents_m"),
+                                    definition.get("smoke_emitter_half_extents_m")))
+
+        runs = actual.get("runs")
+        if not isinstance(runs, list):
+            failures.append(Failure(base + ".runs", "expected a run array", runs))
+            continue
+        indexed = {run.get("id"): run for run in runs
+                   if isinstance(run, dict) and isinstance(run.get("id"), str)}
+        expected_runs = {"below-threshold-control", "single-transfer",
+                         "capacity-bound"}
+        if set(indexed) != expected_runs or len(indexed) != len(runs):
+            failures.append(Failure(base + ".runs",
+                                    "expected exactly the three phase runs",
+                                    sorted(indexed), sorted(expected_runs)))
+            continue
+        states: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
+        for run_id in sorted(expected_runs):
+            initial = snapshot(indexed[run_id].get("initial"),
+                               base + f".runs[{run_id}].initial")
+            final = snapshot(indexed[run_id].get("final"),
+                             base + f".runs[{run_id}].final")
+            if initial is not None and final is not None:
+                states[run_id] = (initial, final)
+        if set(states) != expected_runs:
+            continue
+
+        control_initial, control_final = states["below-threshold-control"]
+        if (len(control_initial["fluid"]) != 1 or control_initial["smoke"] or
+                len(control_final["fluid"]) != 1 or control_final["smoke"]):
+            failures.append(Failure(base + ".runs[below-threshold-control]",
+                                    "below-threshold control changed domain counts",
+                                    [len(control_final["fluid"]),
+                                     len(control_final["smoke"])], [1, 0]))
+        elif (control_initial["fluid"][0]["stable_id"] !=
+              control_final["fluid"][0]["stable_id"]):
+            failures.append(Failure(base + ".runs[below-threshold-control]",
+                                    "below-threshold control changed stable identity",
+                                    control_final["fluid"][0]["stable_id"],
+                                    control_initial["fluid"][0]["stable_id"]))
+        elif (_norm(sub(control_initial["fluid"][0]["velocity"],
+                        control_final["fluid"][0]["velocity"])) >
+              control_tolerance):
+            failures.append(Failure(base + ".runs[below-threshold-control]",
+                                    "below-threshold control velocity drifted",
+                                    control_final["fluid"][0]["velocity"],
+                                    control_initial["fluid"][0]["velocity"]))
+
+        particle_mass = float(definition["fluid_particle_mass_kg"])
+        single_initial, single_final = states["single-transfer"]
+        single_mass = count_accounting(
+            single_initial, single_final, particle_mass,
+            base + ".runs[single-transfer]")
+        if (len(single_initial["fluid"]) != 1 or single_initial["smoke"] or
+                single_final["fluid"] or len(single_final["smoke"]) != 1):
+            failures.append(Failure(base + ".runs[single-transfer]",
+                                    "single phase transfer must consume one fluid and emit one smoke particle",
+                                    [len(single_final["fluid"]),
+                                     len(single_final["smoke"])], [0, 1]))
+            single_momentum = float("inf")
+            single_energy = float("inf")
+        else:
+            single_momentum, single_energy = transfer_accounting(
+                single_initial["fluid"], single_final["smoke"], particle_mass,
+                base + ".runs[single-transfer]")
+
+        bounded_initial, bounded_final = states["capacity-bound"]
+        bounded_mass = count_accounting(
+            bounded_initial, bounded_final, particle_mass,
+            base + ".runs[capacity-bound]")
+        initial_ids = {particle["stable_id"] for particle in bounded_initial["fluid"]}
+        final_ids = {particle["stable_id"] for particle in bounded_final["fluid"]}
+        if (len(initial_ids) != len(bounded_initial["fluid"]) or
+                len(final_ids) != len(bounded_final["fluid"]) or
+                not final_ids.issubset(initial_ids)):
+            failures.append(Failure(base + ".runs[capacity-bound]",
+                                    "surviving fluid stable IDs are not a unique source subset",
+                                    sorted(final_ids), sorted(initial_ids)))
+        expected_capacity = int(definition["bounded_smoke_particle_capacity"])
+        if (len(bounded_initial["fluid"]) !=
+                int(definition["bounded_fluid_particle_count"]) or
+                bounded_initial["smoke"] or
+                len(bounded_final["smoke"]) != expected_capacity or
+                len(bounded_final["fluid"]) !=
+                len(bounded_initial["fluid"]) - expected_capacity):
+            failures.append(Failure(base + ".runs[capacity-bound]",
+                                    "phase transfer did not stop at smoke capacity",
+                                    [len(bounded_final["fluid"]),
+                                     len(bounded_final["smoke"])], [1, 2]))
+        removed = [particle for particle in bounded_initial["fluid"]
+                   if particle["stable_id"] not in final_ids]
+        bounded_momentum, bounded_energy = transfer_accounting(
+            removed, bounded_final["smoke"], particle_mass,
+            base + ".runs[capacity-bound]")
+        for run_id in ("single-transfer", "capacity-bound"):
+            final = states[run_id][1]
+            for index, particle in enumerate(final["smoke"]):
+                if abs(particle["age"] - float(definition["timestep_seconds"])) > \
+                        age_tolerance:
+                    failures.append(Failure(
+                        base + f".runs[{run_id}].final.smoke_particles[{index}].age_seconds",
+                        "emitted smoke age is outside the one-step boundary",
+                        particle["age"], definition["timestep_seconds"]))
+        observations[identity] = {
+            "single_mass_residual_kg": single_mass,
+            "single_momentum_residual_kg_m_s": single_momentum,
+            "single_kinetic_energy_residual_j": single_energy,
+            "bounded_mass_residual_kg": bounded_mass,
+            "bounded_momentum_residual_kg_m_s": bounded_momentum,
+            "bounded_kinetic_energy_residual_j": bounded_energy,
+            "bounded_converted_stable_ids": sorted(initial_ids - final_ids),
+            "bounded_surviving_stable_ids": sorted(final_ids),
+        }
+        sample_count += 2
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": len(actual_by_id),
+        "sample_count": sample_count,
+        "failure_count": len(failures),
+        "observations": observations,
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def _evaluate_smoke_fluid_drag(
         profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
         driver: Any, failures: list[Failure]) -> dict[str, Any]:
@@ -4069,6 +4432,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "smoke_fluid_drag":
         return _evaluate_smoke_fluid_drag(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "fluid_smoke_phase":
+        return _evaluate_fluid_smoke_phase(
             profile, result, expected_hash, driver, failures)
     if evaluation != "system_exchange":
         failures.append(Failure("$.profile.evaluation",

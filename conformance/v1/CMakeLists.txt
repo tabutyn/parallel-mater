@@ -20,6 +20,7 @@ add_library(parallel-mater-conformance-runner STATIC
     src/smoke_quality.cpp
     src/fluid_cloth_contact.cpp
     src/smoke_fluid_drag.cpp
+    src/fluid_smoke_phase.cpp
     src/smoke_viscosity_quality.cpp
     src/smoke_lifecycle_fixture.cpp
     src/lifecycle_fixtures.cpp

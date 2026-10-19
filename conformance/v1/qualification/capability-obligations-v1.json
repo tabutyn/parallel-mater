@@ -57,6 +57,7 @@
     {"id": "quality:fluid-cloth-contact-v1", "path": "conformance/v1/quality/fluid-cloth-contact-v1.json", "sha256": "1216cf9e7252b5fe4c27f14639a1031e698d459a2001db60153a088ebb600445"},
     {"id": "quality:smoke-self-viscosity-v1", "path": "conformance/v1/quality/smoke-self-viscosity-v1.json", "sha256": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"},
     {"id": "quality:smoke-fluid-drag-v1", "path": "conformance/v1/quality/smoke-fluid-drag-v1.json", "sha256": "ef28c4f4446365aa787aac9605098772f00e68f1ebf958b2023b6cafdba1c3e1"},
+    {"id": "quality:fluid-smoke-phase-v1", "path": "conformance/v1/quality/fluid-smoke-phase-v1.json", "sha256": "da827f9cf347269442f529b3e57beeef70b4c64714c48cc21f1ad0666597f263"},
     {"id": "quality:core-conservation-stability-v1#equal-material-pressure-contact", "path": "conformance/v1/quality/core-conservation-v1.json", "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"},
     {"id": "quality:core-conservation-stability-v1#equal-material-viscosity", "path": "conformance/v1/quality/core-conservation-v1.json", "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"},
     {"id": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery", "path": "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json", "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"},
@@ -67,7 +68,9 @@
     {"id": "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json", "sha256": "5599b5d6c5e8386830d0abb29a13feddd3a43a917912efb9e9cf4b1732a22769"},
     {"id": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json", "sha256": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f"},
     {"id": "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json", "sha256": "e3f0b451c271add83153c0e1a3f22f1784465a568b289facacb46a5fab44c1c1"},
-    {"id": "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json", "sha256": "e3f0b451c271add83153c0e1a3f22f1784465a568b289facacb46a5fab44c1c1"}
+    {"id": "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json", "sha256": "e3f0b451c271add83153c0e1a3f22f1784465a568b289facacb46a5fab44c1c1"},
+    {"id": "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-smoke-phase-lifecycle-v1.json", "sha256": "0ca00a3e49008f07fd0a2297487de7678fdbc0fae8f38306b05a1e7d3aec8ae4"},
+    {"id": "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-smoke-phase-lifecycle-v1.json", "sha256": "0ca00a3e49008f07fd0a2297487de7678fdbc0fae8f38306b05a1e7d3aec8ae4"}
   ],
   "rules": [
     {
@@ -248,15 +251,21 @@
       "id": "fluid-smoke-phase-particle",
       "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["PHASE"], "direction": ["FIRST_TO_SECOND_TRANSFER"], "material_profile": ["SMOKE_PARTICLE"]},
       "trajectory_contract": "case:smoke-water",
-      "required": {},
-      "missing": {"lifecycle_invariants": "No exact fluid-smoke particle phase graph case is registered.", "analytic_invariants": "No fluid-to-particle-smoke phase quality profile is registered."}
+      "required": {
+        "lifecycle_invariants": ["lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback"],
+        "analytic_invariants": ["quality:fluid-smoke-phase-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "fluid-smoke-phase-grid",
       "match": {"first_family": ["FLUID"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["PHASE"], "direction": ["FIRST_TO_SECOND_TRANSFER"], "material_profile": ["SMOKE_GRID"]},
       "trajectory_contract": "case:smoke-water",
-      "required": {},
-      "missing": {"lifecycle_invariants": "No exact fluid-smoke grid phase graph case is registered.", "analytic_invariants": "No fluid-to-grid-smoke phase quality profile is registered."}
+      "required": {
+        "lifecycle_invariants": ["lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback"],
+        "analytic_invariants": ["quality:fluid-smoke-phase-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "fluid-rigid",
