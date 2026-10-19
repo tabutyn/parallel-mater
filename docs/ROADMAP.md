@@ -229,7 +229,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-49](roadmap/tasks/F5-49.json) | Qualify soft-rigid contact | done | F5-23 | — |
 | [F5-50](roadmap/tasks/F5-50.json) | Qualify rope-to-smoke contact | done | F5-23 | — |
 | [F5-51](roadmap/tasks/F5-51.json) | Qualify smoke-to-rope drag | done | F5-23 | — |
-| [F5-52](roadmap/tasks/F5-52.json) | Qualify rope-rigid contact | ready | F5-23 | — |
+| [F5-52](roadmap/tasks/F5-52.json) | Qualify rope-rigid contact | leased | F5-23 | codex-linux-qualification / ThomasLaptop / 2026-10-20T19:37:50Z |
 | [F5-53](roadmap/tasks/F5-53.json) | Qualify rope-rigid attachment | ready | F5-23 | — |
 | [F5-54](roadmap/tasks/F5-54.json) | Qualify smoke-rigid contact | leased | F5-23 | codex-windows-qualification / windows-gtx1080 / 2026-10-20T19:22:14Z |
 | [F5-55](roadmap/tasks/F5-55.json) | Qualify smoke-rigid drag | ready | F5-23 | — |
