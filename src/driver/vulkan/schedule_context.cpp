@@ -607,6 +607,10 @@ std::uint64_t ScheduleContext::address(const void *pointer) noexcept {
             b = &impl_->arguments;
     }
     if (!b) {
+        if (std::getenv("PM_VULKAN_TRACE"))
+            std::fprintf(stderr,
+                         "Parallel Mater Vulkan: cannot translate address %p\n",
+                         pointer);
         impl_->last_error = cudaErrorInvalidValue;
         return 0;
     }
@@ -651,9 +655,8 @@ std::uint64_t ScheduleContext::translated_meshes(const void *pointer,
         i.begin();
         if (count == 0 && capacity == 0) {
             auto prepared = i.mesh_capacities.find(pointer);
-            if (prepared == i.mesh_capacities.end())
-                throw std::runtime_error("mesh table not prepared");
-            capacity = prepared->second;
+            if (prepared != i.mesh_capacities.end())
+                capacity = prepared->second;
         }
         auto *bodies = static_cast<const simulation::BodyParameters *>(parameters);
         if (count && (!bodies || !i.find(bodies, std::size_t(count) * sizeof(*bodies))))
@@ -753,8 +756,14 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
     activate();
     std::lock_guard lock(impl_->mutex);
     auto &i = *impl_;
-    if (i.last_error != cudaSuccess)
+    if (i.last_error != cudaSuccess) {
+        if (std::getenv("PM_VULKAN_TRACE"))
+            std::fprintf(stderr,
+                         "Parallel Mater Vulkan: skipped %.*s/%.*s after error %d\n",
+                         int(module.size()), module.data(), int(entry.size()),
+                         entry.data(), static_cast<int>(i.last_error));
         return;
+    }
     try {
         if (constants.size() > (parameter_buffer ? Impl::parameter_range : 256U) ||
             (shader_block.x != 0 && block.x != shader_block.x) ||
