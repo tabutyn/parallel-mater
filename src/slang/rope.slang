@@ -78,8 +78,9 @@ float rope_direction_weight(RopeData rope, uint node, Vec3 direction,
         inverse_inertia_world(parameters[body], states[body], torque));
 }
 
-void rope_move_body(inout RigidBodyState state, Vec3 translation,
-    Vec3 rotation, float dt)
+void rope_move_body<let canonicalizeCoupledState : bool>(
+    inout RigidBodyState state, Vec3 translation, Vec3 rotation, float dt,
+    bool stabilizeState)
 {
     state.position = add(state.position, translation);
     Quaternion spin = quaternion_multiply(
@@ -89,10 +90,32 @@ void rope_move_body(inout RigidBodyState state, Vec3 translation,
         state.orientation.y + 0.5f * spin.y,
         state.orientation.z + 0.5f * spin.z,
         state.orientation.w + 0.5f * spin.w});
+    if (canonicalizeCoupledState && stabilizeState)
+    {
+        // Rope-soft feedback amplifies target-specific sub-ULP normalization
+        // differences. This shared binary grid is below contact tolerances.
+        const float orientationScale = 1048576.0f;
+        state.orientation = {
+            round(state.orientation.x * orientationScale) / orientationScale,
+            round(state.orientation.y * orientationScale) / orientationScale,
+            round(state.orientation.z * orientationScale) / orientationScale,
+            round(state.orientation.w * orientationScale) / orientationScale};
+    }
     state.linear_velocity = add(state.linear_velocity,
         multiply(translation, 1.0f / dt));
     state.angular_velocity = add(state.angular_velocity,
         multiply(rotation, 1.0f / dt));
+    if (canonicalizeCoupledState && stabilizeState)
+    {
+        const float angularVelocityScale = 4194304.0f;
+        state.angular_velocity = {
+            round(state.angular_velocity.x * angularVelocityScale) /
+                angularVelocityScale,
+            round(state.angular_velocity.y * angularVelocityScale) /
+                angularVelocityScale,
+            round(state.angular_velocity.z * angularVelocityScale) /
+                angularVelocityScale};
+    }
 }
 
 void rope_sync_anchors(
@@ -125,8 +148,10 @@ void rope_solve_tridiagonal(uint edges)
             max(ropeDiagonal[edge], 1.0e-10f);
 }
 
-void rope_project_stretch(RopeData rope, float dt, int first, int last,
-    PMBuffer<BodyParameters> parameters, PMBuffer<RigidBodyState> states)
+void rope_project_stretch<let canonicalizeCoupledState : bool>(
+    RopeData rope, float dt, int first, int last,
+    PMBuffer<BodyParameters> parameters, PMBuffer<RigidBodyState> states,
+    bool stabilizeState)
 {
     uint lane = pmGroupThreadIndex().x;
     uint edges = rope.count - 1u;
@@ -245,10 +270,10 @@ void rope_project_stretch(RopeData rope, float dt, int first, int last,
             Vec3 arm = rotate(states[body].orientation,
                 rope_anchor_local(rope, node));
             RigidBodyState state = states[body];
-            rope_move_body(state,
+            rope_move_body<canonicalizeCoupledState>(state,
                 multiply(impulse, parameters[body].inverse_mass),
                 inverse_inertia_world(parameters[body], state,
-                    cross(arm, impulse)), dt);
+                    cross(arm, impulse)), dt, stabilizeState);
             states[body] = state;
         }
         rope_sync_anchors(rope, first, last, states);
@@ -1091,38 +1116,13 @@ void rope_project_velocities(RopeData rope, float dt, int first, int last,
     pmGroupBarrier();
 }
 
-#ifndef PM_TARGET_VULKAN
-#define PM_TARGET_VULKAN 0
-#endif
-
-[shader("compute")]
-[numthreads(128, 1, 1)]
-void rope_advance(
-#if PM_TARGET_VULKAN
-    uniform PMBuffer<RopeData> rope_buffer,
-#else
-    uniform RopeData rope,
-#endif
-    uniform float dt, uniform Vec3 gravity,
-    uniform int first, uniform int last, uniform PMBuffer<BodyParameters> parameters,
-    uniform PMBuffer<RigidBodyState> states, uniform PMBuffer<RigidBodyState> old_states,
-    uniform PMBuffer<TriangleMeshResource> meshes, uniform uint body_count,
-    uniform bool first_substep,
-#if PM_TARGET_VULKAN
-    uniform PMBuffer<RopeSoftTarget> soft_a_buffer,
-    uniform PMBuffer<RopeSoftTarget> soft_b_buffer)
-#else
-    uniform RopeSoftTarget soft_a,
-    uniform RopeSoftTarget soft_b PM_D3D12_DISPATCH_PARAMETER)
-#endif
+void rope_advance_impl<let canonicalizeCoupledState : bool>(
+    RopeData rope, float dt, Vec3 gravity,
+    int first, int last, PMBuffer<BodyParameters> parameters,
+    PMBuffer<RigidBodyState> states, PMBuffer<RigidBodyState> old_states,
+    PMBuffer<TriangleMeshResource> meshes, uint body_count,
+    bool first_substep, RopeSoftTarget soft_a, RopeSoftTarget soft_b)
 {
-#if PM_TARGET_VULKAN
-    RopeData rope = rope_buffer[0];
-    RopeSoftTarget soft_a = soft_a_buffer[0];
-    RopeSoftTarget soft_b = soft_b_buffer[0];
-#else
-    PM_D3D12_DISPATCH_PROLOGUE();
-#endif
     uint lane = pmGroupThreadIndex().x;
     if (lane == 0u) ropeConverged = 0u;
     if (lane == 0u)
@@ -1159,7 +1159,8 @@ void rope_advance(
     uint maximumIterations = min(32u, 4u * rope.options.solver_iterations);
     for (uint iteration = 0u; iteration < maximumIterations; ++iteration)
     {
-        rope_project_stretch(rope, dt, first, last, parameters, states);
+        rope_project_stretch<canonicalizeCoupledState>(
+            rope, dt, first, last, parameters, states, first_substep);
         pmGroupBarrier();
         for (uint phase = 0u; phase < 3u; ++phase)
         {
@@ -1201,8 +1202,9 @@ void rope_advance(
             if (lane == 0u)
             {
                 for (uint body = 0u; body < body_count; ++body)
-                    rope_move_body(states[body], rope.body_translation[body],
-                        rope.body_rotation[body], dt);
+                    rope_move_body<canonicalizeCoupledState>(states[body],
+                        rope.body_translation[body],
+                        rope.body_rotation[body], dt, first_substep);
                 rope_sync_anchors(rope, first, last, states);
             }
             pmGroupBarrier();
@@ -1275,7 +1277,8 @@ void rope_advance(
         }
         pmGroupBarrier();
         for (uint pass = 0u; pass < 8u; ++pass)
-            rope_project_stretch(rope, dt, first, last, parameters, states);
+            rope_project_stretch<canonicalizeCoupledState>(
+                rope, dt, first, last, parameters, states, first_substep);
     }
     for (uint node = lane; node < rope.count; node += pmGroupSize().x)
     {
@@ -1303,4 +1306,72 @@ void rope_advance(
     }
     pmGroupBarrier();
     rope_project_velocities(rope, dt, first, last, parameters, states);
+}
+
+#ifndef PM_TARGET_VULKAN
+#define PM_TARGET_VULKAN 0
+#endif
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void rope_advance(
+#if PM_TARGET_VULKAN
+    uniform PMBuffer<RopeData> rope_buffer,
+#else
+    uniform RopeData rope,
+#endif
+    uniform float dt, uniform Vec3 gravity,
+    uniform int first, uniform int last, uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> states, uniform PMBuffer<RigidBodyState> old_states,
+    uniform PMBuffer<TriangleMeshResource> meshes, uniform uint body_count,
+    uniform bool first_substep,
+#if PM_TARGET_VULKAN
+    uniform PMBuffer<RopeSoftTarget> soft_a_buffer,
+    uniform PMBuffer<RopeSoftTarget> soft_b_buffer)
+#else
+    uniform RopeSoftTarget soft_a,
+    uniform RopeSoftTarget soft_b PM_D3D12_DISPATCH_PARAMETER)
+#endif
+{
+#if PM_TARGET_VULKAN
+    RopeData rope = rope_buffer[0];
+    RopeSoftTarget soft_a = soft_a_buffer[0];
+    RopeSoftTarget soft_b = soft_b_buffer[0];
+#else
+    PM_D3D12_DISPATCH_PROLOGUE();
+#endif
+    rope_advance_impl<false>(rope, dt, gravity, first, last, parameters,
+        states, old_states, meshes, body_count, first_substep, soft_a, soft_b);
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void rope_advance_coupled(
+#if PM_TARGET_VULKAN
+    uniform PMBuffer<RopeData> rope_buffer,
+#else
+    uniform RopeData rope,
+#endif
+    uniform float dt, uniform Vec3 gravity,
+    uniform int first, uniform int last, uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> states, uniform PMBuffer<RigidBodyState> old_states,
+    uniform PMBuffer<TriangleMeshResource> meshes, uniform uint body_count,
+    uniform bool first_substep,
+#if PM_TARGET_VULKAN
+    uniform PMBuffer<RopeSoftTarget> soft_a_buffer,
+    uniform PMBuffer<RopeSoftTarget> soft_b_buffer)
+#else
+    uniform RopeSoftTarget soft_a,
+    uniform RopeSoftTarget soft_b PM_D3D12_DISPATCH_PARAMETER)
+#endif
+{
+#if PM_TARGET_VULKAN
+    RopeData rope = rope_buffer[0];
+    RopeSoftTarget soft_a = soft_a_buffer[0];
+    RopeSoftTarget soft_b = soft_b_buffer[0];
+#else
+    PM_D3D12_DISPATCH_PROLOGUE();
+#endif
+    rope_advance_impl<true>(rope, dt, gravity, first, last, parameters,
+        states, old_states, meshes, body_count, first_substep, soft_a, soft_b);
 }

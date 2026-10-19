@@ -1526,7 +1526,8 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                       impl_->rigid_leaf_pairs, impl_->rigid_leaf_pair_counts,
                       impl_->rigid_leaf_pairs_per_slot,
                       impl_->rigid_leaf_manifolds, blocks_per_pair,
-                      substep_timestep, impl_->rigid_manifolds);
+                      substep_timestep, has_soft_body && has_rope_soft_body,
+                      impl_->rigid_manifolds);
         if (error != backend.success_code()) return backend.failure(
             error, "rigid leaf contact evaluation failed");
         if (impl_->rigid_leaf_manifolds != nullptr) {
@@ -1536,7 +1537,9 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                 impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
                 impl_->rigid_leaf_pair_counts,
                 impl_->rigid_leaf_pairs_per_slot,
-                impl_->rigid_leaf_manifolds, impl_->rigid_manifolds);
+                impl_->rigid_leaf_manifolds,
+                has_soft_body && has_rope_soft_body,
+                impl_->rigid_manifolds);
             if (error != backend.success_code()) return backend.failure(
                 error, "rigid leaf contact reduction failed");
         }
