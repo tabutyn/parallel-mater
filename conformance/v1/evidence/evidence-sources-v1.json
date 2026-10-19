@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230"
+    "sha256": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19"
   },
   "qualification_results": [
     {
@@ -61,6 +61,16 @@
       "id": "linux-thomas-laptop-slang-cpu-eed669e",
       "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json",
       "sha256": "e3ae75435330251f28ac8196012f921bf7be032541362db1fdc978f5eb7f7473"
+    },
+    {
+      "id": "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid-qualification.json",
+      "sha256": "c60cd0ab1db21b6866d487fe90422d462e8a5ce3033ac27beb128c2806d8c99c"
+    },
+    {
+      "id": "macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle-qualification.json",
+      "sha256": "c0430e156e5ec7e81635810eba978c40e15e9133fc75f5700190bc6c105249c1"
     },
     {
       "id": "macos-m4-slang-metal-86f10b2-fluid-cloth-containment",

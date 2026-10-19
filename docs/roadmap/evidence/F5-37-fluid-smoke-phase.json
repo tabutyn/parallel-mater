@@ -1,0 +1,55 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-37",
+  "source_commit": "7161ccaaa421c82ff14c939a4c5b74d87602e0c6",
+  "captured_at": "2026-10-19",
+  "host": "Thomass-MacBook-Air",
+  "driver": "slang-metal",
+  "device": "Apple M4",
+  "capabilities": [
+    "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_PARTICLE",
+    "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_GRID"
+  ],
+  "contracts": {
+    "trajectory": "case:smoke-water",
+    "quality": "quality:fluid-smoke-phase-v1",
+    "particle_lifecycle": "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback",
+    "grid_lifecycle": "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback"
+  },
+  "results": {
+    "trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "reference_regression": "PASS: smoke-water against the unchanged CUDA golden",
+    "analytic_invariants": "PASS: 4 samples, 0 failures",
+    "particle_mass_residual_kg": 0.0,
+    "particle_momentum_residual_kg_m_s": 0.0,
+    "particle_kinetic_energy_residual_j": 0.0,
+    "grid_mass_residual_kg": 0.0,
+    "grid_momentum_residual_kg_m_s": 0.0,
+    "grid_kinetic_energy_residual_j": 0.0,
+    "bounded_converted_stable_ids": [0, 1],
+    "bounded_surviving_stable_ids": [2],
+    "lifecycle_invariants": "PASS: 2 profile cases, 10 checkpoints, 0 failures",
+    "qualification": "PASS: 1/1 exact particle capability and 1/1 exact grid capability, 0 failures",
+    "python_conformance_tests": "PASS: 187 tests",
+    "native_build": "PASS: conformance runner, Slang Metal driver and validation layer",
+    "command_inputs": "PASS: all pinned conformance inputs match the manifest"
+  },
+  "artifacts": {
+    "trajectory_result": "docs/roadmap/evidence/F5-37-7161cca-metal-smoke-water.json",
+    "trajectory_report": "docs/roadmap/evidence/F5-37-7161cca-metal-smoke-water-report.json",
+    "quality_result": "docs/roadmap/evidence/F5-37-7161cca-metal-quality-result.json",
+    "quality_report": "docs/roadmap/evidence/F5-37-7161cca-metal-quality-report.json",
+    "lifecycle_result": "docs/roadmap/evidence/F5-37-7161cca-metal-lifecycle-result.json",
+    "lifecycle_report": "docs/roadmap/evidence/F5-37-7161cca-metal-lifecycle-report.json",
+    "particle_physical_evidence": "conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle.json",
+    "particle_qualification": "conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle-qualification.json",
+    "grid_physical_evidence": "conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid.json",
+    "grid_qualification": "conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid-qualification.json"
+  },
+  "notes": [
+    "The public-state oracle covers a below-threshold control, one-particle transfer and a three-source/two-target capacity boundary without reading driver-private state or adding GPU synchronization.",
+    "Both smoke representations conserve the modeled transferred mass, momentum and kinetic energy exactly in the captured samples while preserving stable source identity at capacity.",
+    "The physics equations remain in the shared Slang runtime; this evidence qualifies the same implementation running through the Apple Metal device adapter.",
+    "Only the two exact Metal phase-transfer records are newly qualified. Previously captured devices require recapture against the expanded obligation set."
+  ]
+}

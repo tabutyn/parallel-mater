@@ -1,0 +1,99 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-37",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "7161ccaaa421c82ff14c939a4c5b74d87602e0c6",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-metal",
+    "version": "0.2.0+7161cca",
+    "binary_sha256": "dae53b75933a4f6143debc7dcfeb8e0ce71820749f0c9659cb6a20d3161c7a9d"
+  },
+  "device": {
+    "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "vendor_id": 4203,
+    "device_id": 0,
+    "driver_version": "202618 (Apple Metal 32023.883)"
+  },
+  "toolchain": {
+    "compiler": "Apple Clang, Slang Metal",
+    "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "945ed25b205d34ce9b3454578ce3bbee02286524bac4d7c7e50b6cbb3c1eebc5",
+    "capabilities_sha256": "cb512431b36a28d204f02d9ca0636cd5995c936f9c592e0573e27bd938a8f2ea"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "FLUID",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "PHASE",
+      "direction": "FIRST_TO_SECOND_TRANSFER",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:smoke-water",
+      "sha256": "cbe349e888648ef1fe6f0adb507be33888be83b988d72b4bcc5c4a23a604964c"
+    },
+    "quality": {
+      "id": "quality:fluid-smoke-phase-v1",
+      "sha256": "da827f9cf347269442f529b3e57beeef70b4c64714c48cc21f1ad0666597f263"
+    },
+    "lifecycle": {
+      "id": "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback",
+      "sha256": "0ca00a3e49008f07fd0a2297487de7678fdbc0fae8f38306b05a1e7d3aec8ae4"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "593615acb0b5599d43eab7733f7163942ca9b98f01ab253008329f5946ca7a2e",
+    "comparison_report_sha256": "c992fe27382184714f4277308cb5ae90073f8db6208bb965e99f993b48ea1272",
+    "reference_regression": {"passed": 1, "failed": 0, "unsupported": 0}
+  },
+  "analytic_invariants": {
+    "result_sha256": "56bb89964e27d4732aeb7cd8623aeddc4ca66ee0889c96ee2754ffacec93748b",
+    "report_sha256": "ea010e92e6a25597414d01eacf49f5a13671c0219280d8d7be4309d1120ae42c",
+    "passed": true,
+    "sample_count": 4,
+    "failure_count": 0,
+    "observations": {
+      "grid-phase-transfer": {
+        "bounded_mass_residual_kg": 0.0,
+        "bounded_momentum_residual_kg_m_s": 0.0,
+        "bounded_kinetic_energy_residual_j": 0.0,
+        "bounded_converted_stable_ids": [0, 1],
+        "bounded_surviving_stable_ids": [2],
+        "single_mass_residual_kg": 0.0,
+        "single_momentum_residual_kg_m_s": 0.0,
+        "single_kinetic_energy_residual_j": 0.0
+      }
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "5a61a5cbc7f1c52305aa464047ad0cad6dc7e0d5f3012839ae27f8f22ec9cc0c",
+    "report_sha256": "6f20f146e1d93190b4179c4c336edbf08b70edd72f3b1e06bbd45922a06381ef",
+    "passed": true,
+    "profile_case_count": 2,
+    "profile_checkpoint_count": 10,
+    "failure_count": 0
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case smoke-water --output <trajectory-output>",
+    "python conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case smoke-water --report <trajectory-report>",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality fluid-smoke-phase-v1 --output <quality-output>",
+    "python conformance/v1/quality.py --profile conformance/v1/quality/fluid-smoke-phase-v1.json --actual <quality-output>/fluid-smoke-phase-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle-profile fluid-smoke-phase-lifecycle-v1 --output <lifecycle-result>",
+    "python conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/fluid-smoke-phase-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "The analytic oracle uses only public fluid and smoke outputs; no driver-private state or GPU synchronization was added.",
+    "A below-threshold control, one-particle transfer, and a three-source/two-target capacity run prove bounded count, stable-ID, momentum and kinetic-energy accounting.",
+    "The canonical smoke-water trajectory passed the unchanged CUDA reference."
+  ]
+}

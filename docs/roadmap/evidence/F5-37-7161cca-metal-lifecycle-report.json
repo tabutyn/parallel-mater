@@ -1,0 +1,18 @@
+{
+  "case_count": 2,
+  "checkpoint_count": 10,
+  "driver": {
+    "device": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "device_id": 0,
+    "driver_version": "202618",
+    "name": "slang-metal",
+    "vendor_id": 4203
+  },
+  "failure_count": 0,
+  "failures": [],
+  "passed": true,
+  "profile_id": "fluid-smoke-phase-lifecycle-v1",
+  "profile_sha256": "0ca00a3e49008f07fd0a2297487de7678fdbc0fae8f38306b05a1e7d3aec8ae4",
+  "schema": "parallel-mater-conformance-lifecycle-report/v1",
+  "scope": "lifecycle_invariants"
+}
