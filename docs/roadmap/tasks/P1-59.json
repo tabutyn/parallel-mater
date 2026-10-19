@@ -1,7 +1,7 @@
 {
   "id": "P1-59",
   "title": "Complete D3D12 common-domain parity",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F4-04",
     "F5-10",
@@ -22,6 +22,14 @@
     "Build and test the D3D12 driver, loader, shared Gallery, generated DXIL/reflection bindings, conformance runner and roadmap/evidence checks from D: artifacts, then update capability and qualification documentation to the measured result."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "8cc53813-ee6f-4e63-bd9d-07b02d53d159",
+    "owner": "codex-windows-d3d12-parity",
+    "machine": "windows-gtx1080",
+    "branch": "work/P1-59/windows-gtx1080",
+    "claimed_at": "2026-10-19T22:17:54Z",
+    "heartbeat_at": "2026-10-19T22:17:54Z",
+    "expires_at": "2026-10-20T22:17:54Z"
+  },
   "history": []
 }
