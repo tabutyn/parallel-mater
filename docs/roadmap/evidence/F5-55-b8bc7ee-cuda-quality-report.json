@@ -1,0 +1,132 @@
+{
+  "driver": {
+    "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "device_id": 0,
+    "driver_version": "13010",
+    "name": "slang-cuda",
+    "vendor_id": 4318
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 2,
+  "observations": {
+    "grid-smoke-rigid-drag": {
+      "forward_reverse_response_difference": 0.001106195613954696,
+      "maximum_kinetic_energy_increase_j": null,
+      "maximum_paired_initial_rigid_state_delta": 0.0,
+      "maximum_paired_initial_smoke_state_delta": 0.0,
+      "maximum_pressure_delta_m_s2": 0.002078220248222351,
+      "maximum_rigid_angular_speed_rad_s": 0.11854481071315602,
+      "maximum_rigid_speed_m_s": 0.0078300791585806,
+      "maximum_smoke_speed_m_s": 1.0324142446606488,
+      "maximum_transverse_velocity_m_s": 0.0002571922061093933,
+      "maximum_zero_drag_rigid_velocity_drift_m_s": 3.712980742422588e-06,
+      "maximum_zero_drag_smoke_velocity_drift_m_s": 0.026810500348208605,
+      "minimum_tracer_rigid_clearance_m": 0.09471385176949018,
+      "reciprocal_force_residuals_n": {},
+      "reciprocal_momentum_residuals_kg_m_s": {},
+      "rigid_drag_impulses_kg_m_s": {
+        "forward": [
+          0.006723881234397,
+          4.951326065150575e-07,
+          -1.4290490071289241e-06
+        ],
+        "reverse": [
+          -0.007830076848351696,
+          -1.4916810029302115e-06,
+          -2.1104838197061326e-06
+        ],
+        "stationary": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "rigid_response_fractions": {
+        "forward": 0.006723881234397,
+        "reverse": 0.007830076848351696,
+        "stationary": 0.0
+      },
+      "smoke_drag_impulses_kg_m_s": {},
+      "smoke_response_fractions": {
+        "forward": 0.00016030669212341309,
+        "reverse": 0.0002097785472869873,
+        "stationary": 0.0
+      }
+    },
+    "particle-smoke-rigid-drag": {
+      "forward_reverse_response_difference": 0.0,
+      "maximum_kinetic_energy_increase_j": 0.0,
+      "maximum_paired_initial_rigid_state_delta": 0.0,
+      "maximum_paired_initial_smoke_state_delta": 0.0,
+      "maximum_pressure_delta_m_s2": 0.0,
+      "maximum_rigid_angular_speed_rad_s": 0.017209794824622773,
+      "maximum_rigid_speed_m_s": 0.0011470928020207425,
+      "maximum_smoke_speed_m_s": 1.0,
+      "maximum_transverse_velocity_m_s": 6.049465793562661e-06,
+      "maximum_zero_drag_rigid_velocity_drift_m_s": 0.0,
+      "maximum_zero_drag_smoke_velocity_drift_m_s": 0.0,
+      "minimum_tracer_rigid_clearance_m": 0.01993628740310671,
+      "reciprocal_force_residuals_n": {
+        "forward": 1.6763809572674894e-09,
+        "reverse": 1.6763808110872241e-09,
+        "stationary": 0.0
+      },
+      "reciprocal_momentum_residuals_kg_m_s": {
+        "forward": 3.352761914534979e-11,
+        "reverse": 3.3527616221744484e-11,
+        "stationary": 0.0
+      },
+      "rigid_drag_impulses_kg_m_s": {
+        "forward": [
+          0.0011470927856862545,
+          4.977044332221681e-10,
+          1.935820534981758e-07
+        ],
+        "reverse": [
+          -0.0011470927856862545,
+          4.976860035199593e-10,
+          1.9358228087185125e-07
+        ],
+        "stationary": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "rigid_response_fractions": {
+        "forward": 0.0011470927856862545,
+        "reverse": 0.0011470927856862545,
+        "stationary": 0.0
+      },
+      "smoke_drag_impulses_kg_m_s": {
+        "forward": [
+          -0.0011470928192138673,
+          -4.977043772669277e-10,
+          -1.9358203280717134e-07
+        ],
+        "reverse": [
+          0.0011470928192138673,
+          -4.976859599992167e-10,
+          -1.93582265637815e-07
+        ],
+        "stationary": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "smoke_response_fractions": {
+        "forward": 0.03584665060043335,
+        "reverse": 0.03584665060043335,
+        "stationary": 0.0
+      }
+    }
+  },
+  "passed": true,
+  "profile_id": "smoke-rigid-drag-v1",
+  "profile_sha256": "15d40028ec945834d7f49f44ddcaddcfa3fddedcf984730b20e112d86ec73315",
+  "sample_count": 6,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

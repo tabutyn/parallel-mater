@@ -1,0 +1,71 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-55",
+  "source_commit": "b8bc7ee292262d0a26c3532834df7d339ecf2bc0",
+  "captured_at": "2026-10-19",
+  "host": "ThomasLaptop",
+  "driver": "slang-cuda",
+  "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+  "capabilities": [
+    "SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL/SMOKE_PARTICLE",
+    "SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL/SMOKE_GRID"
+  ],
+  "contracts": {
+    "trajectory": "case:smoke-grid",
+    "quality": "quality:smoke-rigid-drag-v1",
+    "particle_lifecycle": "lifecycle:smoke-rigid-drag-lifecycle-v1#particle-smoke-rigid-drag-capacity-replacement-removal-rollback",
+    "grid_lifecycle": "lifecycle:smoke-rigid-drag-lifecycle-v1#grid-smoke-rigid-drag-capacity-replacement-removal-rollback"
+  },
+  "results": {
+    "trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "reference_regression": "PASS: smoke-grid against the canonical CUDA golden",
+    "analytic_invariants": "PASS: 6 paired representation samples, 0 failures",
+    "particle_forward_rigid_response_fraction": 0.0011470927856862545,
+    "particle_reverse_rigid_response_fraction": 0.0011470927856862545,
+    "particle_forward_smoke_response_fraction": 0.03584665060043335,
+    "particle_reverse_smoke_response_fraction": 0.03584665060043335,
+    "particle_maximum_reciprocal_momentum_residual_kg_m_s": 3.352761914534979e-11,
+    "particle_maximum_reciprocal_force_residual_n": 1.6763809572674894e-09,
+    "particle_maximum_kinetic_energy_increase_j": 0.0,
+    "particle_minimum_tracer_rigid_clearance_m": 0.01993628740310671,
+    "grid_forward_rigid_response_fraction": 0.006723881234397,
+    "grid_reverse_rigid_response_fraction": 0.007830076848351696,
+    "grid_forward_smoke_response_fraction": 0.00016030669212341309,
+    "grid_reverse_smoke_response_fraction": 0.0002097785472869873,
+    "grid_minimum_tracer_rigid_clearance_m": 0.09471385176949018,
+    "grid_maximum_transverse_velocity_m_s": 0.0002571922061093933,
+    "particle_reciprocity": "PASS: signed public smoke and rigid momentum/force exchange remains within the immutable residual bounds",
+    "grid_response": "PASS: paired public tracer and rigid response is non-zero and bounded; no Eulerian momentum or energy inference is made from tracer samples",
+    "stationary_null": "PASS: control-subtracted rigid and smoke response is zero for both representations",
+    "non_contact": "PASS: particle and grid minimum clearance exceed the 0.012 m contract floor",
+    "determinism": "PASS: repeated physical quality result is byte-identical at f1744bdfef694092b6bf150b88779ffe4ab365b45315829fa09462c033531f6f",
+    "lifecycle": "PASS: 2 exact representation cases, 10 checkpoints, 0 failures",
+    "particle_qualification": "PASS: 1/1 exact SMOKE_PARTICLE DRAG capability, 0 failures",
+    "grid_qualification": "PASS: 1/1 exact SMOKE_GRID DRAG capability, 0 failures",
+    "python_tests": "PASS: 383 conformance tests after evidence integration",
+    "evidence_index": "PASS: 4/335 capability records qualified across 46 revisioned reports; stale and unrecaptured records remain visible and unqualified"
+  },
+  "artifacts": {
+    "provenance": "docs/roadmap/evidence/F5-55-b8bc7ee-cuda-provenance.json",
+    "capabilities": "docs/roadmap/evidence/F5-55-b8bc7ee-cuda-capabilities.json",
+    "trajectory_result": "docs/roadmap/evidence/F5-55-b8bc7ee-cuda-trajectory/smoke-grid.json",
+    "trajectory_report": "docs/roadmap/evidence/F5-55-b8bc7ee-cuda-smoke-grid-report.json",
+    "quality_result": "docs/roadmap/evidence/F5-55-b8bc7ee-cuda-quality/smoke-rigid-drag-v1.json",
+    "quality_report": "docs/roadmap/evidence/F5-55-b8bc7ee-cuda-quality-report.json",
+    "lifecycle_result": "docs/roadmap/evidence/F5-55-b8bc7ee-cuda-lifecycle-result.json",
+    "lifecycle_report": "docs/roadmap/evidence/F5-55-b8bc7ee-cuda-lifecycle-report.json",
+    "particle_physical_evidence": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-particle.json",
+    "grid_physical_evidence": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-grid.json",
+    "particle_qualification": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-particle-qualification.json",
+    "grid_qualification": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-grid-qualification.json",
+    "particle_qualification_report": "docs/roadmap/evidence/F5-55-b8bc7ee-cuda-particle-qualification-report.json",
+    "grid_qualification_report": "docs/roadmap/evidence/F5-55-b8bc7ee-cuda-grid-qualification-report.json"
+  },
+  "notes": [
+    "The immutable oracle pairs zero-drag controls with forward, stationary and reverse carrier velocities using only public smoke and rigid snapshots.",
+    "Particle smoke proves signed reciprocal momentum and force transfer, zero energy increase, forward/reverse symmetry and non-contact separation.",
+    "Grid smoke proves non-zero paired rigid and public-tracer response, symmetry and bounded motion without treating public tracers as the Eulerian field mass.",
+    "Particle and grid graph cases independently prove exact capacity, replacement, rejected-overflow rollback, removal and deterministic recovery.",
+    "CONTACT and DRAG obligation rules remain disjoint. These qualification results advertise only DRAG; historical and unrecaptured records remain visible and unqualified."
+  ]
+}
