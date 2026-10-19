@@ -45,6 +45,7 @@
   },
   "lifecycle_profile_sha256": {
     "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
+    "conformance/v1/lifecycle/externally-heated-fluid-lifecycle-v1.json": "8e134e408a6dd7559b2f77c412fcdb27806dcabf9b84c8e90bc39f5d6a38ee20",
     "conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json": "5599b5d6c5e8386830d0abb29a13feddd3a43a917912efb9e9cf4b1732a22769",
     "conformance/v1/lifecycle/fluid-cloth-containment-lifecycle-v1.json": "c96a995030b4b3e20ef77c55ab01bb7be2afdbfa2959f69c7d07be6c9bc21bb1",
     "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json": "e3f0b451c271add83153c0e1a3f22f1784465a568b289facacb46a5fab44c1c1",
@@ -53,6 +54,7 @@
   },
   "quality_profile_sha256": {
     "conformance/v1/quality/core-conservation-v1.json": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
+    "conformance/v1/quality/externally-heated-fluid-v1.json": "8fa544e51d8d900d68cfe3b8711fa1129a7bc56275b1bacfa0c9bffc15a0dacf",
     "conformance/v1/quality/fluid-cloth-containment-v1.json": "477d6494144118c9c6b108807e81576965a16a34fda5dfe672ed783b5de95b33",
     "conformance/v1/quality/fluid-rope-contact-v1.json": "462b1b2249fc9b928b5f983f648c0486aaf0ebf0f7ee2fb354637ea39f214a89",
     "conformance/v1/quality/fluid-soft-contact-v1.json": "40dce99005017b4b4a485f7553ea89f8f06526c88f242215a1415c8c67c9e986",
@@ -69,7 +71,7 @@
     "conformance/v1/quality/smoke-self-viscosity-v1.json": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"
   },
   "qualification_profile_sha256": {
-    "conformance/v1/qualification/capability-obligations-v1.json": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4"
+    "conformance/v1/qualification/capability-obligations-v1.json": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230"
   },
   "evidence_index_sha256": {
     "conformance/v1/evidence/evidence-sources-v1.json": "3b5dadf6d3875d1324a51258cbd6c02c76e5c882db83386d5e49785917a7d886",

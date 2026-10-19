@@ -3717,6 +3717,324 @@ def _evaluate_smoke_fluid_drag(
     }
 
 
+def _evaluate_externally_heated_fluid(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definitions = {fixture["id"]: fixture
+                   for fixture in profile.get("fixtures", [])
+                   if isinstance(fixture, dict) and
+                   isinstance(fixture.get("id"), str)}
+    actual_fixtures = result.get("fixtures")
+    if not isinstance(actual_fixtures, list):
+        failures.append(Failure("$.fixtures", "expected a fixture array",
+                                actual_fixtures))
+        actual_fixtures = []
+    actual_by_id: dict[str, dict[str, Any]] = {}
+    for index, fixture in enumerate(actual_fixtures):
+        if not isinstance(fixture, dict) or not isinstance(
+                fixture.get("id"), str):
+            failures.append(Failure(f"$.fixtures[{index}]",
+                                    "fixture needs a string id", fixture))
+            continue
+        identity = fixture["id"]
+        if identity in actual_by_id:
+            failures.append(Failure(f"$.fixtures[{index}].id",
+                                    "duplicate fixture id", identity))
+            continue
+        actual_by_id[identity] = fixture
+    for missing in sorted(set(definitions) - set(actual_by_id)):
+        failures.append(Failure("$.fixtures", "missing required fixture", missing))
+    for extra in sorted(set(actual_by_id) - set(definitions)):
+        failures.append(Failure("$.fixtures", "unexpected fixture", extra))
+
+    tolerances = profile.get("tolerances", {})
+    setting_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+    temperature_tolerance = float(tolerances.get(
+        "temperature_absolute_celsius", 0.0))
+    energy_tolerance = float(tolerances.get(
+        "sensible_energy_absolute_j", 0.0))
+    fluid_tolerance = float(tolerances.get("fluid_state_absolute", 0.0))
+    smoke_tolerance = float(tolerances.get("smoke_state_absolute", 0.0))
+
+    def sub(first: tuple[float, float, float],
+            second: tuple[float, float, float]) -> tuple[float, float, float]:
+        return tuple(a - b for a, b in zip(first, second))
+
+    def close_number(actual: Any, expected: Any, path: str) -> None:
+        value = _scalar(actual, path, failures)
+        reference = _scalar(expected, path.replace(
+            "$.fixtures", "$.profile.fixtures"), failures)
+        if (value is not None and reference is not None and
+                abs(value - reference) > setting_tolerance):
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    value, reference))
+
+    def close_vector(actual: Any, expected: Any, path: str) -> None:
+        value = _vector(actual, path, failures)
+        reference = _vector(expected, path.replace(
+            "$.fixtures", "$.profile.fixtures"), failures)
+        if (value is not None and reference is not None and
+                _norm(sub(value, reference)) > setting_tolerance):
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    list(value), list(reference)))
+
+    def close_sequence(actual: Any, expected: Any, path: str) -> None:
+        if (not isinstance(actual, list) or not isinstance(expected, list) or
+                len(actual) != len(expected)):
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    actual, expected))
+            return
+        values = [_scalar(value, f"{path}[{index}]", failures)
+                  for index, value in enumerate(actual)]
+        references = [_scalar(value, f"{path}.profile[{index}]", failures)
+                      for index, value in enumerate(expected)]
+        if (all(value is not None for value in values + references) and
+                any(abs(value - reference) > setting_tolerance
+                    for value, reference in zip(values, references))):
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    actual, expected))
+
+    def snapshot(value: Any, path: str) -> dict[str, Any] | None:
+        if not isinstance(value, dict):
+            failures.append(Failure(path, "expected a snapshot object", value))
+            return None
+        fluid = value.get("fluid")
+        particles = value.get("smoke_particles")
+        if not isinstance(fluid, dict):
+            failures.append(Failure(path + ".fluid",
+                                    "expected a fluid object", fluid))
+            return None
+        if not isinstance(particles, list) or not particles:
+            failures.append(Failure(path + ".smoke_particles",
+                                    "expected a retained smoke endpoint",
+                                    particles))
+            return None
+        vectors = [_vector(fluid.get(field), path + ".fluid." + field,
+                           failures)
+                   for field in ("position_m", "velocity_m_s",
+                                 "acceleration_m_s2")]
+        temperature = _scalar(fluid.get("temperature_celsius"),
+                              path + ".fluid.temperature_celsius", failures)
+        stable_id = fluid.get("stable_id")
+        if not isinstance(stable_id, int) or isinstance(stable_id, bool):
+            failures.append(Failure(path + ".fluid.stable_id",
+                                    "stable id must be an integer", stable_id))
+        normalized_smoke: list[dict[str, Any]] = []
+        for index, particle in enumerate(particles):
+            particle_path = f"{path}.smoke_particles[{index}]"
+            if not isinstance(particle, dict):
+                failures.append(Failure(particle_path, "expected an object",
+                                        particle))
+                continue
+            particle_vectors = [_vector(
+                particle.get(field), particle_path + "." + field, failures)
+                for field in ("position_m", "velocity_m_s", "vorticity_per_s")]
+            particle_scalars = [_scalar(
+                particle.get(field), particle_path + "." + field, failures)
+                for field in ("age_seconds", "number_density", "pressure_m_s2")]
+            slot = particle.get("slot")
+            if (any(item is None for item in particle_vectors + particle_scalars) or
+                    not isinstance(slot, int) or isinstance(slot, bool)):
+                if not isinstance(slot, int) or isinstance(slot, bool):
+                    failures.append(Failure(particle_path + ".slot",
+                                            "slot must be an integer", slot))
+                continue
+            normalized_smoke.append({
+                "slot": slot,
+                "vectors": particle_vectors,
+                "scalars": particle_scalars,
+            })
+        if (any(item is None for item in vectors) or temperature is None or
+                not isinstance(stable_id, int) or isinstance(stable_id, bool) or
+                len(normalized_smoke) != len(particles)):
+            return None
+        return {"position": vectors[0], "velocity": vectors[1],
+                "acceleration": vectors[2], "temperature": temperature,
+                "stable_id": stable_id, "smoke": normalized_smoke}
+
+    def compare_smoke(first: dict[str, Any], second: dict[str, Any],
+                      path: str) -> float:
+        left = first["smoke"]
+        right = second["smoke"]
+        if len(left) != len(right):
+            failures.append(Failure(path, "heating changed smoke endpoint count",
+                                    len(right), len(left)))
+            return float("inf")
+        maximum = 0.0
+        for left_particle, right_particle in zip(left, right):
+            if left_particle["slot"] != right_particle["slot"]:
+                failures.append(Failure(path, "heating changed smoke identity",
+                                        right_particle["slot"],
+                                        left_particle["slot"]))
+            for left_vector, right_vector in zip(
+                    left_particle["vectors"], right_particle["vectors"]):
+                maximum = max(maximum, _norm(sub(left_vector, right_vector)))
+            for left_scalar, right_scalar in zip(
+                    left_particle["scalars"], right_particle["scalars"]):
+                maximum = max(maximum, abs(left_scalar - right_scalar))
+        if maximum > smoke_tolerance:
+            failures.append(Failure(path,
+                                    "external heating mutated the smoke endpoint",
+                                    maximum, smoke_tolerance))
+        return maximum
+
+    observations: dict[str, Any] = {}
+    sample_count = 0
+    for identity, definition in definitions.items():
+        actual = actual_by_id.get(identity)
+        if actual is None:
+            continue
+        base = f"$.fixtures[{identity}]"
+        for field in ("id", "representation", "warmup_step_count", "substeps",
+                      "smoke_particle_capacity", "smoke_grid_resolution",
+                      "smoke_grid_vertical_resolution", "declared_mode_flags",
+                      "exercised_mode", "oracle"):
+            if actual.get(field) != definition.get(field):
+                failures.append(Failure(base + "." + field,
+                                        "fixture setting differs from profile",
+                                        actual.get(field), definition.get(field)))
+        for field in ("timestep_seconds", "fluid_initial_temperature_celsius",
+                      "equilibrium_temperature_celsius",
+                      "fluid_particle_radius_m", "fluid_support_radius_m",
+                      "fluid_rest_density_kg_m3",
+                      "fluid_rest_particle_volume_m3",
+                      "oracle_specific_heat_j_kg_k",
+                      "smoke_emission_rate_per_s", "smoke_lifetime_seconds",
+                      "smoke_particle_radius_m", "smoke_rest_number_density",
+                      "smoke_maximum_speed_m_s", "smoke_grid_edge_length_m",
+                      "heater_temperature_celsius",
+                      "control_heat_transfer_rate_per_s",
+                      "test_heat_transfer_rate_per_s", "wind_drag_per_s",
+                      "boiling_temperature_celsius"):
+            close_number(actual.get(field), definition.get(field),
+                         base + "." + field)
+        for field in ("gravity_m_s2", "fluid_initial_position_m",
+                      "outside_fluid_position_m", "smoke_emitter_center_m",
+                      "smoke_grid_minimum_m", "heater_center_m"):
+            close_vector(actual.get(field), definition.get(field),
+                         base + "." + field)
+        for field in ("smoke_emitter_half_extents_m", "heater_half_extents_m"):
+            close_sequence(actual.get(field), definition.get(field),
+                           base + "." + field)
+        runs = actual.get("runs")
+        if not isinstance(runs, list):
+            failures.append(Failure(base + ".runs", "expected a run array", runs))
+            continue
+        indexed = {run.get("id"): run for run in runs
+                   if isinstance(run, dict) and isinstance(run.get("id"), str)}
+        expected_runs = {"control", "heated", "equilibrium", "outside"}
+        if set(indexed) != expected_runs or len(indexed) != len(runs):
+            failures.append(Failure(base + ".runs",
+                                    "expected exactly the four thermal runs",
+                                    sorted(indexed), sorted(expected_runs)))
+            continue
+        states: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
+        for run_id in sorted(expected_runs):
+            initial = snapshot(indexed[run_id].get("initial"),
+                               base + f".runs[{run_id}].initial")
+            final = snapshot(indexed[run_id].get("final"),
+                             base + f".runs[{run_id}].final")
+            if initial is not None and final is not None:
+                states[run_id] = (initial, final)
+        if set(states) != expected_runs:
+            continue
+
+        for run_id, (initial, final) in states.items():
+            if initial["stable_id"] != final["stable_id"]:
+                failures.append(Failure(base + f".runs[{run_id}]",
+                                        "heating changed fluid identity",
+                                        final["stable_id"], initial["stable_id"]))
+            position_drift = _norm(sub(final["position"], initial["position"]))
+            velocity_drift = _norm(sub(final["velocity"], initial["velocity"]))
+            if max(position_drift, velocity_drift) > fluid_tolerance:
+                failures.append(Failure(base + f".runs[{run_id}]",
+                                        "thermal-only run changed fluid mechanics",
+                                        max(position_drift, velocity_drift),
+                                        fluid_tolerance))
+
+        control_initial, control_final = states["control"]
+        heated_initial, heated_final = states["heated"]
+        equilibrium_initial, equilibrium_final = states["equilibrium"]
+        outside_initial, outside_final = states["outside"]
+        initial_temperature = float(definition["fluid_initial_temperature_celsius"])
+        target_temperature = float(definition["heater_temperature_celsius"])
+        rate = float(definition["test_heat_transfer_rate_per_s"])
+        dt = float(definition["timestep_seconds"])
+        expected_heated = initial_temperature + (
+            target_temperature - initial_temperature) * (1.0 - math.exp(-rate * dt))
+        checks = (
+            ("control", control_initial["temperature"],
+             control_final["temperature"], initial_temperature),
+            ("heated", heated_initial["temperature"],
+             heated_final["temperature"], expected_heated),
+            ("equilibrium", equilibrium_initial["temperature"],
+             equilibrium_final["temperature"], target_temperature),
+            ("outside", outside_initial["temperature"],
+             outside_final["temperature"], initial_temperature),
+        )
+        for run_id, observed_initial, observed_final, expected_final in checks:
+            expected_initial = (target_temperature if run_id == "equilibrium"
+                                else initial_temperature)
+            if abs(observed_initial - expected_initial) > temperature_tolerance:
+                failures.append(Failure(base + f".runs[{run_id}].initial",
+                                        "initial temperature differs from profile",
+                                        observed_initial, expected_initial))
+            if abs(observed_final - expected_final) > temperature_tolerance:
+                failures.append(Failure(base + f".runs[{run_id}].final",
+                                        "temperature differs from heater oracle",
+                                        observed_final, expected_final))
+        minimum_heating = float(tolerances.get("minimum_heating_celsius", 0.0))
+        observed_heating = heated_final["temperature"] - heated_initial["temperature"]
+        if observed_heating < minimum_heating:
+            failures.append(Failure(base + ".runs[heated]",
+                                    "external heater response is too small",
+                                    observed_heating, minimum_heating))
+        if not (heated_initial["temperature"] <= heated_final["temperature"] <=
+                target_temperature + temperature_tolerance):
+            failures.append(Failure(base + ".runs[heated]",
+                                    "external heater overshot its temperature",
+                                    heated_final["temperature"], target_temperature))
+
+        mass = (float(definition["fluid_rest_density_kg_m3"]) *
+                float(definition["fluid_rest_particle_volume_m3"]))
+        specific_heat = float(definition["oracle_specific_heat_j_kg_k"])
+        actual_energy = mass * specific_heat * observed_heating
+        expected_energy = mass * specific_heat * (
+            expected_heated - initial_temperature)
+        if abs(actual_energy - expected_energy) > energy_tolerance:
+            failures.append(Failure(base + ".runs[heated]",
+                                    "normalized sensible-energy accounting failed",
+                                    actual_energy, expected_energy))
+        smoke_delta = max(
+            compare_smoke(control_final, heated_final,
+                          base + ".runs[heated].final.smoke_particles"),
+            compare_smoke(control_final, equilibrium_final,
+                          base + ".runs[equilibrium].final.smoke_particles"),
+            compare_smoke(control_final, outside_final,
+                          base + ".runs[outside].final.smoke_particles"))
+        observations[identity] = {
+            "expected_heated_temperature_celsius": expected_heated,
+            "observed_heated_temperature_celsius": heated_final["temperature"],
+            "normalized_sensible_energy_change_j": actual_energy,
+            "maximum_smoke_endpoint_delta": smoke_delta,
+        }
+        sample_count += 4
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": len(actual_by_id),
+        "sample_count": sample_count,
+        "failure_count": len(failures),
+        "observations": observations,
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def _evaluate_fluid_cloth_contact(
         profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
         driver: Any, failures: list[Failure]) -> dict[str, Any]:
@@ -4069,6 +4387,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "smoke_fluid_drag":
         return _evaluate_smoke_fluid_drag(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "externally_heated_fluid":
+        return _evaluate_externally_heated_fluid(
             profile, result, expected_hash, driver, failures)
     if evaluation != "system_exchange":
         failures.append(Failure("$.profile.evaluation",
