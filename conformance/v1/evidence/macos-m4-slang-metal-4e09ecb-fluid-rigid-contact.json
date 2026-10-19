@@ -1,0 +1,101 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-38",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "4e09ecbd48d1ef6717e327f8050fbebff7651a97",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-metal",
+    "version": "0.2.0+4e09ecb",
+    "binary_sha256": "dae53b75933a4f6143debc7dcfeb8e0ce71820749f0c9659cb6a20d3161c7a9d"
+  },
+  "device": {
+    "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "vendor_id": 4203,
+    "device_id": 0,
+    "driver_version": "202618 (Apple Metal 32023.883)"
+  },
+  "toolchain": {
+    "compiler": "Apple Clang, Slang Metal",
+    "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "0a1d5f18f7c4630392148347d70b01696d6afa7f749e74c750bcb1163e35d7f6",
+    "capabilities_sha256": "4a1e1930f58007a1c6a42af8182948ac12718dd72f1feb41ebf7c0a965d6ac80"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "FLUID",
+      "second_family": "RIGID_BODY",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:fluid-rigid",
+      "sha256": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb"
+    },
+    "quality": {
+      "id": "quality:fluid-rigid-contact-v1",
+      "sha256": "3f91da38345cab59a2cc37487fe4fa243bf211b91f4bd3a0b70163206d07f9a3"
+    },
+    "lifecycle": {
+      "id": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback",
+      "sha256": "b77ce14642b8d6535b57e26e919397fab2cdc5cdf89d8ae8f82cf5bb643259ea"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "9fde2217cad3653cc72270cfe4bab00183ed36ef2c9c0a7521c050e2dd0bdbbd",
+    "comparison_report_sha256": "57199ea570bb06daf31eda4e614a939daaaaaae2e48d22b57f089c73ab5cca71",
+    "reference_regression": {"passed": 1, "failed": 0, "unsupported": 0}
+  },
+  "analytic_invariants": {
+    "result_sha256": "5c756740d0191601b58d0281ca83a8097ed8ca3a07e99012db9c75e87c74c9de",
+    "report_sha256": "9135c3d6d394847127a42b35470435500037497142767709c9c527efceb62d8b",
+    "passed": true,
+    "sample_count": 1,
+    "failure_count": 0,
+    "observations": {
+      "centered-exterior-cube-impact": {
+        "predicted_penetration_m": 0.0050000002980232355,
+        "final_clearance_m": 4.470348355378739e-09,
+        "expected_normal_impulse_n_s": 0.7333333373069765,
+        "observed_normal_impulse_n_s": 0.73333340883255,
+        "reciprocal_impulse_residual_n_s": 0.0,
+        "contact_event_impulse_error_n_s": 0.0,
+        "contact_normal_alignment": 1.0,
+        "contact_point_error_m": 0.0,
+        "kinetic_energy_change_j": -0.32999999245007405
+      }
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "fae7692c8b1e5563b3c57c5884f2c72e2bd86d2c5de0bfff53a32707724563e8",
+    "report_sha256": "082cdcff541ef4efca85941cea07ccb1ac20b4d83b46c4798da675859ee36be1",
+    "passed": true,
+    "profile_case_count": 1,
+    "profile_checkpoint_count": 5,
+    "failure_count": 0
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case fluid-rigid --output <trajectory-output>",
+    "python conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case fluid-rigid --report <trajectory-report>",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality fluid-rigid-contact-v1 --output <quality-output>",
+    "python conformance/v1/quality.py --profile conformance/v1/quality/fluid-rigid-contact-v1.json --actual <quality-output>/fluid-rigid-contact-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle-profile fluid-rigid-contact-lifecycle-v1 --output <lifecycle-result>",
+    "python conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/fluid-rigid-contact-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "The analytic oracle uses only public fluid, rigid-body and contact-event outputs; no driver-private state or extra GPU synchronization was added.",
+    "The centered exterior impact proves non-overlap, a reduced-mass normal impulse, reciprocal endpoint response, a matching public contact event and non-increasing energy without claiming containment.",
+    "The canonical fluid-rigid trajectory passed after bounding only chaotic manifold-count variation; state, momentum, energy and clearance tolerances remain unchanged.",
+    "The lifecycle case proves exact capacity, destructive replacement, rejected overflow rollback, removal and deterministic recovery."
+  ]
+}

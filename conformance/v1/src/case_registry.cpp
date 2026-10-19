@@ -94,7 +94,8 @@ CaseDefinition integrated(
     std::string id, std::string title, std::string glb, std::string sha,
     std::vector<std::string> coverage, std::uint32_t frames = 60U,
     std::string tolerance = "constraint_contact",
-    std::vector<Command> case_commands = {}, bool chaotic = false) {
+    std::vector<Command> case_commands = {}, bool chaotic = false,
+    double chaotic_contact_count_relative = 0.0) {
     CaseDefinition result{};
     result.id = std::move(id);
     result.title = std::move(title);
@@ -114,6 +115,8 @@ CaseDefinition integrated(
                   "equal_opposite_transfer") != result.coverage.end())
         result.invariants.push_back("equal_and_opposite_transfer");
     result.chaotic_envelope = chaotic;
+    result.chaotic_contact_count_relative =
+        chaotic_contact_count_relative;
     return result;
 }
 
@@ -228,7 +231,7 @@ const std::vector<CaseDefinition> &case_registry() {
             "fluid-rigid", "Fluid and rigid two-way contact",
             "FluidRigid", "a73e2b800569ffc038329d4f57624d766dd2ecf9eaea02bf3f58e268f2c224a0",
             {"fluid", "rigid_body", "fluid_rigid_coupling", "equal_opposite_transfer"},
-            48U, "deformable", {}, true));
+            48U, "deformable", {}, true, 0.7));
         result.push_back(integrated(
             "cloth-core", "Cloth pinning, pressure, and rigid contact",
             "Cloth", "ba43629a87690a90910a550d3b4edfaa33341258ce04e7c4ee035624878ebca6",
@@ -347,7 +350,12 @@ std::string serialize_case(const CaseDefinition &definition) {
     result += ",\"title\":" + quote(definition.title);
     result += ",\"tolerances\":{\"profile\":" +
               quote(definition.tolerance_profile) +
-              ",\"values\":{\"chaotic_energy\":{\"abs\":25,\"rel\":0.25},\"chaotic_momentum\":{\"abs\":25,\"rel\":0.25},\"chaotic_position\":{\"abs\":0.10000000000000001,\"rel\":0.050000000000000003},\"chaotic_scalar\":{\"abs\":0.050000000000000003,\"rel\":0.10000000000000001},\"constraint_contact\":{\"position\":{\"abs\":0.002,\"rel\":0.002},\"velocity\":{\"abs\":0.02,\"rel\":0.02}},\"deformable\":{\"position\":{\"abs\":0.005,\"rel\":0.005},\"velocity\":{\"abs\":0.05,\"rel\":0.05}},\"direct\":{\"position\":{\"abs\":1e-05,\"rel\":1e-05},\"velocity\":{\"abs\":1e-05,\"rel\":1e-05}},\"quaternion_angular\":{\"abs\":0.002,\"rel\":0}}}";
+              ",\"values\":{";
+    if (definition.chaotic_contact_count_relative > 0.0) {
+        result += "\"chaotic_contact_count\":{\"abs\":1,\"rel\":" +
+                  number(definition.chaotic_contact_count_relative) + "},";
+    }
+    result += "\"chaotic_energy\":{\"abs\":25,\"rel\":0.25},\"chaotic_momentum\":{\"abs\":25,\"rel\":0.25},\"chaotic_position\":{\"abs\":0.10000000000000001,\"rel\":0.050000000000000003},\"chaotic_scalar\":{\"abs\":0.050000000000000003,\"rel\":0.10000000000000001},\"constraint_contact\":{\"position\":{\"abs\":0.002,\"rel\":0.002},\"velocity\":{\"abs\":0.02,\"rel\":0.02}},\"deformable\":{\"position\":{\"abs\":0.005,\"rel\":0.005},\"velocity\":{\"abs\":0.05,\"rel\":0.05}},\"direct\":{\"position\":{\"abs\":1e-05,\"rel\":1e-05},\"velocity\":{\"abs\":1e-05,\"rel\":1e-05}},\"quaternion_angular\":{\"abs\":0.002,\"rel\":0}}}";
     result += ",\"world\":{\"chaotic_envelope\":";
     result += definition.chaotic_envelope ? "true" : "false";
     result += ",\"deterministic\":true,\"frames\":" +

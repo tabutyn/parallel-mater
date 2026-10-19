@@ -1,7 +1,7 @@
 {
   "id": "F5-38",
   "title": "Qualify fluid-rigid contact",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,15 +17,33 @@
     "Add exact bounded capacity, replacement, removal and rollback lifecycle checks; a rejected mutation preserves the last usable state and recovery is deterministic.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "d3071b62-c36e-4ee9-93ee-e4ab17a5ed20",
-    "owner": "codex-macos-qualification",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F5-38/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-19T15:53:45Z",
-    "heartbeat_at": "2026-10-19T15:53:45Z",
-    "expires_at": "2026-10-20T15:53:45Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/roadmap/evidence/F5-38-fluid-rigid-contact.json",
+    "PASS: conformance/v1/evidence/macos-m4-slang-metal-4e09ecb-fluid-rigid-contact-qualification.json qualifies 1/1 exact capability with 0 failures",
+    "PASS: fluid-rigid CUDA reference regression, analytic reduced-mass contact oracle, and five-checkpoint lifecycle report",
+    "PASS: 199 portable conformance tests and clean Slang Metal native build"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "d3071b62-c36e-4ee9-93ee-e4ab17a5ed20",
+        "owner": "codex-macos-qualification",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F5-38/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-19T15:53:45Z",
+        "heartbeat_at": "2026-10-19T15:53:45Z",
+        "expires_at": "2026-10-20T15:53:45Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T16:21:55Z",
+      "reason": "Published exact vendor-neutral fluid-rigid exterior-contact quality and lifecycle contracts, qualified them on Apple M4 Slang Metal, and retained containment as F5-39.",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/F5-38-fluid-rigid-contact.json",
+        "PASS: conformance/v1/evidence/macos-m4-slang-metal-4e09ecb-fluid-rigid-contact-qualification.json qualifies 1/1 exact capability with 0 failures",
+        "PASS: fluid-rigid CUDA reference regression, analytic reduced-mass contact oracle, and five-checkpoint lifecycle report",
+        "PASS: 199 portable conformance tests and clean Slang Metal native build"
+      ]
+    }
+  ]
 }
