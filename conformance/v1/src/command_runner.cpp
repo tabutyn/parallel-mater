@@ -1079,7 +1079,7 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
-    constexpr std::array<std::pair<std::string_view, std::string_view>, 30U>
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 32U>
         pinned_inputs{{
             {"quality profile", "conformance/v1/quality/core-conservation-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-attachment-v1.json"},
@@ -1094,6 +1094,7 @@ void copy_particle_state(const std::vector<State> &states,
             {"quality profile", "conformance/v1/quality/smoke-self-pressure-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-cloth-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/smoke-fluid-drag-v1.json"},
+            {"quality profile", "conformance/v1/quality/smoke-cloth-drag-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-smoke-phase-v1.json"},
             {"quality profile",
              "conformance/v1/quality/externally-heated-fluid-v1.json"},
@@ -1106,6 +1107,7 @@ void copy_particle_state(const std::vector<State> &states,
             {"lifecycle profile", "conformance/v1/lifecycle/fluid-rigid-contact-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/cloth-rope-attachment-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json"},
+            {"lifecycle profile", "conformance/v1/lifecycle/smoke-cloth-grid-drag-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/fluid-smoke-phase-lifecycle-v1.json"},
             {"lifecycle profile",
              "conformance/v1/lifecycle/externally-heated-fluid-lifecycle-v1.json"},
@@ -1425,6 +1427,10 @@ int conformance_command_main(int argc, char **argv) {
                      "smoke-fluid-drag-lifecycle-v1")
                 result = conformance_smoke_fluid_drag_lifecycle(root, &status);
             else if (arguments.lifecycle_id ==
+                     "smoke-cloth-grid-drag-lifecycle-v1")
+                result = conformance_smoke_cloth_grid_drag_lifecycle(
+                    root, &status);
+            else if (arguments.lifecycle_id ==
                      "fluid-smoke-phase-lifecycle-v1")
                 result = conformance_fluid_smoke_phase_lifecycle(root, &status);
             else if (arguments.lifecycle_id ==
@@ -1476,6 +1482,8 @@ int conformance_command_main(int argc, char **argv) {
 #endif
             const bool smoke_fluid_drag = arguments.quality_id ==
                 "smoke-fluid-drag-v1";
+            const bool smoke_cloth_drag = arguments.quality_id ==
+                "smoke-cloth-drag-v1";
             const bool fluid_smoke_phase = arguments.quality_id ==
                 "fluid-smoke-phase-v1";
             const bool externally_heated_fluid = arguments.quality_id ==
@@ -1488,7 +1496,7 @@ int conformance_command_main(int argc, char **argv) {
                 !cloth_rope_attachment &&
                 !smoke_self_pressure && !fluid_cloth_contact &&
                 !smoke_self_viscosity && !fluid_self &&
-                !smoke_fluid_drag && !fluid_smoke_phase &&
+                !smoke_fluid_drag && !smoke_cloth_drag && !fluid_smoke_phase &&
                 !externally_heated_fluid)
                 throw std::runtime_error(
                     "unknown conformance quality profile: " +
@@ -1588,6 +1596,17 @@ int conformance_command_main(int argc, char **argv) {
                 } else if (smoke_fluid_drag) {
                     ExecutionStatus status{};
                     result = conformance_smoke_fluid_drag_quality(root, &status);
+                    write_file(arguments.output /
+                                   (arguments.quality_id + ".json"),
+                               result);
+                    if (status == ExecutionStatus::unsupported) return 77;
+                    if (status == ExecutionStatus::failed) return 2;
+                    std::cout << "Quality execution completed: "
+                              << arguments.quality_id << '\n';
+                    return 0;
+                } else if (smoke_cloth_drag) {
+                    ExecutionStatus status{};
+                    result = conformance_smoke_cloth_drag_quality(root, &status);
                     write_file(arguments.output /
                                    (arguments.quality_id + ".json"),
                                result);
