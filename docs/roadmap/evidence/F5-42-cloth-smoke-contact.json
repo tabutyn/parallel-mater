@@ -1,0 +1,63 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-42",
+  "source_commit": "7934b3f8085189daaf81d95d1b7ece7a3fd20a39",
+  "captured_at": "2026-10-19",
+  "host": "ThomasLaptop",
+  "driver": "slang-cuda",
+  "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+  "capabilities": [
+    "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
+    "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID"
+  ],
+  "contracts": {
+    "trajectory": "case:smoke-cloth",
+    "quality": "quality:cloth-smoke-contact-v1",
+    "particle_lifecycle": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback",
+    "grid_lifecycle": "lifecycle:cloth-smoke-contact-lifecycle-v1#grid-cloth-smoke-contact-capacity-replacement-removal-rollback"
+  },
+  "results": {
+    "trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "reference_regression": "PASS: smoke-cloth against the canonical CUDA golden",
+    "analytic_invariants": "PASS: 2 representation samples, 0 failures",
+    "particle_contact_clearance_error_m": 3.3527612630646075e-10,
+    "particle_final_normal_velocity_m_s": 0.0,
+    "particle_final_tangential_speed_m_s": 0.25,
+    "grid_contact_clearance_error_m": 3.3527612630646075e-10,
+    "grid_final_normal_velocity_m_s": 0.0,
+    "grid_final_tangential_speed_m_s": 1.0307763174801927,
+    "reverse_cloth_response": "PASS: public cloth vertices remain within tolerance and all final velocities are zero",
+    "particle_lifecycle": "PASS: 2 profile cases, 9 checkpoints, 0 failures; retained three-family partial rollback binding",
+    "grid_lifecycle": "PASS: 1 profile case, 5 checkpoints, 0 failures; capacity rejection preserves the replacement graph and active contact behavior",
+    "particle_qualification": "PASS: 1/1 exact SMOKE_PARTICLE CONTACT capability, 0 failures",
+    "grid_qualification": "PASS: 1/1 exact SMOKE_GRID CONTACT capability, 0 failures",
+    "native_build": "PASS: 366 targets including conformance runner, Slang CUDA/Vulkan drivers and cross-target shader validation",
+    "command_inputs": "PASS: all 32 pinned conformance inputs match the manifest",
+    "evidence_index": "PASS: 2/314 capability records qualified across 27 revisioned reports; stale and unrecaptured records remain visible and unqualified"
+  },
+  "artifacts": {
+    "provenance": "docs/roadmap/evidence/F5-42-7934b3f-cuda-provenance.json",
+    "capabilities": "docs/roadmap/evidence/F5-42-7934b3f-cuda-capabilities.json",
+    "trajectory_result": "docs/roadmap/evidence/F5-42-7934b3f-cuda-smoke-cloth.json",
+    "trajectory_report": "docs/roadmap/evidence/F5-42-7934b3f-cuda-smoke-cloth-report.json",
+    "quality_result": "docs/roadmap/evidence/F5-42-7934b3f-cuda-quality-result.json",
+    "quality_report": "docs/roadmap/evidence/F5-42-7934b3f-cuda-quality-report.json",
+    "particle_lifecycle_result": "docs/roadmap/evidence/F5-42-7934b3f-cuda-particle-lifecycle-result.json",
+    "particle_lifecycle_report": "docs/roadmap/evidence/F5-42-7934b3f-cuda-particle-lifecycle-report.json",
+    "grid_lifecycle_result": "docs/roadmap/evidence/F5-42-7934b3f-cuda-grid-lifecycle-result.json",
+    "grid_lifecycle_report": "docs/roadmap/evidence/F5-42-7934b3f-cuda-grid-lifecycle-report.json",
+    "particle_physical_evidence": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle.json",
+    "grid_physical_evidence": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid.json",
+    "particle_qualification": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle-qualification.json",
+    "grid_qualification": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid-qualification.json"
+  },
+  "notes": [
+    "The immutable public-API oracle uses paired no-edge and CONTACT-edge runs with SI units and bounded tolerances. It reads only cloth and smoke outputs; no driver-private state participates.",
+    "Particle and grid smoke both cross the cloth plane in the control, while CONTACT projects each tracer to the declared surface clearance and removes inward normal velocity without erasing tangential motion.",
+    "The cloth is dynamic in the oracle. Its public positions remain within tolerance and its final velocities are zero, so qualification does not silently claim an unadvertised reverse mechanical response.",
+    "The grid lifecycle changes the CONTACT distance itself across accepted generations. A rejected over-capacity mutation is followed by a fresh public smoke step/readback whose graph and endpoint signatures exactly match the surviving replacement state; removal changes behavior and recovery restores it.",
+    "Submit-time invalid endpoint descriptors remain pending by API design and cannot be directly stepped without replacement, so the grid profile makes no unverifiable claim about that path. The particle tuple retains the existing adverse partial-rollback lifecycle contract.",
+    "The CONTACT and DRAG obligation rules are now disjoint. Neither F5-42 qualification result advertises DRAG; F5-43 remains responsible for those exact tuples.",
+    "Only the two exact recaptured CUDA CONTACT records qualify. Older and unrecaptured driver records remain visible and unqualified after the obligation hash changed."
+  ]
+}
