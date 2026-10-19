@@ -801,7 +801,7 @@ void rigid_add_contact(inout ContactManifold manifold, Contact contact,
 {
     // Canonicalize contact depth below the collision margin so reduction and
     // response cannot amplify target-specific sub-ULP witness noise.
-    const float depthScale = 8388608.0f;
+    const float depthScale = 16777216.0f;
     contact.penetration = round(contact.penetration * depthScale) / depthScale;
     bool guided = rigid_guided_contact(contact);
     Vec3 candidateDirection = guided ? rigid_guide_direction(contact) : Vec3();
