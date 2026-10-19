@@ -37,6 +37,7 @@ struct CaseDefinition {
     std::vector<std::string> invariants{};
     std::vector<std::string> coverage{};
     bool chaotic_envelope{};
+    double chaotic_contact_count_relative{};
 };
 
 [[nodiscard]] const std::vector<CaseDefinition> &case_registry();

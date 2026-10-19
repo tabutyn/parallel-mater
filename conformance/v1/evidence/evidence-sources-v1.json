@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "6c84de787b5b6ed42f31d510cf6484342ec4bee155bf0c58630b0cf3fcb08270"
+    "sha256": "20c3086b26c05fc00bdc2a70fc4f528cdd588271c2cc2be4409912982d60c419"
   },
   "qualification_results": [
     {
@@ -61,6 +61,11 @@
       "id": "linux-thomas-laptop-slang-cpu-eed669e",
       "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json",
       "sha256": "e3ae75435330251f28ac8196012f921bf7be032541362db1fdc978f5eb7f7473"
+    },
+    {
+      "id": "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-4e09ecb-fluid-rigid-contact-qualification.json",
+      "sha256": "ed16738f43f7bf5453ad814ac3f1fba6e485c9e8926bdadcff6a94fe94501acb"
     },
     {
       "id": "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid",

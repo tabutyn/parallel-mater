@@ -265,8 +265,11 @@ def tolerance_for(case: dict[str, Any], tolerance_class: str,
     if leaf == "orientation":
         selected = values["quaternion_angular"]
     elif (case.get("world", {}).get("chaotic_envelope") and
-          ("contact_count" in leaf or
-           leaf in CHAOTIC_SCALAR_ENVELOPE_KEYS)):
+          "contact_count" in leaf):
+        selected = values.get("chaotic_contact_count",
+                              values["chaotic_scalar"])
+    elif (case.get("world", {}).get("chaotic_envelope") and
+          leaf in CHAOTIC_SCALAR_ENVELOPE_KEYS):
         selected = values["chaotic_scalar"]
     elif case.get("world", {}).get("chaotic_envelope") and "momentum" in path:
         selected = values["chaotic_momentum"]
