@@ -243,6 +243,26 @@ def soft_rope_attachment_result(profile: dict,
     return result
 
 
+def soft_rigid_contact_result(profile: dict,
+                              first: str = "SOFT_BODY") -> dict:
+    result = valid_equal_fluid_result(profile)
+    result["advertised_capabilities"] = [
+        capability(first, "RIGID_BODY", "DISTINCT_FAMILY", "CONTACT",
+                   "BIDIRECTIONAL", "ENDPOINT_NATIVE", "not-applicable")
+    ]
+    result["evidence"] = [
+        evidence(profile, "compilation", "registry:interaction-capabilities"),
+        evidence(profile, "execution", "case:soft-body-core"),
+        evidence(profile, "reference_regression", "case:soft-body-core"),
+        evidence(profile, "lifecycle_invariants",
+                 "lifecycle:soft-rigid-contact-lifecycle-v1#"
+                 "soft-rigid-contact-capacity-replacement-removal-rollback"),
+        evidence(profile, "analytic_invariants",
+                 "quality:soft-rigid-contact-v1"),
+    ]
+    return result
+
+
 def fluid_soft_aggregate(profile: dict) -> tuple[dict, dict, list[dict]]:
     contracts = contract_map(profile)
     advertised = capability(
@@ -489,6 +509,46 @@ class QualificationTests(unittest.TestCase):
         result["evidence"] = [item for item in result["evidence"]
                               if item["contract"] != lifecycle_contract]
         report = self.assert_rejected(result, "required evidence is missing")
+        self.assertEqual(report["qualified_count"], 0)
+
+    def test_soft_rigid_contact_has_complete_intrinsic_obligations(self):
+        result = soft_rigid_contact_result(self.profile)
+        report = self.evaluate(result)
+        self.assertTrue(report["passed"], report)
+        self.assertEqual(report["qualified_count"], 1)
+        capability_report = report["capabilities"][0]
+        self.assertEqual(capability_report["rule_id"], "soft-body-rigid")
+        self.assertEqual(capability_report[
+            "max_graph_edges_per_simulation"], "not-applicable")
+        for scope in ("execution", "reference_regression",
+                      "lifecycle_invariants", "analytic_invariants"):
+            self.assertEqual(capability_report["scopes"][scope]["status"],
+                             "passed")
+
+        for missing_scope in ("lifecycle_invariants", "analytic_invariants"):
+            with self.subTest(missing_scope=missing_scope):
+                incomplete = soft_rigid_contact_result(self.profile)
+                incomplete["evidence"] = [
+                    item for item in incomplete["evidence"]
+                    if item["scope"] != missing_scope]
+                report = self.assert_rejected(
+                    incomplete, "required evidence is missing")
+                self.assertEqual(report["qualified_count"], 0)
+
+    def test_soft_rigid_contact_rejects_nearby_contract_substitution(self):
+        result = soft_rigid_contact_result(self.profile)
+        result["evidence"][-2] = evidence(
+            self.profile, "lifecycle_invariants",
+            "lifecycle:adverse-capacity-three-family-v1#"
+            "three-family-partial-rollback")
+        result["evidence"][-1] = evidence(
+            self.profile, "analytic_invariants",
+            "quality:fluid-rigid-contact-v1")
+        report = self.assert_rejected(result, "required evidence is missing")
+        self.assertEqual(report["qualified_count"], 0)
+
+        nearby = soft_rigid_contact_result(self.profile, "CLOTH")
+        report = self.assert_rejected(nearby, "required evidence is missing")
         self.assertEqual(report["qualified_count"], 0)
 
     def test_soft_smoke_contact_and_drag_contracts_are_exact(self):

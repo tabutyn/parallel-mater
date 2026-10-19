@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "45a66f52166b62bf72a80278e02efde22c34743c214b35d06bc1b11345b284f1"
+    "sha256": "9d23925f80d28bd31429682da8e40beeca02ddd29b17d4659b30007b4fc35dd5"
   },
   "qualification_results": [
     {
@@ -91,6 +91,11 @@
       "id": "linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle-qualification.json",
       "sha256": "b7448ca5a554f7328a4ce0e8d74899d8eaed2864077840528ec1045231666d7f"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-7396577-soft-rigid-contact",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7396577-soft-rigid-contact-qualification.json",
+      "sha256": "ec919a0c48ead8f644c69952e89e32cea4650e3f35858cb6957c596ac51a0dbf"
     },
     {
       "id": "linux-rtx3050ti-slang-vulkan-eed669e",
