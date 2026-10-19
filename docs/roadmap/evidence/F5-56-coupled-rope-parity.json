@@ -1,0 +1,129 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-56",
+  "source_commit": "b859981c0cc1e3c4ce9cd6dc11ef298c273cf653",
+  "captured_at": "2026-10-19",
+  "hosts": [
+    {
+      "host": "Thomass-MacBook-Air",
+      "driver": "slang-metal",
+      "device": "Apple M4 - Metal GPU preview (qualification incomplete)",
+      "device_id": 0,
+      "vendor_id": 4203,
+      "driver_version": "202618",
+      "host_compiler": "Apple LLVM 21.0.0 (clang-2100.1.1.101)"
+    },
+    {
+      "host": "ThomasLaptop",
+      "driver": "slang-cuda",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+      "device_id": 0,
+      "vendor_id": 4318,
+      "driver_version": "13010",
+      "host_compiler": "12.2.0"
+    }
+  ],
+  "trace": {
+    "case": "rope-soft-body",
+    "first_state_divergence": {
+      "frame": 0,
+      "substep": 1,
+      "pair": 6,
+      "body": 2,
+      "collider": 0,
+      "metal_orientation_bits": ["3585f39d", "36d937e5", "36532dd6", "3f800000"],
+      "cuda_orientation_bits": ["35858616", "36d8864c", "36528126", "3f800000"]
+    },
+    "first_discrete_contact_divergence": {
+      "frame": 11,
+      "substep": 3,
+      "pair": 7,
+      "body": 2,
+      "collider": 1,
+      "candidate": 3,
+      "range": [30, 2, 0, 2],
+      "metal_triangle": 30,
+      "cuda_triangle": 31,
+      "metal_depth_bits": "3b7173ea",
+      "cuda_depth_bits": "3b716aa0",
+      "metal_fraction_bits": "3d060047",
+      "cuda_fraction_bits": "3d06e3a8",
+      "normal_bits": ["00000000", "3f800000", "00000000"],
+      "interpretation": "Target-specific sub-ULP rope-state feedback changed which physically equivalent swept triangle witness survived reduction."
+    },
+    "captured_fields": [
+      "frame and substep",
+      "stable pair/body/collider identifiers",
+      "candidate and BVH leaf range",
+      "contact/rejection count",
+      "triangle identifiers",
+      "swept/static region",
+      "point, normal, depth and fraction IEEE-754 bits"
+    ]
+  },
+  "correction": {
+    "shared_slang_only": true,
+    "coupled_rope_entry": "rope_advance_coupled shares the rope_advance implementation and canonicalizes only coupled first-substep orientation and angular velocity on binary grids of 2^-20 and 2^-22.",
+    "contact_reduction": "Shared geometry code deterministically orders physically equivalent swept witnesses when rope-soft coupling is active; equivalence requires the existing point region, normal dot above 0.9999 and depth difference at most 2e-6 m.",
+    "uncoupled_behavior": "The ordinary rope_advance entry point is unchanged and does not enable coupled canonicalization.",
+    "driver_behavior": "CUDA/Vulkan and Metal rope adapters select a shared Slang entry point; CPU, CUDA/Vulkan, D3D12 and Metal geometry adapters only transport the shared witness-mode bit. No backend contains a physics equation or alternate schedule.",
+    "public_api_changed": false,
+    "golden_changed": false,
+    "tolerance_changed": false
+  },
+  "results": {
+    "rope_soft_body": {
+      "metal": "PASS: unchanged CUDA-reference comparator, 1 passed, 0 failed, 0 unsupported",
+      "cuda": "PASS: unchanged CUDA-reference comparator, 1 passed, 0 failed, 0 unsupported",
+      "metal_result_sha256": "42bd73c6a6863de9370ba9532b42747996086c1a425d2bd77b66934521cc156f",
+      "cuda_result_sha256": "48176e07379c7a8b0f46ef1fb9b10a96d658a7df0fe00f0720e744eb486cf2e6",
+      "report_sha256": "88b0678791d9784d5fbd7b4827d0d79710e9a9b28087e5ce4f38e666e14d68a8"
+    },
+    "rope_self_contact": {
+      "metal": "PASS: 1 sample, 0 failures",
+      "cuda": "PASS: 1 sample, 0 failures",
+      "metal_report_sha256": "b04a7c3eb7e851d8dba73694072bf067d4e214583683d40415adf9c046ead1a9",
+      "cuda_report_sha256": "c0086dadaddf1fdef5b831b7b39af6ba90554621f293faf3eb2c2cd5a3f1acbf"
+    },
+    "rope_rigid_contact": {
+      "metal": "PASS: 2 samples, 0 failures",
+      "cuda": "PASS: 2 samples, 0 failures",
+      "metal_report_sha256": "e14ee9b24769f1d69383287968ee5dc0333a8b3a1cfd4a9bea36e4238370e1d0",
+      "cuda_report_sha256": "4db29addd521ba75694aaf4e4a9c2459a77e7d5ab2ead0ee82a3d7848f5b2663"
+    },
+    "soft_rope_attachment": {
+      "cuda": "PASS: final attachment drift 0.00030796263528896667 m under the 0.0005 m limit",
+      "metal": "KNOWN BASELINE FAILURE: final attachment drift 0.0020305111139788524 m exceeds 0.0005 m",
+      "metal_before_and_after_report_sha256": "b555f2e76af7006dc6e35b0b8df40babd835d3f1fa984a193b87f7f72a704724",
+      "cuda_report_sha256": "8f6a18eb9d6c4d0c2aa12866063c933c5015637001a95c38508351afee5e8bee"
+    },
+    "adverse_lifecycle": {
+      "metal": "PASS: 2 cases, 9 checkpoints, 0 failures",
+      "cuda": "PASS: 2 cases, 9 checkpoints, 0 failures",
+      "metal_report_sha256": "ec2b02585e534d739521534be79f21f8e491a1cb7b8faba4dce21936062cff9e",
+      "cuda_report_sha256": "7b7c50afcf475f72792c8bae79ed105afc828c0a83679006c9f7e67fe3313e1d"
+    },
+    "rope_core_winding_release_contact": {
+      "cuda": "KNOWN BASELINE FAILURE: comparator report is byte-identical before and after the correction",
+      "cuda_before_and_after_report_sha256": "fe46419ea5c87139de97cd61c20a63a2f9650f773eddbaeeb53911b45440bca7",
+      "metal": "KNOWN HISTORICAL FAILURE: rerun remains outside the CUDA reference; coupled canonicalization is inactive for this uncoupled case",
+      "metal_report_sha256": "42385ab9b30baa9d3433b4f48223aa4fc46bb368eebbfca0f52937b7520fa096"
+    },
+    "soft_rope_contact": "PASS through the unchanged rope-soft-body reference. No vendor-neutral analytic contact oracle is registered; capability-obligations-v1 continues to disclose that pre-existing gap.",
+    "build_and_portability": "PASS: Metal physical build, CPU driver, CUDA and Vulkan shader mirrors, 149 Metal reflection entries, 383 conformance Python tests, and 3 Metal command/deformable/async driver tests.",
+    "performance": {
+      "metal_48_frame_wall_seconds": 4.29,
+      "cuda_48_frame_wall_seconds": 2.98,
+      "rope_threadgroup_static_bytes": 12812,
+      "apple_m4_threadgroup_limit_bytes": 32768
+    }
+  },
+  "artifacts": {
+    "metal_reference_report": "docs/roadmap/evidence/F5-56-b859981c-metal-rope-soft-body-report.json",
+    "cuda_reference_report": "docs/roadmap/evidence/F5-56-b859981c-cuda-rope-soft-body-report.json"
+  },
+  "notes": [
+    "The raw same-revision traces were diagnostic working files; this evidence retains the adjudicating excerpts and exact hashes without committing multi-megabyte logs.",
+    "Commits after the qualified source revision add the architecture guard, canonical lease history and this evidence; they do not alter a compiled kernel or runtime source."
+  ]
+}
