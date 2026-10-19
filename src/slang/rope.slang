@@ -78,8 +78,25 @@ float rope_direction_weight(RopeData rope, uint node, Vec3 direction,
         inverse_inertia_world(parameters[body], states[body], torque));
 }
 
-void rope_move_body(inout RigidBodyState state, Vec3 translation,
-    Vec3 rotation, float dt, bool canonicalizeCoupledState)
+void rope_move_body_uncoupled(inout RigidBodyState state, Vec3 translation,
+    Vec3 rotation, float dt)
+{
+    state.position = add(state.position, translation);
+    Quaternion spin = quaternion_multiply(
+        {rotation.x, rotation.y, rotation.z, 0.0f}, state.orientation);
+    state.orientation = normalized_quaternion({
+        state.orientation.x + 0.5f * spin.x,
+        state.orientation.y + 0.5f * spin.y,
+        state.orientation.z + 0.5f * spin.z,
+        state.orientation.w + 0.5f * spin.w});
+    state.linear_velocity = add(state.linear_velocity,
+        multiply(translation, 1.0f / dt));
+    state.angular_velocity = add(state.angular_velocity,
+        multiply(rotation, 1.0f / dt));
+}
+
+void rope_move_body_coupled(inout RigidBodyState state, Vec3 translation,
+    Vec3 rotation, float dt)
 {
     state.position = add(state.position, translation);
     Quaternion spin = quaternion_multiply(
@@ -90,32 +107,34 @@ void rope_move_body(inout RigidBodyState state, Vec3 translation,
         state.orientation.z + 0.5f * spin.z,
         state.orientation.w + 0.5f * spin.w});
     // Rope-soft feedback amplifies target-specific sub-ULP normalization
-    // differences. This shared grid is far below contact tolerances. Compute
-    // it for every rope so coupled targets keep identical generated arithmetic,
-    // then retain the untouched state for uncoupled ropes.
+    // differences. These shared binary grids are far below contact tolerances.
     const float orientationScale = 1048576.0f;
-    Quaternion canonicalOrientation = {
+    state.orientation = {
         round(state.orientation.x * orientationScale) / orientationScale,
         round(state.orientation.y * orientationScale) / orientationScale,
         round(state.orientation.z * orientationScale) / orientationScale,
         round(state.orientation.w * orientationScale) / orientationScale};
-    state.orientation = canonicalizeCoupledState
-        ? canonicalOrientation : state.orientation;
     state.linear_velocity = add(state.linear_velocity,
         multiply(translation, 1.0f / dt));
     state.angular_velocity = add(state.angular_velocity,
         multiply(rotation, 1.0f / dt));
-    // Keep the coupled velocity state on the same exact binary grid.
     const float angularVelocityScale = 4194304.0f;
-    Vec3 canonicalAngularVelocity = {
+    state.angular_velocity = {
         round(state.angular_velocity.x * angularVelocityScale) /
             angularVelocityScale,
         round(state.angular_velocity.y * angularVelocityScale) /
             angularVelocityScale,
         round(state.angular_velocity.z * angularVelocityScale) /
             angularVelocityScale};
-    state.angular_velocity = canonicalizeCoupledState
-        ? canonicalAngularVelocity : state.angular_velocity;
+}
+
+void rope_move_body(inout RigidBodyState state, Vec3 translation,
+    Vec3 rotation, float dt, bool canonicalizeCoupledState)
+{
+    if (canonicalizeCoupledState)
+        rope_move_body_coupled(state, translation, rotation, dt);
+    else
+        rope_move_body_uncoupled(state, translation, rotation, dt);
 }
 
 void rope_sync_anchors(
