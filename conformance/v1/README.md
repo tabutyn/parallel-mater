@@ -393,10 +393,11 @@ Smoke-to-rigid-body DRAG uses `smoke-rigid-drag-v1` for particle and
 projected-grid smoke. Six paired public-state runs isolate zero-drag,
 forward-flow, stationary-flow, and reverse-flow behavior. The oracle requires
 non-vacuous velocity-dependent rigid and tracer response, forward/reverse
-symmetry, geometric separation beyond the contact distance, unchanged public
-pressure, and bounded speed. Particle smoke additionally proves reciprocal
-momentum and dissipative energy from its public effective mass; grid tracers
-do not stand in for the private Eulerian field's mass or energy.
+symmetry, geometric separation beyond the contact distance, and bounded
+speed. Particle smoke additionally proves reciprocal momentum, force, and
+dissipative energy from its public effective mass; grid tracer pressure stays
+descriptive because it samples the private Eulerian projection and does not
+stand in for that field's mass, force, or energy.
 `smoke-rigid-drag-lifecycle-v1` supplies separate exact adverse graph cases
 for particle and grid representations. These contracts make DRAG evidence
 disjoint from the neighboring smoke-rigid CONTACT contracts; they do not by
