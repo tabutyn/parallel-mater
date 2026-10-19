@@ -100,7 +100,7 @@ PmResult evaluate_rigid_leaf_pairs(
     std::uint32_t *active_pair_count, void *leaf_pairs,
     std::uint32_t *leaf_pair_counts, std::uint32_t leaf_pairs_per_slot,
     void *leaf_manifolds, std::uint32_t blocks_per_pair, float timestep,
-    bool canonicalize_swept_witness, void *manifolds) noexcept {
+    void *manifolds) noexcept {
     pm_evaluate_rigid_leaf_pairs<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), shared_bytes, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<BodyParameters_0>(parameters), as<RigidBodyState_0>(previous_states),
         as<RigidBodyState_0>(states), count, as<TriangleMeshResource_0>(meshes),
@@ -108,7 +108,7 @@ PmResult evaluate_rigid_leaf_pairs(
         constraint_capacity, active_pairs, active_pair_count,
         as<LeafPair_0>(leaf_pairs), leaf_pair_counts, leaf_pairs_per_slot,
         as<ContactManifold_0>(leaf_manifolds), blocks_per_pair, timestep,
-        canonicalize_swept_witness, as<ContactManifold_0>(manifolds));
+        as<ContactManifold_0>(manifolds));
     return device::from_driver_error(cudaPeekAtLastError());
 }
 
@@ -117,12 +117,11 @@ PmResult reduce_rigid_leaf_manifolds(
     std::uint32_t count, std::uint32_t *active_pairs,
     std::uint32_t *active_pair_count, std::uint32_t *leaf_pair_counts,
     std::uint32_t leaf_pairs_per_slot, void *leaf_manifolds,
-    bool canonicalize_swept_witness, void *manifolds) noexcept {
+    void *manifolds) noexcept {
     pm_reduce_rigid_leaf_manifolds<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<BodyParameters_0>(parameters), count, active_pairs,
         active_pair_count, leaf_pair_counts, leaf_pairs_per_slot,
-        as<ContactManifold_0>(leaf_manifolds), canonicalize_swept_witness,
-        as<ContactManifold_0>(manifolds));
+        as<ContactManifold_0>(leaf_manifolds), as<ContactManifold_0>(manifolds));
     return device::from_driver_error(cudaPeekAtLastError());
 }
 

@@ -797,7 +797,7 @@ Vec3 rigid_guide_direction(Contact contact)
 }
 
 void rigid_add_contact(inout ContactManifold manifold, Contact contact,
-    float spacing, bool canonicalizeSweptWitness)
+    float spacing)
 {
     bool guided = rigid_guided_contact(contact);
     Vec3 candidateDirection = guided ? rigid_guide_direction(contact) : Vec3();
@@ -861,8 +861,7 @@ void rigid_add_contact(inout ContactManifold manifold, Contact contact,
                 candidateBodyTriangle > existingBodyTriangle ||
                 (candidateBodyTriangle == existingBodyTriangle &&
                  candidateColliderTriangle > existingColliderTriangle);
-            bool equivalentSweptWitness = canonicalizeSweptWitness &&
-                existingSwept && candidateSwept &&
+            bool equivalentSweptWitness = existingSwept && candidateSwept &&
                 dot(contact.normal, manifold.contacts[i].normal) > 0.9999f &&
                 abs(depthDifference) <= 6.0e-7f;
             if ((equivalentSweptWitness && laterTriangle) ||
@@ -1205,8 +1204,12 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,
             contact.impact_fraction = 1.0f;
             contact.initial_normal_speed = rigid_contact_normal_speed(
                 aState, bState, contact.point, contact.normal);
-            rigid_add_contact(manifold, contact,
-                max(2.0f * margin, 1.0e-4f), false);
+            // Scratch source keys are replaced by reported impulses during
+            // finalization and never escape the contact-reduction pipeline.
+            contact.reported_normal_impulse = asfloat(at);
+            contact.reported_friction_impulse.x = asfloat(bt);
+            contact.reported_friction_impulse.y = asfloat(0u);
+            rigid_add_contact(manifold, contact, max(2.0f * margin, 1.0e-4f));
         }
     }
 }
@@ -1361,7 +1364,7 @@ bool rigid_convex_face_manifold(RigidBodyState bodyState,
             contact.collider_hinge = colliderHinge;
             contact.impact_fraction = 1.0f;
             rigid_add_contact(output, contact,
-                max(margin * 2.0f, 1.0e-4f), false);
+                max(margin * 2.0f, 1.0e-4f));
         }
     }
     if (output.count == 0u) return false;
@@ -1553,7 +1556,7 @@ void rigid_collide_triangle_ranges_swept(
     __constref RigidBodyState bState,
     __constref TriangleMeshResource bMesh, uint bFirst, uint bCount,
     __constref HingeContactFrame colliderHinge,
-    float margin, float timestep, bool canonicalizeSweptWitness,
+    float margin, float timestep,
     inout ContactManifold manifold)
 {
     bool guided = rigid_guided_pair(bodyHinge, colliderHinge);
@@ -1712,17 +1715,11 @@ void rigid_collide_triangle_ranges_swept(
                     contact.collider_hinge = colliderHinge;
                     contact.impact_fraction = startsNearContact ? 0.0f : time;
                     contact.initial_normal_speed = normalSpeed;
-                    if (canonicalizeSweptWitness)
-                    {
-                        // Scratch source keys are replaced by reported impulses
-                        // during finalization and never leave reduction.
-                        contact.reported_normal_impulse = asfloat(at);
-                        contact.reported_friction_impulse.x = asfloat(bt);
-                        contact.reported_friction_impulse.y = asfloat(1u);
-                    }
+                    contact.reported_normal_impulse = asfloat(at);
+                    contact.reported_friction_impulse.x = asfloat(bt);
+                    contact.reported_friction_impulse.y = asfloat(1u);
                     rigid_add_contact(manifold, contact,
-                        max(margin * 2.0f, 1.0e-4f),
-                        canonicalizeSweptWitness);
+                        max(margin * 2.0f, 1.0e-4f));
                     break;
                 }
                 separatingNormal = rigid_triangle_feature_normal(
@@ -1843,7 +1840,7 @@ void rigid_collide_meshes(
                     colliderState, colliderMesh,
                     colliderNode.first_triangle,
                     colliderNode.triangle_count, colliderHinge,
-                    margin, timestep, false, manifold);
+                    margin, timestep, manifold);
             continue;
         }
         uint required = bodyLeaf || colliderLeaf ? 2u : 4u;
@@ -1892,7 +1889,7 @@ void rigid_collide_meshes(
                 bodyHinge, bodyMesh, 0u, bodyMesh.index_count / 3u,
                 previousColliderState, colliderState, colliderMesh, 0u,
                 colliderMesh.index_count / 3u, colliderHinge,
-                margin, timestep, false, manifold);
+                margin, timestep, manifold);
     }
 }
 
@@ -2143,8 +2140,7 @@ void pm_evaluate_rigid_leaf_pairs(
     uniform PMBuffer<uint> active_pair_count, uniform PMBuffer<LeafPair> leaf_pairs,
     uniform PMBuffer<uint> leaf_pair_counts, uniform uint leaf_pairs_per_slot,
     uniform PMBuffer<ContactManifold> leaf_manifolds, uniform uint blocks_per_pair,
-    uniform float timestep, uniform bool canonicalize_swept_witness,
-    uniform PMBuffer<ContactManifold> manifolds
+    uniform float timestep, uniform PMBuffer<ContactManifold> manifolds
     PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
@@ -2236,10 +2232,9 @@ void pm_evaluate_rigid_leaf_pairs(
                             meshes[parameters[b].mesh.index],
                             range.collider_first, range.collider_count,
                             rigidLeafColliderHinge, rigidLeafMargin,
-                            timestep, canonicalize_swept_witness, local);
+                            timestep, local);
                     for (uint point = 0u; point < local.count; ++point)
-                        rigid_add_contact(reduced, local.contacts[point],
-                            spacing, canonicalize_swept_witness);
+                        rigid_add_contact(reduced, local.contacts[point], spacing);
                 }
                 manifolds[activeIndex] = reduced;
             }
@@ -2279,7 +2274,7 @@ void pm_evaluate_rigid_leaf_pairs(
                         meshes[parameters[b].mesh.index],
                         range.collider_first, range.collider_count,
                         rigidLeafColliderHinge, rigidLeafMargin,
-                        timestep, canonicalize_swept_witness, local);
+                        timestep, local);
 #if PM_DEVICE_LEAF_MANIFOLDS
                 leaf_manifolds[
                     activeIndex * leaf_pairs_per_slot + candidate] = local;
@@ -2303,7 +2298,7 @@ void pm_evaluate_rigid_leaf_pairs(
                     for (uint point = 0u; point < partialCount; ++point)
                         rigid_add_contact(rigidLeafReducedManifold,
                             rigidLeafWorkerManifolds[worker].contacts[point],
-                            spacing, canonicalize_swept_witness);
+                            spacing);
                 }
             }
 #endif
@@ -2325,7 +2320,6 @@ void pm_reduce_rigid_leaf_manifolds(
     uniform PMBuffer<uint> active_pairs, uniform PMBuffer<uint> active_pair_count,
     uniform PMBuffer<uint> leaf_pair_counts, uniform uint leaf_pairs_per_slot,
     uniform PMBuffer<ContactManifold> leaf_manifolds,
-    uniform bool canonicalize_swept_witness,
     uniform PMBuffer<ContactManifold> manifolds PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
@@ -2344,8 +2338,7 @@ void pm_reduce_rigid_leaf_manifolds(
         uint localCount = leaf_manifolds[localIndex].count;
         for (uint contact = 0u; contact < localCount; ++contact)
             rigid_add_contact(result,
-                leaf_manifolds[localIndex].contacts[contact], spacing,
-                canonicalize_swept_witness);
+                leaf_manifolds[localIndex].contacts[contact], spacing);
     }
     manifolds[activeIndex] = result;
 }

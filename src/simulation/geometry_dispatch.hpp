@@ -43,14 +43,14 @@ PmResult evaluate_rigid_leaf_pairs(
     std::uint32_t *active_pair_count, void *leaf_pairs,
     std::uint32_t *leaf_pair_counts, std::uint32_t leaf_pairs_per_slot,
     void *leaf_manifolds, std::uint32_t blocks_per_pair, float timestep,
-    bool canonicalize_swept_witness, void *manifolds) noexcept;
+    void *manifolds) noexcept;
 
 PmResult reduce_rigid_leaf_manifolds(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *parameters,
     std::uint32_t count, std::uint32_t *active_pairs,
     std::uint32_t *active_pair_count, std::uint32_t *leaf_pair_counts,
     std::uint32_t leaf_pairs_per_slot, void *leaf_manifolds,
-    bool canonicalize_swept_witness, void *manifolds) noexcept;
+    void *manifolds) noexcept;
 
 PmResult finalize_rigid_contact_manifolds(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *parameters,

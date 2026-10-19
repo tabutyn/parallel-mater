@@ -173,7 +173,7 @@ PmResult evaluate_rigid_leaf_pairs(
     std::uint32_t *active_pair_count, void *leaf_pairs,
     std::uint32_t *leaf_pair_counts, std::uint32_t leaf_pairs_per_slot,
     void *leaf_manifolds, std::uint32_t blocks_per_pair, float timestep,
-    bool canonicalize_swept_witness, void *manifolds) noexcept {
+    void *manifolds) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     using Layout = d3d12::generated::layout::geometry::Kernel_pm_evaluate_rigid_leaf_pairs;
@@ -195,8 +195,6 @@ PmResult evaluate_rigid_leaf_pairs(
     values.buffer(Layout::arg_leaf_manifolds, *execution, leaf_manifolds);
     values.set(Layout::arg_blocks_per_pair, blocks_per_pair);
     values.set(Layout::arg_timestep, timestep);
-    values.set(Layout::arg_canonicalize_swept_witness,
-               canonicalize_swept_witness);
     values.buffer(Layout::arg_manifolds, *execution, manifolds);
     return launch(stream, "geometry", "pm_evaluate_rigid_leaf_pairs",
                   grid, block, values);
@@ -207,7 +205,7 @@ PmResult reduce_rigid_leaf_manifolds(
     std::uint32_t count, std::uint32_t *active_pairs,
     std::uint32_t *active_pair_count, std::uint32_t *leaf_pair_counts,
     std::uint32_t leaf_pairs_per_slot, void *leaf_manifolds,
-    bool canonicalize_swept_witness, void *manifolds) noexcept {
+    void *manifolds) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     using Layout = d3d12::generated::layout::geometry::Kernel_pm_reduce_rigid_leaf_manifolds;
@@ -219,8 +217,6 @@ PmResult reduce_rigid_leaf_manifolds(
     values.buffer(Layout::arg_leaf_pair_counts, *execution, leaf_pair_counts);
     values.set(Layout::arg_leaf_pairs_per_slot, leaf_pairs_per_slot);
     values.buffer(Layout::arg_leaf_manifolds, *execution, leaf_manifolds);
-    values.set(Layout::arg_canonicalize_swept_witness,
-               canonicalize_swept_witness);
     values.buffer(Layout::arg_manifolds, *execution, manifolds);
     return launch(stream, "geometry", "pm_reduce_rigid_leaf_manifolds",
                   grid, block, values);
