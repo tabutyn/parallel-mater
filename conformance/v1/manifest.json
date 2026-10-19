@@ -79,13 +79,14 @@
     "conformance/v1/quality/rigid-brick-penetration-v1.json": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da",
     "conformance/v1/quality/rigid-kinematic-sweep-v1.json": "1c3352d44f40f31f5cca64cfc1914737d063fa6fad8695fe6edb876d569e3bfc",
     "conformance/v1/quality/rope-self-contact-v1.json": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113",
+    "conformance/v1/quality/soft-rope-attachment-v1.json": "7c43ecebb7083f0b7e4a2aeab8768f6236cf44edcd7f409022eccbea98a49549",
     "conformance/v1/quality/smoke-cloth-drag-v1.json": "6984353862c9dc69f693597e92e60c9956576f080cbca2e79040e2ff923480ac",
     "conformance/v1/quality/smoke-fluid-drag-v1.json": "ef28c4f4446365aa787aac9605098772f00e68f1ebf958b2023b6cafdba1c3e1",
     "conformance/v1/quality/smoke-self-pressure-v1.json": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150",
     "conformance/v1/quality/smoke-self-viscosity-v1.json": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"
   },
   "qualification_profile_sha256": {
-    "conformance/v1/qualification/capability-obligations-v1.json": "024f8894735a8285f1d5fb7058e639256cf5db6bc9a5ee9e2b1ff28de50ab588"
+    "conformance/v1/qualification/capability-obligations-v1.json": "5c81e9a4bdc1da9d06e99c842f58a1501144f73f0b143e2c8e3c547310b6d02a"
   },
   "evidence_index_sha256": {
     "conformance/v1/evidence/evidence-sources-v1.json": "2e3da24a709411ed0fe7beb91b04d6dc42af8d0997a9ae2d448501a2333c4f04",

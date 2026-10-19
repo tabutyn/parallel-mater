@@ -1,0 +1,54 @@
+{
+  "schema": "parallel-mater-conformance-quality-profile/v1",
+  "id": "soft-rope-attachment-v1",
+  "title": "Bidirectional soft-body-rope endpoint attachment",
+  "evaluation": "soft_rope_attachment",
+  "sources": {
+    "capability": "docs/INTERACTION-MODES.md: SOFT_BODY/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+    "fixture": "conformance/v1/src/soft_rope_attachment.cpp: public-API supported tetrahedron and hanging rope",
+    "oracle": "Independent public surface separation and rope momentum balance against the public soft-body reaction; the mandatory coauthored contact channel must remain inactive",
+    "qualification": "docs/ROADMAP.md: F5-46"
+  },
+  "units": "SI: metres, kilograms, seconds, metres per second, newtons and metres per newton",
+  "fixtures": [
+    {
+      "id": "supported-hanging-rope",
+      "timestep_seconds": 0.008333333333333333,
+      "step_count": 120,
+      "substeps": 2,
+      "gravity_m_s2": [0.0, -9.81, 0.0],
+      "soft_node_mass_kg": 0.25,
+      "soft_nodes_m": [[-0.1, 0.0, -0.1], [0.1, 0.0, -0.1], [0.0, 0.0, 0.1], [0.0, 0.2, 0.0]],
+      "soft_inverse_masses_per_kg": [4.0, 4.0, 4.0, 0.0],
+      "soft_bonds": [[0, 1, 0.2], [0, 2, 0.223606798], [0, 3, 0.244948974], [1, 2, 0.223606798], [1, 3, 0.244948974], [2, 3, 0.223606798]],
+      "surface_triangle_indices": [0, 1, 2, 0, 3, 1, 0, 2, 3, 1, 3, 2],
+      "soft_node_radius_m": 0.025,
+      "soft_stretch_compliance_m_per_n": 1e-7,
+      "soft_velocity_damping_per_s": 0.0,
+      "soft_solver_iterations": 8,
+      "rope_centerline_m": [[0.0, 0.0, -0.0333333333], [0.0, -0.2, -0.0333333333]],
+      "rope_node_spacing_m": 0.05,
+      "rope_radius_m": 0.025,
+      "rope_total_mass_kg": 0.5,
+      "rope_stretch_compliance_m_per_n": 1e-7,
+      "rope_velocity_damping_per_s": 0.0,
+      "rope_solver_iterations": 8,
+      "attached_rope_end": "first",
+      "attached_surface_triangle": [0, 1, 2],
+      "anchor_support_radius_scale": 0.0,
+      "anchor_contact_support_radius_scale": 0.0,
+      "maximum_soft_body_acceleration_m_s2": 500.0,
+      "oracle": "public-surface-drift-momentum-reaction-and-inactive-contact"
+    }
+  ],
+  "tolerances": {
+    "fixture_state_absolute": 1e-6,
+    "maximum_attachment_drift_m": 0.0005,
+    "minimum_reaction_force_n": 0.01,
+    "maximum_reciprocal_force_residual_n": 0.05,
+    "maximum_pinned_node_drift_m": 1e-6,
+    "maximum_contact_force_n": 1e-5,
+    "maximum_transverse_drift_m": 0.05,
+    "maximum_speed_m_s": 20.00001
+  }
+}
