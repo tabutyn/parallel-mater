@@ -1,0 +1,38 @@
+{
+  "driver": {
+    "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "device_id": 0,
+    "driver_version": "13010",
+    "name": "slang-cuda",
+    "vendor_id": 4318
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 2,
+  "observations": {
+    "grid-soft-contact": {
+      "contact_clearance_error_m": 3.3527612630646075e-10,
+      "control_final_signed_distance_m": 0.004999999888241291,
+      "control_initial_signed_distance_m": -0.004999999888241291,
+      "coupled_final_normal_velocity_m_s": 0.0,
+      "coupled_final_signed_distance_m": -0.014999999664723873,
+      "coupled_final_tangential_speed_m_s": 1.030776361896892,
+      "maximum_smoke_speed_m_s": 1.0307764064044151
+    },
+    "particle-soft-contact": {
+      "contact_clearance_error_m": 3.3527612630646075e-10,
+      "control_final_signed_distance_m": 0.004999999888241291,
+      "control_initial_signed_distance_m": -0.004999999888241291,
+      "coupled_final_normal_velocity_m_s": 0.0,
+      "coupled_final_signed_distance_m": -0.014999999664723873,
+      "coupled_final_tangential_speed_m_s": 0.25,
+      "maximum_smoke_speed_m_s": 1.0307764064044151
+    }
+  },
+  "passed": true,
+  "profile_id": "soft-smoke-contact-v1",
+  "profile_sha256": "4ee08a7676ccf9c7198e0fbdd752db59c25bb655601e22aa15a327d70ab0ab8d",
+  "sample_count": 2,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

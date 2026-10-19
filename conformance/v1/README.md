@@ -240,6 +240,31 @@ python3 conformance/v1/quality.py \
   --report /path/to/soft-rope-quality-report.json
 ```
 
+Soft-body-to-smoke CONTACT uses the immutable `soft-smoke-contact-v1`
+profile for particle and projected-grid smoke. Paired no-edge and CONTACT-edge
+runs derive crossing, surface clearance, normal rejection, tangential motion,
+and one-way soft-body invariance from public node, bound-surface, and smoke
+state. DRAG is present in the API descriptor but is made inert and remains a
+separate obligation. Grid graph capacity, replacement, rejected-overflow
+rollback, removal, and recovery use `soft-smoke-contact-lifecycle-v1`:
+
+```text
+parallel-mater-conformance --quality soft-smoke-contact-v1 \
+  --output /path/to/soft-smoke-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/soft-smoke-contact-v1.json \
+  --actual /path/to/soft-smoke-quality-results/soft-smoke-contact-v1.json \
+  --report /path/to/soft-smoke-quality-report.json
+
+parallel-mater-conformance \
+  --lifecycle-profile soft-smoke-contact-lifecycle-v1 \
+  --output /path/to/soft-smoke-lifecycle-result.json
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/soft-smoke-contact-lifecycle-v1.json \
+  --actual /path/to/soft-smoke-lifecycle-result.json \
+  --report /path/to/soft-smoke-lifecycle-report.json
+```
+
 Smoke self-pressure has one immutable profile with particle and projected-grid
 variants. It derives particle pressure from public density state, checks public
 grid tracer pressure activity, and bounds particle mean-velocity drift:
