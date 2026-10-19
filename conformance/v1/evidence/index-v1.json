@@ -314,8 +314,10 @@
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -330,8 +332,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -361,8 +365,10 @@
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -377,8 +383,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -408,8 +416,10 @@
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -457,8 +467,10 @@
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -506,8 +518,10 @@
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -522,8 +536,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -553,8 +569,10 @@
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -569,8 +587,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -600,8 +620,10 @@
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -649,8 +671,10 @@
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6158,7 +6182,7 @@
         "second_family": "ROPE"
       },
       "key_text": "CLOTH/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "macos-m4-slang-metal-e09edbe-cloth-rope-attachment",
       "rule_id": "cloth-rope",
       "scopes": {
@@ -6214,8 +6238,10 @@
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6230,8 +6256,61 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
           "contracts": [],
-          "status": "missing_contract"
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
+      "qualified": true,
+      "report": "macos-m4-slang-metal-16169d5-smoke-cloth-grid",
+      "rule_id": "cloth-smoke-grid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -6261,8 +6340,10 @@
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6277,8 +6358,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -6308,8 +6391,10 @@
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6352,13 +6437,66 @@
         "second_family": "SMOKE"
       },
       "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
+      "qualified": true,
+      "report": "macos-m4-slang-metal-16169d5-smoke-cloth-particle",
+      "rule_id": "cloth-smoke-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6406,8 +6544,10 @@
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6422,8 +6562,61 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
           "contracts": [],
-          "status": "missing_contract"
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
+      "qualified": true,
+      "report": "macos-m4-slang-metal-16169d5-smoke-cloth-grid",
+      "rule_id": "cloth-smoke-grid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -6453,8 +6646,10 @@
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6469,8 +6664,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -6500,8 +6697,10 @@
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6544,13 +6743,66 @@
         "second_family": "SMOKE"
       },
       "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
+      "qualified": true,
+      "report": "macos-m4-slang-metal-16169d5-smoke-cloth-particle",
+      "rule_id": "cloth-smoke-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11107,8 +11359,10 @@
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11123,8 +11377,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11154,8 +11410,10 @@
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11170,8 +11428,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11201,8 +11461,10 @@
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11250,8 +11512,10 @@
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11299,8 +11563,10 @@
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11315,8 +11581,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11346,8 +11614,10 @@
       "rule_id": "cloth-smoke-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11362,8 +11632,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11393,8 +11665,10 @@
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11442,8 +11716,10 @@
       "rule_id": "cloth-smoke-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-cloth-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -15432,7 +15708,7 @@
       }
     }
   ],
-  "capability_count": 312,
+  "capability_count": 316,
   "driver_count": 5,
   "drivers": [
     {
@@ -15514,6 +15790,8 @@
       "label": "Metal",
       "qualification_result_ids": [
         "ipados-m1-slang-metal-9f7e72e",
+        "macos-m4-slang-metal-16169d5-smoke-cloth-grid",
+        "macos-m4-slang-metal-16169d5-smoke-cloth-particle",
         "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact",
         "macos-m4-slang-metal-e09edbe-cloth-rope-attachment",
         "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid",
@@ -15523,9 +15801,11 @@
         "macos-m4-slang-metal-86f10b2-smoke-viscosity",
         "macos-m4-slang-metal-aac6d59"
       ],
-      "qualified_capability_count": 1,
+      "qualified_capability_count": 4,
       "report_ids": [
         "ipados-m1-slang-metal-9f7e72e",
+        "macos-m4-slang-metal-16169d5-smoke-cloth-grid",
+        "macos-m4-slang-metal-16169d5-smoke-cloth-particle",
         "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact",
         "macos-m4-slang-metal-e09edbe-cloth-rope-attachment",
         "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid",
@@ -15536,7 +15816,7 @@
         "macos-m4-slang-metal-aac6d59"
       ],
       "status": "unqualified",
-      "unqualified_capability_count": 99
+      "unqualified_capability_count": 100
     }
   ],
   "known_failures": [
@@ -15606,7 +15886,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -16967,20 +17247,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[27].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[27].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -17021,20 +17301,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[28].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[28].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -17075,20 +17355,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[29].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[29].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -17111,20 +17391,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "actual": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[29].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "actual": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[29].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -17192,20 +17472,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[30].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[30].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -17228,20 +17508,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "actual": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[30].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "actual": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[30].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -18787,7 +19067,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18796,7 +19076,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18805,7 +19085,7 @@
     {
       "actual": "20c3086b26c05fc00bdc2a70fc4f528cdd588271c2cc2be4409912982d60c419",
       "driver": "slang-cuda",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18814,7 +19094,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18823,7 +19103,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18832,7 +19112,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18841,7 +19121,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-cuda",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18850,7 +19130,7 @@
     {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18859,7 +19139,7 @@
     {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19295,7 +19575,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19304,7 +19584,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-d3d12",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20270,20 +20550,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[24].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[24].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -20324,20 +20604,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[25].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[25].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -20378,20 +20658,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[26].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[26].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -20414,38 +20694,38 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "actual": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[26].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "actual": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[26].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[27].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[27].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -20468,20 +20748,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "actual": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[27].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "actual": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[27].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -22036,7 +22316,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22045,16 +22325,25 @@
     {
       "actual": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "driver": "slang-metal",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact"
     },
     {
+      "actual": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "driver": "slang-metal",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "macos-m4-slang-metal-e09edbe-cloth-rope-attachment"
+    },
+    {
       "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
       "driver": "slang-metal",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22063,7 +22352,7 @@
     {
       "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
       "driver": "slang-metal",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22072,7 +22361,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22081,7 +22370,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22090,7 +22379,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22099,7 +22388,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22799,20 +23088,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[24].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[24].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -22835,20 +23124,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[25].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[25].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -22871,20 +23160,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[26].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[26].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -22898,38 +23187,38 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "actual": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[26].lifecycle_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "actual": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[26].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[27].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No vendor-neutral cloth-smoke-grid quality case is registered.",
+      "actual": "quality:smoke-cloth-drag-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[27].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -22943,20 +23232,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "actual": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[27].lifecycle_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No exact cloth-smoke-grid adverse graph case is registered.",
+      "actual": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[27].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -24097,7 +24386,7 @@
     {
       "actual": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
       "driver": "slang-vulkan",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -24106,7 +24395,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+      "expected": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -24114,10 +24403,10 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
+  "obligations_sha256": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
   "qualification_complete": true,
-  "qualified_capability_count": 1,
-  "report_count": 25,
+  "qualified_capability_count": 4,
+  "report_count": 27,
   "reports": [
     {
       "capability_count": 46,
@@ -24324,6 +24613,64 @@
         "version": "GCC 12.2.0; Slang 2026.18"
       },
       "validated": false
+    },
+    {
+      "capability_count": 2,
+      "device": {
+        "device_id": 0,
+        "driver_version": "202618 (Apple Metal 32023.883)",
+        "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+        "vendor_id": 4203
+      },
+      "driver": {
+        "binary_sha256": "db73bee7730689b8a6afd94d77a300c3e41d328e4c26b54368a03783adebfa09",
+        "name": "slang-metal",
+        "version": "0.2.0+16169d5"
+      },
+      "failure_count": 0,
+      "id": "macos-m4-slang-metal-16169d5-smoke-cloth-grid",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-grid-qualification.json",
+      "qualified_count": 2,
+      "sha256": "4af8cf47785a32dd9edcdf75e75b5be276d2f2b44f6e09a33e024013ce8485f4",
+      "source": {
+        "commit": "16169d5dd4421af8c97247f590f51f8c8eb1283d",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "Apple Clang, Slang Metal",
+        "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+      },
+      "validated": true
+    },
+    {
+      "capability_count": 2,
+      "device": {
+        "device_id": 0,
+        "driver_version": "202618 (Apple Metal 32023.883)",
+        "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+        "vendor_id": 4203
+      },
+      "driver": {
+        "binary_sha256": "db73bee7730689b8a6afd94d77a300c3e41d328e4c26b54368a03783adebfa09",
+        "name": "slang-metal",
+        "version": "0.2.0+16169d5"
+      },
+      "failure_count": 0,
+      "id": "macos-m4-slang-metal-16169d5-smoke-cloth-particle",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-particle-qualification.json",
+      "qualified_count": 2,
+      "sha256": "f229dd9dcf7c1f3abd5eadb2deaa09721dcfde10dd3cc89ba6a48262c36677bc",
+      "source": {
+        "commit": "16169d5dd4421af8c97247f590f51f8c8eb1283d",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "Apple Clang, Slang Metal",
+        "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+      },
+      "validated": true
     },
     {
       "capability_count": 1,
@@ -24541,11 +24888,11 @@
         "name": "slang-metal",
         "version": "0.2.0+e09edbe"
       },
-      "failure_count": 0,
+      "failure_count": 1,
       "id": "macos-m4-slang-metal-e09edbe-cloth-rope-attachment",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-e09edbe-cloth-rope-attachment-qualification.json",
-      "qualified_count": 1,
+      "qualified_count": 0,
       "sha256": "025204e8e30b67bf2f43ea6c3324b11936057df423398042e55429c7b016918a",
       "source": {
         "commit": "e09edbe8da9149854e2a4e9eaff2aac883e92e12",
@@ -24555,7 +24902,7 @@
         "compiler": "Apple Clang, Slang Metal",
         "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 0,
@@ -24860,7 +25207,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "57930a664a0d03dfde486d1373072d701f55bd794dd5d2d013dea584e1c56034",
+  "sources_sha256": "4835adb207e70324271fc71a9cda8cafb00c05fcf75a080cd31a8b2d91ff965d",
   "valid": true,
   "validation_failures": []
 }

@@ -1,0 +1,92 @@
+{
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "fcd75318941c9222884aaa39d73561c06417026da11115624e2790c8ec9edb82",
+  "execution_status": "completed",
+  "source": {
+    "commit": "16169d5dd4421af8c97247f590f51f8c8eb1283d",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-metal",
+    "version": "0.2.0+16169d5",
+    "binary_sha256": "db73bee7730689b8a6afd94d77a300c3e41d328e4c26b54368a03783adebfa09"
+  },
+  "device": {
+    "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "vendor_id": 4203,
+    "device_id": 0,
+    "driver_version": "202618 (Apple Metal 32023.883)"
+  },
+  "toolchain": {
+    "compiler": "Apple Clang, Slang Metal",
+    "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "CLOTH",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "FIRST_TO_SECOND",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    },
+    {
+      "first_family": "CLOTH",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "DRAG",
+      "direction": "SECOND_TO_FIRST",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "evidence": [
+    {
+      "scope": "analytic_invariants",
+      "contract": "quality:smoke-cloth-drag-v1",
+      "status": "passed",
+      "source_commit": "16169d5dd4421af8c97247f590f51f8c8eb1283d",
+      "contract_sha256": "6984353862c9dc69f693597e92e60c9956576f080cbca2e79040e2ff923480ac",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-grid.json",
+      "artifact_sha256": "45360cfb169c6cdfa103780d517e8ed9f95379ba0b1954ffde58468e9d7e9bc5"
+    },
+    {
+      "scope": "compilation",
+      "contract": "registry:interaction-capabilities",
+      "status": "passed",
+      "source_commit": "16169d5dd4421af8c97247f590f51f8c8eb1283d",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-grid.json",
+      "artifact_sha256": "45360cfb169c6cdfa103780d517e8ed9f95379ba0b1954ffde58468e9d7e9bc5"
+    },
+    {
+      "scope": "execution",
+      "contract": "case:smoke-cloth",
+      "status": "passed",
+      "source_commit": "16169d5dd4421af8c97247f590f51f8c8eb1283d",
+      "contract_sha256": "8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-grid.json",
+      "artifact_sha256": "45360cfb169c6cdfa103780d517e8ed9f95379ba0b1954ffde58468e9d7e9bc5"
+    },
+    {
+      "scope": "lifecycle_invariants",
+      "contract": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback",
+      "status": "passed",
+      "source_commit": "16169d5dd4421af8c97247f590f51f8c8eb1283d",
+      "contract_sha256": "7322bab0d2368931c9620eb9711f977a7ed4bf28ab3e5f1ec523c8ad9261b1a1",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-grid.json",
+      "artifact_sha256": "45360cfb169c6cdfa103780d517e8ed9f95379ba0b1954ffde58468e9d7e9bc5"
+    },
+    {
+      "scope": "reference_regression",
+      "contract": "case:smoke-cloth",
+      "status": "passed",
+      "source_commit": "16169d5dd4421af8c97247f590f51f8c8eb1283d",
+      "contract_sha256": "8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-grid.json",
+      "artifact_sha256": "45360cfb169c6cdfa103780d517e8ed9f95379ba0b1954ffde58468e9d7e9bc5"
+    }
+  ]
+}

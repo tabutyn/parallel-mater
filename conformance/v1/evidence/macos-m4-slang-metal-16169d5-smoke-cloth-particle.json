@@ -1,0 +1,115 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-43",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "16169d5dd4421af8c97247f590f51f8c8eb1283d",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-metal",
+    "version": "0.2.0+16169d5",
+    "binary_sha256": "db73bee7730689b8a6afd94d77a300c3e41d328e4c26b54368a03783adebfa09"
+  },
+  "device": {
+    "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "vendor_id": 4203,
+    "device_id": 0,
+    "driver_version": "202618 (Apple Metal 32023.883)"
+  },
+  "toolchain": {
+    "compiler": "Apple Clang, Slang Metal",
+    "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "ec5807e824b3900ec8a3996705e56fa3d1cf11e049cc89cf87faab56ccec0e2e",
+    "capabilities_sha256": "4a1e1930f58007a1c6a42af8182948ac12718dd72f1feb41ebf7c0a965d6ac80"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "CLOTH",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "FIRST_TO_SECOND",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    },
+    {
+      "first_family": "CLOTH",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "DRAG",
+      "direction": "SECOND_TO_FIRST",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:smoke-cloth",
+      "sha256": "8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc"
+    },
+    "quality": {
+      "id": "quality:smoke-cloth-drag-v1",
+      "sha256": "6984353862c9dc69f693597e92e60c9956576f080cbca2e79040e2ff923480ac"
+    },
+    "lifecycle": {
+      "id": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback",
+      "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "39608d253f3510d35be16ea04046c59f920d742ed36634246289d0169488318d",
+    "comparison_report_sha256": "5a58b505846e79cc4d28fb365b02068bb7cd77c103606ea2e7a9f16a10b11fb5",
+    "reference_regression": {
+      "passed": 1,
+      "failed": 0,
+      "unsupported": 0
+    }
+  },
+  "analytic_invariants": {
+    "result_sha256": "cb6d821b571e698e9a0a0420291bb56659c4587e608c15ef7089ab2b9d59317e",
+    "report_sha256": "ec19a839f1695182e68e9c9137e552ce01df497cbc925cdff3d7cdac3b8853b7",
+    "passed": true,
+    "sample_count": 4,
+    "failure_count": 0,
+    "observations": {
+      "particle-smoke-cloth-drag": {
+        "control_velocity_drift_m_s": 0.0,
+        "forward_response_fraction": 0.09999920924504598,
+        "reverse_response_fraction": 0.09999970595041911,
+        "forward_reverse_response_difference": 4.967053731375071e-7,
+        "forward_transverse_velocity_m_s": 0.0,
+        "reverse_transverse_velocity_m_s": 0.0,
+        "stationary_velocity_m_s": 0.0,
+        "minimum_tracer_plane_clearance_m": 0.10406458377838135,
+        "maximum_reverse_smoke_state_delta": 0.0
+      }
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "dfb45babf4def7e69543ed57f816b3a3cf355d5e2b2cb92e289dac9308611e38",
+    "report_sha256": "ec2b02585e534d739521534be79f21f8e491a1cb7b8faba4dce21936062cff9e",
+    "passed": true,
+    "profile_case_count": 2,
+    "profile_checkpoint_count": 9,
+    "failure_count": 0
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --check-inputs",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case smoke-cloth --output <trajectory-output>",
+    "python conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case smoke-cloth --report <trajectory-report>",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality smoke-cloth-drag-v1 --output <quality-output>",
+    "python conformance/v1/quality.py --profile conformance/v1/quality/smoke-cloth-drag-v1.json --actual <quality-output>/smoke-cloth-drag-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle-profile adverse-capacity-three-family-v1 --output <lifecycle-result>",
+    "python conformance/v1/lifecycle.py --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "The analytic oracle uses only public cloth and smoke outputs. It measures mean cloth response under forward, stationary and reverse carrier flow and compares smoke against a zero-drag control.",
+    "Every observed tracer remains more than 0.104 m from the cloth plane against a 0.01 m contact distance, so the measured cloth response does not require smoke contact.",
+    "The retained three-family lifecycle binding proves exact graph rollback and endpoint preservation for the particle representation.",
+    "The physics equations remain in shared Slang; this evidence qualifies that implementation through the Apple Metal device adapter."
+  ]
+}
