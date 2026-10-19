@@ -1,0 +1,105 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-47",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "cc2b9c08dd1c4323db522406c03cb041eb4a5bd8",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+cc2b9c0",
+    "binary_sha256": "52854125dc55b8d9cb507967045d759c4ec2edeed50e9d140686d3f1e7dfbb0c"
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13010 (NVIDIA 590.44.01)"
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "ddca614c9f7646d2d85b090a9ac8caf0c5a3869afa22332c8ffa8b40e5166f51",
+    "capabilities_sha256": "4f1f17830a833fc6c7cbb6e6f768649b74ed7084d0f526da37c448d74d63e6e5"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "SOFT_BODY",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "FIRST_TO_SECOND",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:smoke-soft-body",
+      "sha256": "a3566fe480be274b850d10f10b88ee4f3ea22e59d5cae5ccf9a652fa7d6b9cb8"
+    },
+    "quality": {
+      "id": "quality:soft-smoke-contact-v1",
+      "sha256": "4ee08a7676ccf9c7198e0fbdd752db59c25bb655601e22aa15a327d70ab0ab8d"
+    },
+    "lifecycle": {
+      "id": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback",
+      "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "fec1ff782f53096a705c5afd6dfd5d71dab573e7976941e97eba10554cd05d8d",
+    "comparison_report_sha256": "526edc90cf5668eaf323046cc9359cc9726148214ddd3f5fcae9003646ca2949",
+    "reference_regression": {
+      "passed": 1,
+      "failed": 0,
+      "unsupported": 0
+    }
+  },
+  "analytic_invariants": {
+    "result_sha256": "84aabca4c5cf87db56f1c784f6ae5bcaa38686261d6d29dc18accdabd553d037",
+    "report_sha256": "8d6de1c4d43feff0d91dc61b50345454611353e3317e93347ea219abced91e86",
+    "passed": true,
+    "sample_count": 2,
+    "failure_count": 0,
+    "observations": {
+      "particle-soft-contact": {
+        "contact_clearance_error_m": 3.3527612630646075e-10,
+        "control_final_signed_distance_m": 0.004999999888241291,
+        "control_initial_signed_distance_m": -0.004999999888241291,
+        "coupled_final_normal_velocity_m_s": 0.0,
+        "coupled_final_signed_distance_m": -0.014999999664723873,
+        "coupled_final_tangential_speed_m_s": 0.25,
+        "maximum_smoke_speed_m_s": 1.0307764064044151
+      }
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "81f6a79002d9c5392d211bd05d1afd46ab8355bde0113004ea9d4099e4c21b8e",
+    "report_sha256": "7b7c50afcf475f72792c8bae79ed105afc828c0a83679006c9f7e67fe3313e1d",
+    "passed": true,
+    "profile_case_count": 2,
+    "profile_checkpoint_count": 9,
+    "failure_count": 0,
+    "bound_case": "three-family-partial-rollback",
+    "bound_case_checkpoint_count": 5
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --case smoke-soft-body --output <trajectory-output>",
+    "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case smoke-soft-body --report <trajectory-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --quality soft-smoke-contact-v1 --output <quality-output>",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/soft-smoke-contact-v1.json --actual <quality-output>/soft-smoke-contact-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --lifecycle-profile adverse-capacity-three-family-v1 --output <lifecycle-result>",
+    "python3 conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/adverse-capacity-three-family-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "The paired public-state oracle proves a particle-smoke tracer crosses the bound soft-body surface without the edge, is redirected to the declared clearance with zero inward normal velocity under CONTACT, and preserves tangential motion.",
+    "All five dynamic soft-body nodes and their one-to-one bound surface vertices retain their public positions within the immutable tolerance and end with zero velocity, proving no unadvertised reverse mechanical response.",
+    "The particle tuple deliberately retains the existing independently versioned three-family partial-rollback lifecycle binding; its full two-case, nine-checkpoint profile passed on the recaptured revision.",
+    "The shared analytic profile executes both particle and grid representations, but this aggregate advertises and qualifies only the exact SMOKE_PARTICLE CONTACT tuple."
+  ]
+}

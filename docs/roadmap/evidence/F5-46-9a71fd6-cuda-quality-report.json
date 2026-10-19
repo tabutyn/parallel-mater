@@ -1,0 +1,41 @@
+{
+  "driver": {
+    "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "device_id": 0,
+    "driver_version": "13010",
+    "name": "slang-cuda",
+    "vendor_id": 4318
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 1,
+  "observations": {
+    "supported-hanging-rope": {
+      "dynamic_rope_mass_kg": 0.4,
+      "final_attachment_drift_m": 0.00030796263528896667,
+      "initial_attachment_drift_m": 1.2417634351336027e-09,
+      "maximum_contact_force_n": 0.0,
+      "maximum_pinned_node_drift_m": 0.0,
+      "maximum_speed_m_s": 9.901774002364235,
+      "maximum_transverse_drift_m": 0.037030641455203295,
+      "reaction_activity_n": 23.243515984510825,
+      "reciprocal_force_residual_n": 0.00014475375796291578,
+      "rope_reaction_force_n": [
+        -6.206477880477907,
+        -19.54064538574221,
+        -10.950061440467836
+      ],
+      "soft_body_reaction_force_n": [
+        6.20647668838501,
+        19.54050064086914,
+        10.950060367584229
+      ]
+    }
+  },
+  "passed": true,
+  "profile_id": "soft-rope-attachment-v1",
+  "profile_sha256": "7c43ecebb7083f0b7e4a2aeab8768f6236cf44edcd7f409022eccbea98a49549",
+  "sample_count": 1,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

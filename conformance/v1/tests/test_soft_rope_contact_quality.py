@@ -173,7 +173,10 @@ class SoftRopeContactQualityTests(unittest.TestCase):
         self.assertEqual(contact["required"]["lifecycle_invariants"],
                          expected_lifecycle)
         self.assertEqual(attachment["match"]["mode"], ["ATTACHMENT"])
-        self.assertNotIn("analytic_invariants", attachment["required"])
+        self.assertEqual(attachment["required"]["analytic_invariants"],
+                         ["quality:soft-rope-attachment-v1"])
+        self.assertNotIn("quality:soft-rope-contact-v1",
+                         attachment["required"]["analytic_invariants"])
         self.assertEqual(attachment["required"]["lifecycle_invariants"],
                          expected_lifecycle)
 

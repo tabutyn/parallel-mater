@@ -190,6 +190,52 @@ def cloth_smoke_contact_result(profile: dict, material: str,
     return result
 
 
+def soft_smoke_contact_result(profile: dict, material: str,
+                              mode: str = "CONTACT") -> dict:
+    result = valid_equal_fluid_result(profile)
+    direction = "FIRST_TO_SECOND" if mode == "CONTACT" else "SECOND_TO_FIRST"
+    result["advertised_capabilities"] = [
+        capability("SOFT_BODY", "SMOKE", "DISTINCT_FAMILY", mode,
+                   direction, material)
+    ]
+    lifecycle_contract = (
+        "lifecycle:adverse-capacity-three-family-v1#"
+        "three-family-partial-rollback"
+        if material == "SMOKE_PARTICLE" else
+        "lifecycle:soft-smoke-contact-lifecycle-v1#"
+        "grid-soft-smoke-contact-capacity-replacement-removal-rollback")
+    result["evidence"] = [
+        evidence(profile, "compilation", "registry:interaction-capabilities"),
+        evidence(profile, "execution", "case:smoke-soft-body"),
+        evidence(profile, "reference_regression", "case:smoke-soft-body"),
+        evidence(profile, "lifecycle_invariants", lifecycle_contract),
+        evidence(profile, "analytic_invariants",
+                 "quality:soft-smoke-contact-v1"),
+    ]
+    return result
+
+
+def soft_rope_attachment_result(profile: dict,
+                                mode: str = "ATTACHMENT") -> dict:
+    result = valid_equal_fluid_result(profile)
+    result["advertised_capabilities"] = [
+        capability("SOFT_BODY", "ROPE", "DISTINCT_FAMILY", mode,
+                   "BIDIRECTIONAL", "ENDPOINT_NATIVE")
+    ]
+    lifecycle_contract = (
+        "lifecycle:adverse-capacity-three-family-v1#"
+        "three-family-partial-rollback")
+    result["evidence"] = [
+        evidence(profile, "compilation", "registry:interaction-capabilities"),
+        evidence(profile, "execution", "case:rope-soft-body"),
+        evidence(profile, "reference_regression", "case:rope-soft-body"),
+        evidence(profile, "lifecycle_invariants", lifecycle_contract),
+        evidence(profile, "analytic_invariants",
+                 "quality:soft-rope-attachment-v1"),
+    ]
+    return result
+
+
 def fluid_soft_aggregate(profile: dict) -> tuple[dict, dict, list[dict]]:
     contracts = contract_map(profile)
     advertised = capability(
@@ -413,6 +459,77 @@ class QualificationTests(unittest.TestCase):
                 self.assertEqual(report["capabilities"][0]["rule_id"],
                                  "cloth-smoke-drag-" +
                                  material.removeprefix("SMOKE_").lower())
+
+    def test_soft_rope_attachment_keeps_exact_lifecycle_obligation(self):
+        attachment_rule = next(
+            rule for rule in self.profile["rules"]
+            if rule["id"] == "soft-body-rope-attachment")
+        lifecycle_contract = (
+            "lifecycle:adverse-capacity-three-family-v1#"
+            "three-family-partial-rollback")
+        self.assertEqual(
+            attachment_rule["required"]["lifecycle_invariants"],
+            [lifecycle_contract])
+
+        result = soft_rope_attachment_result(self.profile)
+        report = self.evaluate(result)
+        self.assertTrue(report["passed"], report)
+        self.assertEqual(report["qualified_count"], 1)
+        self.assertEqual(report["capabilities"][0]["rule_id"],
+                         "soft-body-rope-attachment")
+
+        result = soft_rope_attachment_result(self.profile)
+        result["evidence"] = [item for item in result["evidence"]
+                              if item["contract"] != lifecycle_contract]
+        report = self.assert_rejected(result, "required evidence is missing")
+        self.assertEqual(report["qualified_count"], 0)
+
+    def test_soft_smoke_contact_contracts_do_not_qualify_drag(self):
+        contracts = contract_map(self.profile)
+        expected_contracts = {
+            "quality:soft-smoke-contact-v1":
+                ROOT / "quality" / "soft-smoke-contact-v1.json",
+            ("lifecycle:soft-smoke-contact-lifecycle-v1#"
+             "grid-soft-smoke-contact-capacity-replacement-removal-rollback"):
+                ROOT / "lifecycle" / "soft-smoke-contact-lifecycle-v1.json",
+        }
+        for contract_id, path in expected_contracts.items():
+            with self.subTest(contract=contract_id):
+                self.assertEqual(contracts[contract_id]["path"],
+                                 path.relative_to(REPOSITORY).as_posix())
+                self.assertEqual(contracts[contract_id]["sha256"],
+                                 qualification.profile_sha256(path))
+
+        for material in ("SMOKE_PARTICLE", "SMOKE_GRID"):
+            suffix = material.removeprefix("SMOKE_").lower()
+            with self.subTest(material=material, mode="CONTACT"):
+                report = self.evaluate(
+                    soft_smoke_contact_result(self.profile, material))
+                self.assertTrue(report["passed"], report)
+                self.assertEqual(report["qualified_count"], 1)
+                self.assertEqual(report["capabilities"][0]["rule_id"],
+                                 "soft-body-smoke-contact-" + suffix)
+
+            with self.subTest(material=material, mode="DRAG"):
+                report = self.assert_rejected(
+                    soft_smoke_contact_result(self.profile, material, "DRAG"),
+                    "qualification contract is missing")
+                self.assertEqual(report["qualified_count"], 0)
+                self.assertEqual(report["capabilities"][0]["rule_id"],
+                                 "soft-body-smoke-drag-" + suffix)
+                self.assertIn(
+                    "quality:soft-smoke-contact-v1",
+                    {item["contract"] for item in report["unused_evidence"]})
+
+    def test_soft_rope_attachment_quality_cannot_qualify_contact(self):
+        report = self.evaluate(
+            soft_rope_attachment_result(self.profile, "CONTACT"))
+        self.assertFalse(report["passed"], report)
+        self.assertEqual(report["qualified_count"], 0)
+        self.assertEqual(report["capabilities"][0]["rule_id"],
+                         "soft-body-rope-contact")
+        self.assertEqual(report["unused_evidence"][0]["contract"],
+                         "quality:soft-rope-attachment-v1")
 
     def test_stale_contract_source_and_artifact_metadata_fail(self):
         result = valid_equal_fluid_result(self.profile)

@@ -95,6 +95,16 @@ class ComparatorTests(unittest.TestCase):
         self.assertTrue(self.compare(expected, near).passed)
         self.assertFalse(self.compare(expected, far).passed)
 
+    def test_aggregate_speed_uses_velocity_tolerance(self):
+        expected = result({"aggregate": {"maximum_speed": 0.1},
+                           "tolerance_class": "deformable"})
+        near = result({"aggregate": {"maximum_speed": 0.13},
+                       "tolerance_class": "deformable"})
+        far = result({"aggregate": {"maximum_speed": 0.16},
+                      "tolerance_class": "deformable"})
+        self.assertTrue(self.compare(expected, near).passed)
+        self.assertFalse(self.compare(expected, far).passed)
+
     def test_quaternion_signs_are_equivalent(self):
         expected = result({"name": "body", "orientation": [0.1, 0.2, 0.3, 0.9]})
         actual = result({"name": "body", "orientation": [-0.1, -0.2, -0.3, -0.9]})

@@ -1079,7 +1079,7 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
-    constexpr std::array<std::pair<std::string_view, std::string_view>, 36U>
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 37U>
         pinned_inputs{{
             {"quality profile", "conformance/v1/quality/core-conservation-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-attachment-v1.json"},
@@ -1092,6 +1092,7 @@ void copy_particle_state(const std::vector<State> &states,
             {"quality profile", "conformance/v1/quality/fluid-rigid-containment-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-rigid-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/cloth-rope-attachment-v1.json"},
+            {"quality profile", "conformance/v1/quality/soft-rope-attachment-v1.json"},
             {"quality profile", "conformance/v1/quality/smoke-self-pressure-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-cloth-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/cloth-smoke-contact-v1.json"},
@@ -1421,6 +1422,10 @@ int conformance_command_main(int argc, char **argv) {
                 result = conformance_cloth_smoke_contact_lifecycle(
                     root, &status);
             else if (arguments.lifecycle_id ==
+                     "soft-smoke-contact-lifecycle-v1")
+                result = conformance_soft_smoke_contact_lifecycle(
+                    root, &status);
+            else if (arguments.lifecycle_id ==
                      "cloth-soft-contact-lifecycle-v1")
                 result = conformance_cloth_soft_contact_lifecycle(root, &status);
             else if (arguments.lifecycle_id ==
@@ -1481,12 +1486,16 @@ int conformance_command_main(int argc, char **argv) {
                 "fluid-rigid-contact-v1";
             const bool cloth_rope_attachment = arguments.quality_id ==
                 "cloth-rope-attachment-v1";
+            const bool soft_rope_attachment = arguments.quality_id ==
+                "soft-rope-attachment-v1";
             const bool smoke_self_pressure = arguments.quality_id ==
                 "smoke-self-pressure-v1";
             const bool fluid_cloth_contact = arguments.quality_id ==
                 "fluid-cloth-contact-v1";
             const bool cloth_smoke_contact = arguments.quality_id ==
                 "cloth-smoke-contact-v1";
+            const bool soft_smoke_contact = arguments.quality_id ==
+                "soft-smoke-contact-v1";
             const bool smoke_self_viscosity = arguments.quality_id ==
                 "smoke-self-viscosity-v1";
 #if defined(PM_CONFORMANCE_DEVICE_FIXTURES)
@@ -1514,8 +1523,9 @@ int conformance_command_main(int argc, char **argv) {
                 !fluid_rigid_contact &&
                 !fluid_rigid_containment &&
                 !cloth_rope_attachment &&
+                !soft_rope_attachment &&
                 !smoke_self_pressure && !fluid_cloth_contact &&
-                !cloth_smoke_contact &&
+                !cloth_smoke_contact && !soft_smoke_contact &&
                 !smoke_self_viscosity && !fluid_self &&
                 !smoke_fluid_drag && !smoke_cloth_drag && !fluid_smoke_phase &&
                 !externally_heated_fluid)
@@ -1550,8 +1560,8 @@ int conformance_command_main(int argc, char **argv) {
                 } else if (fluid_cloth_containment || fluid_soft_contact ||
                            fluid_rope_contact || fluid_rigid_contact ||
                            fluid_rigid_containment ||
-                           cloth_rope_attachment || cloth_soft_contact ||
-                           soft_rope_contact) {
+                           cloth_rope_attachment || soft_rope_attachment ||
+                           cloth_soft_contact || soft_rope_contact) {
                     ExecutionStatus status{};
                     if (fluid_cloth_containment)
                         result = conformance_fluid_cloth_containment_quality(
@@ -1573,6 +1583,9 @@ int conformance_command_main(int argc, char **argv) {
                             root, &status);
                     else if (fluid_rigid_containment)
                         result = conformance_fluid_rigid_containment_quality(
+                            root, &status);
+                    else if (soft_rope_attachment)
+                        result = conformance_soft_rope_attachment_quality(
                             root, &status);
                     else
                         result = conformance_cloth_rope_attachment_quality(
@@ -1624,6 +1637,18 @@ int conformance_command_main(int argc, char **argv) {
                 } else if (cloth_smoke_contact) {
                     ExecutionStatus status{};
                     result = conformance_cloth_smoke_contact_quality(
+                        root, &status);
+                    write_file(arguments.output /
+                                   (arguments.quality_id + ".json"),
+                               result);
+                    if (status == ExecutionStatus::unsupported) return 77;
+                    if (status == ExecutionStatus::failed) return 2;
+                    std::cout << "Quality execution completed: "
+                              << arguments.quality_id << '\n';
+                    return 0;
+                } else if (soft_smoke_contact) {
+                    ExecutionStatus status{};
+                    result = conformance_soft_smoke_contact_quality(
                         root, &status);
                     write_file(arguments.output /
                                    (arguments.quality_id + ".json"),
