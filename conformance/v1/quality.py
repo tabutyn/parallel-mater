@@ -2395,6 +2395,295 @@ def _evaluate_smoke_self_pressure(
     }
 
 
+def _evaluate_fluid_cloth_contact(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definitions = {fixture["id"]: fixture
+                   for fixture in profile.get("fixtures", [])
+                   if isinstance(fixture, dict) and
+                   isinstance(fixture.get("id"), str)}
+    actual_fixtures = result.get("fixtures")
+    if not isinstance(actual_fixtures, list):
+        failures.append(Failure("$.fixtures", "expected a fixture array",
+                                actual_fixtures))
+        actual_fixtures = []
+    actual_by_id: dict[str, dict[str, Any]] = {}
+    for index, fixture in enumerate(actual_fixtures):
+        if not isinstance(fixture, dict) or not isinstance(
+                fixture.get("id"), str):
+            failures.append(Failure(f"$.fixtures[{index}]",
+                                    "fixture needs a string id", fixture))
+            continue
+        identity = fixture["id"]
+        if identity in actual_by_id:
+            failures.append(Failure(f"$.fixtures[{index}].id",
+                                    "duplicate fixture id", identity))
+            continue
+        actual_by_id[identity] = fixture
+    for missing in sorted(set(definitions) - set(actual_by_id)):
+        failures.append(Failure("$.fixtures", "missing required fixture", missing))
+    for extra in sorted(set(actual_by_id) - set(definitions)):
+        failures.append(Failure("$.fixtures", "unexpected fixture", extra))
+
+    tolerances = profile.get("tolerances", {})
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+
+    def cross(a: tuple[float, float, float],
+              b: tuple[float, float, float]) -> tuple[float, float, float]:
+        return (a[1] * b[2] - a[2] * b[1],
+                a[2] * b[0] - a[0] * b[2],
+                a[0] * b[1] - a[1] * b[0])
+
+    def sub(a: tuple[float, float, float],
+            b: tuple[float, float, float]) -> tuple[float, float, float]:
+        return tuple(first - second for first, second in zip(a, b))
+
+    def scale(value: tuple[float, float, float],
+              factor: float) -> tuple[float, float, float]:
+        return tuple(component * factor for component in value)
+
+    def normal(vertices: list[tuple[float, float, float]], path: str
+               ) -> tuple[float, float, float] | None:
+        value = cross(sub(vertices[1], vertices[0]),
+                      sub(vertices[2], vertices[0]))
+        length = _norm(value)
+        if length <= 1.0e-12:
+            failures.append(Failure(path, "cloth triangle is degenerate", length))
+            return None
+        return scale(value, 1.0 / length)
+
+    def close_number(actual: Any, expected: Any, path: str) -> None:
+        number = _scalar(actual, path, failures)
+        reference = _scalar(expected, path.replace(
+            "$.fixtures", "$.profile.fixtures"), failures)
+        if (number is not None and reference is not None and
+                abs(number - reference) > state_tolerance):
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    number, reference))
+
+    def close_vector(actual: Any, expected: Any, path: str) -> None:
+        value = _vector(actual, path, failures)
+        reference = _vector(expected, path.replace(
+            "$.fixtures", "$.profile.fixtures"), failures)
+        if (value is not None and reference is not None and
+                _norm(sub(value, reference)) > state_tolerance):
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    list(value), list(reference)))
+
+    def snapshot(value: Any, path: str,
+                 definition: dict[str, Any]) -> dict[str, Any] | None:
+        if not isinstance(value, dict):
+            failures.append(Failure(path, "expected a snapshot object", value))
+            return None
+        particle_position = _vector(value.get("particle_position_m"),
+                                    path + ".particle_position_m", failures)
+        particle_velocity = _vector(value.get("particle_velocity_m_s"),
+                                    path + ".particle_velocity_m_s", failures)
+        raw_vertices = value.get("cloth_vertices_m")
+        raw_velocities = value.get("cloth_velocities_m_s")
+        if not isinstance(raw_vertices, list) or len(raw_vertices) != 3:
+            failures.append(Failure(path + ".cloth_vertices_m",
+                                    "expected three cloth vertices", raw_vertices))
+            return None
+        if not isinstance(raw_velocities, list) or len(raw_velocities) != 3:
+            failures.append(Failure(path + ".cloth_velocities_m_s",
+                                    "expected three cloth velocities",
+                                    raw_velocities))
+            return None
+        vertices = [_vector(item, f"{path}.cloth_vertices_m[{index}]", failures)
+                    for index, item in enumerate(raw_vertices)]
+        velocities = [_vector(item,
+                              f"{path}.cloth_velocities_m_s[{index}]", failures)
+                      for index, item in enumerate(raw_velocities)]
+        if (particle_position is None or particle_velocity is None or
+                any(item is None for item in vertices) or
+                any(item is None for item in velocities)):
+            return None
+        typed_vertices = [item for item in vertices if item is not None]
+        typed_velocities = [item for item in velocities if item is not None]
+        surface_normal = normal(typed_vertices, path + ".cloth_normal")
+        if surface_normal is None:
+            return None
+        separation = sum(component * axis for component, axis in zip(
+            sub(particle_position, typed_vertices[0]), surface_normal))
+        momentum = scale(particle_velocity, float(
+            definition["particle_mass_kg"]))
+        vertex_mass = float(definition["cloth_vertex_mass_kg"])
+        for velocity in typed_velocities:
+            momentum = tuple(first + second for first, second in zip(
+                momentum, scale(velocity, vertex_mass)))
+        reported_separation = _scalar(value.get("signed_separation_m"),
+                                      path + ".signed_separation_m", failures)
+        reported_momentum = _vector(value.get("endpoint_momentum_kg_m_s"),
+                                    path + ".endpoint_momentum_kg_m_s", failures)
+        if (reported_separation is not None and
+                abs(reported_separation - separation) > state_tolerance):
+            failures.append(Failure(path + ".signed_separation_m",
+                                    "reported separation differs from public state",
+                                    reported_separation, separation))
+        if (reported_momentum is not None and
+                _norm(sub(reported_momentum, momentum)) > state_tolerance):
+            failures.append(Failure(path + ".endpoint_momentum_kg_m_s",
+                                    "reported momentum differs from public state",
+                                    list(reported_momentum), list(momentum)))
+        return {"particle_position": particle_position,
+                "particle_velocity": particle_velocity,
+                "cloth_vertices": typed_vertices,
+                "cloth_velocities": typed_velocities,
+                "normal": surface_normal,
+                "separation": separation,
+                "momentum": momentum}
+
+    observations: dict[str, Any] = {}
+    sample_count = 0
+    for identity, definition in definitions.items():
+        actual = actual_by_id.get(identity)
+        if actual is None:
+            continue
+        base = f"$.fixtures[{identity}]"
+        for field in ("id", "mode_flags", "cloth_preserve_volume",
+                      "cloth_triangle_indices", "oracle", "step_count",
+                      "substeps"):
+            if actual.get(field) != definition.get(field):
+                failures.append(Failure(base + "." + field,
+                                        "fixture setting differs from profile",
+                                        actual.get(field), definition.get(field)))
+        for field in ("timestep_seconds", "cloth_vertex_mass_kg",
+                      "particle_mass_kg", "contact_distance_m",
+                      "stiffness_n_m", "damping_n_s_m",
+                      "tangential_drag_n_s_m", "maximum_force_n"):
+            close_number(actual.get(field), definition.get(field),
+                         base + "." + field)
+        for field in ("gravity_m_s2", "particle_initial_position_m",
+                      "particle_initial_velocity_m_s"):
+            close_vector(actual.get(field), definition.get(field),
+                         base + "." + field)
+        actual_vertices = actual.get("cloth_vertices_m")
+        expected_vertices = definition.get("cloth_vertices_m")
+        if (not isinstance(actual_vertices, list) or
+                not isinstance(expected_vertices, list) or
+                len(actual_vertices) != len(expected_vertices)):
+            failures.append(Failure(base + ".cloth_vertices_m",
+                                    "fixture setting differs from profile",
+                                    actual_vertices, expected_vertices))
+        else:
+            for index, (value, expected) in enumerate(zip(
+                    actual_vertices, expected_vertices)):
+                close_vector(value, expected,
+                             f"{base}.cloth_vertices_m[{index}]")
+
+        initial = snapshot(actual.get("initial"), base + ".initial",
+                           definition)
+        first = snapshot(actual.get("first_step"), base + ".first_step",
+                         definition)
+        final = snapshot(actual.get("final"), base + ".final", definition)
+        if initial is None or first is None or final is None:
+            continue
+        sample_count += 2
+        distance = float(definition["contact_distance_m"])
+        first_change = initial["separation"] - first["separation"]
+        maximum_change = float(tolerances.get(
+            "first_step_maximum_separation_change_m", 0.0))
+        if first_change < 0.0:
+            failures.append(Failure(base + ".first_step",
+                                    "contact did not reduce overlap",
+                                    first_change, 0.0))
+        if first_change > maximum_change:
+            failures.append(Failure(base + ".first_step",
+                                    "contact-only response snapped like containment",
+                                    first_change, maximum_change))
+        minimum_speed = float(tolerances.get(
+            "first_step_minimum_endpoint_speed_m_s", 0.0))
+        fluid_normal = sum(component * axis for component, axis in zip(
+            first["particle_velocity"], first["normal"]))
+        cloth_mean_velocity = tuple(sum(velocity[component]
+            for velocity in first["cloth_velocities"]) / 3.0
+            for component in range(3))
+        cloth_normal = sum(component * axis for component, axis in zip(
+            cloth_mean_velocity, first["normal"]))
+        if fluid_normal >= -minimum_speed:
+            failures.append(Failure(base + ".first_step.particle_velocity_m_s",
+                                    "fluid lacks inward normal response",
+                                    fluid_normal, -minimum_speed))
+        if cloth_normal <= minimum_speed:
+            failures.append(Failure(base + ".first_step.cloth_velocities_m_s",
+                                    "cloth lacks reciprocal normal response",
+                                    cloth_normal, minimum_speed))
+        terminal_violation = max(0.0, distance + final["separation"])
+        allowed_violation = float(tolerances.get(
+            "terminal_contact_violation_m", 0.0))
+        if terminal_violation > allowed_violation:
+            failures.append(Failure(base + ".final.signed_separation_m",
+                                    "terminal contact distance is violated",
+                                    terminal_violation, allowed_violation))
+
+        normal_momentum_tolerance = float(tolerances.get(
+            "normal_momentum_error_kg_m_s", 0.0))
+        tangential_momentum_tolerance = float(tolerances.get(
+            "tangential_momentum_error_kg_m_s", 0.0))
+        maximum_tangent = float(tolerances.get(
+            "maximum_tangential_speed_m_s", 0.0))
+        maximum_speed = float(tolerances.get(
+            "maximum_endpoint_speed_m_s", 0.0))
+        for label, state in (("first_step", first), ("final", final)):
+            normal_momentum = sum(component * axis for component, axis in zip(
+                state["momentum"], state["normal"]))
+            tangent_momentum = sub(state["momentum"],
+                                   scale(state["normal"], normal_momentum))
+            if abs(normal_momentum) > normal_momentum_tolerance:
+                failures.append(Failure(f"{base}.{label}.endpoint_momentum_kg_m_s",
+                                        "reciprocal normal momentum is unbalanced",
+                                        normal_momentum,
+                                        normal_momentum_tolerance))
+            if _norm(tangent_momentum) > tangential_momentum_tolerance:
+                failures.append(Failure(f"{base}.{label}.endpoint_momentum_kg_m_s",
+                                        "tangential momentum is unbalanced",
+                                        _norm(tangent_momentum),
+                                        tangential_momentum_tolerance))
+            velocities = [state["particle_velocity"],
+                          *state["cloth_velocities"]]
+            for velocity_index, velocity in enumerate(velocities):
+                speed = _norm(velocity)
+                normal_speed = sum(component * axis for component, axis in zip(
+                    velocity, state["normal"]))
+                tangential_speed = _norm(sub(
+                    velocity, scale(state["normal"], normal_speed)))
+                if speed > maximum_speed:
+                    failures.append(Failure(
+                        f"{base}.{label}.velocity[{velocity_index}]",
+                        "endpoint speed exceeds profile bound", speed,
+                        maximum_speed))
+                if tangential_speed > maximum_tangent:
+                    failures.append(Failure(
+                        f"{base}.{label}.velocity[{velocity_index}]",
+                        "contact introduced tangential motion", tangential_speed,
+                        maximum_tangent))
+        observations[identity] = {
+            "initial_signed_separation_m": initial["separation"],
+            "first_step_signed_separation_m": first["separation"],
+            "final_signed_separation_m": final["separation"],
+            "terminal_contact_violation_m": terminal_violation,
+            "first_step_fluid_normal_velocity_m_s": fluid_normal,
+            "first_step_cloth_mean_normal_velocity_m_s": cloth_normal,
+            "first_step_momentum_error_kg_m_s": _norm(first["momentum"]),
+            "final_momentum_error_kg_m_s": _norm(final["momentum"]),
+        }
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": len(actual_by_id),
+        "sample_count": sample_count,
+        "failure_count": len(failures),
+        "observations": observations,
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def evaluate(profile: dict[str, Any], result: dict[str, Any],
              expected_hash: str) -> dict[str, Any]:
     failures: list[Failure] = []
@@ -2443,6 +2732,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "smoke_self_pressure":
         return _evaluate_smoke_self_pressure(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "fluid_cloth_contact":
+        return _evaluate_fluid_cloth_contact(
             profile, result, expected_hash, driver, failures)
     if evaluation == "smoke_self_viscosity":
         return _evaluate_smoke_self_viscosity(
