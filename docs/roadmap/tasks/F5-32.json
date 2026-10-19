@@ -1,7 +1,7 @@
 {
   "id": "F5-32",
   "title": "Qualify cloth fluid containment",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,15 +17,27 @@
     "Add exact bounded capacity, replacement, removal and rollback lifecycle checks; a rejected mutation preserves the last usable state and recovery is deterministic.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "3d1cdf53-9e9f-4ab9-a7f0-13d018f3b3f3",
-    "owner": "codex-macos-qualification",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F5-32/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-19T00:36:24Z",
-    "heartbeat_at": "2026-10-19T00:36:24Z",
-    "expires_at": "2026-10-20T00:36:24Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F5-32-fluid-cloth-containment.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "3d1cdf53-9e9f-4ab9-a7f0-13d018f3b3f3",
+        "owner": "codex-macos-qualification",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F5-32/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-19T00:36:24Z",
+        "heartbeat_at": "2026-10-19T00:36:24Z",
+        "expires_at": "2026-10-20T00:36:24Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T00:54:43Z",
+      "reason": "qualified-fluid-cloth-containment-on-physical-apple-m4",
+      "evidence": [
+        "docs/roadmap/evidence/F5-32-fluid-cloth-containment.json"
+      ]
+    }
+  ]
 }
