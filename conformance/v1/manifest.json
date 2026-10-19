@@ -60,6 +60,7 @@
     "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json": "e3f0b451c271add83153c0e1a3f22f1784465a568b289facacb46a5fab44c1c1",
     "conformance/v1/lifecycle/smoke-soft-drag-lifecycle-v1.json": "e26456e4df5e7860229e93530dfddd6a08842a2484a2bfbd006b6b86f0368027",
     "conformance/v1/lifecycle/smoke-rope-drag-lifecycle-v1.json": "5266327b4ea77d9bac1b7b8f4bef8b287704c59db1363b7d4aeb0ea25a1cb4d2",
+    "conformance/v1/lifecycle/smoke-rigid-drag-lifecycle-v1.json": "f723cfe22394d304ab39070a4e6522f5837592154dd4abfd3757cfa4d006792d",
     "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31",
     "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f",
     "conformance/v1/lifecycle/soft-rigid-contact-lifecycle-v1.json": "11a11ed96e09c8f8fcee037d029d9730a2aba3f48183b69eb6017d8164e015fb",
@@ -95,6 +96,7 @@
     "conformance/v1/quality/smoke-cloth-drag-v1.json": "6984353862c9dc69f693597e92e60c9956576f080cbca2e79040e2ff923480ac",
     "conformance/v1/quality/smoke-soft-drag-v1.json": "b7d5c09ba966e1ddbd8c7580ee6868f9d9e4de62462b069d9fb0e749904b766c",
     "conformance/v1/quality/smoke-rope-drag-v1.json": "9554669ec21ac7c5dd6c1110d66bf974c115f7755cba4f78769cce2b1e3d318d",
+    "conformance/v1/quality/smoke-rigid-drag-v1.json": "06ef8eb3b2796a6fbb9cc1c3de43831d77515f488b5f8b901307fcce02bf8978",
     "conformance/v1/quality/smoke-fluid-drag-v1.json": "ef28c4f4446365aa787aac9605098772f00e68f1ebf958b2023b6cafdba1c3e1",
     "conformance/v1/quality/smoke-self-pressure-v1.json": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150",
     "conformance/v1/quality/smoke-self-viscosity-v1.json": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"
