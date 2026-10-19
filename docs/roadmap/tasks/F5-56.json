@@ -1,7 +1,7 @@
 {
   "id": "F5-56",
   "title": "Align coupled rope state across GPU drivers",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-46",
     "F6-11"
@@ -21,7 +21,15 @@
     "Re-run rope core, self-contact, winding, release, soft-rope contact and soft-rope attachment reference, analytic-quality and lifecycle coverage, with bounded performance and threadgroup-memory evidence and no newly hidden failure."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "50cdd4fe-fcf6-4cd5-a2e7-63abf339a74a",
+    "owner": "codex-macos-rope-parity",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F5-56/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-19T23:31:34Z",
+    "heartbeat_at": "2026-10-19T23:31:34Z",
+    "expires_at": "2026-10-20T23:31:34Z"
+  },
   "history": [
     {
       "lease": {
