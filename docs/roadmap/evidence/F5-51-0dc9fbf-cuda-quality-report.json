@@ -1,0 +1,52 @@
+{
+  "driver": {
+    "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "device_id": 0,
+    "driver_version": "13010",
+    "name": "slang-cuda",
+    "vendor_id": 4318
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 2,
+  "observations": {
+    "grid-smoke-rope-drag": {
+      "forward_response_fraction": 0.009642541408538818,
+      "forward_reverse_response_difference": 0.0,
+      "forward_transverse_velocity_m_s": 0.0,
+      "maximum_control_velocity_drift_m_s": 0.0,
+      "maximum_drag_acceleration_m_s2": 1.0490417491416375,
+      "maximum_paired_initial_rope_state_delta": 0.0,
+      "maximum_paired_initial_smoke_state_delta": 0.0,
+      "maximum_reverse_smoke_state_delta": 0.0,
+      "maximum_rope_node_speed_m_s": 0.010490417491416375,
+      "maximum_segment_length_error_m": 1.3709068324985196e-08,
+      "minimum_tracer_segment_clearance_m": 0.10411272626082052,
+      "reverse_response_fraction": 0.009642541408538818,
+      "reverse_transverse_velocity_m_s": 0.0,
+      "stationary_velocity_m_s": 0.0
+    },
+    "particle-smoke-rope-drag": {
+      "forward_response_fraction": 0.09999871253967285,
+      "forward_reverse_response_difference": 1.4901161193847656e-06,
+      "forward_transverse_velocity_m_s": 0.0,
+      "maximum_control_velocity_drift_m_s": 0.0,
+      "maximum_drag_acceleration_m_s2": 10.000020265579224,
+      "maximum_paired_initial_rope_state_delta": 0.0,
+      "maximum_paired_initial_smoke_state_delta": 0.0,
+      "maximum_reverse_smoke_state_delta": 0.0,
+      "maximum_rope_node_speed_m_s": 0.10000020265579224,
+      "maximum_segment_length_error_m": 1.3709068324985196e-08,
+      "minimum_tracer_segment_clearance_m": 0.10411272626082052,
+      "reverse_response_fraction": 0.10000020265579224,
+      "reverse_transverse_velocity_m_s": 0.0,
+      "stationary_velocity_m_s": 0.0
+    }
+  },
+  "passed": true,
+  "profile_id": "smoke-rope-drag-v1",
+  "profile_sha256": "9554669ec21ac7c5dd6c1110d66bf974c115f7755cba4f78769cce2b1e3d318d",
+  "sample_count": 6,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

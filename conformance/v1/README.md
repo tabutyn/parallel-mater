@@ -318,6 +318,31 @@ python3 conformance/v1/lifecycle.py \
   --report /path/to/rope-smoke-lifecycle-report.json
 ```
 
+Smoke-to-rope DRAG uses `smoke-rope-drag-v1` for particle and projected-grid
+smoke. Six public-state runs pair zero-drag controls with forward, stationary,
+and reverse carrier flow around a free two-node rope. The oracle bounds signed
+mean rope-node response, acceleration, transverse drift, forward/reverse
+symmetry, segment-length preservation, closest-segment tracer clearance, node
+speed, and one-way smoke invariance. `smoke-rope-drag-lifecycle-v1` carries an
+exact five-checkpoint graph case for each representation:
+
+```text
+parallel-mater-conformance --quality smoke-rope-drag-v1 \
+  --output /path/to/smoke-rope-drag-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/smoke-rope-drag-v1.json \
+  --actual /path/to/smoke-rope-drag-quality-results/smoke-rope-drag-v1.json \
+  --report /path/to/smoke-rope-drag-quality-report.json
+
+parallel-mater-conformance \
+  --lifecycle-profile smoke-rope-drag-lifecycle-v1 \
+  --output /path/to/smoke-rope-drag-lifecycle-result.json
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/smoke-rope-drag-lifecycle-v1.json \
+  --actual /path/to/smoke-rope-drag-lifecycle-result.json \
+  --report /path/to/smoke-rope-drag-lifecycle-report.json
+```
+
 Smoke-to-soft-body DRAG uses `smoke-soft-drag-v1` for particle and projected-
 grid smoke. Six public-state runs pair zero-drag controls with forward,
 stationary, and reverse carrier flow. The oracle bounds signed soft-node
