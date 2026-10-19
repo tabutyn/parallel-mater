@@ -75,13 +75,16 @@ Json selected_driver_json() {
 }
 
 Json missing_lifecycle_case(std::string id, Json families, Json unrelated,
-                            int status, const char *fixture) {
+                            int status, const char *fixture,
+                            std::string reason = {}) {
     Json attempt = Json::object();
     attempt["fixture"] = fixture;
     attempt["status"] = status == 77 ? "unsupported" : "failed";
-    attempt["reason"] = status == 77
-        ? "Required advertised features are unavailable."
-        : "Public-API fixture failed.";
+    attempt["reason"] = reason.empty()
+        ? status == 77
+            ? "Required advertised features are unavailable."
+            : "Public-API fixture failed."
+        : std::move(reason);
     Json result = Json::object();
     result["attempt"] = std::move(attempt);
     result["execution_status"] = status == 77 ? "unsupported" : "failed";
@@ -102,7 +105,7 @@ Json capacity_lifecycle_case(
         const int status = fixture.status == 77 || stress_status == 77 ? 77 : 2;
         return missing_lifecycle_case(
             "capacity-replacement-recovery", std::move(families),
-            std::move(unrelated), status, "capacity-recovery");
+            std::move(unrelated), status, "capacity-recovery", fixture.reason);
     }
 
     Json observations = Json::array();
@@ -145,7 +148,8 @@ Json graph_lifecycle_case(const test::GraphLifecycleResult &fixture) {
     if (fixture.status != 0)
         return missing_lifecycle_case(
             "three-family-partial-rollback", std::move(families),
-            std::move(unrelated), fixture.status, "interaction-graph-lifecycle");
+            std::move(unrelated), fixture.status, "interaction-graph-lifecycle",
+            fixture.reason);
 
     Json observations = Json::array();
     for (const auto &checkpoint : fixture.observations) {
@@ -188,14 +192,16 @@ std::string conformance_adverse_lifecycle(const std::filesystem::path &root,
     try {
         capacity_stress = parallel_mater_resource_lifecycle_fixture();
         (void)parallel_mater_capacity_recovery_fixture(&capacity);
-    } catch (const std::exception &) {
+    } catch (const std::exception &error) {
         capacity.status = 2;
+        capacity.reason = error.what();
         capacity_stress = 2;
     }
     try {
         (void)parallel_mater_interaction_graph_lifecycle_fixture(&graph);
-    } catch (const std::exception &) {
+    } catch (const std::exception &error) {
         graph.status = 2;
+        graph.reason = error.what();
     }
     Json cases = Json::array();
     cases.push_back(capacity_lifecycle_case(capacity, capacity_stress));
