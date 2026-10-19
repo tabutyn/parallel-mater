@@ -1,7 +1,7 @@
 {
   "id": "F5-46",
   "title": "Qualify soft-rope attachment",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,15 +17,31 @@
     "Retain the existing exact lifecycle binding and prove the new analytic fixture does not broaden or substitute for its capacity, replacement and rollback obligations.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "a617f082-6b92-4ca0-a1e3-9c824bbdf321",
-    "owner": "codex-linux-qualification",
-    "machine": "ThomasLaptop",
-    "branch": "work/F5-46/ThomasLaptop",
-    "claimed_at": "2026-10-19T17:21:03Z",
-    "heartbeat_at": "2026-10-19T17:21:03Z",
-    "expires_at": "2026-10-20T17:21:03Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F5-46-soft-rope-attachment.json",
+    "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment.json",
+    "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment-qualification.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "a617f082-6b92-4ca0-a1e3-9c824bbdf321",
+        "owner": "codex-linux-qualification",
+        "machine": "ThomasLaptop",
+        "branch": "work/F5-46/ThomasLaptop",
+        "claimed_at": "2026-10-19T17:21:03Z",
+        "heartbeat_at": "2026-10-19T17:21:03Z",
+        "expires_at": "2026-10-20T17:21:03Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T17:50:50Z",
+      "reason": "Published an immutable public-API soft-rope attachment oracle, retained the exact adverse three-family lifecycle binding, refreshed the stale CUDA trajectory baseline, and produced clean physical CUDA qualification for the exact ATTACHMENT tuple.",
+      "evidence": [
+        "docs/roadmap/evidence/F5-46-soft-rope-attachment.json",
+        "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment.json",
+        "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment-qualification.json"
+      ]
+    }
+  ]
 }
