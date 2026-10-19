@@ -1,345 +1,313 @@
 # ParallelMater
 
-ParallelMater is an MIT-licensed GPU physics API. Applications create an
-instance, enumerate and create a device, bind memory, create resources and a
-physics pipeline, record commands, submit them to a queue, synchronize, and
-read timing or memory queries through `parallel_mater.h`.
+ParallelMater is an MIT-licensed physics library with a C API for running
+simulations on GPUs. It covers rigid bodies and joints, particle fluids, cloth,
+ropes, soft bodies, smoke, and interactions between these systems. Applications
+control devices, memory, simulation resources, command submission, and
+synchronization through one API.
 
-Applications link the `parallel-mater` loader. The loader discovers installable
-Parallel Mater drivers, aggregates their physical devices, loads optional
-layers, and dispatches commands to the driver that owns each device. It contains
-no GPU API, allocator, shader compiler, simulation schedule, or physics code.
+The repository includes the loader and SDK, reference drivers for CUDA, Metal,
+Direct3D 12, and Vulkan, and the Gallery example application for desktop,
+Android, and iPad. The reference drivers compile shared Slang physics shaders
+for their target GPU; Metal physics executes on the Apple GPU.
 
-One set of Slang shaders implements rigid bodies, particle fluid, cloth, rope,
-soft bodies, smoke, and their couplings. CUDA is the first runtime device
-adapter; it owns allocation, transfer, dispatch, synchronization, and native
-interop, but no physics equations or alternate simulation schedule. Unsupported
-targets are reported explicitly and never fall back to an older solver.
-Generation-checked rigid constraints provide fixed, point, hinge, slider,
-piston, generic, generic-spring, and motor joints with runtime updates,
-breaking thresholds, limits, springs, and collision suppression.
+- **Try the examples:** [build and run Gallery](#try-the-gallery).
+- **Integrate physics into an application:** [use the C API](#use-the-c-api).
+- **Implement a driver:** [driver development](#write-a-driver).
 
-Rigid contacts and joints use a shared [AVBD body-block solver](docs/CONTACT_SOLVER.md).
-Its production numerical core and runtime schedule are generated from
-`geometry_constraints.slang` and checked against the portable CPU reference. There is no
-stack-only or joint-triggered fallback solver. Impact velocity correction uses
-the same body blocks and is included in the reported iteration count.
+The project is in development on API version **0.2**. Before 1.0, minor API
+versions may introduce incompatible changes. Drivers have different feature
+coverage, and complete physical and performance qualification is still open.
+Use the [qualification index](docs/QUALIFICATION.md) to check evidence for the
+specific driver, device, revision, and interaction you intend to use.
 
-The [Slang implementation](docs/SLANG.md) is the production source for rigid
-AVBD and triangle/BVH contact geometry, fluid, cloth, soft bodies, ropes,
-smoke, and implemented couplings. Distinct fluid–fluid systems remain unsupported. A CMake gate compiles the shared entries to CUDA and
-PTX; an architecture test rejects native physics kernels and direct launches.
-Current evidence scope and open failures are recorded in the
-[qualification index](docs/QUALIFICATION.md); exact pair, mode, direction and
-material semantics are defined by the [interaction contract](docs/INTERACTION-MODES.md).
-Earlier compiler evidence remains
-in the [Slang validation report](docs/slang-unification-validation.md).
+## How it works
 
-Measured performance, validation limits and earlier solver experiments are
-recorded in [the rigid performance report](docs/PERFORMANCE.md). Historical
-timings in that report are not measurements of the current AVBD implementation.
+Applications link the `parallel-mater` loader and include
+`<parallel_mater/parallel_mater.h>`. The loader discovers installed drivers,
+enumerates their physical devices, and routes calls to the driver that owns the
+selected device. Optional layers provide validation and diagnostics.
 
-For a shader-free loader/SDK build, installed C example and release gates, see
-[SDK builds and releases](docs/SDK-RELEASES.md). The specification and runtime
-remain MIT licensed; driver competition and future standards adoption are
-project goals, not current certification claims.
+| Component | Responsibility |
+|---|---|
+| Application or Gallery | Choose a device, create the simulation, submit steps, consume output, and render or otherwise use the results. |
+| Loader | Discover drivers and layers, negotiate interfaces, enumerate devices, and dispatch API calls. |
+| Reference runtime and Slang shaders | Share simulation scheduling, resource planning, collision detection, solver equations, and coupling operators across GPU backends. |
+| Native device adapter | Allocate GPU memory, transfer and bind resources, dispatch shaders, synchronize work, and provide supported native interoperability. |
 
-## Design goals
+An **installable driver** implements the public API behind the loader. A
+**device adapter** is the native GPU service layer inside a reference driver.
+The shared C++ runtime schedules work on the host; the GPU drivers execute
+physics kernels on the GPU. A separately selected Slang CPU driver exists for
+development and reference checks.
 
-- One public C command API and one Slang implementation serve every physics
-  domain.
-- Explicit devices, queues, memory bindings, pipelines, command buffers,
-  barriers, semaphores, fences, and queries compose with a larger GPU pipeline.
-- Resource capacity and ownership are explicit; command submission remains
-  asynchronous.
-- Device adapters provide platform services only. Renderers draw common frame
-  data and cannot step physics or select scenes.
-- One gallery catalog, input handler, scene builder, and controller path drives
-  interactive, headless, benchmark, and replay execution.
+Rigid contacts and joints use a shared Augmented Vertex Block Descent (AVBD)
+solver. Other domains and coupling operators also live in shared Slang. See
+[physics source and compilation](docs/SLANG.md) and the
+[rigid solver](docs/CONTACT_SOLVER.md) for implementation details.
 
-Start with [the API](docs/API.md), then review [the gallery
-boundary](docs/GALLERY.md) and [the migration plan](docs/ROADMAP.md).
+## Drivers and feature coverage
 
-The [command API reference PDF](docs/reference/parallel-mater-reference.pdf)
-and [API specification](docs/reference/parallel-mater-specification.pdf)
-describe the Vulkan-style API: explicit devices, allocation, physics pipelines,
-command buffers and synchronization. The reference lists declarations;
-its purple section markers point to explanations and rules in the specification.
-The `parallel-mater` loader exposes the public C command API in
-`parallel_mater/parallel_mater.h`. The first installable driver,
-`parallel_mater_driver_slang_cuda`, implements device, memory, command,
-synchronization, query, native-buffer, and physics services. Driver discovery,
-the private ABI, manifests, and vendor requirements are documented in the
-[driver SDK](docs/DRIVER_SDK.md). Features are advertised only when their
-shared Slang schedule is present.
+These are implemented reference drivers and their advertised domain scope,
+not a claim that every interaction or device has passed qualification:
 
-On Windows, `parallel_mater_driver_slang_d3d12` is also loader-visible. It
-implements D3D12 memory, buffers, transfers, barriers, fences, native handles,
-and memory budgets. Its command path dispatches the common rigid-body,
-rigid-constraint, liquid, cloth, liquid–rigid, cloth–rigid and liquid–cloth
-schedules compiled to DXIL, including contact/debug/query exports. These are
-preview capabilities, not cross-driver conformance approval: strict contact,
-trajectory and tearing comparisons still have failures. Paint, ropes, soft
-bodies and smoke remain unavailable on this driver.
-The [coverage audit](docs/reference/API-AUDIT.md) maps every declaration to its
-runtime definition.
+| Driver | Platform / hardware | Physics execution | Domain scope |
+|---|---|---|---|
+| CUDA | Linux and Windows with a compatible NVIDIA GPU | Slang-generated CUDA / PTX on the GPU | Rigid bodies, joints, fluids, cloth, ropes, soft bodies, smoke |
+| Metal | macOS and iPadOS with Apple GPU family 7 or newer | Slang-generated Metal libraries on the GPU | Rigid bodies, joints, fluids, cloth, ropes, soft bodies, smoke |
+| D3D12 | Windows with a Shader Model 6.6-capable GPU | Slang-generated DXIL on the GPU | Rigid bodies, joints, fluids, cloth |
+| Vulkan | Linux and Android with the [required Vulkan features](docs/VULKAN.md) | Slang-generated SPIR-V on the GPU | Rigid bodies, joints, fluids, cloth, ropes, soft bodies, smoke |
+| Slang CPU | Linux and macOS development hosts | Slang-generated C++ executed serially | Rigid bodies and joints; experimental liquids require an explicit build option |
 
-## Build and test
+There is no WebGPU runtime driver; WGSL compilation checks cover the AVBD
+numerical core only. CUDA is one backend choice, not a universal default.
+Platform presets select which drivers are built, and applications select a
+physical device from the installed drivers.
 
-```bash
-cmake -S . -B build \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_CUDA_ARCHITECTURES=86 \
-  -DBUILD_TESTING=ON
-cmake --build build
-ctest --test-dir build --output-on-failure
+Domain support does not imply every interaction between domains. Query
+`pmGetPhysicalDeviceFeatures` and
+`pmEnumeratePhysicalDeviceInteractionCapabilities` before creating resources.
+Interaction records identify the exact pair, scope, mode, direction, and
+material profile. For example, equal-material separate-fluid interaction is
+advertised by the CUDA build; this does not imply support for miscible,
+immiscible, or phase-transfer fluid pairs on every driver. See the
+[interaction contract](docs/INTERACTION-MODES.md) for those distinctions.
+
+An unavailable capability returns `PM_ERROR_FEATURE_NOT_PRESENT`; selecting a
+GPU driver does not silently switch physics to the CPU. Runtime capability
+queries describe what the driver exposes. The revisioned
+[qualification results](docs/QUALIFICATION.md#per-driver-evidence-index)
+separately report whether its required execution, lifecycle, regression, and
+analytic physical checks have passed. A working Gallery scene or successful
+shader compilation alone does not establish that qualification.
+
+## Use the C API
+
+The API uses explicit resources and command buffers, similar to modern graphics
+APIs. A typical application:
+
+1. Creates an instance, enumerates physical devices, and queries capabilities.
+2. Creates a device and queue, queries memory requirements, and allocates and
+   binds memory for geometry, buffers, and simulation resources.
+3. Creates a physics pipeline containing solver and material policy, then
+   records initial state and supported interactions into command buffers.
+4. Records simulation steps and output commands, submits them to the queue,
+   and uses fences or timeline semaphores to observe completion.
+5. Uses completed output for rendering or application logic, keeping resources
+   alive until their submitted work finishes.
+
+The library does not require a window or renderer. Native buffer sharing is
+capability-gated; check the selected driver's interoperability support before
+designing an engine integration around it.
+
+Start with the [API guide](docs/API.md) and the small
+[C device-discovery example](examples/sdk/devices.c). The
+[API specification](docs/reference/parallel-mater-specification.md) defines
+behavior and ownership; the [API reference PDF](docs/reference/parallel-mater-reference.pdf)
+lists declarations. The [specification PDF](docs/reference/parallel-mater-specification.pdf)
+provides the same behavioral rules in printable form.
+
+### Build and install the SDK
+
+Requirements: CMake 3.25+, Ninja, Python 3, and a C++20 compiler. The C example
+also needs a C11 compiler. On Windows, use an x64 Visual Studio Developer
+Command Prompt with Ninja on `PATH`.
+
+Run from the repository root:
+
+```sh
+cmake --preset sdk-minimal
+cmake --build --preset sdk-minimal
+cmake --install build-sdk-minimal --prefix "$PWD/out/sdk"
+
+cmake -S examples/sdk -B build-sdk-example -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$PWD/out/sdk"
+cmake --build build-sdk-example
 ```
 
-CUDA runtime tests skip with code 77 when no CUDA device is available. The
-Windows D3D12 command test also skips when no Shader Model 6.6 adapter is
-available. Compute capability `86` is the local RTX 3050 Ti setting; consumers
-should select the architectures they ship.
+These are POSIX-shell commands; in a Windows Developer Command Prompt, replace
+`$PWD/out/sdk` with an absolute installation path and put each command on one
+line. This profile installs the loader, public headers, and validation layer.
+It needs no Slang compiler or GPU SDK and includes **no physics driver**.
+Build or install a driver separately before running a simulation.
 
-CUDA compiles the shared physics modules under `src/slang/`; build target
-`parallel-mater-slang-kernel-mirrors` validates every entry. CMake resolves one
-exact Slang 2026.18 compiler from `PATH` or downloads the matching
-checksum-pinned official package. Set
-`PARALLEL_MATER_SLANGC_EXECUTABLE` to an exact compiler path for offline builds.
-NVCC compiles Slang's generated CUDA source; no Slang runtime is shipped. See
-the [Slang toolchain and source layout](docs/SLANG.md).
+Reference builds generate manifests under `<build>/<configuration>/manifests`;
+for example, the Metal preset below produces
+`build-macos-metal-preview/Release/manifests/slang-metal.json`. Installed driver
+packages place manifests under `share/parallel-mater/drivers.d`.
+Point the example at the chosen manifest (replace the path):
 
-### Target and driver support
-
-The Slang/CUDA driver is the first reference physics implementation. Current
-full-corpus quality qualification remains incomplete; see the
-[qualification index](docs/QUALIFICATION.md) for known failures.
-macOS also builds a loader-native Slang CPU driver: its serial host adapter
-executes the shared generated rigid-body, constraint, contact, debug, and query
-kernels. It is a correctness and development path, not yet a performance
-replacement for a native Apple GPU adapter, and it does not advertise fluid,
-cloth, rope, soft-body, smoke, or paint capabilities by default. The Android
-preview explicitly enables experimental shared Slang CPU liquids. All shared
-Slang modules also compile to SPIR-V as a portability check. A loadable
-[Vulkan preview driver](docs/VULKAN.md) now executes shared rigid-body,
-constraint, liquid, and liquid–rigid schedules; other domains remain
-unadvertised. The Linux desktop test launcher offers CUDA or Vulkan and the
-Gallery accepts `--backend`. The D3D12 driver exposes the preview rigid,
-liquid and cloth slice through the same ordinary C++ runtime and portable
-schedule, without CUDA compatibility headers. Metal and WebGPU have no
-drivers. The backend-neutral AVBD numerical core is also compiled to WGSL
-as a WebGPU portability gate; the complete pointer-based domain schedules do
-not yet have WebGPU resource wrappers. Retired backend-specific physics targets
-are absent rather than available as fallbacks. Native
-API names remain in
-interoperability enums because applications may query support and receive
-`PM_ERROR_FEATURE_NOT_PRESENT` explicitly.
-
-## Blender gallery and renderer adapters
-
-The optional gallery loads committed Blender-authored `.glb` files and creates
-every scene through the public command API. The default renderer is a portable
-software rasterizer feeding a thin native window/presentation adapter (D3D12 on
-Windows, Metal for Apple previews, OpenGL elsewhere). OptiX is an optional renderer adapter and is
-deliberately separate from the common catalog, scene, input, and application
-targets.
-
-Apple previews use the same public `GpuSceneBuffers` handoff for direct Metal
-drawing on macOS and iPad. Physics finishes before graphics reads its outputs;
-graphics finishes before the next step reuses them. Diagnostics and CPU scene
-controllers explicitly retain host reads. This is fenced GPU-to-GPU drawing,
-not engine-owned devices or asynchronous frames in flight.
-
-Selecting D3D12 uses a thin native GPU drawing adapter instead of the software
-renderer. Shared Slang drawing shaders consume public rigid, cloth-surface and
-liquid output buffers; the window copies a shared GPU image and uploads only UI
-pixels. Liquid particle, surface and wireframe modes run on the GPU. Regular
-frames read only controller state; diagnostic views and lossless headless
-captures request CPU data explicitly. This raster path does not claim OptiX
-lighting/foam or pixel-identical rendering parity.
-
-All Blender scenes use one exporter,
-`tools/blender/export_parallel_mater_scene.py`: as a Blender File → Export menu
-entry, a headless script, or its `export_scene()` Python function. See the
-[Blender interface guide](docs/BLENDER_SCENES.md). If Blender is installed when
-configuring the gallery, CTest also checks fresh exports against the runtime
-loader without changing the source assets.
-
-```bash
-cmake -S . -B build-gallery \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_CUDA_ARCHITECTURES=86 \
-  -DPARALLEL_MATER_BUILD_CUDA=ON \
-  -DPARALLEL_MATER_BUILD_GALLERY=ON \
-  -DPARALLEL_MATER_GALLERY_RENDERER=SOFTWARE \
-  -DBUILD_TESTING=ON
-cmake --build build-gallery
-ctest --test-dir build-gallery --output-on-failure
-./build-gallery/parallel-mater-gallery
+```sh
+PM_DRIVER_FILES=/absolute/path/to/slang-metal.json ./build-sdk-example/pm-devices
 ```
 
-### Android Gallery preview
+On Windows, set `PM_DRIVER_FILES` with `set` or `$env:PM_DRIVER_FILES`, then run
+`build-sdk-example\pm-devices.exe`. `PM_DRIVER_FILES` lists manifest files;
+`PM_DRIVER_PATH` lists directories to search. Lists use `:` on Unix and `;` on
+Windows. Manifest library paths may be relative to their manifest directory.
+See [driver discovery](docs/DRIVER_SDK.md#driver-manifest) for packaging details.
 
-An ARM64 native Android preview uses the shared Gallery session and timer with
-Vulkan GPU physics (an explicitly selected Slang CPU build remains available).
-Hardware profiles select bounded rigid/fluid workloads. The exposed Android
-catalog is eight scenes; shader availability does not establish full device
-physics qualification. See [build, install and controls](examples/android/README.md).
+In a CMake consumer:
 
-### iPad Gallery preview
-
-A native UIKit preview reuses the macOS Slang Metal driver for **Apple GPU
-physics** and direct Metal drawing from public GPU output buffers. Android and
-iPad share one C++ mobile-session coordinator, timer, controls and bounded
-workloads. It exposes all 28 catalog scenes without CPU physics fallback.
-Requires iPadOS 26+ and Apple GPU family 7 or newer; full physics and sustained
-performance qualification remain pending. See [build, install, controls and
-device diagnostics](examples/ios/README.md).
-
-### Windows Gallery application
-
-Windows gallery builds automatically refresh the current user's canonical
-Start Menu installation at
-`%LOCALAPPDATA%\Programs\Parallel-Mater\Parallel-Mater.exe`. This is enabled by
-default with `PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY=ON`, so building the
-`parallel-mater-gallery` target cannot leave the Start Menu shortcut pointing
-at an older tested build. The deployment packages every built portable driver
-manifest, excludes test-only drivers, atomically replaces files, and verifies
-their SHA-256 hashes and the executable's reported build identity.
-
-Use `Parallel-Mater.exe --version` to identify the installed revision and exact
-build timestamp. To
-repair the installation explicitly, build the `install-windows-gallery`
-target. Set `PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY=OFF` only for build
-directories that must never update the current user's application.
-
-### macOS Gallery application
-
-The default macOS build creates `ParallelMater Gallery.app`, bundles the Slang
-CPU driver and portable manifest, and loads physics only through the public
-loader. It contains none of the retired Metal physics implementation. Rigid and
-rigid-constraint galleries run through shared Slang kernels; unadvertised
-simulation domains remain unavailable.
-
-For a stable development Dock item, enable continuous deployment in one build
-directory. Each successful default build ad-hoc signs and atomically refreshes
-`/Applications/ParallelMater Gallery.app`:
-
-```bash
-cmake -S . -B build-macos-gallery \
-  -DPARALLEL_MATER_BUILD_GALLERY=ON \
-  -DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=ON \
-  -DPARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY=ON
-cmake --build build-macos-gallery
+```cmake
+find_package(ParallelMater 0.2 CONFIG REQUIRED COMPONENTS loader)
+target_link_libraries(your_application PRIVATE ParallelMater::api)
 ```
 
-The installed app searches only its bundled `Resources/drivers.d`; it never
-scans the source or build volume. The explicit `deploy-macos-gallery` target
-performs the same refresh when automatic deployment is disabled.
+For portable SDK tests, use `cmake --preset sdk-ci`,
+`cmake --build --preset sdk-ci`, and `ctest --preset sdk-ci`.
+[SDK builds and releases](docs/SDK-RELEASES.md) covers optional components,
+installed examples, compatibility, and release verification.
 
-For AVBD-budget experiments, use `--contact-passes 1` in the gallery.
-The command API field is `PmRigidSolverState::rigidIterations`; 1–64 selects
-iterations per pose/impact phase for both contacts and joints. Impacted islands
-may therefore report twice that value;
-integration substeps are unchanged. Low budgets can destabilize stacks. Check
-quality with `parallel-mater-command-gallery-tests`, not only timing.
-`F` shows shared host wall-clock frame timing, not GPU kernel launches or
-solver iterations. Physics time includes every catch-up step in that frame.
+## Try the Gallery
 
-Left-drag orbits, Shift+left-drag pans, the wheel zooms, and `R` resets the active scene. `Tab` opens
-the selector for Rigid Body, six Constraint scenes, DUMP, Fluid, Fluid + Rigid, Peg Paint, Cloth,
-Cloth Tear, Cloth Paint, Water Cloth, Soft Body, and Soft Body Rigid; use
-Up/Down and Enter to switch.
-Fixed collects loose spheres on contact. Point starts with four spheres
-orbiting a shared anchor in two perpendicular pairs; `Space` releases or
-reattaches all four. Arrow keys tilt gravity relative to the current camera in
-Constraint scenes except Motor + Spring. Up/Down drives all four Motor + Spring
-wheels together. Left/Right yaws each hub and wheel around
-the suspension's up axis, with rear steering opposite the front. Hinge launches a sphere into a panel merged with the first of three
-hinged gears; contact propagates through both interfaces with alternating
-rotation. Slider, Piston, and Generic launch an
-authored sphere impact automatically.
-Rigid Body loads `RigidBody.blend`: two evaluated Array stacks become 384
-independent bricks sharing two meshes. Arrows tilt the sphere's gravity relative
-to the current camera to drive it through the wall while the bricks retain
-vertical gravity. The authored `LoadBox`
-is available as a non-colliding hit-box query volume. In
-DUMP, arrows drive and steer the suspended dump truck; Space tips its open-top
-rear bucket 100 degrees, and another press lowers it. Press `P` to edit its
-10–1,000 sphere load centered on the Blender Empty `SphereCluster`; applying a
-count restarts DUMP. `F` toggles the same frame-time/FPS panel in every scene.
-Use `--frame-timings output.csv` for per-frame measurements; with `--headless`,
-this renders each simulated frame instead of only the final image. See
-[Gallery timing](docs/GALLERY.md#frame-timing) for measurement boundaries.
-Fluid uses the supplied
-`Fluid.blend` scene and displays blue particles with white surface foam. Escape
-quits. In Peg Paint, arrows or WASD tilt the authored gravity relative to the
-camera; release them to return it smoothly to vertical. Display-free scene
-renders are available through CLI flags. Cloth uses `Cloth.blend`, keeps its
-two `FixedVertices` rows pinned. All four Cloth scenes start with gravity
-straight down; arrow keys steer it relative to the camera within a 45-degree
-tilt, and releasing them restores straight-down gravity.
-`--cloth-tear` lets a heavy sphere land, then roll through bond-fractured cloth
-when gravity is steered toward the sheet. No cloth triangles are deleted.
-`--cloth-paint` keeps the
-cloth intact while the active sphere presses and paints it through the public
-paint-field API.
-`--water-cloth` loads `ClothWater.blend`: Blender Cloth Pressure preserves the
-closed unpinned sphere's authored volume while an explicit API coupling keeps
-its Geometry-flow water inside and transfers equal-and-opposite forces back to
-the cloth. Its containing skin is rendered as refractive transparent water.
-`--soft-body` loads `Softbody.blend`: the exporter marks its native Blender Soft
-Body surface, the loader builds a volumetric spring lattice, and the public API
-deforms it against the authored passive triangle arena. Blender Goal settings
-drive rotation-invariant shape restoration without preventing rolling and
-yield while a dynamic collider is actively loading the lattice. It starts with
-gravity straight down and shares arrow steering, reset, timing, capture, and
-deformable debug controls. `--soft-body-rigid` loads
-`SoftbodyRigidBody.blend` and uses the
-same API solver while two active spheres exchange balanced linear and angular
-contact impulses with the lattice.
-`--soft-body-cloth` loads `SoftbodyCloth.blend`: a soft sphere lands on an intact
-cloth bridge over a pit and can be rolled into a separate tearable curtain.
-Each cloth carries its own `pm_break_strain` Blender custom property. The shared
-API handles contacts, friction, and fracture, with gravity initially down.
-`--soft-body-fluid` loads `SoftbodyFluid.blend`: the Soft Body Goal group fixes
-the authored attachment while an inflow loads its triangle surface and water
-drains through the outflow. Fluid/soft-body contact is an explicit API resource;
-the gallery reuses its normal water surface, foam, controls, and diagnostics.
-Every entry uses the same physics diagnostics: `Z` toggles contact/deformable
-normals, `X` rigid and deformable contact forces, `C` fluid acceleration/reaction
-forces, `N` velocities, and `M` writes the rolling physics capture to the
-platform temporary directory (`/tmp` on Linux and the per-user temporary
-directory on macOS). The interactive gallery shows the resolved path after a
-successful capture.
-`V` exposes particles, cloth structure, or every soft-body spring where those
-systems exist; `B` shows cloth bonds or the soft-body surface wireframe. The
-gallery opts into debug-data output when it creates the simulation;
-ordinary library consumers pay no capture/readback cost unless they do the
-same. `P`, `F`, arrow-gravity steering, and `R` use the common controls.
+Gallery loads Blender-authored `.glb` scenes through the public API. Desktop,
+Android, and iPad share the catalog, scene/session logic, controls, and frame
+timer. The picker reports which scenes the selected driver can run. Selecting
+a physics backend and choosing a rendering method are separate concerns;
+native Metal, D3D12, and Vulkan paths can draw public GPU output buffers directly.
+Software rendering and optional NVIDIA OptiX rendering are also available.
 
-```bash
-./build-gallery/parallel-mater-gallery \
-  --backend cuda --headless /tmp/parallel-mater-gallery.ppm --frames 120
+GPU builds use the repository-pinned Slang compiler. CMake finds the exact
+version on `PATH` or downloads its checksum-pinned package. For offline builds,
+set `PARALLEL_MATER_SLANGC_EXECUTABLE` to that compiler. See
+[toolchain requirements](docs/SLANG.md#compiler-toolchain).
 
-./build-gallery/parallel-mater-gallery \
-  --dump-spheres 100 \
-  --headless /tmp/parallel-mater-dump.ppm --frames 120
+### macOS: Apple GPU
 
-./build-gallery/parallel-mater-gallery \
-  --fluid --headless /tmp/parallel-mater-fluid.ppm --frames 120
+Install Xcode with the Metal toolchain, then use the explicit Metal preset:
 
-./build-gallery/parallel-mater-gallery \
-  --cloth --headless /tmp/parallel-mater-cloth.ppm --frames 180
-
-./build-gallery/parallel-mater-gallery \
-  --water-cloth --cloth-tilt-left --frames 180 \
-  --physics-capture /tmp/water-cloth-physics.log \
-  --headless /tmp/water-cloth.ppm
+```sh
+cmake --preset macos-metal-preview
+cmake --build --preset macos-metal-preview
+"./build-macos-metal-preview/ParallelMater Gallery.app/Contents/MacOS/ParallelMater Gallery" --backend metal
 ```
 
-The gallery executable has no compile-time CUDA or OptiX dependency. Running a
-scene still requires a loader driver advertising all physics features used by
-that scene; today that is the Slang/CUDA driver. Select `OPTIX` instead of
-`SOFTWARE` to build the optional NVIDIA renderer; only that selection fetches
-the pinned OptiX headers. See [the Blender scene contract](docs/BLENDER_SCENES.md)
-before authoring or exporting another scene.
+This app bundles the Metal physics driver. A plain macOS configuration without
+this preset defaults to the CPU development driver. To install the Metal build
+as the canonical `/Applications/ParallelMater Gallery.app` and update the Dock:
+
+```sh
+python3 scripts/Deploy-Gallery.py macos
+```
+
+Deployment checks the built revision, signature, installed backend, and a native
+rendering smoke test. It requires a clean checkout and matching build by
+default; `--allow-dirty` permits an explicit development iteration.
+
+### Windows: D3D12
+
+Use Visual Studio 2022 with its C++ tools and Windows SDK, plus the pinned Slang
+compiler:
+
+```powershell
+cmake --preset windows-d3d12-preview
+cmake --build --preset windows-d3d12-preview
+.\build-windows-d3d12-preview\Release\Parallel-Mater.exe --backend d3d12
+```
+
+The preview preset leaves the installed application unchanged. To refresh the
+canonical Start Menu app, run
+`cmake --build --preset windows-d3d12-preview --target install-windows-gallery`.
+The [Gallery guide](docs/GALLERY.md#backend-selection) explains installation
+and backend selection.
+
+### Linux: Vulkan or CUDA
+
+For Vulkan, install a Vulkan SDK, a compatible GPU driver, Ninja, and desktop
+window-system development libraries. Follow the exact hardware and validation
+requirements in the [Vulkan guide](docs/VULKAN.md).
+
+```sh
+cmake --preset linux-vulkan-preview
+cmake --build --preset linux-vulkan-preview
+./build-linux-vulkan-preview/parallel-mater-gallery --backend vulkan
+```
+
+For NVIDIA CUDA, install the CUDA toolkit and use a compatible host compiler:
+
+```sh
+cmake -S . -B build-gallery -DCMAKE_BUILD_TYPE=Release \
+  -DPARALLEL_MATER_BUILD_CUDA=ON -DPARALLEL_MATER_BUILD_GALLERY=ON \
+  -DCMAKE_CUDA_ARCHITECTURES=native
+cmake --build build-gallery --parallel 2
+./build-gallery/parallel-mater-gallery --backend cuda
+```
+
+`native` targets the build machine's GPU. Set explicit CUDA architectures when
+building for other machines. The interactive backend picker offers compatible
+installed drivers; `--backend` selects one explicitly for scripted runs.
+
+### Android and iPad
+
+- [Android build, installation, and controls](examples/android/README.md):
+  Vulkan GPU physics and rendering; the default ARM64 build requires Android
+  13+ and the specified Vulkan features. The guide lists the pinned SDK/NDK
+  dependencies and an explicit CPU development alternative.
+- [iPad build, installation, and controls](examples/ios/README.md): Metal GPU
+  physics and rendering; requires iPadOS 26+, Apple GPU family 7+, Xcode
+  development signing, and a paired device with Developer Mode enabled.
+
+Both mobile pickers use the shared 28-scene catalog and runtime capability
+checks. Device profiles set conservative starting workloads; these are not
+measured sustained-performance guarantees.
+
+### Controls, capture, and timing
+
+On desktop, `Tab` opens the scene picker, `R` resets, left-drag orbits,
+Shift+left-drag pans, and the wheel zooms. Arrow keys and `Space` perform the
+actions shown for the current scene. `F` toggles the shared frame-time/FPS
+panel. `M` saves a rolling physics capture and reports the output path.
+
+For a headless image and per-frame timing CSV, using the Linux CUDA build above:
+
+```sh
+./build-gallery/parallel-mater-gallery --backend cuda --constraint-point \
+  --headless point.ppm --frames 120 --frame-timings point.csv
+```
+
+Use the corresponding executable and backend for other desktop builds. With
+timing enabled, headless runs simulate and render every frame. Without it,
+they simulate the requested steps and render the final image once. Measurements
+are host wall-clock costs; interactive presentation includes VSync wait. See
+[Gallery timing](docs/GALLERY.md#frame-timing) for the measurement boundaries.
+Run the executable with `--help` for scene and diagnostic options, or
+`--version` to check its embedded build identity.
+
+See the [Gallery guide](docs/GALLERY.md) for scene-specific controls and examples.
+To author scenes, use the common
+[Blender exporter and scene contract](docs/BLENDER_SCENES.md).
+
+## Write a driver
+
+Start with the [driver SDK](docs/DRIVER_SDK.md), the installed
+`parallel_mater/pm_driver.h`, and the API specification. A driver supplies a
+shared library and JSON manifest, negotiates the loader/driver interface, and
+exports the four `pm_driver*` entry points. Applications continue to use the
+loader's public `pm*` API.
+
+Choose the integration level that fits your implementation:
+
+- **Add a backend to the reference implementation:** reuse the Slang physics
+  modules and shared runtime; implement the native memory, dispatch,
+  synchronization, query, and interoperability services. See
+  [shared Slang](docs/SLANG.md) and the
+  [common resource boundary](docs/COMMON-RESOURCE-BOUNDARY.md).
+- **Implement an independent driver:** implement the versioned driver ABI and
+  public API behavior. The loader does not require Slang or a particular native
+  GPU API. A hardware vendor can use its own compiler and execution services.
+
+Report only capabilities your driver implements, honor resource ownership and
+asynchronous completion rules, and return defined errors for unsupported
+requests. Validate ABI and lifecycle behavior with the SDK tests, then run the
+independent [conformance suite](conformance/v1/README.md). Physical quality and
+performance claims need evidence for the exact hardware and build being
+distributed; see [qualification](docs/QUALIFICATION.md) and
+[release requirements](docs/SDK-RELEASES.md#required-release-evidence).
+
+## Contributing and license
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution rules and
+[the roadmap](docs/ROADMAP.md) for remaining work and task ownership. The
+code and specification are [MIT licensed](LICENSE); dependency notices are in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

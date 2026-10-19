@@ -1,0 +1,45 @@
+{
+  "id": "F6-15",
+  "title": "Orient project documentation around users",
+  "status": "done",
+  "dependencies": [],
+  "locks": [
+    "user-documentation"
+  ],
+  "requires": [
+    "Any development host with the current source and SDK build tools"
+  ],
+  "scope": "Audit the entire README against current driver capability code, build presets and published evidence; replace historical progress notes with application, Gallery and driver-author guidance. Reconcile directly linked driver/toolchain summaries that contradict that guidance without changing runtime behavior or qualification claims.",
+  "acceptance": [
+    "README explains the public API, loader, shared Slang GPU execution, native adapter responsibilities, current backend choices and qualification limits without presenting chronology as support status.",
+    "Document reproducible SDK and Gallery entry points, explicit backend selection and driver-author next steps; validate local links, presets, advertised command options and the installed C SDK example on the available host.",
+    "Retain detailed scene, historical and qualification evidence in linked documentation; record source-backed audit findings and verification scope without claiming unrun cross-platform or physical tests."
+  ],
+  "evidence": [
+    "PASS: source-backed full README audit and supporting driver/toolchain corrections; docs/roadmap/evidence/F6-15-readme-audit.md.",
+    "PASS: sdk-minimal configured, built and installed on Apple M4; external C example built against the installed SDK and enumerated the existing Metal GPU driver.",
+    "PASS: 53 local documentation links/anchors, documented presets and Gallery CLI flags; Slang architecture and evidence-index checks; 28 roadmap tests. No new cross-platform physics qualification claimed."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "f63a8853-fc6d-431b-8887-be832e4d5be9",
+        "owner": "codex-docs-audit",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F6-15/thomass-macbook-air",
+        "claimed_at": "2026-10-19T13:07:34Z",
+        "heartbeat_at": "2026-10-19T13:07:34Z",
+        "expires_at": "2026-10-20T13:07:34Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T13:18:16Z",
+      "reason": "Audited README against current code and evidence; replaced historical tracking with user and driver-author guidance.",
+      "evidence": [
+        "PASS: source-backed full README audit and supporting driver/toolchain corrections; docs/roadmap/evidence/F6-15-readme-audit.md.",
+        "PASS: sdk-minimal configured, built and installed on Apple M4; external C example built against the installed SDK and enumerated the existing Metal GPU driver.",
+        "PASS: 53 local documentation links/anchors, documented presets and Gallery CLI flags; Slang architecture and evidence-index checks; 28 roadmap tests. No new cross-platform physics qualification claimed."
+      ]
+    }
+  ]
+}

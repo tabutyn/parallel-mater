@@ -14,11 +14,12 @@ domains rather than native APIs or solver experiments.
 - Domain-pair files contain coupling kernels.
 - `queries.slang` contains scene-query kernels.
 
-The command-API CUDA driver dispatches generated Slang kernels. The Linux/macOS Slang
-CPU driver compiles the same rigid-body, constraint, contact, debug, and query
-kernels to C++ and dispatches them serially as a correctness-first development
-path. Their device and simulation adapters allocate, transfer, synchronize,
-and dispatch; they do not contain alternate physics equations.
+The CUDA, Metal, D3D12, and Vulkan reference drivers compile these sources to
+their GPU targets and dispatch the generated kernels through the public command
+API. Their native adapters allocate, transfer, bind, synchronize, and dispatch;
+they do not contain alternate physics equations. The Linux/macOS Slang CPU
+driver separately compiles supported kernels to C++ and dispatches them
+serially for development and reference checks.
 
 ## Reference scheduling and submission
 
@@ -26,11 +27,12 @@ and dispatch; they do not contain alternate physics equations.
 the shared domain and coupling order as ordinary C++. Its state parameter owns
 resource descriptions and bookkeeping; its backend parameter supplies typed
 Slang dispatch, copy/clear, timing, readback, error checks, and queue waits.
-The header compiles without a native SDK. The private
-[`native_schedule_backend.cu.inc`](../src/simulation/native_schedule_backend.cu.inc)
-binds those operations to the existing CUDA and serial Slang CPU adapters.
-Dispatches on the backend queue must preserve write/read ordering and insert
-the native barriers required by that backend.
+The header compiles without a native SDK. Backend bindings connect its
+operations to CUDA, Metal, D3D12, Vulkan, or the serial Slang CPU driver.
+Dispatches must preserve resource dependencies with the native barriers
+required by that backend. The [common resource boundary](COMMON-RESOURCE-BOUNDARY.md)
+describes reflected bindings, range-based dependencies, retained resources,
+and completion ownership, including which adapters use that interface.
 
 The command API copies each accepted submission into a queue-owned worker.
 The worker activates the device, runs ready submissions, retains frame tokens
@@ -39,38 +41,40 @@ completion shared by fences, command buffers, and timeline signals. Unresolved
 timeline waits leave the worker free to run their producers. Ready submissions
 remain FIFO; explicit dependencies must order access to shared resources.
 
-This removes physics execution and readbacks from the submitting thread.
-The reference implementation still waits on its worker between frames and
-performs explicit readbacks for emission, phase transfer, diagnostics, and
-some resource metadata. It does not yet overlap independent GPU schedules.
-Current storage remains pointer-oriented; descriptor resource mapping and
-full native adapters for other graphics APIs remain separate work. The
-[Vulkan preview](VULKAN.md) now binds this schedule for rigid bodies,
-constraints, liquids, cloth, ropes, soft bodies, and their qualified rigid and
-liquid couplings.
+The reference implementation still has worker waits and explicit readbacks for
+some preparation, emission, phase transfer, diagnostics, and resource metadata.
+Asynchronous API submission does not promise that every backend overlaps
+independent GPU schedules or eliminates all host waits. Storage remains
+pointer-oriented, and adoption of the common command/completion interface
+differs by adapter.
 
-The Windows D3D12 driver embeds DXIL generated from the common kernel manifest.
-Its public command path binds and dispatches the shared rigid-body,
-rigid-constraint, contact, debug, and query schedules and advertises those
-tested capabilities. Fluid, cloth, rope, soft-body, smoke, and their couplings
-remain unadvertised.
+## Execution targets
 
-The opt-in Metal preview connects the same public API and reference scheduler
-to native Apple-GPU dispatch for rigid bodies/constraints, liquids, cloth,
-soft bodies, ropes, particle/grid smoke, existing cross-domain couplings and paint.
-It bundles generated Slang Metal libraries, not generated CPU physics. The CPU
-driver advertises rigid capabilities, with experimental liquids enabled for
-Android; its other domains remain unavailable.
-All existing domain and coupling entries now compile separately to Metal.
-Native kernel tests use actual
-Apple GPU buffers and dispatch through the reusable asynchronous C++ compute
-boundary. AVBD now has shared staged dispatches for adapters without cooperative
-grid barriers; the original cooperative entry uses the same stage equations.
-The preview Gallery uses the Metal driver for physics and software rendering
-for images. It still synchronizes for prepared solver counts and frame output.
-Missing roadmap interaction modes, full physics/performance qualification,
-native import and GPU rendering handoff remain unfinished. See the
-[Metal qualification checklist](METAL-QUALIFICATION.md) for the release gate.
+| Driver | Generated target | Advertised domain scope |
+|---|---|---|
+| CUDA | CUDA source compiled by NVCC / PTX | Rigid bodies/constraints, liquids, cloth, ropes, soft bodies, smoke, paint, and implemented couplings |
+| Metal | Metal libraries compiled with Apple's toolchain | Rigid bodies/constraints, liquids, cloth, ropes, soft bodies, smoke, paint, and implemented couplings |
+| D3D12 | DXIL embedded in the driver | Rigid bodies/constraints, liquids, cloth, and their implemented couplings |
+| Vulkan | SPIR-V with reflected argument bindings | Rigid bodies/constraints, liquids, cloth, ropes, soft bodies, smoke, paint, and implemented couplings |
+| Slang CPU | C++ host code | Rigid bodies/constraints; experimental liquids are opt-in |
+
+This table describes implementation scope. Exact interactions and native
+interoperability must be queried from the selected device; the
+[qualification index](QUALIFICATION.md) records the evidence and unresolved
+failures separately. See [Vulkan requirements](VULKAN.md) and
+[Metal qualification](METAL-QUALIFICATION.md) for platform details.
+
+The Metal driver uses native Apple GPU buffers and dispatch through the common
+asynchronous C++ compute boundary. AVBD uses shared staged dispatches on
+adapters without cooperative grid barriers; the cooperative entry uses the
+same stage equations. macOS and iPad Gallery draw directly from public GPU
+output buffers through the shared Metal renderer. Physics/graphics handoff is
+fenced, and diagnostics and some controllers retain explicit readbacks. This
+does not establish imported engine-device support or full physics/performance
+qualification.
+
+Android defaults to the Vulkan driver. Its explicitly selected CPU development
+build enables experimental liquids; Vulkan failure does not select CPU physics.
 
 The AVBD numerical core also compiles to WGSL and its reflection contract is
 tested. This qualifies the shared equations for WebGPU code generation only;
@@ -92,7 +96,7 @@ records remain in the build tree.
 
 ## Validation
 
-The portable AVBD test executes 105 fixtures against the host reference. The
+The portable AVBD test executes equation fixtures against the host reference. The
 full mirror target compiles every shared command-runtime entry point to CUDA,
 PTX when available, SPIR-V, and Metal. The architecture test rejects native CUDA
 physics kernels, direct physics launches, legacy command-runtime `World`

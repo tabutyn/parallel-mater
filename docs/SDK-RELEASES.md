@@ -11,7 +11,7 @@ The current SDK/package and application API line is **0.2**. Package patch
 versions identify compatible fixes within that line. Until 1.0, a minor version
 may break the contract: CMake accepts the same minor line and rejects 0.1/0.3
 against 0.2.0. ELF/macOS loader ABI naming follows 0.2. Driver-interface version 1
-and layer-interface version 2 are separate negotiation domains; increasing the
+and layer-interface version 3 are separate negotiation domains; increasing the
 SDK patch number never silently changes either interface. Applications request
 their API explicitly; the documented zero alias is not a compatibility promise
 for arbitrary future versions. See [API contract](API-CONTRACT.md).
@@ -24,6 +24,7 @@ for arbitrary future versions. See [API contract](API-CONTRACT.md).
 | `PARALLEL_MATER_BUILD_SCENE_SDK` | Host scene libraries without requiring the runner or Gallery |
 | `PARALLEL_MATER_BUILD_CONFORMANCE` | Headless public-command runner and corpus; selects installed drivers |
 | `PARALLEL_MATER_BUILD_{CUDA,D3D12,VULKAN,SLANG_CPU_DRIVER}` | Independently selected reference driver builds |
+| `PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW` | Apple GPU reference driver for macOS/iPadOS; requires the native Metal toolchain |
 | `PARALLEL_MATER_BUILD_GALLERY` | Renderer/window/application client |
 | `PARALLEL_MATER_BUILD_BENCHMARKS` | Existing rendered/profiler benchmarks; still require Gallery/CUDA, not a portable SDK performance qualification gate |
 

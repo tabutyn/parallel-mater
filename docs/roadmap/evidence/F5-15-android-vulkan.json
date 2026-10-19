@@ -40,8 +40,8 @@
   },
   "contract_hashes": {
     "device_capture_obligations": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
-    "published_qualification_obligations": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c",
-    "note": "The published registry adds the already executed fluid-self-viscosity and rope-self-contact quality contract entries. Their immutable fixture hashes and every other executed contract hash are retained in android-capture.json."
+    "published_qualification_obligations": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+    "note": "The merged registry adds the already executed fluid-self-viscosity and rope-self-contact entries plus newer smoke-fluid-drag obligations. Immutable executed fixture hashes remain in android-capture.json; three post-capture drag requirements remain explicit missing-evidence failures."
   },
   "artifacts": {
     "capture_package": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375",

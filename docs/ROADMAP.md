@@ -212,7 +212,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-32](roadmap/tasks/F5-32.json) | Qualify cloth fluid containment | done | F5-23 | — |
 | [F5-33](roadmap/tasks/F5-33.json) | Qualify fluid-soft contact | done | F5-23 | — |
 | [F5-34](roadmap/tasks/F5-34.json) | Qualify fluid-rope contact | leased | F5-23 | codex-macos-qualification / Thomass-MacBook-Air / 2026-10-20T10:57:40Z |
-| [F5-35](roadmap/tasks/F5-35.json) | Qualify smoke-to-fluid drag | leased | F5-23 | codex-windows-qualification / windows-gtx1080 / 2026-10-20T01:48:28Z |
+| [F5-35](roadmap/tasks/F5-35.json) | Qualify smoke-to-fluid drag | done | F5-23 | — |
 | [F5-36](roadmap/tasks/F5-36.json) | Qualify externally heated fluid | ready | F5-23 | — |
 | [F5-37](roadmap/tasks/F5-37.json) | Qualify fluid-to-smoke phase transfer | ready | F5-23 | — |
 | [F5-38](roadmap/tasks/F5-38.json) | Qualify fluid-rigid contact | ready | F5-23 | — |
@@ -254,6 +254,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F6-12](roadmap/tasks/F6-12.json) | Keep installed corpus manifest synchronized | done | F5-24, F6-04 | — |
 | [F6-13](roadmap/tasks/F6-13.json) | Package the conformance runner source closure | done | F6-12 | — |
 | [F6-14](roadmap/tasks/F6-14.json) | Remove workstation paths from installed evidence | done | F6-04, F6-12 | — |
+| [F6-15](roadmap/tasks/F6-15.json) | Orient project documentation around users | done | — | — |
 | [F6-99](roadmap/tasks/F6-99.json) | Review F6 exit evidence | done | F6-01, F6-02, F6-03, F6-04, F6-05, F6-06, F6-07, F6-08, F6-09, F6-10, F6-11, F6-12, F6-13, F6-14 | — |
 
 ### F7. Shared Gallery application
@@ -346,7 +347,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-55](roadmap/tasks/P1-55.json) | Qualify mixed smoke pair modes | deferred | P1-54, F5-02, F5-03 | — |
 | [P1-56](roadmap/tasks/P1-56.json) | Expose immiscible interface state | done | P1-04 | — |
 | [P1-57](roadmap/tasks/P1-57.json) | Expose interface thermal conductance | deferred | P1-15, P1-56 | — |
-| [P1-58](roadmap/tasks/P1-58.json) | Release fluid-pair interface storage | leased | P1-10 | codex-ci-repair / thomas-desktop / 2026-10-20T12:06:48Z |
+| [P1-58](roadmap/tasks/P1-58.json) | Release fluid-pair interface storage | done | P1-10 | — |
 
 ### P2. Deferred engine integration
 

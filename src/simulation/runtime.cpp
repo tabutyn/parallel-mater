@@ -884,8 +884,21 @@ struct FluidPairCouplingStorage {
         for (auto *&pointer : index.total_neighbors) release_managed(pointer);
         for (auto *&pointer : index.cross_neighbors) release_managed(pointer);
         for (auto *&pointer : index.density_samples) release_managed(pointer);
+        for (auto *&pointer : index.phase_labels) release_managed(pointer);
+        for (auto *&pointer : index.interface_normals) release_managed(pointer);
+        for (auto *&pointer : index.interface_curvatures)
+            release_managed(pointer);
+        for (auto *&pointer : index.interface_flags) release_managed(pointer);
         for (auto *&pointer : index.neighbor_overflow) release_managed(pointer);
         for (auto *&pointer : index.maximum_neighbor_count)
+            release_managed(pointer);
+        for (auto *&pointer : index.interface_sample_count)
+            release_managed(pointer);
+        for (auto *&pointer : index.under_resolved_interface_count)
+            release_managed(pointer);
+        for (auto *&pointer : index.degenerate_interface_count)
+            release_managed(pointer);
+        for (auto *&pointer : index.curvature_clamp_count)
             release_managed(pointer);
         release_managed(index.sort_workspace);
     }

@@ -1,10 +1,10 @@
 # Unified rigid AVBD solver
 
-The production CUDA adapter consumes the numerical core generated from
-[one Slang implementation](SLANG.md); the same numerical core is compiled for
-DXIL, MSL, HLSL, and WGSL validation. The portable C++ header is the test-only
-host reference used by equation
-fixtures. Collision geometry and graph construction also live in shared Slang.
+The CUDA, Metal, D3D12, and Vulkan reference drivers execute the numerical core
+from [one Slang implementation](SLANG.md) on their GPUs. WGSL compilation
+additionally checks portability of the numerical core. The portable C++ header
+is the test-only host reference used by equation fixtures. Collision geometry
+and graph construction also live in shared Slang.
 The common runtime prepares static mesh metadata; native adapters provide
 storage, synchronization and dispatch, not alternative physics algorithms.
 
@@ -15,16 +15,15 @@ velocity solve, or guided-body projection in the production stepping path.
 Collision filtering still groups welded siblings; that does not merge their
 physical mass or replace their joints.
 
-The retired DirectCompute backend is no longer present. The equations,
-iteration semantics and validation below describe the common Slang solver;
-native APIs provide execution and presentation rather than separate physics.
+The equations, iteration semantics, and validation below describe the common
+Slang solver. Native adapters provide GPU execution services.
 
 ## Shared numerical core
 
 [geometry_constraints.slang](../src/slang/geometry_constraints.slang) is
-compiled into the production CUDA runtime and cross-target validation outputs.
+compiled for the reference GPU drivers and cross-target validation outputs.
 It owns both the shared
-AVBD numerical core and the migrating rigid contact/joint solver entry points.
+AVBD numerical core and the rigid contact/joint solver entry points.
 [geometry_constraints.hpp](../tests/solver/reference/geometry_constraints.hpp)
 preserves the matching C++17 test reference contract. The
 shared numerical core owns:

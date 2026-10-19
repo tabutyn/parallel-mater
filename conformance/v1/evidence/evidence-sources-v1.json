@@ -29,13 +29,13 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "631a958ededf45d44fc2babfb521b050fd61459b4b12cce8fc7354588962aa2c"
+    "sha256": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4"
   },
   "qualification_results": [
     {
       "id": "android-pixel7-slang-vulkan-3187375",
       "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json",
-      "sha256": "fff92b43ce54b4acad3a05e45b8abf45843ae9c2681d7ae898da5134b7082b58"
+      "sha256": "90a83805efffb33bafeed7f8cf669b60b30dfa919a4f7a19ec228dd1c0186da9"
     },
     {
       "id": "ipados-m1-slang-metal-9f7e72e",
@@ -81,6 +81,16 @@
       "id": "macos-m4-slang-metal-aac6d59",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json",
       "sha256": "4c8bacefffcaed67e300d2bdf90a683d46b0c12efeac14f6c83151ecac0bc9ef"
+    },
+    {
+      "id": "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid-qualification.json",
+      "sha256": "a027d1c595544e2ecffc7e700b91dd9f688dbd52f08a9769da54d3aa1cc8c662"
+    },
+    {
+      "id": "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle-qualification.json",
+      "sha256": "1953ac99c2211062d910160c4f949f42be4fa52352190207518ae12e69b22e48"
     },
     {
       "id": "windows-gtx1080-slang-cuda-2b04e55",

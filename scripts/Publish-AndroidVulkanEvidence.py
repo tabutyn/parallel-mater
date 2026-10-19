@@ -189,6 +189,7 @@ def main() -> int:
         return path, status
 
     evidence = {}
+    unavailable_evidence = []
     for capability in capabilities:
         rule = matching_rule(profile, capability)
         missing = rule.get("missing", {})
@@ -196,7 +197,15 @@ def main() -> int:
             if scope in missing:
                 continue
             for contract_id in contract_ids:
-                path, status = artifact(scope, contract_id)
+                try:
+                    path, status = artifact(scope, contract_id)
+                except (FileNotFoundError, KeyError):
+                    # The obligations registry can advance after a physical
+                    # capture. Omit contracts that were not run so the
+                    # qualification evaluator reports them as missing instead
+                    # of letting a stale capture claim new coverage.
+                    unavailable_evidence.append((scope, contract_id))
+                    continue
                 contract = contracts[contract_id]
                 evidence[(scope, contract_id)] = {
                     "artifact_path": str(path.relative_to(ROOT)),
@@ -275,6 +284,9 @@ def main() -> int:
     print(f"Qualification: {report['qualified_count']}/"
           f"{report['capability_count']} capabilities; "
           f"{report['failure_count']} explicit failures")
+    if unavailable_evidence:
+        print("Capture predates " + str(len(set(unavailable_evidence))) +
+              " required evidence contracts; retained as explicit gaps")
 
     registry_path = evidence_root / "evidence-sources-v1.json"
     registry = load(registry_path)
