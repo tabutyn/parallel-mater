@@ -38,13 +38,13 @@ constexpr float expected_impact_impulse =
     1.0F / (1.0F / rope_mass + 1.0F / rigid_mass);
 
 constexpr std::array<PmFloat3, 2U> impact_centerline{{
-    {-0.13F, -0.035F, 0.0F}, {-0.13F, -0.005F, 0.0F}}};
+    {-0.13F, -0.03F, 0.0F}, {-0.13F, -0.01F, 0.0F}}};
 constexpr std::array<PmFloat3, 2U> impact_prepared{{
-    {-0.12F, -0.025F, 0.0F}, {-0.12F, 0.005F, 0.0F}}};
+    {-0.12F, -0.02F, 0.0F}, {-0.12F, 0.0F, 0.0F}}};
 constexpr std::array<PmFloat3, 2U> control_centerline{{
-    {-0.30F, -0.035F, 0.0F}, {-0.30F, -0.005F, 0.0F}}};
+    {-0.30F, -0.03F, 0.0F}, {-0.30F, -0.01F, 0.0F}}};
 constexpr std::array<PmFloat3, 2U> control_prepared{{
-    {-0.29F, -0.025F, 0.0F}, {-0.29F, 0.005F, 0.0F}}};
+    {-0.29F, -0.02F, 0.0F}, {-0.29F, 0.0F, 0.0F}}};
 
 constexpr std::array<PmFloat3, 8U> cube_vertices{{
     {-cube_half_extent, -cube_half_extent, -cube_half_extent},
