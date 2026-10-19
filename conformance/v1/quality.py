@@ -5728,6 +5728,704 @@ def _evaluate_smoke_rope_drag(
     }
 
 
+def _evaluate_smoke_rigid_drag(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definitions = {fixture["id"]: fixture
+                   for fixture in profile.get("fixtures", [])
+                   if isinstance(fixture, dict) and
+                   isinstance(fixture.get("id"), str)}
+    actual_fixtures = result.get("fixtures")
+    if not isinstance(actual_fixtures, list):
+        failures.append(Failure("$.fixtures", "expected a fixture array",
+                                actual_fixtures))
+        actual_fixtures = []
+    actual_by_id: dict[str, dict[str, Any]] = {}
+    for index, fixture in enumerate(actual_fixtures):
+        if (not isinstance(fixture, dict) or
+                not isinstance(fixture.get("id"), str)):
+            failures.append(Failure(f"$.fixtures[{index}]",
+                                    "fixture needs a string id", fixture))
+            continue
+        identity = fixture["id"]
+        if identity in actual_by_id:
+            failures.append(Failure(f"$.fixtures[{index}].id",
+                                    "duplicate fixture id", identity))
+            continue
+        actual_by_id[identity] = fixture
+    for missing in sorted(set(definitions) - set(actual_by_id)):
+        failures.append(Failure("$.fixtures", "missing required fixture", missing))
+    for extra in sorted(set(actual_by_id) - set(definitions)):
+        failures.append(Failure("$.fixtures", "unexpected fixture", extra))
+
+    tolerances = profile.get("tolerances", {})
+    if not isinstance(tolerances, dict):
+        failures.append(Failure("$.profile.tolerances",
+                                "expected an object", tolerances))
+        tolerances = {}
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+
+    def dot(left: tuple[float, float, float],
+            right: tuple[float, float, float]) -> float:
+        return sum(a * b for a, b in zip(left, right))
+
+    def add(left: tuple[float, float, float],
+            right: tuple[float, float, float]) -> tuple[float, float, float]:
+        return tuple(a + b for a, b in zip(left, right))  # type: ignore[return-value]
+
+    def scale(value: tuple[float, float, float],
+              amount: float) -> tuple[float, float, float]:
+        return tuple(component * amount for component in value)  # type: ignore[return-value]
+
+    def cross(left: tuple[float, float, float],
+              right: tuple[float, float, float]) -> tuple[float, float, float]:
+        return (left[1] * right[2] - left[2] * right[1],
+                left[2] * right[0] - left[0] * right[2],
+                left[0] * right[1] - left[1] * right[0])
+
+    def rotate(value: tuple[float, float, float],
+               quaternion: tuple[float, float, float, float]
+               ) -> tuple[float, float, float]:
+        imaginary = quaternion[0], quaternion[1], quaternion[2]
+        twice_cross = scale(cross(imaginary, value), 2.0)
+        return add(value, add(scale(twice_cross, quaternion[3]),
+                              cross(imaginary, twice_cross)))
+
+    def normalize_quaternion(
+            value: tuple[float, float, float, float], path: str
+            ) -> tuple[float, float, float, float]:
+        length = math.sqrt(sum(component * component for component in value))
+        if abs(length - 1.0) > state_tolerance:
+            failures.append(Failure(path,
+                                    "rigid orientation is not normalized",
+                                    length, 1.0))
+        if length <= 1.0e-30:
+            return 0.0, 0.0, 0.0, 1.0
+        return tuple(component / length for component in value)  # type: ignore[return-value]
+
+    def quaternion_distance(
+            left: tuple[float, float, float, float],
+            right: tuple[float, float, float, float]) -> float:
+        direct = math.sqrt(sum((a - b) ** 2 for a, b in zip(left, right)))
+        negated = math.sqrt(sum((a + b) ** 2 for a, b in zip(left, right)))
+        return min(direct, negated)
+
+    def close_contract(actual: Any, expected: Any, path: str) -> None:
+        if isinstance(expected, dict):
+            if not isinstance(actual, dict) or set(actual) != set(expected):
+                failures.append(Failure(path,
+                                        "fixture setting differs from profile",
+                                        actual, expected))
+                return
+            for key, wanted in expected.items():
+                close_contract(actual.get(key), wanted, path + "." + key)
+        elif isinstance(expected, list):
+            if not isinstance(actual, list) or len(actual) != len(expected):
+                failures.append(Failure(path,
+                                        "fixture setting differs from profile",
+                                        actual, expected))
+                return
+            for index, (item, wanted) in enumerate(zip(actual, expected)):
+                close_contract(item, wanted, f"{path}[{index}]")
+        elif _number(expected):
+            if (not _number(actual) or
+                    abs(float(actual) - float(expected)) > state_tolerance):
+                failures.append(Failure(path,
+                                        "fixture setting differs from profile",
+                                        actual, expected))
+        elif actual != expected:
+            failures.append(Failure(path, "fixture setting differs from profile",
+                                    actual, expected))
+
+    def point_triangle_distance(
+            point: tuple[float, float, float],
+            first: tuple[float, float, float],
+            second: tuple[float, float, float],
+            third: tuple[float, float, float]) -> float:
+        ab = _subtract(second, first)
+        ac = _subtract(third, first)
+        ap = _subtract(point, first)
+        d1, d2 = dot(ab, ap), dot(ac, ap)
+        if d1 <= 0.0 and d2 <= 0.0:
+            return _norm(ap)
+        bp = _subtract(point, second)
+        d3, d4 = dot(ab, bp), dot(ac, bp)
+        if d3 >= 0.0 and d4 <= d3:
+            return _norm(bp)
+        vc = d1 * d4 - d3 * d2
+        if vc <= 0.0 and d1 >= 0.0 and d3 <= 0.0:
+            fraction = d1 / (d1 - d3)
+            return _norm(_subtract(point, add(first, scale(ab, fraction))))
+        cp = _subtract(point, third)
+        d5, d6 = dot(ab, cp), dot(ac, cp)
+        if d6 >= 0.0 and d5 <= d6:
+            return _norm(cp)
+        vb = d5 * d2 - d1 * d6
+        if vb <= 0.0 and d2 >= 0.0 and d6 <= 0.0:
+            fraction = d2 / (d2 - d6)
+            return _norm(_subtract(point, add(first, scale(ac, fraction))))
+        va = d3 * d6 - d5 * d4
+        if va <= 0.0 and d4 - d3 >= 0.0 and d5 - d6 >= 0.0:
+            edge = _subtract(third, second)
+            fraction = (d4 - d3) / ((d4 - d3) + (d5 - d6))
+            return _norm(_subtract(point, add(second, scale(edge, fraction))))
+        denominator = va + vb + vc
+        if abs(denominator) <= 1.0e-30:
+            return min(_norm(ap), _norm(bp), _norm(cp))
+        inverse = 1.0 / denominator
+        closest = add(first, add(scale(ab, vb * inverse),
+                                 scale(ac, vc * inverse)))
+        return _norm(_subtract(point, closest))
+
+    def point_inside_convex(
+            point: tuple[float, float, float],
+            vertices: list[tuple[float, float, float]],
+            triangles: list[tuple[int, int, int]]) -> bool:
+        center = tuple(sum(vertex[axis] for vertex in vertices) / len(vertices)
+                       for axis in range(3))
+        for first_index, second_index, third_index in triangles:
+            first = vertices[first_index]
+            normal = cross(_subtract(vertices[second_index], first),
+                           _subtract(vertices[third_index], first))
+            if dot(normal, _subtract(first, center)) < 0.0:
+                normal = scale(normal, -1.0)
+            if dot(normal, _subtract(point, first)) > 1.0e-10:
+                return False
+        return True
+
+    def smoke_particles(value: Any, path: str) -> list[dict[str, Any]] | None:
+        if not isinstance(value, list) or not value:
+            failures.append(Failure(path, "expected emitted smoke particles", value))
+            return None
+        expected_keys = {"slot", "position_m", "velocity_m_s", "age_seconds",
+                         "number_density", "pressure_m_s2", "vorticity_per_s"}
+        parsed: list[dict[str, Any]] = []
+        slots: set[int] = set()
+        for index, particle in enumerate(value):
+            item_path = f"{path}[{index}]"
+            if not isinstance(particle, dict):
+                failures.append(Failure(item_path, "expected an object", particle))
+                continue
+            if set(particle) != expected_keys:
+                failures.append(Failure(item_path,
+                                        "smoke snapshot shape differs from contract",
+                                        sorted(particle), sorted(expected_keys)))
+                continue
+            slot = particle.get("slot")
+            if (not isinstance(slot, int) or isinstance(slot, bool) or slot < 0):
+                failures.append(Failure(item_path + ".slot",
+                                        "expected a nonnegative integer", slot))
+                continue
+            if slot in slots:
+                failures.append(Failure(item_path + ".slot",
+                                        "duplicate smoke slot", slot))
+                continue
+            slots.add(slot)
+            position = _vector(particle.get("position_m"),
+                               item_path + ".position_m", failures)
+            velocity = _vector(particle.get("velocity_m_s"),
+                               item_path + ".velocity_m_s", failures)
+            vorticity = _vector(particle.get("vorticity_per_s"),
+                                item_path + ".vorticity_per_s", failures)
+            age = _scalar(particle.get("age_seconds"),
+                          item_path + ".age_seconds", failures)
+            density = _scalar(particle.get("number_density"),
+                              item_path + ".number_density", failures)
+            pressure = _scalar(particle.get("pressure_m_s2"),
+                               item_path + ".pressure_m_s2", failures)
+            if (position is None or velocity is None or vorticity is None or
+                    age is None or density is None or pressure is None):
+                continue
+            parsed.append({"slot": slot, "position": position,
+                           "velocity": velocity, "vorticity": vorticity,
+                           "age": age, "density": density,
+                           "pressure": pressure})
+        if len(parsed) != len(value):
+            return None
+        return sorted(parsed, key=lambda item: item["slot"])
+
+    def geometry(definition: dict[str, Any], base: str
+                 ) -> tuple[list[tuple[float, float, float]],
+                            list[tuple[int, int, int]]] | None:
+        vertices_raw = definition.get("rigid_geometry_vertices_m")
+        indices = definition.get("rigid_geometry_triangle_indices")
+        if not isinstance(vertices_raw, list) or not isinstance(indices, list):
+            failures.append(Failure(base + ".rigid_geometry_vertices_m",
+                                    "invalid rigid geometry", vertices_raw))
+            return None
+        parsed = [_vector(item, f"{base}.rigid_geometry_vertices_m[{index}]",
+                          failures)
+                  for index, item in enumerate(vertices_raw)]
+        if any(vertex is None for vertex in parsed):
+            return None
+        vertices = [vertex for vertex in parsed if vertex is not None]
+        if (not vertices or not indices or len(indices) % 3 != 0 or
+                any(not isinstance(index, int) or isinstance(index, bool) or
+                    index < 0 or index >= len(vertices) for index in indices)):
+            failures.append(Failure(base + ".rigid_geometry_triangle_indices",
+                                    "invalid rigid triangle topology", indices))
+            return None
+        triangles = [(indices[offset], indices[offset + 1], indices[offset + 2])
+                     for offset in range(0, len(indices), 3)]
+        return vertices, triangles
+
+    def snapshot(value: Any, path: str,
+                 mesh: tuple[list[tuple[float, float, float]],
+                             list[tuple[int, int, int]]]
+                 ) -> dict[str, Any] | None:
+        if not isinstance(value, dict) or set(value) != {"rigid", "smoke_particles"}:
+            failures.append(Failure(path,
+                                    "snapshot shape differs from contract",
+                                    value, ["rigid", "smoke_particles"]))
+            return None
+        raw_rigid = value.get("rigid")
+        expected_rigid = {"position_m", "orientation_xyzw",
+                          "linear_velocity_m_s", "angular_velocity_rad_s"}
+        if not isinstance(raw_rigid, dict) or set(raw_rigid) != expected_rigid:
+            failures.append(Failure(path + ".rigid",
+                                    "rigid snapshot shape differs from contract",
+                                    raw_rigid, sorted(expected_rigid)))
+            return None
+        position = _vector(raw_rigid.get("position_m"),
+                           path + ".rigid.position_m", failures)
+        orientation = _quaternion(raw_rigid.get("orientation_xyzw"),
+                                  path + ".rigid.orientation_xyzw", failures)
+        linear = _vector(raw_rigid.get("linear_velocity_m_s"),
+                         path + ".rigid.linear_velocity_m_s", failures)
+        angular = _vector(raw_rigid.get("angular_velocity_rad_s"),
+                          path + ".rigid.angular_velocity_rad_s", failures)
+        particles = smoke_particles(value.get("smoke_particles"),
+                                    path + ".smoke_particles")
+        if (position is None or orientation is None or linear is None or
+                angular is None or particles is None):
+            return None
+        orientation = normalize_quaternion(
+            orientation, path + ".rigid.orientation_xyzw")
+        vertices, triangles = mesh
+        transformed = [add(position, rotate(vertex, orientation))
+                       for vertex in vertices]
+        clearance = float("inf")
+        for particle in particles:
+            point = particle["position"]
+            if point_inside_convex(point, transformed, triangles):
+                clearance = 0.0
+                break
+            clearance = min(clearance, *(point_triangle_distance(
+                point, transformed[first], transformed[second], transformed[third])
+                for first, second, third in triangles))
+        mean_smoke_velocity = scale(
+            _sum([particle["velocity"] for particle in particles]),
+            1.0 / len(particles))
+        return {"position": position, "orientation": orientation,
+                "linear": linear, "angular": angular,
+                "smoke": particles, "mean_smoke_velocity": mean_smoke_velocity,
+                "clearance": clearance}
+
+    def smoke_delta(first: dict[str, Any], second: dict[str, Any], path: str,
+                    check_all_fields: bool) -> tuple[float,
+                                                     tuple[float, float, float]]:
+        left = first["smoke"]
+        right = second["smoke"]
+        if len(left) != len(right):
+            failures.append(Failure(path, "smoke particle count changed",
+                                    len(right), len(left)))
+            return float("inf"), (float("inf"),) * 3
+        maximum = 0.0
+        velocity_changes: list[tuple[float, float, float]] = []
+        for before, after in zip(left, right):
+            if before["slot"] != after["slot"]:
+                failures.append(Failure(path, "smoke slot identity changed",
+                                        after["slot"], before["slot"]))
+                return float("inf"), (float("inf"),) * 3
+            velocity_changes.append(_subtract(after["velocity"],
+                                               before["velocity"]))
+            if check_all_fields:
+                maximum = max(maximum,
+                              _norm(_subtract(after["position"], before["position"])),
+                              _norm(_subtract(after["velocity"], before["velocity"])),
+                              _norm(_subtract(after["vorticity"], before["vorticity"])),
+                              abs(after["age"] - before["age"]),
+                              abs(after["density"] - before["density"]),
+                              abs(after["pressure"] - before["pressure"]))
+        return maximum, _sum(velocity_changes)
+
+    observations: dict[str, Any] = {}
+    sample_count = 0
+    expected_runs = {"forward-control", "forward", "stationary-control",
+                     "stationary", "reverse-control", "reverse"}
+    pairs = {"forward": "forward-control",
+             "stationary": "stationary-control",
+             "reverse": "reverse-control"}
+    for identity, definition in definitions.items():
+        actual = actual_by_id.get(identity)
+        if actual is None:
+            continue
+        base = f"$.fixtures[{identity}]"
+        settings = {key: value for key, value in actual.items() if key != "runs"}
+        close_contract(settings, definition, base)
+        mesh = geometry(definition, base)
+        if mesh is None:
+            continue
+        runs = actual.get("runs")
+        if not isinstance(runs, list):
+            failures.append(Failure(base + ".runs", "expected a run array", runs))
+            continue
+        indexed = {run.get("id"): run for run in runs
+                   if isinstance(run, dict) and isinstance(run.get("id"), str)}
+        if set(indexed) != expected_runs or len(indexed) != len(runs):
+            failures.append(Failure(base + ".runs",
+                                    "expected exactly the six paired drag runs",
+                                    sorted(indexed), sorted(expected_runs)))
+            continue
+        if any(set(run) != {"id", "initial", "final"}
+               for run in indexed.values()):
+            failures.append(Failure(base + ".runs",
+                                    "run shape differs from contract"))
+            continue
+        states: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
+        for run_id in sorted(expected_runs):
+            initial = snapshot(indexed[run_id].get("initial"),
+                               base + f".runs[{run_id}].initial", mesh)
+            final = snapshot(indexed[run_id].get("final"),
+                             base + f".runs[{run_id}].final", mesh)
+            if initial is not None and final is not None:
+                states[run_id] = initial, final
+        if set(states) != expected_runs:
+            continue
+
+        initial_position = _vector(
+            definition.get("rigid_initial_position_m"),
+            base + ".rigid_initial_position_m", failures)
+        initial_orientation = _quaternion(
+            definition.get("rigid_initial_orientation_xyzw"),
+            base + ".rigid_initial_orientation_xyzw", failures)
+        if initial_position is None or initial_orientation is None:
+            continue
+        initial_orientation = normalize_quaternion(
+            initial_orientation, base + ".rigid_initial_orientation_xyzw")
+        for run_id, state in states.items():
+            rigid_initial = state[0]
+            position_error = _norm(_subtract(
+                rigid_initial["position"], initial_position))
+            orientation_error = quaternion_distance(
+                rigid_initial["orientation"], initial_orientation)
+            rest_error = max(_norm(rigid_initial["linear"]),
+                             _norm(rigid_initial["angular"]))
+            if max(position_error, orientation_error, rest_error) > \
+                    state_tolerance:
+                failures.append(Failure(
+                    base + f".runs[{run_id}].initial.rigid",
+                    "initial rigid state differs from profile",
+                    {"position_error_m": position_error,
+                     "orientation_error": orientation_error,
+                     "rest_velocity_error": rest_error}, state_tolerance))
+
+        maximum_initial_state_delta = 0.0
+        maximum_initial_smoke_delta = 0.0
+        for run_id, control_id in pairs.items():
+            control = states[control_id][0]
+            test = states[run_id][0]
+            rigid_delta = max(
+                _norm(_subtract(test["position"], control["position"])),
+                quaternion_distance(test["orientation"], control["orientation"]),
+                _norm(_subtract(test["linear"], control["linear"])),
+                _norm(_subtract(test["angular"], control["angular"])))
+            maximum_initial_state_delta = max(maximum_initial_state_delta,
+                                              rigid_delta)
+            if rigid_delta > state_tolerance:
+                failures.append(Failure(
+                    base + f".runs[{run_id}].initial.rigid",
+                    "paired initial rigid state differs from control",
+                    rigid_delta, state_tolerance))
+            smoke_state_delta, _ = smoke_delta(
+                control, test, base + f".runs[{run_id}].initial.smoke_particles",
+                True)
+            maximum_initial_smoke_delta = max(maximum_initial_smoke_delta,
+                                              smoke_state_delta)
+            if smoke_state_delta > state_tolerance:
+                failures.append(Failure(
+                    base + f".runs[{run_id}].initial.smoke_particles",
+                    "paired initial smoke state differs from control",
+                    smoke_state_delta, state_tolerance))
+
+        control_drift = max(
+            _norm(_subtract(states[run_id][1]["linear"],
+                            states[run_id][0]["linear"]))
+            for run_id in pairs.values())
+        control_smoke_drift = max(
+            _norm(_subtract(states[run_id][1]["mean_smoke_velocity"],
+                            states[run_id][0]["mean_smoke_velocity"]))
+            for run_id in pairs.values())
+        representation = definition.get("representation")
+        control_limit = float(tolerances.get(
+            "maximum_control_velocity_drift_m_s", 0.0))
+        if control_drift > control_limit:
+            failures.append(Failure(base + ".runs",
+                                    "zero-drag rigid velocity drifted",
+                                    control_drift, control_limit))
+        if (representation == "SMOKE_PARTICLE" and
+                control_smoke_drift > control_limit):
+            failures.append(Failure(base + ".runs",
+                                    "zero-drag smoke velocity drifted",
+                                    control_smoke_drift, control_limit))
+
+        rigid_responses: dict[str, float] = {}
+        smoke_responses: dict[str, float] = {}
+        maximum_transverse = 0.0
+        rigid_impulses: dict[str, tuple[float, float, float]] = {}
+        smoke_impulses: dict[str, tuple[float, float, float]] = {}
+        reciprocal_residuals: dict[str, float] = {}
+        force_residuals: dict[str, float] = {}
+        pressure_delta = 0.0
+        energy_increase = -float("inf")
+        rigid_mass = float(definition.get("rigid_mass_kg", 0.0))
+        particle_radius = float(definition.get("smoke_particle_radius_m", 0.0))
+        air_density = float(definition.get(
+            "test_air_density_kg_m3", definition.get("test_air_density", 0.0)))
+        derived_particle_mass = air_density * (2.0 * particle_radius) ** 3
+        particle_mass = float(definition.get(
+            "effective_smoke_particle_mass_kg", derived_particle_mass))
+        if abs(particle_mass - derived_particle_mass) > state_tolerance:
+            failures.append(Failure(
+                base + ".effective_smoke_particle_mass_kg",
+                "effective smoke particle mass differs from public inputs",
+                particle_mass, derived_particle_mass))
+        timestep = float(definition.get("timestep_seconds", 0.0))
+        drag_steps = definition.get("drag_step_count", 1)
+        if (not isinstance(drag_steps, int) or isinstance(drag_steps, bool) or
+                drag_steps <= 0):
+            failures.append(Failure(base + ".drag_step_count",
+                                    "expected a positive integer", drag_steps))
+            drag_steps = 1
+        drag_interval = timestep * drag_steps
+        inertia_raw = definition.get("rigid_inertia_diagonal_kg_m2")
+        inertia = (_vector(inertia_raw, base + ".rigid_inertia_diagonal_kg_m2",
+                           failures) if inertia_raw is not None else None)
+        def kinetic(state: dict[str, Any]) -> float:
+            value = 0.5 * rigid_mass * dot(state["linear"], state["linear"])
+            if inertia is not None:
+                orientation = state["orientation"]
+                inverse = (-orientation[0], -orientation[1], -orientation[2],
+                           orientation[3])
+                local_angular = rotate(state["angular"], inverse)
+                value += 0.5 * sum(inertia[axis] * local_angular[axis] ** 2
+                                   for axis in range(3))
+            value += 0.5 * particle_mass * sum(
+                dot(particle["velocity"], particle["velocity"])
+                for particle in state["smoke"])
+            return value
+
+        for run_id, control_id in pairs.items():
+            test_final = states[run_id][1]
+            control_final = states[control_id][1]
+            rigid_delta = _subtract(test_final["linear"],
+                                    control_final["linear"])
+            smoke_mean_delta = _subtract(test_final["mean_smoke_velocity"],
+                                         control_final["mean_smoke_velocity"])
+            carrier = _vector(
+                definition.get(f"{run_id}_carrier_velocity_m_s"),
+                base + f".{run_id}_carrier_velocity_m_s", failures)
+            if carrier is None:
+                continue
+            denominator = dot(carrier, carrier)
+            if denominator <= 1.0e-30:
+                rigid_response = _norm(rigid_delta)
+                smoke_response = _norm(smoke_mean_delta)
+                stationary_limit = float(tolerances.get(
+                    "maximum_stationary_velocity_m_s", 0.0))
+                if max(rigid_response, smoke_response) > stationary_limit:
+                    failures.append(Failure(
+                        base + f".runs[{run_id}]",
+                        "stationary smoke produced rigid-smoke drag",
+                        max(rigid_response, smoke_response), stationary_limit))
+            else:
+                rigid_response = dot(rigid_delta, carrier) / denominator
+                smoke_projection = dot(smoke_mean_delta, carrier) / denominator
+                smoke_response = (-smoke_projection
+                                  if representation == "SMOKE_PARTICLE"
+                                  else abs(smoke_projection))
+                rigid_transverse = _norm(_subtract(
+                    rigid_delta, scale(carrier, rigid_response)))
+                smoke_transverse = _norm(_subtract(
+                    smoke_mean_delta, scale(carrier, smoke_projection)))
+                maximum_transverse = max(maximum_transverse, rigid_transverse,
+                                         smoke_transverse)
+                minimum_rigid = float(tolerances.get(
+                    "minimum_rigid_drag_response_fraction", 0.0))
+                maximum_rigid = float(tolerances.get(
+                    "maximum_rigid_drag_response_fraction", float("inf")))
+                minimum_smoke = float(tolerances.get(
+                    "minimum_smoke_drag_response_fraction", 0.0))
+                maximum_smoke = float(tolerances.get(
+                    "maximum_smoke_drag_response_fraction", float("inf")))
+                if rigid_response < minimum_rigid or rigid_response > maximum_rigid:
+                    failures.append(Failure(
+                        base + f".runs[{run_id}]",
+                        "rigid drag response is outside bounds",
+                        rigid_response, [minimum_rigid, maximum_rigid]))
+                if smoke_response < minimum_smoke or smoke_response > maximum_smoke:
+                    failures.append(Failure(
+                        base + f".runs[{run_id}]",
+                        "smoke drag response is outside bounds",
+                        smoke_response, [minimum_smoke, maximum_smoke]))
+                transverse_limit = float(tolerances.get(
+                    "maximum_transverse_velocity_m_s", 0.0))
+                if max(rigid_transverse, smoke_transverse) > transverse_limit:
+                    failures.append(Failure(
+                        base + f".runs[{run_id}]",
+                        "drag response is not aligned with relative flow",
+                        max(rigid_transverse, smoke_transverse), transverse_limit))
+            rigid_responses[run_id] = rigid_response
+            smoke_responses[run_id] = smoke_response
+
+            rigid_impulse = scale(rigid_delta, rigid_mass)
+            _, smoke_velocity_sum = smoke_delta(
+                control_final, test_final,
+                base + f".runs[{run_id}].final.smoke_particles", False)
+            rigid_impulses[run_id] = rigid_impulse
+            if representation == "SMOKE_PARTICLE":
+                smoke_impulse = scale(smoke_velocity_sum, particle_mass)
+                smoke_impulses[run_id] = smoke_impulse
+                reciprocal = _norm(add(rigid_impulse, smoke_impulse))
+                reciprocal_residuals[run_id] = reciprocal
+                force_residuals[run_id] = (
+                    reciprocal / max(drag_interval, 1.0e-30))
+                reciprocal_limit = float(tolerances.get(
+                    "maximum_reciprocal_momentum_residual_kg_m_s", 0.0))
+                if reciprocal > reciprocal_limit:
+                    failures.append(Failure(
+                        base + f".runs[{run_id}]",
+                        "smoke and rigid momentum changes are not reciprocal",
+                        reciprocal, reciprocal_limit))
+                force_limit = float(tolerances.get(
+                    "maximum_reciprocal_force_residual_n", float("inf")))
+                if force_residuals[run_id] > force_limit:
+                    failures.append(Failure(
+                        base + f".runs[{run_id}]",
+                        "smoke and rigid derived forces are not reciprocal",
+                        force_residuals[run_id], force_limit))
+
+            for control_particle, test_particle in zip(
+                    control_final["smoke"], test_final["smoke"]):
+                pressure_delta = max(
+                    pressure_delta,
+                    abs(test_particle["pressure"] - control_particle["pressure"]))
+            if representation == "SMOKE_PARTICLE":
+                energy_increase = max(
+                    energy_increase,
+                    kinetic(test_final) - kinetic(control_final))
+
+        symmetry_error = max(
+            abs(rigid_responses.get("forward", 0.0) -
+                rigid_responses.get("reverse", 0.0)),
+            abs(smoke_responses.get("forward", 0.0) -
+                smoke_responses.get("reverse", 0.0)))
+        symmetry_limit = float(tolerances.get(
+            "maximum_forward_reverse_response_difference", 0.0))
+        if symmetry_error > symmetry_limit:
+            failures.append(Failure(base + ".runs",
+                                    "forward and reverse drag responses differ",
+                                    symmetry_error, symmetry_limit))
+
+        minimum_clearance = min(
+            snapshot_state["clearance"] for state in states.values()
+            for snapshot_state in state)
+        contact_distance = float(definition.get("contact_distance_m", 0.0))
+        required_clearance = max(
+            contact_distance,
+            float(tolerances.get("minimum_non_contact_clearance_m", 0.0)))
+        if minimum_clearance <= required_clearance + state_tolerance:
+            failures.append(Failure(
+                base + ".runs",
+                "smoke tracer entered rigid contact clearance",
+                minimum_clearance, f"> {required_clearance + state_tolerance}"))
+        pressure_limit = float(tolerances.get(
+            "maximum_pressure_delta_m_s2", 0.0))
+        if pressure_delta > pressure_limit:
+            failures.append(Failure(base + ".runs",
+                                    "non-contact drag changed smoke pressure",
+                                    pressure_delta, pressure_limit))
+
+        maximum_rigid_speed = max(
+            _norm(snapshot_state["linear"]) for state in states.values()
+            for snapshot_state in state)
+        maximum_smoke_speed = max(
+            _norm(particle["velocity"]) for state in states.values()
+            for snapshot_state in state for particle in snapshot_state["smoke"])
+        maximum_angular_speed = max(
+            _norm(snapshot_state["angular"]) for state in states.values()
+            for snapshot_state in state)
+        speed_slack = float(tolerances.get("maximum_speed_slack_m_s", 0.0))
+        rigid_speed_limit = float(definition.get(
+            "rigid_maximum_linear_speed_m_s", 0.0)) + speed_slack
+        smoke_speed_limit = float(definition.get(
+            "smoke_maximum_speed_m_s", 0.0)) + speed_slack
+        angular_limit = min(
+            float(definition.get("rigid_maximum_angular_speed_rad_s",
+                                 float("inf"))),
+            float(tolerances.get("maximum_angular_speed_rad_s",
+                                 float("inf"))))
+        if maximum_rigid_speed > rigid_speed_limit:
+            failures.append(Failure(base + ".runs",
+                                    "rigid speed exceeds authored maximum",
+                                    maximum_rigid_speed, rigid_speed_limit))
+        if maximum_smoke_speed > smoke_speed_limit:
+            failures.append(Failure(base + ".runs",
+                                    "smoke speed exceeds authored maximum",
+                                    maximum_smoke_speed, smoke_speed_limit))
+        if maximum_angular_speed > angular_limit:
+            failures.append(Failure(base + ".runs",
+                                    "rigid angular speed exceeds bound",
+                                    maximum_angular_speed, angular_limit))
+        energy_limit = float(tolerances.get("maximum_energy_increase_j", 0.0))
+        if (representation == "SMOKE_PARTICLE" and
+                energy_increase > energy_limit):
+            failures.append(Failure(base + ".runs",
+                                    "passive drag increased kinetic energy",
+                                    energy_increase, energy_limit))
+
+        observations[identity] = {
+            "maximum_paired_initial_rigid_state_delta":
+                maximum_initial_state_delta,
+            "maximum_paired_initial_smoke_state_delta":
+                maximum_initial_smoke_delta,
+            "maximum_zero_drag_rigid_velocity_drift_m_s": control_drift,
+            "maximum_zero_drag_smoke_velocity_drift_m_s": control_smoke_drift,
+            "rigid_response_fractions": rigid_responses,
+            "smoke_response_fractions": smoke_responses,
+            "maximum_transverse_velocity_m_s": maximum_transverse,
+            "forward_reverse_response_difference": symmetry_error,
+            "rigid_drag_impulses_kg_m_s": {
+                key: list(value) for key, value in rigid_impulses.items()},
+            "smoke_drag_impulses_kg_m_s": {
+                key: list(value) for key, value in smoke_impulses.items()},
+            "reciprocal_momentum_residuals_kg_m_s": reciprocal_residuals,
+            "reciprocal_force_residuals_n": force_residuals,
+            "minimum_tracer_rigid_clearance_m": minimum_clearance,
+            "maximum_pressure_delta_m_s2": pressure_delta,
+            "maximum_kinetic_energy_increase_j":
+                energy_increase if representation == "SMOKE_PARTICLE" else None,
+            "maximum_rigid_speed_m_s": maximum_rigid_speed,
+            "maximum_smoke_speed_m_s": maximum_smoke_speed,
+            "maximum_rigid_angular_speed_rad_s": maximum_angular_speed,
+        }
+        sample_count += 3
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": len(actual_by_id),
+        "sample_count": sample_count,
+        "failure_count": len(failures),
+        "observations": observations,
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def _evaluate_externally_heated_fluid(
         profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
         driver: Any, failures: list[Failure]) -> dict[str, Any]:
@@ -11221,6 +11919,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "smoke_rope_drag":
         return _evaluate_smoke_rope_drag(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "smoke_rigid_drag":
+        return _evaluate_smoke_rigid_drag(
             profile, result, expected_hash, driver, failures)
     if evaluation == "fluid_smoke_phase":
         return _evaluate_fluid_smoke_phase(
