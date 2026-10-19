@@ -80,6 +80,15 @@ target_include_directories(parallel-mater-paint-resource-plan-tests
 add_test(NAME parallel-mater-paint-resource-plan-tests
     COMMAND parallel-mater-paint-resource-plan-tests)
 
+add_executable(parallel-mater-fluid-rope-resource-plan-tests
+    fluid_rope_resource_plan_tests.cpp ../../src/simulation/memory_arena.cpp)
+target_compile_features(parallel-mater-fluid-rope-resource-plan-tests
+    PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-fluid-rope-resource-plan-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-fluid-rope-resource-plan-tests
+    COMMAND parallel-mater-fluid-rope-resource-plan-tests)
+
 if(PARALLEL_MATER_SLANG_CPU_LIQUIDS)
     add_executable(parallel-mater-fluid-pair-neighbor-index-tests
         fluid_pair_neighbor_index_tests.cpp

@@ -17,6 +17,7 @@
 #include <iomanip>
 #include <limits>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -673,38 +674,42 @@ int parallel_mater_interaction_graph_lifecycle_fixture(
     submit_graph(nullptr, 0U);
     submit_graph(graph.data(), static_cast<std::uint32_t>(graph.size()));
 
-    const auto replace_and_step = [&](auto record_replacement) {
+    const auto replace_and_step = [&](const char *name,
+                                      auto record_replacement) {
         context.begin();
         PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, empty_pipeline) ==
                  PM_SUCCESS);
         record_replacement();
         PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
                  PM_SUCCESS);
-        PM_CHECK(context.submit() == PM_SUCCESS);
+        const PmResult submission = context.submit();
+        if (submission != PM_SUCCESS)
+            throw std::runtime_error(std::string(name) +
+                " replacement submission: " + std::to_string(submission));
     };
     // Each write retires borrowed generations. The explicit graph must rebind
     // every incident pair before the following step.
-    replace_and_step([&] {
+    replace_and_step("fluid", [&] {
         PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation, 0U,
                                         &particles) == PM_SUCCESS);
     });
-    replace_and_step([&] {
+    replace_and_step("rigid body", [&] {
         PM_CHECK(pmCmdWriteRigidBodies(context.commands, simulation, 0U, 1U,
                                        &body) == PM_SUCCESS);
     });
-    replace_and_step([&] {
+    replace_and_step("cloth", [&] {
         PM_CHECK(pmCmdWriteCloths(context.commands, simulation, 0U, 1U,
                                   &cloth) == PM_SUCCESS);
     });
-    replace_and_step([&] {
+    replace_and_step("rope", [&] {
         PM_CHECK(pmCmdWriteRopes(context.commands, simulation, 0U, 1U, &rope) ==
                  PM_SUCCESS);
     });
-    replace_and_step([&] {
+    replace_and_step("soft body", [&] {
         PM_CHECK(pmCmdWriteSoftBodies(context.commands, simulation, 0U, 1U,
                                       &soft) == PM_SUCCESS);
     });
-    replace_and_step([&] {
+    replace_and_step("smoke", [&] {
         PM_CHECK(pmCmdWriteSmoke(context.commands, simulation, 0U, 1U, &smoke) ==
                  PM_SUCCESS);
     });
@@ -815,7 +820,7 @@ int parallel_mater_interaction_graph_lifecycle_fixture(
     submit_graph(four_family_graph.data(),
                  static_cast<std::uint32_t>(four_family_graph.size()));
     capture("recovery", "PM_SUCCESS", installed_graph_sha, 1U);
-    replace_and_step([&] {
+    replace_and_step("formal fluid", [&] {
         PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation, 0U,
                                         &replacement_particles) == PM_SUCCESS);
     });

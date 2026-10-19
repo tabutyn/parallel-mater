@@ -7,11 +7,6 @@ import math;
 import device_intrinsics;
 import graphics_resources;
 
-public void atomic_add(PMBuffer<Vec3> destination, Vec3 value)
-{
-    pmAtomicAddVec3(destination, value);
-}
-
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void fluid_rope_contacts(
@@ -19,12 +14,19 @@ void fluid_rope_contacts(
     uniform PMBuffer<uint> particle_count, uniform float particle_mass,
     uniform PMBuffer<Vec3> rope_positions, uniform PMBuffer<Vec3> rope_velocities,
     uniform uint rope_count, uniform float distance, uniform float friction,
-    uniform PMBuffer<Vec3> node_impulses, uniform PMBuffer<uint> contact_count,
+    uniform PMBuffer<uint> contribution_nodes,
+    uniform PMBuffer<Vec3> contribution_impulses,
+    uniform PMBuffer<uint> contact_count,
     uniform PMBuffer<float> maximum_penetration, uniform bool transfer_impulse PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= *particle_count) return;
+    uint contribution = particle * 2u;
+    contribution_nodes[contribution] = 0xffffffffu;
+    contribution_nodes[contribution + 1u] = 0xffffffffu;
+    contribution_impulses[contribution] = {};
+    contribution_impulses[contribution + 1u] = {};
     Vec3 position = positions[particle];
     float nearest = distance * distance;
     uint segment = rope_count;
@@ -71,11 +73,16 @@ void fluid_rope_contacts(
     if (!transfer_impulse) return;
     pmAtomicAdd(contact_count, 1u);
     pmAtomicMaxPositiveFloat(maximum_penetration, penetration);
+    // Store one contribution per segment endpoint. The apply kernel reduces
+    // these in particle order, so reaction physics cannot depend on atomic
+    // scheduling differences between GPU families.
     Vec3 reaction = multiply(velocityChange, -particle_mass);
-    atomic_add(node_impulses + segment,
-        multiply(reaction, 1.0f - fraction));
-    atomic_add(node_impulses + segment + 1u,
-        multiply(reaction, fraction));
+    contribution_nodes[contribution] = segment;
+    contribution_impulses[contribution] =
+        multiply(reaction, 1.0f - fraction);
+    contribution_nodes[contribution + 1u] = segment + 1u;
+    contribution_impulses[contribution + 1u] =
+        multiply(reaction, fraction);
 }
 
 [shader("compute")]
@@ -85,7 +92,10 @@ void fluid_rope_apply(
     uniform uint rope_count, uniform float rope_mass,
     uniform float rope_maximum_speed, uniform bool first_attached,
     uniform bool last_attached,
-    uniform PMBuffer<Vec3> node_impulses, uniform float maximum_acceleration,
+    uniform PMBuffer<uint> particle_count,
+    uniform PMBuffer<uint> contribution_nodes,
+    uniform PMBuffer<Vec3> contribution_impulses,
+    uniform float maximum_acceleration,
     uniform float dt, uniform float frame_inverse_dt PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
@@ -93,9 +103,18 @@ void fluid_rope_apply(
     if (node >= rope_count || (node == 0u && first_attached) ||
         (node + 1u == rope_count && last_attached))
         return;
+    Vec3 reaction = {};
+    for (uint particle = 0u; particle < *particle_count; ++particle)
+    {
+        uint contribution = particle * 2u;
+        if (contribution_nodes[contribution] == node)
+            reaction = add(reaction, contribution_impulses[contribution]);
+        if (contribution_nodes[contribution + 1u] == node)
+            reaction = add(reaction, contribution_impulses[contribution + 1u]);
+    }
     float mass = rope_mass / float(rope_count);
     Vec3 velocityChange = clamp_length(
-        multiply(node_impulses[node], 1.0f / mass),
+        multiply(reaction, 1.0f / mass),
         maximum_acceleration * dt);
     rope_velocities[node] = clamp_length(
         add(rope_velocities[node], velocityChange), rope_maximum_speed);

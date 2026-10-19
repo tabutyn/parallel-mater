@@ -179,6 +179,7 @@ def main():
         "fluid-self-viscosity-v1",
         "fluid-cloth-containment-v1",
         "fluid-soft-contact-v1",
+        "fluid-rope-contact-v1",
         "smoke-self-pressure-v1",
         "fluid-cloth-contact-v1",
         "smoke-self-viscosity-v1",

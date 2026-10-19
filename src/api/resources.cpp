@@ -738,10 +738,13 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRigidBodies(
             const auto detached = parallel_mater::api::clear_couplings(simulation);
             if (detached != PM_SUCCESS) return detached;
             for (std::uint32_t offset = 0U; offset < copied.size(); ++offset) {
+                const PmRigidBodyInfo &source = copied[offset];
                 auto &slot = simulation->rigid_bodies[first + offset];
                 auto &geometry_slot =
                     simulation->rigid_body_geometries[first + offset];
                 const PmGeometry retired_geometry = geometry_slot;
+                const bool reuse_geometry = source.active != PM_FALSE &&
+                    source.geometry == retired_geometry;
                 if (slot.has_value()) {
                     result = parallel_mater::api::from_status(
                         simulation->runtime->remove_rigid_body(*slot));
@@ -749,10 +752,15 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRigidBodies(
                     slot.reset();
                 }
                 geometry_slot = nullptr;
-                result = parallel_mater::api::retire_geometry_if_unused(
-                    simulation, retired_geometry);
-                if (result != PM_SUCCESS) return result;
-                const PmRigidBodyInfo &source = copied[offset];
+                // A state-only replacement commonly keeps the same public
+                // geometry. Preserve its private mesh across the brief gap so
+                // the command does not rebuild identical GPU acceleration
+                // data before the immediately following physics step.
+                if (!reuse_geometry) {
+                    result = parallel_mater::api::retire_geometry_if_unused(
+                        simulation, retired_geometry);
+                    if (result != PM_SUCCESS) return result;
+                }
                 if (source.active == PM_FALSE) continue;
                 TriangleMeshId mesh{};
                 result = parallel_mater::api::register_geometry(
