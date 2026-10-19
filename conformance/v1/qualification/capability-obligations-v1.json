@@ -376,11 +376,21 @@
       "missing": {"lifecycle_invariants": "No exact cloth-rigid adverse lifecycle case is registered.", "analytic_invariants": "No vendor-neutral cloth-rigid quality case is registered."}
     },
     {
-      "id": "soft-body-rope",
-      "match": {"first_family": ["SOFT_BODY"], "second_family": ["ROPE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "id": "soft-body-rope-contact",
+      "match": {"first_family": ["SOFT_BODY"], "second_family": ["ROPE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:rope-soft-body",
+      "required": {
+        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
+        "analytic_invariants": ["quality:soft-rope-contact-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "soft-body-rope-attachment",
+      "match": {"first_family": ["SOFT_BODY"], "second_family": ["ROPE"], "scope": ["DISTINCT_FAMILY"], "mode": ["ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:rope-soft-body",
       "required": {"lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"]},
-      "missing": {"analytic_invariants": "No vendor-neutral soft-body-rope quality case is registered."}
+      "missing": {"analytic_invariants": "No vendor-neutral soft-body-rope attachment quality case is registered."}
     },
     {
       "id": "soft-body-smoke",

@@ -3023,6 +3023,530 @@ def _evaluate_cloth_soft_contact(
     }
 
 
+def _evaluate_soft_rope_contact(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definition = profile.get("fixture")
+    actual = result.get("fixture")
+    if not isinstance(definition, dict):
+        failures.append(Failure("$.profile.fixture",
+                                "expected a fixture object", definition))
+        definition = {}
+    if not isinstance(actual, dict):
+        failures.append(Failure("$.fixture", "expected a fixture object", actual))
+        actual = {}
+    tolerances = profile.get("tolerances")
+    if not isinstance(tolerances, dict):
+        failures.append(Failure("$.profile.tolerances",
+                                "expected an object", tolerances))
+        tolerances = {}
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+
+    def compare_setting(wanted: Any, observed: Any, path: str) -> None:
+        if isinstance(wanted, bool) or isinstance(wanted, str):
+            if observed != wanted:
+                failures.append(Failure(path,
+                                        "fixture setting differs from profile",
+                                        observed, wanted))
+            return
+        if _number(wanted):
+            value = _scalar(observed, path, failures)
+            if value is not None and abs(value - float(wanted)) > state_tolerance:
+                failures.append(Failure(path,
+                                        "fixture setting differs from profile",
+                                        value, wanted))
+            return
+        if isinstance(wanted, list):
+            if not isinstance(observed, list):
+                failures.append(Failure(path, "expected an array", observed))
+                return
+            if len(observed) != len(wanted):
+                failures.append(Failure(path, "fixture array length differs",
+                                        len(observed), len(wanted)))
+                return
+            for index, (expected_item, actual_item) in enumerate(
+                    zip(wanted, observed)):
+                compare_setting(expected_item, actual_item,
+                                f"{path}[{index}]")
+            return
+        if isinstance(wanted, dict):
+            if not isinstance(observed, dict):
+                failures.append(Failure(path, "expected an object", observed))
+                return
+            for key, expected_item in wanted.items():
+                compare_setting(expected_item, observed.get(key),
+                                f"{path}.{key}")
+            return
+        if observed != wanted:
+            failures.append(Failure(path,
+                                    "fixture setting differs from profile",
+                                    observed, wanted))
+
+    for key, value in definition.items():
+        compare_setting(value, actual.get(key), f"$.fixture.{key}")
+
+    rope_count_value = definition.get("expected_rope_node_count")
+    rope_count = (rope_count_value if isinstance(rope_count_value, int) and
+                  not isinstance(rope_count_value, bool) else 0)
+    authored_nodes = definition.get("authored_soft_nodes_m")
+    soft_count = len(authored_nodes) if isinstance(authored_nodes, list) else 0
+    surface_vertices = definition.get("surface_vertices_m")
+    surface_count = (len(surface_vertices)
+                     if isinstance(surface_vertices, list) else 0)
+
+    def endpoint_states(value: Any, path: str, count: int,
+                        force_field: str) -> list[dict[str, Any]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected an endpoint array", value))
+            return []
+        if len(value) != count:
+            failures.append(Failure(path, "endpoint state count differs",
+                                    len(value), count))
+        parsed: list[dict[str, Any]] = []
+        for index, item in enumerate(value):
+            item_path = f"{path}[{index}]"
+            if not isinstance(item, dict):
+                failures.append(Failure(item_path, "expected an object", item))
+                continue
+            if item.get("index") != index:
+                failures.append(Failure(item_path + ".index",
+                                        "endpoint order/index changed",
+                                        item.get("index"), index))
+            position = _vector(item.get("position_m"),
+                               item_path + ".position_m", failures)
+            velocity = _vector(item.get("velocity_m_s"),
+                               item_path + ".velocity_m_s", failures)
+            force = _vector(item.get(force_field),
+                            item_path + "." + force_field, failures)
+            if position is not None and velocity is not None and force is not None:
+                parsed.append({"position": position, "velocity": velocity,
+                               "force": force})
+        return parsed
+
+    def surface_state(value: Any, path: str) -> list[tuple[float, float, float]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a surface array", value))
+            return []
+        if len(value) != surface_count:
+            failures.append(Failure(path, "surface state count differs",
+                                    len(value), surface_count))
+        parsed: list[tuple[float, float, float]] = []
+        for index, item in enumerate(value):
+            vector = _vector(item, f"{path}[{index}]", failures)
+            if vector is not None:
+                parsed.append(vector)
+        return parsed
+
+    phases: dict[str, dict[str, Any]] = {}
+    for phase_name in ("initial", "contact", "released"):
+        phase = actual.get(phase_name)
+        path = f"$.fixture.{phase_name}"
+        if not isinstance(phase, dict):
+            failures.append(Failure(path, "expected a phase object", phase))
+            phase = {}
+        phases[phase_name] = {
+            "rope": endpoint_states(phase.get("rope"), path + ".rope",
+                                    rope_count,
+                                    "soft_body_contact_force_n"),
+            "soft": endpoint_states(phase.get("soft_nodes"),
+                                    path + ".soft_nodes", soft_count,
+                                    "rope_contact_force_n"),
+            "surface": surface_state(phase.get("surface_m"),
+                                     path + ".surface_m"),
+        }
+
+    initial = phases["initial"]
+    contacted = phases["contact"]
+    released = phases["released"]
+    expected_rope = [(-0.2, 0.0, 0.0), (0.0, 0.0, 0.0),
+                     (0.2, 0.0, 0.0)]
+    prepared_nodes_value = definition.get("prepared_soft_nodes_m")
+    prepared_nodes: list[tuple[float, float, float]] = []
+    if isinstance(prepared_nodes_value, list):
+        for index, value in enumerate(prepared_nodes_value):
+            vector = _vector(value,
+                             f"$.profile.fixture.prepared_soft_nodes_m[{index}]",
+                             failures)
+            if vector is not None:
+                prepared_nodes.append(vector)
+    prepared_velocity = _vector(definition.get("prepared_soft_velocity_m_s"),
+                                "$.profile.fixture.prepared_soft_velocity_m_s",
+                                failures)
+    if len(initial["rope"]) == len(expected_rope):
+        for index, (state, wanted) in enumerate(zip(initial["rope"],
+                                                    expected_rope)):
+            if _norm(_subtract(state["position"], wanted)) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.initial.rope[{index}].position_m",
+                    "initial rope resampling differs from profile",
+                    list(state["position"]), list(wanted)))
+            if _norm(state["velocity"]) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.initial.rope[{index}].velocity_m_s",
+                    "initial rope velocity must be zero",
+                    list(state["velocity"]), 0.0))
+            if _norm(state["force"]) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.initial.rope[{index}].soft_body_contact_force_n",
+                    "initial rope contact force must be zero",
+                    list(state["force"]), 0.0))
+    if (len(initial["soft"]) == len(prepared_nodes) and
+            prepared_velocity is not None):
+        for index, (state, wanted) in enumerate(zip(initial["soft"],
+                                                    prepared_nodes)):
+            if _norm(_subtract(state["position"], wanted)) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.initial.soft_nodes[{index}].position_m",
+                    "prepared soft-node state differs from profile",
+                    list(state["position"]), list(wanted)))
+            if (_norm(_subtract(state["velocity"], prepared_velocity)) >
+                    state_tolerance):
+                failures.append(Failure(
+                    f"$.fixture.initial.soft_nodes[{index}].velocity_m_s",
+                    "prepared soft-node velocity differs from profile",
+                    list(state["velocity"]), list(prepared_velocity)))
+            if _norm(state["force"]) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.initial.soft_nodes[{index}].rope_contact_force_n",
+                    "initial soft-body contact force must be zero",
+                    list(state["force"]), 0.0))
+
+    bindings_value = definition.get("surface_bindings")
+    bindings: list[list[tuple[int, float]]] = []
+    if isinstance(bindings_value, list):
+        for binding_index, binding in enumerate(bindings_value):
+            if not isinstance(binding, dict):
+                failures.append(Failure(
+                    f"$.profile.fixture.surface_bindings[{binding_index}]",
+                    "expected an object", binding))
+                continue
+            nodes, weights = binding.get("nodes"), binding.get("weights")
+            parsed: list[tuple[int, float]] = []
+            if isinstance(nodes, list) and isinstance(weights, list) and \
+                    len(nodes) == len(weights) == 4:
+                for node, weight in zip(nodes, weights):
+                    if (isinstance(node, int) and not isinstance(node, bool)
+                            and _number(weight) and float(weight) != 0.0):
+                        parsed.append((node, float(weight)))
+            if not parsed:
+                failures.append(Failure(
+                    f"$.profile.fixture.surface_bindings[{binding_index}]",
+                    "surface binding has no valid weighted node", binding))
+            bindings.append(parsed)
+
+    maximum_reconstruction_error = 0.0
+    reconstruction_limit = float(tolerances.get(
+        "maximum_surface_reconstruction_error_m", 0.0))
+    for phase_name, phase in phases.items():
+        if (len(phase["soft"]) != soft_count or
+                len(phase["surface"]) != len(bindings)):
+            continue
+        for vertex, binding in enumerate(bindings):
+            if any(node < 0 or node >= len(phase["soft"])
+                   for node, _weight in binding):
+                failures.append(Failure(
+                    f"$.profile.fixture.surface_bindings[{vertex}]",
+                    "surface binding node is out of range"))
+                continue
+            reconstructed = tuple(sum(
+                phase["soft"][node]["position"][axis] * weight
+                for node, weight in binding) for axis in range(3))
+            error = _norm(_subtract(phase["surface"][vertex], reconstructed))
+            maximum_reconstruction_error = max(maximum_reconstruction_error,
+                                               error)
+            if error > reconstruction_limit:
+                failures.append(Failure(
+                    f"$.fixture.{phase_name}.surface_m[{vertex}]",
+                    "public soft surface does not match its node bindings",
+                    error, reconstruction_limit))
+
+    def dot(left: tuple[float, float, float],
+            right: tuple[float, float, float]) -> float:
+        return sum(a * b for a, b in zip(left, right))
+
+    def add(left: tuple[float, float, float],
+            right: tuple[float, float, float]) -> tuple[float, float, float]:
+        return tuple(a + b for a, b in zip(left, right))
+
+    def scale(value: tuple[float, float, float],
+              factor: float) -> tuple[float, float, float]:
+        return tuple(component * factor for component in value)
+
+    def cross(left: tuple[float, float, float],
+              right: tuple[float, float, float]) -> tuple[float, float, float]:
+        return (left[1] * right[2] - left[2] * right[1],
+                left[2] * right[0] - left[0] * right[2],
+                left[0] * right[1] - left[1] * right[0])
+
+    def closest_triangle(point: tuple[float, float, float],
+                         first: tuple[float, float, float],
+                         second: tuple[float, float, float],
+                         third: tuple[float, float, float]
+                         ) -> tuple[float, float, float]:
+        ab, ac, ap = (_subtract(second, first),
+                      _subtract(third, first), _subtract(point, first))
+        d1, d2 = dot(ab, ap), dot(ac, ap)
+        if d1 <= 0.0 and d2 <= 0.0:
+            return first
+        bp = _subtract(point, second)
+        d3, d4 = dot(ab, bp), dot(ac, bp)
+        if d3 >= 0.0 and d4 <= d3:
+            return second
+        vc = d1 * d4 - d3 * d2
+        if vc <= 0.0 and d1 >= 0.0 and d3 <= 0.0:
+            return add(first, scale(ab, d1 / (d1 - d3)))
+        cp = _subtract(point, third)
+        d5, d6 = dot(ab, cp), dot(ac, cp)
+        if d6 >= 0.0 and d5 <= d6:
+            return third
+        vb = d5 * d2 - d1 * d6
+        if vb <= 0.0 and d2 >= 0.0 and d6 <= 0.0:
+            return add(first, scale(ac, d2 / (d2 - d6)))
+        va = d3 * d6 - d5 * d4
+        if va <= 0.0 and (d4 - d3) >= 0.0 and (d5 - d6) >= 0.0:
+            edge = _subtract(third, second)
+            return add(second, scale(
+                edge, (d4 - d3) / ((d4 - d3) + (d5 - d6))))
+        denominator = 1.0 / (va + vb + vc)
+        return add(first, add(scale(ab, vb * denominator),
+                              scale(ac, vc * denominator)))
+
+    indices_value = definition.get("surface_triangle_indices")
+    indices = (indices_value if isinstance(indices_value, list) and
+               all(isinstance(value, int) and not isinstance(value, bool)
+                   for value in indices_value) else [])
+
+    def clearance(phase: dict[str, Any]) -> tuple[
+            float | None, tuple[float, float, float] | None]:
+        best = math.inf
+        best_normal: tuple[float, float, float] | None = None
+        if len(indices) % 3 != 0:
+            return None, None
+        for rope in phase["rope"]:
+            point = rope["position"]
+            for base in range(0, len(indices), 3):
+                triangle = indices[base:base + 3]
+                if any(index < 0 or index >= len(phase["surface"])
+                       for index in triangle):
+                    continue
+                first, second, third = (
+                    phase["surface"][triangle[0]],
+                    phase["surface"][triangle[1]],
+                    phase["surface"][triangle[2]])
+                nearest = closest_triangle(point, first, second, third)
+                delta = _subtract(point, nearest)
+                distance = _norm(delta)
+                if distance >= best:
+                    continue
+                best = distance
+                best_normal = _unit(delta) or _unit(cross(
+                    _subtract(second, first), _subtract(third, first)))
+        return (best, best_normal) if math.isfinite(best) else (None, None)
+
+    initial_clearance, contact_normal = clearance(initial)
+    contact_clearance, _ = clearance(contacted)
+    released_clearance, _ = clearance(released)
+    distance_value = _scalar(definition.get("contact_distance_m"),
+                             "$.profile.fixture.contact_distance_m", failures)
+    initial_overlap = contact_penetration = None
+    if distance_value is not None and initial_clearance is not None:
+        initial_overlap = max(0.0, distance_value - initial_clearance)
+        minimum = float(tolerances.get("minimum_initial_overlap_m", 0.0))
+        if initial_overlap < minimum:
+            failures.append(Failure(
+                "$.fixture.initial",
+                "fixture does not begin with a qualifying rope-surface overlap",
+                initial_overlap, minimum))
+    if distance_value is not None and contact_clearance is not None:
+        contact_penetration = max(0.0, distance_value - contact_clearance)
+        limit = float(tolerances.get("maximum_contact_penetration_m", 0.0))
+        if contact_penetration > limit:
+            failures.append(Failure(
+                "$.fixture.contact",
+                "rope remained inside the soft-body contact envelope",
+                contact_penetration, limit))
+    if contact_clearance is not None and released_clearance is not None:
+        regression = contact_clearance - released_clearance
+        limit = float(tolerances.get(
+            "maximum_release_clearance_regression_m", 0.0))
+        if regression > limit:
+            failures.append(Failure(
+                "$.fixture.released",
+                "rope moved back into the soft surface after graph removal",
+                regression, limit))
+
+    rope_impulse = soft_impulse = impulse_residual = impulse_activity = None
+    rope_force = soft_force = force_residual = force_activity = None
+    force_impulse_residual = None
+    rope_mass_value = _scalar(definition.get("rope_total_mass_kg"),
+                              "$.profile.fixture.rope_total_mass_kg", failures)
+    soft_inverse_value = definition.get("soft_inverse_masses_kg_inverse")
+    soft_inverse = ([float(value) for value in soft_inverse_value]
+                    if isinstance(soft_inverse_value, list) and
+                    all(_number(value) and float(value) > 0.0
+                        for value in soft_inverse_value) else [])
+    if (rope_mass_value is not None and len(initial["rope"]) ==
+            len(contacted["rope"]) == rope_count and rope_count > 0):
+        node_mass = rope_mass_value / rope_count
+        rope_impulse = tuple(sum(
+            (contacted["rope"][index]["velocity"][axis] -
+             initial["rope"][index]["velocity"][axis]) * node_mass
+            for index in range(rope_count)) for axis in range(3))
+        rope_force = _sum([state["force"] for state in contacted["rope"]])
+    if (len(initial["soft"]) == len(contacted["soft"]) ==
+            len(soft_inverse) and soft_inverse):
+        soft_impulse = tuple(sum(
+            (contacted["soft"][index]["velocity"][axis] -
+             initial["soft"][index]["velocity"][axis]) /
+            soft_inverse[index] for index in range(len(soft_inverse)))
+            for axis in range(3))
+        soft_force = _sum([state["force"] for state in contacted["soft"]])
+    if rope_impulse is not None and soft_impulse is not None:
+        impulse_residual = _norm(add(rope_impulse, soft_impulse))
+        impulse_activity = max(_norm(rope_impulse), _norm(soft_impulse))
+        minimum = float(tolerances.get("minimum_contact_impulse_n_s", 0.0))
+        if impulse_activity < minimum:
+            failures.append(Failure("$.fixture.contact",
+                                    "contact impulse is too small",
+                                    impulse_activity, minimum))
+        limit = float(tolerances.get(
+            "maximum_reciprocal_impulse_residual_n_s", 0.0))
+        if impulse_residual > limit:
+            failures.append(Failure("$.fixture.contact",
+                                    "rope and soft-body impulses are not reciprocal",
+                                    impulse_residual, limit))
+    if rope_force is not None and soft_force is not None:
+        force_residual = _norm(add(rope_force, soft_force))
+        force_activity = max(_norm(rope_force), _norm(soft_force))
+        minimum = float(tolerances.get("minimum_contact_force_n", 0.0))
+        if force_activity < minimum:
+            failures.append(Failure("$.fixture.contact",
+                                    "contact reaction force is too small",
+                                    force_activity, minimum))
+        limit = float(tolerances.get(
+            "maximum_reciprocal_force_residual_n", 0.0))
+        if force_residual > limit:
+            failures.append(Failure("$.fixture.contact",
+                                    "rope and soft-body forces are not reciprocal",
+                                    force_residual, limit))
+        timestep = _scalar(definition.get("timestep_seconds"),
+                           "$.profile.fixture.timestep_seconds", failures)
+        if (timestep is not None and rope_impulse is not None and
+                soft_impulse is not None):
+            force_impulse_residual = max(
+                _norm(_subtract(rope_impulse, scale(rope_force, timestep))),
+                _norm(_subtract(soft_impulse, scale(soft_force, timestep))))
+            consistency_limit = float(tolerances.get(
+                "maximum_force_impulse_residual_n_s", 0.0))
+            if force_impulse_residual > consistency_limit:
+                failures.append(Failure(
+                    "$.fixture.contact",
+                    "public contact force does not map to endpoint impulse",
+                    force_impulse_residual, consistency_limit))
+
+    released_force_activity = sum(
+        _norm(state["force"]) for state in
+        released["rope"] + released["soft"])
+    released_force_limit = float(tolerances.get(
+        "maximum_release_contact_force_n", 0.0))
+    if released_force_activity > released_force_limit:
+        failures.append(Failure(
+            "$.fixture.released",
+            "contact force persisted after graph removal",
+            released_force_activity, released_force_limit))
+
+    def center_velocity(states: list[dict[str, Any]],
+                        masses: list[float]) -> tuple[float, float, float] | None:
+        if len(states) != len(masses) or not masses or sum(masses) <= 0.0:
+            return None
+        total = sum(masses)
+        return tuple(sum(state["velocity"][axis] * mass
+                         for state, mass in zip(states, masses)) / total
+                     for axis in range(3))
+
+    contact_slip = release_slip = None
+    if (rope_mass_value is not None and rope_count > 0 and soft_inverse and
+            contact_normal is not None):
+        rope_masses = [rope_mass_value / rope_count] * rope_count
+        soft_masses = [1.0 / value for value in soft_inverse]
+        contact_rope_velocity = center_velocity(contacted["rope"], rope_masses)
+        contact_soft_velocity = center_velocity(contacted["soft"], soft_masses)
+        release_rope_velocity = center_velocity(released["rope"], rope_masses)
+        release_soft_velocity = center_velocity(released["soft"], soft_masses)
+        if contact_rope_velocity is not None and contact_soft_velocity is not None:
+            relative = _subtract(contact_soft_velocity, contact_rope_velocity)
+            tangent = _subtract(relative, scale(
+                contact_normal, dot(relative, contact_normal)))
+            contact_slip = _norm(tangent)
+        if release_rope_velocity is not None and release_soft_velocity is not None:
+            relative = _subtract(release_soft_velocity, release_rope_velocity)
+            tangent = _subtract(relative, scale(
+                contact_normal, dot(relative, contact_normal)))
+            release_slip = _norm(tangent)
+        minimum = float(tolerances.get("minimum_frictionless_slip_m_s", 0.0))
+        if contact_slip is not None and contact_slip < minimum:
+            failures.append(Failure(
+                "$.fixture.contact",
+                "soft body and rope moved as a hidden attachment",
+                contact_slip, minimum))
+        if release_slip is not None and release_slip < minimum:
+            failures.append(Failure(
+                "$.fixture.released",
+                "soft body and rope remained attached after graph removal",
+                release_slip, minimum))
+
+    speeds = [_norm(state["velocity"]) for phase in phases.values()
+              for state in phase["rope"] + phase["soft"]]
+    maximum_speed = max(speeds) if speeds else None
+    if maximum_speed is not None:
+        speed_limit = max(float(definition.get("rope_maximum_speed_m_s", 0.0)),
+                          float(definition.get("soft_maximum_speed_m_s", 0.0)))
+        speed_limit += float(tolerances.get("maximum_speed_slack_m_s", 0.0))
+        if maximum_speed > speed_limit:
+            failures.append(Failure("$.fixture",
+                                    "contact speed exceeds authored maximum",
+                                    maximum_speed, speed_limit))
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": 1 if actual else 0,
+        "sample_count": len(contacted["rope"]) + len(contacted["soft"]),
+        "failure_count": len(failures),
+        "observations": {
+            "maximum_surface_reconstruction_error_m":
+                maximum_reconstruction_error,
+            "initial_clearance_m": initial_clearance,
+            "initial_overlap_m": initial_overlap,
+            "contact_clearance_m": contact_clearance,
+            "contact_penetration_m": contact_penetration,
+            "released_clearance_m": released_clearance,
+            "rope_contact_impulse_n_s": list(rope_impulse)
+                if rope_impulse is not None else None,
+            "soft_body_contact_impulse_n_s": list(soft_impulse)
+                if soft_impulse is not None else None,
+            "contact_impulse_activity_n_s": impulse_activity,
+            "reciprocal_impulse_residual_n_s": impulse_residual,
+            "rope_reaction_force_n": list(rope_force)
+                if rope_force is not None else None,
+            "soft_body_reaction_force_n": list(soft_force)
+                if soft_force is not None else None,
+            "contact_force_activity_n": force_activity,
+            "reciprocal_force_residual_n": force_residual,
+            "force_impulse_residual_n_s": force_impulse_residual,
+            "contact_frictionless_slip_m_s": contact_slip,
+            "released_frictionless_slip_m_s": release_slip,
+            "released_contact_force_activity_n": released_force_activity,
+            "maximum_endpoint_speed_m_s": maximum_speed,
+        },
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def _evaluate_fluid_rope_contact(
         profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
         driver: Any, failures: list[Failure]) -> dict[str, Any]:
@@ -7446,6 +7970,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "cloth_soft_contact":
         return _evaluate_cloth_soft_contact(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "soft_rope_contact":
+        return _evaluate_soft_rope_contact(
             profile, result, expected_hash, driver, failures)
     if evaluation == "fluid_rope_contact":
         return _evaluate_fluid_rope_contact(

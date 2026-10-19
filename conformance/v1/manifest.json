@@ -82,10 +82,11 @@
     "conformance/v1/quality/smoke-cloth-drag-v1.json": "6984353862c9dc69f693597e92e60c9956576f080cbca2e79040e2ff923480ac",
     "conformance/v1/quality/smoke-fluid-drag-v1.json": "ef28c4f4446365aa787aac9605098772f00e68f1ebf958b2023b6cafdba1c3e1",
     "conformance/v1/quality/smoke-self-pressure-v1.json": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150",
-    "conformance/v1/quality/smoke-self-viscosity-v1.json": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"
+    "conformance/v1/quality/smoke-self-viscosity-v1.json": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff",
+    "conformance/v1/quality/soft-rope-contact-v1.json": "df6d15ea4e3d96346a23894c557292da15f6acf26dafd33384a17028226a1de6"
   },
   "qualification_profile_sha256": {
-    "conformance/v1/qualification/capability-obligations-v1.json": "024f8894735a8285f1d5fb7058e639256cf5db6bc9a5ee9e2b1ff28de50ab588"
+    "conformance/v1/qualification/capability-obligations-v1.json": "cae3bbb8f8f2036d6dfa443e9e7babd98eb96e80d97b2b2f247be4d66606c056"
   },
   "evidence_index_sha256": {
     "conformance/v1/evidence/evidence-sources-v1.json": "2e3da24a709411ed0fe7beb91b04d6dc42af8d0997a9ae2d448501a2333c4f04",
