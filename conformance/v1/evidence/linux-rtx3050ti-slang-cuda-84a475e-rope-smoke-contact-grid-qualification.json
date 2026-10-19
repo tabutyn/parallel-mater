@@ -1,0 +1,83 @@
+{
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "522d78e5fa511c09ea4e7c21478b024aa8b44f89e592e81699f2dae0854dc68e",
+  "execution_status": "completed",
+  "source": {
+    "commit": "84a475e8a17102f9b38697bcaeb784bd68a41a47",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+84a475e",
+    "binary_sha256": "52854125dc55b8d9cb507967045d759c4ec2edeed50e9d140686d3f1e7dfbb0c"
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13010 (NVIDIA 590.44.01)"
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "ROPE",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "FIRST_TO_SECOND",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "evidence": [
+    {
+      "scope": "analytic_invariants",
+      "contract": "quality:rope-smoke-contact-v1",
+      "status": "passed",
+      "source_commit": "84a475e8a17102f9b38697bcaeb784bd68a41a47",
+      "contract_sha256": "821c94ef42abeb047390383ef6fd0f28476aa5880414235defb8348532bbbc7a",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid.json",
+      "artifact_sha256": "567f9c8218e233e27f4db2d28b860ad68892c2fb05323bb785e919c2781ac658"
+    },
+    {
+      "scope": "compilation",
+      "contract": "registry:interaction-capabilities",
+      "status": "passed",
+      "source_commit": "84a475e8a17102f9b38697bcaeb784bd68a41a47",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid.json",
+      "artifact_sha256": "567f9c8218e233e27f4db2d28b860ad68892c2fb05323bb785e919c2781ac658"
+    },
+    {
+      "scope": "execution",
+      "contract": "case:smoke-rope",
+      "status": "passed",
+      "source_commit": "84a475e8a17102f9b38697bcaeb784bd68a41a47",
+      "contract_sha256": "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid.json",
+      "artifact_sha256": "567f9c8218e233e27f4db2d28b860ad68892c2fb05323bb785e919c2781ac658"
+    },
+    {
+      "scope": "lifecycle_invariants",
+      "contract": "lifecycle:rope-smoke-contact-lifecycle-v1#grid-rope-smoke-contact-capacity-replacement-removal-rollback",
+      "status": "passed",
+      "source_commit": "84a475e8a17102f9b38697bcaeb784bd68a41a47",
+      "contract_sha256": "a67278e662dbe41a1d1c5ec0ed54c1ec1dc38c78af5d19da0670b56a5b9e4c3f",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid.json",
+      "artifact_sha256": "567f9c8218e233e27f4db2d28b860ad68892c2fb05323bb785e919c2781ac658"
+    },
+    {
+      "scope": "reference_regression",
+      "contract": "case:smoke-rope",
+      "status": "passed",
+      "source_commit": "84a475e8a17102f9b38697bcaeb784bd68a41a47",
+      "contract_sha256": "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid.json",
+      "artifact_sha256": "567f9c8218e233e27f4db2d28b860ad68892c2fb05323bb785e919c2781ac658"
+    }
+  ]
+}

@@ -3760,6 +3760,57 @@
         "second_family": "SMOKE"
       },
       "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
+      "qualified": true,
+      "report": "linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid",
+      "rule_id": "rope-smoke-contact-grid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:rope-smoke-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:rope-smoke-contact-lifecycle-v1#grid-rope-smoke-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "ROPE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
       "rule_id": "rope-smoke-contact-grid",
@@ -3838,6 +3889,57 @@
             "lifecycle:rope-smoke-contact-lifecycle-v1#grid-rope-smoke-contact-capacity-replacement-removal-rollback"
           ],
           "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "ROPE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
+      "qualified": true,
+      "report": "linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-particle",
+      "rule_id": "rope-smoke-contact-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:rope-smoke-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-rope"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:rope-smoke-contact-lifecycle-v1#particle-rope-smoke-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -16371,7 +16473,7 @@
       }
     }
   ],
-  "capability_count": 325,
+  "capability_count": 327,
   "driver_count": 5,
   "drivers": [
     {
@@ -16402,6 +16504,8 @@
         "linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-grid",
         "linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle",
         "linux-rtx3050ti-slang-cuda-7396577-soft-rigid-contact",
+        "linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid",
+        "linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-particle",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
         "windows-gtx1080-slang-cuda-2b04e55",
@@ -16410,7 +16514,7 @@
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle"
       ],
-      "qualified_capability_count": 0,
+      "qualified_capability_count": 2,
       "report_ids": [
         "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
         "linux-rtx3050ti-slang-cuda-eed669e",
@@ -16423,6 +16527,8 @@
         "linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-grid",
         "linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle",
         "linux-rtx3050ti-slang-cuda-7396577-soft-rigid-contact",
+        "linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid",
+        "linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-particle",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid",
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
         "windows-gtx1080-slang-cuda-2b04e55",
@@ -25257,8 +25363,8 @@
   "obligations_id": "capability-obligations-v1",
   "obligations_sha256": "522d78e5fa511c09ea4e7c21478b024aa8b44f89e592e81699f2dae0854dc68e",
   "qualification_complete": true,
-  "qualified_capability_count": 0,
-  "report_count": 36,
+  "qualified_capability_count": 2,
+  "report_count": 38,
   "reports": [
     {
       "capability_count": 46,
@@ -25435,6 +25541,64 @@
         "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
       },
       "validated": false
+    },
+    {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "13010 (NVIDIA 590.44.01)",
+        "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+        "vendor_id": 4318
+      },
+      "driver": {
+        "binary_sha256": "52854125dc55b8d9cb507967045d759c4ec2edeed50e9d140686d3f1e7dfbb0c",
+        "name": "slang-cuda",
+        "version": "0.2.0+84a475e"
+      },
+      "failure_count": 0,
+      "id": "linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid-qualification.json",
+      "qualified_count": 1,
+      "sha256": "5494a717d4bebcc4c41e576e3598012d50f3dda74449e83bd1e35dc788285fd7",
+      "source": {
+        "commit": "84a475e8a17102f9b38697bcaeb784bd68a41a47",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+        "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+      },
+      "validated": true
+    },
+    {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "13010 (NVIDIA 590.44.01)",
+        "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+        "vendor_id": 4318
+      },
+      "driver": {
+        "binary_sha256": "52854125dc55b8d9cb507967045d759c4ec2edeed50e9d140686d3f1e7dfbb0c",
+        "name": "slang-cuda",
+        "version": "0.2.0+84a475e"
+      },
+      "failure_count": 0,
+      "id": "linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-particle",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-particle-qualification.json",
+      "qualified_count": 1,
+      "sha256": "b29f21a2e328b4af7fca04172676e4177dd7096f4600e0080634ccd67e5e4aa6",
+      "source": {
+        "commit": "84a475e8a17102f9b38697bcaeb784bd68a41a47",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+        "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+      },
+      "validated": true
     },
     {
       "capability_count": 1,
@@ -26320,7 +26484,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "dad382f44e9b6ddee9d13eb35c02515c2568e04c665c67b7bdeb3dfb24b94985",
+  "sources_sha256": "5ef9d2378a67f3b70417636faa4097e6439b4634474c2fa37950dd49d07a990f",
   "valid": true,
   "validation_failures": []
 }
