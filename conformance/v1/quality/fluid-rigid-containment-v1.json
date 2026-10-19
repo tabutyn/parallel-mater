@@ -1,0 +1,75 @@
+{
+  "schema": "parallel-mater-conformance-quality-profile/v1",
+  "id": "fluid-rigid-containment-v1",
+  "title": "Closed rigid fluid containment and reciprocal reaction",
+  "evaluation": "fluid_rigid_containment",
+  "sources": {
+    "capability": "docs/INTERACTION-MODES.md: FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+    "fixture": "conformance/v1/src/fluid_rigid_containment.cpp: public-API interior particle pulse against a closed dynamic cube",
+    "oracle": "Independent closed-manifold, rigid-transform signed-distance and reciprocal-momentum checks over public fluid and rigid output",
+    "qualification": "docs/ROADMAP.md: F5-39"
+  },
+  "units": "SI: metres, kilograms, seconds, metres per second, radians per second and kilogram-metres per second",
+  "scope": "Closed-volume retention only. API 0.2 requires CONTACT and CONTAINMENT in one liquid-rigid edge descriptor; this interior pulse qualifies containment without claiming the separate exterior-contact obligation.",
+  "fixtures": [
+    {
+      "id": "closed-cube-interior-outward-pulse",
+      "timestep_seconds": 0.01,
+      "step_count": 1,
+      "substeps": 1,
+      "gravity_m_s2": [0.0, 0.0, 0.0],
+      "declared_mode_flags": ["CONTACT", "CONTAINMENT"],
+      "exercised_mode": "CONTAINMENT",
+      "contact_claimed": false,
+      "contact_event_capacity": 8,
+      "fluid_rest_density_kg_m3": 1000.0,
+      "fluid_particle_radius_m": 0.05,
+      "fluid_support_radius_m": 0.2,
+      "fluid_rest_particle_volume_m3": 0.001,
+      "fluid_particle_mass_kg": 1.0,
+      "fluid_maximum_speed_m_s": 10.0,
+      "particle_initial_position_m": [0.045, 0.0, 0.0],
+      "particle_initial_velocity_m_s": [1.0, 0.0, 0.0],
+      "rigid_geometry_vertices_m": [
+        [-0.1, -0.1, -0.1], [0.1, -0.1, -0.1],
+        [0.1, 0.1, -0.1], [-0.1, 0.1, -0.1],
+        [-0.1, -0.1, 0.1], [0.1, -0.1, 0.1],
+        [0.1, 0.1, 0.1], [-0.1, 0.1, 0.1]
+      ],
+      "rigid_geometry_triangle_indices": [
+        0, 3, 2, 0, 2, 1, 4, 5, 6, 4, 6, 7,
+        0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5,
+        0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2
+      ],
+      "rigid_initial_position_m": [0.0, 0.0, 0.0],
+      "rigid_initial_orientation_xyzw": [0.0, 0.0, 0.0, 1.0],
+      "rigid_initial_linear_velocity_m_s": [0.0, 0.0, 0.0],
+      "rigid_initial_angular_velocity_rad_s": [0.0, 0.0, 0.0],
+      "rigid_mass_kg": 2.0,
+      "rigid_inertia_diagonal_kg_m2": [0.013333333333333334, 0.013333333333333334, 0.013333333333333334],
+      "rigid_friction": 0.0,
+      "rigid_restitution": 0.0,
+      "rigid_linear_damping_per_s": 0.0,
+      "rigid_angular_damping_per_s": 0.0,
+      "rigid_maximum_linear_speed_m_s": 10.0,
+      "rigid_maximum_angular_speed_rad_s": 10.0,
+      "rigid_collision_margin_m": 0.001,
+      "coupling_contact_distance_m": 0.05,
+      "coupling_friction": 0.0,
+      "coupling_maximum_acceleration_m_s2": 1000.0,
+      "coupling_two_way": true,
+      "oracle": "public-closed-manifold-rigid-transform-signed-distance-and-reciprocal-momentum"
+    }
+  ],
+  "tolerances": {
+    "fixture_state_absolute": 0.000001,
+    "maximum_containment_penetration_m": 0.001,
+    "maximum_leaked_particles": 0,
+    "minimum_reaction_impulse_n_s": 0.001,
+    "maximum_reciprocal_momentum_residual_kg_m_s": 0.001,
+    "maximum_tangential_momentum_kg_m_s": 0.00001,
+    "maximum_angular_speed_rad_s": 0.00001,
+    "maximum_rigid_translation_m": 0.000001,
+    "maximum_energy_increase_j": 0.001
+  }
+}

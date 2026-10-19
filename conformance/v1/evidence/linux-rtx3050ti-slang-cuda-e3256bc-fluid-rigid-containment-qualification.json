@@ -1,0 +1,83 @@
+{
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "20c3086b26c05fc00bdc2a70fc4f528cdd588271c2cc2be4409912982d60c419",
+  "execution_status": "completed",
+  "source": {
+    "commit": "e3256bc44d289fe835685f14cd856784e548b045",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+e3256bc",
+    "binary_sha256": "9e12330743afd5da16647f15fa56739030b50e3214abd5979fe54948d4e604f4"
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13010 (NVIDIA 590.44.01)"
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "FLUID",
+      "second_family": "RIGID_BODY",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTAINMENT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "evidence": [
+    {
+      "scope": "analytic_invariants",
+      "contract": "quality:fluid-rigid-containment-v1",
+      "status": "passed",
+      "source_commit": "e3256bc44d289fe835685f14cd856784e548b045",
+      "contract_sha256": "d6ea84babcdc0ede00303f4960336320b165ac3a573e196725a5b69abe31f7f6",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment.json",
+      "artifact_sha256": "9e11fc5bdfb3333bb4e6df04a090bcaf893a57d9a87cc43f3118a71637f60b5a"
+    },
+    {
+      "scope": "compilation",
+      "contract": "registry:interaction-capabilities",
+      "status": "passed",
+      "source_commit": "e3256bc44d289fe835685f14cd856784e548b045",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment.json",
+      "artifact_sha256": "9e11fc5bdfb3333bb4e6df04a090bcaf893a57d9a87cc43f3118a71637f60b5a"
+    },
+    {
+      "scope": "execution",
+      "contract": "case:fluid-rigid",
+      "status": "passed",
+      "source_commit": "e3256bc44d289fe835685f14cd856784e548b045",
+      "contract_sha256": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment.json",
+      "artifact_sha256": "9e11fc5bdfb3333bb4e6df04a090bcaf893a57d9a87cc43f3118a71637f60b5a"
+    },
+    {
+      "scope": "lifecycle_invariants",
+      "contract": "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback",
+      "status": "passed",
+      "source_commit": "e3256bc44d289fe835685f14cd856784e548b045",
+      "contract_sha256": "bc4730838161caa3c77c54c65e58f14fee1fdf4095b26432fea8738ddae6fff0",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment.json",
+      "artifact_sha256": "9e11fc5bdfb3333bb4e6df04a090bcaf893a57d9a87cc43f3118a71637f60b5a"
+    },
+    {
+      "scope": "reference_regression",
+      "contract": "case:fluid-rigid",
+      "status": "passed",
+      "source_commit": "e3256bc44d289fe835685f14cd856784e548b045",
+      "contract_sha256": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment.json",
+      "artifact_sha256": "9e11fc5bdfb3333bb4e6df04a090bcaf893a57d9a87cc43f3118a71637f60b5a"
+    }
+  ]
+}

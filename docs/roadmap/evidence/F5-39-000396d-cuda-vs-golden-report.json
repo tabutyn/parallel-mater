@@ -1,0 +1,35 @@
+{
+  "cases": [
+    {
+      "differences": [
+        {
+          "actual": 0.0,
+          "expected": 1.0,
+          "message": "absolute error 1.0 > 0.15000000000000002",
+          "path": "$.checkpoints[1].contacts.rigid_contact_count"
+        },
+        {
+          "actual": 248.0,
+          "expected": 89.0,
+          "message": "absolute error 159.0 > 24.85",
+          "path": "$.checkpoints[2].contacts.rigid_contact_count"
+        },
+        {
+          "actual": 817.0,
+          "expected": 658.0,
+          "message": "absolute error 159.0 > 81.75",
+          "path": "$.checkpoints[2].invariants.equal_and_opposite_transfer.observable_contact_count"
+        }
+      ],
+      "id": "fluid-rigid",
+      "passed": false,
+      "reason": "",
+      "status": "failed"
+    }
+  ],
+  "failed": 1,
+  "passed": 0,
+  "schema": "parallel-mater-conformance-report/v1",
+  "scope": "reference_regression",
+  "unsupported": 0
+}

@@ -1,0 +1,64 @@
+{
+  "schema": "parallel-mater-conformance-lifecycle-profile/v1",
+  "id": "fluid-rigid-containment-lifecycle-v1",
+  "title": "Rigid fluid containment graph bounded lifecycle",
+  "sources": {
+    "capacity": "include/parallel_mater/parallel_mater.h: PmSimulationCreateInfo::couplingCapacity and pmCmdSetCouplings",
+    "qualification": "docs/ROADMAP.md: F5-39",
+    "rollback": "docs/RESOURCE-LIFETIME.md: a rejected graph mutation preserves the last usable graph"
+  },
+  "state_fingerprint": "SHA-256 of the canonical accepted public liquid-rigid descriptor bundle, explicitly tagged as CONTAINMENT qualification, plus public fluid and rigid endpoint outputs; exclude handles, timings and driver-private state",
+  "observation_boundary": "Complete each graph mutation and zero-gravity step before public readback; generation is the harness ordinal of an accepted graph mutation, never a private driver handle",
+  "scope": "API 0.2 fixes CONTACT and CONTAINMENT in one liquid-rigid descriptor. This lifecycle binds only the CONTAINMENT obligation and makes no exterior-contact claim.",
+  "cases": [
+    {
+      "id": "fluid-rigid-containment-capacity-replacement-removal-rollback",
+      "families": ["fluid", "rigid_body"],
+      "unrelated_resources": ["fluid-rigid-endpoints"],
+      "tracked_resources": ["fluid-rigid-containment-graph", "fluid-rigid-endpoints"],
+      "track_graph": false,
+      "checkpoints": [
+        {
+          "id": "baseline",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "fluid-rigid-containment-graph": {"active": true},
+            "fluid-rigid-endpoints": {"active": true}
+          }
+        },
+        {
+          "id": "replacement",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "fluid-rigid-containment-graph": {"active": true, "generation_different_from": "baseline", "state_different_from": "baseline"},
+            "fluid-rigid-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "rejected-overflow",
+          "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED",
+          "resources": {
+            "fluid-rigid-containment-graph": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"},
+            "fluid-rigid-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "removal",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "fluid-rigid-containment-graph": {"active": false, "generation_different_from": "replacement", "state_different_from": "replacement"},
+            "fluid-rigid-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "recovery",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "fluid-rigid-containment-graph": {"active": true, "generation_different_from": "removal", "state_different_from": "removal"},
+            "fluid-rigid-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        }
+      ]
+    }
+  ]
+}
