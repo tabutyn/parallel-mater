@@ -604,17 +604,15 @@ struct LifecycleRun {
     initialize_endpoints(context, fixture, pinned_inverse_masses.data(),
                          quality_emission_rate, {1.0F, 0.0F, 0.0F},
                          {1.0F, 0.0F, 0.0F});
-    // CONTACT distance stays immutable. Bundled DRAG remains disabled because
-    // windDrag is zero; its inert acceleration cap distinguishes replacements.
+    // Replacement changes CONTACT itself. All clearances remain beyond the
+    // shared -0.0145 m behavioral threshold. Bundled DRAG stays zero.
     const PmCouplingState baseline = contact_coupling(
-        true, contact_distance, 1.0F);
+        true, contact_distance);
     const PmCouplingState replacement = contact_coupling(
-        true, contact_distance, 2.0F);
+        true, contact_distance + 0.001F);
     const PmCouplingState recovery = contact_coupling(
-        true, contact_distance, 3.0F);
+        true, contact_distance + 0.002F);
     const std::array<PmCouplingState, 2U> overflow{{replacement, recovery}};
-    PmCouplingState invalid = replacement;
-    invalid.second = 1U;
     const PmStepInfo step{1.0e-3F, 1U, {0.0F, 0.0F, 0.0F}, 0U};
     const PmStepInfo warmup_step{
         timestep, 1U, {0.0F, 0.0F, 0.0F}, 0U};
@@ -673,19 +671,6 @@ struct LifecycleRun {
                  PM_ERROR_CAPACITY_EXCEEDED, PM_SUCCESS);
     add_checkpoint(observations, "rejected-overflow",
                    "PM_ERROR_CAPACITY_EXCEEDED", &replacement, 2U,
-                   run_probe());
-    submit_graph(&invalid, 1U, PM_SUCCESS, PM_ERROR_INVALID_STATE);
-    // The runtime restored the active replacement graph. Replace the pending
-    // invalid descriptor with that same public graph before proving it remains
-    // step-usable; this retry does not advance the accepted graph generation.
-    context.begin();
-    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, fixture.pipeline) ==
-             PM_SUCCESS);
-    PM_CHECK(pmCmdSetCouplings(context.commands, fixture.simulation, 1U,
-                              &replacement) == PM_SUCCESS);
-    PM_CHECK(context.submit() == PM_SUCCESS);
-    add_checkpoint(observations, "rejected-invalid-endpoint",
-                   "PM_ERROR_INVALID_STATE", &replacement, 2U,
                    run_probe());
     submit_graph(nullptr, 0U, PM_SUCCESS, PM_SUCCESS);
     add_checkpoint(observations, "removal", "PM_SUCCESS", nullptr, 3U,

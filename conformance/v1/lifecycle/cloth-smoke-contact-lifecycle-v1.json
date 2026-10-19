@@ -8,8 +8,8 @@
     "rollback": "docs/RESOURCE-LIFETIME.md: rejected graph mutations preserve the last usable graph"
   },
   "state_fingerprint": "Graph SHA-256 combines the accepted descriptor with the public CONTACT-redirected predicate and pinned-cloth invariance. Endpoint SHA-256 is a canonical public behavioral signature containing smoke tracer count and the same predicates. CONTACT-redirected means x at or behind -0.0145 m with no inward +X velocity. Raw public cloth and smoke fields remain in each checkpoint probe for audit; exclude handles, timings and driver-private state.",
-  "observation_boundary": "After every accepted or rejected graph mutation, execute a fresh zero-gravity grid-smoke probe step under the surviving graph and capture public cloth and smoke output. Generation is the harness ordinal of an accepted graph mutation, never a private driver handle.",
-  "scope": "SMOKE_GRID tuple only. Existing particle lifecycle coverage remains bound independently. API 0.2 groups CONTACT and DRAG in one descriptor; all lifecycle descriptors keep DRAG inert. A retained +X grid-smoke tracer must be reprojected by every active CONTACT checkpoint, move when the graph is removed, and be reprojected after recovery.",
+  "observation_boundary": "After every accepted mutation and the record-time capacity rejection, execute a fresh zero-gravity grid-smoke probe step and public cloth/smoke readback under the surviving graph. Generation is the harness ordinal of an accepted graph mutation, never a private driver handle.",
+  "scope": "SMOKE_GRID capacity, CONTACT replacement, removal and capacity-rollback only. Submit-time invalid endpoints remain pending by public API design, so this profile does not claim a direct post-rejection grid step; existing particle adverse lifecycle coverage retains the separate partial-rollback binding. API 0.2 groups CONTACT and DRAG in one descriptor; DRAG stays inert. A retained +X grid-smoke tracer must be reprojected by every active CONTACT checkpoint, move when the graph is removed, and be reprojected after recovery.",
   "cases": [
     {
       "id": "grid-cloth-smoke-contact-capacity-replacement-removal-rollback",
@@ -40,14 +40,6 @@
           "resources": {
             "grid-cloth-smoke-contact-graph": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"},
             "grid-cloth-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "replacement"}
-          }
-        },
-        {
-          "id": "rejected-invalid-endpoint",
-          "expected_outcome": "PM_ERROR_INVALID_STATE",
-          "resources": {
-            "grid-cloth-smoke-contact-graph": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"},
-            "grid-cloth-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "rejected-overflow"}
           }
         },
         {

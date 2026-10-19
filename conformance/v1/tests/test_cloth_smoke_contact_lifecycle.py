@@ -41,8 +41,6 @@ def case_result(definition: dict) -> dict:
          contact_active),
         ("rejected-overflow", "PM_ERROR_CAPACITY_EXCEEDED",
          resource(graph, 2, "replacement"), contact_active),
-        ("rejected-invalid-endpoint", "PM_ERROR_INVALID_STATE",
-         resource(graph, 2, "replacement"), contact_active),
         ("removal", "PM_SUCCESS", resource(graph, 3, "removed", False),
          contact_inactive),
         ("recovery", "PM_SUCCESS", resource(graph, 4, "recovery"),
@@ -81,10 +79,10 @@ class ClothSmokeContactLifecycleTests(unittest.TestCase):
         return LIFECYCLE.evaluate(
             self.profile, result or self.valid_result(), self.profile_hash)
 
-    def test_grid_lifecycle_passes_all_six_checkpoints(self) -> None:
+    def test_grid_lifecycle_passes_all_five_checkpoints(self) -> None:
         report = self.evaluate()
         self.assertTrue(report["passed"], report)
-        self.assertEqual(report["checkpoint_count"], 6)
+        self.assertEqual(report["checkpoint_count"], 5)
 
     def test_overflow_must_preserve_graph(self) -> None:
         result = self.valid_result()
@@ -95,18 +93,18 @@ class ClothSmokeContactLifecycleTests(unittest.TestCase):
         self.assertTrue(any("state_sha256 must match" in item["message"]
                             for item in report["failures"]), report)
 
-    def test_invalid_endpoint_must_preserve_graph(self) -> None:
+    def test_removal_must_advance_graph_generation(self) -> None:
         result = self.valid_result()
         result["cases"][0]["observations"][3]["resources"][0][
-            "generation"] = 3
+            "generation"] = 2
         report = self.evaluate(result)
         self.assertFalse(report["passed"])
-        self.assertTrue(any("generation must match" in item["message"]
+        self.assertTrue(any("generation must differ" in item["message"]
                             for item in report["failures"]), report)
 
     def test_endpoints_remain_stable(self) -> None:
         result = self.valid_result()
-        result["cases"][0]["observations"][5]["resources"][1][
+        result["cases"][0]["observations"][4]["resources"][1][
             "state_sha256"] = digest("mutated-endpoints")
         report = self.evaluate(result)
         self.assertFalse(report["passed"])
