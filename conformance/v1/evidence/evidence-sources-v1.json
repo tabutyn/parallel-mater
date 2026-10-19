@@ -3,7 +3,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "869939383b19afa4dee86c6d1a5db99ca13de0a7a44667a545e4658335543709"
+    "sha256": "593edc8916febb65a8259343a6918f9de42813ba30ab28e3e6cb218ff9a23c92"
   },
   "expected_drivers": [
     {
@@ -61,7 +61,7 @@
     {
       "id": "macos-m4-slang-metal-e566034-smoke-viscosity",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-e566034-smoke-viscosity-qualification.json",
-      "sha256": "fc2893b88ecce822abf5428ede688336f4ea5ee4e2cfac5527c8bdde478a92a9"
+      "sha256": "a464728e47cf8ed0cd487ec28a3dc3741ca13c3f9956c5a5f403ac94c1023831"
     },
     {
       "id": "windows-gtx1080-slang-cuda-2b04e55",
