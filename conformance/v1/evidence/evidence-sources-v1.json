@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de"
+    "sha256": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68"
   },
   "qualification_results": [
     {
@@ -128,6 +128,11 @@
       "sha256": "9259964d2f6ee9e2f1ad27b130fa990835225fbca9b333e776af2f4606a1e034"
     },
     {
+      "id": "windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact-qualification.json",
+      "sha256": "348fdb30dc8b5644c8b1f94e329c6016571fdea6b47da033ca2d7a9e9701ffdd"
+    },
+    {
       "id": "windows-gtx1080-slang-cuda-b191454-cloth-soft-contact",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact-qualification.json",
       "sha256": "e2e9ec3c4a4ef5b7c12f6271ad1ba29872f186f1fe9869814f6d96a63fd8d7f1"
@@ -151,6 +156,11 @@
       "id": "windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact-qualification.json",
       "sha256": "83bcf2d6774892aa5c26b19ee883714af232aafc4b1cb9d0c9048cf2abdb968f"
+    },
+    {
+      "id": "windows-gtx1080-slang-d3d12-59eb0ce-cloth-rigid-contact",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-59eb0ce-cloth-rigid-contact-qualification.json",
+      "sha256": "1a640d4761d5f948fec3382f3e5405d11638cb0fc9140405825d103a5650b182"
     }
   ],
   "schema": "parallel-mater-evidence-sources/v1",

@@ -118,8 +118,10 @@
       "rule_id": "cloth-rigid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -134,8 +136,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -165,8 +169,10 @@
       "rule_id": "cloth-rigid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -181,8 +187,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -202,600 +210,651 @@
         "direction": "BIDIRECTIONAL",
         "first_family": "CLOTH",
         "material_profile": "ENDPOINT_NATIVE",
-        "mode": "ATTACHMENT",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "ROPE"
-      },
-      "key_text": "CLOTH/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "cloth-rope",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [
-            "quality:cloth-rope-attachment-v1"
-          ],
-          "status": "missing_evidence"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "invalid"
-        },
-        "execution": {
-          "contracts": [
-            "case:rope-cloth"
-          ],
-          "status": "passed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [
-            "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"
-          ],
-          "status": "missing_evidence"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:rope-cloth"
-          ],
-          "status": "passed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-cuda",
-      "key": {
-        "direction": "BIDIRECTIONAL",
-        "first_family": "CLOTH",
-        "material_profile": "ENDPOINT_NATIVE",
-        "mode": "ATTACHMENT",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "ROPE"
-      },
-      "key_text": "CLOTH/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": false,
-      "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "cloth-rope",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [
-            "quality:cloth-rope-attachment-v1"
-          ],
-          "status": "missing_evidence"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "invalid"
-        },
-        "execution": {
-          "contracts": [
-            "case:rope-cloth"
-          ],
-          "status": "failed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [
-            "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"
-          ],
-          "status": "missing_evidence"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:rope-cloth"
-          ],
-          "status": "failed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-cuda",
-      "key": {
-        "direction": "FIRST_TO_SECOND",
-        "first_family": "CLOTH",
-        "material_profile": "SMOKE_GRID",
         "mode": "CONTACT",
         "scope": "DISTINCT_FAMILY",
-        "second_family": "SMOKE"
+        "second_family": "RIGID_BODY"
       },
-      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
-      "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "cloth-smoke-grid",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "invalid"
-        },
-        "execution": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-cuda",
-      "key": {
-        "direction": "FIRST_TO_SECOND",
-        "first_family": "CLOTH",
-        "material_profile": "SMOKE_GRID",
-        "mode": "CONTACT",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "SMOKE"
-      },
-      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
-      "qualified": false,
-      "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "cloth-smoke-grid",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "invalid"
-        },
-        "execution": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-cuda",
-      "key": {
-        "direction": "FIRST_TO_SECOND",
-        "first_family": "CLOTH",
-        "material_profile": "SMOKE_PARTICLE",
-        "mode": "CONTACT",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "SMOKE"
-      },
-      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
-      "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "cloth-smoke-particle",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "invalid"
-        },
-        "execution": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [
-            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
-          ],
-          "status": "missing"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-cuda",
-      "key": {
-        "direction": "FIRST_TO_SECOND",
-        "first_family": "CLOTH",
-        "material_profile": "SMOKE_PARTICLE",
-        "mode": "CONTACT",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "SMOKE"
-      },
-      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
-      "qualified": false,
-      "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "cloth-smoke-particle",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "invalid"
-        },
-        "execution": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [
-            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
-          ],
-          "status": "missing"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-cuda",
-      "key": {
-        "direction": "SECOND_TO_FIRST",
-        "first_family": "CLOTH",
-        "material_profile": "SMOKE_GRID",
-        "mode": "DRAG",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "SMOKE"
-      },
-      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
-      "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "cloth-smoke-grid",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "invalid"
-        },
-        "execution": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-cuda",
-      "key": {
-        "direction": "SECOND_TO_FIRST",
-        "first_family": "CLOTH",
-        "material_profile": "SMOKE_GRID",
-        "mode": "DRAG",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "SMOKE"
-      },
-      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
-      "qualified": false,
-      "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "cloth-smoke-grid",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "invalid"
-        },
-        "execution": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-cuda",
-      "key": {
-        "direction": "SECOND_TO_FIRST",
-        "first_family": "CLOTH",
-        "material_profile": "SMOKE_PARTICLE",
-        "mode": "DRAG",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "SMOKE"
-      },
-      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
-      "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "cloth-smoke-particle",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "invalid"
-        },
-        "execution": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [
-            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
-          ],
-          "status": "missing"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-cuda",
-      "key": {
-        "direction": "SECOND_TO_FIRST",
-        "first_family": "CLOTH",
-        "material_profile": "SMOKE_PARTICLE",
-        "mode": "DRAG",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "SMOKE"
-      },
-      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
-      "qualified": false,
-      "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "cloth-smoke-particle",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "invalid"
-        },
-        "execution": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [
-            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
-          ],
-          "status": "missing"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:smoke-cloth"
-          ],
-          "status": "passed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-cuda",
-      "key": {
-        "direction": "BIDIRECTIONAL",
-        "first_family": "CLOTH",
-        "material_profile": "ENDPOINT_NATIVE",
-        "mode": "CONTACT",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "SOFT_BODY"
-      },
-      "key_text": "CLOTH/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": false,
-      "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "cloth-soft-body",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [
-            "quality:cloth-soft-contact-v1"
-          ],
-          "status": "missing_evidence"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "invalid"
-        },
-        "execution": {
-          "contracts": [
-            "case:soft-body-cloth"
-          ],
-          "status": "passed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [
-            "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback"
-          ],
-          "status": "missing_evidence"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:soft-body-cloth"
-          ],
-          "status": "passed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-cuda",
-      "key": {
-        "direction": "BIDIRECTIONAL",
-        "first_family": "CLOTH",
-        "material_profile": "ENDPOINT_NATIVE",
-        "mode": "CONTACT",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "SOFT_BODY"
-      },
-      "key_text": "CLOTH/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": false,
-      "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "cloth-soft-body",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [
-            "quality:cloth-soft-contact-v1"
-          ],
-          "status": "missing_evidence"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "invalid"
-        },
-        "execution": {
-          "contracts": [
-            "case:soft-body-cloth"
-          ],
-          "status": "passed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [
-            "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback"
-          ],
-          "status": "missing_evidence"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:soft-body-cloth"
-          ],
-          "status": "passed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-cuda",
-      "key": {
-        "direction": "BIDIRECTIONAL",
-        "first_family": "CLOTH",
-        "material_profile": "ENDPOINT_NATIVE",
-        "mode": "CONTACT",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "SOFT_BODY"
-      },
-      "key_text": "CLOTH/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "key_text": "CLOTH/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": true,
+      "report": "windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact",
+      "rule_id": "cloth-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:cloth-rigid-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:cloth-core"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:cloth-core"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "ATTACHMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "key_text": "CLOTH/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
+      "rule_id": "cloth-rope",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:cloth-rope-attachment-v1"
+          ],
+          "status": "missing_evidence"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "ATTACHMENT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "ROPE"
+      },
+      "key_text": "CLOTH/ROPE/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "windows-gtx1080-slang-cuda-2b04e55",
+      "rule_id": "cloth-rope",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:cloth-rope-attachment-v1"
+          ],
+          "status": "missing_evidence"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:rope-cloth"
+          ],
+          "status": "failed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:cloth-rope-attachment-lifecycle-v1#cloth-rope-attachment-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:rope-cloth"
+          ],
+          "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
+      "qualified": false,
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
+      "rule_id": "cloth-smoke-grid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID",
+      "qualified": false,
+      "report": "windows-gtx1080-slang-cuda-2b04e55",
+      "rule_id": "cloth-smoke-grid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
+      "rule_id": "cloth-smoke-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "FIRST_TO_SECOND",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "windows-gtx1080-slang-cuda-2b04e55",
+      "rule_id": "cloth-smoke-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
+      "qualified": false,
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
+      "rule_id": "cloth-smoke-grid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
+      "qualified": false,
+      "report": "windows-gtx1080-slang-cuda-2b04e55",
+      "rule_id": "cloth-smoke-grid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
+      "rule_id": "cloth-smoke-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "CLOTH",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "CLOTH/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
+      "qualified": false,
+      "report": "windows-gtx1080-slang-cuda-2b04e55",
+      "rule_id": "cloth-smoke-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [],
+          "status": "missing_contract"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "missing"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SOFT_BODY"
+      },
+      "key_text": "CLOTH/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "linux-rtx3050ti-slang-cuda-eed669e",
+      "rule_id": "cloth-soft-body",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:cloth-soft-contact-v1"
+          ],
+          "status": "missing_evidence"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:soft-body-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:soft-body-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SOFT_BODY"
+      },
+      "key_text": "CLOTH/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
+      "report": "windows-gtx1080-slang-cuda-2b04e55",
+      "rule_id": "cloth-soft-body",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:cloth-soft-contact-v1"
+          ],
+          "status": "missing_evidence"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:soft-body-cloth"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:soft-body-cloth"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SOFT_BODY"
+      },
+      "key_text": "CLOTH/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": false,
       "report": "windows-gtx1080-slang-cuda-b191454-cloth-soft-contact",
       "rule_id": "cloth-soft-body",
       "scopes": {
@@ -5469,8 +5528,10 @@
       "rule_id": "cloth-rigid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -5485,14 +5546,67 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
             "case:cloth-core"
           ],
           "status": "failed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-d3d12",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "CLOTH",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "key_text": "CLOTH/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": true,
+      "report": "windows-gtx1080-slang-d3d12-59eb0ce-cloth-rigid-contact",
+      "rule_id": "cloth-rigid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:cloth-rigid-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:cloth-core"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:cloth-core"
+          ],
+          "status": "passed"
         },
         "timing": {
           "contracts": [],
@@ -6026,8 +6140,10 @@
       "rule_id": "cloth-rigid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6042,8 +6158,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -6073,8 +6191,10 @@
       "rule_id": "cloth-rigid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6089,8 +6209,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -10978,8 +11100,10 @@
       "rule_id": "cloth-rigid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -10994,8 +11118,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11025,8 +11151,10 @@
       "rule_id": "cloth-rigid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:cloth-rigid-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11041,8 +11169,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -15507,7 +15637,7 @@
       }
     }
   ],
-  "capability_count": 313,
+  "capability_count": 315,
   "driver_count": 5,
   "drivers": [
     {
@@ -15534,6 +15664,7 @@
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
         "windows-gtx1080-slang-cuda-2b04e55",
         "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
+        "windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact",
         "windows-gtx1080-slang-cuda-b191454-cloth-soft-contact",
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle"
@@ -15547,28 +15678,31 @@
         "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
         "windows-gtx1080-slang-cuda-2b04e55",
         "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
+        "windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact",
         "windows-gtx1080-slang-cuda-b191454-cloth-soft-contact",
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",
         "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle",
         "windows-gtx1080-physics-2026-10-16"
       ],
       "status": "unqualified",
-      "unqualified_capability_count": 107
+      "unqualified_capability_count": 108
     },
     {
       "id": "slang-d3d12",
       "label": "D3D12",
       "qualification_result_ids": [
         "windows-gtx1080-slang-d3d12-2b04e55",
-        "windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact"
+        "windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact",
+        "windows-gtx1080-slang-d3d12-59eb0ce-cloth-rigid-contact"
       ],
-      "qualified_capability_count": 0,
+      "qualified_capability_count": 1,
       "report_ids": [
         "windows-gtx1080-slang-d3d12-2b04e55",
         "windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact",
+        "windows-gtx1080-slang-d3d12-59eb0ce-cloth-rigid-contact",
         "windows-gtx1080-physics-2026-10-16"
       ],
-      "status": "unqualified",
+      "status": "qualified",
       "unqualified_capability_count": 11
     },
     {
@@ -15683,7 +15817,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -17323,20 +17457,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral cloth-rigid quality case is registered.",
+      "actual": "quality:cloth-rigid-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[31].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral cloth-rigid quality case is registered.",
+      "actual": "quality:cloth-rigid-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[31].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -17359,20 +17493,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact cloth-rigid adverse lifecycle case is registered.",
+      "actual": "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[31].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact cloth-rigid adverse lifecycle case is registered.",
+      "actual": "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[31].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -18864,7 +18998,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18873,7 +19007,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18882,7 +19016,7 @@
     {
       "actual": "20c3086b26c05fc00bdc2a70fc4f528cdd588271c2cc2be4409912982d60c419",
       "driver": "slang-cuda",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18891,7 +19025,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18900,7 +19034,7 @@
     {
       "actual": "ed09a7fff4237298b51f53e4d6bbe4a2895e646acd3dc09949389238f9812b92",
       "driver": "slang-cuda",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18909,7 +19043,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18918,16 +19052,25 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-cuda",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact"
     },
     {
+      "actual": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "driver": "slang-cuda",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "windows-gtx1080-slang-cuda-b191454-cloth-soft-contact"
+    },
+    {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -18936,7 +19079,7 @@
     {
       "actual": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
       "driver": "slang-cuda",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19307,11 +19450,11 @@
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
-      "actual": "No vendor-neutral cloth-rigid quality case is registered.",
+      "actual": "quality:cloth-rigid-contact-v1",
       "driver": "slang-d3d12",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[9].analytic_invariants",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
@@ -19325,11 +19468,11 @@
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
     {
-      "actual": "No exact cloth-rigid adverse lifecycle case is registered.",
+      "actual": "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback",
       "driver": "slang-d3d12",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[9].lifecycle_invariants",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
     },
@@ -19372,7 +19515,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -19381,7 +19524,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-d3d12",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20563,20 +20706,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral cloth-rigid quality case is registered.",
+      "actual": "quality:cloth-rigid-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[28].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral cloth-rigid quality case is registered.",
+      "actual": "quality:cloth-rigid-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[28].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -20599,20 +20742,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact cloth-rigid adverse lifecycle case is registered.",
+      "actual": "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[28].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact cloth-rigid adverse lifecycle case is registered.",
+      "actual": "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[28].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -22113,7 +22256,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22122,7 +22265,7 @@
     {
       "actual": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
       "driver": "slang-metal",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22131,7 +22274,7 @@
     {
       "actual": "b284ba1b9b1cff14f92c1c73488628d18f14e0ee2d02f14329469958483cd432",
       "driver": "slang-metal",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22140,7 +22283,7 @@
     {
       "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
       "driver": "slang-metal",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22149,7 +22292,7 @@
     {
       "actual": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19",
       "driver": "slang-metal",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22158,7 +22301,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22167,7 +22310,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22176,7 +22319,7 @@
     {
       "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
       "driver": "slang-metal",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -22185,7 +22328,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -23047,20 +23190,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral cloth-rigid quality case is registered.",
+      "actual": "quality:cloth-rigid-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[28].analytic_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No vendor-neutral cloth-rigid quality case is registered.",
+      "actual": "quality:cloth-rigid-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[28].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -23074,20 +23217,20 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact cloth-rigid adverse lifecycle case is registered.",
+      "actual": "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[28].lifecycle_invariants",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
-      "actual": "No exact cloth-rigid adverse lifecycle case is registered.",
+      "actual": "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[28].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -24183,7 +24326,7 @@
     {
       "actual": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
       "driver": "slang-vulkan",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -24192,7 +24335,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+      "expected": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -24200,10 +24343,10 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "96d9ff3eb50df40a6509d6afd932d667620facd98b12c0d159e4251056a358de",
+  "obligations_sha256": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68",
   "qualification_complete": true,
-  "qualified_capability_count": 1,
-  "report_count": 26,
+  "qualified_capability_count": 2,
+  "report_count": 28,
   "reports": [
     {
       "capability_count": 46,
@@ -24836,15 +24979,44 @@
         "vendor_id": 4318
       },
       "driver": {
+        "binary_sha256": "39fb38e7669e6c5ce9eeae8b0c7c086af41916b287729521a7539754008e5ef0",
+        "name": "slang-cuda",
+        "version": "0.2.0+59eb0ce"
+      },
+      "failure_count": 0,
+      "id": "windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact-qualification.json",
+      "qualified_count": 1,
+      "sha256": "348fdb30dc8b5644c8b1f94e329c6016571fdea6b47da033ca2d7a9e9701ffdd",
+      "source": {
+        "commit": "59eb0ce4e47f9edf307798452d81808459c05fec",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "MSVC, CUDA, Slang",
+        "version": "MSVC 19.44.35228.0; CUDA 12.9.86; Slang 2026.18"
+      },
+      "validated": true
+    },
+    {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "13000 (NVIDIA 582.66)",
+        "name": "NVIDIA GeForce GTX 1080",
+        "vendor_id": 4318
+      },
+      "driver": {
         "binary_sha256": "fe6ffe84dab14cf258b081bb95b918883504aeab6a919fcb2c167a9e155026b0",
         "name": "slang-cuda",
         "version": "0.2.0+b191454"
       },
-      "failure_count": 0,
+      "failure_count": 1,
       "id": "windows-gtx1080-slang-cuda-b191454-cloth-soft-contact",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact-qualification.json",
-      "qualified_count": 1,
+      "qualified_count": 0,
       "sha256": "e2e9ec3c4a4ef5b7c12f6271ad1ba29872f186f1fe9869814f6d96a63fd8d7f1",
       "source": {
         "commit": "b191454c979d8620341e63140ba1478f14707df8",
@@ -24854,7 +25026,7 @@
         "compiler": "MSVC, CUDA, Slang",
         "version": "MSVC 19.44.35228.0; CUDA 12.9.86; Slang 2026.18"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 1,
@@ -24971,11 +25143,40 @@
         "version": "MSVC 19.44.35228; Slang 2026.18"
       },
       "validated": false
+    },
+    {
+      "capability_count": 1,
+      "device": {
+        "device_id": 7040,
+        "driver_version": "1 (NVIDIA 582.66; D3D12 adapter revision 1)",
+        "name": "NVIDIA GeForce GTX 1080",
+        "vendor_id": 4318
+      },
+      "driver": {
+        "binary_sha256": "b0648e53e5299cac235d17ccb9cc5c28f1a8cf7a60d727fe60886e756fae5ec0",
+        "name": "slang-d3d12",
+        "version": "0.2.0+59eb0ce"
+      },
+      "failure_count": 0,
+      "id": "windows-gtx1080-slang-d3d12-59eb0ce-cloth-rigid-contact",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-59eb0ce-cloth-rigid-contact-qualification.json",
+      "qualified_count": 1,
+      "sha256": "1a640d4761d5f948fec3382f3e5405d11638cb0fc9140405825d103a5650b182",
+      "source": {
+        "commit": "59eb0ce4e47f9edf307798452d81808459c05fec",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "MSVC, Slang DXIL",
+        "version": "MSVC 19.51.36231; Slang 2026.18"
+      },
+      "validated": true
     }
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "75c74b9bb8f79f00a48ec3a33890536ee3e5c9b6b7ffd1e4fbd1f94a48ddea2a",
+  "sources_sha256": "bfb05e616b1474d6b1213066ed7be290e9a367471ea96aca919006b1f3b9bc17",
   "valid": true,
   "validation_failures": []
 }

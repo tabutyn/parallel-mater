@@ -1,0 +1,61 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-44",
+  "source_commit": "59eb0ce4e47f9edf307798452d81808459c05fec",
+  "captured_at": "2026-10-19",
+  "host": "windows-gtx1080",
+  "drivers": [
+    "slang-cuda",
+    "slang-d3d12"
+  ],
+  "device": "NVIDIA GeForce GTX 1080, NVIDIA 582.66",
+  "capabilities": [
+    "CLOTH/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE"
+  ],
+  "contracts": {
+    "trajectory": "case:cloth-core",
+    "quality": "quality:cloth-rigid-contact-v1",
+    "lifecycle": "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback"
+  },
+  "results": {
+    "cuda_trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "cuda_reference_regression": "PASS: cloth-core against the unchanged CUDA golden",
+    "cuda_analytic_invariants": "PASS: 3 samples, 0 failures",
+    "cuda_lifecycle_invariants": "PASS: 1 profile case, 5 checkpoints, 0 failures",
+    "cuda_qualification": "PASS: 1/1 exact capability, 0 failures",
+    "d3d12_trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "d3d12_reference_regression": "PASS: cloth-core against the unchanged CUDA golden",
+    "d3d12_analytic_invariants": "PASS: 3 samples, 0 failures",
+    "d3d12_lifecycle_invariants": "PASS: 1 profile case, 5 checkpoints, 0 failures",
+    "d3d12_qualification": "PASS: 1/1 exact capability, 0 failures",
+    "maximum_overlap_penetration_m": 0.0,
+    "reciprocal_impulse_residual_n_s": 0.0,
+    "force_impulse_residual_n_s": 1.907348634588857e-8,
+    "expected_impulse_error_n_s": 0.0,
+    "tangential_impulse_n_s": 0.0,
+    "final_frictionless_slip_m_s": 1.0,
+    "final_closing_speed_m_s": 0.0,
+    "orientation_drift": 0.0,
+    "energy_increase_j": -0.33333317438763244,
+    "python_conformance_tests": "PASS: 241 tests",
+    "roadmap_tests": "PASS: 31 tests, including F6-07/F6-09/F6-10 evidence portability",
+    "native_builds": "PASS: conformance runner, CUDA driver, D3D12 driver, and validation layers",
+    "focused_native_tests": "PASS: command-input and lifecycle-output gates, 2/2 on CUDA and 2/2 on D3D12",
+    "command_gallery_regression": "PASS: RigidBody public-command gallery scene and reset on CUDA and D3D12",
+    "command_inputs": "PASS: all pinned conformance inputs match the manifest",
+    "evidence_index": "PASS: 2/315 capability records qualified across 28 reports; stale and unrecaptured records remain visible and unqualified"
+  },
+  "artifacts": {
+    "cuda_physical_evidence": "conformance/v1/evidence/windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact.json",
+    "cuda_qualification_result": "conformance/v1/evidence/windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact-qualification.json",
+    "d3d12_physical_evidence": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-59eb0ce-cloth-rigid-contact.json",
+    "d3d12_qualification_result": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-59eb0ce-cloth-rigid-contact-qualification.json",
+    "evidence_index": "conformance/v1/evidence/index-v1.json"
+  },
+  "notes": [
+    "The immutable public fixture places one cloth vertex against a rigid cube and independently checks clearance, reciprocal normal impulse, public force integration, expected reduced-mass response, frictionless slip, closing speed, angular drift and energy gain.",
+    "The lifecycle fixture proves exact pair capacity, destructive replacement, rejected over-capacity rollback, removal, recovery and unchanged rigid-counterpart state through public APIs.",
+    "The reviewed Cloth.glb scene and common Slang contact path preserve the occupied side of a closed static container; both CUDA and D3D12 reproduce the unchanged cloth-core golden.",
+    "Only the exact CLOTH/RIGID_BODY contact tuple is qualified on these two physical driver captures; stale and unrecaptured records remain unqualified after the obligation hash changed."
+  ]
+}

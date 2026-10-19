@@ -1,0 +1,110 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-44",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "59eb0ce4e47f9edf307798452d81808459c05fec",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-d3d12",
+    "version": "0.2.0+59eb0ce",
+    "binary_sha256": "b0648e53e5299cac235d17ccb9cc5c28f1a8cf7a60d727fe60886e756fae5ec0"
+  },
+  "device": {
+    "name": "NVIDIA GeForce GTX 1080",
+    "vendor_id": 4318,
+    "device_id": 7040,
+    "driver_version": "1 (NVIDIA 582.66; D3D12 adapter revision 1)"
+  },
+  "toolchain": {
+    "compiler": "MSVC, Slang DXIL",
+    "version": "MSVC 19.51.36231; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "6f220124648c07d3f68305cad978a37d0cca567dbc53c48957353e64b4a16d9c",
+    "capabilities_sha256": "074e2dfd4a420d1dc9280d0847b07dcc0a5fdb7fbcb059b87a325c7f5cca93b3"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "CLOTH",
+      "second_family": "RIGID_BODY",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:cloth-core",
+      "sha256": "f01de9dd068a989a60510fcbe167f80230b6606ef6892691a62786d5d7eda6e5"
+    },
+    "quality": {
+      "id": "quality:cloth-rigid-contact-v1",
+      "sha256": "0d9b503564ce6e5405b147035d241ea1984c1273fd8df7108c52300ae9ffb909"
+    },
+    "lifecycle": {
+      "id": "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback",
+      "sha256": "271515deca0bb595e3da0da91373c44db6d6295b14c98342e01501536869a4e5"
+    }
+  },
+  "runner": {
+    "binary_sha256": "f8d091afd8893d45c940064dd6d62f3479059d6a8ceeab43f1bf6fc13bfae460",
+    "validation_layer_sha256": "394d64ac29c29961c90b94565cad8868c1beefb5eb3631cce6ae83d873375e03"
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "4fc00e6c956eec07a1fdfade076c2a2505b0092189d85580e271bd77a819c64c",
+    "comparison_report_sha256": "5e3aee82c63bbc2b64fe756f3487fa4ae0848eab5c2f69b16d7a8c57d631ebcf",
+    "reference_regression": {
+      "passed": 1,
+      "failed": 0,
+      "unsupported": 0
+    }
+  },
+  "analytic_invariants": {
+    "result_sha256": "5eb81c770c9505714f60cdd25c0defa886824152718e19539b55bc24194b72c3",
+    "report_sha256": "d1f35e391a0203ba3900bb8b0f2ade35db2b81b28f09e3de2cdaaace81c27342",
+    "passed": true,
+    "sample_count": 3,
+    "failure_count": 0,
+    "observations": {
+      "maximum_overlap_penetration_m": 0.0,
+      "reciprocal_impulse_residual_n_s": 0.0,
+      "force_impulse_residual_n_s": 1.907348634588857e-8,
+      "expected_impulse_error_n_s": 0.0,
+      "tangential_impulse_n_s": 0.0,
+      "final_frictionless_slip_m_s": 1.0,
+      "final_closing_speed_m_s": 0.0,
+      "orientation_drift": 0.0,
+      "energy_increase_j": -0.33333317438763244
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "3fdfd9892684f575d456ee00c2cbf13f53041de7d8c5fa22222116b2aee8269f",
+    "report_sha256": "8ec4d124163fd890bc97fe1b38443e0a0509c1b712cacb3f068b8b257bc91f22",
+    "passed": true,
+    "case_count": 1,
+    "checkpoint_count": 5,
+    "failure_count": 0,
+    "checkpoints": [
+      {"id": "baseline", "outcome": "PM_SUCCESS", "generation": 1, "state_sha256": "5e94d4d746aab5409b419e2a82c802b1c41b44a104299c090beca0bce10a36c5"},
+      {"id": "replacement", "outcome": "PM_SUCCESS", "generation": 2, "state_sha256": "36c33a1d1bb0f43722b7d3404e48ca4970801e43f7c68ffe26e06faaa2a51ae6"},
+      {"id": "rejected-over-capacity", "outcome": "PM_ERROR_INVALID_ARGUMENT", "generation": 2, "state_sha256": "36c33a1d1bb0f43722b7d3404e48ca4970801e43f7c68ffe26e06faaa2a51ae6"},
+      {"id": "removal", "outcome": "PM_SUCCESS", "generation": 3, "state_sha256": "45c8e4efe82fe31951d13e6f4655ec5c9d40b143651c1b65a36e62de944495a0"},
+      {"id": "recovery", "outcome": "PM_SUCCESS", "generation": 4, "state_sha256": "c9e899fe4a8107a2b78e7bfb250b237500303789ac9c9c6f499fc08c72c62563"}
+    ],
+    "preserved_rigid_counterpart_sha256": "c49c447e329b4cf12224ed53c7b366beeef1dd80e64436db0d5d80582f995c3f"
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<d3d12-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --check-inputs",
+    "PM_DRIVER_FILES=<d3d12-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case cloth-core --output <trajectory-output>",
+    "python conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case cloth-core --report <trajectory-report>",
+    "PM_DRIVER_FILES=<d3d12-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality cloth-rigid-contact-v1 --output <quality-output>",
+    "python conformance/v1/quality.py --profile conformance/v1/quality/cloth-rigid-contact-v1.json --actual <quality-result> --report <quality-report>",
+    "PM_DRIVER_FILES=<d3d12-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle cloth-rigid-contact-lifecycle-v1 --output <lifecycle-result>",
+    "python conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/cloth-rigid-contact-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ]
+}
