@@ -1,0 +1,77 @@
+{
+  "schema": "parallel-mater-android-gallery-ui/v1",
+  "revision": "973cc228d1170938092f3c815d8a2fa591d0c50c",
+  "device": "Pixel 7",
+  "backend": "vulkan",
+  "presentation": "vulkan-direct",
+  "artifacts": {
+    "apk_sha256": "714fab7cff53b3a5b2ea5f14f309a2aac380f31a9680b4dc5ec547c496adcdee",
+    "runner_sha256": "f549d60dbb3bd7f50bcf180b4da80665216cd1c53c1cfb462fadf51a3429df09"
+  },
+  "result": "pass",
+  "accessibility": {
+    "clickable_controls_named": true,
+    "checked_internal_terms": [
+      "roadmap",
+      "qualification",
+      "f7-"
+    ],
+    "common_info_sections_not_duplicated": true
+  },
+  "scenes": [
+    {
+      "scene": "rigid-body",
+      "actions": [
+        "gravity",
+        "focus",
+        "pause",
+        "resume",
+        "reset"
+      ]
+    },
+    {
+      "scene": "constraint-generic",
+      "actions": [
+        "authored force"
+      ]
+    },
+    {
+      "scene": "constraint-motor-spring",
+      "actions": [
+        "motor",
+        "steering"
+      ]
+    },
+    {
+      "scene": "constraint-point",
+      "actions": [
+        "release",
+        "restore"
+      ]
+    },
+    {
+      "scene": "dump-truck",
+      "actions": [
+        "motor",
+        "steering",
+        "raise bed",
+        "lower bed"
+      ]
+    },
+    {
+      "scene": "fluid",
+      "actions": [
+        "focus",
+        "info"
+      ],
+      "directional_controls_hidden": true
+    }
+  ],
+  "screenshots": [
+    "common-info.png",
+    "dump-controls.png",
+    "failure-push-forward.png",
+    "gravity-controls.png",
+    "motor-steering-controls.png"
+  ]
+}

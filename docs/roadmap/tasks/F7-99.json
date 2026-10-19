@@ -1,16 +1,52 @@
 {
   "id": "F7-99",
   "title": "Review shared Gallery exit evidence",
-  "status": "open",
-  "dependencies": ["F7-01", "F7-02", "F7-03", "F7-04", "F7-05", "F7-06", "F7-07", "F7-08", "F7-09", "F7-10", "F7-11", "F7-12", "F7-13", "F7-14", "F7-15", "F7-16", "F7-17", "F7-18", "F7-19", "F7-20", "F7-21", "F7-22", "F7-23"],
-  "locks": ["gallery-exit-review"],
-  "requires": ["Access to shared Gallery and platform evidence"],
+  "status": "leased",
+  "dependencies": [
+    "F7-01",
+    "F7-02",
+    "F7-03",
+    "F7-04",
+    "F7-05",
+    "F7-06",
+    "F7-07",
+    "F7-08",
+    "F7-09",
+    "F7-10",
+    "F7-11",
+    "F7-12",
+    "F7-13",
+    "F7-14",
+    "F7-15",
+    "F7-16",
+    "F7-17",
+    "F7-18",
+    "F7-19",
+    "F7-20",
+    "F7-21",
+    "F7-22",
+    "F7-23"
+  ],
+  "locks": [
+    "gallery-exit-review"
+  ],
+  "requires": [
+    "Access to shared Gallery and platform evidence"
+  ],
   "scope": "Review that one common runtime serves desktop and mobile and that the Android Gallery exposes and qualifies every Vulkan-advertised scene and action.",
   "acceptance": [
     "No duplicate scene lifecycle, controller, catalog or frame policy remains in platform shells without a documented OS-specific reason.",
     "Android device evidence proves native rendering, capability-accurate scene coverage, controls, lifecycle and bounded workload behavior."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "009c5a92-da8f-4ab9-b8f5-e7b431aef5a9",
+    "owner": "codex-linux-gallery",
+    "machine": "thomas-laptop",
+    "branch": "work/F7-99/thomas-laptop",
+    "claimed_at": "2026-10-19T14:45:49Z",
+    "heartbeat_at": "2026-10-19T14:45:49Z",
+    "expires_at": "2026-10-20T14:45:49Z"
+  },
   "history": []
 }
