@@ -1,7 +1,7 @@
 {
   "id": "F5-40",
   "title": "Qualify cloth-soft contact",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,15 +17,33 @@
     "Add exact bounded capacity, replacement, removal and rollback lifecycle checks; a rejected mutation preserves the last usable state and recovery is deterministic.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "5b4abde1-8b13-430a-ba52-64b68c094550",
-    "owner": "codex-windows-qualification",
-    "machine": "windows-gtx1080",
-    "branch": "work/F5-40/windows-gtx1080",
-    "claimed_at": "2026-10-19T16:06:51Z",
-    "heartbeat_at": "2026-10-19T16:06:51Z",
-    "expires_at": "2026-10-20T16:06:51Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: immutable public-API SI-unit quality profile and independent oracle; 229/229 conformance tests; docs/roadmap/evidence/F5-40-cloth-soft-contact.json",
+    "PASS: GTX 1080 Slang CUDA trajectory, reference regression and 4-sample physical-quality evaluation with zero failures; 1/1 exact capability qualified; conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact-qualification.json",
+    "PASS: exact capacity, replacement, rejected-overflow rollback, removal and deterministic recovery; 1 case, 5 checkpoints, 0 failures",
+    "PASS: CUDA and D3D12 builds plus 2/2 focused native tests per backend; D3D12 unsupported capture retained without qualification; evidence index 1/313 across 26 reports"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "5b4abde1-8b13-430a-ba52-64b68c094550",
+        "owner": "codex-windows-qualification",
+        "machine": "windows-gtx1080",
+        "branch": "work/F5-40/windows-gtx1080",
+        "claimed_at": "2026-10-19T16:06:51Z",
+        "heartbeat_at": "2026-10-19T16:06:51Z",
+        "expires_at": "2026-10-20T16:06:51Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T17:05:30Z",
+      "reason": "Published and physically qualified the exact cloth-soft contact profile and lifecycle on Windows CUDA while retaining D3D12 as unsupported.",
+      "evidence": [
+        "PASS: immutable public-API SI-unit quality profile and independent oracle; 229/229 conformance tests; docs/roadmap/evidence/F5-40-cloth-soft-contact.json",
+        "PASS: GTX 1080 Slang CUDA trajectory, reference regression and 4-sample physical-quality evaluation with zero failures; 1/1 exact capability qualified; conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact-qualification.json",
+        "PASS: exact capacity, replacement, rejected-overflow rollback, removal and deterministic recovery; 1 case, 5 checkpoints, 0 failures",
+        "PASS: CUDA and D3D12 builds plus 2/2 focused native tests per backend; D3D12 unsupported capture retained without qualification; evidence index 1/313 across 26 reports"
+      ]
+    }
+  ]
 }
