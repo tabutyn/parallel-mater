@@ -210,7 +210,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-30](roadmap/tasks/F5-30.json) | Qualify smoke self viscosity | done | F5-23 | — |
 | [F5-31](roadmap/tasks/F5-31.json) | Qualify fluid-cloth contact | leased | F5-23 | codex-windows-qualification / windows-gtx1080 / 2026-10-20T00:47:09Z |
 | [F5-32](roadmap/tasks/F5-32.json) | Qualify cloth fluid containment | done | F5-23 | — |
-| [F5-33](roadmap/tasks/F5-33.json) | Qualify fluid-soft contact | leased | F5-23 | codex-macos-qualification / Thomass-MacBook-Air / 2026-10-20T01:00:07Z |
+| [F5-33](roadmap/tasks/F5-33.json) | Qualify fluid-soft contact | done | F5-23 | — |
 | [F5-34](roadmap/tasks/F5-34.json) | Qualify fluid-rope contact | ready | F5-23 | — |
 | [F5-35](roadmap/tasks/F5-35.json) | Qualify smoke-to-fluid drag | ready | F5-23 | — |
 | [F5-36](roadmap/tasks/F5-36.json) | Qualify externally heated fluid | ready | F5-23 | — |

@@ -165,6 +165,68 @@ def smoke_viscosity_result(profile: dict) -> dict:
     return result
 
 
+def fluid_soft_aggregate(profile: dict) -> tuple[dict, dict, list[dict]]:
+    contracts = contract_map(profile)
+    advertised = capability(
+        "FLUID", "SOFT_BODY", "DISTINCT_FAMILY", "CONTACT",
+        "BIDIRECTIONAL", "ENDPOINT_NATIVE")
+    aggregate = {
+        "schema": qualification.ROADMAP_EVIDENCE_SCHEMA,
+        "source": {"commit": SOURCE_COMMIT, "dirty": False},
+        "driver": {
+            "name": "test-driver",
+            "version": "1.2.3",
+            "binary_sha256": digest("driver"),
+        },
+        "device": {
+            "name": "test-device",
+            "vendor_id": 1,
+            "device_id": 2,
+            "driver_version": "456 (test)",
+        },
+        "toolchain": {"compiler": "test-compiler", "version": "7.8.9"},
+        "advertised_capabilities": [advertised],
+        "contracts": {
+            "trajectory": {
+                "id": "case:soft-body-fluid",
+                "sha256": contracts["case:soft-body-fluid"]["sha256"],
+            },
+            "quality": {
+                "id": "quality:fluid-soft-contact-v1",
+                "sha256": contracts["quality:fluid-soft-contact-v1"]["sha256"],
+            },
+            "lifecycle": {
+                "id": ("lifecycle:adverse-capacity-three-family-v1#"
+                       "three-family-partial-rollback"),
+                "sha256": contracts[
+                    "lifecycle:adverse-capacity-three-family-v1#"
+                    "three-family-partial-rollback"]["sha256"],
+            },
+        },
+        "trajectory": {
+            "execution_status": "completed",
+            "reference_regression": {
+                "passed": 1, "failed": 0, "unsupported": 0,
+            },
+        },
+        "analytic_invariants": {
+            "passed": True, "sample_count": 1, "failure_count": 0,
+        },
+        "lifecycle_invariants": {
+            "passed": True, "profile_case_count": 2,
+            "profile_checkpoint_count": 9, "failure_count": 0,
+        },
+    }
+    provenance = {
+        "source_commit": SOURCE_COMMIT,
+        "device_name": "test-device",
+        "vendor_id": 1,
+        "device_id": 2,
+        "driver_version": 456,
+    }
+    return aggregate, provenance, [advertised]
+
+
 class QualificationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -334,6 +396,34 @@ class QualificationTests(unittest.TestCase):
         result = valid_equal_fluid_result(self.profile)
         result["obligations_sha256"] = "0" * 64
         self.assert_rejected(result, "obligations hash mismatch")
+
+    def test_checked_producer_derives_passing_fluid_soft_result(self):
+        aggregate, provenance, capabilities = fluid_soft_aggregate(self.profile)
+        result = qualification.derive_result(
+            self.profile, aggregate, self.digest,
+            "conformance/v1/evidence/test.json", digest("aggregate"),
+            provenance, capabilities)
+        report = self.evaluate(result)
+        self.assertTrue(report["passed"], report)
+        self.assertEqual(report["qualified_count"], 1)
+        self.assertEqual(report["capabilities"][0]["rule_id"],
+                         "fluid-soft-body")
+
+    def test_checked_producer_rejects_unproved_claims(self):
+        aggregate, provenance, capabilities = fluid_soft_aggregate(self.profile)
+        aggregate["analytic_invariants"]["passed"] = False
+        with self.assertRaisesRegex(ValueError,
+                                    "analytic invariants did not pass"):
+            qualification.derive_result(
+                self.profile, aggregate, self.digest, "test.json",
+                digest("aggregate"), provenance, capabilities)
+
+        aggregate, provenance, capabilities = fluid_soft_aggregate(self.profile)
+        with self.assertRaisesRegex(ValueError,
+                                    "capability was not captured"):
+            qualification.derive_result(
+                self.profile, aggregate, self.digest, "test.json",
+                digest("aggregate"), provenance, [])
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ add_library(parallel-mater-conformance-runner STATIC
     conformance/v1/src/rigid_quality.cpp
     conformance/v1/src/rope_quality.cpp
     conformance/v1/src/fluid_cloth_containment_quality.cpp
+    conformance/v1/src/fluid_soft_contact_quality.cpp
     conformance/v1/src/smoke_quality.cpp
     conformance/v1/src/fluid_cloth_contact.cpp
     conformance/v1/src/smoke_viscosity_quality.cpp

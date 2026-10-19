@@ -15,6 +15,7 @@ from typing import Any
 PROFILE_SCHEMA = "parallel-mater-conformance-obligations/v1"
 RESULT_SCHEMA = "parallel-mater-conformance-qualification-result/v1"
 REPORT_SCHEMA = "parallel-mater-conformance-qualification-report/v1"
+ROADMAP_EVIDENCE_SCHEMA = "parallel-mater-roadmap-evidence/v1"
 KEY_FIELDS = (
     "first_family", "second_family", "scope", "mode", "direction",
     "material_profile")
@@ -92,6 +93,10 @@ def matching_rules(profile: dict[str, Any],
                    capability: dict[str, Any]) -> list[dict[str, Any]]:
     return [rule for rule in profile.get("rules", [])
             if isinstance(rule, dict) and _matches(rule, capability)]
+
+
+def file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _required(rule: dict[str, Any], profile: dict[str, Any],
@@ -383,18 +388,334 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
     }
 
 
+def _aggregate_contract(aggregate: dict[str, Any], kind: str,
+                        contract_id: str,
+                        contracts: dict[str, dict[str, Any]]) -> None:
+    aggregate_contracts = aggregate.get("contracts")
+    value = (aggregate_contracts.get(kind)
+             if isinstance(aggregate_contracts, dict) else None)
+    if not isinstance(value, dict) or value.get("id") != contract_id:
+        raise ValueError(
+            f"physical aggregate does not bind {kind} contract {contract_id}")
+    expected = contracts.get(contract_id, {}).get("sha256")
+    if not expected or value.get("sha256") != expected:
+        raise ValueError(
+            f"physical aggregate has stale {kind} contract {contract_id}")
+
+
+def _aggregate_scope_passed(aggregate: dict[str, Any], scope: str,
+                            contract_id: str,
+                            contracts: dict[str, dict[str, Any]]) -> None:
+    if scope == "compilation":
+        if contract_id != "registry:interaction-capabilities":
+            raise ValueError(f"unsupported compilation contract {contract_id}")
+        return
+    if scope in {"execution", "reference_regression"}:
+        _aggregate_contract(aggregate, "trajectory", contract_id, contracts)
+        trajectory = aggregate.get("trajectory")
+        if (not isinstance(trajectory, dict) or
+                trajectory.get("execution_status") != "completed"):
+            raise ValueError("physical trajectory execution did not complete")
+        if scope == "reference_regression":
+            regression = trajectory.get("reference_regression")
+            if (not isinstance(regression, dict) or
+                    regression.get("passed", 0) < 1 or
+                    regression.get("failed") != 0 or
+                    regression.get("unsupported") != 0):
+                raise ValueError("physical trajectory regression did not pass")
+        return
+    if scope == "lifecycle_invariants":
+        _aggregate_contract(aggregate, "lifecycle", contract_id, contracts)
+        lifecycle = aggregate.get("lifecycle_invariants")
+        if (not isinstance(lifecycle, dict) or
+                lifecycle.get("passed") is not True or
+                lifecycle.get("failure_count") != 0):
+            raise ValueError("physical lifecycle invariants did not pass")
+        return
+    if scope == "analytic_invariants":
+        _aggregate_contract(aggregate, "quality", contract_id, contracts)
+        quality = aggregate.get("analytic_invariants")
+        if (not isinstance(quality, dict) or quality.get("passed") is not True or
+                quality.get("failure_count") != 0):
+            raise ValueError("physical analytic invariants did not pass")
+        return
+    raise ValueError(f"physical aggregate cannot prove {scope}")
+
+
+def derive_result(profile: dict[str, Any], aggregate: dict[str, Any],
+                  obligations_sha256: str, artifact_path: str,
+                  artifact_sha256: str, provenance: dict[str, Any],
+                  captured_capabilities: list[Any]) -> dict[str, Any]:
+    """Derive and evaluate a qualification input from a physical aggregate."""
+    if aggregate.get("schema") != ROADMAP_EVIDENCE_SCHEMA:
+        raise ValueError("unsupported physical evidence schema")
+    source = aggregate.get("source")
+    driver = aggregate.get("driver")
+    device = aggregate.get("device")
+    toolchain = aggregate.get("toolchain")
+    advertised = aggregate.get("advertised_capabilities")
+    if not all(isinstance(value, dict)
+               for value in (source, driver, device, toolchain)):
+        raise ValueError("physical aggregate provenance is incomplete")
+    if not isinstance(advertised, list) or not advertised:
+        raise ValueError("physical aggregate has no advertised capabilities")
+    if source.get("dirty") is not False:
+        raise ValueError("physical aggregate source is dirty")
+    if provenance.get("source_commit") != source.get("commit"):
+        raise ValueError("captured provenance source revision mismatch")
+    for aggregate_key, provenance_key in (
+            ("name", "device_name"), ("vendor_id", "vendor_id"),
+            ("device_id", "device_id")):
+        if device.get(aggregate_key) != provenance.get(provenance_key):
+            raise ValueError(
+                f"captured provenance device {aggregate_key} mismatch")
+    if not str(device.get("driver_version", "")).startswith(
+            str(provenance.get("driver_version", "missing"))):
+        raise ValueError("captured provenance driver version mismatch")
+
+    captured = {
+        _key_tuple(value) + (value.get("max_graph_edges_per_simulation"),)
+        for value in captured_capabilities if isinstance(value, dict)
+    }
+    for capability in advertised:
+        if not isinstance(capability, dict):
+            raise ValueError("physical aggregate capability is not an object")
+        identity = (_key_tuple(capability) +
+                    (capability.get("max_graph_edges_per_simulation"),))
+        if identity not in captured:
+            raise ValueError("physical aggregate capability was not captured")
+
+    failures: list[Failure] = []
+    contracts = _index(profile.get("contracts"),
+                       "$.profile.contracts", failures)
+    if failures:
+        raise ValueError(failures[0].message)
+    evidence: dict[tuple[str, str], dict[str, Any]] = {}
+    for index, capability in enumerate(advertised):
+        rules = matching_rules(profile, capability)
+        if len(rules) != 1:
+            raise ValueError(
+                f"advertised capability {index} does not match one obligation rule")
+        rule = rules[0]
+        rule_failures: list[Failure] = []
+        required = _required(rule, profile, rule_failures,
+                             f"$.profile.rules[{rule.get('id')}]")
+        if rule_failures:
+            raise ValueError(rule_failures[0].message)
+        missing = rule.get("missing", {})
+        if not isinstance(missing, dict):
+            raise ValueError("obligation rule missing map is invalid")
+        for scope, contract_ids in required.items():
+            if scope in missing:
+                raise ValueError(
+                    f"obligation rule has no physical {scope} contract")
+            for contract_id in contract_ids:
+                _aggregate_scope_passed(
+                    aggregate, scope, contract_id, contracts)
+                contract_hash = contracts.get(contract_id, {}).get("sha256")
+                evidence[(scope, contract_id)] = {
+                    "scope": scope,
+                    "contract": contract_id,
+                    "status": "passed",
+                    "source_commit": source.get("commit"),
+                    "contract_sha256": contract_hash,
+                    "artifact_path": artifact_path,
+                    "artifact_sha256": artifact_sha256,
+                }
+
+    result = {
+        "schema": RESULT_SCHEMA,
+        "obligations_id": profile.get("id"),
+        "obligations_sha256": obligations_sha256,
+        "execution_status": "completed",
+        "source": source,
+        "driver": driver,
+        "device": device,
+        "toolchain": toolchain,
+        "advertised_capabilities": advertised,
+        "evidence": [evidence[key] for key in sorted(evidence)],
+    }
+    report = evaluate(profile, result, obligations_sha256)
+    if not report["passed"]:
+        first = report["failures"][0]
+        raise ValueError(
+            f"derived qualification failed: {first['path']}: "
+            f"{first['message']}")
+    return result
+
+
+def _capture_paths(arguments: argparse.Namespace) -> dict[str, Path]:
+    names = (
+        "driver_binary", "provenance", "capabilities", "trajectory_result",
+        "trajectory_report", "quality_result", "quality_report",
+        "lifecycle_result", "lifecycle_report")
+    values = {name: getattr(arguments, name) for name in names}
+    missing = [name for name, value in values.items() if value is None]
+    if missing:
+        raise ValueError(
+            "--from-evidence requires " +
+            ", ".join("--" + name.replace("_", "-") for name in missing))
+    return values
+
+
+def _verify_capture_hashes(aggregate: dict[str, Any],
+                           paths: dict[str, Path]) -> None:
+    captures = aggregate.get("captures")
+    if not isinstance(captures, dict):
+        raise ValueError("physical aggregate is missing capture hashes")
+    fields = {
+        "driver_binary": aggregate.get("driver", {}).get("binary_sha256"),
+        "provenance": captures.get("provenance_sha256"),
+        "capabilities": captures.get("capabilities_sha256"),
+        "trajectory_result": aggregate.get("trajectory", {}).get(
+            "execution_result_sha256"),
+        "trajectory_report": aggregate.get("trajectory", {}).get(
+            "comparison_report_sha256"),
+        "quality_result": aggregate.get("analytic_invariants", {}).get(
+            "result_sha256"),
+        "quality_report": aggregate.get("analytic_invariants", {}).get(
+            "report_sha256"),
+        "lifecycle_result": aggregate.get("lifecycle_invariants", {}).get(
+            "result_sha256"),
+        "lifecycle_report": aggregate.get("lifecycle_invariants", {}).get(
+            "report_sha256"),
+    }
+    for name, path in paths.items():
+        expected = fields[name]
+        actual = file_sha256(path)
+        if not _sha256(expected) or actual != expected:
+            raise ValueError(f"{name.replace('_', ' ')} SHA-256 mismatch")
+
+
+def _is_subset(expected: Any, actual: Any) -> bool:
+    if isinstance(expected, dict):
+        return (isinstance(actual, dict) and
+                all(key in actual and _is_subset(value, actual[key])
+                    for key, value in expected.items()))
+    return expected == actual
+
+
+def _verify_capture_results(aggregate: dict[str, Any],
+                            paths: dict[str, Path]) -> None:
+    loaded = {
+        name: json.loads(path.read_text(encoding="utf-8"))
+        for name, path in paths.items() if name != "driver_binary"
+    }
+    provenance = loaded["provenance"]
+    trajectory_result = loaded["trajectory_result"]
+    trajectory_report = loaded["trajectory_report"]
+    quality_result = loaded["quality_result"]
+    quality_report = loaded["quality_report"]
+    lifecycle_result = loaded["lifecycle_result"]
+    lifecycle_report = loaded["lifecycle_report"]
+    trajectory_provenance = trajectory_result.get("provenance")
+    shared_provenance_fields = (
+        "source_commit", "device_id", "device_name", "driver_version",
+        "host_compiler", "vendor_id")
+    if (not isinstance(trajectory_provenance, dict) or
+            any(trajectory_provenance.get(key) != provenance.get(key)
+                for key in shared_provenance_fields)):
+        raise ValueError("trajectory provenance does not match capture")
+    trajectory_contract = aggregate.get("contracts", {}).get("trajectory", {})
+    if (trajectory_result.get("execution_status") != "completed" or
+            trajectory_result.get("case_sha256") !=
+            trajectory_contract.get("sha256")):
+        raise ValueError("trajectory result did not complete its bound contract")
+    aggregate_regression = aggregate.get("trajectory", {}).get(
+        "reference_regression")
+    for field in ("passed", "failed", "unsupported"):
+        if (not isinstance(aggregate_regression, dict) or
+                trajectory_report.get(field) != aggregate_regression.get(field)):
+            raise ValueError("trajectory report does not match physical aggregate")
+
+    quality_contract = aggregate.get("contracts", {}).get("quality", {})
+    aggregate_quality = aggregate.get("analytic_invariants", {})
+    if (quality_result.get("execution_status") != "completed" or
+            quality_result.get("profile_sha256") != quality_contract.get("sha256") or
+            quality_report.get("profile_sha256") != quality_contract.get("sha256") or
+            quality_report.get("passed") is not True or
+            quality_report.get("failure_count") != 0 or
+            quality_report.get("sample_count") !=
+            aggregate_quality.get("sample_count")):
+        raise ValueError("quality result does not prove the aggregate claim")
+    report_observations = quality_report.get("observations")
+    aggregate_observations = aggregate_quality.get("observations")
+    if not _is_subset(aggregate_observations, report_observations):
+        raise ValueError("quality observations do not match physical aggregate")
+
+    lifecycle_contract = aggregate.get("contracts", {}).get("lifecycle", {})
+    aggregate_lifecycle = aggregate.get("lifecycle_invariants", {})
+    aggregate_case_count = aggregate_lifecycle.get(
+        "profile_case_count", aggregate_lifecycle.get("case_count"))
+    aggregate_checkpoint_count = aggregate_lifecycle.get(
+        "profile_checkpoint_count", aggregate_lifecycle.get("checkpoint_count"))
+    if (lifecycle_result.get("execution_status") != "completed" or
+            lifecycle_result.get("profile_sha256") !=
+            lifecycle_contract.get("sha256") or
+            lifecycle_report.get("profile_sha256") !=
+            lifecycle_contract.get("sha256") or
+            lifecycle_report.get("passed") is not True or
+            lifecycle_report.get("failure_count") != 0 or
+            lifecycle_report.get("case_count") !=
+            aggregate_case_count or
+            lifecycle_report.get("checkpoint_count") !=
+            aggregate_checkpoint_count):
+        raise ValueError("lifecycle result does not prove the aggregate claim")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     default_profile = (Path(__file__).with_name("qualification") /
                        "capability-obligations-v1.json")
     parser.add_argument("--profile", type=Path, default=default_profile)
-    parser.add_argument("--actual", type=Path, required=True)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--actual", type=Path)
+    source.add_argument("--from-evidence", type=Path)
+    parser.add_argument("--artifact-path")
+    parser.add_argument("--driver-binary", type=Path)
+    parser.add_argument("--provenance", type=Path)
+    parser.add_argument("--capabilities", type=Path)
+    parser.add_argument("--trajectory-result", type=Path)
+    parser.add_argument("--trajectory-report", type=Path)
+    parser.add_argument("--quality-result", type=Path)
+    parser.add_argument("--quality-report", type=Path)
+    parser.add_argument("--lifecycle-result", type=Path)
+    parser.add_argument("--lifecycle-report", type=Path)
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--report", type=Path)
     arguments = parser.parse_args()
     try:
         profile = json.loads(arguments.profile.read_text(encoding="utf-8"))
-        actual = json.loads(arguments.actual.read_text(encoding="utf-8"))
-        report = evaluate(profile, actual, profile_sha256(arguments.profile))
+        digest = profile_sha256(arguments.profile)
+        if arguments.actual is not None:
+            actual = json.loads(arguments.actual.read_text(encoding="utf-8"))
+        else:
+            if not arguments.artifact_path or arguments.output is None:
+                raise ValueError(
+                    "--from-evidence requires --artifact-path and --output")
+            artifact_file = Path(arguments.artifact_path)
+            if not artifact_file.is_absolute():
+                artifact_file = Path.cwd() / artifact_file
+            if artifact_file.resolve() != arguments.from_evidence.resolve():
+                raise ValueError(
+                    "--artifact-path must identify the --from-evidence file")
+            aggregate = json.loads(
+                arguments.from_evidence.read_text(encoding="utf-8"))
+            paths = _capture_paths(arguments)
+            _verify_capture_hashes(aggregate, paths)
+            _verify_capture_results(aggregate, paths)
+            provenance = json.loads(paths["provenance"].read_text(
+                encoding="utf-8"))
+            capabilities = json.loads(paths["capabilities"].read_text(
+                encoding="utf-8"))
+            actual = derive_result(
+                profile, aggregate, digest, arguments.artifact_path,
+                file_sha256(arguments.from_evidence), provenance, capabilities)
+            arguments.output.parent.mkdir(parents=True, exist_ok=True)
+            arguments.output.write_text(
+                json.dumps(actual, indent=2, allow_nan=False) + "\n",
+                encoding="utf-8")
+        report = evaluate(profile, actual, digest)
     except (OSError, ValueError, TypeError, KeyError) as error:
         print(f"qualification: {error}")
         return 2

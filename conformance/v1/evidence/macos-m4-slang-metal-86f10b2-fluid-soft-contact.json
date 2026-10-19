@@ -1,0 +1,151 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-33",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-metal",
+    "version": "0.2.0+86f10b2",
+    "binary_sha256": "1baa3871da6a00c05b5bbe3ff9dc68c89c969f4c66b0163e27d090e88e5fa376"
+  },
+  "device": {
+    "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "vendor_id": 4203,
+    "device_id": 0,
+    "driver_version": "202618 (Apple Metal 32023.883)"
+  },
+  "toolchain": {
+    "compiler": "Apple Clang, Slang Metal",
+    "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "8e137e4b79d818a1fae5002fd6d9e8b82d66de31bf35e45c8ee18cbc22ee872b",
+    "capabilities_sha256": "4a1e1930f58007a1c6a42af8182948ac12718dd72f1feb41ebf7c0a965d6ac80"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "FLUID",
+      "second_family": "SOFT_BODY",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:soft-body-fluid",
+      "sha256": "935838337761fc3a0fb6bbe4cc787953b27e8cfa7dcb4cb7adb17eb85a3fd653"
+    },
+    "quality": {
+      "id": "quality:fluid-soft-contact-v1",
+      "sha256": "40dce99005017b4b4a485f7553ea89f8f06526c88f242215a1415c8c67c9e986"
+    },
+    "lifecycle": {
+      "id": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback",
+      "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "17697f78dd732898871ad6d9a6a63a2062a481c79424365e82467479c8b762a9",
+    "comparison_report_sha256": "0592a30cb5d68d55a59c1bae57651a6b7c939db75d8a2ed4eed935841baeddda",
+    "reference_regression": {
+      "passed": 1,
+      "failed": 0,
+      "unsupported": 0
+    }
+  },
+  "analytic_invariants": {
+    "result_sha256": "c6177c929f62c8e6b1d84877df754be5fd3240dc935d0eb7d7edb9f534c3688e",
+    "report_sha256": "7209385e57a9dff359da4d1abc024f084e9aa0c1c62b52ebd054e1f5f94e0e8d",
+    "passed": true,
+    "sample_count": 1,
+    "failure_count": 0,
+    "observations": {
+      "closed_consistently_oriented_surface": true,
+      "minimum_binding_incidence_per_node": 4,
+      "maximum_surface_reconstruction_error_m": 3.137427578427671e-8,
+      "final_particle_signed_distance_m": 0.10000000084074587,
+      "maximum_overlap_penetration_m": 0.0,
+      "fluid_contact_impulse_n_s": [-0.818724125623703, -0.0002098047116305679, -0.00020980535191483796],
+      "soft_body_contact_impulse_n_s": [0.818724125623703, 0.0002098047116305679, 0.00020980535919079557],
+      "reciprocal_impulse_residual_n_s": 7.275957614183426e-12,
+      "contact_impulse_activity_n_s": 0.8187241793880298,
+      "expected_unique_bound_node_impulse_n_s": 0.8186769279202747,
+      "expected_impulse_error_n_s": 0.0003004395545253685,
+      "reciprocal_force_residual_n": 2.08250058582033e-9,
+      "soft_force_impulse_residual_n_s": 1.0728839930053796e-8,
+      "maximum_endpoint_speed_m_s": 0.24559663357626177
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "dfb45babf4def7e69543ed57f816b3a3cf355d5e2b2cb92e289dac9308611e38",
+    "report_sha256": "ec2b02585e534d739521534be79f21f8e491a1cb7b8faba4dce21936062cff9e",
+    "passed": true,
+    "profile_case_count": 2,
+    "profile_checkpoint_count": 9,
+    "failure_count": 0,
+    "bound_case": "three-family-partial-rollback",
+    "bound_case_checkpoint_count": 5,
+    "checkpoints": [
+      {
+        "id": "installed",
+        "outcome": "PM_SUCCESS",
+        "active_graph_sha256": "bf1640e54fd5c04a341e623d617cfa2e888505271a35dbb956701f18fb1bd853",
+        "liquid_generation": 1,
+        "liquid_state_sha256": "6c28d593d35ea1ac9115cbe1700f33ac2f9967d8f102a5e531bc218d030e8e29",
+        "soft_body_generation": 1,
+        "soft_body_state_sha256": "f557fe5ca7e15a52dfa5128719db623ccc193ef2af9c80d3e311612b857e77cb"
+      },
+      {
+        "id": "updated",
+        "outcome": "PM_SUCCESS",
+        "active_graph_sha256": "30a67407012a30e96e59718d0e0f0dd758ae70468b070fa7d19a03949b81f43c",
+        "liquid_generation": 1,
+        "liquid_state_sha256": "6c28d593d35ea1ac9115cbe1700f33ac2f9967d8f102a5e531bc218d030e8e29",
+        "soft_body_generation": 1,
+        "soft_body_state_sha256": "f557fe5ca7e15a52dfa5128719db623ccc193ef2af9c80d3e311612b857e77cb"
+      },
+      {
+        "id": "partial-failure",
+        "outcome": "PM_ERROR_INVALID_ARGUMENT",
+        "active_graph_sha256": "30a67407012a30e96e59718d0e0f0dd758ae70468b070fa7d19a03949b81f43c",
+        "liquid_generation": 1,
+        "liquid_state_sha256": "6c28d593d35ea1ac9115cbe1700f33ac2f9967d8f102a5e531bc218d030e8e29",
+        "soft_body_generation": 1,
+        "soft_body_state_sha256": "f557fe5ca7e15a52dfa5128719db623ccc193ef2af9c80d3e311612b857e77cb"
+      },
+      {
+        "id": "recovery",
+        "outcome": "PM_SUCCESS",
+        "active_graph_sha256": "bf1640e54fd5c04a341e623d617cfa2e888505271a35dbb956701f18fb1bd853",
+        "liquid_generation": 1,
+        "liquid_state_sha256": "6c28d593d35ea1ac9115cbe1700f33ac2f9967d8f102a5e531bc218d030e8e29",
+        "soft_body_generation": 1,
+        "soft_body_state_sha256": "f557fe5ca7e15a52dfa5128719db623ccc193ef2af9c80d3e311612b857e77cb"
+      },
+      {
+        "id": "replace-liquid",
+        "outcome": "PM_SUCCESS",
+        "active_graph_sha256": "bf1640e54fd5c04a341e623d617cfa2e888505271a35dbb956701f18fb1bd853",
+        "liquid_generation": 2,
+        "liquid_state_sha256": "5f4a84d82ae63ba81c4d1e546ec5af3bdf5aab9df3e9aa813e32deefbc5f3052",
+        "soft_body_generation": 1,
+        "soft_body_state_sha256": "f557fe5ca7e15a52dfa5128719db623ccc193ef2af9c80d3e311612b857e77cb"
+      }
+    ]
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case soft-body-fluid --output <trajectory-output>",
+    "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case soft-body-fluid --report <trajectory-report>",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality fluid-soft-contact-v1 --output <quality-output>",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/fluid-soft-contact-v1.json --actual <quality-output>/fluid-soft-contact-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle-profile adverse-capacity-three-family-v1 --output <lifecycle-result>",
+    "python3 conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/adverse-capacity-three-family-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ]
+}

@@ -317,6 +317,26 @@ python3 conformance/v1/qualification.py \
   --report /path/to/qualification-report.json
 ```
 
+Do not hand-author a passing qualification result from a physical capture.
+Derive it with the same evaluator after supplying every hashed raw artifact:
+
+```text
+python3 conformance/v1/qualification.py \
+  --from-evidence conformance/v1/evidence/<physical-evidence>.json \
+  --artifact-path conformance/v1/evidence/<physical-evidence>.json \
+  --driver-binary <driver-library> \
+  --provenance <provenance.json> --capabilities <capabilities.json> \
+  --trajectory-result <trajectory.json> --trajectory-report <comparison.json> \
+  --quality-result <quality.json> --quality-report <quality-report.json> \
+  --lifecycle-result <lifecycle.json> --lifecycle-report <lifecycle-report.json> \
+  --output conformance/v1/evidence/<qualification-result>.json \
+  --report <qualification-report.json>
+```
+
+This path verifies the driver binary and every capture hash, checks provenance,
+capability identity, contract hashes and raw pass reports, then writes the
+result only after the ordinary qualification evaluator accepts it.
+
 The obligation profile covers all 49 API 0.2 interaction records. Evidence is
 keyed by both scope and immutable contract hash: compilation, execution,
 reference regression, lifecycle invariants, analytic invariants and timing are

@@ -53,6 +53,7 @@
   "quality_profile_sha256": {
     "conformance/v1/quality/core-conservation-v1.json": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326",
     "conformance/v1/quality/fluid-cloth-containment-v1.json": "477d6494144118c9c6b108807e81576965a16a34fda5dfe672ed783b5de95b33",
+    "conformance/v1/quality/fluid-soft-contact-v1.json": "40dce99005017b4b4a485f7553ea89f8f06526c88f242215a1415c8c67c9e986",
     "conformance/v1/quality/fluid-self-contact-v1.json": "21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2",
     "conformance/v1/quality/fluid-self-pressure-v1.json": "4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b",
     "conformance/v1/quality/fluid-self-viscosity-v1.json": "9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c",
@@ -65,11 +66,11 @@
     "conformance/v1/quality/smoke-self-viscosity-v1.json": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"
   },
   "qualification_profile_sha256": {
-    "conformance/v1/qualification/capability-obligations-v1.json": "7ab617e57ec74c0128f2a59fb3e9d9e9f667730248eda36b3f63d706ee4ee6e6"
+    "conformance/v1/qualification/capability-obligations-v1.json": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a"
   },
   "evidence_index_sha256": {
-    "conformance/v1/evidence/evidence-sources-v1.json": "2651fc7a370afe960d86e818d3d9775b0fb96ecb596e43925197ea9837ef6410",
-    "conformance/v1/evidence/index-v1.json": "8b579f5175cae9a97c2eaa1a73d059712b8dcf2eed34f1d6c6dffb06139c5a4a"
+    "conformance/v1/evidence/evidence-sources-v1.json": "a422c0269e70f9e79b7385158155842f6f6ff068b88cfa075c06a50c49d5dbe5",
+    "conformance/v1/evidence/index-v1.json": "dffb85a005cb7515e598fed379ca396ba7ce284218bfdc238fb3073e24dcdf6f"
   },
   "quality_result_schema": "parallel-mater-conformance-quality-result/v1",
   "result_schema": "parallel-mater-conformance-result/v1",
