@@ -1,0 +1,83 @@
+{
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "2b3ee414015ff50026e3742b1b19368fd5d27a1f01963365dad2a3dbd4e73176",
+  "execution_status": "completed",
+  "source": {
+    "commit": "4e09ecbd48d1ef6717e327f8050fbebff7651a97",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-metal",
+    "version": "0.2.0+4e09ecb",
+    "binary_sha256": "dae53b75933a4f6143debc7dcfeb8e0ce71820749f0c9659cb6a20d3161c7a9d"
+  },
+  "device": {
+    "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "vendor_id": 4203,
+    "device_id": 0,
+    "driver_version": "202618 (Apple Metal 32023.883)"
+  },
+  "toolchain": {
+    "compiler": "Apple Clang, Slang Metal",
+    "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "FLUID",
+      "second_family": "RIGID_BODY",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "evidence": [
+    {
+      "scope": "analytic_invariants",
+      "contract": "quality:fluid-rigid-contact-v1",
+      "status": "passed",
+      "source_commit": "4e09ecbd48d1ef6717e327f8050fbebff7651a97",
+      "contract_sha256": "3f91da38345cab59a2cc37487fe4fa243bf211b91f4bd3a0b70163206d07f9a3",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-4e09ecb-fluid-rigid-contact.json",
+      "artifact_sha256": "722a11f598ded59598b3693509436ea023ca0bb4f5217e68f18b236188225550"
+    },
+    {
+      "scope": "compilation",
+      "contract": "registry:interaction-capabilities",
+      "status": "passed",
+      "source_commit": "4e09ecbd48d1ef6717e327f8050fbebff7651a97",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-4e09ecb-fluid-rigid-contact.json",
+      "artifact_sha256": "722a11f598ded59598b3693509436ea023ca0bb4f5217e68f18b236188225550"
+    },
+    {
+      "scope": "execution",
+      "contract": "case:fluid-rigid",
+      "status": "passed",
+      "source_commit": "4e09ecbd48d1ef6717e327f8050fbebff7651a97",
+      "contract_sha256": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-4e09ecb-fluid-rigid-contact.json",
+      "artifact_sha256": "722a11f598ded59598b3693509436ea023ca0bb4f5217e68f18b236188225550"
+    },
+    {
+      "scope": "lifecycle_invariants",
+      "contract": "lifecycle:fluid-rigid-contact-lifecycle-v1#fluid-rigid-contact-capacity-replacement-removal-rollback",
+      "status": "passed",
+      "source_commit": "4e09ecbd48d1ef6717e327f8050fbebff7651a97",
+      "contract_sha256": "b77ce14642b8d6535b57e26e919397fab2cdc5cdf89d8ae8f82cf5bb643259ea",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-4e09ecb-fluid-rigid-contact.json",
+      "artifact_sha256": "722a11f598ded59598b3693509436ea023ca0bb4f5217e68f18b236188225550"
+    },
+    {
+      "scope": "reference_regression",
+      "contract": "case:fluid-rigid",
+      "status": "passed",
+      "source_commit": "4e09ecbd48d1ef6717e327f8050fbebff7651a97",
+      "contract_sha256": "2c98ec0adb39049bd8449d108476e28cda44ddef7c3111fcc3b662b4d44d97cb",
+      "artifact_path": "conformance/v1/evidence/macos-m4-slang-metal-4e09ecb-fluid-rigid-contact.json",
+      "artifact_sha256": "722a11f598ded59598b3693509436ea023ca0bb4f5217e68f18b236188225550"
+    }
+  ]
+}
