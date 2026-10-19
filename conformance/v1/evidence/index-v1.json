@@ -1932,8 +1932,10 @@
       "rule_id": "fluid-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rope-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -1981,8 +1983,10 @@
       "rule_id": "fluid-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rope-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6340,7 +6344,7 @@
         "second_family": "CLOTH"
       },
       "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "macos-m4-slang-metal-86f10b2-fluid-cloth-containment",
       "rule_id": "fluid-cloth-containment",
       "scopes": {
@@ -6941,8 +6945,10 @@
       "rule_id": "fluid-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rope-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -6990,8 +6996,10 @@
       "rule_id": "fluid-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rope-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7649,7 +7657,7 @@
         "second_family": "SOFT_BODY"
       },
       "key_text": "FLUID/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "macos-m4-slang-metal-86f10b2-fluid-soft-contact",
       "rule_id": "fluid-soft-body",
       "scopes": {
@@ -9264,7 +9272,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID",
-      "qualified": true,
+      "qualified": false,
       "report": "macos-m4-slang-metal-86f10b2-smoke-viscosity",
       "rule_id": "smoke-self-viscosity",
       "scopes": {
@@ -9417,7 +9425,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_PARTICLE",
-      "qualified": true,
+      "qualified": false,
       "report": "macos-m4-slang-metal-86f10b2-smoke-viscosity",
       "rule_id": "smoke-self-viscosity",
       "scopes": {
@@ -10872,8 +10880,10 @@
       "rule_id": "fluid-rope",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:fluid-rope-contact-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -12476,7 +12486,7 @@
         "macos-m4-slang-metal-aac6d59",
         "macos-m4-slang-metal-86f10b2-smoke-viscosity"
       ],
-      "qualified_capability_count": 4,
+      "qualified_capability_count": 0,
       "report_ids": [
         "ipados-m1-slang-metal-9f7e72e",
         "macos-m4-slang-metal-86f10b2-fluid-cloth-containment",
@@ -12484,8 +12494,8 @@
         "macos-m4-slang-metal-aac6d59",
         "macos-m4-slang-metal-86f10b2-smoke-viscosity"
       ],
-      "status": "qualified",
-      "unqualified_capability_count": 92
+      "status": "unqualified",
+      "unqualified_capability_count": 96
     }
   ],
   "known_failures": [
@@ -12537,7 +12547,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -13010,20 +13020,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No vendor-neutral fluid-rope quality case is registered.",
+      "actual": "quality:fluid-rope-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[16].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No vendor-neutral fluid-rope quality case is registered.",
+      "actual": "quality:fluid-rope-contact-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[16].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -15640,7 +15650,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15649,7 +15659,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15658,7 +15668,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -16052,7 +16062,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -16289,20 +16299,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No vendor-neutral fluid-rope quality case is registered.",
+      "actual": "quality:fluid-rope-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[13].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No vendor-neutral fluid-rope quality case is registered.",
+      "actual": "quality:fluid-rope-contact-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[13].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -18712,20 +18722,47 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
+      "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "driver": "slang-metal",
+      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "macos-m4-slang-metal-86f10b2-fluid-cloth-containment"
+    },
+    {
+      "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "driver": "slang-metal",
+      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "macos-m4-slang-metal-86f10b2-fluid-soft-contact"
+    },
+    {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "driver": "slang-metal",
+      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "macos-m4-slang-metal-86f10b2-smoke-viscosity"
     },
     {
       "actual": "quality:fluid-self-contact-v1",
@@ -18836,11 +18873,11 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No vendor-neutral fluid-rope quality case is registered.",
+      "actual": "quality:fluid-rope-contact-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[13].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -20035,7 +20072,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20043,9 +20080,9 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+  "obligations_sha256": "719a6e61f99129eb2ebe97580cb4bbf72db508e8dbff6a71da26c2df917c373b",
   "qualification_complete": true,
-  "qualified_capability_count": 4,
+  "qualified_capability_count": 0,
   "report_count": 13,
   "reports": [
     {
@@ -20207,11 +20244,11 @@
         "name": "slang-metal",
         "version": "0.2.0+86f10b2"
       },
-      "failure_count": 0,
+      "failure_count": 1,
       "id": "macos-m4-slang-metal-86f10b2-fluid-cloth-containment",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-cloth-containment-qualification.json",
-      "qualified_count": 1,
+      "qualified_count": 0,
       "sha256": "e80c110bc63b6e9361ba8a6b2eecc6425ad69a9ef680f9a57f60d66cdad192f4",
       "source": {
         "commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
@@ -20221,7 +20258,7 @@
         "compiler": "Apple Clang, Slang Metal",
         "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 1,
@@ -20236,11 +20273,11 @@
         "name": "slang-metal",
         "version": "0.2.0+86f10b2"
       },
-      "failure_count": 0,
+      "failure_count": 1,
       "id": "macos-m4-slang-metal-86f10b2-fluid-soft-contact",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-soft-contact-qualification.json",
-      "qualified_count": 1,
+      "qualified_count": 0,
       "sha256": "24f09df70e656a5d5954a1a2160a07d05a33ceb744354bf6bb8a1e3731648389",
       "source": {
         "commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
@@ -20250,7 +20287,7 @@
         "compiler": "Apple Clang, Slang Metal",
         "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 2,
@@ -20265,11 +20302,11 @@
         "name": "slang-metal",
         "version": "0.2.0+86f10b2"
       },
-      "failure_count": 0,
+      "failure_count": 1,
       "id": "macos-m4-slang-metal-86f10b2-smoke-viscosity",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-smoke-viscosity-qualification.json",
-      "qualified_count": 2,
+      "qualified_count": 0,
       "sha256": "14a73a0cd8258e62ce65ed16f526577de68cdc780fd982e11a875e5c50b77651",
       "source": {
         "commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
@@ -20279,7 +20316,7 @@
         "compiler": "Apple Clang, Slang Metal",
         "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 46,
@@ -20439,7 +20476,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "a422c0269e70f9e79b7385158155842f6f6ff068b88cfa075c06a50c49d5dbe5",
+  "sources_sha256": "fc4a0312640b19e358d13db0f6c43c7edacc36356cdfe5230d48358f53270891",
   "valid": true,
   "validation_failures": []
 }

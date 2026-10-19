@@ -2393,6 +2393,404 @@ def _evaluate_fluid_soft_contact(
     }
 
 
+def _evaluate_fluid_rope_contact(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    definition = profile.get("fixture")
+    actual = result.get("fixture")
+    if not isinstance(definition, dict):
+        failures.append(Failure("$.profile.fixture",
+                                "expected a fixture object", definition))
+        definition = {}
+    if not isinstance(actual, dict):
+        failures.append(Failure("$.fixture", "expected a fixture object", actual))
+        actual = {}
+    tolerances = profile.get("tolerances")
+    if not isinstance(tolerances, dict):
+        failures.append(Failure("$.profile.tolerances",
+                                "expected an object", tolerances))
+        tolerances = {}
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+
+    for field in ("id", "substeps", "fluid_particle_count",
+                  "rope_node_count", "rope_solver_iterations",
+                  "rope_self_collision", "rope_first_attached",
+                  "rope_last_attached", "two_way", "oracle"):
+        if actual.get(field) != definition.get(field):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "fixture setting differs from profile",
+                                    actual.get(field), definition.get(field)))
+    scalar_fields = (
+        "timestep_seconds", "fluid_rest_density_kg_m3",
+        "fluid_particle_radius_m", "fluid_support_radius_m",
+        "fluid_rest_particle_volume_m3", "fluid_maximum_speed_m_s",
+        "rope_node_spacing_m", "rope_radius_m", "rope_total_mass_kg",
+        "rope_stretch_compliance_m_per_n", "rope_velocity_damping",
+        "rope_maximum_substep_timestep_seconds", "rope_friction",
+        "rope_maximum_speed_m_s", "contact_distance_m", "friction",
+        "maximum_rope_acceleration_m_s2")
+    for field in scalar_fields:
+        value = _scalar(actual.get(field), f"$.fixture.{field}", failures)
+        expected = _scalar(definition.get(field),
+                           f"$.profile.fixture.{field}", failures)
+        if (value is not None and expected is not None and
+                abs(value - expected) > state_tolerance):
+            failures.append(Failure(f"$.fixture.{field}",
+                                    "fixture setting differs from profile",
+                                    value, expected))
+
+    def vectors(value: Any, path: str) -> list[tuple[float, float, float]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a vector array", value))
+            return []
+        parsed: list[tuple[float, float, float]] = []
+        for index, item in enumerate(value):
+            vector = _vector(item, f"{path}[{index}]", failures)
+            if vector is not None:
+                parsed.append(vector)
+        return parsed
+
+    gravity = _vector(actual.get("gravity_m_s2"),
+                      "$.fixture.gravity_m_s2", failures)
+    expected_gravity = _vector(definition.get("gravity_m_s2"),
+                               "$.profile.fixture.gravity_m_s2", failures)
+    if (gravity is not None and expected_gravity is not None and
+            _norm(_subtract(gravity, expected_gravity)) > state_tolerance):
+        failures.append(Failure("$.fixture.gravity_m_s2",
+                                "fixture setting differs from profile",
+                                list(gravity), list(expected_gravity)))
+
+    centerline = vectors(actual.get("rope_centerline_m"),
+                         "$.fixture.rope_centerline_m")
+    expected_centerline = vectors(definition.get("rope_centerline_m"),
+                                  "$.profile.fixture.rope_centerline_m")
+    if len(centerline) != len(expected_centerline):
+        failures.append(Failure("$.fixture.rope_centerline_m",
+                                "centerline count differs from profile",
+                                len(centerline), len(expected_centerline)))
+    else:
+        for index, (value, expected) in enumerate(zip(
+                centerline, expected_centerline)):
+            if _norm(_subtract(value, expected)) > state_tolerance:
+                failures.append(Failure(
+                    f"$.fixture.rope_centerline_m[{index}]",
+                    "centerline differs from profile", list(value),
+                    list(expected)))
+
+    def particle_states(value: Any, path: str) -> list[dict[str, Any]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a particle array", value))
+            return []
+        parsed: list[dict[str, Any]] = []
+        for index, particle in enumerate(value):
+            item_path = f"{path}[{index}]"
+            if not isinstance(particle, dict):
+                failures.append(Failure(item_path,
+                                        "expected a particle object", particle))
+                continue
+            if particle.get("stable_id") != index:
+                failures.append(Failure(item_path + ".stable_id",
+                                        "fluid stable ID/order changed",
+                                        particle.get("stable_id"), index))
+            position = _vector(particle.get("position_m"),
+                               item_path + ".position_m", failures)
+            velocity = _vector(particle.get("velocity_m_s"),
+                               item_path + ".velocity_m_s", failures)
+            acceleration = _vector(particle.get("acceleration_m_s2"),
+                                   item_path + ".acceleration_m_s2", failures)
+            if position is not None and velocity is not None and acceleration is not None:
+                parsed.append({"position": position, "velocity": velocity,
+                               "acceleration": acceleration})
+        return parsed
+
+    def node_states(value: Any, path: str) -> list[dict[str, Any]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a rope-node array", value))
+            return []
+        parsed: list[dict[str, Any]] = []
+        for index, node in enumerate(value):
+            item_path = f"{path}[{index}]"
+            if not isinstance(node, dict):
+                failures.append(Failure(item_path,
+                                        "expected a rope-node object", node))
+                continue
+            if node.get("index") != index:
+                failures.append(Failure(item_path + ".index",
+                                        "rope-node order/index changed",
+                                        node.get("index"), index))
+            position = _vector(node.get("position_m"),
+                               item_path + ".position_m", failures)
+            velocity = _vector(node.get("velocity_m_s"),
+                               item_path + ".velocity_m_s", failures)
+            force = _vector(node.get("liquid_contact_force_n"),
+                            item_path + ".liquid_contact_force_n", failures)
+            if position is not None and velocity is not None and force is not None:
+                parsed.append({"position": position, "velocity": velocity,
+                               "force": force})
+        return parsed
+
+    initial_fluid = particle_states(actual.get("initial_fluid_state"),
+                                    "$.fixture.initial_fluid_state")
+    final_fluid = particle_states(actual.get("final_fluid_state"),
+                                  "$.fixture.final_fluid_state")
+    initial_nodes = node_states(actual.get("initial_rope_node_state"),
+                                "$.fixture.initial_rope_node_state")
+    final_nodes = node_states(actual.get("final_rope_node_state"),
+                              "$.fixture.final_rope_node_state")
+    expected_particles = definition.get("initial_particles")
+    if not isinstance(expected_particles, list):
+        failures.append(Failure("$.profile.fixture.initial_particles",
+                                "expected a particle array", expected_particles))
+        expected_particles = []
+    expected_particle_count = definition.get("fluid_particle_count")
+    expected_node_count = definition.get("rope_node_count")
+    for label, states in (("initial", initial_fluid), ("final", final_fluid)):
+        if (isinstance(expected_particle_count, int) and
+                len(states) != expected_particle_count):
+            failures.append(Failure(f"$.fixture.{label}_fluid_state",
+                                    "fluid particle count differs",
+                                    len(states), expected_particle_count))
+    for label, states in (("initial", initial_nodes), ("final", final_nodes)):
+        if isinstance(expected_node_count, int) and len(states) != expected_node_count:
+            failures.append(Failure(f"$.fixture.{label}_rope_node_state",
+                                    "rope-node count differs",
+                                    len(states), expected_node_count))
+
+    if len(initial_fluid) == len(expected_particles):
+        for index, (state, expected) in enumerate(zip(
+                initial_fluid, expected_particles)):
+            if not isinstance(expected, dict):
+                failures.append(Failure(
+                    f"$.profile.fixture.initial_particles[{index}]",
+                    "expected a particle object", expected))
+                continue
+            wanted_position = _vector(expected.get("position_m"),
+                f"$.profile.fixture.initial_particles[{index}].position_m",
+                failures)
+            wanted_velocity = _vector(expected.get("velocity_m_s"),
+                f"$.profile.fixture.initial_particles[{index}].velocity_m_s",
+                failures)
+            if (wanted_position is not None and
+                    _norm(_subtract(state["position"], wanted_position)) >
+                    state_tolerance):
+                failures.append(Failure(
+                    f"$.fixture.initial_fluid_state[{index}].position_m",
+                    "initial particle position differs from profile",
+                    list(state["position"]), list(wanted_position)))
+            if (wanted_velocity is not None and
+                    _norm(_subtract(state["velocity"], wanted_velocity)) >
+                    state_tolerance):
+                failures.append(Failure(
+                    f"$.fixture.initial_fluid_state[{index}].velocity_m_s",
+                    "initial particle velocity differs from profile",
+                    list(state["velocity"]), list(wanted_velocity)))
+    for index, state in enumerate(initial_nodes):
+        if index < len(centerline) and _norm(_subtract(
+                state["position"], centerline[index])) > state_tolerance:
+            failures.append(Failure(
+                f"$.fixture.initial_rope_node_state[{index}].position_m",
+                "initial rope-node position differs from centerline",
+                list(state["position"]), list(centerline[index])))
+        if _norm(state["velocity"]) > state_tolerance:
+            failures.append(Failure(
+                f"$.fixture.initial_rope_node_state[{index}].velocity_m_s",
+                "rope fixture must start at rest", list(state["velocity"]),
+                state_tolerance))
+        if _norm(state["force"]) > state_tolerance:
+            failures.append(Failure(
+                f"$.fixture.initial_rope_node_state[{index}].liquid_contact_force_n",
+                "rope fixture has contact force before stepping",
+                list(state["force"]), state_tolerance))
+
+    def scale(value: tuple[float, float, float], factor: float
+              ) -> tuple[float, float, float]:
+        return tuple(component * factor for component in value)  # type: ignore[return-value]
+
+    def dot(left: tuple[float, float, float],
+            right: tuple[float, float, float]) -> float:
+        return sum(a * b for a, b in zip(left, right))
+
+    def segment_projection(point: tuple[float, float, float],
+                           nodes: list[dict[str, Any]], path: str
+                           ) -> tuple[float, tuple[float, float, float],
+                                      tuple[float, float, float]] | None:
+        if len(nodes) != 2:
+            return None
+        start, end = nodes[0]["position"], nodes[1]["position"]
+        segment = _subtract(end, start)
+        length_squared = dot(segment, segment)
+        if length_squared <= 1.0e-12:
+            failures.append(Failure(path, "rope segment is degenerate",
+                                    length_squared, "> 0"))
+            return None
+        fraction = min(1.0, max(0.0,
+            dot(_subtract(point, start), segment) / length_squared))
+        closest = tuple(a + fraction * b for a, b in zip(start, segment))
+        separation = _subtract(point, closest)
+        normal = _unit(separation)
+        if normal is None:
+            failures.append(Failure(path,
+                                    "particle lies on rope segment centerline"))
+            return None
+        return fraction, closest, normal
+
+    final_separation = penetration = segment_fraction = None
+    fluid_impulse = rope_impulse = reciprocal_residual = None
+    expected_impulse_error = distribution_error = force_residual = None
+    tangential_impulse = maximum_speed = None
+    complete = (len(initial_fluid) == 1 and len(final_fluid) == 1 and
+                len(initial_nodes) == 2 and len(final_nodes) == 2)
+    if complete:
+        initial_projection = segment_projection(
+            initial_fluid[0]["position"], initial_nodes,
+            "$.fixture.initial_rope_node_state")
+        final_projection = segment_projection(
+            final_fluid[0]["position"], final_nodes,
+            "$.fixture.final_rope_node_state")
+        if initial_projection is not None and final_projection is not None:
+            segment_fraction = initial_projection[0]
+            final_delta = _subtract(final_fluid[0]["position"],
+                                    final_projection[1])
+            final_separation = _norm(final_delta)
+            contact_distance = float(definition.get("contact_distance_m", 0.0))
+            penetration = max(0.0, contact_distance - final_separation)
+            penetration_limit = float(tolerances.get(
+                "maximum_overlap_penetration_m", 0.0))
+            if penetration > penetration_limit:
+                failures.append(Failure(
+                    "$.fixture.final_fluid_state[0].position_m",
+                    "fluid penetrates the rope contact radius",
+                    penetration, penetration_limit))
+
+            density = float(definition.get("fluid_rest_density_kg_m3", 0.0))
+            volume = float(definition.get(
+                "fluid_rest_particle_volume_m3", 0.0))
+            fluid_mass = density * volume
+            rope_mass = float(definition.get("rope_total_mass_kg", 0.0))
+            node_mass = rope_mass / len(final_nodes)
+            fluid_impulse = scale(_subtract(
+                final_fluid[0]["velocity"], initial_fluid[0]["velocity"]),
+                fluid_mass)
+            node_impulses = [scale(_subtract(after["velocity"], before["velocity"]),
+                                   node_mass)
+                             for before, after in zip(initial_nodes, final_nodes)]
+            rope_impulse = _sum(node_impulses)
+            reciprocal_residual = _norm(_sum([fluid_impulse, rope_impulse]))
+            reciprocal_limit = float(tolerances.get(
+                "maximum_reciprocal_impulse_residual_n_s", 0.0))
+            if reciprocal_residual > reciprocal_limit:
+                failures.append(Failure(
+                    "$.fixture.final_rope_node_state",
+                    "fluid and rope contact impulses are not reciprocal",
+                    reciprocal_residual, reciprocal_limit))
+            activity = _norm(fluid_impulse)
+            activity_limit = float(tolerances.get(
+                "minimum_contact_impulse_n_s", 0.0))
+            if activity < activity_limit:
+                failures.append(Failure(
+                    "$.fixture.final_fluid_state[0].velocity_m_s",
+                    "fluid-rope contact impulse is too small",
+                    activity, activity_limit))
+
+            normal = initial_projection[2]
+            rope_velocity = tuple(
+                (1.0 - segment_fraction) * initial_nodes[0]["velocity"][axis] +
+                segment_fraction * initial_nodes[1]["velocity"][axis]
+                for axis in range(3))
+            relative_velocity = _subtract(initial_fluid[0]["velocity"],
+                                          rope_velocity)
+            closing_speed = max(0.0, -dot(relative_velocity, normal))
+            expected_fluid_impulse = scale(normal, fluid_mass * closing_speed)
+            expected_impulse_error = _norm(_subtract(
+                fluid_impulse, expected_fluid_impulse))
+            expected_limit = float(tolerances.get(
+                "maximum_expected_impulse_error_n_s", 0.0))
+            if expected_impulse_error > expected_limit:
+                failures.append(Failure(
+                    "$.fixture.final_fluid_state[0].velocity_m_s",
+                    "normal contact impulse differs from the public-state oracle",
+                    expected_impulse_error, expected_limit))
+
+            expected_weights = (1.0 - segment_fraction, segment_fraction)
+            expected_rope_impulse = scale(expected_fluid_impulse, -1.0)
+            distribution_errors = [_norm(_subtract(
+                impulse, scale(expected_rope_impulse, weight)))
+                for impulse, weight in zip(node_impulses, expected_weights)]
+            distribution_error = max(distribution_errors)
+            distribution_limit = float(tolerances.get(
+                "maximum_node_distribution_error_n_s", 0.0))
+            if distribution_error > distribution_limit:
+                failures.append(Failure(
+                    "$.fixture.final_rope_node_state",
+                    "rope endpoint impulse distribution indicates hidden attachment or wrong segment weighting",
+                    distribution_error, distribution_limit))
+
+            timestep = float(definition.get("timestep_seconds", 0.0))
+            force_errors = [_norm(_subtract(scale(node["force"], timestep),
+                                                  impulse))
+                            for node, impulse in zip(final_nodes, node_impulses)]
+            force_residual = max(force_errors)
+            force_limit = float(tolerances.get(
+                "maximum_node_force_impulse_residual_n_s", 0.0))
+            if force_residual > force_limit:
+                failures.append(Failure(
+                    "$.fixture.final_rope_node_state",
+                    "rope liquid-contact force is inconsistent with impulse",
+                    force_residual, force_limit))
+
+            impulses = [fluid_impulse, *node_impulses]
+            tangential_impulse = max(_norm(_subtract(
+                impulse, scale(normal, dot(impulse, normal))))
+                for impulse in impulses)
+            tangent_limit = float(tolerances.get(
+                "maximum_tangential_impulse_n_s", 0.0))
+            if tangential_impulse > tangent_limit:
+                failures.append(Failure(
+                    "$.fixture.final_rope_node_state",
+                    "frictionless contact introduced tangential impulse",
+                    tangential_impulse, tangent_limit))
+
+        speeds = [_norm(final_fluid[0]["velocity"])] + [
+            _norm(node["velocity"]) for node in final_nodes]
+        maximum_speed = max(speeds)
+        speed_limit = max(
+            float(definition.get("fluid_maximum_speed_m_s", 0.0)),
+            float(definition.get("rope_maximum_speed_m_s", 0.0))) + float(
+                tolerances.get("maximum_speed_slack_m_s", 0.0))
+        if maximum_speed > speed_limit:
+            failures.append(Failure("$.fixture",
+                                    "contact speed exceeds authored maximum",
+                                    maximum_speed, speed_limit))
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "passed": not failures,
+        "fixture_count": 1 if actual else 0,
+        "sample_count": 1 if complete else 0,
+        "failure_count": len(failures),
+        "observations": {
+            "initial_segment_fraction": segment_fraction,
+            "final_point_segment_separation_m": final_separation,
+            "maximum_overlap_penetration_m": penetration,
+            "fluid_contact_impulse_n_s": list(fluid_impulse)
+                if fluid_impulse is not None else None,
+            "rope_contact_impulse_n_s": list(rope_impulse)
+                if rope_impulse is not None else None,
+            "reciprocal_impulse_residual_n_s": reciprocal_residual,
+            "expected_impulse_error_n_s": expected_impulse_error,
+            "maximum_node_distribution_error_n_s": distribution_error,
+            "maximum_node_force_impulse_residual_n_s": force_residual,
+            "maximum_tangential_impulse_n_s": tangential_impulse,
+            "maximum_endpoint_speed_m_s": maximum_speed,
+        },
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def _smoke_particle_states(
         value: Any, path: str, failures: list[Failure]
         ) -> dict[int, tuple[tuple[float, float, float],
@@ -3363,6 +3761,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             profile, result, expected_hash, driver, failures)
     if evaluation == "fluid_soft_contact":
         return _evaluate_fluid_soft_contact(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "fluid_rope_contact":
+        return _evaluate_fluid_rope_contact(
             profile, result, expected_hash, driver, failures)
     if evaluation == "smoke_self_pressure":
         return _evaluate_smoke_self_pressure(
