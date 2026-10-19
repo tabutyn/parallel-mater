@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "31373248be3bad5450e295a82b79df60d45c284c9cd5e0341edd38de7138c38b"
+    "sha256": "a8cc533e9825b37326ae531581c4c77aa41a645f82bd4099e6125651ee662f19"
   },
   "qualification_results": [
     {
@@ -61,6 +61,16 @@
       "id": "linux-thomas-laptop-slang-cpu-eed669e",
       "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json",
       "sha256": "e3ae75435330251f28ac8196012f921bf7be032541362db1fdc978f5eb7f7473"
+    },
+    {
+      "id": "macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid-qualification.json",
+      "sha256": "c60cd0ab1db21b6866d487fe90422d462e8a5ce3033ac27beb128c2806d8c99c"
+    },
+    {
+      "id": "macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle-qualification.json",
+      "sha256": "c0430e156e5ec7e81635810eba978c40e15e9133fc75f5700190bc6c105249c1"
     },
     {
       "id": "macos-m4-slang-metal-86f10b2-fluid-cloth-containment",
@@ -101,6 +111,16 @@
       "id": "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact-qualification.json",
       "sha256": "9259964d2f6ee9e2f1ad27b130fa990835225fbca9b333e776af2f4606a1e034"
+    },
+    {
+      "id": "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid-qualification.json",
+      "sha256": "4f5616586493eb241bf82200341eba8908e4981d5c1bf158b8a43d9343c7a0cd"
+    },
+    {
+      "id": "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle-qualification.json",
+      "sha256": "b36dbe4ed9d658b712183a4dfacfa8701398930ee1110adfa880260aae5c2d33"
     },
     {
       "id": "windows-gtx1080-slang-d3d12-2b04e55",

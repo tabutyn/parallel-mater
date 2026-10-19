@@ -1,0 +1,50 @@
+{
+  "driver": {
+    "device": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "device_id": 0,
+    "driver_version": "202618",
+    "name": "slang-metal",
+    "vendor_id": 4203
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 2,
+  "observations": {
+    "grid-phase-transfer": {
+      "bounded_converted_stable_ids": [
+        0,
+        1
+      ],
+      "bounded_kinetic_energy_residual_j": 0.0,
+      "bounded_mass_residual_kg": 0.0,
+      "bounded_momentum_residual_kg_m_s": 0.0,
+      "bounded_surviving_stable_ids": [
+        2
+      ],
+      "single_kinetic_energy_residual_j": 0.0,
+      "single_mass_residual_kg": 0.0,
+      "single_momentum_residual_kg_m_s": 0.0
+    },
+    "particle-phase-transfer": {
+      "bounded_converted_stable_ids": [
+        0,
+        1
+      ],
+      "bounded_kinetic_energy_residual_j": 0.0,
+      "bounded_mass_residual_kg": 0.0,
+      "bounded_momentum_residual_kg_m_s": 0.0,
+      "bounded_surviving_stable_ids": [
+        2
+      ],
+      "single_kinetic_energy_residual_j": 0.0,
+      "single_mass_residual_kg": 0.0,
+      "single_momentum_residual_kg_m_s": 0.0
+    }
+  },
+  "passed": true,
+  "profile_id": "fluid-smoke-phase-v1",
+  "profile_sha256": "da827f9cf347269442f529b3e57beeef70b4c64714c48cc21f1ad0666597f263",
+  "sample_count": 4,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}
