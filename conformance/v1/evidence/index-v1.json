@@ -7629,6 +7629,57 @@
         "second_family": "SOFT_BODY"
       },
       "key_text": "FLUID/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+      "qualified": true,
+      "report": "macos-m4-slang-metal-663c9d4-fluid-soft-contact",
+      "rule_id": "fluid-soft-body",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:fluid-soft-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:soft-body-fluid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:soft-body-fluid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "FLUID",
+        "material_profile": "ENDPOINT_NATIVE",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SOFT_BODY"
+      },
+      "key_text": "FLUID/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
       "rule_id": "fluid-soft-body",
@@ -12330,7 +12381,7 @@
       }
     }
   ],
-  "capability_count": 254,
+  "capability_count": 255,
   "driver_count": 5,
   "drivers": [
     {
@@ -12397,13 +12448,15 @@
       "qualification_result_ids": [
         "ipados-m1-slang-metal-9f7e72e",
         "macos-m4-slang-metal-1d85b88-fluid-cloth-containment",
+        "macos-m4-slang-metal-663c9d4-fluid-soft-contact",
         "macos-m4-slang-metal-aac6d59",
         "macos-m4-slang-metal-e566034-smoke-viscosity"
       ],
-      "qualified_capability_count": 3,
+      "qualified_capability_count": 4,
       "report_ids": [
         "ipados-m1-slang-metal-9f7e72e",
         "macos-m4-slang-metal-1d85b88-fluid-cloth-containment",
+        "macos-m4-slang-metal-663c9d4-fluid-soft-contact",
         "macos-m4-slang-metal-aac6d59",
         "macos-m4-slang-metal-e566034-smoke-viscosity"
       ],
@@ -19968,8 +20021,8 @@
   "obligations_id": "capability-obligations-v1",
   "obligations_sha256": "fdbd9463e7b326fe0557f2e2f597ef7e94be5378c56118a52f44383b6a3c3e5b",
   "qualification_complete": true,
-  "qualified_capability_count": 3,
-  "report_count": 12,
+  "qualified_capability_count": 4,
+  "report_count": 13,
   "reports": [
     {
       "capability_count": 46,
@@ -20138,6 +20191,35 @@
       "sha256": "52581f7b3759ca353bba2b5fa3bbbf3781ef7553de399767f3ad36ab0f81ff0d",
       "source": {
         "commit": "1d85b882e1b332fa54a0fdfc2a376395fd056642",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "Apple Clang, Slang Metal",
+        "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+      },
+      "validated": true
+    },
+    {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "202618 (Apple Metal 32023.883)",
+        "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+        "vendor_id": 4203
+      },
+      "driver": {
+        "binary_sha256": "063a4dbbaff84f58cbbef012f994296af375dadd9f60368ad13f3c47aab71846",
+        "name": "slang-metal",
+        "version": "0.2.0+663c9d4"
+      },
+      "failure_count": 0,
+      "id": "macos-m4-slang-metal-663c9d4-fluid-soft-contact",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-663c9d4-fluid-soft-contact-qualification.json",
+      "qualified_count": 1,
+      "sha256": "9b6128cb9b10149db2bcbd8072c1ace57c86454a8e3fe5ef9fd7a5d3bd068a15",
+      "source": {
+        "commit": "663c9d4f8812540e879c9d7271be9e150be9dc04",
         "dirty": false
       },
       "toolchain": {
@@ -20333,7 +20415,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "8c6721f772e04bb71805ab33ee87b75f808eaa7151a8610a5da52d8bdd90f69b",
+  "sources_sha256": "59ca0c2eba1ff8bc7fb800045539134a4f3d158841e4904b9b296a208a0ab255",
   "valid": true,
   "validation_failures": []
 }

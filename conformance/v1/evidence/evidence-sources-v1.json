@@ -59,6 +59,11 @@
       "sha256": "52581f7b3759ca353bba2b5fa3bbbf3781ef7553de399767f3ad36ab0f81ff0d"
     },
     {
+      "id": "macos-m4-slang-metal-663c9d4-fluid-soft-contact",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-663c9d4-fluid-soft-contact-qualification.json",
+      "sha256": "9b6128cb9b10149db2bcbd8072c1ace57c86454a8e3fe5ef9fd7a5d3bd068a15"
+    },
+    {
       "id": "macos-m4-slang-metal-aac6d59",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json",
       "sha256": "4c8bacefffcaed67e300d2bdf90a683d46b0c12efeac14f6c83151ecac0bc9ef"
