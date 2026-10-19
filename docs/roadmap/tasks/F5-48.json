@@ -1,7 +1,7 @@
 {
   "id": "F5-48",
   "title": "Qualify smoke-to-soft drag",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,7 +17,33 @@
     "Add exact bounded capacity, replacement, removal and rollback lifecycle checks; a rejected mutation preserves the last usable state and recovery is deterministic.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: CUDA analytic quality, 6 paired samples and 0 failures; docs/roadmap/evidence/F5-48-smoke-soft-drag.json",
+    "PASS: particle and grid lifecycle, 2 cases, 10 checkpoints and 0 failures; docs/roadmap/evidence/F5-48-8bbbeb8-cuda-lifecycle-report.json",
+    "PASS: exact particle and grid DRAG qualification, 1/1 each; conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle-qualification.json; conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-grid-qualification.json",
+    "PASS: 287 conformance tests, 31 roadmap tests, canonical CUDA golden, manifest and command-input checks"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "7915cb95-9e53-4b8f-aeb7-83a3c57477ee",
+        "owner": "codex-linux-qualification",
+        "machine": "ThomasLaptop",
+        "branch": "work/F5-48/ThomasLaptop",
+        "claimed_at": "2026-10-19T18:11:52Z",
+        "heartbeat_at": "2026-10-19T18:11:52Z",
+        "expires_at": "2026-10-20T18:11:52Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T18:29:32Z",
+      "reason": "Published a public-state smoke-to-soft DRAG oracle with exact particle and grid lifecycle contracts and clean CUDA qualification for both tuples without broadening CONTACT.",
+      "evidence": [
+        "PASS: CUDA analytic quality, 6 paired samples and 0 failures; docs/roadmap/evidence/F5-48-smoke-soft-drag.json",
+        "PASS: particle and grid lifecycle, 2 cases, 10 checkpoints and 0 failures; docs/roadmap/evidence/F5-48-8bbbeb8-cuda-lifecycle-report.json",
+        "PASS: exact particle and grid DRAG qualification, 1/1 each; conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle-qualification.json; conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-grid-qualification.json",
+        "PASS: 287 conformance tests, 31 roadmap tests, canonical CUDA golden, manifest and command-input checks"
+      ]
+    }
+  ]
 }

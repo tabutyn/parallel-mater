@@ -1,0 +1,136 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-42",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "7934b3f8085189daaf81d95d1b7ece7a3fd20a39",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+7934b3f",
+    "binary_sha256": "46c856996b1ad3734cf473f0ce5d56df4054de89193f3d8031edaa1a8b89aa66"
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13010 (NVIDIA 590.44.01)"
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "287acabb56c12e714f410f7540f65c9ea73ac9f19c40d2ed9fb97f45df4db21e",
+    "capabilities_sha256": "4f1f17830a833fc6c7cbb6e6f768649b74ed7084d0f526da37c448d74d63e6e5"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "CLOTH",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "FIRST_TO_SECOND",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:smoke-cloth",
+      "sha256": "8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc"
+    },
+    "quality": {
+      "id": "quality:cloth-smoke-contact-v1",
+      "sha256": "39d221db1df6d6b6f73c650df4004b81ce4541203a359edf2654f7172c1c8029"
+    },
+    "lifecycle": {
+      "id": "lifecycle:cloth-smoke-contact-lifecycle-v1#grid-cloth-smoke-contact-capacity-replacement-removal-rollback",
+      "sha256": "3ccfe472f7bcfad66f2b092a63fccadc88fdc268cb59ae65c12cc9d541c55d0d"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "221f7becb5de16d78e0a439735d85e1c0815b75f2c4b835390faf025c2276d87",
+    "comparison_report_sha256": "5a58b505846e79cc4d28fb365b02068bb7cd77c103606ea2e7a9f16a10b11fb5",
+    "reference_regression": {
+      "passed": 1,
+      "failed": 0,
+      "unsupported": 0
+    }
+  },
+  "analytic_invariants": {
+    "result_sha256": "27c2e67d0e5bca4c5bd3681c05fda4d17611343d8752637777d29a7396d27ba4",
+    "report_sha256": "b8c97e4f4ceb9c6a55974ffb4227ea34ed557909a4bc71caf56f23c72b9ef5b2",
+    "passed": true,
+    "sample_count": 2,
+    "failure_count": 0,
+    "observations": {
+      "grid-cloth-contact": {
+        "contact_clearance_error_m": 3.3527612630646075e-10,
+        "control_final_signed_distance_m": 0.004999999888241291,
+        "control_initial_signed_distance_m": -0.004999999888241291,
+        "coupled_final_normal_velocity_m_s": 0.0,
+        "coupled_final_signed_distance_m": -0.014999999664723873,
+        "coupled_final_tangential_speed_m_s": 1.0307763174801927,
+        "maximum_smoke_speed_m_s": 1.0307764064044151
+      }
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "9f92c10d133bc664e4793f061d583e4590bc3a4746a3db9c763c3a45ecea4060",
+    "report_sha256": "9e4b911f62cc6c8ba1b020b89599c1cc75b1193356fc93e1ca95df48635ab5b1",
+    "passed": true,
+    "profile_case_count": 1,
+    "profile_checkpoint_count": 5,
+    "failure_count": 0,
+    "bound_case": "grid-cloth-smoke-contact-capacity-replacement-removal-rollback",
+    "checkpoints": [
+      {
+        "id": "baseline",
+        "outcome": "PM_SUCCESS",
+        "graph_state_sha256": "d042a1f4c1bc2ff3d8c10206c5853ac09dd250138938785b00cab9b46ff0d871",
+        "endpoint_state_sha256": "9c0f5782c5d1e483aa03d67ad3739210cad4cc60a8cc79e36f87705f811b03c3"
+      },
+      {
+        "id": "replacement",
+        "outcome": "PM_SUCCESS",
+        "graph_state_sha256": "7a37a6b37951578c9a6e27038bbe5c8012671210a972b9b9109207430dd076f2",
+        "endpoint_state_sha256": "9c0f5782c5d1e483aa03d67ad3739210cad4cc60a8cc79e36f87705f811b03c3"
+      },
+      {
+        "id": "rejected-overflow",
+        "outcome": "PM_ERROR_CAPACITY_EXCEEDED",
+        "graph_state_sha256": "7a37a6b37951578c9a6e27038bbe5c8012671210a972b9b9109207430dd076f2",
+        "endpoint_state_sha256": "9c0f5782c5d1e483aa03d67ad3739210cad4cc60a8cc79e36f87705f811b03c3"
+      },
+      {
+        "id": "removal",
+        "outcome": "PM_SUCCESS",
+        "graph_state_sha256": "467d0ead98a4084dd5d5573fde2c99e62f3d995ba34d2e2bc8343b00d582a0f9",
+        "endpoint_state_sha256": "10627a0562fcf0c8c9aa011a8873fac5939e299de4ccc08756bcf4c0432e033d"
+      },
+      {
+        "id": "recovery",
+        "outcome": "PM_SUCCESS",
+        "graph_state_sha256": "9bb58ad9f244a7ae34550fc39cc65f69ef96c2565b9d21533ab7db9d4a7e7645",
+        "endpoint_state_sha256": "9c0f5782c5d1e483aa03d67ad3739210cad4cc60a8cc79e36f87705f811b03c3"
+      }
+    ]
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --case smoke-cloth --output <trajectory-output>",
+    "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case smoke-cloth --report <trajectory-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --quality cloth-smoke-contact-v1 --output <quality-output>",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/cloth-smoke-contact-v1.json --actual <quality-output>/cloth-smoke-contact-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --lifecycle-profile cloth-smoke-contact-lifecycle-v1 --output <lifecycle-result>",
+    "python3 conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/cloth-smoke-contact-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "The paired public-state oracle proves a grid-smoke tracer crosses the cloth plane without the edge, is redirected to the declared clearance with zero inward normal velocity under CONTACT, and retains bounded tangential motion.",
+    "All four dynamic cloth vertices retain their public positions within the immutable tolerance and end with zero velocity, proving no unadvertised reverse mechanical response.",
+    "The grid lifecycle changes CONTACT distance across accepted generations, directly probes the surviving graph after a rejected over-capacity mutation, proves removal changes behavior, and proves recovery restores contact redirection.",
+    "The shared analytic profile executes both particle and grid representations, but this aggregate advertises and qualifies only the exact SMOKE_GRID CONTACT tuple."
+  ]
+}

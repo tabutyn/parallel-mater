@@ -1,0 +1,46 @@
+{
+  "driver": {
+    "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "device_id": 0,
+    "driver_version": "13010",
+    "name": "slang-cuda",
+    "vendor_id": 4318
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 2,
+  "observations": {
+    "grid-smoke-soft-drag": {
+      "control_velocity_drift_m_s": 0.0,
+      "forward_response_fraction": 0.015585259068757296,
+      "forward_reverse_response_difference": 2.1760817617177963e-05,
+      "forward_transverse_velocity_m_s": 1.2812257624359756e-05,
+      "maximum_drag_acceleration_m_s2": 1.5585264335077122,
+      "maximum_reverse_smoke_state_delta": 0.0,
+      "maximum_soft_body_node_speed_m_s": 0.0207803524467695,
+      "minimum_tracer_surface_clearance_m": 0.1039201021194458,
+      "reverse_response_fraction": 0.015563498251140118,
+      "reverse_transverse_velocity_m_s": 4.540389465794658e-06,
+      "stationary_velocity_m_s": 0.0
+    },
+    "particle-smoke-soft-drag": {
+      "control_velocity_drift_m_s": 0.0,
+      "forward_response_fraction": 0.09335918352007866,
+      "forward_reverse_response_difference": 1.862645149230957e-09,
+      "forward_transverse_velocity_m_s": 0.0,
+      "maximum_drag_acceleration_m_s2": 9.33591853827238,
+      "maximum_reverse_smoke_state_delta": 0.0,
+      "maximum_soft_body_node_speed_m_s": 0.10000000149011612,
+      "minimum_tracer_surface_clearance_m": 0.10406458377838135,
+      "reverse_response_fraction": 0.09335918538272381,
+      "reverse_transverse_velocity_m_s": 0.0,
+      "stationary_velocity_m_s": 0.0
+    }
+  },
+  "passed": true,
+  "profile_id": "smoke-soft-drag-v1",
+  "profile_sha256": "b7d5c09ba966e1ddbd8c7580ee6868f9d9e4de62462b069d9fb0e749904b766c",
+  "sample_count": 6,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

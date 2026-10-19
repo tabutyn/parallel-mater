@@ -1,0 +1,64 @@
+{
+  "schema": "parallel-mater-conformance-lifecycle-profile/v1",
+  "id": "soft-smoke-contact-lifecycle-v1",
+  "title": "Grid soft-to-smoke contact graph bounded lifecycle",
+  "sources": {
+    "capacity": "include/parallel_mater/parallel_mater.h: PmSimulationCreateInfo::couplingCapacity and pmCmdSetCouplings",
+    "qualification": "docs/ROADMAP.md: F5-47",
+    "rollback": "docs/RESOURCE-LIFETIME.md: rejected graph mutations preserve the last usable graph"
+  },
+  "state_fingerprint": "Graph SHA-256 combines the accepted descriptor with the public CONTACT-redirected predicate and dynamic soft-body invariance. Endpoint SHA-256 is a canonical public behavioral signature containing smoke tracer count and the same predicates. CONTACT-redirected means x at or behind -0.0145 m with no inward +X velocity. Raw public soft-body surface, node and smoke fields remain in each checkpoint probe for audit; exclude handles, timings and driver-private state.",
+  "observation_boundary": "After every accepted mutation and the record-time capacity rejection, execute a fresh zero-gravity grid-smoke probe step and public soft/smoke readback under the surviving graph. Generation is the harness ordinal of an accepted graph mutation, never a private driver handle.",
+  "scope": "SMOKE_GRID capacity, CONTACT replacement, removal and capacity-rollback only. Submit-time invalid endpoints remain pending by public API design, so this profile does not claim a direct post-rejection grid step; existing particle adverse lifecycle coverage retains the separate partial-rollback binding. API 0.2 groups CONTACT and DRAG in one descriptor; DRAG stays inert. A retained +X grid-smoke tracer must be reprojected by every active CONTACT checkpoint, move when the graph is removed, and be reprojected after recovery.",
+  "cases": [
+    {
+      "id": "grid-soft-smoke-contact-capacity-replacement-removal-rollback",
+      "families": ["soft", "smoke"],
+      "unrelated_resources": [],
+      "tracked_resources": ["grid-soft-smoke-contact-graph", "grid-soft-smoke-endpoints"],
+      "track_graph": false,
+      "checkpoints": [
+        {
+          "id": "baseline",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "grid-soft-smoke-contact-graph": {"active": true},
+            "grid-soft-smoke-endpoints": {"active": true}
+          }
+        },
+        {
+          "id": "replacement",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "grid-soft-smoke-contact-graph": {"active": true, "generation_different_from": "baseline", "state_different_from": "baseline"},
+            "grid-soft-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "rejected-overflow",
+          "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED",
+          "resources": {
+            "grid-soft-smoke-contact-graph": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"},
+            "grid-soft-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "replacement"}
+          }
+        },
+        {
+          "id": "removal",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "grid-soft-smoke-contact-graph": {"active": false, "generation_different_from": "replacement", "state_different_from": "replacement"},
+            "grid-soft-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_different_from": "replacement"}
+          }
+        },
+        {
+          "id": "recovery",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "grid-soft-smoke-contact-graph": {"active": true, "generation_different_from": "removal", "state_different_from": "removal"},
+            "grid-soft-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "replacement", "state_different_from": "removal"}
+          }
+        }
+      ]
+    }
+  ]
+}

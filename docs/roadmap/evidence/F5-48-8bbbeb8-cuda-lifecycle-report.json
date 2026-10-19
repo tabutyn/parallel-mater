@@ -1,0 +1,18 @@
+{
+  "case_count": 2,
+  "checkpoint_count": 10,
+  "driver": {
+    "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "device_id": 0,
+    "driver_version": "13010",
+    "name": "slang-cuda",
+    "vendor_id": 4318
+  },
+  "failure_count": 0,
+  "failures": [],
+  "passed": true,
+  "profile_id": "smoke-soft-drag-lifecycle-v1",
+  "profile_sha256": "e26456e4df5e7860229e93530dfddd6a08842a2484a2bfbd006b6b86f0368027",
+  "schema": "parallel-mater-conformance-lifecycle-report/v1",
+  "scope": "lifecycle_invariants"
+}

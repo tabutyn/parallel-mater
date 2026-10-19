@@ -22,9 +22,14 @@ add_library(parallel-mater-conformance-runner STATIC
     src/fluid_rigid_containment.cpp
     src/fluid_rigid_contact.cpp
     src/cloth_rope_attachment.cpp
+    src/soft_rope_attachment.cpp
     src/smoke_quality.cpp
     src/fluid_cloth_contact.cpp
+    src/cloth_smoke_contact.cpp
+    src/soft_smoke_contact.cpp
     src/smoke_fluid_drag.cpp
+    src/smoke_cloth_drag.cpp
+    src/smoke_soft_drag.cpp
     src/fluid_smoke_phase.cpp
     src/smoke_viscosity_quality.cpp
     src/smoke_lifecycle_fixture.cpp

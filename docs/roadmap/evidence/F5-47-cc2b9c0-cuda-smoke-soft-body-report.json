@@ -1,0 +1,16 @@
+{
+  "cases": [
+    {
+      "differences": [],
+      "id": "smoke-soft-body",
+      "passed": true,
+      "reason": "",
+      "status": "passed"
+    }
+  ],
+  "failed": 0,
+  "passed": 1,
+  "schema": "parallel-mater-conformance-report/v1",
+  "scope": "reference_regression",
+  "unsupported": 0
+}

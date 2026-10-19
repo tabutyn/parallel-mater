@@ -58,10 +58,15 @@
     {"id": "quality:fluid-rigid-contact-v1", "path": "conformance/v1/quality/fluid-rigid-contact-v1.json", "sha256": "3f91da38345cab59a2cc37487fe4fa243bf211b91f4bd3a0b70163206d07f9a3"},
     {"id": "quality:fluid-rigid-containment-v1", "path": "conformance/v1/quality/fluid-rigid-containment-v1.json", "sha256": "d6ea84babcdc0ede00303f4960336320b165ac3a573e196725a5b69abe31f7f6"},
     {"id": "quality:cloth-rope-attachment-v1", "path": "conformance/v1/quality/cloth-rope-attachment-v1.json", "sha256": "774081efcc918b9c7c144c0189fb24d72f511d44cadd40510d07e7dc9a760023"},
+    {"id": "quality:soft-rope-attachment-v1", "path": "conformance/v1/quality/soft-rope-attachment-v1.json", "sha256": "7c43ecebb7083f0b7e4a2aeab8768f6236cf44edcd7f409022eccbea98a49549"},
     {"id": "quality:smoke-self-pressure-v1", "path": "conformance/v1/quality/smoke-self-pressure-v1.json", "sha256": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150"},
     {"id": "quality:fluid-cloth-contact-v1", "path": "conformance/v1/quality/fluid-cloth-contact-v1.json", "sha256": "1216cf9e7252b5fe4c27f14639a1031e698d459a2001db60153a088ebb600445"},
+    {"id": "quality:cloth-smoke-contact-v1", "path": "conformance/v1/quality/cloth-smoke-contact-v1.json", "sha256": "39d221db1df6d6b6f73c650df4004b81ce4541203a359edf2654f7172c1c8029"},
+    {"id": "quality:soft-smoke-contact-v1", "path": "conformance/v1/quality/soft-smoke-contact-v1.json", "sha256": "4ee08a7676ccf9c7198e0fbdd752db59c25bb655601e22aa15a327d70ab0ab8d"},
     {"id": "quality:smoke-self-viscosity-v1", "path": "conformance/v1/quality/smoke-self-viscosity-v1.json", "sha256": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"},
     {"id": "quality:smoke-fluid-drag-v1", "path": "conformance/v1/quality/smoke-fluid-drag-v1.json", "sha256": "ef28c4f4446365aa787aac9605098772f00e68f1ebf958b2023b6cafdba1c3e1"},
+    {"id": "quality:smoke-cloth-drag-v1", "path": "conformance/v1/quality/smoke-cloth-drag-v1.json", "sha256": "6984353862c9dc69f693597e92e60c9956576f080cbca2e79040e2ff923480ac"},
+    {"id": "quality:smoke-soft-drag-v1", "path": "conformance/v1/quality/smoke-soft-drag-v1.json", "sha256": "b7d5c09ba966e1ddbd8c7580ee6868f9d9e4de62462b069d9fb0e749904b766c"},
     {"id": "quality:fluid-smoke-phase-v1", "path": "conformance/v1/quality/fluid-smoke-phase-v1.json", "sha256": "da827f9cf347269442f529b3e57beeef70b4c64714c48cc21f1ad0666597f263"},
     {"id": "quality:externally-heated-fluid-v1", "path": "conformance/v1/quality/externally-heated-fluid-v1.json", "sha256": "8fa544e51d8d900d68cfe3b8711fa1129a7bc56275b1bacfa0c9bffc15a0dacf"},
     {"id": "quality:core-conservation-stability-v1#equal-material-pressure-contact", "path": "conformance/v1/quality/core-conservation-v1.json", "sha256": "a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"},
@@ -75,11 +80,16 @@
     {"id": "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-particle-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json", "sha256": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31"},
     {"id": "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-grid-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-self-pressure-lifecycle-v1.json", "sha256": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31"},
     {"id": "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json", "sha256": "5599b5d6c5e8386830d0abb29a13feddd3a43a917912efb9e9cf4b1732a22769"},
+    {"id": "lifecycle:cloth-smoke-contact-lifecycle-v1#grid-cloth-smoke-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/cloth-smoke-contact-lifecycle-v1.json", "sha256": "3ccfe472f7bcfad66f2b092a63fccadc88fdc268cb59ae65c12cc9d541c55d0d"},
+    {"id": "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/soft-smoke-contact-lifecycle-v1.json", "sha256": "eebb8182329058601310417e9d951f594bdaf53d966c670d4874adcbf12f29d2"},
     {"id": "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/cloth-soft-contact-lifecycle-v1.json", "sha256": "10d28df6b1b1756da1c1b21b76e214aa554a8e753a370a2951d99fffbcdd7b35"},
     {"id": "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/cloth-rigid-contact-lifecycle-v1.json", "sha256": "271515deca0bb595e3da0da91373c44db6d6295b14c98342e01501536869a4e5"},
     {"id": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json", "sha256": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f"},
     {"id": "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json", "sha256": "e3f0b451c271add83153c0e1a3f22f1784465a568b289facacb46a5fab44c1c1"},
     {"id": "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-fluid-drag-lifecycle-v1.json", "sha256": "e3f0b451c271add83153c0e1a3f22f1784465a568b289facacb46a5fab44c1c1"},
+    {"id": "lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-cloth-grid-drag-lifecycle-v1.json", "sha256": "7322bab0d2368931c9620eb9711f977a7ed4bf28ab3e5f1ec523c8ad9261b1a1"},
+    {"id": "lifecycle:smoke-soft-drag-lifecycle-v1#particle-smoke-soft-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-soft-drag-lifecycle-v1.json", "sha256": "e26456e4df5e7860229e93530dfddd6a08842a2484a2bfbd006b6b86f0368027"},
+    {"id": "lifecycle:smoke-soft-drag-lifecycle-v1#grid-smoke-soft-drag-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-soft-drag-lifecycle-v1.json", "sha256": "e26456e4df5e7860229e93530dfddd6a08842a2484a2bfbd006b6b86f0368027"},
     {"id": "lifecycle:fluid-smoke-phase-lifecycle-v1#particle-fluid-smoke-phase-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-smoke-phase-lifecycle-v1.json", "sha256": "0ca00a3e49008f07fd0a2297487de7678fdbc0fae8f38306b05a1e7d3aec8ae4"},
     {"id": "lifecycle:fluid-smoke-phase-lifecycle-v1#grid-fluid-smoke-phase-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-smoke-phase-lifecycle-v1.json", "sha256": "0ca00a3e49008f07fd0a2297487de7678fdbc0fae8f38306b05a1e7d3aec8ae4"},
     {"id": "lifecycle:externally-heated-fluid-lifecycle-v1#particle-externally-heated-fluid-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/externally-heated-fluid-lifecycle-v1.json", "sha256": "8e134e408a6dd7559b2f77c412fcdb27806dcabf9b84c8e90bc39f5d6a38ee20"},
@@ -327,20 +337,44 @@
       "missing": {}
     },
     {
-      "id": "cloth-smoke-particle",
-      "match": {"first_family": ["CLOTH"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "DRAG"], "direction": ["FIRST_TO_SECOND", "SECOND_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE"]},
-      "mode_directions": [["CONTACT", "FIRST_TO_SECOND"], ["DRAG", "SECOND_TO_FIRST"]],
+      "id": "cloth-smoke-contact-particle",
+      "match": {"first_family": ["CLOTH"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["FIRST_TO_SECOND"], "material_profile": ["SMOKE_PARTICLE"]},
       "trajectory_contract": "case:smoke-cloth",
-      "required": {"lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"]},
-      "missing": {"analytic_invariants": "No vendor-neutral cloth-smoke quality case is registered."}
+      "required": {
+        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
+        "analytic_invariants": ["quality:cloth-smoke-contact-v1"]
+      },
+      "missing": {}
     },
     {
-      "id": "cloth-smoke-grid",
-      "match": {"first_family": ["CLOTH"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "DRAG"], "direction": ["FIRST_TO_SECOND", "SECOND_TO_FIRST"], "material_profile": ["SMOKE_GRID"]},
-      "mode_directions": [["CONTACT", "FIRST_TO_SECOND"], ["DRAG", "SECOND_TO_FIRST"]],
+      "id": "cloth-smoke-drag-particle",
+      "match": {"first_family": ["CLOTH"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE"]},
       "trajectory_contract": "case:smoke-cloth",
-      "required": {},
-      "missing": {"lifecycle_invariants": "No exact cloth-smoke-grid adverse graph case is registered.", "analytic_invariants": "No vendor-neutral cloth-smoke-grid quality case is registered."}
+      "required": {
+        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
+        "analytic_invariants": ["quality:smoke-cloth-drag-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "cloth-smoke-contact-grid",
+      "match": {"first_family": ["CLOTH"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["FIRST_TO_SECOND"], "material_profile": ["SMOKE_GRID"]},
+      "trajectory_contract": "case:smoke-cloth",
+      "required": {
+        "lifecycle_invariants": ["lifecycle:cloth-smoke-contact-lifecycle-v1#grid-cloth-smoke-contact-capacity-replacement-removal-rollback"],
+        "analytic_invariants": ["quality:cloth-smoke-contact-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "cloth-smoke-drag-grid",
+      "match": {"first_family": ["CLOTH"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_GRID"]},
+      "trajectory_contract": "case:smoke-cloth",
+      "required": {
+        "lifecycle_invariants": ["lifecycle:smoke-cloth-grid-drag-lifecycle-v1#grid-smoke-cloth-drag-capacity-replacement-removal-rollback"],
+        "analytic_invariants": ["quality:smoke-cloth-drag-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "cloth-rigid",
@@ -353,19 +387,61 @@
       "missing": {}
     },
     {
-      "id": "soft-body-rope",
-      "match": {"first_family": ["SOFT_BODY"], "second_family": ["ROPE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "id": "soft-body-rope-contact",
+      "match": {"first_family": ["SOFT_BODY"], "second_family": ["ROPE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:rope-soft-body",
       "required": {"lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"]},
-      "missing": {"analytic_invariants": "No vendor-neutral soft-body-rope quality case is registered."}
+      "missing": {"analytic_invariants": "No vendor-neutral soft-body-rope contact quality case is registered."}
     },
     {
-      "id": "soft-body-smoke",
-      "match": {"first_family": ["SOFT_BODY"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "DRAG"], "direction": ["FIRST_TO_SECOND", "SECOND_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE", "SMOKE_GRID"]},
-      "mode_directions": [["CONTACT", "FIRST_TO_SECOND"], ["DRAG", "SECOND_TO_FIRST"]],
+      "id": "soft-body-rope-attachment",
+      "match": {"first_family": ["SOFT_BODY"], "second_family": ["ROPE"], "scope": ["DISTINCT_FAMILY"], "mode": ["ATTACHMENT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
+      "trajectory_contract": "case:rope-soft-body",
+      "required": {
+        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
+        "analytic_invariants": ["quality:soft-rope-attachment-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "soft-body-smoke-contact-particle",
+      "match": {"first_family": ["SOFT_BODY"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["FIRST_TO_SECOND"], "material_profile": ["SMOKE_PARTICLE"]},
       "trajectory_contract": "case:smoke-soft-body",
-      "required": {},
-      "missing": {"lifecycle_invariants": "No exact soft-body-smoke adverse graph case is registered.", "analytic_invariants": "No vendor-neutral soft-body-smoke quality case is registered."}
+      "required": {
+        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
+        "analytic_invariants": ["quality:soft-smoke-contact-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "soft-body-smoke-drag-particle",
+      "match": {"first_family": ["SOFT_BODY"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE"]},
+      "trajectory_contract": "case:smoke-soft-body",
+      "required": {
+        "lifecycle_invariants": ["lifecycle:smoke-soft-drag-lifecycle-v1#particle-smoke-soft-drag-capacity-replacement-removal-rollback"],
+        "analytic_invariants": ["quality:smoke-soft-drag-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "soft-body-smoke-contact-grid",
+      "match": {"first_family": ["SOFT_BODY"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["FIRST_TO_SECOND"], "material_profile": ["SMOKE_GRID"]},
+      "trajectory_contract": "case:smoke-soft-body",
+      "required": {
+        "lifecycle_invariants": ["lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback"],
+        "analytic_invariants": ["quality:soft-smoke-contact-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "soft-body-smoke-drag-grid",
+      "match": {"first_family": ["SOFT_BODY"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_GRID"]},
+      "trajectory_contract": "case:smoke-soft-body",
+      "required": {
+        "lifecycle_invariants": ["lifecycle:smoke-soft-drag-lifecycle-v1#grid-smoke-soft-drag-capacity-replacement-removal-rollback"],
+        "analytic_invariants": ["quality:smoke-soft-drag-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "soft-body-rigid",

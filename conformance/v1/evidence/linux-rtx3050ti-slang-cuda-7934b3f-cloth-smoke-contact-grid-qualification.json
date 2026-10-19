@@ -1,0 +1,83 @@
+{
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "024f8894735a8285f1d5fb7058e639256cf5db6bc9a5ee9e2b1ff28de50ab588",
+  "execution_status": "completed",
+  "source": {
+    "commit": "7934b3f8085189daaf81d95d1b7ece7a3fd20a39",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+7934b3f",
+    "binary_sha256": "46c856996b1ad3734cf473f0ce5d56df4054de89193f3d8031edaa1a8b89aa66"
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13010 (NVIDIA 590.44.01)"
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "CLOTH",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "FIRST_TO_SECOND",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "evidence": [
+    {
+      "scope": "analytic_invariants",
+      "contract": "quality:cloth-smoke-contact-v1",
+      "status": "passed",
+      "source_commit": "7934b3f8085189daaf81d95d1b7ece7a3fd20a39",
+      "contract_sha256": "39d221db1df6d6b6f73c650df4004b81ce4541203a359edf2654f7172c1c8029",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid.json",
+      "artifact_sha256": "e5fd847a20374c605379fe79cbb99291d8d2fe702299a7df5ff172fa0f8c5c71"
+    },
+    {
+      "scope": "compilation",
+      "contract": "registry:interaction-capabilities",
+      "status": "passed",
+      "source_commit": "7934b3f8085189daaf81d95d1b7ece7a3fd20a39",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid.json",
+      "artifact_sha256": "e5fd847a20374c605379fe79cbb99291d8d2fe702299a7df5ff172fa0f8c5c71"
+    },
+    {
+      "scope": "execution",
+      "contract": "case:smoke-cloth",
+      "status": "passed",
+      "source_commit": "7934b3f8085189daaf81d95d1b7ece7a3fd20a39",
+      "contract_sha256": "8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid.json",
+      "artifact_sha256": "e5fd847a20374c605379fe79cbb99291d8d2fe702299a7df5ff172fa0f8c5c71"
+    },
+    {
+      "scope": "lifecycle_invariants",
+      "contract": "lifecycle:cloth-smoke-contact-lifecycle-v1#grid-cloth-smoke-contact-capacity-replacement-removal-rollback",
+      "status": "passed",
+      "source_commit": "7934b3f8085189daaf81d95d1b7ece7a3fd20a39",
+      "contract_sha256": "3ccfe472f7bcfad66f2b092a63fccadc88fdc268cb59ae65c12cc9d541c55d0d",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid.json",
+      "artifact_sha256": "e5fd847a20374c605379fe79cbb99291d8d2fe702299a7df5ff172fa0f8c5c71"
+    },
+    {
+      "scope": "reference_regression",
+      "contract": "case:smoke-cloth",
+      "status": "passed",
+      "source_commit": "7934b3f8085189daaf81d95d1b7ece7a3fd20a39",
+      "contract_sha256": "8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid.json",
+      "artifact_sha256": "e5fd847a20374c605379fe79cbb99291d8d2fe702299a7df5ff172fa0f8c5c71"
+    }
+  ]
+}

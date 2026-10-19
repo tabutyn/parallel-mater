@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "0741ac2ef1d69b28797312aeb3ff3407e66d79cb59a55b9670c3ac274aad0e68"
+    "sha256": "249e9c03519a29bb06e7e670227e55a3fdbaa34a71288e2037bf9e6de1eb16d1"
   },
   "qualification_results": [
     {
@@ -58,6 +58,41 @@
       "sha256": "48e444f77edc0e0432c67ad7fe1f3cd24662ee9d8c571fc2b5f99c430cc77452"
     },
     {
+      "id": "linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid-qualification.json",
+      "sha256": "8cb722119f98360113040ebd197f79a30701cf6db68e313d01ca8d011c4ccfa6"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle-qualification.json",
+      "sha256": "360b4c1a4ce6977205e708dfcdaceedbb8327b7a32af6f08e5b9bcb861f9d051"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment-qualification.json",
+      "sha256": "aa898c3af584da53ff68808f4675351f8d296ea80d29e594969d67d528388beb"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-grid",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-grid-qualification.json",
+      "sha256": "928533c6a0616a3ea19df12aaaf4d8402b25ee2578fb557e62c7d2da75086f10"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-particle",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-particle-qualification.json",
+      "sha256": "4e9caec409215c789531ba034077a15a5c02722fcaf72707fa9cdd67f5f1aa92"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-grid",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-grid-qualification.json",
+      "sha256": "8209317bb73a3ba79731d3e0e8020d6039ec3600d5df8fcec27f2ddeccd29982"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle-qualification.json",
+      "sha256": "b7448ca5a554f7328a4ce0e8d74899d8eaed2864077840528ec1045231666d7f"
+    },
+    {
       "id": "linux-rtx3050ti-slang-vulkan-eed669e",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-qualification.json",
       "sha256": "040b04c96c547304c9609366c891eb22ae019f75e1dafc05591a0a0658cf6b1b"
@@ -66,6 +101,16 @@
       "id": "linux-thomas-laptop-slang-cpu-eed669e",
       "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json",
       "sha256": "e3ae75435330251f28ac8196012f921bf7be032541362db1fdc978f5eb7f7473"
+    },
+    {
+      "id": "macos-m4-slang-metal-16169d5-smoke-cloth-grid",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-grid-qualification.json",
+      "sha256": "0c36054158444d8a2be824a7bae3de841d9b24b1e7c110b1371e4ef4b03109c9"
+    },
+    {
+      "id": "macos-m4-slang-metal-16169d5-smoke-cloth-particle",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-particle-qualification.json",
+      "sha256": "b5e0f19fbe1665253ec1eb84db9d305e1040f62473accc9f92cd97949c418d43"
     },
     {
       "id": "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact",
@@ -130,7 +175,7 @@
     {
       "id": "windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact-qualification.json",
-      "sha256": "348fdb30dc8b5644c8b1f94e329c6016571fdea6b47da033ca2d7a9e9701ffdd"
+      "sha256": "d8670a1669fe95ee858c2dc163cff55e0b0e005a759d64f80767c61bb4034f7b"
     },
     {
       "id": "windows-gtx1080-slang-cuda-b191454-cloth-soft-contact",
@@ -160,7 +205,7 @@
     {
       "id": "windows-gtx1080-slang-d3d12-59eb0ce-cloth-rigid-contact",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-59eb0ce-cloth-rigid-contact-qualification.json",
-      "sha256": "1a640d4761d5f948fec3382f3e5405d11638cb0fc9140405825d103a5650b182"
+      "sha256": "9dc516bfb407e54b4855fd6c50de1a44279e8e6eb7773be1efe04f468cc790a1"
     }
   ],
   "schema": "parallel-mater-evidence-sources/v1",

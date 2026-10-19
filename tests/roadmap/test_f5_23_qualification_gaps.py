@@ -78,7 +78,10 @@ class QualificationGapMatrixTests(unittest.TestCase):
         for task_id in referenced:
             task = self.tasks[task_id]
             self.assertIn(task["status"], {"open", "leased", "done"})
-            self.assertEqual(task["dependencies"], ["F5-23"])
+            expected_dependencies = ["F5-23"]
+            if task_id == "F5-45":
+                expected_dependencies.append("F5-56")
+            self.assertEqual(task["dependencies"], expected_dependencies)
             self.assertIn(task_id, gate_dependencies)
             self.assertEqual(len(task["acceptance"]), 3)
             for identity in assignments[task_id]:

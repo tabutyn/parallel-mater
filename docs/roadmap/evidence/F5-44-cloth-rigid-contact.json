@@ -37,13 +37,13 @@
     "final_closing_speed_m_s": 0.0,
     "orientation_drift": 0.0,
     "energy_increase_j": -0.33333317438763244,
-    "python_conformance_tests": "PASS: 241 tests",
+    "python_conformance_tests": "PASS: 299 tests",
     "roadmap_tests": "PASS: 31 tests, including F6-07/F6-09/F6-10 evidence portability",
     "native_builds": "PASS: conformance runner, CUDA driver, D3D12 driver, and validation layers",
     "focused_native_tests": "PASS: command-input and lifecycle-output gates, 2/2 on CUDA and 2/2 on D3D12",
     "command_gallery_regression": "PASS: RigidBody public-command gallery scene and reset on CUDA and D3D12",
     "command_inputs": "PASS: all pinned conformance inputs match the manifest",
-    "evidence_index": "PASS: 2/315 capability records qualified across 28 reports; stale and unrecaptured records remain visible and unqualified"
+    "evidence_index": "PASS: 2/326 capability records qualified across 37 reports; stale and unrecaptured records remain visible and unqualified"
   },
   "artifacts": {
     "cuda_physical_evidence": "conformance/v1/evidence/windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact.json",
