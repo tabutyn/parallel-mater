@@ -697,3 +697,39 @@ shared analytic profile and `smoke-rope` trajectory. The two opposite
 rope-to-smoke CONTACT records retain their separate evidence; CONTACT cannot
 substitute for DRAG. Historical and unrecaptured drivers remain visible and
 unqualified.
+
+### F5-52 rope-rigid contact quality
+
+Clean source `6ca716beb0c21e51a78a4d509ab9608b2449fd4f` adds the immutable
+`rope-rigid-contact-v1` profile without changing a solver or backend path. A
+public preparation step drives a free two-node rope segment into a centered
+dynamic cube beside a separated control. The independent oracle reconstructs
+capsule-to-mesh clearance and checks coherent reduced-mass impulse, reciprocal
+rope/body momentum, public contact-force consistency, frictionless slip,
+closing speed, rotation, energy and speed only from public snapshots.
+
+Physical RTX 3050 Ti CUDA passes both analytic samples. The impact retains
+`0.02002456114350934 m` capsule clearance, exchanges
+`0.49873446114361286 N s`, and has reciprocal and force-impulse residuals of
+`6.146728992462158e-08 N s` and `1.1265277866101542e-07 N s`. Tangential
+impulse, final closing speed, angular speed, control momentum and control
+contact force are all zero. The first physical attempt is retained: an exactly
+one-spacing segment could round to three sampled nodes and was rejected by the
+two-node capacity; the corrected `0.02 m` segment removes that ambiguity.
+
+The existing `rope-core` case completes all three checkpoints and repeats
+byte-identically, but its current physical output retains 242 differences from
+the historical CUDA golden. The first divergence is rigid-only contact
+topology outside this exact oracle. No tolerance or golden changes here;
+F5-56 owns the required same-revision CUDA/Metal adjudication. The exact CUDA
+record therefore remains unqualified, while its advertisement is retained
+because the independent physical contract passes. The
+[versioned F5-52 evidence](roadmap/evidence/F5-52-rope-rigid-contact.json)
+pins both attempts, binaries, raw outputs, reports and hashes.
+
+The obligation matrix binds the analytic profile only to
+`ROPE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE` and
+retains `case:rope-core` independently for trajectory and lifecycle evidence.
+Rope-rigid ATTACHMENT remains a separate exact rule with its own missing
+analytic contract for F5-53. Historical and unrecaptured drivers remain
+visible and unqualified.
