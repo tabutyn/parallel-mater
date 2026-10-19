@@ -1,0 +1,21 @@
+{
+  "id": "F6-15",
+  "title": "Orient project documentation around users",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "user-documentation"
+  ],
+  "requires": [
+    "Any development host with the current source and SDK build tools"
+  ],
+  "scope": "Audit the entire README against current driver capability code, build presets and published evidence; replace historical progress notes with application, Gallery and driver-author guidance. Reconcile directly linked driver/toolchain summaries that contradict that guidance without changing runtime behavior or qualification claims.",
+  "acceptance": [
+    "README explains the public API, loader, shared Slang GPU execution, native adapter responsibilities, current backend choices and qualification limits without presenting chronology as support status.",
+    "Document reproducible SDK and Gallery entry points, explicit backend selection and driver-author next steps; validate local links, presets, advertised command options and the installed C SDK example on the available host.",
+    "Retain detailed scene, historical and qualification evidence in linked documentation; record source-backed audit findings and verification scope without claiming unrun cross-platform or physical tests."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
