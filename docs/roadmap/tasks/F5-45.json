@@ -3,7 +3,8 @@
   "title": "Qualify soft-rope contact",
   "status": "open",
   "dependencies": [
-    "F5-23"
+    "F5-23",
+    "F5-56"
   ],
   "locks": [
     "quality-f5-45"
