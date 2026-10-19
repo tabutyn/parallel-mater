@@ -1,0 +1,25 @@
+{
+  "id": "F6-16",
+  "title": "Make retained evidence hashes checkout-portable",
+  "status": "open",
+  "dependencies": [
+    "F6-07",
+    "F6-09",
+    "F6-10"
+  ],
+  "locks": [
+    "roadmap-evidence-hashing"
+  ],
+  "requires": [
+    "Any development host; Windows CRLF checkout for regression verification"
+  ],
+  "scope": "Make the retained F6-07, F6-09 and F6-10 text-evidence integrity checks independent of Git checkout line endings without changing pinned artifacts, recorded hashes or binary hashing semantics.",
+  "acceptance": [
+    "Use one shared canonical text hashing rule that normalizes CRLF to LF while retaining lone carriage returns and every other byte; archives and binary artifacts remain byte-exact.",
+    "Add focused regression coverage proving LF and CRLF text hash identically while non-line-ending text and binary changes remain visible.",
+    "Pass the F6-07, F6-09 and F6-10 evidence tests plus the full roadmap suite on Windows without rewriting any retained evidence or stored hash."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
