@@ -82,14 +82,6 @@ void rope_move_body(inout RigidBodyState state, Vec3 translation,
     Vec3 rotation, float dt)
 {
     state.position = add(state.position, translation);
-    // Rope impulses repeatedly feed very small rotations back into the coupled
-    // body. Keep that feedback below the contact equivalence scale so target
-    // arithmetic cannot grow into different contact candidates.
-    const float correctionScale = 4194304.0f;
-    rotation = {
-        round(rotation.x * correctionScale) / correctionScale,
-        round(rotation.y * correctionScale) / correctionScale,
-        round(rotation.z * correctionScale) / correctionScale};
     Quaternion spin = quaternion_multiply(
         {rotation.x, rotation.y, rotation.z, 0.0f}, state.orientation);
     state.orientation = normalized_quaternion({
