@@ -1,7 +1,7 @@
 {
   "id": "F6-16",
   "title": "Make retained evidence hashes checkout-portable",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F6-07",
     "F6-09",
@@ -20,6 +20,14 @@
     "Pass the F6-07, F6-09 and F6-10 evidence tests plus the full roadmap suite on Windows without rewriting any retained evidence or stored hash."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "36322fd5-d304-4449-943b-cc9fdbcfe677",
+    "owner": "codex-windows-portability",
+    "machine": "windows-gtx1080",
+    "branch": "work/F6-16/windows-gtx1080",
+    "claimed_at": "2026-10-19T15:55:30Z",
+    "heartbeat_at": "2026-10-19T15:55:30Z",
+    "expires_at": "2026-10-20T15:55:30Z"
+  },
   "history": []
 }
