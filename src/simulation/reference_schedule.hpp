@@ -2108,14 +2108,12 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                 const float distance = owner->options.contact_distance > 0.0F
                     ? owner->options.contact_distance
                     : fluid.options.particle_radius + rope.options.radius;
-                error = backend.clear(owner->node_impulses, 0,
-                    rope.count * sizeof(Vec3), stream);
-                if (error != backend.success_code()) return backend.failure(error, "fluid rope impulse clear failed");
                 backend.detect_fluid_rope_contacts(
                     blocks, block_size, stream,
                     fluid.positions, fluid.velocities, fluid.count, particle_mass,
                     rope.positions, rope.velocities, rope.count, distance,
-                    owner->options.friction, owner->node_impulses,
+                    owner->options.friction, owner->contribution_nodes,
+                    owner->contribution_impulses,
                     owner->contact_count, owner->maximum_penetration, true);
                 backend.apply_fluid_rope_impulses(
                     (rope.count + block_size - 1U) / block_size,
@@ -2123,7 +2121,9 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                     rope.fluid_contact_forces, rope.count, rope.options.mass,
                     rope.options.maximum_speed, rope.options.first.enabled,
                     rope.options.last.enabled,
-                    owner->node_impulses, owner->options.maximum_rope_acceleration,
+                    fluid.count, owner->contribution_nodes,
+                    owner->contribution_impulses,
+                    owner->options.maximum_rope_acceleration,
                     dt, 1.0F / options.timestep);
                 status = record_timing_stage(TimingStage::fluid_rope_contacts, 2U);
                 if (!status) return status;

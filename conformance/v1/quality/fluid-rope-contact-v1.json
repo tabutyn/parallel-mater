@@ -1,0 +1,61 @@
+{
+  "schema": "parallel-mater-conformance-quality-profile/v1",
+  "id": "fluid-rope-contact-v1",
+  "title": "Fluid-rope contact, reciprocal impulse and free endpoint distribution",
+  "evaluation": "fluid_rope_contact",
+  "sources": {
+    "capability": "docs/INTERACTION-MODES.md: FLUID/ROPE/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+    "fixture": "conformance/v1/src/fluid_rope_contact_quality.cpp: normal impact at one quarter of an unattached two-node segment",
+    "oracle": "Independent point-segment clearance, public momentum, public force and segment-weight distribution checks",
+    "qualification": "docs/ROADMAP.md: F5-34"
+  },
+  "fixture": {
+    "id": "quarter-segment-normal-impact",
+    "timestep_seconds": 0.01,
+    "substeps": 1,
+    "gravity_m_s2": [0.0, 0.0, 0.0],
+    "fluid_particle_count": 1,
+    "fluid_rest_density_kg_m3": 1000.0,
+    "fluid_particle_radius_m": 0.05,
+    "fluid_support_radius_m": 0.2,
+    "fluid_rest_particle_volume_m3": 0.001,
+    "fluid_maximum_speed_m_s": 10.0,
+    "rope_node_count": 2,
+    "rope_node_spacing_m": 0.1,
+    "rope_radius_m": 0.05,
+    "rope_total_mass_kg": 4.0,
+    "rope_stretch_compliance_m_per_n": 1.0,
+    "rope_velocity_damping": 0.0,
+    "rope_maximum_substep_timestep_seconds": 0.01,
+    "rope_friction": 0.0,
+    "rope_maximum_speed_m_s": 10.0,
+    "rope_solver_iterations": 1,
+    "rope_self_collision": false,
+    "rope_first_attached": false,
+    "rope_last_attached": false,
+    "rope_centerline_m": [[0.0, 0.0, 0.0], [0.0, 0.1, 0.0]],
+    "contact_distance_m": 0.1,
+    "friction": 0.0,
+    "maximum_rope_acceleration_m_s2": 1000.0,
+    "two_way": true,
+    "initial_particles": [
+      {
+        "stable_id": 0,
+        "position_m": [-0.09, 0.025, 0.0],
+        "velocity_m_s": [1.0, 0.0, 0.0]
+      }
+    ],
+    "oracle": "public-state-segment-clearance-reciprocal-impulse-distribution-and-unattached-endpoints"
+  },
+  "tolerances": {
+    "fixture_state_absolute": 1e-06,
+    "maximum_overlap_penetration_m": 1e-05,
+    "minimum_contact_impulse_n_s": 0.5,
+    "maximum_reciprocal_impulse_residual_n_s": 0.001,
+    "maximum_expected_impulse_error_n_s": 0.005,
+    "maximum_node_distribution_error_n_s": 0.001,
+    "maximum_node_force_impulse_residual_n_s": 0.001,
+    "maximum_tangential_impulse_n_s": 0.001,
+    "maximum_speed_slack_m_s": 1e-05
+  }
+}

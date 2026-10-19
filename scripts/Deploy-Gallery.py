@@ -92,7 +92,7 @@ def validate_physics_qualification(report, nonce, revision, binary_identity):
     if not isinstance(trajectory, dict) or trajectory.get("case_count") != 30:
         raise RuntimeError("Physics qualification must account for all 30 canonical cases")
     artifacts = report.get("artifacts")
-    if not isinstance(artifacts, list) or len(artifacts) != 35:
+    if not isinstance(artifacts, list) or len(artifacts) != 36:
         raise RuntimeError("Physics qualification artifact list is incomplete")
     paths = [artifact.get("path") for artifact in artifacts if isinstance(artifact, dict)]
     if len(paths) != len(set(paths)) or any(not isinstance(path, str) or not path for path in paths):
@@ -100,7 +100,7 @@ def validate_physics_qualification(report, nonce, revision, binary_identity):
     kinds = [artifact.get("kind") for artifact in artifacts if isinstance(artifact, dict)]
     if (kinds.count("trajectory") != 30 or kinds.count("device-provenance") != 1 or
             kinds.count("advertised-capabilities") != 1 or
-            kinds.count("physical-quality") != 2 or
+            kinds.count("physical-quality") != 3 or
             kinds.count("adverse-lifecycle") != 1):
         raise RuntimeError("Physics qualification artifact scopes are incomplete")
     device = report.get("device")

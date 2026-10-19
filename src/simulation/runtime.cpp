@@ -1758,7 +1758,7 @@ Status SimulationRuntime::coupling_memory_requirements(const simulation::Couplin
             limits.soft_vertices, tree_nodes, triangles, fluid_soft)) ||
         !(status = simulation::visit_rope_soft_tree_storage(rs, tree_nodes, triangles, rope_soft)) ||
         !(status = simulation::visit_rope_soft_data_storage(rs, limits.soft_nodes, limits.soft_vertices, rope_soft)) ||
-        !(status = simulation::visit_fluid_rope_storage(fr, limits.rope_nodes, fluid_rope)) ||
+        !(status = simulation::visit_fluid_rope_storage(fr, limits.fluid_particles, fluid_rope)) ||
         !(status = simulation::visit_soft_cloth_storage(sc, limits.soft_nodes, limits.cloth_vertices, soft_cloth)))
         return status;
     Vec3 *bounds = nullptr;

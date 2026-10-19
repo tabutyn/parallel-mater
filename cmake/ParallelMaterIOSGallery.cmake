@@ -94,6 +94,7 @@ if(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION)
     foreach(relative
         conformance/v1/manifest.json
         conformance/v1/quality/core-conservation-v1.json
+        conformance/v1/quality/fluid-rope-contact-v1.json
         conformance/v1/quality/rigid-brick-penetration-v1.json
         conformance/v1/lifecycle/adverse-capacity-three-family-v1.json
         conformance/v1/qualification/capability-obligations-v1.json)
