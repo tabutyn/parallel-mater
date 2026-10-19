@@ -4,6 +4,11 @@ namespace {
 struct NativeScheduleBackend {
     device::ExecutionQueue execution;
     explicit NativeScheduleBackend(device::ExecutionQueue value) : execution(value) {}
+#if defined(__CUDACC__) || defined(PARALLEL_MATER_METAL_DRIVER)
+    static constexpr bool supports_masked_subgroup_barriers = true;
+#else
+    static constexpr bool supports_masked_subgroup_barriers = false;
+#endif
     auto queue() const noexcept { return execution; }
     static auto success_code() noexcept { return PM_SUCCESS; }
     static Status failure(PmResult error, const char *message) noexcept {

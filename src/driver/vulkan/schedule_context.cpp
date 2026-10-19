@@ -829,6 +829,10 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
                                std::uint32_t(constants.size()), constants.data());
         vkCmdDispatch(i.commands, grid.x, grid.y, grid.z);
         i.barrier();
+        // Diagnostic mode: isolate a failing dispatch without changing normal
+        // asynchronous submission behavior.
+        if (std::getenv("PM_VULKAN_SYNCHRONOUS_DISPATCH"))
+            i.sync();
         i.global_offset += i.global_stride;
         // Flush after recording: constants may contain a translated mesh address
         // prepared immediately before dispatch. Resetting the pool beforehand

@@ -884,7 +884,8 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
             if (!body_status) return body_status;
             for (std::uint32_t iteration = 0U;
                  iteration < body.solver_iterations; ++iteration) {
-                if(body.warp_neighbors) {
+                if(body.warp_neighbors &&
+                    Backend::supports_masked_subgroup_barriers) {
                     constexpr std::uint32_t groups_per_block = 8U;
                     const std::uint32_t group_blocks =
                         (body.node_count + groups_per_block - 1U) /
@@ -934,7 +935,8 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                 body.inverse_masses, body.node_count,
                 1.0F / substep_timestep,
                 body.constraint_velocity_response, body.maximum_speed);
-            if (body.warp_neighbors) {
+            if (body.warp_neighbors &&
+                Backend::supports_masked_subgroup_barriers) {
                 constexpr std::uint32_t groups_per_block = 8U;
                 const std::uint32_t group_blocks =
                     (body.node_count + groups_per_block - 1U) /

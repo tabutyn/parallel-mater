@@ -137,9 +137,13 @@ def main():
                       "passed": False, "timeout": timeout}
         results.append(record)
         suffix = ""
-        if arguments:
-            suffix = "-" + (arguments[1] if arguments[0] == "--contract"
-                             else arguments[0].removeprefix("--"))
+        for selector in ("--contract", "--case", "--quality",
+                         "--lifecycle-profile"):
+            if selector in arguments:
+                suffix = "-" + arguments[arguments.index(selector) + 1]
+                break
+        if not suffix and arguments:
+            suffix = "-" + arguments[0].removeprefix("--")
         (args.output / f"{name}{suffix}.log").write_text(output)
         (args.output / "results.json").write_text(json.dumps(results, indent=2) + "\n")
         print(f"{name}: {'PASS' if results[-1]['passed'] else 'FAIL'}", flush=True)
@@ -166,16 +170,39 @@ def main():
                ("--case", "all", "--root", REMOTE, "--output",
                 f"{remote_results}/cases"),
                timeout=args.conformance_timeout)
-    contracts = (
-        ("rigid-quality", f"{remote_results}/quality/rigid-brick-penetration-v1.json"),
-        ("fluid-quality", f"{remote_results}/quality/core-conservation-stability-v1.json"),
-        ("adverse-lifecycle", f"{remote_results}/lifecycle/adverse-capacity-three-family-v1.json"),
-        ("vulkan-info", f"{remote_results}/vulkan.json"),
+    quality_profiles = (
+        "rigid-brick-penetration-v1",
+        "rigid-attachment-v1",
+        "rope-self-contact-v1",
+        "fluid-self-contact-v1",
+        "fluid-self-pressure-v1",
+        "fluid-self-viscosity-v1",
+        "fluid-cloth-containment-v1",
+        "fluid-soft-contact-v1",
+        "smoke-self-pressure-v1",
+        "fluid-cloth-contact-v1",
+        "smoke-self-viscosity-v1",
     )
-    for contract, output in contracts:
-        run_device("pm-android-device-contracts",
-                   ("--contract", contract, "--root", REMOTE, "--output", output),
+    for profile in quality_profiles:
+        run_device("pm-android-conformance",
+                   ("--quality", profile, "--root", REMOTE, "--output",
+                    f"{remote_results}/quality"),
                    timeout=args.conformance_timeout)
+    lifecycle_profiles = (
+        "adverse-capacity-three-family-v1",
+        "fluid-cloth-containment-lifecycle-v1",
+        "smoke-self-pressure-lifecycle-v1",
+        "fluid-cloth-contact-lifecycle-v1",
+        "smoke-self-lifecycle-v1",
+    )
+    for profile in lifecycle_profiles:
+        run_device("pm-android-conformance",
+                   ("--lifecycle-profile", profile, "--root", REMOTE,
+                    "--output", f"{remote_results}/lifecycle/{profile}.json"),
+                   timeout=args.conformance_timeout)
+    run_device("pm-android-device-contracts",
+               ("--contract", "vulkan-info", "--root", REMOTE, "--output",
+                f"{remote_results}/vulkan.json"), required=True)
 
     artifacts = args.output / "physics-qualification"
     if artifacts.exists():
@@ -184,29 +211,43 @@ def main():
     shutil.copy2(args.output / "provenance.json", artifacts / "provenance.json")
     shutil.copy2(args.output / "capabilities.json", artifacts / "capabilities.json")
 
-    evaluations = (
-        ("reference-report.json", [str(ROOT / "conformance/v1/compare.py"),
+    reports = args.output / "reports"
+    quality_reports = reports / "quality"
+    lifecycle_reports = reports / "lifecycle"
+    quality_reports.mkdir(parents=True, exist_ok=True)
+    lifecycle_reports.mkdir(parents=True, exist_ok=True)
+    evaluations = [
+        ("reference", "all-cases", reports / "reference.json",
+         [str(ROOT / "conformance/v1/compare.py"),
           "--cases", str(ROOT / "conformance/v1/cases"), "--expected",
-          str(ROOT / "conformance/v1/golden/cuda"), "--actual", str(artifacts / "cases"),
-          "--report", str(args.output / "reference-report.json")]),
-        ("rigid-quality-report.json", [str(ROOT / "conformance/v1/quality.py"),
-          "--profile", str(ROOT / "conformance/v1/quality/rigid-brick-penetration-v1.json"),
-          "--actual", str(artifacts / "quality/rigid-brick-penetration-v1.json"),
-          "--report", str(args.output / "rigid-quality-report.json")]),
-        ("fluid-quality-report.json", [str(ROOT / "conformance/v1/quality.py"),
-          "--actual", str(artifacts / "quality/core-conservation-stability-v1.json"),
-          "--report", str(args.output / "fluid-quality-report.json")]),
-        ("lifecycle-report.json", [str(ROOT / "conformance/v1/lifecycle.py"),
-          "--actual", str(artifacts / "lifecycle/adverse-capacity-three-family-v1.json"),
-          "--report", str(args.output / "lifecycle-report.json")]),
-    )
+          str(ROOT / "conformance/v1/golden/cuda"), "--actual",
+          str(artifacts / "cases"), "--report", str(reports / "reference.json")]),
+    ]
+    for profile in quality_profiles:
+        report = quality_reports / f"{profile}.json"
+        evaluations.append((
+            "quality", profile, report,
+            [str(ROOT / "conformance/v1/quality.py"),
+             "--profile", str(ROOT / f"conformance/v1/quality/{profile}.json"),
+             "--actual", str(artifacts / f"quality/{profile}.json"),
+             "--report", str(report)]))
+    for profile in lifecycle_profiles:
+        report = lifecycle_reports / f"{profile}.json"
+        evaluations.append((
+            "lifecycle", profile, report,
+            [str(ROOT / "conformance/v1/lifecycle.py"),
+             "--profile", str(ROOT / f"conformance/v1/lifecycle/{profile}.json"),
+             "--actual", str(artifacts / f"lifecycle/{profile}.json"),
+             "--report", str(report)]))
     evaluation_results = []
-    for name, command in evaluations:
+    for kind, profile, report, command in evaluations:
         result = subprocess.run([shutil.which("python3") or "python3", *command],
                                 capture_output=True, text=True)
-        (args.output / (name + ".log")).write_text(result.stdout + result.stderr)
-        evaluation_results.append({"report": name, "returncode": result.returncode,
-                                   "passed": result.returncode == 0})
+        report.with_suffix(".log").write_text(result.stdout + result.stderr)
+        evaluation_results.append({
+            "kind": kind, "profile": profile,
+            "report": str(report.relative_to(args.output)),
+            "returncode": result.returncode, "passed": result.returncode == 0})
 
     def prop(name):
         return subprocess.run(adb + ["shell", "getprop", name], check=True,
@@ -252,6 +293,11 @@ def main():
     }
     (args.output / "capture.json").write_text(json.dumps(capture, indent=2) + "\n")
     print(f"Capture written to {args.output / 'capture.json'}", flush=True)
+    failed_runs = [record for record in results if not record["passed"]]
+    if failed_runs:
+        print(f"{len(failed_runs)} device execution(s) failed; capture retained",
+              flush=True)
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
