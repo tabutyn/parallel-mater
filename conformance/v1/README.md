@@ -45,6 +45,13 @@ capacity and a three-family liquid/rope/soft-body graph beside an unrelated
 smoke/cloth edge. These operation-sequence cases compare state within one run;
 they do not use CUDA trajectory goldens.
 
+The smoke lifecycle profile independently exercises particle and grid smoke at
+their exact declared capacities. A single public-API sequence proves
+replacement, atomic particle/grid capacity rejection, removal, and
+deterministic recovery. The smoke self-viscosity quality profile pairs control
+and viscous public outputs for both representations and checks relative-motion
+dissipation, bounded energy, impulse residual, and authored speed limits.
+
 ## Validation tools
 
 `parallel-mater-conformance` loads every canonical case through the shared
@@ -220,6 +227,20 @@ PM_DRIVER_FILES=<build>/manifests/slang-cuda.json \
 python3 conformance/v1/lifecycle.py \
   --actual /path/to/adverse-capacity-three-family-v1.json \
   --report /path/to/lifecycle-report.json
+```
+
+Select the smoke-specific contract without changing platform code:
+
+```text
+PM_DRIVER_FILES=<build>/manifests/slang-metal.json \
+  <build>/parallel-mater-conformance \
+  --lifecycle-profile smoke-self-lifecycle-v1 \
+  --output /path/to/smoke-self-lifecycle-v1.json
+
+python3 conformance/v1/lifecycle.py \
+  --profile conformance/v1/lifecycle/smoke-self-lifecycle-v1.json \
+  --actual /path/to/smoke-self-lifecycle-v1.json \
+  --report /path/to/smoke-self-lifecycle-report.json
 ```
 
 For an installed SDK, pass its installed corpus root explicitly:

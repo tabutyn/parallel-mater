@@ -13,6 +13,9 @@ add_library(parallel-mater-conformance-runner STATIC
     src/command_runner.cpp
     src/case_registry.cpp
     src/rigid_quality.cpp
+    src/rope_quality.cpp
+    src/smoke_quality.cpp
+    src/smoke_lifecycle_fixture.cpp
     src/lifecycle_fixtures.cpp
     src/capacity_recovery_fixture.cpp
     src/interaction_graph_lifecycle_fixture.cpp

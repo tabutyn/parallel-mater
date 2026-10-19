@@ -144,6 +144,27 @@ def rigid_attachment_result(profile: dict) -> dict:
     return result
 
 
+def smoke_viscosity_result(profile: dict) -> dict:
+    result = valid_equal_fluid_result(profile)
+    result["advertised_capabilities"] = [
+        capability("SMOKE", "SMOKE", "SELF", "VISCOSITY",
+                   "BIDIRECTIONAL", material, "not-applicable")
+        for material in ("SMOKE_PARTICLE", "SMOKE_GRID")
+    ]
+    lifecycle_contract = (
+        "lifecycle:smoke-self-lifecycle-v1#"
+        "smoke-capacity-replacement-removal-rollback")
+    quality_contract = "quality:smoke-self-viscosity-v1"
+    result["evidence"] = [
+        evidence(profile, "compilation", "registry:interaction-capabilities"),
+        evidence(profile, "execution", "case:smoke-grid"),
+        evidence(profile, "reference_regression", "case:smoke-grid"),
+        evidence(profile, "lifecycle_invariants", lifecycle_contract),
+        evidence(profile, "analytic_invariants", quality_contract),
+    ]
+    return result
+
+
 class QualificationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -255,6 +276,21 @@ class QualificationTests(unittest.TestCase):
                               "lifecycle_invariants", "analytic_invariants"):
                     self.assertEqual(
                         capability_report["scopes"][scope]["status"], "passed")
+
+    def test_smoke_viscosity_profiles_share_complete_exact_obligations(self):
+        report = self.evaluate(smoke_viscosity_result(self.profile))
+        self.assertTrue(report["passed"], report)
+        self.assertEqual(report["qualified_count"], 2)
+        self.assertEqual(
+            {item["key"]["material_profile"] for item in report["capabilities"]},
+            {"SMOKE_PARTICLE", "SMOKE_GRID"})
+        for capability_report in report["capabilities"]:
+            self.assertEqual(capability_report["rule_id"],
+                             "smoke-self-viscosity")
+            for scope in ("execution", "reference_regression",
+                          "lifecycle_invariants", "analytic_invariants"):
+                self.assertEqual(
+                    capability_report["scopes"][scope]["status"], "passed")
 
     def test_stale_contract_source_and_artifact_metadata_fail(self):
         result = valid_equal_fluid_result(self.profile)

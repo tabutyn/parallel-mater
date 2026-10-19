@@ -29,6 +29,8 @@ FLUID_SELF_VISCOSITY_PROFILE_PATH = (
     ROOT / "quality" / "fluid-self-viscosity-v1.json")
 ROPE_SELF_CONTACT_PROFILE_PATH = (
     ROOT / "quality" / "rope-self-contact-v1.json")
+SMOKE_SELF_VISCOSITY_PROFILE_PATH = (
+    ROOT / "quality" / "smoke-self-viscosity-v1.json")
 
 
 def particle(identity: int) -> dict:
@@ -225,6 +227,156 @@ class QualityTests(unittest.TestCase):
         result = valid_result(self.profile)
         result.pop("driver")
         self.assert_rejected(result, "driver name and device are required")
+
+
+class SmokeSelfViscosityQualityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.profile = json.loads(
+            SMOKE_SELF_VISCOSITY_PROFILE_PATH.read_text(encoding="utf-8"))
+        cls.digest = quality.profile_sha256(
+            SMOKE_SELF_VISCOSITY_PROFILE_PATH)
+
+    @staticmethod
+    def particle(slot: int, velocity: list[float]) -> dict:
+        return {
+            "slot": slot,
+            "position_m": [0.01 * slot, 0.0, 0.0],
+            "velocity_m_s": velocity,
+            "age_seconds": 0.25 + 0.01 * slot,
+            "number_density": 1.0,
+            "pressure_m_s2": 0.0,
+            "vorticity_per_s": [0.0, 0.0, 0.0],
+        }
+
+    def make_run(self, identity: str, initial: list[list[float]],
+                 final: list[list[float]]) -> dict:
+        return {
+            "id": identity,
+            "initial_particles": [
+                self.particle(slot, velocity)
+                for slot, velocity in enumerate(initial)
+            ],
+            "final_particles": [
+                self.particle(slot, velocity)
+                for slot, velocity in enumerate(final)
+            ],
+        }
+
+    def valid_result(self) -> dict:
+        fixtures = []
+        for definition in self.profile["fixtures"]:
+            fixture = copy.deepcopy(definition)
+            count = fixture["expected_particle_count"]
+            if fixture["representation"] == "SMOKE_PARTICLE":
+                control_initial = [[-1.0, 0.0, 0.0],
+                                   [1.0, 0.0, 0.0]]
+                control_final = copy.deepcopy(control_initial)
+                viscous_initial = copy.deepcopy(control_initial)
+                viscous_final = [[-0.5, 0.0, 0.0],
+                                 [0.5, 0.0, 0.0]]
+            else:
+                control_initial = [[0.5 * slot, 0.0, 0.0]
+                                   for slot in range(count)]
+                control_final = copy.deepcopy(control_initial)
+                mean = 0.5 * (count - 1) / 2.0
+                viscous_initial = copy.deepcopy(control_initial)
+                viscous_final = [[mean + 0.1 * (slot - (count - 1) / 2.0),
+                                  0.0, 0.0]
+                                 for slot in range(count)]
+            fixture["runs"] = [
+                self.make_run("control", control_initial, control_final),
+                self.make_run("viscous", viscous_initial, viscous_final),
+            ]
+            fixtures.append(fixture)
+        return {
+            "schema": quality.RESULT_SCHEMA,
+            "profile_id": self.profile["id"],
+            "profile_sha256": self.digest,
+            "execution_status": "completed",
+            "driver": {"name": "test-driver", "device": "test-device"},
+            "fixtures": fixtures,
+        }
+
+    def evaluate(self, result: dict) -> dict:
+        return quality.evaluate(self.profile, result, self.digest)
+
+    def assert_rejected(self, result: dict, message: str) -> None:
+        report = self.evaluate(result)
+        self.assertFalse(report["passed"])
+        self.assertTrue(any(message in failure["message"]
+                            for failure in report["failures"]), report)
+
+    def test_particle_and_grid_damping_pass(self):
+        report = self.evaluate(self.valid_result())
+        self.assertTrue(report["passed"], report)
+        self.assertEqual(report["fixture_count"], 2)
+        self.assertEqual(report["sample_count"], 2)
+        for observation in report["observations"].values():
+            self.assertGreater(
+                observation[
+                    "relative_specific_energy_reduction_fraction"], 0.01)
+
+    def test_fixture_inputs_and_run_set_are_exact(self):
+        result = self.valid_result()
+        result["fixtures"][0]["particle_radius_m"] = 0.2
+        self.assert_rejected(result, "fixture setting differs from profile")
+
+        result = self.valid_result()
+        result["fixtures"][0]["runs"].pop()
+        self.assert_rejected(result, "expected exactly control and viscous runs")
+
+    def test_missing_activity_and_damping_fail(self):
+        result = self.valid_result()
+        viscous = result["fixtures"][0]["runs"][1]
+        for particle in viscous["initial_particles"]:
+            particle["velocity_m_s"] = [0.0, 0.0, 0.0]
+        self.assert_rejected(result,
+                             "initial smoke relative motion is too small")
+
+        result = self.valid_result()
+        viscous = result["fixtures"][0]["runs"][1]
+        viscous["final_particles"] = copy.deepcopy(
+            result["fixtures"][0]["runs"][0]["final_particles"])
+        self.assert_rejected(result,
+                             "did not dissipate relative motion")
+
+    def test_energy_growth_and_mean_velocity_residual_fail(self):
+        result = self.valid_result()
+        viscous = result["fixtures"][0]["runs"][1]
+        viscous["final_particles"][0]["velocity_m_s"] = [-2.0, 0.0, 0.0]
+        viscous["final_particles"][1]["velocity_m_s"] = [2.0, 0.0, 0.0]
+        self.assert_rejected(result,
+                             "increased specific kinetic energy")
+
+        result = self.valid_result()
+        viscous = result["fixtures"][0]["runs"][1]
+        for particle in viscous["final_particles"]:
+            particle["velocity_m_s"][1] += 0.01
+        self.assert_rejected(result,
+                             "unexplained mean-velocity change")
+
+    def test_grid_control_delta_is_required(self):
+        result = self.valid_result()
+        viscous = result["fixtures"][1]["runs"][1]
+        for particle in viscous["final_particles"]:
+            particle["velocity_m_s"][1] += 0.2
+        self.assert_rejected(result,
+                             "unexplained mean-velocity change")
+
+    def test_particle_count_slot_and_finite_state_are_required(self):
+        result = self.valid_result()
+        result["fixtures"][1]["runs"][0]["final_particles"].pop()
+        self.assert_rejected(result, "sampled smoke slots changed")
+
+        result = self.valid_result()
+        result["fixtures"][0]["runs"][0]["initial_particles"][1]["slot"] = 0
+        self.assert_rejected(result, "duplicate smoke slot")
+
+        result = self.valid_result()
+        result["fixtures"][0]["runs"][0]["initial_particles"][0][
+            "velocity_m_s"][0] = float("nan")
+        self.assert_rejected(result, "expected three finite components")
 
 
 class RigidPenetrationQualityTests(unittest.TestCase):

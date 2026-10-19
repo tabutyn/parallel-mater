@@ -1079,13 +1079,15 @@ void copy_particle_state(const std::vector<State> &states,
             valid = false;
         }
     }
-    constexpr std::array<std::pair<std::string_view, std::string_view>, 8U>
+    constexpr std::array<std::pair<std::string_view, std::string_view>, 10U>
         pinned_inputs{{
             {"quality profile", "conformance/v1/quality/core-conservation-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-attachment-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-brick-penetration-v1.json"},
             {"quality profile", "conformance/v1/quality/rigid-kinematic-sweep-v1.json"},
+            {"quality profile", "conformance/v1/quality/smoke-self-viscosity-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/adverse-capacity-three-family-v1.json"},
+            {"lifecycle profile", "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json"},
             {"qualification profile",
              "conformance/v1/qualification/capability-obligations-v1.json"},
             {"evidence sources", "conformance/v1/evidence/evidence-sources-v1.json"},
@@ -1248,9 +1250,9 @@ struct Arguments {
     bool check{};
     bool provenance{};
     bool capabilities{};
-    bool lifecycle{};
     bool every_frame{};
     std::string case_id{};
+    std::string lifecycle_id{};
     std::string quality_id{};
     std::filesystem::path output{};
     std::filesystem::path root{PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT};
@@ -1264,7 +1266,10 @@ struct Arguments {
         else if (argument == "--check-inputs") result.check = true;
         else if (argument == "--provenance") result.provenance = true;
         else if (argument == "--capabilities") result.capabilities = true;
-        else if (argument == "--lifecycle") result.lifecycle = true;
+        else if (argument == "--lifecycle")
+            result.lifecycle_id = "adverse-capacity-three-family-v1";
+        else if (argument == "--lifecycle-profile" && index + 1 < argc)
+            result.lifecycle_id = argv[++index];
         else if (argument == "--every-frame") result.every_frame = true;
         else if (argument == "--case" && index + 1 < argc)
             result.case_id = argv[++index];
@@ -1280,15 +1285,15 @@ struct Arguments {
         static_cast<unsigned>(result.check) +
         static_cast<unsigned>(result.provenance) +
         static_cast<unsigned>(result.capabilities) +
-        static_cast<unsigned>(result.lifecycle) +
+        static_cast<unsigned>(!result.lifecycle_id.empty()) +
         static_cast<unsigned>(!result.case_id.empty()) +
         static_cast<unsigned>(!result.quality_id.empty());
     if (modes != 1U)
         throw std::runtime_error("choose exactly one of --list, --check-inputs, "
                                  "--provenance, --capabilities, --lifecycle, "
-                                 "--case, or --quality");
-    if (result.lifecycle && result.output.empty())
-        throw std::runtime_error("--lifecycle requires --output");
+                                 "--lifecycle-profile, --case, or --quality");
+    if (!result.lifecycle_id.empty() && result.output.empty())
+        throw std::runtime_error("lifecycle execution requires --output");
     if (!result.case_id.empty() && result.output.empty())
         throw std::runtime_error("--case requires --output");
     if (!result.quality_id.empty() && result.output.empty())
@@ -1365,10 +1370,18 @@ int conformance_command_main(int argc, char **argv) {
             std::cout << conformance_advertised_capabilities(root);
             return 0;
         }
-        if (arguments.lifecycle) {
+        if (!arguments.lifecycle_id.empty()) {
             ExecutionStatus status{};
-            write_file(arguments.output,
-                       conformance_adverse_lifecycle(root, &status));
+            std::string result;
+            if (arguments.lifecycle_id == "adverse-capacity-three-family-v1")
+                result = conformance_adverse_lifecycle(root, &status);
+            else if (arguments.lifecycle_id == "smoke-self-lifecycle-v1")
+                result = conformance_smoke_lifecycle(root, &status);
+            else
+                throw std::runtime_error(
+                    "unknown conformance lifecycle profile: " +
+                    arguments.lifecycle_id);
+            write_file(arguments.output, result);
             return status == ExecutionStatus::failed ? 2
                 : status == ExecutionStatus::unsupported ? 77 : 0;
         }
@@ -1379,7 +1392,10 @@ int conformance_command_main(int argc, char **argv) {
                 "rigid-attachment-v1";
             const bool rope_self_contact = arguments.quality_id ==
                 "rope-self-contact-v1";
-            if (!brick && !attachment && !rope_self_contact)
+            const bool smoke_self_viscosity = arguments.quality_id ==
+                "smoke-self-viscosity-v1";
+            if (!brick && !attachment && !rope_self_contact &&
+                !smoke_self_viscosity)
                 throw std::runtime_error(
                     "unknown conformance quality profile: " +
                     arguments.quality_id);
@@ -1389,8 +1405,10 @@ int conformance_command_main(int argc, char **argv) {
                     result = conformance_rigid_brick_quality(root);
                 } else if (attachment) {
                     result = conformance_rigid_attachment_quality(root);
-                } else {
+                } else if (rope_self_contact) {
                     result = conformance_rope_self_contact_quality(root);
+                } else {
+                    result = conformance_smoke_self_viscosity_quality(root);
                 }
             } catch (const std::exception &error) {
                 Json failure = Json::object();
