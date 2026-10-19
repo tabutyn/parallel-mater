@@ -118,6 +118,16 @@
       "sha256": "a562a97b27f09a40b04baf443630af704e1ce1e28ed8fe0e76f309ea6bb6b351"
     },
     {
+      "id": "linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-grid",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-grid-qualification.json",
+      "sha256": "7d4e387bb97adad3d8ad0561973e0f55e760dd28d3f3e89e576bcc658f739205"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-particle",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-particle-qualification.json",
+      "sha256": "893d457096f2e7cc83d2fd011fc03889b6ebb6e09d5dbe5648c0a4708a8d5251"
+    },
+    {
       "id": "linux-rtx3050ti-slang-vulkan-eed669e",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-qualification.json",
       "sha256": "040b04c96c547304c9609366c891eb22ae019f75e1dafc05591a0a0658cf6b1b"
