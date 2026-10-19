@@ -881,7 +881,7 @@
         "second_family": "CLOTH"
       },
       "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
       "rule_id": "fluid-cloth-contact",
       "scopes": {
@@ -2078,11 +2078,13 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-drag-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-fluid-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2097,8 +2099,61 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
           "contracts": [],
-          "status": "missing_contract"
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_GRID",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
+      "qualified": true,
+      "report": "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid",
+      "rule_id": "fluid-smoke-drag-grid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:smoke-fluid-drag-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -2125,11 +2180,13 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-drag-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-fluid-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2144,8 +2201,10 @@
           "status": "failed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -2172,11 +2231,13 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-drag-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-fluid-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2191,8 +2252,61 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
           "contracts": [],
-          "status": "missing_contract"
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-cuda",
+      "key": {
+        "direction": "SECOND_TO_FIRST",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
+      "qualified": true,
+      "report": "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
+      "rule_id": "fluid-smoke-drag-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:smoke-fluid-drag-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
         },
         "reference_regression": {
           "contracts": [
@@ -2219,11 +2333,13 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-drag-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-fluid-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -2238,8 +2354,10 @@
           "status": "failed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -2266,7 +2384,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_GRID",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-phase-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -2313,7 +2431,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_GRID",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-phase-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -2360,7 +2478,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_PARTICLE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-phase-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -2407,7 +2525,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_PARTICLE",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-phase-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -2454,7 +2572,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_GRID",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-thermal-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -2501,7 +2619,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_GRID",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-thermal-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -2548,7 +2666,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-cuda-eed669e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-thermal-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -2595,7 +2713,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "windows-gtx1080-slang-cuda-2b04e55",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-thermal-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -5172,7 +5290,7 @@
         "second_family": "CLOTH"
       },
       "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact",
       "rule_id": "fluid-cloth-contact",
       "scopes": {
@@ -6442,7 +6560,7 @@
         "second_family": "CLOTH"
       },
       "key_text": "FLUID/CLOTH/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "macos-m4-slang-metal-86f10b2-fluid-cloth-containment",
       "rule_id": "fluid-cloth-containment",
       "scopes": {
@@ -7138,11 +7256,13 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-drag-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-fluid-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7157,8 +7277,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -7185,11 +7307,13 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-drag-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-fluid-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7204,8 +7328,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -7232,11 +7358,13 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-drag-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-fluid-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -7251,8 +7379,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -7279,7 +7409,58 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-drag-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:smoke-fluid-drag-v1"
+          ],
+          "status": "missing_evidence"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "invalid"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-water"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    },
+    {
+      "driver": "slang-metal",
+      "key": {
+        "direction": "FIRST_TO_SECOND_TRANSFER",
+        "first_family": "FLUID",
+        "material_profile": "SMOKE_GRID",
+        "mode": "PHASE",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "SMOKE"
+      },
+      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_GRID",
+      "qualified": false,
+      "report": "ipados-m1-slang-metal-9f7e72e",
+      "rule_id": "fluid-smoke-phase-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -7325,55 +7506,8 @@
       },
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_GRID",
       "qualified": false,
-      "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "fluid-smoke",
-      "scopes": {
-        "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "compilation": {
-          "contracts": [
-            "registry:interaction-capabilities"
-          ],
-          "status": "invalid"
-        },
-        "execution": {
-          "contracts": [
-            "case:smoke-water"
-          ],
-          "status": "passed"
-        },
-        "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
-        },
-        "reference_regression": {
-          "contracts": [
-            "case:smoke-water"
-          ],
-          "status": "passed"
-        },
-        "timing": {
-          "contracts": [],
-          "status": "optional"
-        }
-      }
-    },
-    {
-      "driver": "slang-metal",
-      "key": {
-        "direction": "FIRST_TO_SECOND_TRANSFER",
-        "first_family": "FLUID",
-        "material_profile": "SMOKE_GRID",
-        "mode": "PHASE",
-        "scope": "DISTINCT_FAMILY",
-        "second_family": "SMOKE"
-      },
-      "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_GRID",
-      "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-phase-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -7420,7 +7554,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_PARTICLE",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-phase-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -7467,7 +7601,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_PARTICLE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-phase-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -7514,7 +7648,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_GRID",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-thermal-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -7561,7 +7695,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_GRID",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-thermal-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -7608,7 +7742,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "ipados-m1-slang-metal-9f7e72e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-thermal-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -7655,7 +7789,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "macos-m4-slang-metal-aac6d59",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-thermal-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -7751,7 +7885,7 @@
         "second_family": "SOFT_BODY"
       },
       "key_text": "FLUID/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
-      "qualified": true,
+      "qualified": false,
       "report": "macos-m4-slang-metal-86f10b2-fluid-soft-contact",
       "rule_id": "fluid-soft-body",
       "scopes": {
@@ -9366,7 +9500,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_GRID",
-      "qualified": true,
+      "qualified": false,
       "report": "macos-m4-slang-metal-86f10b2-smoke-viscosity",
       "rule_id": "smoke-self-viscosity",
       "scopes": {
@@ -9519,7 +9653,7 @@
         "second_family": "SMOKE"
       },
       "key_text": "SMOKE/SMOKE/SELF/VISCOSITY/BIDIRECTIONAL/SMOKE_PARTICLE",
-      "qualified": true,
+      "qualified": false,
       "report": "macos-m4-slang-metal-86f10b2-smoke-viscosity",
       "rule_id": "smoke-self-viscosity",
       "scopes": {
@@ -11020,11 +11154,13 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-drag-grid",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-fluid-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11039,8 +11175,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11067,11 +11205,13 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-drag-particle",
       "scopes": {
         "analytic_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "quality:smoke-fluid-drag-v1"
+          ],
+          "status": "missing_evidence"
         },
         "compilation": {
           "contracts": [
@@ -11086,8 +11226,10 @@
           "status": "passed"
         },
         "lifecycle_invariants": {
-          "contracts": [],
-          "status": "missing_contract"
+          "contracts": [
+            "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "missing_evidence"
         },
         "reference_regression": {
           "contracts": [
@@ -11114,7 +11256,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_GRID",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-phase-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -11161,7 +11303,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/PHASE/FIRST_TO_SECOND_TRANSFER/SMOKE_PARTICLE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-phase-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -11208,7 +11350,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_GRID",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-thermal-grid",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -11255,7 +11397,7 @@
       "key_text": "FLUID/SMOKE/DISTINCT_FAMILY/THERMAL/EXTERNAL_TO_FIRST/SMOKE_PARTICLE",
       "qualified": false,
       "report": "linux-rtx3050ti-slang-vulkan-eed669e",
-      "rule_id": "fluid-smoke",
+      "rule_id": "fluid-smoke-thermal-particle",
       "scopes": {
         "analytic_invariants": {
           "contracts": [],
@@ -12507,7 +12649,7 @@
       }
     }
   ],
-  "capability_count": 257,
+  "capability_count": 259,
   "driver_count": 5,
   "drivers": [
     {
@@ -12530,18 +12672,22 @@
         "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
         "linux-rtx3050ti-slang-cuda-eed669e",
         "windows-gtx1080-slang-cuda-2b04e55",
-        "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact"
+        "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
+        "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
+        "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid"
       ],
-      "qualified_capability_count": 1,
+      "qualified_capability_count": 2,
       "report_ids": [
         "linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17",
         "linux-rtx3050ti-slang-cuda-eed669e",
         "windows-gtx1080-slang-cuda-2b04e55",
         "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
+        "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
+        "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid",
         "windows-gtx1080-physics-2026-10-16"
       ],
       "status": "qualified",
-      "unqualified_capability_count": 101
+      "unqualified_capability_count": 102
     },
     {
       "id": "slang-d3d12",
@@ -12550,14 +12696,14 @@
         "windows-gtx1080-slang-d3d12-2b04e55",
         "windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact"
       ],
-      "qualified_capability_count": 1,
+      "qualified_capability_count": 0,
       "report_ids": [
         "windows-gtx1080-slang-d3d12-2b04e55",
         "windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact",
         "windows-gtx1080-physics-2026-10-16"
       ],
-      "status": "qualified",
-      "unqualified_capability_count": 10
+      "status": "unqualified",
+      "unqualified_capability_count": 11
     },
     {
       "id": "slang-vulkan",
@@ -12582,7 +12728,7 @@
         "macos-m4-slang-metal-aac6d59",
         "macos-m4-slang-metal-86f10b2-smoke-viscosity"
       ],
-      "qualified_capability_count": 4,
+      "qualified_capability_count": 0,
       "report_ids": [
         "ipados-m1-slang-metal-9f7e72e",
         "macos-m4-slang-metal-86f10b2-fluid-cloth-containment",
@@ -12590,8 +12736,8 @@
         "macos-m4-slang-metal-aac6d59",
         "macos-m4-slang-metal-86f10b2-smoke-viscosity"
       ],
-      "status": "qualified",
-      "unqualified_capability_count": 92
+      "status": "unqualified",
+      "unqualified_capability_count": 96
     }
   ],
   "known_failures": [
@@ -12643,7 +12789,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cpu",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -13197,20 +13343,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "quality:smoke-fluid-drag-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[17].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "quality:smoke-fluid-drag-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[17].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -13242,20 +13388,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[17].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[17].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -13269,7 +13415,7 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No externally heated fluid particle-smoke quality profile is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13278,7 +13424,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No externally heated fluid particle-smoke quality profile is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13314,7 +13460,7 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke particle thermal graph case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13323,7 +13469,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke particle thermal graph case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13341,7 +13487,7 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No fluid-to-particle-smoke phase quality profile is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13350,7 +13496,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No fluid-to-particle-smoke phase quality profile is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13386,7 +13532,7 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke particle phase graph case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13395,7 +13541,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke particle phase graph case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13476,20 +13622,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "quality:smoke-fluid-drag-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[20].analytic_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "quality:smoke-fluid-drag-v1",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[20].analytic_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -13521,20 +13667,20 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[20].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[20].lifecycle_invariants",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
@@ -13548,7 +13694,7 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No externally heated fluid grid-smoke quality profile is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13557,7 +13703,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No externally heated fluid grid-smoke quality profile is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13593,7 +13739,7 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke grid thermal graph case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13602,7 +13748,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke grid thermal graph case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13620,7 +13766,7 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No fluid-to-grid-smoke phase quality profile is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13629,7 +13775,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No fluid-to-grid-smoke phase quality profile is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13665,7 +13811,7 @@
       "report": "windows-gtx1080-slang-cuda-2b04e55"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke grid phase graph case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -13674,7 +13820,7 @@
       "report": "linux-rtx3050ti-slang-cuda-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke grid phase graph case is registered.",
       "driver": "slang-cuda",
       "expected": null,
       "kind": "qualification_failure",
@@ -15746,7 +15892,7 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15755,7 +15901,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-cuda",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -15764,11 +15910,20 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-cuda",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "windows-gtx1080-slang-cuda-2b04e55"
+    },
+    {
+      "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "driver": "slang-cuda",
+      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact"
     },
     {
       "case": "cloth-tear",
@@ -16158,11 +16313,20 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-d3d12",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "windows-gtx1080-slang-d3d12-2b04e55"
+    },
+    {
+      "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "driver": "slang-d3d12",
+      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact"
     },
     {
       "case": "parallel-mater-d3d12-coupling-lifecycle-tests",
@@ -16458,20 +16622,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "quality:smoke-fluid-drag-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[14].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "quality:smoke-fluid-drag-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[14].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -16494,25 +16658,25 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[14].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[14].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No externally heated fluid particle-smoke quality profile is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16521,7 +16685,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No externally heated fluid particle-smoke quality profile is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16548,7 +16712,7 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke particle thermal graph case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16557,7 +16721,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke particle thermal graph case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16566,7 +16730,7 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No fluid-to-particle-smoke phase quality profile is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16575,7 +16739,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No fluid-to-particle-smoke phase quality profile is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16602,7 +16766,7 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke particle phase graph case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16611,7 +16775,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke particle phase graph case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16620,20 +16784,20 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "quality:smoke-fluid-drag-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[17].analytic_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "quality:smoke-fluid-drag-v1",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[17].analytic_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
@@ -16656,25 +16820,25 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[17].lifecycle_invariants",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[17].lifecycle_invariants",
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No externally heated fluid grid-smoke quality profile is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16683,7 +16847,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No externally heated fluid grid-smoke quality profile is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16710,7 +16874,7 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke grid thermal graph case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16719,7 +16883,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke grid thermal graph case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16728,7 +16892,7 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No fluid-to-grid-smoke phase quality profile is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16737,7 +16901,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No fluid-to-grid-smoke phase quality profile is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16764,7 +16928,7 @@
       "report": "macos-m4-slang-metal-aac6d59"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke grid phase graph case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -16773,7 +16937,7 @@
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke grid phase graph case is registered.",
       "driver": "slang-metal",
       "expected": null,
       "kind": "qualification_failure",
@@ -18818,20 +18982,47 @@
     {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "ipados-m1-slang-metal-9f7e72e"
     },
     {
+      "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "driver": "slang-metal",
+      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "macos-m4-slang-metal-86f10b2-fluid-cloth-containment"
+    },
+    {
+      "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "driver": "slang-metal",
+      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "macos-m4-slang-metal-86f10b2-fluid-soft-contact"
+    },
+    {
       "actual": "a2d7fd76f335556d512acdd4c6d8ae6ac0756d2298de191d0311c7a3aaf9945e",
       "driver": "slang-metal",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
       "report": "macos-m4-slang-metal-aac6d59"
+    },
+    {
+      "actual": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "driver": "slang-metal",
+      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
+      "kind": "qualification_failure",
+      "message": "obligations hash mismatch",
+      "path": "$.obligations_sha256",
+      "report": "macos-m4-slang-metal-86f10b2-smoke-viscosity"
     },
     {
       "actual": "quality:fluid-self-contact-v1",
@@ -18969,11 +19160,11 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "quality:smoke-fluid-drag-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[14].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -18987,16 +19178,16 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "lifecycle:smoke-fluid-drag-lifecycle-v1#particle-smoke-fluid-drag-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[14].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No externally heated fluid particle-smoke quality profile is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -19014,7 +19205,7 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke particle thermal graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -19023,7 +19214,7 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No fluid-to-particle-smoke phase quality profile is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -19041,7 +19232,7 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke particle phase graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -19050,11 +19241,11 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "quality:smoke-fluid-drag-v1",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[17].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
@@ -19068,16 +19259,16 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "lifecycle:smoke-fluid-drag-lifecycle-v1#grid-smoke-fluid-drag-capacity-replacement-removal-rollback",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
-      "message": "qualification contract is missing",
+      "message": "required evidence is missing",
       "path": "$.advertised_capabilities[17].lifecycle_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No externally heated fluid grid-smoke quality profile is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -19095,7 +19286,7 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke grid thermal graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -19104,7 +19295,7 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No mode-specific fluid-smoke drag, thermal or phase quality profile is registered.",
+      "actual": "No fluid-to-grid-smoke phase quality profile is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -19122,7 +19313,7 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
-      "actual": "No exact fluid-smoke adverse graph case is registered.",
+      "actual": "No exact fluid-smoke grid phase graph case is registered.",
       "driver": "slang-vulkan",
       "expected": null,
       "kind": "qualification_failure",
@@ -20141,7 +20332,7 @@
     {
       "actual": "44c10b6cc7221b931e4abde79a3e016a0a4e9071842593995ce1a8c334f3161e",
       "driver": "slang-vulkan",
-      "expected": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+      "expected": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
       "path": "$.obligations_sha256",
@@ -20149,10 +20340,10 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "af86bfd42abcd797e3143fc78a8d4228f5573b08fd9f4c0cc16a78786260145a",
+  "obligations_sha256": "38d9877c2b48a9e4f62027d7d0106c56dd51c15d181fc23970177b6707f8a5ee",
   "qualification_complete": true,
-  "qualified_capability_count": 6,
-  "report_count": 15,
+  "qualified_capability_count": 2,
+  "report_count": 17,
   "reports": [
     {
       "capability_count": 46,
@@ -20313,11 +20504,11 @@
         "name": "slang-metal",
         "version": "0.2.0+86f10b2"
       },
-      "failure_count": 0,
+      "failure_count": 1,
       "id": "macos-m4-slang-metal-86f10b2-fluid-cloth-containment",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-cloth-containment-qualification.json",
-      "qualified_count": 1,
+      "qualified_count": 0,
       "sha256": "e80c110bc63b6e9361ba8a6b2eecc6425ad69a9ef680f9a57f60d66cdad192f4",
       "source": {
         "commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
@@ -20327,7 +20518,7 @@
         "compiler": "Apple Clang, Slang Metal",
         "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 1,
@@ -20342,11 +20533,11 @@
         "name": "slang-metal",
         "version": "0.2.0+86f10b2"
       },
-      "failure_count": 0,
+      "failure_count": 1,
       "id": "macos-m4-slang-metal-86f10b2-fluid-soft-contact",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-soft-contact-qualification.json",
-      "qualified_count": 1,
+      "qualified_count": 0,
       "sha256": "24f09df70e656a5d5954a1a2160a07d05a33ceb744354bf6bb8a1e3731648389",
       "source": {
         "commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
@@ -20356,7 +20547,7 @@
         "compiler": "Apple Clang, Slang Metal",
         "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 2,
@@ -20371,11 +20562,11 @@
         "name": "slang-metal",
         "version": "0.2.0+86f10b2"
       },
-      "failure_count": 0,
+      "failure_count": 1,
       "id": "macos-m4-slang-metal-86f10b2-smoke-viscosity",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-smoke-viscosity-qualification.json",
-      "qualified_count": 2,
+      "qualified_count": 0,
       "sha256": "14a73a0cd8258e62ce65ed16f526577de68cdc780fd982e11a875e5c50b77651",
       "source": {
         "commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
@@ -20385,7 +20576,7 @@
         "compiler": "Apple Clang, Slang Metal",
         "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 46,
@@ -20485,6 +20676,64 @@
       "validated": true
     },
     {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "13000 (NVIDIA 582.66)",
+        "name": "NVIDIA GeForce GTX 1080",
+        "vendor_id": 4318
+      },
+      "driver": {
+        "binary_sha256": "4169d8db9aea6a607fa699f00994eb5a46c9028ea29d714231dd9b3d6812f830",
+        "name": "slang-cuda",
+        "version": "0.2.0+03c78b1"
+      },
+      "failure_count": 0,
+      "id": "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid-qualification.json",
+      "qualified_count": 1,
+      "sha256": "a724b7031fac5e6c0bf04b73cdb170a9b0d919105303ce521b879c4c422a1713",
+      "source": {
+        "commit": "03c78b1f397158d90c7fa7055aa9cda1f966a50c",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "MSVC, CUDA, Slang",
+        "version": "MSVC 19.44.35228.0; CUDA 12.9.86; Slang 2026.18"
+      },
+      "validated": true
+    },
+    {
+      "capability_count": 1,
+      "device": {
+        "device_id": 0,
+        "driver_version": "13000 (NVIDIA 582.66)",
+        "name": "NVIDIA GeForce GTX 1080",
+        "vendor_id": 4318
+      },
+      "driver": {
+        "binary_sha256": "4169d8db9aea6a607fa699f00994eb5a46c9028ea29d714231dd9b3d6812f830",
+        "name": "slang-cuda",
+        "version": "0.2.0+03c78b1"
+      },
+      "failure_count": 0,
+      "id": "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle",
+      "kind": "capability-qualification",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle-qualification.json",
+      "qualified_count": 1,
+      "sha256": "6597fe02bc7111b4a696a8f06bd2ffb396251d9f4e989ac77d973176e7bf3c95",
+      "source": {
+        "commit": "03c78b1f397158d90c7fa7055aa9cda1f966a50c",
+        "dirty": false
+      },
+      "toolchain": {
+        "compiler": "MSVC, CUDA, Slang",
+        "version": "MSVC 19.44.35228.0; CUDA 12.9.86; Slang 2026.18"
+      },
+      "validated": true
+    },
+    {
       "capability_count": 49,
       "device": {
         "device_id": 0,
@@ -20526,11 +20775,11 @@
         "name": "slang-cuda",
         "version": "0.2.0+5001123"
       },
-      "failure_count": 0,
+      "failure_count": 1,
       "id": "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact-qualification.json",
-      "qualified_count": 1,
+      "qualified_count": 0,
       "sha256": "9259964d2f6ee9e2f1ad27b130fa990835225fbca9b333e776af2f4606a1e034",
       "source": {
         "commit": "50011235a53359c9e3983cb020ef3dbb02e55136",
@@ -20540,7 +20789,7 @@
         "compiler": "MSVC, NVIDIA CUDA Compiler, Slang",
         "version": "MSVC 19.44.35228; CUDA 12.9.86; Slang 2026.18"
       },
-      "validated": true
+      "validated": false
     },
     {
       "capability_count": 10,
@@ -20584,11 +20833,11 @@
         "name": "slang-d3d12",
         "version": "0.2.0+5001123"
       },
-      "failure_count": 0,
+      "failure_count": 1,
       "id": "windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact-qualification.json",
-      "qualified_count": 1,
+      "qualified_count": 0,
       "sha256": "83bcf2d6774892aa5c26b19ee883714af232aafc4b1cb9d0c9048cf2abdb968f",
       "source": {
         "commit": "50011235a53359c9e3983cb020ef3dbb02e55136",
@@ -20598,12 +20847,12 @@
         "compiler": "MSVC, Slang DXIL",
         "version": "MSVC 19.44.35228; Slang 2026.18"
       },
-      "validated": true
+      "validated": false
     }
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "8c3610a07afc002e5d10ced0ae29a55ba9c350f109580dff0423838811129bd5",
+  "sources_sha256": "a2f7a620b2aa43e8876bbd3c3383a9307b3ec007100c6cfc7459e112b3e62be4",
   "valid": true,
   "validation_failures": []
 }

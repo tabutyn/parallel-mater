@@ -1,7 +1,7 @@
 {
   "id": "F5-35",
   "title": "Qualify smoke-to-fluid drag",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,15 +17,29 @@
     "Add exact bounded capacity, replacement, removal and rollback lifecycle checks; a rejected mutation preserves the last usable state and recovery is deterministic.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "b6717a86-24e8-4058-bae7-f5808357bf00",
-    "owner": "codex-windows-qualification",
-    "machine": "windows-gtx1080",
-    "branch": "work/F5-35/windows-gtx1080",
-    "claimed_at": "2026-10-19T01:48:28Z",
-    "heartbeat_at": "2026-10-19T01:48:28Z",
-    "expires_at": "2026-10-20T01:48:28Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: canonical smoke-water completed and matched unchanged CUDA golden; Compute Sanitizer reported 0 errors; docs/roadmap/evidence/F5-35-smoke-fluid-drag.json",
+    "PASS: 4/4 analytic samples, 10/10 lifecycle checkpoints, and both exact particle/grid qualifications; conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle-qualification.json; conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid-qualification.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "b6717a86-24e8-4058-bae7-f5808357bf00",
+        "owner": "codex-windows-qualification",
+        "machine": "windows-gtx1080",
+        "branch": "work/F5-35/windows-gtx1080",
+        "claimed_at": "2026-10-19T01:48:28Z",
+        "heartbeat_at": "2026-10-19T01:48:28Z",
+        "expires_at": "2026-10-20T01:48:28Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T12:12:18Z",
+      "reason": "qualified-smoke-to-fluid-drag-on-physical-gtx1080-after-windows-unified-memory-fix",
+      "evidence": [
+        "PASS: canonical smoke-water completed and matched unchanged CUDA golden; Compute Sanitizer reported 0 errors; docs/roadmap/evidence/F5-35-smoke-fluid-drag.json",
+        "PASS: 4/4 analytic samples, 10/10 lifecycle checkpoints, and both exact particle/grid qualifications; conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle-qualification.json; conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid-qualification.json"
+      ]
+    }
+  ]
 }

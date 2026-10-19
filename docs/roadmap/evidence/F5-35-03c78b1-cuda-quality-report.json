@@ -1,0 +1,40 @@
+{
+  "driver": {
+    "device": "NVIDIA GeForce GTX 1080",
+    "device_id": 0,
+    "driver_version": "13000",
+    "name": "slang-cuda",
+    "vendor_id": 4318
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 2,
+  "observations": {
+    "grid-carrier-drag": {
+      "control_velocity_drift_m_s": 0.0,
+      "drag_velocity_delta_m_s": [
+        0.07036423683166504,
+        0.0,
+        0.0
+      ],
+      "matched_velocity_difference_m_s": 0.0,
+      "maximum_reverse_smoke_state_delta": 0.0
+    },
+    "particle-carrier-drag": {
+      "control_velocity_drift_m_s": 0.0,
+      "drag_velocity_delta_m_s": [
+        0.18126922845840454,
+        0.0,
+        0.0
+      ],
+      "matched_velocity_difference_m_s": 0.0,
+      "maximum_reverse_smoke_state_delta": 0.0
+    }
+  },
+  "passed": true,
+  "profile_id": "smoke-fluid-drag-v1",
+  "profile_sha256": "ef28c4f4446365aa787aac9605098772f00e68f1ebf958b2023b6cafdba1c3e1",
+  "sample_count": 4,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

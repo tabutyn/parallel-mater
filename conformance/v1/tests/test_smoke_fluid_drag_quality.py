@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE_PATH = ROOT / "quality" / "smoke-fluid-drag-v1.json"
+OBLIGATIONS_PATH = ROOT / "qualification" / "capability-obligations-v1.json"
 SPEC = importlib.util.spec_from_file_location("pm_smoke_fluid_quality",
                                               ROOT / "quality.py")
 assert SPEC is not None and SPEC.loader is not None
@@ -111,6 +112,18 @@ class SmokeFluidDragQualityTests(unittest.TestCase):
         self.assertFalse(report["passed"])
         self.assertTrue(any("fixture setting differs" in item["message"]
                             for item in report["failures"]), report)
+
+    def test_qualification_contracts_are_registered(self) -> None:
+        obligations = json.loads(
+            OBLIGATIONS_PATH.read_text(encoding="utf-8"))
+        contracts = {item["id"] for item in obligations["contracts"]}
+        self.assertTrue({
+            "quality:smoke-fluid-drag-v1",
+            ("lifecycle:smoke-fluid-drag-lifecycle-v1#"
+             "particle-smoke-fluid-drag-capacity-replacement-removal-rollback"),
+            ("lifecycle:smoke-fluid-drag-lifecycle-v1#"
+             "grid-smoke-fluid-drag-capacity-replacement-removal-rollback"),
+        }.issubset(contracts))
 
 
 if __name__ == "__main__":
