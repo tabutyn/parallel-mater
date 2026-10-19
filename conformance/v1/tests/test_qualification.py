@@ -408,7 +408,7 @@ class QualificationTests(unittest.TestCase):
             with self.subTest(material=material, mode="DRAG"):
                 report = self.assert_rejected(
                     cloth_smoke_contact_result(self.profile, material, "DRAG"),
-                    "qualification contract is missing")
+                    "required evidence is missing")
                 self.assertEqual(report["qualified_count"], 0)
                 self.assertEqual(report["capabilities"][0]["rule_id"],
                                  "cloth-smoke-drag-" +

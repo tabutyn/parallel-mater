@@ -17,6 +17,7 @@ add_library(parallel-mater-conformance-runner STATIC
     src/fluid_cloth_containment_quality.cpp
     src/fluid_soft_contact_quality.cpp
     src/fluid_rope_contact_quality.cpp
+    src/cloth_soft_contact.cpp
     src/fluid_rigid_containment.cpp
     src/fluid_rigid_contact.cpp
     src/cloth_rope_attachment.cpp
@@ -24,6 +25,7 @@ add_library(parallel-mater-conformance-runner STATIC
     src/fluid_cloth_contact.cpp
     src/cloth_smoke_contact.cpp
     src/smoke_fluid_drag.cpp
+    src/smoke_cloth_drag.cpp
     src/fluid_smoke_phase.cpp
     src/smoke_viscosity_quality.cpp
     src/smoke_lifecycle_fixture.cpp

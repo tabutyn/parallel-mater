@@ -33,7 +33,7 @@
     "grid_qualification": "PASS: 1/1 exact SMOKE_GRID CONTACT capability, 0 failures",
     "native_build": "PASS: 366 targets including conformance runner, Slang CUDA/Vulkan drivers and cross-target shader validation",
     "command_inputs": "PASS: all 32 pinned conformance inputs match the manifest",
-    "evidence_index": "PASS: 2/314 capability records qualified across 27 revisioned reports; stale and unrecaptured records remain visible and unqualified"
+    "evidence_index": "PASS: 2/319 capability records qualified across 30 revisioned reports after integrating F5-40 and F5-43; stale and unrecaptured records remain visible and unqualified"
   },
   "artifacts": {
     "provenance": "docs/roadmap/evidence/F5-42-7934b3f-cuda-provenance.json",

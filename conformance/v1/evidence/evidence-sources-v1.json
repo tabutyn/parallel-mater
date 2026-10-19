@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "5924d72569bac31b783bc43d05a067cd693740497f821d81bd4fe2b5912b6bcc"
+    "sha256": "024f8894735a8285f1d5fb7058e639256cf5db6bc9a5ee9e2b1ff28de50ab588"
   },
   "qualification_results": [
     {
@@ -60,12 +60,12 @@
     {
       "id": "linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid-qualification.json",
-      "sha256": "f772d4b0b66d709e95f9e346f24b0f0db3207e09d93ddd0a5bec3fafe0552de3"
+      "sha256": "8cb722119f98360113040ebd197f79a30701cf6db68e313d01ca8d011c4ccfa6"
     },
     {
       "id": "linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle-qualification.json",
-      "sha256": "288998c53b6e8e1e3e8895204fcc7878b53f083fd407646a0bdad88af0763ee7"
+      "sha256": "360b4c1a4ce6977205e708dfcdaceedbb8327b7a32af6f08e5b9bcb861f9d051"
     },
     {
       "id": "linux-rtx3050ti-slang-vulkan-eed669e",
@@ -76,6 +76,16 @@
       "id": "linux-thomas-laptop-slang-cpu-eed669e",
       "path": "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json",
       "sha256": "e3ae75435330251f28ac8196012f921bf7be032541362db1fdc978f5eb7f7473"
+    },
+    {
+      "id": "macos-m4-slang-metal-16169d5-smoke-cloth-grid",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-grid-qualification.json",
+      "sha256": "0c36054158444d8a2be824a7bae3de841d9b24b1e7c110b1371e4ef4b03109c9"
+    },
+    {
+      "id": "macos-m4-slang-metal-16169d5-smoke-cloth-particle",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-particle-qualification.json",
+      "sha256": "b5e0f19fbe1665253ec1eb84db9d305e1040f62473accc9f92cd97949c418d43"
     },
     {
       "id": "macos-m4-slang-metal-4e09ecb-fluid-rigid-contact",
@@ -136,6 +146,11 @@
       "id": "windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact-qualification.json",
       "sha256": "9259964d2f6ee9e2f1ad27b130fa990835225fbca9b333e776af2f4606a1e034"
+    },
+    {
+      "id": "windows-gtx1080-slang-cuda-b191454-cloth-soft-contact",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact-qualification.json",
+      "sha256": "e2e9ec3c4a4ef5b7c12f6271ad1ba29872f186f1fe9869814f6d96a63fd8d7f1"
     },
     {
       "id": "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid",

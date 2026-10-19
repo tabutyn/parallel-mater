@@ -217,11 +217,11 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-37](roadmap/tasks/F5-37.json) | Qualify fluid-to-smoke phase transfer | done | F5-23 | — |
 | [F5-38](roadmap/tasks/F5-38.json) | Qualify fluid-rigid contact | done | F5-23 | — |
 | [F5-39](roadmap/tasks/F5-39.json) | Qualify rigid fluid containment | done | F5-23 | — |
-| [F5-40](roadmap/tasks/F5-40.json) | Qualify cloth-soft contact | leased | F5-23 | codex-windows-qualification / windows-gtx1080 / 2026-10-20T16:06:51Z |
+| [F5-40](roadmap/tasks/F5-40.json) | Qualify cloth-soft contact | done | F5-23 | — |
 | [F5-41](roadmap/tasks/F5-41.json) | Qualify cloth-rope attachment | done | F5-23 | — |
 | [F5-42](roadmap/tasks/F5-42.json) | Qualify cloth-to-smoke contact | done | F5-23 | — |
-| [F5-43](roadmap/tasks/F5-43.json) | Qualify smoke-to-cloth drag | leased | F5-23 | codex-macos-qualification / Thomass-MacBook-Air / 2026-10-20T16:53:02Z |
-| [F5-44](roadmap/tasks/F5-44.json) | Qualify cloth-rigid contact | ready | F5-23 | — |
+| [F5-43](roadmap/tasks/F5-43.json) | Qualify smoke-to-cloth drag | done | F5-23 | — |
+| [F5-44](roadmap/tasks/F5-44.json) | Qualify cloth-rigid contact | leased | F5-23 | codex-windows-qualification / windows-gtx1080 / 2026-10-20T17:09:39Z |
 | [F5-45](roadmap/tasks/F5-45.json) | Qualify soft-rope contact | ready | F5-23 | — |
 | [F5-46](roadmap/tasks/F5-46.json) | Qualify soft-rope attachment | ready | F5-23 | — |
 | [F5-47](roadmap/tasks/F5-47.json) | Qualify soft-to-smoke contact | ready | F5-23 | — |
