@@ -1,0 +1,117 @@
+{
+  "capabilities": [
+    {
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_GRID",
+        "mode": "CONTACT",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "qualified": true,
+      "rule_id": "smoke-rigid-contact-grid",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:smoke-rigid-contact-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-rigid-contact-lifecycle-v1#grid-smoke-rigid-contact-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    }
+  ],
+  "capability_count": 1,
+  "device": {
+    "device_id": 0,
+    "driver_version": "13000 (NVIDIA 582.66)",
+    "name": "NVIDIA GeForce GTX 1080",
+    "vendor_id": 4318
+  },
+  "driver": {
+    "binary_sha256": "548abb2804dd555bc2321c5f08c5368e7c04557478df268ab3258be4a813df22",
+    "name": "slang-cuda",
+    "version": "0.2.0+ec024d7"
+  },
+  "evidence_summary": {
+    "analytic_invariants": {
+      "failed": 0,
+      "missing": 0,
+      "passed": 1,
+      "unsupported": 0
+    },
+    "compilation": {
+      "failed": 0,
+      "missing": 0,
+      "passed": 1,
+      "unsupported": 0
+    },
+    "execution": {
+      "failed": 0,
+      "missing": 0,
+      "passed": 1,
+      "unsupported": 0
+    },
+    "lifecycle_invariants": {
+      "failed": 0,
+      "missing": 0,
+      "passed": 1,
+      "unsupported": 0
+    },
+    "reference_regression": {
+      "failed": 0,
+      "missing": 0,
+      "passed": 1,
+      "unsupported": 0
+    },
+    "timing": {
+      "failed": 0,
+      "missing": 0,
+      "passed": 0,
+      "unsupported": 0
+    }
+  },
+  "failure_count": 0,
+  "failures": [],
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "996a961586650ab94b45981863eebdd6e8b2daad7f434dd9122b519213c25f33",
+  "passed": true,
+  "qualified_count": 1,
+  "schema": "parallel-mater-conformance-qualification-report/v1",
+  "scope": "capability_qualification",
+  "source_commit": "ec024d7ea0010f25654dab170d4ad8bc607aa6e9",
+  "toolchain": {
+    "compiler": "MSVC, CUDA, Slang",
+    "version": "MSVC 19.44.35228.0; CUDA 12.9.86; Slang 2026.18"
+  },
+  "unused_evidence": []
+}

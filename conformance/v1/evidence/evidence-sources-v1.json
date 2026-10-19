@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a"
+    "sha256": "996a961586650ab94b45981863eebdd6e8b2daad7f434dd9122b519213c25f33"
   },
   "qualification_results": [
     {
@@ -216,6 +216,16 @@
       "id": "windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle",
       "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle-qualification.json",
       "sha256": "b36dbe4ed9d658b712183a4dfacfa8701398930ee1110adfa880260aae5c2d33"
+    },
+    {
+      "id": "windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-grid",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-grid-qualification.json",
+      "sha256": "a64d0471daef65b0a366a395ad90dea9393b1cf6842af2669bc81a42c11534d2"
+    },
+    {
+      "id": "windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-particle",
+      "path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-particle-qualification.json",
+      "sha256": "6014458233da042c4ce054f6287e03ff87e2eafd5e65af83d96bcd3ce1f1e9ff"
     },
     {
       "id": "windows-gtx1080-slang-d3d12-2b04e55",

@@ -1,0 +1,112 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-54",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "ec024d7ea0010f25654dab170d4ad8bc607aa6e9",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+ec024d7",
+    "binary_sha256": "548abb2804dd555bc2321c5f08c5368e7c04557478df268ab3258be4a813df22"
+  },
+  "device": {
+    "name": "NVIDIA GeForce GTX 1080",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13000 (NVIDIA 582.66)"
+  },
+  "toolchain": {
+    "compiler": "MSVC, CUDA, Slang",
+    "version": "MSVC 19.44.35228.0; CUDA 12.9.86; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "2c71a40581ac038e433900f05c12aedfb7dec2715f7114d4880d41891a11f0ac",
+    "capabilities_sha256": "15bb19dcfc7f4cc47b78a955231b32dae5851804ab131af6cdb1991c1ae9a2b0"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "SMOKE",
+      "second_family": "RIGID_BODY",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:smoke-grid",
+      "sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3"
+    },
+    "quality": {
+      "id": "quality:smoke-rigid-contact-v1",
+      "sha256": "138454122bed21dccb6c30f5e7e132ba9a1131856d88396cd8171570a4337029"
+    },
+    "lifecycle": {
+      "id": "lifecycle:smoke-rigid-contact-lifecycle-v1#particle-smoke-rigid-contact-capacity-replacement-removal-rollback",
+      "sha256": "d53d75c441f41f74dddb0a6ef1d6dff97dee10f688002b1d8775781e871be47e"
+    }
+  },
+  "runner": {
+    "binary_sha256": "46c8816eabfb2cd633ed7f4b6b835ac4b164b531c32c81f64a12de86257910dc",
+    "validation_layer_sha256": "115feca4438be0bfd7924c84c53ebe795c654653bfe2c78db30a04a3ecddd631"
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "23c6e2ce4018e387dc7e57be8b8dc8e8b61c2da0e2d787d466fe30b2185f1d86",
+    "comparison_report_sha256": "d5e48ec037c33ccc89c84d2a9223f6fefd7d20dee2827150067430d4e3357576",
+    "reference_regression": {
+      "passed": 1,
+      "failed": 0,
+      "unsupported": 0
+    }
+  },
+  "analytic_invariants": {
+    "result_sha256": "673c6ff537b28a83dd5d0b49bc90dc5f9d64708cdf2d89da8c9caa289938a877",
+    "report_sha256": "608fadf4e26ffa7f1e637637996f099f3f3b136ef1c38ccb5cfea2796b295512",
+    "passed": true,
+    "sample_count": 2,
+    "failure_count": 0,
+    "observations": {
+      "particle-smoke-rigid-contact": {
+        "control_final_face_clearance_m": 0.012999999821186065,
+        "coupled_clearance_error_m": 1.4901161207725444e-10,
+        "coupled_final_face_clearance_m": 0.015000000149011612,
+        "coupled_inward_relative_normal_velocity_m_s": -0.09999999403953552,
+        "coupled_rigid_angular_speed_rad_s": 0.9458901009628039,
+        "initial_face_clearance_m": 0.023000001460313797,
+        "maximum_smoke_speed_m_s": 1.0307764064044151,
+        "rigid_reciprocal_normal_impulse_n_s": 0.0009999999403953552,
+        "smoke_outward_normal_response_m_s": 1
+      }
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "64fb1432dba5f4358bfe407e97c8a4891372ac9e7d9430b54cd9566f17463d3a",
+    "report_sha256": "e77466680f8941a6a0629cf2bd8962c587bb0a302b243d3c09a83c6223efecbd",
+    "passed": true,
+    "profile_case_count": 2,
+    "profile_checkpoint_count": 10,
+    "failure_count": 0,
+    "bound_case": "particle-smoke-rigid-contact-capacity-replacement-removal-rollback",
+    "bound_case_checkpoint_count": 5
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case smoke-grid --output <trajectory-output>",
+    "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case smoke-grid --report <trajectory-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality smoke-rigid-contact-v1 --output <quality-output>",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/smoke-rigid-contact-v1.json --actual <quality-output>/smoke-rigid-contact-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle-profile smoke-rigid-contact-lifecycle-v1 --output <lifecycle-result>",
+    "python3 conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/smoke-rigid-contact-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "A paired no-edge control and CONTACT-edge run drive one public smoke tracer through the negative face of a dynamic cube; zero wind drag isolates CONTACT from the bundled DRAG descriptor.",
+    "The independent oracle reconstructs cube-face clearance and reciprocal normal response only from public smoke and rigid snapshots.",
+    "The particle tracer reaches the declared 0.015 m shell, reverses its inward normal speed by 1.0 m/s, and transfers 0.0009999999403953552 N s of reciprocal normal impulse.",
+    "The exact SMOKE_PARTICLE graph lifecycle proves bounded capacity, accepted replacement, rejected-overflow rollback, removal and deterministic recovery while preserving both endpoints.",
+    "The shared analytic and lifecycle profiles execute both representations, but this aggregate advertises only the exact SMOKE_PARTICLE CONTACT tuple."
+  ]
+}

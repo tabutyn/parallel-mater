@@ -1,0 +1,83 @@
+{
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "996a961586650ab94b45981863eebdd6e8b2daad7f434dd9122b519213c25f33",
+  "execution_status": "completed",
+  "source": {
+    "commit": "ec024d7ea0010f25654dab170d4ad8bc607aa6e9",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+ec024d7",
+    "binary_sha256": "548abb2804dd555bc2321c5f08c5368e7c04557478df268ab3258be4a813df22"
+  },
+  "device": {
+    "name": "NVIDIA GeForce GTX 1080",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13000 (NVIDIA 582.66)"
+  },
+  "toolchain": {
+    "compiler": "MSVC, CUDA, Slang",
+    "version": "MSVC 19.44.35228.0; CUDA 12.9.86; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "SMOKE",
+      "second_family": "RIGID_BODY",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "evidence": [
+    {
+      "scope": "analytic_invariants",
+      "contract": "quality:smoke-rigid-contact-v1",
+      "status": "passed",
+      "source_commit": "ec024d7ea0010f25654dab170d4ad8bc607aa6e9",
+      "contract_sha256": "138454122bed21dccb6c30f5e7e132ba9a1131856d88396cd8171570a4337029",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-particle.json",
+      "artifact_sha256": "f8cb2f80b36885a82a49ce181489870590fbb6ab5fd521e4c48549df5fb3d90b"
+    },
+    {
+      "scope": "compilation",
+      "contract": "registry:interaction-capabilities",
+      "status": "passed",
+      "source_commit": "ec024d7ea0010f25654dab170d4ad8bc607aa6e9",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-particle.json",
+      "artifact_sha256": "f8cb2f80b36885a82a49ce181489870590fbb6ab5fd521e4c48549df5fb3d90b"
+    },
+    {
+      "scope": "execution",
+      "contract": "case:smoke-grid",
+      "status": "passed",
+      "source_commit": "ec024d7ea0010f25654dab170d4ad8bc607aa6e9",
+      "contract_sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-particle.json",
+      "artifact_sha256": "f8cb2f80b36885a82a49ce181489870590fbb6ab5fd521e4c48549df5fb3d90b"
+    },
+    {
+      "scope": "lifecycle_invariants",
+      "contract": "lifecycle:smoke-rigid-contact-lifecycle-v1#particle-smoke-rigid-contact-capacity-replacement-removal-rollback",
+      "status": "passed",
+      "source_commit": "ec024d7ea0010f25654dab170d4ad8bc607aa6e9",
+      "contract_sha256": "d53d75c441f41f74dddb0a6ef1d6dff97dee10f688002b1d8775781e871be47e",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-particle.json",
+      "artifact_sha256": "f8cb2f80b36885a82a49ce181489870590fbb6ab5fd521e4c48549df5fb3d90b"
+    },
+    {
+      "scope": "reference_regression",
+      "contract": "case:smoke-grid",
+      "status": "passed",
+      "source_commit": "ec024d7ea0010f25654dab170d4ad8bc607aa6e9",
+      "contract_sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-particle.json",
+      "artifact_sha256": "f8cb2f80b36885a82a49ce181489870590fbb6ab5fd521e4c48549df5fb3d90b"
+    }
+  ]
+}
