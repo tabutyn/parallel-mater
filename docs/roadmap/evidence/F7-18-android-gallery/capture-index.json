@@ -1,0 +1,93 @@
+{
+  "artifacts": {
+    "apk_sha256": "714fab7cff53b3a5b2ea5f14f309a2aac380f31a9680b4dc5ec547c496adcdee",
+    "driver_sha256": "ad47917345a563b448e1e86a0eebbda2cb2cc88790a0c9a08f307bb9c6ec0a71",
+    "qualification_sha256": "beabe9c8f618b045acf125853c0483e91be8007994ce15ed9d3423c3bea158c5",
+    "runner_sha256": "5976f0e927889f140aa808946fc1d35f771bf8aebee352142de753ead3a2546e"
+  },
+  "backend": "slang-vulkan",
+  "claims": {
+    "android_lifecycle": true,
+    "gallery_visual_execution": true,
+    "ordinary_presentation": true,
+    "performance_target_achieved": false,
+    "physics_correctness": "separate F5-15 evidence",
+    "scene_and_control_sweep": true,
+    "sustained_runtime": true,
+    "thermal_throttling_absent": true
+  },
+  "device": {
+    "android_version": "17",
+    "api_level": "37",
+    "manufacturer": "Google",
+    "model": "Pixel 7",
+    "product": "panther",
+    "security_patch": "2026-09-05"
+  },
+  "files": [
+    {
+      "path": "docs/roadmap/evidence/F7-18-android-gallery/common-info.png",
+      "sha256": "cc0a6db075026bc7bc7584c2447244ada71f1bc110d05c3c13ccdedc64bda3d5"
+    },
+    {
+      "path": "docs/roadmap/evidence/F7-18-android-gallery/dump-controls.png",
+      "sha256": "aed488a88e6e8255b5e778ac492feaddb4db1235b9bc2dec0ea402128b804b14"
+    },
+    {
+      "path": "docs/roadmap/evidence/F7-18-android-gallery/gravity-controls.png",
+      "sha256": "1f6aaed7181be5507aee9fac820ad6db5c3ad1b40e49326cd59d6b3c6db3f289"
+    },
+    {
+      "path": "docs/roadmap/evidence/F7-18-android-gallery/lifecycle.json",
+      "sha256": "42bc14574fcb24b101f6da6b9645124729bf8c947ff51be62e4ea6afa198bde4"
+    },
+    {
+      "path": "docs/roadmap/evidence/F7-18-android-gallery/motor-steering-controls.png",
+      "sha256": "13568b2ff56ac9758034f408ce8eea49376e2a10c0461cd8c47e0011d3872c1a"
+    },
+    {
+      "path": "docs/roadmap/evidence/F7-18-android-gallery/performance-device.log",
+      "sha256": "232a7096963a159b2923c94b28e87b1575dd8540344a5eedd50d6341d17dd770"
+    },
+    {
+      "path": "docs/roadmap/evidence/F7-18-android-gallery/performance.json",
+      "sha256": "13f891656b2f2ca51ab944fd492779f71fddc58dc549039a3a7743c9ff98fe6b"
+    },
+    {
+      "path": "docs/roadmap/evidence/F7-18-android-gallery/qualification-device.log",
+      "sha256": "d11ec30f903c175fd2118ebdb73a3e8cbd4c98257cdfdfe0c8e4a8b8c24926be"
+    },
+    {
+      "path": "docs/roadmap/evidence/F7-18-android-gallery/qualification.json",
+      "sha256": "beabe9c8f618b045acf125853c0483e91be8007994ce15ed9d3423c3bea158c5"
+    },
+    {
+      "path": "docs/roadmap/evidence/F7-18-android-gallery/surface-lifecycle.json",
+      "sha256": "d486e349e3c8c8104cefadf505f5cba36ac0a6654e37918e0ab6d3a1de710563"
+    },
+    {
+      "path": "docs/roadmap/evidence/F7-18-android-gallery/ui-summary.json",
+      "sha256": "17e754c32591ceebefbbfcbd7932db0df2f68f76023354136e2f567a04e60f70"
+    }
+  ],
+  "schema": "parallel-mater-android-gallery-capture/v1",
+  "source": {
+    "commit": "973cc228d1170938092f3c815d8a2fa591d0c50c",
+    "dirty": false
+  },
+  "summary": {
+    "available_scenes": 28,
+    "catalog_scenes": 28,
+    "diagnostic_frames_per_scene": 120,
+    "maximum_g3d_temperature_c": 43.000004,
+    "maximum_physics_memory_footprint_bytes": 219759476,
+    "maximum_thermal_status": 0,
+    "ordinary_fps_maximum": 18.02,
+    "ordinary_fps_median": 5.155,
+    "ordinary_fps_minimum": 1.66,
+    "ordinary_frames_per_scene": 120,
+    "ordinary_frames_total": 3360,
+    "scenes_at_30_fps": 0
+  },
+  "task": "F7-18"
+}

@@ -126,6 +126,21 @@ To repeat only the phone UI evidence against an installed debug APK:
 python3 scripts/Test-AndroidGalleryUi.py --serial PHONE_SERIAL
 ```
 
+To measure ordinary direct presentation separately from diagnostic readback,
+run two 60-frame windows for every scene after the scene qualification:
+
+```sh
+python3 scripts/Test-AndroidGalleryPerformance.py --serial PHONE_SERIAL \
+  --qualification out/android/gallery-tests/qualification.json \
+  --output out/android/gallery-performance
+```
+
+This records APK, Vulkan driver, runner and input-report hashes, per-scene frame
+work and display cadence, and Android thermal-service samples. A passing run
+means that every scene sustained both windows with direct presentation and no
+thermal throttling or process/validation errors. Reported FPS remains an
+observation; the profile's target update rate is not treated as achieved.
+
 Reports use `parallel-mater-mobile-gallery-qualification/v1` and include the
 compiled identity, renderer/readback mode, common lifecycle and control checks,
 failures, all scenes, and a fresh nonce; old or platform-specific reports cannot
@@ -196,14 +211,15 @@ reflected entry blocks exceed 256 bytes use a dynamic uniform parameter buffer;
 smaller modules retain their push-constant pipeline layout. All 23
 normalized modules pass SDK 1.4.341.0 static validation on Linux.
 
-A revision-pinned F7-13 Pixel 7 run passed the common 28-scene sweep with the 22
-scenes then advertised. Smoke and SmokeWater both passed visible-output and
-reset checks. That run verified direct Vulkan presentation without
-ordinary-frame readback, pause/reset, background recovery, resize, rotation,
-and native teardown. The current F7-14 APK packages the six cross-deformable
-modules and advertises all 28 scenes after desktop qualification; a fresh Pixel
-sweep remains required. F7-18 owns sustained runtime, thermal and performance
-evidence.
+A revision-pinned F7-18 Pixel 7 run passed all 28 advertised scenes for 120
+diagnostic frames each, shared controls, per-scene pause/reset, background
+recovery, resize, rotation, direct Vulkan presentation and native teardown.
+A separate 3,360-frame ordinary-presentation sweep covered two 60-frame windows
+per scene without thermal throttling. The current conservative profile remains
+unverified for performance: observed scene rates ranged from 1.66 to 18.02 FPS
+with a 5.16 FPS median, so no scene met 30 FPS. This is functional and lifecycle
+qualification, not a performance promotion. Revisioned raw reports and UI
+captures are tracked under `docs/roadmap/evidence/F7-18-android-gallery/`.
 Scene replacement releases the old GPU simulation first to avoid overlapping
 memory footprints. See the [qualification record](../../docs/ANDROID-QUALIFICATION.md)
 for earlier native-suite evidence and remaining gates.

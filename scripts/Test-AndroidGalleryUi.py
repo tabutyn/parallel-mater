@@ -124,6 +124,9 @@ class Device:
                  "--ei", "pm_scene", str(index))
         self.wait_node(expected_control)
         _, tree = self.wait_node("Choose scene: " + name)
+        self.refresh_scene_image()
+        self.wait_node("Loading " + name + "…", present=False)
+        _, tree = self.wait_node("Choose scene: " + name)
         self.audit(tree, name)
         slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
         ET.ElementTree(tree).write(
@@ -147,6 +150,23 @@ class Device:
         self.set_frozen(False)
         time.sleep(1)
         self.set_frozen(True)
+
+    def wait_frames(self, minimum):
+        self.set_frozen(False)
+        deadline = time.monotonic() + self.timeout
+        while time.monotonic() < deadline:
+            try:
+                state = json.loads(self.run(
+                    "shell", "run-as", PACKAGE, "cat",
+                    "files/runtime-info.json"))
+                if state.get("frames", 0) >= minimum:
+                    self.set_frozen(True)
+                    return
+            except (subprocess.CalledProcessError, json.JSONDecodeError):
+                pass
+            time.sleep(1)
+        self.set_frozen(True)
+        raise RuntimeError(f"Timed out waiting for {minimum} displayed frames")
 
     @staticmethod
     def audit(tree, context):
@@ -267,6 +287,7 @@ def main():
                     "actions": ["motor", "steering", "raise bed", "lower bed"]})
 
     fluid = device.launch_scene(8, "FLUID", "Focus scene action")
+    device.wait_frames(60)
     directional = {"Push left", "Drive forward", "Tilt gravity left"}
     descriptions = {node.get("content-desc", "") for node in fluid.iter()}
     leaked = sorted(directional & descriptions)
@@ -289,14 +310,23 @@ def main():
                     "directional_controls_hidden": True})
 
     model = device.run("shell", "getprop", "ro.product.model").strip()
+    runtime = json.loads(device.run(
+        "shell", "run-as", PACKAGE, "cat", "files/runtime-info.json"))
+    if runtime.get("revision") != args.revision:
+        raise RuntimeError("Installed Gallery revision does not match UI run")
+    if runtime.get("backend") == "vulkan" and (
+            runtime.get("presentation") != "vulkan-direct" or
+            runtime.get("ordinary_readback_pixels") != 0 or
+            runtime.get("software_presentations") != 0):
+        raise RuntimeError("Vulkan UI run did not retain direct presentation")
     apk_sha256 = hashlib.sha256(args.apk.read_bytes()).hexdigest()
     runner_sha256 = hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest()
     report = {
         "schema": "parallel-mater-android-gallery-ui/v1",
         "revision": args.revision,
         "device": model,
-        "serial": args.serial,
-        "backend": "slang-cpu",
+        "backend": runtime["backend"],
+        "presentation": runtime.get("presentation"),
         "artifacts": {
             "apk_sha256": apk_sha256,
             "runner_sha256": runner_sha256,

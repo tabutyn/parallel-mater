@@ -1,0 +1,102 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F7-18",
+  "source": {
+    "tested_commit": "973cc228d1170938092f3c815d8a2fa591d0c50c",
+    "dirty": false,
+    "branch": "work/F7-18/thomas-laptop",
+    "lease_token": "51fc59df-5f9e-4bca-8d85-62ecdb32d921"
+  },
+  "device": {
+    "manufacturer": "Google",
+    "model": "Pixel 7",
+    "product": "panther",
+    "android_version": "17",
+    "api_level": 37,
+    "security_patch": "2026-09-05",
+    "gpu": "Mali-G710",
+    "vulkan_api_version": "1.4.343",
+    "vulkan_driver_info": "v1.r54p3-00eac0.1848e3b066182d5bb5a345ab256f13ee"
+  },
+  "toolchain": {
+    "android_ndk": "29.0.14206865",
+    "compiler": "Android Clang 21.0.0 (r563880c)",
+    "slang": "2026.18"
+  },
+  "artifacts": {
+    "apk_sha256": "714fab7cff53b3a5b2ea5f14f309a2aac380f31a9680b4dc5ec547c496adcdee",
+    "vulkan_driver_sha256": "ad47917345a563b448e1e86a0eebbda2cb2cc88790a0c9a08f307bb9c6ec0a71",
+    "capture_index": "docs/roadmap/evidence/F7-18-android-gallery/capture-index.json",
+    "qualification": "docs/roadmap/evidence/F7-18-android-gallery/qualification.json",
+    "lifecycle": "docs/roadmap/evidence/F7-18-android-gallery/lifecycle.json",
+    "surface_lifecycle": "docs/roadmap/evidence/F7-18-android-gallery/surface-lifecycle.json",
+    "performance": "docs/roadmap/evidence/F7-18-android-gallery/performance.json",
+    "ui": "docs/roadmap/evidence/F7-18-android-gallery/ui-summary.json"
+  },
+  "functional_qualification": {
+    "catalog_scenes": 28,
+    "available_scenes": 28,
+    "passed_scenes": 28,
+    "diagnostic_frames_per_scene": 120,
+    "controls": "PASS: scene selection, pause/resume, camera, directional, count and primary action",
+    "per_scene_lifecycle": "PASS: pause, inactive suppression, foreground resume and reset",
+    "application_lifecycle": "PASS: background/foreground, surface recreation, resize, rotation and native teardown",
+    "presentation": "PASS: vulkan-direct with zero ordinary readback pixels and zero software presentations",
+    "errors": "PASS: no Vulkan validation, process fatal, SIGSEGV or native teardown errors"
+  },
+  "ui_qualification": {
+    "result": "PASS: semantic controls, accessible names, help text and representative action families",
+    "action_families": [
+      "gravity",
+      "authored force",
+      "motor and steering",
+      "release and restore",
+      "raise and lower bed",
+      "focus and scene information"
+    ],
+    "screenshots": [
+      "docs/roadmap/evidence/F7-18-android-gallery/gravity-controls.png",
+      "docs/roadmap/evidence/F7-18-android-gallery/motor-steering-controls.png",
+      "docs/roadmap/evidence/F7-18-android-gallery/dump-controls.png",
+      "docs/roadmap/evidence/F7-18-android-gallery/common-info.png"
+    ],
+    "review": "Controls and text are readable in landscape at the Pixel profile. The 640x288 render is visibly coarse, and the frozen Info capture reports 0 host frames/s even after a complete timing window; ordinary performance comes from the separate FrameWindow report."
+  },
+  "sustained_runtime": {
+    "ordinary_frames_per_scene": 120,
+    "ordinary_frames_total": 3360,
+    "windows_per_scene": 2,
+    "frames_per_window": 60,
+    "duration_seconds": 797.140336274053,
+    "minimum_fps": 1.66,
+    "median_fps": 5.155,
+    "maximum_fps": 18.02,
+    "minimum_second_to_first_window_fps_ratio": 0.6751117734724292,
+    "scenes_at_30_fps": 0,
+    "maximum_physics_memory_footprint_bytes": 219759476,
+    "maximum_thermal_status": 0,
+    "g3d_temperature_c": {
+      "start": 28.000002,
+      "maximum": 43.000004,
+      "end": 40.0
+    }
+  },
+  "separation_of_claims": {
+    "physics_correctness": "F5-15 public-API evidence; Gallery reports do not extend it",
+    "visual_execution": "28-scene diagnostic sweep and tracked UI screenshots",
+    "performance": "ordinary direct-presentation FrameWindow samples without diagnostic readback"
+  },
+  "validation": [
+    "The APK was built and installed from the clean tested commit before qualification.",
+    "All reports pin the tested revision and the APK or input-report hashes.",
+    "The UI and performance runners pin their own exact script hashes.",
+    "The performance runner samples Android thermal service after every scene and requires status 0.",
+    "Tracked logs contain no private device serial."
+  ],
+  "limitations": [
+    "The pixel-7-preview profile remains unverified for performance: all 28 scenes stayed below 30 FPS, and the slowest scene reached 1.66 FPS.",
+    "The low-resolution renderer is visibly coarse. Increasing render resolution is not justified until physics frame work improves.",
+    "The common Info view's host-rate field reads 0 while the debug UI is frozen; use performance.json for measured ordinary-presentation rates.",
+    "Thermal status stayed clear over this bounded sweep; this is not an hours-long battery endurance claim."
+  ]
+}
