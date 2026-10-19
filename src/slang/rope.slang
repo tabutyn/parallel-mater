@@ -99,6 +99,14 @@ void rope_move_body(inout RigidBodyState state, Vec3 translation,
         multiply(translation, 1.0f / dt));
     state.angular_velocity = add(state.angular_velocity,
         multiply(rotation, 1.0f / dt));
+    const float angularVelocityScale = 4194304.0f;
+    state.angular_velocity = {
+        round(state.angular_velocity.x * angularVelocityScale) /
+            angularVelocityScale,
+        round(state.angular_velocity.y * angularVelocityScale) /
+            angularVelocityScale,
+        round(state.angular_velocity.z * angularVelocityScale) /
+            angularVelocityScale};
 }
 
 void rope_sync_anchors(

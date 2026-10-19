@@ -799,10 +799,6 @@ Vec3 rigid_guide_direction(Contact contact)
 void rigid_add_contact(inout ContactManifold manifold, Contact contact,
     float spacing)
 {
-    // Canonicalize contact depth below the collision margin so reduction and
-    // response cannot amplify target-specific sub-ULP witness noise.
-    const float depthScale = 8388608.0f;
-    contact.penetration = round(contact.penetration * depthScale) / depthScale;
     bool guided = rigid_guided_contact(contact);
     Vec3 candidateDirection = guided ? rigid_guide_direction(contact) : Vec3();
     float candidateLength = guided ? vector_length(candidateDirection) : 1.0f;
@@ -844,7 +840,29 @@ void rigid_add_contact(inout ContactManifold manifold, Contact contact,
         if (length_squared(subtract(manifold.contacts[i].point,
                                     contact.point)) < spacingSquared)
         {
-            if (contact.penetration > manifold.contacts[i].penetration)
+            bool existingSwept = asuint(
+                manifold.contacts[i].reported_friction_impulse.y) == 1u;
+            bool candidateSwept = asuint(
+                contact.reported_friction_impulse.y) == 1u;
+            float depthDifference = contact.penetration -
+                manifold.contacts[i].penetration;
+            uint existingBodyTriangle = asuint(
+                manifold.contacts[i].reported_normal_impulse);
+            uint candidateBodyTriangle = asuint(
+                contact.reported_normal_impulse);
+            uint existingColliderTriangle = asuint(
+                manifold.contacts[i].reported_friction_impulse.x);
+            uint candidateColliderTriangle = asuint(
+                contact.reported_friction_impulse.x);
+            bool laterTriangle =
+                candidateBodyTriangle > existingBodyTriangle ||
+                (candidateBodyTriangle == existingBodyTriangle &&
+                 candidateColliderTriangle > existingColliderTriangle);
+            bool equivalentSweptWitness = existingSwept && candidateSwept &&
+                dot(contact.normal, manifold.contacts[i].normal) > 0.9999f &&
+                abs(depthDifference) <= 6.0e-7f;
+            if ((equivalentSweptWitness && laterTriangle) ||
+                (!equivalentSweptWitness && depthDifference > 0.0f))
                 manifold.contacts[i] = contact;
             return;
         }
@@ -1183,6 +1201,9 @@ void rigid_collide_triangle_ranges(__constref TriangleMeshResource aMesh,
             contact.impact_fraction = 1.0f;
             contact.initial_normal_speed = rigid_contact_normal_speed(
                 aState, bState, contact.point, contact.normal);
+            contact.reported_normal_impulse = asfloat(at);
+            contact.reported_friction_impulse.x = asfloat(bt);
+            contact.reported_friction_impulse.y = asfloat(0u);
             rigid_add_contact(manifold, contact, max(2.0f * margin, 1.0e-4f));
         }
     }
@@ -1689,6 +1710,9 @@ void rigid_collide_triangle_ranges_swept(
                     contact.collider_hinge = colliderHinge;
                     contact.impact_fraction = startsNearContact ? 0.0f : time;
                     contact.initial_normal_speed = normalSpeed;
+                    contact.reported_normal_impulse = asfloat(at);
+                    contact.reported_friction_impulse.x = asfloat(bt);
+                    contact.reported_friction_impulse.y = asfloat(1u);
                     rigid_add_contact(manifold, contact,
                         max(margin * 2.0f, 1.0e-4f));
                     break;
