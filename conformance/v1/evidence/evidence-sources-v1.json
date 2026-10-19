@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "cde6aa45452d69a242f4072cbd398152b24f7d715e312be5ad628c02c516fac9"
+    "sha256": "b90213221d975ed2f7012844c718c13802d0538ee1150c9d70559e6dfc632da8"
   },
   "qualification_results": [
     {
@@ -96,6 +96,16 @@
       "id": "linux-rtx3050ti-slang-cuda-7396577-soft-rigid-contact",
       "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7396577-soft-rigid-contact-qualification.json",
       "sha256": "09e4745066819966de512f658fd4ed0f21f9e62d985e1d405485f03ac48b6741"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid-qualification.json",
+      "sha256": "00b06347017ee47fd813985e2c38d996815089619b476f297bdaa330a2ebc650"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-particle",
+      "path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-particle-qualification.json",
+      "sha256": "70b83ac0072416f864e27e965e843654c7325c957e1a5b7920ed297810b61055"
     },
     {
       "id": "linux-rtx3050ti-slang-vulkan-eed669e",

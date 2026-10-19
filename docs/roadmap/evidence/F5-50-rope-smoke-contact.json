@@ -1,0 +1,59 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-50",
+  "source_commit": "84a475e8a17102f9b38697bcaeb784bd68a41a47",
+  "captured_at": "2026-10-19",
+  "host": "ThomasLaptop",
+  "driver": "slang-cuda",
+  "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+  "capabilities": [
+    "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_PARTICLE",
+    "ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND/SMOKE_GRID"
+  ],
+  "contracts": {
+    "trajectory": "case:smoke-rope",
+    "quality": "quality:rope-smoke-contact-v1",
+    "particle_lifecycle": "lifecycle:rope-smoke-contact-lifecycle-v1#particle-rope-smoke-contact-capacity-replacement-removal-rollback",
+    "grid_lifecycle": "lifecycle:rope-smoke-contact-lifecycle-v1#grid-rope-smoke-contact-capacity-replacement-removal-rollback"
+  },
+  "results": {
+    "trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "reference_regression": "PASS: smoke-rope against the canonical CUDA golden",
+    "analytic_invariants": "PASS: 2 samples, 0 failures",
+    "initial_rope_distance_m": 0.020010764323243238,
+    "control_final_rope_distance_m": 0.010021511972323802,
+    "coupled_final_rope_distance_m": 0.015000000072806125,
+    "coupled_relative_radial_velocity_m_s": -1.849310753490596e-08,
+    "coupled_relative_tangential_speed_m_s": 0.2584348960133991,
+    "maximum_smoke_speed_m_s": 1.0307764064044151,
+    "maximum_rope_position_difference_m": 0.0,
+    "maximum_rope_velocity_difference_m_s": 0.0,
+    "lifecycle": "PASS: 2 exact representation cases, 10 checkpoints, 0 failures",
+    "qualification": "PASS: 2/2 exact rope-smoke CONTACT capabilities, 0 failures",
+    "python_tests": "PASS: 313 tests after evidence integration",
+    "native_build": "PASS: conformance runner and slang-cuda driver",
+    "command_inputs": "PASS: all pinned conformance inputs match the manifest",
+    "evidence_index": "PASS: 2/327 capability records qualified across 38 revisioned reports; stale and unrecaptured records remain visible and unqualified"
+  },
+  "artifacts": {
+    "provenance": "docs/roadmap/evidence/F5-50-84a475e-cuda-provenance.json",
+    "capabilities": "docs/roadmap/evidence/F5-50-84a475e-cuda-capabilities.json",
+    "trajectory_result": "docs/roadmap/evidence/F5-50-84a475e-cuda-trajectory/smoke-rope.json",
+    "trajectory_report": "docs/roadmap/evidence/F5-50-84a475e-cuda-smoke-rope-report.json",
+    "quality_result": "docs/roadmap/evidence/F5-50-84a475e-cuda-quality/rope-smoke-contact-v1.json",
+    "quality_report": "docs/roadmap/evidence/F5-50-84a475e-cuda-quality-report.json",
+    "lifecycle_result": "docs/roadmap/evidence/F5-50-84a475e-cuda-lifecycle-result.json",
+    "lifecycle_report": "docs/roadmap/evidence/F5-50-84a475e-cuda-lifecycle-report.json",
+    "particle_physical_evidence": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-particle.json",
+    "grid_physical_evidence": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid.json",
+    "particle_qualification": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-particle-qualification.json",
+    "grid_qualification": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid-qualification.json"
+  },
+  "notes": [
+    "The independent oracle derives closest-segment capsule distance, interpolated rope velocity, radial rejection, and tangential retention from public smoke and rope-node snapshots only.",
+    "The uncoupled tracer enters the declared rope radius, while the coupled tracer remains on its incoming side at the explicit 0.015 m radius with negligible relative radial velocity.",
+    "Both dynamic rope nodes remain at canonical positions with zero velocity in paired runs, excluding an unadvertised reverse mechanical response.",
+    "Particle and grid lifecycle cases independently cover capacity, CONTACT-distance replacement, rejected-overflow rollback, removal, and deterministic recovery.",
+    "DRAG remains bound to separate exact missing rules for F5-51; this evidence cannot qualify it."
+  ]
+}

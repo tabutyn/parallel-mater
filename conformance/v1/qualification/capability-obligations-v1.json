@@ -65,6 +65,7 @@
     {"id": "quality:fluid-cloth-contact-v1", "path": "conformance/v1/quality/fluid-cloth-contact-v1.json", "sha256": "1216cf9e7252b5fe4c27f14639a1031e698d459a2001db60153a088ebb600445"},
     {"id": "quality:cloth-smoke-contact-v1", "path": "conformance/v1/quality/cloth-smoke-contact-v1.json", "sha256": "39d221db1df6d6b6f73c650df4004b81ce4541203a359edf2654f7172c1c8029"},
     {"id": "quality:soft-smoke-contact-v1", "path": "conformance/v1/quality/soft-smoke-contact-v1.json", "sha256": "4ee08a7676ccf9c7198e0fbdd752db59c25bb655601e22aa15a327d70ab0ab8d"},
+    {"id": "quality:rope-smoke-contact-v1", "path": "conformance/v1/quality/rope-smoke-contact-v1.json", "sha256": "821c94ef42abeb047390383ef6fd0f28476aa5880414235defb8348532bbbc7a"},
     {"id": "quality:smoke-self-viscosity-v1", "path": "conformance/v1/quality/smoke-self-viscosity-v1.json", "sha256": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"},
     {"id": "quality:smoke-fluid-drag-v1", "path": "conformance/v1/quality/smoke-fluid-drag-v1.json", "sha256": "ef28c4f4446365aa787aac9605098772f00e68f1ebf958b2023b6cafdba1c3e1"},
     {"id": "quality:smoke-cloth-drag-v1", "path": "conformance/v1/quality/smoke-cloth-drag-v1.json", "sha256": "6984353862c9dc69f693597e92e60c9956576f080cbca2e79040e2ff923480ac"},
@@ -85,6 +86,8 @@
     {"id": "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json", "sha256": "5599b5d6c5e8386830d0abb29a13feddd3a43a917912efb9e9cf4b1732a22769"},
     {"id": "lifecycle:cloth-smoke-contact-lifecycle-v1#grid-cloth-smoke-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/cloth-smoke-contact-lifecycle-v1.json", "sha256": "3ccfe472f7bcfad66f2b092a63fccadc88fdc268cb59ae65c12cc9d541c55d0d"},
     {"id": "lifecycle:soft-smoke-contact-lifecycle-v1#grid-soft-smoke-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/soft-smoke-contact-lifecycle-v1.json", "sha256": "eebb8182329058601310417e9d951f594bdaf53d966c670d4874adcbf12f29d2"},
+    {"id": "lifecycle:rope-smoke-contact-lifecycle-v1#particle-rope-smoke-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/rope-smoke-contact-lifecycle-v1.json", "sha256": "a67278e662dbe41a1d1c5ec0ed54c1ec1dc38c78af5d19da0670b56a5b9e4c3f"},
+    {"id": "lifecycle:rope-smoke-contact-lifecycle-v1#grid-rope-smoke-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/rope-smoke-contact-lifecycle-v1.json", "sha256": "a67278e662dbe41a1d1c5ec0ed54c1ec1dc38c78af5d19da0670b56a5b9e4c3f"},
     {"id": "lifecycle:cloth-soft-contact-lifecycle-v1#cloth-soft-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/cloth-soft-contact-lifecycle-v1.json", "sha256": "10d28df6b1b1756da1c1b21b76e214aa554a8e753a370a2951d99fffbcdd7b35"},
     {"id": "lifecycle:cloth-rigid-contact-lifecycle-v1#cloth-rigid-contact-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/cloth-rigid-contact-lifecycle-v1.json", "sha256": "271515deca0bb595e3da0da91373c44db6d6295b14c98342e01501536869a4e5"},
     {"id": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback", "path": "conformance/v1/lifecycle/smoke-self-lifecycle-v1.json", "sha256": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f"},
@@ -457,12 +460,38 @@
       "missing": {}
     },
     {
-      "id": "rope-smoke",
-      "match": {"first_family": ["ROPE"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT", "DRAG"], "direction": ["FIRST_TO_SECOND", "SECOND_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE", "SMOKE_GRID"]},
-      "mode_directions": [["CONTACT", "FIRST_TO_SECOND"], ["DRAG", "SECOND_TO_FIRST"]],
+      "id": "rope-smoke-contact-particle",
+      "match": {"first_family": ["ROPE"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["FIRST_TO_SECOND"], "material_profile": ["SMOKE_PARTICLE"]},
+      "trajectory_contract": "case:smoke-rope",
+      "required": {
+        "lifecycle_invariants": ["lifecycle:rope-smoke-contact-lifecycle-v1#particle-rope-smoke-contact-capacity-replacement-removal-rollback"],
+        "analytic_invariants": ["quality:rope-smoke-contact-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "rope-smoke-contact-grid",
+      "match": {"first_family": ["ROPE"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["FIRST_TO_SECOND"], "material_profile": ["SMOKE_GRID"]},
+      "trajectory_contract": "case:smoke-rope",
+      "required": {
+        "lifecycle_invariants": ["lifecycle:rope-smoke-contact-lifecycle-v1#grid-rope-smoke-contact-capacity-replacement-removal-rollback"],
+        "analytic_invariants": ["quality:rope-smoke-contact-v1"]
+      },
+      "missing": {}
+    },
+    {
+      "id": "rope-smoke-drag-particle",
+      "match": {"first_family": ["ROPE"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_PARTICLE"]},
       "trajectory_contract": "case:smoke-rope",
       "required": {},
-      "missing": {"lifecycle_invariants": "No exact rope-smoke adverse graph case is registered.", "analytic_invariants": "No vendor-neutral rope-smoke quality case is registered."}
+      "missing": {"lifecycle_invariants": "No exact particle rope-smoke DRAG adverse graph case is registered.", "analytic_invariants": "No vendor-neutral particle rope-smoke DRAG quality case is registered."}
+    },
+    {
+      "id": "rope-smoke-drag-grid",
+      "match": {"first_family": ["ROPE"], "second_family": ["SMOKE"], "scope": ["DISTINCT_FAMILY"], "mode": ["DRAG"], "direction": ["SECOND_TO_FIRST"], "material_profile": ["SMOKE_GRID"]},
+      "trajectory_contract": "case:smoke-rope",
+      "required": {},
+      "missing": {"lifecycle_invariants": "No exact grid rope-smoke DRAG adverse graph case is registered.", "analytic_invariants": "No vendor-neutral grid rope-smoke DRAG quality case is registered."}
     },
     {
       "id": "rope-rigid",

@@ -23,6 +23,7 @@ add_library(parallel-mater-conformance-runner STATIC
     conformance/v1/src/fluid_cloth_contact.cpp
     conformance/v1/src/cloth_smoke_contact.cpp
     conformance/v1/src/soft_smoke_contact.cpp
+    conformance/v1/src/rope_smoke_contact.cpp
     conformance/v1/src/smoke_fluid_drag.cpp
     conformance/v1/src/smoke_cloth_drag.cpp
     conformance/v1/src/smoke_soft_drag.cpp
