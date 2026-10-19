@@ -1648,6 +1648,10 @@ PmResult install_couplings(
                 .damping = mechanical.damping,
                 .tangential_drag = mechanical.tangentialDrag,
                 .maximum_force = mechanical.maximumForce,
+                .contact = (source.modeFlags &
+                    PM_INTERACTION_MODE_CONTACT_BIT) != 0U,
+                .containment = (source.modeFlags &
+                    PM_INTERACTION_MODE_CONTAINMENT_BIT) != 0U,
                 .enabled = true}, created));
             if (result == PM_SUCCESS) simulation->active_couplings.emplace_back(created);
             break;

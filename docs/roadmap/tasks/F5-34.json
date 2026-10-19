@@ -1,7 +1,7 @@
 {
   "id": "F5-34",
   "title": "Qualify fluid-rope contact",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-23"
   ],
@@ -18,6 +18,14 @@
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "bec1a360-0edc-4aa3-941e-dd542861247a",
+    "owner": "codex-macos-qualification",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F5-34/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-19T01:39:50Z",
+    "heartbeat_at": "2026-10-19T01:39:50Z",
+    "expires_at": "2026-10-20T01:39:50Z"
+  },
   "history": []
 }

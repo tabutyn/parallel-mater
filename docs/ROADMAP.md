@@ -206,13 +206,13 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-26](roadmap/tasks/F5-26.json) | Qualify fluid self pressure | done | F5-23 | — |
 | [F5-27](roadmap/tasks/F5-27.json) | Qualify fluid self viscosity | done | F5-23 | — |
 | [F5-28](roadmap/tasks/F5-28.json) | Qualify sampled rope self contact | done | F5-23 | — |
-| [F5-29](roadmap/tasks/F5-29.json) | Qualify smoke self pressure | leased | F5-23 | codex-windows-qualification / windows-gtx1080 / 2026-10-19T23:21:16Z |
-| [F5-30](roadmap/tasks/F5-30.json) | Qualify smoke self viscosity | ready | F5-23 | — |
-| [F5-31](roadmap/tasks/F5-31.json) | Qualify fluid-cloth contact | ready | F5-23 | — |
-| [F5-32](roadmap/tasks/F5-32.json) | Qualify cloth fluid containment | ready | F5-23 | — |
-| [F5-33](roadmap/tasks/F5-33.json) | Qualify fluid-soft contact | ready | F5-23 | — |
-| [F5-34](roadmap/tasks/F5-34.json) | Qualify fluid-rope contact | ready | F5-23 | — |
-| [F5-35](roadmap/tasks/F5-35.json) | Qualify smoke-to-fluid drag | ready | F5-23 | — |
+| [F5-29](roadmap/tasks/F5-29.json) | Qualify smoke self pressure | done | F5-23 | — |
+| [F5-30](roadmap/tasks/F5-30.json) | Qualify smoke self viscosity | done | F5-23 | — |
+| [F5-31](roadmap/tasks/F5-31.json) | Qualify fluid-cloth contact | done | F5-23 | — |
+| [F5-32](roadmap/tasks/F5-32.json) | Qualify cloth fluid containment | done | F5-23 | — |
+| [F5-33](roadmap/tasks/F5-33.json) | Qualify fluid-soft contact | done | F5-23 | — |
+| [F5-34](roadmap/tasks/F5-34.json) | Qualify fluid-rope contact | leased | F5-23 | codex-macos-qualification / Thomass-MacBook-Air / 2026-10-20T01:39:50Z |
+| [F5-35](roadmap/tasks/F5-35.json) | Qualify smoke-to-fluid drag | leased | F5-23 | codex-windows-qualification / windows-gtx1080 / 2026-10-20T01:48:28Z |
 | [F5-36](roadmap/tasks/F5-36.json) | Qualify externally heated fluid | ready | F5-23 | — |
 | [F5-37](roadmap/tasks/F5-37.json) | Qualify fluid-to-smoke phase transfer | ready | F5-23 | — |
 | [F5-38](roadmap/tasks/F5-38.json) | Qualify fluid-rigid contact | ready | F5-23 | — |

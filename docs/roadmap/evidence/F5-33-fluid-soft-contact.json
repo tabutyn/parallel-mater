@@ -1,0 +1,42 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-33",
+  "source_commit": "86f10b2d49f551c2fe590d3a25b755fa0875d178",
+  "captured_at": "2026-10-19",
+  "host": "Thomass-MacBook-Air",
+  "driver": "slang-metal",
+  "device": "Apple M4 - Metal GPU preview (qualification incomplete)",
+  "capabilities": [
+    "FLUID/SOFT_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE"
+  ],
+  "contracts": {
+    "trajectory": "case:soft-body-fluid",
+    "quality": "quality:fluid-soft-contact-v1",
+    "lifecycle": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+  },
+  "results": {
+    "trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "reference_regression": "PASS: soft-body-fluid against the unchanged CUDA golden",
+    "analytic_invariants": "PASS: 1 contact sample, 0 failures",
+    "maximum_overlap_penetration_m": 0.0,
+    "reciprocal_impulse_residual_n_s": 7.275957614183426e-12,
+    "expected_unique_bound_node_impulse_n_s": 0.8186769279202747,
+    "expected_impulse_error_n_s": 0.0003004395545253685,
+    "minimum_binding_incidence_per_node": 4,
+    "lifecycle_invariants": "PASS: 2 profile cases, 9 checkpoints, 0 failures; exact bound case has 5 checkpoints",
+    "qualification": "PASS: 1/1 exact capability, 0 failures",
+    "python_conformance_tests": "PASS: 153 tests",
+    "focused_ctest": "PASS: command inputs and lifecycle output requirement, 2/2"
+  },
+  "artifacts": {
+    "physical_evidence": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-soft-contact.json",
+    "qualification_result": "conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-soft-contact-qualification.json",
+    "evidence_index": "conformance/v1/evidence/index-v1.json"
+  },
+  "notes": [
+    "The closed subdivided tetrahedral skin references every physical node from four separate surface bindings, so the analytic impulse gate detects multiplying node mass by skin incidence.",
+    "The oracle uses public particle, soft-node and skinned-surface state to check convex clearance, binding reconstruction, expected unique-node effective mass, reciprocal momentum, reciprocal force and force-to-impulse consistency.",
+    "The checked qualification producer verified the driver binary plus provenance, capability, trajectory, quality and lifecycle artifact hashes before the existing evaluator accepted the exact capability.",
+    "The existing adverse three-family lifecycle binding is retained unchanged; graph update, invalid partial replacement rollback, recovery and liquid replacement preserve unrelated rope, soft-body, smoke and cloth public state."
+  ]
+}

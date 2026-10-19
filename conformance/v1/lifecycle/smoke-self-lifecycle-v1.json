@@ -1,0 +1,121 @@
+{
+  "schema": "parallel-mater-conformance-lifecycle-profile/v1",
+  "id": "smoke-self-lifecycle-v1",
+  "title": "Smoke particle and grid resource lifecycle",
+  "sources": {
+    "capacity": "include/parallel_mater/parallel_mater.h: PmSmokeCapacity is immutable simulation storage",
+    "replacement": "docs/RESOURCE-LIFETIME.md: endpoint writes replace the selected resource generation",
+    "rollback": "docs/API-CONTRACT.md: rejected batched writes leave every selected endpoint unchanged",
+    "removal": "include/parallel_mater/parallel_mater.h: inactive PmSmokeInfo removes the selected resource"
+  },
+  "state_fingerprint": "SHA-256 of canonical public smoke output excluding driver handles, revisions, timings and diagnostics",
+  "observation_boundary": "Complete each public command, then copy public smoke state without advancing physics unless the checkpoint explicitly installs a new generation",
+  "cases": [
+    {
+      "id": "smoke-capacity-replacement-removal-rollback",
+      "families": [
+        "smoke"
+      ],
+      "unrelated_resources": [],
+      "tracked_resources": [
+        "particle-smoke",
+        "grid-smoke"
+      ],
+      "track_graph": false,
+      "checkpoints": [
+        {
+          "id": "baseline",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "particle-smoke": {
+              "active": true
+            },
+            "grid-smoke": {
+              "active": true
+            }
+          }
+        },
+        {
+          "id": "replacement",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "particle-smoke": {
+              "active": true,
+              "generation_different_from": "baseline",
+              "state_different_from": "baseline"
+            },
+            "grid-smoke": {
+              "active": true,
+              "generation_different_from": "baseline",
+              "state_different_from": "baseline"
+            }
+          }
+        },
+        {
+          "id": "particle-capacity-rejection",
+          "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED",
+          "resources": {
+            "particle-smoke": {
+              "active": true,
+              "generation_same_as": "replacement",
+              "state_same_as": "replacement"
+            },
+            "grid-smoke": {
+              "active": true,
+              "generation_same_as": "replacement",
+              "state_same_as": "replacement"
+            }
+          }
+        },
+        {
+          "id": "grid-capacity-rejection",
+          "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED",
+          "resources": {
+            "particle-smoke": {
+              "active": true,
+              "generation_same_as": "replacement",
+              "state_same_as": "replacement"
+            },
+            "grid-smoke": {
+              "active": true,
+              "generation_same_as": "replacement",
+              "state_same_as": "replacement"
+            }
+          }
+        },
+        {
+          "id": "removal",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "particle-smoke": {
+              "active": false,
+              "generation_different_from": "grid-capacity-rejection",
+              "state_different_from": "grid-capacity-rejection"
+            },
+            "grid-smoke": {
+              "active": false,
+              "generation_different_from": "grid-capacity-rejection",
+              "state_different_from": "grid-capacity-rejection"
+            }
+          }
+        },
+        {
+          "id": "recovery",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "particle-smoke": {
+              "active": true,
+              "generation_different_from": "removal",
+              "state_same_as": "baseline"
+            },
+            "grid-smoke": {
+              "active": true,
+              "generation_different_from": "removal",
+              "state_same_as": "baseline"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

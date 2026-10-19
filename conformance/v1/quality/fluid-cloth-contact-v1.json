@@ -1,0 +1,47 @@
+{
+  "schema": "parallel-mater-conformance-quality-profile/v1",
+  "id": "fluid-cloth-contact-v1",
+  "title": "Bidirectional fluid-cloth contact on an open surface",
+  "evaluation": "fluid_cloth_contact",
+  "sources": {
+    "capability": "docs/INTERACTION-MODES.md: FLUID/CLOTH/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+    "fixture": "conformance/v1/src/fluid_cloth_contact.cpp: public-API particle and open-triangle cloth fixture",
+    "oracle": "Independent signed point-plane separation and endpoint momentum balance from public outputs",
+    "tolerances": "Explicit immutable state, incremental first-step response, terminal contact distance, momentum, tangential and speed limits"
+  },
+  "units": "SI: metres, kilograms, seconds, metres per second, newtons",
+  "momentum_scope": "Closed zero-gravity particle/cloth fixture; all cloth vertices are dynamic and the only endpoint exchange is the declared contact edge.",
+  "fixtures": [
+    {
+      "id": "fluid-cloth-open-triangle-contact",
+      "timestep_seconds": 0.005,
+      "step_count": 100,
+      "substeps": 1,
+      "gravity_m_s2": [0.0, 0.0, 0.0],
+      "mode_flags": ["CONTACT"],
+      "cloth_preserve_volume": false,
+      "cloth_vertices_m": [[-1.0, 0.0, -1.0], [0.0, 0.0, 1.0], [1.0, 0.0, -1.0]],
+      "cloth_triangle_indices": [0, 1, 2],
+      "cloth_vertex_mass_kg": 1.0,
+      "particle_initial_position_m": [0.0, 0.01, 0.0],
+      "particle_initial_velocity_m_s": [0.0, 0.0, 0.0],
+      "particle_mass_kg": 1.0,
+      "contact_distance_m": 0.05,
+      "stiffness_n_m": 200.0,
+      "damping_n_s_m": 25.0,
+      "tangential_drag_n_s_m": 0.0,
+      "maximum_force_n": 100.0,
+      "oracle": "open-surface-signed-distance-and-reciprocal-normal-momentum"
+    }
+  ],
+  "tolerances": {
+    "fixture_state_absolute": 0.000001,
+    "first_step_maximum_separation_change_m": 0.005,
+    "first_step_minimum_endpoint_speed_m_s": 0.001,
+    "terminal_contact_violation_m": 0.005,
+    "normal_momentum_error_kg_m_s": 0.001,
+    "tangential_momentum_error_kg_m_s": 0.001,
+    "maximum_tangential_speed_m_s": 0.01,
+    "maximum_endpoint_speed_m_s": 2.0
+  }
+}

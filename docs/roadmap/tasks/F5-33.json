@@ -1,7 +1,7 @@
 {
   "id": "F5-33",
   "title": "Qualify fluid-soft contact",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,7 +17,27 @@
     "Retain the existing exact lifecycle binding and prove the new analytic fixture does not broaden or substitute for its capacity, replacement and rollback obligations.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
+  "evidence": [
+    "docs/roadmap/evidence/F5-33-fluid-soft-contact.json"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "5e4c074a-76b2-49ef-ab1a-998162646848",
+        "owner": "codex-macos-qualification",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F5-33/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-19T01:00:07Z",
+        "heartbeat_at": "2026-10-19T01:00:07Z",
+        "expires_at": "2026-10-20T01:00:07Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T01:18:32Z",
+      "reason": "qualified-fluid-soft-contact-on-physical-apple-m4",
+      "evidence": [
+        "docs/roadmap/evidence/F5-33-fluid-soft-contact.json"
+      ]
+    }
+  ]
 }

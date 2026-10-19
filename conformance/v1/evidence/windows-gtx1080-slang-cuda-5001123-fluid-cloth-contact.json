@@ -1,0 +1,104 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-31",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "50011235a53359c9e3983cb020ef3dbb02e55136",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+5001123",
+    "binary_sha256": "573e1bab2e9dd5374064e900dd499c13e0062ab368c3d432ce3aefda5030848e"
+  },
+  "device": {
+    "name": "NVIDIA GeForce GTX 1080",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "NVIDIA 582.66; CUDA API 13000"
+  },
+  "toolchain": {
+    "compiler": "MSVC, NVIDIA CUDA Compiler, Slang",
+    "version": "MSVC 19.44.35228; CUDA 12.9.86; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "FLUID",
+      "second_family": "CLOTH",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:cloth-water",
+      "sha256": "b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5"
+    },
+    "quality": {
+      "id": "quality:fluid-cloth-contact-v1",
+      "sha256": "1216cf9e7252b5fe4c27f14639a1031e698d459a2001db60153a088ebb600445"
+    },
+    "lifecycle": {
+      "id": "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback",
+      "sha256": "5599b5d6c5e8386830d0abb29a13feddd3a43a917912efb9e9cf4b1732a22769"
+    }
+  },
+  "runner": {
+    "binary_sha256": "0b582e7124a60101552cfd78d4689064d77772b3aadf65b2b62af8ca4e0e3449",
+    "validation_layer_sha256": "6030ff2db29d603792bc9757cc6a703492a21ce949be79eb3da08070e1c66e06"
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "a2c688d6d22bf1c3dc0655a9917ab97c0729f52fa3ca5d1ec0bf883658645bb0",
+    "comparison_report_sha256": "4b9cf527f15baf1161ebcc9bd4a7b41e485862af5998ae4b6a87c62b0ef50c05",
+    "reference_regression": {
+      "passed": 1,
+      "failed": 0,
+      "unsupported": 0
+    }
+  },
+  "analytic_invariants": {
+    "result_sha256": "3aa3bbb471dec4690b15abaa0e73c04bedbedc01416bd47a9b5fe31db66a0b04",
+    "report_sha256": "77093e0d2d47d772d05460358a43126636004c53c3be1a0743134de3d77329a0",
+    "passed": true,
+    "sample_count": 2,
+    "failure_count": 0,
+    "observations": {
+      "initial_signed_separation_m": 0.009999999776482582,
+      "first_step_signed_separation_m": 0.009587499358079333,
+      "first_step_fluid_normal_velocity_m_s": -0.05999999861670801,
+      "first_step_cloth_mean_normal_velocity_m_s": 0.019999999240879498,
+      "first_step_momentum_error_kg_m_s": 0.00002384185791015625,
+      "terminal_contact_violation_m": 0.0,
+      "final_momentum_error_kg_m_s": 0.00009872294887121507
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "70e3fff7f311b438766f7cf21ccd22d1f42ff7d76e29ec85f4c3e875b74e4a80",
+    "report_sha256": "5b35f53e9937ee481c32b823042be29ddf68e5022dd07ce8dcc6c13f8c65b3b7",
+    "passed": true,
+    "case_count": 1,
+    "checkpoint_count": 5,
+    "failure_count": 0,
+    "checkpoints": [
+      {"id": "baseline", "outcome": "PM_SUCCESS", "graph_generation": 1, "graph_state_sha256": "6b08bdc3301f3da11cb58f247ee8787ffe4ab1a447fef8145386bbf3a8cd1fc8"},
+      {"id": "replacement", "outcome": "PM_SUCCESS", "graph_generation": 2, "graph_state_sha256": "952b3328296a56541d61162e52fe850ec9350b27c452e9e03b51a6d983e2df99"},
+      {"id": "rejected-overflow", "outcome": "PM_ERROR_CAPACITY_EXCEEDED", "graph_generation": 2, "graph_state_sha256": "952b3328296a56541d61162e52fe850ec9350b27c452e9e03b51a6d983e2df99"},
+      {"id": "removal", "outcome": "PM_SUCCESS", "graph_generation": 3, "graph_state_sha256": "5ba87746b9726252181e6b37fe850e48c9a57b159a8f910ecafcf3c59ca3abb9"},
+      {"id": "recovery", "outcome": "PM_SUCCESS", "graph_generation": 4, "graph_state_sha256": "dd01ed67b7d56d4e49fbe7685f72d578995bc5360c3560cb2fdaf39c4187adad"}
+    ],
+    "preserved_endpoint_state_sha256": "b9fbff27a45a577b9cc9568414fffce7067d93798c5eea8b2dce323f8e2d03cb"
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --check-inputs",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --case cloth-water --output <trajectory-output>",
+    "python conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case cloth-water --report <trajectory-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --quality fluid-cloth-contact-v1 --output <quality-output>",
+    "python conformance/v1/quality.py --profile conformance/v1/quality/fluid-cloth-contact-v1.json --actual <quality-result> --report <quality-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --lifecycle fluid-cloth-contact-lifecycle-v1 --output <lifecycle-result>",
+    "python conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ]
+}

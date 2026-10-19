@@ -142,7 +142,13 @@ PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noe
                   PM_INTERACTION_MODE_PRESSURE_BIT |
                   PM_INTERACTION_MODE_INTERFACE_BIT
             : contract.mode_flags;
-    if (coupling.modeFlags != expected_modes)
+    const bool independently_selectable_fluid_cloth =
+        coupling.type == PM_COUPLING_LIQUID_CLOTH;
+    if ((!independently_selectable_fluid_cloth &&
+         coupling.modeFlags != expected_modes) ||
+        (independently_selectable_fluid_cloth &&
+         (coupling.modeFlags == 0U ||
+          (coupling.modeFlags & ~expected_modes) != 0U)))
         return PM_ERROR_FEATURE_NOT_PRESENT;
     const bool valid_profile = coupling.type == PM_COUPLING_LIQUID_LIQUID
         ? coupling.materialProfile == PM_INTERACTION_MATERIAL_EQUAL ||
@@ -161,6 +167,9 @@ PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noe
             immiscible && index == 2U
             ? PM_INTERACTION_MODE_INTERFACE
             : contract.interactions[index].mode;
+        if (independently_selectable_fluid_cloth &&
+            (coupling.modeFlags & (1U << static_cast<unsigned>(mode))) == 0U)
+            continue;
         const PmInteractionCapabilityKey key{
             contract.first, contract.second,
             coupling.type == PM_COUPLING_LIQUID_LIQUID

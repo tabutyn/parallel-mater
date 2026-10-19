@@ -2129,7 +2129,10 @@ Status SimulationRuntime::add_fluid_cloth_coupling(
         return failure(StatusCode::invalid_handle,
                        "cloth coupling handle is invalid or stale");
     const ClothStorage &cloth = *impl_->cloths[options.cloth.index];
-    if (!cloth.preserve_volume)
+    if (!options.contact && !options.containment)
+        return failure(StatusCode::invalid_argument,
+            "fluid-cloth coupling requires contact or containment");
+    if (options.containment && !cloth.preserve_volume)
         return failure(StatusCode::invalid_argument,
             "contained fluid requires closed volume-preserving cloth");
     if (!finite(options.contact_distance) || options.contact_distance < 0.0F ||
@@ -2179,10 +2182,16 @@ Status SimulationRuntime::update_fluid_cloth_coupling(
         !impl_->cloths[options.cloth.index] ||
         !impl_->cloths[options.cloth.index]->alive ||
         impl_->cloths[options.cloth.index]->generation !=
-            options.cloth.generation ||
-        !impl_->cloths[options.cloth.index]->preserve_volume)
+            options.cloth.generation)
         return failure(StatusCode::invalid_handle,
-                       "fluid-cloth coupling cloth is invalid or open");
+                       "fluid-cloth coupling cloth is invalid or stale");
+    if (!options.contact && !options.containment)
+        return failure(StatusCode::invalid_argument,
+            "fluid-cloth coupling requires contact or containment");
+    if (options.containment &&
+        !impl_->cloths[options.cloth.index]->preserve_volume)
+        return failure(StatusCode::invalid_argument,
+            "contained fluid requires closed volume-preserving cloth");
     if (!finite(options.contact_distance) || options.contact_distance < 0.0F ||
         !finite(options.interaction_radius) || options.interaction_radius < 0.0F ||
         !finite(options.stiffness) || options.stiffness <= 0.0F ||

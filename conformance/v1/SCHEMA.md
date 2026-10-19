@@ -148,6 +148,9 @@ capability keys and scoped evidence. Every evidence record names its scope,
 contract ID/hash, source commit, artifact SHA-256 and one of `passed`, `failed`,
 `unsupported` or `missing`. The same artifact may support distinct scopes only
 through separate records; one scope never substitutes for another.
+Physical-capture results are produced by `qualification.py --from-evidence`,
+which verifies the binary, provenance, capability, trajectory, quality and
+lifecycle artifacts before applying this schema and running the evaluator.
 
 ## Qualification report: `parallel-mater-conformance-qualification-report/v1`
 
