@@ -1,7 +1,7 @@
 {
   "id": "P1-58",
   "title": "Release fluid-pair interface storage",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "P1-10"
   ],
@@ -17,6 +17,14 @@
     "Existing invalid-graph rollback, reset, overflow and recovery checks remain passing under the public-API host fixture."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "e63d016a-76c9-4fe3-9dfb-cedbbce6932b",
+    "owner": "codex-ci-repair",
+    "machine": "thomas-desktop",
+    "branch": "work/P1-58/thomas-desktop",
+    "claimed_at": "2026-10-19T12:06:48Z",
+    "heartbeat_at": "2026-10-19T12:06:48Z",
+    "expires_at": "2026-10-20T12:06:48Z"
+  },
   "history": []
 }
