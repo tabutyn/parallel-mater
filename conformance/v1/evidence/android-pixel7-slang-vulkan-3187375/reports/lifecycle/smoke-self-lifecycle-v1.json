@@ -1,0 +1,15 @@
+{
+  "case_count": 1,
+  "checkpoint_count": 6,
+  "driver": {
+    "device": "Mali-G710",
+    "name": "slang-vulkan"
+  },
+  "failure_count": 0,
+  "failures": [],
+  "passed": true,
+  "profile_id": "smoke-self-lifecycle-v1",
+  "profile_sha256": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f",
+  "schema": "parallel-mater-conformance-lifecycle-report/v1",
+  "scope": "lifecycle_invariants"
+}

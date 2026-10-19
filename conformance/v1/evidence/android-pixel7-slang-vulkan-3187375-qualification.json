@@ -1,0 +1,976 @@
+{
+  "advertised_capabilities": [
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "CONTACT",
+      "scope": "SELF",
+      "second_family": "FLUID"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "PRESSURE",
+      "scope": "SELF",
+      "second_family": "FLUID"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "VISCOSITY",
+      "scope": "SELF",
+      "second_family": "FLUID"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "ROPE",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "CONTACT",
+      "scope": "SELF",
+      "second_family": "ROPE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "PRESSURE",
+      "scope": "SELF",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "VISCOSITY",
+      "scope": "SELF",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "PRESSURE",
+      "scope": "SELF",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "VISCOSITY",
+      "scope": "SELF",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "RIGID_BODY",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "CONTACT",
+      "scope": "SAME_DOMAIN",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "RIGID_BODY",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "ATTACHMENT",
+      "scope": "SAME_DOMAIN",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "CLOTH"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTAINMENT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "CLOTH"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SOFT_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "ROPE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "FLUID",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "EXTERNAL_TO_FIRST",
+      "first_family": "FLUID",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "THERMAL",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "FIRST_TO_SECOND_TRANSFER",
+      "first_family": "FLUID",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "PHASE",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "FLUID",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "EXTERNAL_TO_FIRST",
+      "first_family": "FLUID",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "THERMAL",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "FIRST_TO_SECOND_TRANSFER",
+      "first_family": "FLUID",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "PHASE",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "FLUID",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTAINMENT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "CLOTH",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SOFT_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "CLOTH",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "ATTACHMENT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "ROPE"
+    },
+    {
+      "direction": "FIRST_TO_SECOND",
+      "first_family": "CLOTH",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "CLOTH",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "FIRST_TO_SECOND",
+      "first_family": "CLOTH",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "CLOTH",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "CLOTH",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SOFT_BODY",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "ROPE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SOFT_BODY",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "ATTACHMENT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "ROPE"
+    },
+    {
+      "direction": "FIRST_TO_SECOND",
+      "first_family": "SOFT_BODY",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "SOFT_BODY",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "FIRST_TO_SECOND",
+      "first_family": "SOFT_BODY",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "SOFT_BODY",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SOFT_BODY",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "FIRST_TO_SECOND",
+      "first_family": "ROPE",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "ROPE",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "FIRST_TO_SECOND",
+      "first_family": "ROPE",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "SECOND_TO_FIRST",
+      "first_family": "ROPE",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "SMOKE"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "ROPE",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "ROPE",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable",
+      "mode": "ATTACHMENT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "CONTACT",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    },
+    {
+      "direction": "BIDIRECTIONAL",
+      "first_family": "SMOKE",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "mode": "DRAG",
+      "scope": "DISTINCT_FAMILY",
+      "second_family": "RIGID_BODY"
+    }
+  ],
+  "device": {
+    "device_id": 2824994816,
+    "driver_version": "v1.r54p3-00eac0.1848e3b066182d5bb5a345ab256f13ee",
+    "name": "Mali-G710",
+    "vendor_id": 5045
+  },
+  "driver": {
+    "binary_sha256": "343dbd3121af1d8b91c8b50c72c6b85e0c0bfa9e730e1b20f0682e1e75257931",
+    "name": "slang-vulkan",
+    "version": "0.2.0"
+  },
+  "evidence": [
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-cloth-contact-v1.json",
+      "artifact_sha256": "a618d900fc2f64bff2ce4234125ece6370f82c76e6997391d359c1f4a2272321",
+      "contract": "quality:fluid-cloth-contact-v1",
+      "contract_sha256": "1216cf9e7252b5fe4c27f14639a1031e698d459a2001db60153a088ebb600445",
+      "scope": "analytic_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-cloth-containment-v1.json",
+      "artifact_sha256": "a0cec463e3c53c3dc6a87620bf469c5ab2dea220d5ac7b63a524d8aa468e0692",
+      "contract": "quality:fluid-cloth-containment-v1",
+      "contract_sha256": "477d6494144118c9c6b108807e81576965a16a34fda5dfe672ed783b5de95b33",
+      "scope": "analytic_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-rope-contact-v1.json",
+      "artifact_sha256": "5392a57a5855fc0d5e17eb22f47238791feeaa1d2d4c4794afde041b3af5b87d",
+      "contract": "quality:fluid-rope-contact-v1",
+      "contract_sha256": "462b1b2249fc9b928b5f983f648c0486aaf0ebf0f7ee2fb354637ea39f214a89",
+      "scope": "analytic_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-self-contact-v1.json",
+      "artifact_sha256": "f12430d47989fad34bfc586307103655cc401a996930b4f455f7e4a5b836d09e",
+      "contract": "quality:fluid-self-contact-v1",
+      "contract_sha256": "21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2",
+      "scope": "analytic_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-self-pressure-v1.json",
+      "artifact_sha256": "583cc5966ada537895a315741cc2ab1970fecccefba7caee4ac8356dab731027",
+      "contract": "quality:fluid-self-pressure-v1",
+      "contract_sha256": "4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b",
+      "scope": "analytic_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-self-viscosity-v1.json",
+      "artifact_sha256": "27752dcd38f18c320cc6f8bf7b6e582f7a87171e6cdd347772ff3c85ecb2216e",
+      "contract": "quality:fluid-self-viscosity-v1",
+      "contract_sha256": "9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c",
+      "scope": "analytic_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/fluid-soft-contact-v1.json",
+      "artifact_sha256": "dc028ac3363681f4ff8a6e497335e14fa01289d085845fa4c24001272c63ffe9",
+      "contract": "quality:fluid-soft-contact-v1",
+      "contract_sha256": "40dce99005017b4b4a485f7553ea89f8f06526c88f242215a1415c8c67c9e986",
+      "scope": "analytic_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/rigid-attachment-v1.json",
+      "artifact_sha256": "a33c9ecde8117db316ff455b5f90d5ef2677c0bc2f5f7d9acbaac44222e48b97",
+      "contract": "quality:rigid-attachment-v1",
+      "contract_sha256": "570add4a6e74539f46513a5baa8168bd2b81dd2ef95ff2a7f6bbb407f3afd108",
+      "scope": "analytic_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/rigid-brick-penetration-v1.json",
+      "artifact_sha256": "b7053d148a01b06901cf6074ecf6e9ee41d4b5b6aa4ac4c5dc1fd4df06c37c5a",
+      "contract": "quality:rigid-brick-penetration-v1",
+      "contract_sha256": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da",
+      "scope": "analytic_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/rope-self-contact-v1.json",
+      "artifact_sha256": "a8870e242a9ca08d3c441630522585aae8d8f08e95c19132cb8ad0530604af25",
+      "contract": "quality:rope-self-contact-v1",
+      "contract_sha256": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113",
+      "scope": "analytic_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/smoke-self-pressure-v1.json",
+      "artifact_sha256": "fe5fb7137ef6dc412a500b7c5c4280800ea4655608eba064c8351946d1a71ee9",
+      "contract": "quality:smoke-self-pressure-v1",
+      "contract_sha256": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150",
+      "scope": "analytic_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/quality/smoke-self-viscosity-v1.json",
+      "artifact_sha256": "0a6bb9065667fbe494a0089373eac1d1f4964564959e42070f0571529ab3244a",
+      "contract": "quality:smoke-self-viscosity-v1",
+      "contract_sha256": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff",
+      "scope": "analytic_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/capabilities.json",
+      "artifact_sha256": "4a1e1930f58007a1c6a42af8182948ac12718dd72f1feb41ebf7c0a965d6ac80",
+      "contract": "registry:interaction-capabilities",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "scope": "compilation",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/cloth-core.json",
+      "artifact_sha256": "b207d3a6a4ded6cc2d3e317916a500bf92d5530f5796577fc1e5a9c44e68b099",
+      "contract": "case:cloth-core",
+      "contract_sha256": "f01de9dd068a989a60510fcbe167f80230b6606ef6892691a62786d5d7eda6e5",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/cloth-water.json",
+      "artifact_sha256": "0eb13f989899162d4dd6f213c446325b57e99dc9cbefea2eafa7c84f319bd05a",
+      "contract": "case:cloth-water",
+      "contract_sha256": "b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/compound-weld-lifecycle.json",
+      "artifact_sha256": "d4da37edcafb3c69fee07a042be2ec639a8390638b2a60df1c543badbc505d0b",
+      "contract": "case:compound-weld-lifecycle",
+      "contract_sha256": "3c78c1301851c4f5a91e779ea40bf09f0a0e20923a02c73d65c299c54b27ca26",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/fluid-lifecycle.json",
+      "artifact_sha256": "4bcff8047948617b0e2c217cc8e9363738fa7a67c8ac39e9fddb2925ad7a8dde",
+      "contract": "case:fluid-lifecycle",
+      "contract_sha256": "43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/fluid-rigid.json",
+      "artifact_sha256": "4aa5606ed1cc8932aa378936cd5992c4f0644397a28316ad0d9d7e2b1903893f",
+      "contract": "case:fluid-rigid",
+      "contract_sha256": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/rigid-direct.json",
+      "artifact_sha256": "5c3a8817f8df8f5abf8c2df48a694b6884888ae48f87865289f7049dbb5a4438",
+      "contract": "case:rigid-direct",
+      "contract_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/rope-cloth.json",
+      "artifact_sha256": "6f13a6dc0bfcdea40171645230bfe06acc42659ffba80351a650f97feb656516",
+      "contract": "case:rope-cloth",
+      "contract_sha256": "28280bb786efb6a69ead8bfed2f76ef1ac145672de29fbd2d625f69e89eda792",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/rope-core.json",
+      "artifact_sha256": "452b94c2962f7f81477573307bfbc9a74e3cf4155cfccc33cb740bb4df4a24bf",
+      "contract": "case:rope-core",
+      "contract_sha256": "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/rope-fluid.json",
+      "artifact_sha256": "e0cfdd8d42419ec5092a856c22245e3f121e85ba44ef616e65596ac6e7dc8387",
+      "contract": "case:rope-fluid",
+      "contract_sha256": "368a65ec45f88baebc53e252dcbf8b95e3775b205714deed1006210dd5d13d27",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/rope-soft-body.json",
+      "artifact_sha256": "63e30b6d12364f1dd6d65b09d9c821ef2f8fc198bfe2580ccf4b877d2222a098",
+      "contract": "case:rope-soft-body",
+      "contract_sha256": "8d774dd377086780d1b4d52735290a73ccaa7fd4cc9334dfa5ad4fb0763b3549",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/smoke-cloth.json",
+      "artifact_sha256": "fd792202de2cc5c27a2c6ecf9e710ba34884995df11c3b137ec81028603050dd",
+      "contract": "case:smoke-cloth",
+      "contract_sha256": "8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/smoke-grid.json",
+      "artifact_sha256": "914345f34e161480d1cd57a3f3d7d3776ce86f61a785b66b3008b4d118bbf58b",
+      "contract": "case:smoke-grid",
+      "contract_sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/smoke-rope.json",
+      "artifact_sha256": "9f2defd6fca8afab075fa464dea8d24d9d5be34af002352a986360b89b72f09a",
+      "contract": "case:smoke-rope",
+      "contract_sha256": "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/smoke-soft-body.json",
+      "artifact_sha256": "0084b1071ef94febba9fe0e6f2d5058d3f9f487c14df5a9e39f0635d85e094c5",
+      "contract": "case:smoke-soft-body",
+      "contract_sha256": "a3566fe480be274b850d10f10b88ee4f3ea22e59d5cae5ccf9a652fa7d6b9cb8",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/smoke-water.json",
+      "artifact_sha256": "67dda1cd1847b1202bfba383c5e759e8db60df1d23bb41a67b0001957e1fe3ba",
+      "contract": "case:smoke-water",
+      "contract_sha256": "cbe349e888648ef1fe6f0adb507be33888be83b988d72b4bcc5c4a23a604964c",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/soft-body-cloth.json",
+      "artifact_sha256": "7d3ada62289e93434be73ae423e47b17bedeaa453f578d13e82d0a4e3036ddb4",
+      "contract": "case:soft-body-cloth",
+      "contract_sha256": "779b5f55f4db0b9f0952d0d8607c1221ca2c50a52bc2dca2b95dff70ea5e6f4a",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/soft-body-fluid.json",
+      "artifact_sha256": "b4cf944944d17ca496e8e6e3eb20cbd15d1bcf4dc51c2c493f9cb5be5f08c97b",
+      "contract": "case:soft-body-fluid",
+      "contract_sha256": "935838337761fc3a0fb6bbe4cc787953b27e8cfa7dcb4cb7adb17eb85a3fd653",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/soft-body-rigid.json",
+      "artifact_sha256": "b9a9583a8f3daf6a0303b12e07a5556b28780df08ad4fcac807d65263c208b04",
+      "contract": "case:soft-body-rigid",
+      "contract_sha256": "ab0e5f813b9953fd80f278842cab75e8e53d54f6f790e31e7572eb9e2e043505",
+      "scope": "execution",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/compound-weld-lifecycle.json",
+      "artifact_sha256": "d4da37edcafb3c69fee07a042be2ec639a8390638b2a60df1c543badbc505d0b",
+      "contract": "case:compound-weld-lifecycle",
+      "contract_sha256": "3c78c1301851c4f5a91e779ea40bf09f0a0e20923a02c73d65c299c54b27ca26",
+      "scope": "lifecycle_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/rigid-direct.json",
+      "artifact_sha256": "5c3a8817f8df8f5abf8c2df48a694b6884888ae48f87865289f7049dbb5a4438",
+      "contract": "case:rigid-direct",
+      "contract_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
+      "scope": "lifecycle_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/physics-qualification/cases/rope-core.json",
+      "artifact_sha256": "452b94c2962f7f81477573307bfbc9a74e3cf4155cfccc33cb740bb4df4a24bf",
+      "contract": "case:rope-core",
+      "contract_sha256": "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41",
+      "scope": "lifecycle_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/adverse-capacity-three-family-v1.json",
+      "artifact_sha256": "956bf5c24d490e6d8c0fed7b922c54276adb18ece9b2e1719cc31143d3e06c99",
+      "contract": "lifecycle:adverse-capacity-three-family-v1#capacity-replacement-recovery",
+      "contract_sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
+      "scope": "lifecycle_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/adverse-capacity-three-family-v1.json",
+      "artifact_sha256": "956bf5c24d490e6d8c0fed7b922c54276adb18ece9b2e1719cc31143d3e06c99",
+      "contract": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback",
+      "contract_sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2",
+      "scope": "lifecycle_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/fluid-cloth-contact-lifecycle-v1.json",
+      "artifact_sha256": "6ec7886a1b1541c0ab22d562c74b32c5633c0a3e81f4ae73115ed13869ddabbd",
+      "contract": "lifecycle:fluid-cloth-contact-lifecycle-v1#fluid-cloth-contact-capacity-replacement-removal-rollback",
+      "contract_sha256": "5599b5d6c5e8386830d0abb29a13feddd3a43a917912efb9e9cf4b1732a22769",
+      "scope": "lifecycle_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/fluid-cloth-containment-lifecycle-v1.json",
+      "artifact_sha256": "7ff79f974818a7a5ab82a47dd9c595fc52555469f714e82104e063a445a9b950",
+      "contract": "lifecycle:fluid-cloth-containment-lifecycle-v1#fluid-cloth-containment-capacity-replacement-removal-rollback",
+      "contract_sha256": "c96a995030b4b3e20ef77c55ab01bb7be2afdbfa2959f69c7d07be6c9bc21bb1",
+      "scope": "lifecycle_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/smoke-self-lifecycle-v1.json",
+      "artifact_sha256": "27cbf4b2785e4c0ce196e097d223e027c6a84b00d389c9409a58b8b44fa68839",
+      "contract": "lifecycle:smoke-self-lifecycle-v1#smoke-capacity-replacement-removal-rollback",
+      "contract_sha256": "6a609f0e2056261ab5c2b1b5d0c09fa2243b65a32a594abb68c904f2e2b7f21f",
+      "scope": "lifecycle_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/smoke-self-pressure-lifecycle-v1.json",
+      "artifact_sha256": "26b2d9bee75a5b20f1f6415717bc3323b7dc248d1d194718dff1f63a26c7c372",
+      "contract": "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-grid-capacity-replacement-removal-rollback",
+      "contract_sha256": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31",
+      "scope": "lifecycle_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/lifecycle/smoke-self-pressure-lifecycle-v1.json",
+      "artifact_sha256": "26b2d9bee75a5b20f1f6415717bc3323b7dc248d1d194718dff1f63a26c7c372",
+      "contract": "lifecycle:smoke-self-pressure-lifecycle-v1#smoke-particle-capacity-replacement-removal-rollback",
+      "contract_sha256": "b24ba8a0ce5243aea7159347f741b050247bad6cc55532f24ce2ce6b7227bb31",
+      "scope": "lifecycle_invariants",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:cloth-core",
+      "contract_sha256": "f01de9dd068a989a60510fcbe167f80230b6606ef6892691a62786d5d7eda6e5",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "failed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:cloth-water",
+      "contract_sha256": "b135375c27a89e9f1e36fbfcfecb6e9e681ac3390d8ded1dbda5aa900ae202e5",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:compound-weld-lifecycle",
+      "contract_sha256": "3c78c1301851c4f5a91e779ea40bf09f0a0e20923a02c73d65c299c54b27ca26",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:fluid-lifecycle",
+      "contract_sha256": "43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:fluid-rigid",
+      "contract_sha256": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "failed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:rigid-direct",
+      "contract_sha256": "4d7a4a89cdaadf862fbe0e485f0f163ae03b3a2aa8dfa9c87373af935cf4e56c",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:rope-cloth",
+      "contract_sha256": "28280bb786efb6a69ead8bfed2f76ef1ac145672de29fbd2d625f69e89eda792",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:rope-core",
+      "contract_sha256": "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "failed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:rope-fluid",
+      "contract_sha256": "368a65ec45f88baebc53e252dcbf8b95e3775b205714deed1006210dd5d13d27",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "failed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:rope-soft-body",
+      "contract_sha256": "8d774dd377086780d1b4d52735290a73ccaa7fd4cc9334dfa5ad4fb0763b3549",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "failed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:smoke-cloth",
+      "contract_sha256": "8020be0bf008270d0704446db96b02908262767301f62f10b7bafd8014bca2dc",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:smoke-grid",
+      "contract_sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:smoke-rope",
+      "contract_sha256": "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:smoke-soft-body",
+      "contract_sha256": "a3566fe480be274b850d10f10b88ee4f3ea22e59d5cae5ccf9a652fa7d6b9cb8",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:smoke-water",
+      "contract_sha256": "cbe349e888648ef1fe6f0adb507be33888be83b988d72b4bcc5c4a23a604964c",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:soft-body-cloth",
+      "contract_sha256": "779b5f55f4db0b9f0952d0d8607c1221ca2c50a52bc2dca2b95dff70ea5e6f4a",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:soft-body-fluid",
+      "contract_sha256": "935838337761fc3a0fb6bbe4cc787953b27e8cfa7dcb4cb7adb17eb85a3fd653",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "passed"
+    },
+    {
+      "artifact_path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/reports/reference.json",
+      "artifact_sha256": "03371afcf783f8012eb4ff6811c1b621d2e147ea09e4f101c20d3162486a3fe0",
+      "contract": "case:soft-body-rigid",
+      "contract_sha256": "ab0e5f813b9953fd80f278842cab75e8e53d54f6f790e31e7572eb9e2e043505",
+      "scope": "reference_regression",
+      "source_commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+      "status": "failed"
+    }
+  ],
+  "execution_status": "completed",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "190ef69162399082d08433802c9b2e289a9642167ac149c9ea9c03bbc21a04e4",
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "source": {
+    "commit": "31873756cdac28020010f4b7e8d6f1f947cc4e63",
+    "dirty": false
+  },
+  "toolchain": {
+    "compiler": "Android Clang",
+    "ndk": "29.0.14206865",
+    "slang": "2026.18",
+    "version": "Android (13989888, +pgo, +bolt, +lto, +mlgo, based on r563880c) Clang 21.0.0 (https://android.googlesource.com/toolchain/llvm-project 5e96669f06077099aa41290cdb4c5e6fa0f59349)"
+  }
+}

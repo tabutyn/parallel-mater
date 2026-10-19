@@ -17,6 +17,7 @@
 #include <condition_variable>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <functional>
 #include <limits>
@@ -337,6 +338,11 @@ inline void refresh_command_state(PmCommandBuffer buffer) noexcept {
 [[nodiscard]] inline PmResult from_status(
     const parallel_mater::Status &status) noexcept {
     using parallel_mater::StatusCode;
+    if (!status && std::getenv("PM_SCHEDULER_TRACE_ERRORS") != nullptr)
+        std::fprintf(stderr,
+                     "Parallel Mater scheduler: %s (code %u; backend %d)\n",
+                     status.message != nullptr ? status.message : "unknown failure",
+                     static_cast<unsigned>(status.code), status.backend_error);
     switch (status.code) {
     case StatusCode::success: return PM_SUCCESS;
     case StatusCode::invalid_argument:

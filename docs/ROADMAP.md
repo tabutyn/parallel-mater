@@ -192,7 +192,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-12](roadmap/tasks/F5-12.json) | Publish current macOS Metal driver evidence | done | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-10, F5-11 | — |
 | [F5-13](roadmap/tasks/F5-13.json) | Expose capability qualification on iPadOS | done | F5-01, F5-08 | — |
 | [F5-14](roadmap/tasks/F5-14.json) | Publish current iPadOS Metal driver evidence | done | F5-02, F5-03, F5-05, F5-06, F5-10, F5-11, F5-13 | — |
-| [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | leased | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | codex-linux-gallery / thomas-laptop / 2026-10-20T11:32:56Z |
+| [F5-15](roadmap/tasks/F5-15.json) | Publish current Android Vulkan driver evidence | done | F5-01, F5-02, F5-03, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
 | [F5-16](roadmap/tasks/F5-16.json) | Publish current Linux driver evidence | done | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-08, F5-09, F5-10, F5-11 | — |
 | [F5-17](roadmap/tasks/F5-17.json) | Adjudicate rigid-direct reference drift | done | F5-04, F5-10 | — |
 | [F5-18](roadmap/tasks/F5-18.json) | Stabilize rigid-direct planar symmetry | done | F5-17 | — |
@@ -278,7 +278,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F7-15](roadmap/tasks/F7-15.json) | Expose capability-driven Android catalog | done | F7-02, F7-07 | — |
 | [F7-16](roadmap/tasks/F7-16.json) | Use native Vulkan rendering on Android | done | F7-07, F7-09 | — |
 | [F7-17](roadmap/tasks/F7-17.json) | Complete Android Gallery controls and help | done | F7-04, F7-07, F7-15, F7-20, F7-21 | — |
-| [F7-18](roadmap/tasks/F7-18.json) | Qualify complete Android Gallery | waiting on dependencies | F5-15, F7-05, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17, F7-22 | — |
+| [F7-18](roadmap/tasks/F7-18.json) | Qualify complete Android Gallery | ready | F5-15, F7-05, F7-10, F7-11, F7-12, F7-13, F7-14, F7-15, F7-16, F7-17, F7-22 | — |
 | [F7-19](roadmap/tasks/F7-19.json) | Close common Gallery runtime boundary | done | F7-06, F7-08 | — |
 | [F7-20](roadmap/tasks/F7-20.json) | Consolidate the common Gallery scene descriptor | done | F7-12, F7-19 | — |
 | [F7-21](roadmap/tasks/F7-21.json) | Make Gallery presentation state backend-neutral | done | F7-19, F7-20 | — |

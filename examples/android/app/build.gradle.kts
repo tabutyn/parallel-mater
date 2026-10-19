@@ -38,6 +38,7 @@ android {
                     "-DPARALLEL_MATER_SLANG_CPU_LIQUIDS=${if (useVulkan) "OFF" else "ON"}",
                     "-DPARALLEL_MATER_ANDROID_BACKEND=$physicsBackend",
                     "-DPARALLEL_MATER_ANDROID_QUALIFICATION=${if (qualification) "ON" else "OFF"}",
+                    "-DPARALLEL_MATER_ENABLE_ANDROID_QUALIFICATION=${if (qualification) "ON" else "OFF"}",
                     "-DPARALLEL_MATER_BUILD_GALLERY=ON",
                     "-DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=OFF",
                     "-DPARALLEL_MATER_BUILD_SLANG_MIRRORS=OFF",
@@ -53,7 +54,8 @@ android {
                     arguments += "-DPARALLEL_MATER_SOURCE_REVISION=${sourceRevision.get()}"
                 targets += "parallel-mater-gallery-android"
                 if (qualification) targets += listOf("pm-android-command-tests",
-                    "pm-android-async-tests", "pm-android-liquid-tests")
+                    "pm-android-async-tests", "pm-android-liquid-tests",
+                    "pm-android-conformance", "pm-android-device-contracts")
             }
         }
     }

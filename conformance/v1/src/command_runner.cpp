@@ -1430,6 +1430,14 @@ int conformance_command_main(int argc, char **argv) {
                 "fluid-cloth-contact-v1";
             const bool smoke_self_viscosity = arguments.quality_id ==
                 "smoke-self-viscosity-v1";
+#if defined(PM_CONFORMANCE_DEVICE_FIXTURES)
+            const bool fluid_self = arguments.quality_id ==
+                    "fluid-self-contact-v1" ||
+                arguments.quality_id == "fluid-self-pressure-v1" ||
+                arguments.quality_id == "fluid-self-viscosity-v1";
+#else
+            constexpr bool fluid_self = false;
+#endif
             const bool smoke_fluid_drag = arguments.quality_id ==
                 "smoke-fluid-drag-v1";
             if (!brick && !attachment && !rope_self_contact &&
@@ -1437,7 +1445,8 @@ int conformance_command_main(int argc, char **argv) {
                 !fluid_soft_contact &&
                 !fluid_rope_contact &&
                 !smoke_self_pressure && !fluid_cloth_contact &&
-                !smoke_self_viscosity && !smoke_fluid_drag)
+                !smoke_self_viscosity && !fluid_self &&
+                !smoke_fluid_drag)
                 throw std::runtime_error(
                     "unknown conformance quality profile: " +
                     arguments.quality_id);
@@ -1449,6 +1458,23 @@ int conformance_command_main(int argc, char **argv) {
                     result = conformance_rigid_attachment_quality(root);
                 } else if (rope_self_contact) {
                     result = conformance_rope_self_contact_quality(root);
+#if defined(PM_CONFORMANCE_DEVICE_FIXTURES)
+                } else if (fluid_self) {
+                    ExecutionStatus status{};
+                    const auto temporary = arguments.output /
+                        (arguments.quality_id + ".temporary");
+                    result = conformance_fluid_self_quality(
+                        temporary, arguments.quality_id, &status);
+                    std::filesystem::remove(temporary);
+                    write_file(arguments.output /
+                                   (arguments.quality_id + ".json"),
+                               result);
+                    if (status == ExecutionStatus::unsupported) return 77;
+                    if (status == ExecutionStatus::failed) return 2;
+                    std::cout << "Quality execution completed: "
+                              << arguments.quality_id << '\n';
+                    return 0;
+#endif
                 } else if (fluid_cloth_containment || fluid_soft_contact ||
                            fluid_rope_contact) {
                     ExecutionStatus status{};

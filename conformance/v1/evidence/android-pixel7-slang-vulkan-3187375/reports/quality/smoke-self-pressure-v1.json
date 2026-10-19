@@ -1,0 +1,30 @@
+{
+  "driver": {
+    "device": "Mali-G710",
+    "device_id": 2824994816,
+    "driver_version": "226504704",
+    "name": "slang-vulkan",
+    "vendor_id": 5045
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 2,
+  "observations": {
+    "smoke-grid-pressure": {
+      "maximum_absolute_pressure": 0.003504612948745489,
+      "maximum_particle_equation_error": 0.0,
+      "particle_mean_velocity_drift_m_s": 0.0
+    },
+    "smoke-particle-pressure": {
+      "maximum_absolute_pressure": 100.0,
+      "maximum_particle_equation_error": 0.0,
+      "particle_mean_velocity_drift_m_s": 0.047486434878567116
+    }
+  },
+  "passed": true,
+  "profile_id": "smoke-self-pressure-v1",
+  "profile_sha256": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150",
+  "sample_count": 96,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

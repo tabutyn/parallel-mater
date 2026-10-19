@@ -1,0 +1,33 @@
+{
+  "driver": {
+    "device": "Mali-G710",
+    "device_id": 2824994816,
+    "driver_version": "226504704",
+    "name": "slang-vulkan",
+    "vendor_id": 5045
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 1,
+  "observations": {
+    "center_of_mass_drift_m": 0.0,
+    "exchange_impulse_kg_m_s": 2.3999996185302734,
+    "final_kinetic_energy_j": 5.780000324249272,
+    "final_relative_speed_m_s": 1.7000000476837158,
+    "final_separation_m": 0.1850000023841858,
+    "initial_kinetic_energy_j": 8.0,
+    "initial_relative_speed_m_s": 2.0,
+    "kinetic_energy_reduction_fraction": 0.277499959468841,
+    "maximum_speed_m_s": 0.8500000238418579,
+    "maximum_transverse_position_m": 0.0,
+    "maximum_transverse_velocity_m_s": 0.0,
+    "net_internal_impulse_kg_m_s": 0.0,
+    "relative_speed_reduction_fraction": 0.1499999761581421
+  },
+  "passed": true,
+  "profile_id": "fluid-self-viscosity-v1",
+  "profile_sha256": "9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c",
+  "sample_count": 1,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

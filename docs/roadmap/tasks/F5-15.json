@@ -1,7 +1,7 @@
 {
   "id": "F5-15",
   "title": "Publish current Android Vulkan driver evidence",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-01",
     "F5-02",
@@ -26,16 +26,12 @@
     "Every advertised Vulkan capability records all applicable execution, reference, analytic-quality and adverse-lifecycle outcomes; failures, unsupported modes, validation limitations and missing contracts remain explicit.",
     "Register and regenerate the per-driver evidence index from a fresh checkout; retain native validation, Gallery, thermal and timing reports only as clearly separated supplemental evidence."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "161b37df-5ea8-401e-8c5b-d4d63e2970a8",
-    "owner": "codex-linux-gallery",
-    "machine": "thomas-laptop",
-    "branch": "work/F5-15/thomas-laptop",
-    "claimed_at": "2026-10-19T11:32:56Z",
-    "heartbeat_at": "2026-10-19T11:32:56Z",
-    "expires_at": "2026-10-20T11:32:56Z"
-  },
+  "evidence": [
+    "docs/roadmap/evidence/F5-15-android-vulkan.json",
+    "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json",
+    "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/capture-index.json"
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -66,6 +62,25 @@
       "at": "2026-10-19T11:05:26Z",
       "reason": "Pixel disconnected; qualification runner retained on work/F5-15/thomas-laptop at 8ea8b30 and draft PR #241",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "161b37df-5ea8-401e-8c5b-d4d63e2970a8",
+        "owner": "codex-linux-gallery",
+        "machine": "thomas-laptop",
+        "branch": "work/F5-15/thomas-laptop",
+        "claimed_at": "2026-10-19T11:32:56Z",
+        "heartbeat_at": "2026-10-19T11:32:56Z",
+        "expires_at": "2026-10-20T11:32:56Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T13:27:21Z",
+      "reason": "Physical Pixel 7 Vulkan qualification published with exact binaries, contracts, passing device/quality/lifecycle results, and explicit CUDA-reference and missing-contract failures",
+      "evidence": [
+        "docs/roadmap/evidence/F5-15-android-vulkan.json",
+        "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json",
+        "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375/capture-index.json"
+      ]
     }
   ]
 }

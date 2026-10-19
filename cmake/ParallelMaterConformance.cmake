@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 if(NOT PARALLEL_MATER_BUILD_CONFORMANCE AND
-   NOT PARALLEL_MATER_ENABLE_IOS_QUALIFICATION)
+   NOT PARALLEL_MATER_ENABLE_IOS_QUALIFICATION AND
+   NOT PARALLEL_MATER_ENABLE_ANDROID_QUALIFICATION)
     return()
 endif()
 
@@ -31,15 +32,24 @@ target_compile_definitions(parallel-mater-conformance-runner PRIVATE
     PM_CONFORMANCE_EMBEDDED=1
     PARALLEL_MATER_CONFORMANCE_SOURCE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
     PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
-if(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION)
+if(PARALLEL_MATER_ENABLE_IOS_QUALIFICATION OR
+   PARALLEL_MATER_ENABLE_ANDROID_QUALIFICATION)
     target_sources(parallel-mater-conformance-runner PRIVATE
         conformance/v1/src/device_fixtures.cpp
         tests/api/fluid_pair_quality_tests.cpp)
     target_compile_definitions(parallel-mater-conformance-runner PRIVATE
+        PM_CONFORMANCE_DEVICE_FIXTURES=1
         PM_QUALITY_PROFILE_SHA256="a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"
         PM_FLUID_SELF_CONTACT_PROFILE_SHA256="21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2"
         PM_FLUID_SELF_PRESSURE_PROFILE_SHA256="4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b"
         PM_FLUID_SELF_VISCOSITY_PROFILE_SHA256="9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c")
+    if(PARALLEL_MATER_ENABLE_ANDROID_QUALIFICATION)
+        target_compile_definitions(parallel-mater-conformance-runner PRIVATE
+            PM_CONFORMANCE_DRIVER_NAME="slang-vulkan")
+    else()
+        target_compile_definitions(parallel-mater-conformance-runner PRIVATE
+            PM_CONFORMANCE_DRIVER_NAME="slang-metal")
+    endif()
 endif()
 parallel_mater_enable_warnings(parallel-mater-conformance-runner)
 

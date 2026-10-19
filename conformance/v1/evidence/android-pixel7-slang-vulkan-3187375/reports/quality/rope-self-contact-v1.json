@@ -1,0 +1,27 @@
+{
+  "driver": {
+    "device": "Mali-G710",
+    "device_id": 2824994816,
+    "driver_version": "226504704",
+    "name": "slang-vulkan",
+    "vendor_id": 5045
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 1,
+  "observations": {
+    "center_of_mass_drift_m": 9.40741154582696e-10,
+    "maximum_node_speed_m_s": 6.453602669146662,
+    "maximum_transverse_position_m": 0.0,
+    "minimum_eligible_final_separation_m": 0.11999999879463263,
+    "minimum_eligible_initial_separation_m": 0.019999999552965164,
+    "overlapping_eligible_pair_count": 1,
+    "target_separation_m": 0.12
+  },
+  "passed": true,
+  "profile_id": "rope-self-contact-v1",
+  "profile_sha256": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113",
+  "sample_count": 1,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}
