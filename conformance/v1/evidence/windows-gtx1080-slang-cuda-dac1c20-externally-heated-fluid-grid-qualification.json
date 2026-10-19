@@ -1,0 +1,83 @@
+{
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "8c7ac0551380073ea56a74e7834650b6af819b493b5f6548a6e836ae0c7d4230",
+  "execution_status": "completed",
+  "source": {
+    "commit": "dac1c209e13c83d3c14de0d48a449f544f28009b",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+dac1c20",
+    "binary_sha256": "fb5a740e23cbf8545656115ace613a0586798d1816c4a3ad674ce5d512d84721"
+  },
+  "device": {
+    "name": "NVIDIA GeForce GTX 1080",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13000 (NVIDIA 582.66)"
+  },
+  "toolchain": {
+    "compiler": "MSVC, CUDA, Slang",
+    "version": "MSVC 19.44.35228.0; CUDA 12.9.86; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "FLUID",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "THERMAL",
+      "direction": "EXTERNAL_TO_FIRST",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "evidence": [
+    {
+      "scope": "analytic_invariants",
+      "contract": "quality:externally-heated-fluid-v1",
+      "status": "passed",
+      "source_commit": "dac1c209e13c83d3c14de0d48a449f544f28009b",
+      "contract_sha256": "8fa544e51d8d900d68cfe3b8711fa1129a7bc56275b1bacfa0c9bffc15a0dacf",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid.json",
+      "artifact_sha256": "d5009e5fc6710d54836b85c6c543259575f57c6a5da34bfbd5cd6898c2940e8e"
+    },
+    {
+      "scope": "compilation",
+      "contract": "registry:interaction-capabilities",
+      "status": "passed",
+      "source_commit": "dac1c209e13c83d3c14de0d48a449f544f28009b",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid.json",
+      "artifact_sha256": "d5009e5fc6710d54836b85c6c543259575f57c6a5da34bfbd5cd6898c2940e8e"
+    },
+    {
+      "scope": "execution",
+      "contract": "case:smoke-water",
+      "status": "passed",
+      "source_commit": "dac1c209e13c83d3c14de0d48a449f544f28009b",
+      "contract_sha256": "cbe349e888648ef1fe6f0adb507be33888be83b988d72b4bcc5c4a23a604964c",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid.json",
+      "artifact_sha256": "d5009e5fc6710d54836b85c6c543259575f57c6a5da34bfbd5cd6898c2940e8e"
+    },
+    {
+      "scope": "lifecycle_invariants",
+      "contract": "lifecycle:externally-heated-fluid-lifecycle-v1#grid-externally-heated-fluid-capacity-replacement-removal-rollback",
+      "status": "passed",
+      "source_commit": "dac1c209e13c83d3c14de0d48a449f544f28009b",
+      "contract_sha256": "8e134e408a6dd7559b2f77c412fcdb27806dcabf9b84c8e90bc39f5d6a38ee20",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid.json",
+      "artifact_sha256": "d5009e5fc6710d54836b85c6c543259575f57c6a5da34bfbd5cd6898c2940e8e"
+    },
+    {
+      "scope": "reference_regression",
+      "contract": "case:smoke-water",
+      "status": "passed",
+      "source_commit": "dac1c209e13c83d3c14de0d48a449f544f28009b",
+      "contract_sha256": "cbe349e888648ef1fe6f0adb507be33888be83b988d72b4bcc5c4a23a604964c",
+      "artifact_path": "conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid.json",
+      "artifact_sha256": "d5009e5fc6710d54836b85c6c543259575f57c6a5da34bfbd5cd6898c2940e8e"
+    }
+  ]
+}
