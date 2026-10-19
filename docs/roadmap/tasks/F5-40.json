@@ -1,7 +1,7 @@
 {
   "id": "F5-40",
   "title": "Qualify cloth-soft contact",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-23"
   ],
@@ -18,6 +18,14 @@
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "5b4abde1-8b13-430a-ba52-64b68c094550",
+    "owner": "codex-windows-qualification",
+    "machine": "windows-gtx1080",
+    "branch": "work/F5-40/windows-gtx1080",
+    "claimed_at": "2026-10-19T16:06:51Z",
+    "heartbeat_at": "2026-10-19T16:06:51Z",
+    "expires_at": "2026-10-20T16:06:51Z"
+  },
   "history": []
 }
