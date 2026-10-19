@@ -1,0 +1,128 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-39",
+  "captured_at": "2026-10-19",
+  "scope": "FLUID/RIGID_BODY/DISTINCT_FAMILY/CONTAINMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+  "source": {
+    "commit": "000396d5ae97f434f940c36ed350002556c52251",
+    "branch": "work/F5-39/ThomasLaptop",
+    "lease_token": "82c15393-1644-402f-ade3-e75d8fdb4dcc",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+000396d",
+    "binary_sha256": "9e12330743afd5da16647f15fa56739030b50e3214abd5979fe54948d4e604f4"
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "NVIDIA 590.44.01; CUDA API 13010"
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "FLUID",
+      "second_family": "RIGID_BODY",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTAINMENT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:fluid-rigid",
+      "sha256": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9"
+    },
+    "quality": {
+      "id": "quality:fluid-rigid-containment-v1",
+      "sha256": "d6ea84babcdc0ede00303f4960336320b165ac3a573e196725a5b69abe31f7f6"
+    },
+    "lifecycle": {
+      "id": "lifecycle:fluid-rigid-containment-lifecycle-v1#fluid-rigid-containment-capacity-replacement-removal-rollback",
+      "sha256": "bc4730838161caa3c77c54c65e58f14fee1fdf4095b26432fea8738ddae6fff0"
+    }
+  },
+  "runner": {
+    "binary_sha256": "3bc2b1c53422cd322aceca3fda048da4c08465d5943fc0e9e6af035c621b0e02",
+    "validation_layer_sha256": "6b32f55d1b4d8062f86b2f7553969c78bd2ce8f04fda37c325865e45a3ab885d"
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "0f990f5948357e9d6ab10486a9ebc0458a9dfa10c5088a6c4401ade9ff12001a",
+    "comparison_report_sha256": "4904da06d0e2b5efc70194bb762599041425c9573e8590c533a36f89d14222cd",
+    "reference_regression": {
+      "passed": 0,
+      "failed": 1,
+      "unsupported": 0
+    },
+    "retained_failure": "The unchanged CUDA golden differs at rigid contact counts by 1 at checkpoint 1 and 159 at checkpoint 2; the observable contact count also differs by 159. No tolerance or golden changed."
+  },
+  "analytic_invariants": {
+    "result_sha256": "39fe1debbd5fd2913eedf24429bb3d57dbefb255c6e12926b978f0f022c53c2c",
+    "report_sha256": "f9d4eeab9b4da06e6d2094a33f9f8ae9689f76d744854715410f1fcff19175e8",
+    "passed": true,
+    "sample_count": 1,
+    "failure_count": 0,
+    "observations": {
+      "closed_consistently_oriented_manifold": true,
+      "final_particle_signed_distance_m": -0.05000000447034836,
+      "maximum_containment_penetration_m": 0.0,
+      "leaked_particle_count": 0,
+      "reaction_impulse_n_s": 0.7333335280418396,
+      "reciprocal_momentum_residual_kg_m_s": 0.0,
+      "tangential_momentum_kg_m_s": 0.0,
+      "rigid_angular_speed_rad_s": 0.0,
+      "rigid_translation_m": 0.0,
+      "kinetic_energy_change_j": -0.32999998052912094
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "40e4d0b873ddd9111a25393cf2401e178da0d4b1a9d0c0791f6603a0ae2f370c",
+    "report_sha256": "775b77e0ebe6f863d2004d1775bd8c5bd5fb9a483c961982295676272fde5472",
+    "passed": true,
+    "case_count": 1,
+    "checkpoint_count": 5,
+    "failure_count": 0,
+    "checkpoints": [
+      {"id": "baseline", "outcome": "PM_SUCCESS", "graph_generation": 1, "graph_state_sha256": "95f989dd9e7382909132a54d9b4bed020799cf00ca893d7e405a9375992da923"},
+      {"id": "replacement", "outcome": "PM_SUCCESS", "graph_generation": 2, "graph_state_sha256": "c7053d3ad1eddb0ea714900914934a544e2d5150deb59c7dee91625788e34abd"},
+      {"id": "rejected-overflow", "outcome": "PM_ERROR_CAPACITY_EXCEEDED", "graph_generation": 2, "graph_state_sha256": "c7053d3ad1eddb0ea714900914934a544e2d5150deb59c7dee91625788e34abd"},
+      {"id": "removal", "outcome": "PM_SUCCESS", "graph_generation": 3, "graph_state_sha256": "da08eedb8b4937fe27bbac064958f954524d726154063593f829084d93d232d1"},
+      {"id": "recovery", "outcome": "PM_SUCCESS", "graph_generation": 4, "graph_state_sha256": "2b133aaa075100b6327060f635266e65487f3cb19d188f3206ca7b166fde9b0e"}
+    ],
+    "preserved_endpoint_state_sha256": "6df22f57758147069a5a72b712c49d506e02100458b5716dd739329ba32b3454"
+  },
+  "artifacts": {
+    "trajectory_result": "docs/roadmap/evidence/F5-39-000396d-cuda-fluid-rigid.json",
+    "trajectory_report": "docs/roadmap/evidence/F5-39-000396d-cuda-vs-golden-report.json",
+    "quality_result": "docs/roadmap/evidence/F5-39-000396d-cuda-quality-result.json",
+    "quality_report": "docs/roadmap/evidence/F5-39-000396d-cuda-quality-report.json",
+    "lifecycle_result": "docs/roadmap/evidence/F5-39-000396d-cuda-lifecycle-result.json",
+    "lifecycle_report": "docs/roadmap/evidence/F5-39-000396d-cuda-lifecycle-report.json"
+  },
+  "advertisement_review": {
+    "decision": "retain",
+    "reason": "The exact public-state containment oracle and adverse lifecycle pass on the physical CUDA driver. The broader historical trajectory comparison failure is retained and blocks a qualified index record, but it does not contradict the independently measured containment behavior."
+  },
+  "qualification": "The exact CUDA capability remains unqualified because its required historical reference regression failed. No passing qualification result is published, and all stale or unrecaptured driver records remain unqualified in the rebuilt evidence index.",
+  "commands": [
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --case fluid-rigid --output <trajectory-output>",
+    "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case fluid-rigid --report <trajectory-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --quality fluid-rigid-containment-v1 --output <quality-output>",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/fluid-rigid-containment-v1.json --actual <quality-result> --report <quality-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --lifecycle-profile fluid-rigid-containment-lifecycle-v1 --output <lifecycle-result>",
+    "python3 conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/fluid-rigid-containment-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "limitations": [
+    "The analytic and lifecycle captures qualify only the exact containment tuple and make no exterior-contact claim.",
+    "The failed CUDA-golden contact-count comparison is retained verbatim; no tolerance, golden, capability tuple or solver equation changed.",
+    "Drivers not recaptured against these immutable contracts remain unqualified."
+  ]
+}
