@@ -608,12 +608,18 @@ Status visit_rope_soft_data_storage(State &state, std::size_t nodes, std::size_t
     return {};
 }
 template<class State, class Visitor>
-Status visit_fluid_rope_storage(State &state, std::size_t nodes, Visitor &visit) noexcept {
+Status visit_fluid_rope_storage(State &state, std::size_t particles, Visitor &visit) noexcept {
+    constexpr auto maximum = std::numeric_limits<std::size_t>::max();
+    if (particles > maximum / 2U)
+        return {StatusCode::out_of_memory, 0,
+                "fluid rope contribution capacity overflow"};
+    const auto contributions = particles * 2U;
 #define PM_STORAGE(member, count) do { \
     const auto result = visit(state.member, count, MemoryClass::persistent); \
     if (!result) return result; \
 } while (false)
-    PM_STORAGE(node_impulses, nodes);
+    PM_STORAGE(contribution_nodes, contributions);
+    PM_STORAGE(contribution_impulses, contributions);
     PM_STORAGE(contact_count, 1);
     PM_STORAGE(maximum_penetration, 1);
 #undef PM_STORAGE

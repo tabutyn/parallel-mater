@@ -28,6 +28,8 @@ class DeploymentTests(unittest.TestCase):
              "status": "completed", "sha256": "d" * 64},
             {"path": "physics-qualification/quality/fluid.json", "kind": "physical-quality",
              "status": "unsupported", "sha256": "e" * 64},
+            {"path": "physics-qualification/quality/fluid-rope.json", "kind": "physical-quality",
+             "status": "completed", "sha256": "e" * 64},
             {"path": "physics-qualification/lifecycle/adverse.json", "kind": "adverse-lifecycle",
              "status": "captured", "sha256": "f" * 64},
         ]
@@ -48,7 +50,7 @@ class DeploymentTests(unittest.TestCase):
     def test_physics_qualification_accepts_complete_public_api_report(self):
         report = self.physics_report()
         self.assertEqual(len(deploy.validate_physics_qualification(
-            report, "fresh", "revision", report["binary_identity"])), 35)
+            report, "fresh", "revision", report["binary_identity"])), 36)
 
     def test_physics_qualification_rejects_stale_partial_mismatched_and_gallery_only(self):
         for field, value, message in (
