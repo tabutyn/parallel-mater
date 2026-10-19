@@ -1,0 +1,85 @@
+{
+  "schema": "parallel-mater-conformance-quality-profile/v1",
+  "id": "cloth-rigid-contact-v1",
+  "title": "Graph-free bidirectional cloth-rigid contact",
+  "evaluation": "cloth_rigid_contact",
+  "sources": {
+    "capability": "docs/INTERACTION-MODES.md: CLOTH/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+    "fixture": "conformance/v1/src/cloth_rigid_contact.cpp: public-API frictionless cloth vertex impact on a dynamic cube",
+    "oracle": "Independent cube-face clearance, reduced-mass impulse, public cloth force, momentum and frictionless-slip checks",
+    "qualification": "docs/ROADMAP.md: F5-44"
+  },
+  "units": "SI: metres, kilograms, seconds, metres per second, radians per second, newtons and newton-seconds",
+  "scope": "The graph-free cloth-rigid CONTACT capability is active when both public endpoint slots are active; no PmCouplingState exists for this tuple.",
+  "fixture": {
+    "id": "cloth-vertex-centered-cube-impact",
+    "graph_policy": "none",
+    "preparation_timestep_seconds": 0.01,
+    "preparation_gravity_m_s2": [100.0, 100.0, 0.0],
+    "timestep_seconds": 0.01,
+    "substeps": 1,
+    "gravity_m_s2": [0.0, 0.0, 0.0],
+    "authored_cloth_vertices_m": [
+      [-0.125, -0.02, 0.0],
+      [-1.0, 0.99, -1.0],
+      [-1.0, -1.01, -1.0]
+    ],
+    "prepared_cloth_vertices_m": [
+      [-0.115, -0.01, 0.0],
+      [-0.99, 1.0, -1.0],
+      [-0.99, -1.0, -1.0]
+    ],
+    "prepared_cloth_velocity_m_s": [1.0, 1.0, 0.0],
+    "cloth_triangle_indices": [0, 1, 2],
+    "cloth_inverse_masses_kg_inverse": [1.0, 1.0, 1.0],
+    "cloth_vertex_mass_kg": 1.0,
+    "cloth_thickness_m": 0.01,
+    "cloth_stretch_compliance_m_per_n": 1.0,
+    "cloth_bending_compliance_m_per_n": 1.0,
+    "cloth_velocity_damping": 0.0,
+    "cloth_contact_friction": 0.0,
+    "cloth_solver_iterations": 1,
+    "cloth_preserve_volume": false,
+    "contact_cloth_vertex_index": 0,
+    "rigid_geometry_vertices_m": [
+      [-0.1, -0.1, -0.1], [0.1, -0.1, -0.1],
+      [0.1, 0.1, -0.1], [-0.1, 0.1, -0.1],
+      [-0.1, -0.1, 0.1], [0.1, -0.1, 0.1],
+      [0.1, 0.1, 0.1], [-0.1, 0.1, 0.1]
+    ],
+    "rigid_geometry_triangle_indices": [
+      0, 3, 2, 0, 2, 1, 4, 5, 6, 4, 6, 7,
+      0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5,
+      0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2
+    ],
+    "impact_face_vertex_indices": [0, 4, 7, 3],
+    "rigid_initial_position_m": [0.0, 0.0, 0.0],
+    "rigid_initial_orientation_xyzw": [0.0, 0.0, 0.0, 1.0],
+    "rigid_mass_kg": 2.0,
+    "rigid_inertia_diagonal_kg_m2": [0.013333333333333334, 0.013333333333333334, 0.013333333333333334],
+    "rigid_friction": 0.0,
+    "rigid_restitution": 0.0,
+    "rigid_linear_damping_per_s": 0.0,
+    "rigid_angular_damping_per_s": 0.0,
+    "rigid_maximum_linear_speed_m_s": 10.0,
+    "rigid_maximum_angular_speed_rad_s": 10.0,
+    "rigid_collision_margin_m": 0.005,
+    "two_way": true,
+    "oracle": "public-cube-face-clearance-reduced-mass-reciprocal-impulse-force-and-frictionless-slip"
+  },
+  "tolerances": {
+    "fixture_state_absolute": 0.00001,
+    "maximum_overlap_penetration_m": 0.001,
+    "minimum_contact_impulse_n_s": 0.5,
+    "maximum_reciprocal_impulse_residual_n_s": 0.002,
+    "maximum_expected_impulse_error_n_s": 0.01,
+    "maximum_force_impulse_residual_n_s": 0.002,
+    "maximum_tangential_impulse_n_s": 0.002,
+    "minimum_frictionless_slip_m_s": 0.5,
+    "maximum_final_closing_speed_m_s": 0.01,
+    "maximum_angular_speed_rad_s": 0.001,
+    "maximum_orientation_drift": 0.001,
+    "maximum_energy_increase_j": 0.001,
+    "maximum_speed_slack_m_s": 0.00001
+  }
+}

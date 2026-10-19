@@ -1089,6 +1089,7 @@ void copy_particle_state(const std::vector<State> &states,
             {"quality profile", "conformance/v1/quality/fluid-soft-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-rope-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/cloth-soft-contact-v1.json"},
+            {"quality profile", "conformance/v1/quality/cloth-rigid-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-rigid-containment-v1.json"},
             {"quality profile", "conformance/v1/quality/fluid-rigid-contact-v1.json"},
             {"quality profile", "conformance/v1/quality/soft-rigid-contact-v1.json"},
@@ -1112,6 +1113,7 @@ void copy_particle_state(const std::vector<State> &states,
             {"lifecycle profile", "conformance/v1/lifecycle/fluid-cloth-contact-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/cloth-smoke-contact-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/cloth-soft-contact-lifecycle-v1.json"},
+            {"lifecycle profile", "conformance/v1/lifecycle/cloth-rigid-contact-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/fluid-rigid-containment-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/fluid-rigid-contact-lifecycle-v1.json"},
             {"lifecycle profile", "conformance/v1/lifecycle/soft-rigid-contact-lifecycle-v1.json"},
@@ -1441,6 +1443,9 @@ int conformance_command_main(int argc, char **argv) {
                      "cloth-soft-contact-lifecycle-v1")
                 result = conformance_cloth_soft_contact_lifecycle(root, &status);
             else if (arguments.lifecycle_id ==
+                     "cloth-rigid-contact-lifecycle-v1")
+                result = conformance_cloth_rigid_contact_lifecycle(root, &status);
+            else if (arguments.lifecycle_id ==
                      "fluid-rigid-containment-lifecycle-v1")
                 result = conformance_fluid_rigid_containment_lifecycle(
                     root, &status);
@@ -1496,6 +1501,8 @@ int conformance_command_main(int argc, char **argv) {
                 "fluid-rope-contact-v1";
             const bool cloth_soft_contact = arguments.quality_id ==
                 "cloth-soft-contact-v1";
+            const bool cloth_rigid_contact = arguments.quality_id ==
+                "cloth-rigid-contact-v1";
             const bool fluid_rigid_containment = arguments.quality_id ==
                 "fluid-rigid-containment-v1";
             const bool fluid_rigid_contact = arguments.quality_id ==
@@ -1541,6 +1548,7 @@ int conformance_command_main(int argc, char **argv) {
                 !fluid_soft_contact &&
                 !fluid_rope_contact &&
                 !cloth_soft_contact &&
+                !cloth_rigid_contact &&
                 !fluid_rigid_contact &&
                 !soft_rigid_contact &&
                 !fluid_rigid_containment &&
@@ -1586,7 +1594,7 @@ int conformance_command_main(int argc, char **argv) {
                            soft_rigid_contact ||
                            fluid_rigid_containment ||
                            cloth_rope_attachment || soft_rope_attachment ||
-                           cloth_soft_contact) {
+                           cloth_soft_contact || cloth_rigid_contact) {
                     ExecutionStatus status{};
                     if (fluid_cloth_containment)
                         result = conformance_fluid_cloth_containment_quality(
@@ -1599,6 +1607,9 @@ int conformance_command_main(int argc, char **argv) {
                             root, &status);
                     else if (cloth_soft_contact)
                         result = conformance_cloth_soft_contact_quality(
+                            root, &status);
+                    else if (cloth_rigid_contact)
+                        result = conformance_cloth_rigid_contact_quality(
                             root, &status);
                     else if (fluid_rigid_contact)
                         result = conformance_fluid_rigid_contact_quality(
