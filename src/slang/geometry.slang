@@ -863,7 +863,7 @@ void rigid_add_contact(inout ContactManifold manifold, Contact contact,
                  candidateColliderTriangle > existingColliderTriangle);
             bool equivalentSweptWitness = existingSwept && candidateSwept &&
                 dot(contact.normal, manifold.contacts[i].normal) > 0.9999f &&
-                abs(depthDifference) <= 6.0e-7f;
+                abs(depthDifference) <= 2.0e-6f;
             if ((equivalentSweptWitness && laterTriangle) ||
                 (!equivalentSweptWitness && depthDifference > 0.0f))
                 manifold.contacts[i] = contact;
