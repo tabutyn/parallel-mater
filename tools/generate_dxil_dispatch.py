@@ -87,9 +87,27 @@ def wrappers(source):
         launches = list(re.finditer(r'(\w+)<<<(.*?)>>>\s*\((.*?)\);', body, re.S))
         if not launches:
             continue
-        if len(launches) != 1:
-            raise ValueError(f'{match[2]} must have exactly one launch')
-        yield match, body, launches[0]
+        yield match, body, launches
+
+
+def launch_selector(body, launches):
+    if len(launches) == 1:
+        return None
+    if len(launches) != 2:
+        raise ValueError('dispatch wrappers support at most two selected launches')
+    prefix = body[:launches[0].start()]
+    selected = re.search(
+        r'const bool\s+(\w+)\s*=\s*(.*?);\s*if\s*\(\s*\1\s*\)\s*$',
+        prefix,
+        re.S,
+    )
+    between = body[launches[0].end():launches[1].start()]
+    if selected is None or not re.fullmatch(r'\s*else\s*', between):
+        raise ValueError('multiple launches require a bool-selected if/else')
+    expression = re.sub(r'\s+', ' ', selected[2]).strip()
+    if not re.fullmatch(r'[\w\s.!=|&()<>]+', expression):
+        raise ValueError(f'unsupported launch selector {expression}')
+    return selected[1], expression
 
 
 PREAMBLE = '''// SPDX-License-Identifier: MIT
@@ -277,22 +295,44 @@ def generate(root, reflection, sources):
         module = path.stem.removesuffix('_dispatch')
         if module == 'exports':
             module = 'queries'
-        for signature, body, launch in wrappers(source):
-            entry = launch[1]
-            reflected = json.loads((reflection / module / f'{entry}.json').read_text())
-            abi = ReflectedABI(reflected)
-            entries = reflected.get('entryPoints', [])
-            if len(entries) != 1 or entries[0].get('name') != entry:
-                raise ValueError(f'{entry}: expected isolated matching reflection')
-            params = abi.validate_entry(entries[0])
-            args = [unwrap(arg) for arg in split_arguments(launch[3])]
-            if len(args) != len(params):
-                raise ValueError(f'{entry}: {len(args)} args != {len(params)} parameters')
-            config = split_arguments(launch[2])
-            if len(config) != 4 or config[3] not in (
-                    'stream', 'native',
-                    'static_cast<cudaStream_t>(stream.native_handle)'):
-                raise ValueError(f'Unsupported launch configuration {entry}: {config}')
+        for signature, body, launches in wrappers(source):
+            selector = launch_selector(body, launches)
+            variants = []
+            for launch in launches:
+                variant_entry = launch[1]
+                reflected = json.loads(
+                    (reflection / module / f'{variant_entry}.json').read_text())
+                variant_abi = ReflectedABI(reflected)
+                entries = reflected.get('entryPoints', [])
+                if len(entries) != 1 or entries[0].get('name') != variant_entry:
+                    raise ValueError(
+                        f'{variant_entry}: expected isolated matching reflection')
+                variant_params = variant_abi.validate_entry(entries[0])
+                variant_args = [
+                    unwrap(arg) for arg in split_arguments(launch[3])]
+                if len(variant_args) != len(variant_params):
+                    raise ValueError(
+                        f'{variant_entry}: {len(variant_args)} args != '
+                        f'{len(variant_params)} parameters')
+                variant_config = split_arguments(launch[2])
+                if len(variant_config) != 4 or variant_config[3] not in (
+                        'stream', 'native',
+                        'static_cast<cudaStream_t>(stream.native_handle)'):
+                    raise ValueError(
+                        f'Unsupported launch configuration {variant_entry}: '
+                        f'{variant_config}')
+                variants.append((variant_entry, variant_abi, entries[0],
+                                 variant_params, variant_args, variant_config))
+            entry, abi, reflected_entry, params, args, config = variants[0]
+            constant_size = abi.constant_size(reflected_entry)
+            for (variant_entry, variant_abi, variant_reflected_entry,
+                 variant_params, variant_args, variant_config) in variants[1:]:
+                if (variant_params != params or variant_args != args or
+                        variant_config != config or
+                        variant_abi.constant_size(variant_reflected_entry) !=
+                        constant_size):
+                    raise ValueError(
+                        f'{entry}/{variant_entry}: selected launches must share ABI')
             is_export = signature[1] == 'PmResult'
             out = [signature[0], '    auto *execution = d3d12::context(' +
                    ('queue.native_handle' if is_export else 'stream.native_handle') + ');',
@@ -315,8 +355,7 @@ def generate(root, reflection, sources):
             }
             if is_export:
                 local_values['converted'] = 'box'
-            size = abi.constant_size(entries[0])
-            out.append(f'    std::array<std::byte, {size}> bytes{{}};')
+            out.append(f'    std::array<std::byte, {constant_size}> bytes{{}};')
             for index, (param, arg) in enumerate(zip(params, args)):
                 if arg == 'meshes':
                     # Resolve-only passes reuse the preceding body-bounds pass's
@@ -341,11 +380,28 @@ def generate(root, reflection, sources):
                     raise ValueError(f'Unsupported argument {entry}: {arg}')
                 out.append(f'    const auto &arg{index} = {arg};')
                 out += pack(abi, param['type'], f'arg{index}', param['binding']['offset'])
-            config = [c.replace('dim3(', 'device::DispatchSize(') for c in config]
-            expression = (f'execution->dispatch("{module}", "{entry}", '
-                          f'device::DispatchSize({config[0]}), device::DispatchSize({config[1]}), bytes)')
-            out.append(('    return device::from_driver_error(' + expression + ');')
-                       if is_export else '    (void)' + expression + ';')
+            def dispatch_expression(variant):
+                variant_entry, _, _, _, _, variant_config = variant
+                converted = [
+                    item.replace('dim3(', 'device::DispatchSize(')
+                    for item in variant_config]
+                return (f'execution->dispatch("{module}", "{variant_entry}", '
+                        f'device::DispatchSize({converted[0]}), '
+                        f'device::DispatchSize({converted[1]}), bytes)')
+            if selector is None:
+                expression = dispatch_expression(variants[0])
+                out.append(
+                    ('    return device::from_driver_error(' + expression + ');')
+                    if is_export else '    (void)' + expression + ';')
+            else:
+                if is_export:
+                    raise ValueError('selected export launches are unsupported')
+                name, condition = selector
+                out.append(f'    const bool {name} = {condition};')
+                out.append(f'    if ({name})')
+                out.append(f'        (void){dispatch_expression(variants[0])};')
+                out.append('    else')
+                out.append(f'        (void){dispatch_expression(variants[1])};')
             out.append('}\n')
             functions += out
     return '\n'.join(includes) + '\n' + PREAMBLE + '\n'.join(functions) + '\n} // namespace\n'

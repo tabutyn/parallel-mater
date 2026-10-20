@@ -135,6 +135,34 @@ void fixture(device::ExecutionQueue stream, void *values,
                 root, root / 'reflection', [Path('fixture_dispatch.cu')])
             self.assertIn('execution->dispatch("fixture", "execute"', text)
 
+    def test_preserves_bool_selected_dual_launch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'fixture_dispatch.cu').write_text('''
+void fixture(device::ExecutionQueue stream, void *values,
+             bool enabled) noexcept {
+    const auto native = static_cast<cudaStream_t>(stream.native_handle);
+    const bool coupled = enabled || values != nullptr;
+    if (coupled)
+        execute_coupled<<<1U, 64U, 0U, native>>>(values, enabled);
+    else
+        execute<<<1U, 64U, 0U, native>>>(values, enabled);
+}
+''', encoding='utf-8')
+            reflected = root / 'reflection' / 'fixture'
+            reflected.mkdir(parents=True)
+            for entry in ('execute_coupled', 'execute'):
+                data = reflection(entry)
+                (reflected / f'{entry}.json').write_text(
+                    json.dumps(data), encoding='utf-8')
+            text = generate_dxil_dispatch.generate(
+                root, root / 'reflection', [Path('fixture_dispatch.cu')])
+            self.assertIn(
+                'const bool coupled = enabled || values != nullptr;', text)
+            self.assertIn(
+                'execution->dispatch("fixture", "execute_coupled"', text)
+            self.assertIn('execution->dispatch("fixture", "execute"', text)
+
     def test_translates_pointer_bearing_paint_tables(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
