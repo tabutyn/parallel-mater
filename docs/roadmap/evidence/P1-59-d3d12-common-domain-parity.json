@@ -1,0 +1,187 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "P1-59",
+  "result": "passed",
+  "captured_at": "2026-10-19",
+  "source": {
+    "implementation_revision": "cbba6a467bef657feb38fa90767371be9c409ff5",
+    "branch": "work/P1-59/windows-gtx1080",
+    "lease_token": "8cc53813-ee6f-4e63-bd9d-07b02d53d159",
+    "machine": "windows-gtx1080"
+  },
+  "host": {
+    "os": "Windows",
+    "device": "NVIDIA GeForce GTX 1080",
+    "vendor_id": 4318,
+    "device_id": 7040,
+    "nvidia_driver": "582.66",
+    "d3d12_generator": "Visual Studio 18 2026",
+    "d3d12_msvc": "19.51.36256.0",
+    "cuda_generator": "Visual Studio 17 2022",
+    "cuda_msvc": "19.44.35228.0",
+    "cuda_toolkit": "12.9.86",
+    "slang": "2026.18",
+    "configuration": "RelWithDebInfo"
+  },
+  "binaries": {
+    "d3d12_driver_sha256": "beba56913d4b75843f636210a1348c42d27e9fabb6ff1b9742c328da516d2c74",
+    "validation_layer_sha256": "1a136d5298ea9e0ecf0f32dd94c86b3ee382ddc4fcdd05c315ab438692218287",
+    "gallery_sha256": "b12f60374c4d96d766c3073c2bac6318407e81b7325cae732f351a37af95401c",
+    "conformance_runner_sha256": "8219ad726b1d0c9fa26ac4dcd44ef0aaa18ff037c2f54e4387bb9e7dd4799755"
+  },
+  "implementation": {
+    "d3d12_advertised_api_0_2_records": 46,
+    "same_revision_cuda_records": 49,
+    "enabled_domains": [
+      "rope",
+      "softBodies",
+      "smoke",
+      "paint",
+      "existing API 0.2 cross-domain couplings"
+    ],
+    "intentionally_unadvertised": [
+      "FLUID/FLUID/SEPARATE_SYSTEM/CONTACT/BIDIRECTIONAL/EQUAL_MATERIAL",
+      "FLUID/FLUID/SEPARATE_SYSTEM/PRESSURE/BIDIRECTIONAL/EQUAL_MATERIAL",
+      "FLUID/FLUID/SEPARATE_SYSTEM/VISCOSITY/BIDIRECTIONAL/EQUAL_MATERIAL",
+      "future P1 interaction records"
+    ],
+    "binding_model": "Reflection-generated DXIL bindings execute the common Slang domain schedules. Native D3D12 remains command, resource, synchronization and window/render adaptation; no Windows physics implementation or generated unsupported dispatch stub is retained for these schedules.",
+    "common_wrapper_sources_checked": 20
+  },
+  "results": {
+    "provenance": "PASS: D3D12 and CUDA report source cbba6a467bef657feb38fa90767371be9c409ff5 on the same physical GTX 1080.",
+    "build": "PASS: D3D12 driver, validation layer, Gallery, generated DXIL/reflection bindings and conformance runner; same-revision CUDA driver and conformance baseline; configured Metal reflection mirrors also generated.",
+    "non_gallery_ctest": "PASS: 73 applicable tests; 2 expected fluid-pair tests skipped because D3D12 deliberately does not advertise equal-fluid records. The initial Metal reflection test lacked an unbuilt mirror artifact, then passed after building its configured dependency.",
+    "gallery_headless": "PASS: 28/28 canonical D3D12 Gallery scenes, 300 frames each, 1345.85 seconds total, 0 failed.",
+    "gallery_window": "PASS: all 28 scenes observed for at least 5 seconds with startup, F timing, GPU-only rendering, point interaction/release, scene switching, reset, surface, particle, diagnostic and cloth-structure controls; no crash or timeout.",
+    "d3d12_execution": "PASS: 30 completed, 0 unsupported, 0 failed.",
+    "d3d12_reference_regression": {
+      "passed": 18,
+      "failed": 12,
+      "unsupported": 0,
+      "failed_cases": [
+        "cloth-tear",
+        "constraint-fixed",
+        "constraint-generic-spring",
+        "constraint-generic",
+        "constraint-hinge",
+        "constraint-motor",
+        "constraint-point",
+        "constraint-slider",
+        "passive-active",
+        "rope-core",
+        "rope-fluid",
+        "soft-body-rigid"
+      ]
+    },
+    "cuda_reference_regression": {
+      "passed": 15,
+      "failed": 15,
+      "unsupported": 0,
+      "failed_cases": [
+        "cloth-tear",
+        "constraint-fixed",
+        "constraint-generic-spring",
+        "constraint-generic",
+        "constraint-hinge",
+        "constraint-motor",
+        "constraint-point",
+        "constraint-slider",
+        "passive-active",
+        "rope-cloth",
+        "rope-core",
+        "rope-fluid",
+        "rope-soft-body",
+        "soft-body-fluid",
+        "soft-body-rigid"
+      ],
+      "process_crashes": {
+        "exit_status": -1073741818,
+        "cases": [
+          "soft-body-fluid",
+          "rope-soft-body",
+          "rope-cloth"
+        ]
+      }
+    },
+    "same_revision_cuda_d3d12": {
+      "available_cases": 27,
+      "passed": 26,
+      "failed": 1,
+      "failed_cases": [
+        "cloth-tear"
+      ]
+    },
+    "analytic_quality": {
+      "passed": 22,
+      "failed": 0,
+      "profiles": [
+        "cloth-rope-attachment-v1",
+        "cloth-smoke-contact-v1",
+        "cloth-soft-contact-v1",
+        "externally-heated-fluid-v1",
+        "fluid-rope-contact-v1",
+        "fluid-smoke-phase-v1",
+        "fluid-soft-contact-v1",
+        "rope-rigid-attachment-v1",
+        "rope-rigid-contact-v1",
+        "rope-self-contact-v1",
+        "rope-smoke-contact-v1",
+        "smoke-cloth-drag-v1",
+        "smoke-fluid-drag-v1",
+        "smoke-rigid-contact-v1",
+        "smoke-rigid-drag-v1",
+        "smoke-rope-drag-v1",
+        "smoke-self-pressure-v1",
+        "smoke-self-viscosity-v1",
+        "smoke-soft-drag-v1",
+        "soft-rigid-contact-v1",
+        "soft-rope-attachment-v1",
+        "soft-smoke-contact-v1"
+      ]
+    },
+    "lifecycle": {
+      "passed": 17,
+      "failed": 0,
+      "profiles": [
+        "adverse-capacity-three-family-v1",
+        "cloth-rope-attachment-lifecycle-v1",
+        "cloth-smoke-contact-lifecycle-v1",
+        "cloth-soft-contact-lifecycle-v1",
+        "externally-heated-fluid-lifecycle-v1",
+        "fluid-smoke-phase-lifecycle-v1",
+        "rope-smoke-contact-lifecycle-v1",
+        "smoke-cloth-grid-drag-lifecycle-v1",
+        "smoke-fluid-drag-lifecycle-v1",
+        "smoke-rigid-contact-lifecycle-v1",
+        "smoke-rigid-drag-lifecycle-v1",
+        "smoke-rope-drag-lifecycle-v1",
+        "smoke-self-lifecycle-v1",
+        "smoke-self-pressure-lifecycle-v1",
+        "smoke-soft-drag-lifecycle-v1",
+        "soft-rigid-contact-lifecycle-v1",
+        "soft-smoke-contact-lifecycle-v1"
+      ]
+    },
+    "roadmap_and_architecture": "PASS: DXIL generator unit tests 8/8, Slang architecture guard, roadmap validation and evidence checks."
+  },
+  "artifacts": {
+    "d3d12_build": "D:/Repos/parallel-mater/build-d3d12-full",
+    "cuda_build": "D:/Repos/parallel-mater/build-cuda-p1-59",
+    "d3d12_results": "D:/Repos/parallel-mater/build-d3d12-full/p1-59-final-results",
+    "cuda_results": "D:/Repos/parallel-mater/build-cuda-p1-59/p1-59-final-results",
+    "d3d12_reference_report": "D:/Repos/parallel-mater/build-d3d12-full/p1-59-final-reference-report.json",
+    "cuda_reference_report": "D:/Repos/parallel-mater/build-cuda-p1-59/p1-59-final-reference-report.json",
+    "same_revision_reports": "D:/Repos/parallel-mater/build-d3d12-full/p1-59-final-same-revision-*.json",
+    "quality": "D:/Repos/parallel-mater/build-d3d12-full/p1-59-final-quality",
+    "lifecycle": "D:/Repos/parallel-mater/build-d3d12-full/p1-59-final-lifecycle",
+    "window_input": "D:/Repos/parallel-mater/build-d3d12-full/p1-59-final-window-input-smoke"
+  },
+  "boundaries": [
+    "P1-59 establishes common-domain D3D12 implementation and execution parity, not blanket physical qualification.",
+    "No tolerance, canonical case, golden, analytic profile or lifecycle profile was changed.",
+    "The 12 D3D12 reference-regression failures and one same-revision cloth-tear mismatch remain failures; no affected capability is promoted to qualified.",
+    "CUDA crash cases are preserved as baseline limitations and are not attributed to D3D12.",
+    "Equal-fluid and future P1 records remain unadvertised and their two configured D3D12 tests continue to skip without fallback."
+  ]
+}
