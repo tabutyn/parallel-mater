@@ -351,7 +351,8 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeRuntimeInfo(JNIEnv *env, jc
 }
 extern "C" JNIEXPORT jlong JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeCreate(JNIEnv *env, jclass,
-    jstring assets, jstring manifest, jstring profiles, jstring model, jstring cache) {
+    jstring assets, jstring manifest, jstring profiles, jstring model, jstring cache,
+    jboolean vulkan_profile) {
     try {
         const auto manifest_path = string(env, manifest);
         if (setenv("PM_DRIVER_FILES", manifest_path.c_str(), 1) != 0 ||
@@ -359,6 +360,9 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeCreate(JNIEnv *env, jclass,
             throw std::runtime_error("Could not configure bundled driver/layer");
         if (PM_ANDROID_VULKAN && setenv("PM_VULKAN_CACHE_DIR", string(env, cache).c_str(), 1) != 0)
             throw std::runtime_error("Could not configure Vulkan pipeline cache");
+        if (PM_ANDROID_VULKAN && vulkan_profile &&
+            setenv("PM_VULKAN_SCHEDULE_PROFILE", "1", 1) != 0)
+            throw std::runtime_error("Could not enable Vulkan schedule profiling");
         auto result = std::make_unique<Session>();
         GallerySessionConfig config;
         config.assets = string(env, assets);

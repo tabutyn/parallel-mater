@@ -185,6 +185,19 @@ adb -s PHONE_SERIAL shell am start -f 0x20000000 \
   -n org.parallelmater.gallery/.GalleryActivity --ei pm_scene 7
 ```
 
+The debug-only `pm_vulkan_profile` Boolean extra enables bounded production-
+schedule telemetry. Timestamp queries are written around shared scheduler phase
+boundaries in the existing command buffer. The driver logs one stable JSON
+`VulkanScheduleProfile` record per queue submission with GPU time, actual
+dispatch count and phase aggregates; it does not add a submission or host wait.
+Normal launches do not create the query pool or read timestamps. Capture matched
+60-frame Rigid Body, Fluid and Smoke Soft Body diagnostics with:
+
+```sh
+python3 scripts/Test-AndroidVulkanSchedule.py --serial PHONE_SERIAL \
+  --output out/android/vulkan-schedule-profile
+```
+
 Every 60 running frames, `FrameWindow` log records report mean/median/p95 frame
 work, mean physics and rendering work, observed frame-start cadence, population,
 scene and actual backend. These are measurements at the declared small workload,

@@ -42,7 +42,7 @@ import java.nio.charset.StandardCharsets;
 public final class GalleryActivity extends Activity implements SurfaceHolder.Callback {
     static { System.loadLibrary("parallel_mater_gallery"); }
     private static native long nativeCreate(String assets, String manifest, String profiles,
-        String model, String cache);
+        String model, String cache, boolean vulkanProfile);
     private static native void nativeDestroy(long handle);
     private static native void nativeSurface(long handle, Surface surface, int width, int height);
     private static native String nativeFrame(long handle);
@@ -274,7 +274,8 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                 }
                 handle = nativeCreate(new File(files, "scenes").getPath(), manifestFile.getPath(),
                     new File(files, "config/device-profiles.json").getPath(), Build.MODEL,
-                    new File(getCacheDir(), "vulkan").getPath());
+                    new File(getCacheDir(), "vulkan").getPath(), BuildConfig.DEBUG &&
+                    getIntent().getBooleanExtra("pm_vulkan_profile", false));
                 catalog = parseCatalog(nativeSceneCatalog(handle));
                 String[] controls = nativeControlState(handle);
                 runOnUiThread(() -> {
