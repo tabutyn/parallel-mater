@@ -13,7 +13,12 @@ void advance_rope(device::ExecutionQueue stream, const RopeDispatchData &rope,
     if (auto *execution = metal::context(stream)) {
         if (execution->checked_result([&] { execution->meshes(meshes, body_parameters, body_count); }) != PM_SUCCESS) return;
     }
-    (void)metal::launch(stream, "rope_advance", 1U, metal::rope_record(rope),
+    const bool coupled = soft_a.surface != nullptr ||
+        soft_b.surface != nullptr || soft_a.first_anchor || soft_a.last_anchor ||
+        soft_b.first_anchor || soft_b.last_anchor;
+    (void)metal::launch(stream,
+        coupled ? "rope_advance_coupled" : "rope_advance", 1U,
+        metal::rope_record(rope),
         timestep, gravity, first, last, body_parameters, body_states,
         previous_body_states, meshes, body_count, first_substep,
         metal::target_record(soft_a), metal::target_record(soft_b));

@@ -407,7 +407,7 @@ migrated_launches = {
     "gather_rigid_debug_samples_kernel", "clamp_rigid_speeds_kernel",
     "build_fixed_collision_groups_kernel",
     "prepare_avbd_kernel", "solve_avbd_kernel",
-    "rope_advance",
+    "rope_advance", "rope_advance_coupled",
 }
 for kernel in sorted(migrated_launches):
     if re.search(rf"\b{re.escape(kernel)}\s*<<<", runtime):

@@ -1,33 +1,65 @@
 {
   "id": "F5-56",
-  "title": "Align rope contact candidates across GPU drivers",
-  "status": "leased",
+  "title": "Align coupled rope state across GPU drivers",
+  "status": "done",
   "dependencies": [
     "F5-46",
     "F6-11"
   ],
   "locks": [
-    "shared-rope-contact-candidates"
+    "shared-rope-contact-candidates",
+    "shared-rope-coupled-state"
   ],
   "requires": [
     "Physical CUDA reference device and physical Apple GPU on one reviewed revision"
   ],
-  "scope": "Diagnose and correct shared Slang rope rigid/soft contact candidate selection so Metal and CUDA satisfy the unchanged rope-soft-body reference regression. Keep every physics equation and selection rule shared; do not add a backend-specific physics path, relax comparison tolerances or replace the CUDA reference without independent physical adjudication.",
+  "scope": "Diagnose and correct the shared Slang coupled rope state update and its downstream rigid/soft contact candidate selection so Metal and CUDA satisfy the unchanged rope-soft-body reference regression. Keep every physics equation, canonicalization rule and selection rule shared; leave uncoupled rope behavior unchanged and do not add a backend-specific physics path, relax comparison tolerances or replace the CUDA reference without independent physical adjudication.",
   "acceptance": [
     "Capture same-revision CUDA and Metal traces beginning before the first divergence, with stable rope, body and triangle identifiers plus BVH visitation, candidate inputs, region, fraction, weights, normal, depth, exact floating-point bits and rejection reason.",
-    "Correct only the shared Slang contact candidate selection or reduction with deterministic ordering and tie-breaking derived from physical geometry; preserve thin driver adapters and the common simulation schedule.",
+    "Correct only the shared Slang coupled rope state update and contact candidate reduction: bound target-specific sub-ULP feedback on a binary grid below contact tolerances, deterministically order physically equivalent swept witnesses, preserve the ordinary uncoupled entry point, thin driver adapters and the common simulation schedule.",
     "Run the unchanged rope-soft-body comparator on physical CUDA and Metal and require both to pass. If the shared correction intentionally changes CUDA, retain the old raw capture and refresh the versioned golden only after an independent physical oracle approves the new behavior.",
     "Re-run rope core, self-contact, winding, release, soft-rope contact and soft-rope attachment reference, analytic-quality and lifecycle coverage, with bounded performance and threadgroup-memory evidence and no newly hidden failure."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "5ff54157-a748-49f3-933f-36d1344096d2",
-    "owner": "codex-macos-rope-parity",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F5-56/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-19T18:42:26Z",
-    "heartbeat_at": "2026-10-19T18:42:26Z",
-    "expires_at": "2026-10-20T18:42:26Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F5-56-coupled-rope-parity.json",
+    "docs/roadmap/evidence/F5-56-b859981c-metal-rope-soft-body-report.json",
+    "docs/roadmap/evidence/F5-56-b859981c-cuda-rope-soft-body-report.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "5ff54157-a748-49f3-933f-36d1344096d2",
+        "owner": "codex-macos-rope-parity",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F5-56/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-19T18:42:26Z",
+        "heartbeat_at": "2026-10-19T18:42:26Z",
+        "expires_at": "2026-10-20T18:42:26Z"
+      },
+      "outcome": "released",
+      "at": "2026-10-19T23:26:54Z",
+      "reason": "Same-revision Metal/CUDA tracing found the first divergence in shared coupled rope state before contact selection; retain passing implementation on work/F5-56/Thomass-MacBook-Air while replanning the frozen contact-only hypothesis.",
+      "evidence": []
+    },
+    {
+      "lease": {
+        "token": "50cdd4fe-fcf6-4cd5-a2e7-63abf339a74a",
+        "owner": "codex-macos-rope-parity",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F5-56/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-19T23:31:34Z",
+        "heartbeat_at": "2026-10-19T23:31:34Z",
+        "expires_at": "2026-10-20T23:31:34Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T23:38:42Z",
+      "reason": "Aligned coupled rope state and equivalent swept-witness selection in shared Slang, preserved uncoupled behavior, and passed the unchanged rope-soft-body CUDA reference on physical Metal and CUDA.",
+      "evidence": [
+        "docs/roadmap/evidence/F5-56-coupled-rope-parity.json",
+        "docs/roadmap/evidence/F5-56-b859981c-metal-rope-soft-body-report.json",
+        "docs/roadmap/evidence/F5-56-b859981c-cuda-rope-soft-body-report.json"
+      ]
+    }
+  ]
 }

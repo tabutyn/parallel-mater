@@ -169,15 +169,31 @@ void advance_rope(device::ExecutionQueue stream, const RopeDispatchData &rope,
     auto second_target = shader_target(soft_b);
 #endif
     const Vec3_0 shader_gravity{gravity.x, gravity.y, gravity.z};
-    rope_advance<<<1U, 128U, 0U, native>>>(data, timestep, shader_gravity,
-        first, last,
-        const_cast<BodyParameters_0 *>(as<BodyParameters_0>(body_parameters)),
-        as<RigidBodyState_0>(body_states),
-        const_cast<RigidBodyState_0 *>(
-            as<RigidBodyState_0>(previous_body_states)),
-        const_cast<TriangleMeshResource_0 *>(
-            as<TriangleMeshResource_0>(meshes)),
-        body_count, first_substep, first_target, second_target);
+    const bool coupled = soft_a.surface != nullptr ||
+        soft_b.surface != nullptr || soft_a.first_anchor || soft_a.last_anchor ||
+        soft_b.first_anchor || soft_b.last_anchor;
+    if (coupled)
+        rope_advance_coupled<<<1U, 128U, 0U, native>>>(data, timestep,
+            shader_gravity, first, last,
+            const_cast<BodyParameters_0 *>(
+                as<BodyParameters_0>(body_parameters)),
+            as<RigidBodyState_0>(body_states),
+            const_cast<RigidBodyState_0 *>(
+                as<RigidBodyState_0>(previous_body_states)),
+            const_cast<TriangleMeshResource_0 *>(
+                as<TriangleMeshResource_0>(meshes)),
+            body_count, first_substep, first_target, second_target);
+    else
+        rope_advance<<<1U, 128U, 0U, native>>>(data, timestep,
+            shader_gravity, first, last,
+            const_cast<BodyParameters_0 *>(
+                as<BodyParameters_0>(body_parameters)),
+            as<RigidBodyState_0>(body_states),
+            const_cast<RigidBodyState_0 *>(
+                as<RigidBodyState_0>(previous_body_states)),
+            const_cast<TriangleMeshResource_0 *>(
+                as<TriangleMeshResource_0>(meshes)),
+            body_count, first_substep, first_target, second_target);
 }
 
 } // namespace parallel_mater::simulation
