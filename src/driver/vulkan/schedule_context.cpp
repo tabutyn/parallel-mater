@@ -3,15 +3,22 @@
 #include "simulation/geometry_storage.hpp"
 #include "simulation/paint_storage.hpp"
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <limits>
 #include <map>
 #include <mutex>
+#include <optional>
+#include <sstream>
 #include <stdexcept>
 #include <string>
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
 
 namespace parallel_mater::vulkan {
 namespace {
@@ -22,6 +29,15 @@ void check(VkResult result, const char *operation) {
                      int(result));
         throw std::runtime_error(operation);
     }
+}
+
+void log_schedule_profile(const std::string &payload) noexcept {
+#ifdef __ANDROID__
+    __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
+                        "VulkanScheduleProfile %s", payload.c_str());
+#else
+    std::fprintf(stderr, "VulkanScheduleProfile %s\n", payload.c_str());
+#endif
 }
 
 std::vector<const char *> available_instance_extensions() {
@@ -170,6 +186,40 @@ struct ScheduleContext::Impl {
     struct Pipeline {
         VkPipeline pipeline{};
     };
+    struct ProfilePhase {
+        std::string name;
+        std::uint32_t begin_query{};
+        std::uint32_t end_query{};
+        std::uint32_t dispatches{};
+        std::uint32_t declared_launches{};
+    };
+    struct ProfileSubmission {
+        std::uint64_t schedule{};
+        std::uint32_t submission{};
+        std::uint32_t query_count{};
+        std::uint32_t dispatches{};
+        bool overflow{};
+        bool final{};
+        double record_ms{};
+        std::chrono::steady_clock::time_point submitted_at{};
+        std::vector<ProfilePhase> phases;
+    };
+    struct ProfileState {
+        bool enabled{};
+        bool schedule_active{};
+        bool segment_open{};
+        bool segment_closed{};
+        bool overflow{};
+        bool final{};
+        std::uint64_t schedule{};
+        std::uint32_t submission{};
+        std::uint32_t query_count{};
+        std::uint32_t dispatches{};
+        std::uint32_t last_boundary_dispatches{};
+        std::chrono::steady_clock::time_point record_started{};
+        std::vector<ProfilePhase> phases;
+    };
+    static constexpr std::uint32_t profile_query_capacity = 4096U;
     Instance instance;
     Adapter adapter{};
     int ordinal{};
@@ -179,6 +229,7 @@ struct ScheduleContext::Impl {
     VkCommandPool pool{};
     VkCommandBuffer commands{};
     VkFence fence{};
+    VkQueryPool profile_queries{};
     VkDescriptorSetLayout descriptors[2]{};
     VkDescriptorPool descriptor_pool{};
     VkDescriptorSet descriptor_sets[2]{};
@@ -202,6 +253,8 @@ struct ScheduleContext::Impl {
     std::uint64_t submitted{}, completed{};
     cudaError_t last_error{cudaSuccess};
     std::recursive_mutex mutex;
+    ProfileState profile{};
+    std::optional<ProfileSubmission> pending_profile{};
 
     void initialize_cache() {
         std::vector<std::byte> bytes;
@@ -283,6 +336,8 @@ struct ScheduleContext::Impl {
             vkDestroyPipeline(device, p.pipeline, nullptr);
         if (pipeline_cache)
             vkDestroyPipelineCache(device, pipeline_cache, nullptr);
+        if (profile_queries)
+            vkDestroyQueryPool(device, profile_queries, nullptr);
         for (auto &b : temporary)
             destroy(b);
         for (auto &b : allocations)
@@ -374,10 +429,86 @@ struct ScheduleContext::Impl {
         }
         return nullptr;
     }
+    void emit_pending_profile() noexcept {
+        if (!pending_profile)
+            return;
+        const auto pending = std::move(*pending_profile);
+        pending_profile.reset();
+        try {
+            std::vector<std::uint64_t> ticks(pending.query_count);
+            check(vkGetQueryPoolResults(
+                      device, profile_queries, 0, pending.query_count,
+                      ticks.size() * sizeof(ticks[0]), ticks.data(), sizeof(ticks[0]),
+                      VK_QUERY_RESULT_64_BIT),
+                  "read schedule profile timestamps");
+            struct Aggregate {
+                double gpu_ms{};
+                std::uint32_t dispatches{};
+                std::uint32_t declared_launches{};
+                std::uint32_t occurrences{};
+            };
+            std::map<std::string, Aggregate> phases;
+            const auto bits = adapter.timestamp_bits;
+            const std::uint64_t mask = bits >= 64U
+                ? std::numeric_limits<std::uint64_t>::max()
+                : (std::uint64_t{1} << bits) - 1U;
+            double total_gpu_ms{};
+            for (const auto &phase : pending.phases) {
+                if (phase.end_query >= ticks.size())
+                    continue;
+                const auto delta =
+                    (ticks[phase.end_query] - ticks[phase.begin_query]) & mask;
+                const double milliseconds = double(delta) *
+                    double(adapter.properties.limits.timestampPeriod) * 1.0e-6;
+                auto &aggregate = phases[phase.name];
+                aggregate.gpu_ms += milliseconds;
+                aggregate.dispatches += phase.dispatches;
+                aggregate.declared_launches += phase.declared_launches;
+                ++aggregate.occurrences;
+                total_gpu_ms += milliseconds;
+            }
+            const double submit_to_fence_ms =
+                std::chrono::duration<double, std::milli>(
+                    std::chrono::steady_clock::now() - pending.submitted_at).count();
+            std::ostringstream json;
+            json.imbue(std::locale::classic());
+            json << std::fixed << std::setprecision(6)
+                 << "{\"schema\":\"parallel-mater-vulkan-schedule-profile/v1\""
+                 << ",\"schedule\":" << pending.schedule
+                 << ",\"submission\":" << pending.submission
+                 << ",\"final\":" << (pending.final ? "true" : "false")
+                 << ",\"dispatches\":" << pending.dispatches
+                 << ",\"gpu_ms\":" << total_gpu_ms
+                 << ",\"record_ms\":" << pending.record_ms
+                 << ",\"submit_to_fence_ms\":" << submit_to_fence_ms
+                 << ",\"timestamp_overflow\":"
+                 << (pending.overflow ? "true" : "false")
+                 << ",\"phases\":[";
+            bool first = true;
+            for (const auto &[name, aggregate] : phases) {
+                if (!first)
+                    json << ',';
+                first = false;
+                json << "{\"name\":\"" << name
+                     << "\",\"gpu_ms\":" << aggregate.gpu_ms
+                     << ",\"dispatches\":" << aggregate.dispatches
+                     << ",\"declared_launches\":"
+                     << aggregate.declared_launches
+                     << ",\"occurrences\":" << aggregate.occurrences << '}';
+            }
+            json << "]}";
+            log_schedule_profile(json.str());
+        } catch (const std::exception &error) {
+            std::fprintf(stderr,
+                         "Parallel Mater Vulkan: schedule profile read failed: %s\n",
+                         error.what());
+        }
+    }
     void wait_pending() {
         if (!pending)
             return;
         check(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX), "wait fence");
+        emit_pending_profile();
         completed = submitted;
         pending = false;
     }
@@ -390,6 +521,44 @@ struct ScheduleContext::Impl {
             commands, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT | VK_PIPELINE_STAGE_HOST_BIT,
             VK_PIPELINE_STAGE_ALL_COMMANDS_BIT | VK_PIPELINE_STAGE_HOST_BIT, 0, 1,
             &barrier, 0, nullptr, 0, nullptr);
+    }
+    void start_profile_segment() {
+        if (!profile.enabled || !profile.schedule_active || profile.segment_open)
+            return;
+        vkCmdResetQueryPool(commands, profile_queries, 0, profile_query_capacity);
+        vkCmdWriteTimestamp(commands, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                            profile_queries, 0);
+        profile.segment_open = true;
+        profile.segment_closed = false;
+        profile.overflow = false;
+        profile.final = false;
+        profile.query_count = 1U;
+        profile.dispatches = 0U;
+        profile.last_boundary_dispatches = 0U;
+        profile.phases.clear();
+        profile.record_started = std::chrono::steady_clock::now();
+    }
+    void profile_boundary(std::string_view name, std::uint32_t launches) {
+        if (!profile.segment_open)
+            return;
+        if (profile.query_count >= profile_query_capacity) {
+            profile.overflow = true;
+            return;
+        }
+        const auto end_query = profile.query_count++;
+        vkCmdWriteTimestamp(commands, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                            profile_queries, end_query);
+        profile.phases.push_back({
+            std::string(name), end_query - 1U, end_query,
+            profile.dispatches - profile.last_boundary_dispatches, launches});
+        profile.last_boundary_dispatches = profile.dispatches;
+        profile.segment_closed = false;
+    }
+    void close_profile_segment(std::string_view name) {
+        if (!profile.segment_open || profile.segment_closed)
+            return;
+        profile_boundary(name, 0U);
+        profile.segment_closed = true;
     }
     void begin() {
         if (open)
@@ -408,17 +577,35 @@ struct ScheduleContext::Impl {
         check(vkBeginCommandBuffer(commands, &info), "begin commands");
         open = true;
         barrier();
+        start_profile_segment();
     }
     void submit() {
         if (!open)
             return;
+        close_profile_segment("submission_tail");
         barrier();
         check(vkEndCommandBuffer(commands), "end commands");
         check(vkResetFences(device, 1, &fence), "reset fence");
+        if (profile.segment_open) {
+            ProfileSubmission snapshot;
+            snapshot.schedule = profile.schedule;
+            snapshot.submission = ++profile.submission;
+            snapshot.query_count = profile.query_count;
+            snapshot.dispatches = profile.dispatches;
+            snapshot.overflow = profile.overflow;
+            snapshot.final = profile.final;
+            snapshot.record_ms = std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - profile.record_started).count();
+            snapshot.phases = std::move(profile.phases);
+            pending_profile = std::move(snapshot);
+            profile.segment_open = false;
+        }
         VkSubmitInfo info{VK_STRUCTURE_TYPE_SUBMIT_INFO};
         info.commandBufferCount = 1;
         info.pCommandBuffers = &commands;
         check(vkQueueSubmit(queue, 1, &info, fence), "submit");
+        if (pending_profile)
+            pending_profile->submitted_at = std::chrono::steady_clock::now();
         open = false;
         pending = true;
         ++submitted;
@@ -492,6 +679,16 @@ PmResult ScheduleContext::initialize(int ordinal) noexcept {
               "allocate command buffer");
         VkFenceCreateInfo fence{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
         check(vkCreateFence(i.device, &fence, nullptr, &i.fence), "create fence");
+        if (const char *profile = std::getenv("PM_VULKAN_SCHEDULE_PROFILE");
+            profile && std::strcmp(profile, "1") == 0) {
+            VkQueryPoolCreateInfo queries{VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
+            queries.queryType = VK_QUERY_TYPE_TIMESTAMP;
+            queries.queryCount = Impl::profile_query_capacity;
+            check(vkCreateQueryPool(i.device, &queries, nullptr,
+                                    &i.profile_queries),
+                  "create schedule profile query pool");
+            i.profile.enabled = true;
+        }
         const VkDescriptorSetLayoutBinding global_binding{
             0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1,
             VK_SHADER_STAGE_COMPUTE_BIT, nullptr};
@@ -837,6 +1034,8 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
                                VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                std::uint32_t(constants.size()), constants.data());
         vkCmdDispatch(i.commands, grid.x, grid.y, grid.z);
+        if (i.profile.segment_open)
+            ++i.profile.dispatches;
         i.barrier();
         // Diagnostic mode: isolate a failing dispatch without changing normal
         // asynchronous submission behavior.
@@ -998,6 +1197,55 @@ cudaError_t ScheduleContext::elapsed(cudaEvent_t begin, cudaEvent_t end,
     *ms = float(double((ticks[1] - ticks[0]) & mask) *
                 impl_->adapter.properties.limits.timestampPeriod / 1.0e6);
     return cudaSuccess;
+}
+bool ScheduleContext::schedule_profile_enabled() const noexcept {
+    return impl_->profile.enabled;
+}
+cudaError_t ScheduleContext::begin_schedule_profile() noexcept {
+    try {
+        std::lock_guard lock(impl_->mutex);
+        auto &i = *impl_;
+        if (!i.profile.enabled)
+            return cudaSuccess;
+        i.profile.schedule_active = false;
+        i.profile.segment_open = false;
+        i.profile.segment_closed = false;
+        i.begin();
+        i.profile.schedule_active = true;
+        ++i.profile.schedule;
+        i.profile.submission = 0U;
+        i.start_profile_segment();
+        return cudaSuccess;
+    } catch (...) {
+        return impl_->last_error = cudaErrorLaunchFailure;
+    }
+}
+cudaError_t ScheduleContext::record_schedule_profile_stage(
+    std::string_view name, std::uint32_t launches) noexcept {
+    try {
+        std::lock_guard lock(impl_->mutex);
+        if (!impl_->profile.enabled)
+            return cudaSuccess;
+        impl_->profile_boundary(name, launches);
+        return cudaSuccess;
+    } catch (...) {
+        return impl_->last_error = cudaErrorLaunchFailure;
+    }
+}
+cudaError_t ScheduleContext::end_schedule_profile() noexcept {
+    try {
+        std::lock_guard lock(impl_->mutex);
+        auto &i = *impl_;
+        if (!i.profile.enabled)
+            return cudaSuccess;
+        i.profile_boundary("schedule_tail", 0U);
+        i.profile.segment_closed = true;
+        i.profile.final = true;
+        i.profile.schedule_active = false;
+        return cudaSuccess;
+    } catch (...) {
+        return impl_->last_error = cudaErrorLaunchFailure;
+    }
 }
 VkInstance ScheduleContext::instance() const noexcept { return impl_->instance.handle; }
 VkPhysicalDevice ScheduleContext::physical() const noexcept {

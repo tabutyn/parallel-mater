@@ -27,6 +27,19 @@ struct NativeScheduleBackend {
     }
     auto check_error() noexcept { return execution.services->last_error(false); }
     auto take_error() noexcept { return execution.services->last_error(true); }
+    bool schedule_profile_enabled() const noexcept {
+        return execution.services->schedule_profile_enabled();
+    }
+    auto begin_schedule_profile() noexcept {
+        return execution.services->begin_schedule_profile();
+    }
+    auto record_schedule_profile_stage(
+        std::string_view name, std::uint32_t launches) noexcept {
+        return execution.services->record_schedule_profile_stage(name, launches);
+    }
+    auto end_schedule_profile() noexcept {
+        return execution.services->end_schedule_profile();
+    }
     auto wait(device::ExecutionQueue queue) noexcept {
         return queue.services->wait_idle();
     }

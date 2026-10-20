@@ -49,6 +49,25 @@ enum class TimingStage : std::uint8_t {
     smoke_emission,
 };
 
+inline constexpr const char *timing_stage_name(TimingStage stage) noexcept {
+    constexpr const char *names[]{
+        "rigid_integration", "rigid_world_bounds", "rigid_pair_filter",
+        "rigid_pair_compaction", "rigid_leaf_pair_generation",
+        "rigid_contact_evaluation", "rigid_contact_solve", "rigid_input_clear",
+        "cloth_prediction", "cloth_constraints", "cloth_contacts",
+        "soft_body_prediction", "soft_body_constraints", "soft_body_contacts",
+        "soft_body_contact_cleanup", "soft_body_cloth_contacts",
+        "fluid_soft_body_contacts", "fluid_rope_contacts",
+        "rope_soft_body_contacts", "fluid_cloth_contacts", "fluid_spawn",
+        "fluid_neighbor_sort", "fluid_neighbor_forces", "fluid_integration",
+        "fluid_static_contacts", "fluid_body_index", "fluid_moving_contacts",
+        "fluid_contact_events", "fluid_outflow_compaction",
+        "fluid_smoke_exchange", "rope_solve", "smoke_grid",
+        "smoke_advection", "smoke_emission"};
+    const auto index = static_cast<std::size_t>(stage);
+    return index < std::size(names) ? names[index] : "unknown";
+}
+
 inline Status schedule_failure(StatusCode code, const char *message) noexcept {
     return {code, 0, message};
 }
@@ -68,6 +87,12 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
     const bool debug_enabled = impl_->options.physics_debug.frame_capacity != 0U;
     const bool collect_rigid_contacts = options.collect_rigid_contacts || debug_enabled;
     const bool collect_fluid_contacts = options.collect_fluid_contacts || debug_enabled;
+    const bool profile_schedule = backend.schedule_profile_enabled();
+    if (profile_schedule) {
+        error = backend.begin_schedule_profile();
+        if (error != backend.success_code())
+            return backend.failure(error, "failed to begin schedule profile");
+    }
     if (impl_->rigid_body_count != 0U) {
         error = backend.copy(
             impl_->render_previous_states,
@@ -130,6 +155,13 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
 
     const auto record_timing_stage = [&](TimingStage stage,
                                          std::uint32_t launches = 0U) noexcept -> Status {
+        if (profile_schedule) {
+            const auto profile_error = backend.record_schedule_profile_stage(
+                timing_stage_name(stage), launches);
+            if (profile_error != backend.success_code())
+                return backend.failure(profile_error,
+                                       "failed to record schedule profile stage");
+        }
         if (!options.collect_kernel_timings) {
             return Status{};
         }
@@ -2756,6 +2788,11 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
         impl_->timing_available = true;
         impl_->timing_boundary_count = timing_boundary;
         impl_->timing_frame_index = impl_->frame_index;
+    }
+    if (profile_schedule) {
+        error = backend.end_schedule_profile();
+        if (error != backend.success_code())
+            return backend.failure(error, "failed to end schedule profile");
     }
     return {};
 }

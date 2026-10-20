@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 
 namespace parallel_mater::device {
 
@@ -125,6 +126,21 @@ class Services {
     [[nodiscard]] virtual PmResult last_error(bool) noexcept { return PM_SUCCESS; }
     [[nodiscard]] virtual PmResult scheduling_units(std::uint32_t &units) noexcept {
         units = 1U;
+        return PM_SUCCESS;
+    }
+    // Optional schedule profiling stays behind the concrete adapter. Disabled
+    // adapters neither allocate timestamp queries nor add queue synchronization.
+    [[nodiscard]] virtual bool schedule_profile_enabled() const noexcept {
+        return false;
+    }
+    [[nodiscard]] virtual PmResult begin_schedule_profile() noexcept {
+        return PM_SUCCESS;
+    }
+    [[nodiscard]] virtual PmResult record_schedule_profile_stage(
+        std::string_view, std::uint32_t) noexcept {
+        return PM_SUCCESS;
+    }
+    [[nodiscard]] virtual PmResult end_schedule_profile() noexcept {
         return PM_SUCCESS;
     }
     [[nodiscard]] virtual PmResult memory_budget(
