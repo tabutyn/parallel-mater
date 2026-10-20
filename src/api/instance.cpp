@@ -196,8 +196,12 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     features.particleLiquids = PM_TRUE;
     features.liquidRigidCoupling = PM_TRUE;
     features.cloth = PM_TRUE;
+    features.rope = PM_TRUE;
+    features.softBodies = PM_TRUE;
+    features.smoke = PM_TRUE;
     features.domainCouplings = PM_TRUE;
     features.particleEmitters = PM_TRUE;
+    features.paint = PM_TRUE;
 #endif
 #else
     features.particleLiquids = PM_TRUE;

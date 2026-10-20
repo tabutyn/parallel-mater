@@ -36,6 +36,10 @@ def unwrap(expression):
     if cast:
         return unwrap(cast[1])
     expression = re.sub(r'\s+', ' ', expression)
+    dereference = re.fullmatch(r'\*as<(\w+)_0>\((.*)\)', expression, re.S)
+    if dereference:
+        return (f'*static_cast<const {dereference[1]} *>('
+                f'{unwrap(dereference[2])})')
     if expression.startswith('*as<Vec3_0>('):
         return expression.replace('*as<Vec3_0>(', '*static_cast<const Vec3 *>(', 1)
     return expression
@@ -91,6 +95,7 @@ def wrappers(source):
 PREAMBLE = '''// SPDX-License-Identifier: MIT
 // Generated from common host launches and Slang reflection. Do not edit.
 #include "driver/d3d12/schedule_context.hpp"
+#include "simulation/geometry_storage.hpp"
 #include "simulation/types.hpp"
 #include <array>
 #include <cstring>
@@ -111,6 +116,7 @@ d3d12::GraphicsBufferAddress binding(d3d12::ScheduleContext &, d3d12::GraphicsBu
     return address;
 }
 Vec3 vec3(const float *value) noexcept { return {value[0], value[1], value[2]}; }
+Vec3 vector(const float *value) noexcept { return vec3(value); }
 struct ShapeMatrix { Vec3 columns[3]; };
 template <typename... Pointers> bool all_present(Pointers... pointers) noexcept {
     return ((pointers != nullptr) && ...);
@@ -141,6 +147,121 @@ FluidClothCouplingOptions converted(const FluidClothDispatchOptions &value) noex
     result.maximum_force = value.maximum_force;
     return result;
 }
+struct SmokeOptionsBinding {
+    std::uint32_t capacity{};
+    Vec3 emitter_center{};
+    Vec2 emitter_half_extents{};
+    Vec3 initial_velocity{};
+    Vec3 wind{};
+    float particles_per_second{}, lifetime{}, particle_radius{}, buoyancy{};
+    float response{}, rest_number_density{}, pressure_stiffness{}, viscosity{};
+    float vorticity_confinement{}, maximum_speed{};
+    std::uint32_t grid_resolution{}, grid_vertical_resolution{};
+    std::uint32_t grid_pressure_iterations{};
+    float grid_kinematic_viscosity{}, grid_les_coefficient{};
+    float grid_pressure_tolerance{};
+    Vec3 grid_minimum{};
+    float grid_edge_length{};
+};
+SmokeOptionsBinding smoke_options(const SmokeDispatchOptions &value) noexcept {
+    SmokeOptionsBinding result{};
+    result.capacity = value.capacity;
+    result.particle_radius = value.particle_radius;
+    result.lifetime = value.lifetime;
+    result.rest_number_density = value.rest_number_density;
+    result.pressure_stiffness = value.pressure_stiffness;
+    result.maximum_speed = value.maximum_speed;
+    return result;
+}
+SmokeOptionsBinding smoke_options(const SmokeDomainDispatchOptions &value) noexcept {
+    SmokeOptionsBinding result{};
+    result.capacity = value.capacity;
+    result.emitter_center = vec3(value.emitter_center);
+    result.emitter_half_extents = {
+        value.emitter_half_extents[0], value.emitter_half_extents[1]};
+    result.initial_velocity = vec3(value.initial_velocity);
+    result.wind = vec3(value.wind);
+    result.particles_per_second = value.particles_per_second;
+    result.lifetime = value.lifetime;
+    result.particle_radius = value.particle_radius;
+    result.buoyancy = value.buoyancy;
+    result.response = value.response;
+    result.rest_number_density = value.rest_number_density;
+    result.pressure_stiffness = value.pressure_stiffness;
+    result.viscosity = value.viscosity;
+    result.vorticity_confinement = value.vorticity_confinement;
+    result.maximum_speed = value.maximum_speed;
+    result.grid_resolution = value.grid_resolution;
+    result.grid_vertical_resolution = value.grid_vertical_resolution;
+    result.grid_pressure_iterations = value.grid_pressure_iterations;
+    result.grid_kinematic_viscosity = value.grid_kinematic_viscosity;
+    result.grid_les_coefficient = value.grid_les_coefficient;
+    result.grid_pressure_tolerance = value.grid_pressure_tolerance;
+    result.grid_minimum = vec3(value.grid_minimum);
+    result.grid_edge_length = value.grid_edge_length;
+    return result;
+}
+SmokeOptionsBinding smoke_options(const FluidSmokeDispatchOptions &value) noexcept {
+    return smoke_options(value.smoke);
+}
+struct IdentifierBinding { std::uint32_t index{}, generation{}; };
+struct QuaternionBinding { float x{}, y{}, z{}, w{}; };
+struct ParticlePlaneBinding {
+    Vec3 center{};
+    QuaternionBinding orientation{};
+    Vec2 half_extents{};
+};
+struct FluidSmokeCouplingBinding {
+    IdentifierBinding fluid{}, smoke{};
+    ParticlePlaneBinding heater{};
+    float heater_temperature{}, boiling_temperature{}, heat_transfer_rate{};
+    float wind_drag{}, steam_rise_speed{};
+};
+FluidSmokeCouplingBinding coupling_options(
+    const FluidSmokeDispatchOptions &value) noexcept {
+    FluidSmokeCouplingBinding result{};
+    result.heater.center = vec3(value.heater_center);
+    result.heater.orientation = {value.heater_orientation[0],
+        value.heater_orientation[1], value.heater_orientation[2],
+        value.heater_orientation[3]};
+    result.heater.half_extents = {
+        value.heater_half_extents[0], value.heater_half_extents[1]};
+    result.heater_temperature = value.heater_temperature;
+    result.boiling_temperature = value.boiling_temperature;
+    result.heat_transfer_rate = value.heat_transfer_rate;
+    result.wind_drag = value.wind_drag;
+    result.steam_rise_speed = value.steam_rise_speed;
+    return result;
+}
+struct SmokeGridFieldBinding {
+    std::uint32_t n{}, height{};
+    Vec3 minimum{};
+    float spacing{};
+    const void *velocity{}, *density{}, *pressure{};
+    const void *face[3]{};
+    const void *vorticity{}, *strain{};
+};
+SmokeGridFieldBinding grid_field(const SmokeGridDispatchField &value) noexcept {
+    SmokeGridFieldBinding result{};
+    result.n = value.resolution;
+    result.height = value.height;
+    result.minimum = vec3(value.minimum);
+    result.spacing = value.spacing;
+    result.velocity = value.velocity;
+    result.density = value.density;
+    result.pressure = value.pressure;
+    for (std::size_t axis = 0; axis != 3; ++axis)
+        result.face[axis] = value.face_velocity[axis];
+    result.vorticity = value.vorticity;
+    result.strain = value.strain;
+    return result;
+}
+SmokeOptionsBinding converted(const SmokeDispatchOptions &value) noexcept {
+    return smoke_options(value);
+}
+SmokeGridFieldBinding converted(const SmokeGridDispatchField &value) noexcept {
+    return grid_field(value);
+}
 } // namespace
 '''
 
@@ -149,11 +270,14 @@ def generate(root, reflection, sources):
     includes, functions = [], []
     for source_name in sources:
         path = root / source_name
-        includes.append(f'#include "simulation/{path.with_suffix(".hpp").name}"')
+        source = path.read_text()
+        header = re.search(r'#include\s+"([^"\n]+_dispatch\.hpp)"', source)
+        includes.append(
+            f'#include "simulation/{header[1] if header else path.with_suffix(".hpp").name}"')
         module = path.stem.removesuffix('_dispatch')
         if module == 'exports':
             module = 'queries'
-        for signature, body, launch in wrappers(path.read_text()):
+        for signature, body, launch in wrappers(source):
             entry = launch[1]
             reflected = json.loads((reflection / module / f'{entry}.json').read_text())
             abi = ReflectedABI(reflected)
@@ -166,7 +290,8 @@ def generate(root, reflection, sources):
                 raise ValueError(f'{entry}: {len(args)} args != {len(params)} parameters')
             config = split_arguments(launch[2])
             if len(config) != 4 or config[3] not in (
-                    'stream', 'static_cast<cudaStream_t>(stream.native_handle)'):
+                    'stream', 'native',
+                    'static_cast<cudaStream_t>(stream.native_handle)'):
                 raise ValueError(f'Unsupported launch configuration {entry}: {config}')
             is_export = signature[1] == 'PmResult'
             out = [signature[0], '    auto *execution = d3d12::context(' +
@@ -183,6 +308,10 @@ def generate(root, reflection, sources):
                 'fluid_id': 'FluidId{fluid_index, fluid_generation}',
                 'plane': '*static_cast<const ParticleDestroyPlaneOptions *>(plane_options)',
                 'matrix': '*static_cast<const ShapeMatrix *>(inverse_rest)',
+                'data': 'rope',
+                'first_target': 'soft_a',
+                'second_target': 'soft_b',
+                'shader_gravity': 'gravity',
             }
             if is_export:
                 local_values['converted'] = 'box'
@@ -195,7 +324,18 @@ def generate(root, reflection, sources):
                     count = ('body_count' if re.search(r'\bbody_count\b', signature[3])
                              else 'body_index + 1U' if re.search(r'\bbody_index\b', signature[3])
                              else '0U')
-                    arg = f'execution->translated_meshes(meshes, body_parameters, {count})'
+                    paint_arguments = (
+                        ', paint_fields, paint_field_capacity'
+                        if re.search(r'\bpaint_fields\b', signature[3]) else '')
+                    arg = (f'execution->translated_meshes('
+                           f'meshes, body_parameters, {count}, 0U'
+                           f'{paint_arguments})')
+                elif arg == 'paint_fields':
+                    arg = ('execution->translated_paint_fields('
+                           'paint_fields, paint_field_capacity)')
+                elif arg == 'paint_rules':
+                    arg = ('execution->translated_paint_rules('
+                           'paint_rules, paint_rule_capacity)')
                 arg = local_values.get(arg, arg)
                 if not re.fullmatch(r'[\w\s.*+<>,{}()\[\]:?/-]+', arg):
                     raise ValueError(f'Unsupported argument {entry}: {arg}')

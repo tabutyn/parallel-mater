@@ -38,6 +38,51 @@ if not registry.exists():
     failures.append("registry/pm.xml: canonical API registry missing")
 if "parallel-mater-driver-slang-cuda SHARED" not in cmake:
     failures.append("CMakeLists.txt: Slang/CUDA runtime is not an installable driver")
+d3d12_domain_sources = re.search(
+    r"set\(PARALLEL_MATER_D3D12_DOMAIN_SOURCES(?P<body>.*?)\)\s*"
+    r"set\(PARALLEL_MATER_D3D12_DOMAIN_DISPATCH",
+    cmake,
+    re.S,
+)
+if d3d12_domain_sources is None:
+    failures.append("CMakeLists.txt: D3D12 shared-domain source inventory missing")
+else:
+    for source in (
+        "src/simulation/fluid_dispatch.cu",
+        "src/simulation/cloth_dispatch.cu",
+        "src/simulation/soft_body_dispatch.cu",
+        "src/simulation/soft_body_cloth_dispatch.cu",
+        "src/simulation/cloth_rope_dispatch.cu",
+        "src/simulation/soft_body_rope_dispatch.cu",
+        "src/simulation/rope_dispatch.cu",
+        "src/simulation/fluid_cloth_dispatch.cu",
+        "src/simulation/fluid_rope_dispatch.cu",
+        "src/simulation/fluid_smoke_dispatch.cu",
+        "src/simulation/cloth_smoke_dispatch.cu",
+        "src/simulation/soft_body_smoke_dispatch.cu",
+        "src/simulation/rope_smoke_dispatch.cu",
+        "src/simulation/fluid_soft_body_dispatch.cu",
+        "src/simulation/geometry_fluid_dispatch.cu",
+        "src/simulation/geometry_cloth_dispatch.cu",
+        "src/simulation/geometry_smoke_dispatch.cu",
+        "src/simulation/geometry_soft_body_dispatch.cu",
+        "src/simulation/smoke_grid_dispatch.cu",
+        "src/simulation/exports.cu",
+    ):
+        if source not in d3d12_domain_sources.group("body"):
+            failures.append(
+                f"CMakeLists.txt: D3D12 shared-domain source missing {source}"
+            )
+for retired_d3d12_stub in (
+    "PARALLEL_MATER_D3D12_STUB_SOURCE",
+    "PARALLEL_MATER_D3D12_STUB_HEADERS",
+    "parallel_mater_unadvertised_dispatch.cpp",
+):
+    if retired_d3d12_stub in cmake:
+        failures.append(
+            "CMakeLists.txt: D3D12 unsupported-domain fallback returned "
+            f"({retired_d3d12_stub})"
+        )
 cpu_driver_cmake_path = ROOT / "cmake" / "ParallelMaterSlangCpu.cmake"
 if not cpu_driver_cmake_path.exists():
     failures.append("cmake/ParallelMaterSlangCpu.cmake: macOS Slang driver missing")
