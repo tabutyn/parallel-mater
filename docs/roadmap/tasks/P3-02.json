@@ -1,7 +1,7 @@
 {
   "id": "P3-02",
   "title": "Profile and optimize Android Vulkan stepping",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-07",
     "F5-15",
@@ -23,6 +23,14 @@
     "Re-run the Android Vulkan command/API, asynchronous submission, bounded reset, relevant analytic/reference cases and direct-presentation lifecycle checks; preserve failures independently rather than converting execution or performance into physical qualification."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "d171db3d-fbbd-4710-a28a-2ada65a2d9d1",
+    "owner": "codex-android-vulkan",
+    "machine": "thomas-laptop",
+    "branch": "work/P3-02/thomas-laptop",
+    "claimed_at": "2026-10-20T13:29:02Z",
+    "heartbeat_at": "2026-10-20T13:29:02Z",
+    "expires_at": "2026-10-21T13:29:02Z"
+  },
   "history": []
 }
