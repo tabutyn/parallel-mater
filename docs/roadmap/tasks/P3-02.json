@@ -1,0 +1,28 @@
+{
+  "id": "P3-02",
+  "title": "Profile and optimize Android Vulkan stepping",
+  "status": "open",
+  "dependencies": [
+    "F5-07",
+    "F5-15",
+    "F7-18",
+    "F7-99"
+  ],
+  "locks": [
+    "android-vulkan-frame-performance"
+  ],
+  "requires": [
+    "Physical Pixel 7 with the Android Vulkan Gallery toolchain"
+  ],
+  "scope": "Instrument the production Vulkan schedule with opt-in dispatch counts and GPU timestamps for major physics phases, reproduce the current Pixel 7 frame cost, and remove measured scheduling, dispatch or synchronization overhead. Preserve the 30 Hz fixed timestep, eight solver substeps per tick, scene workloads, shared Slang physics, public API behavior and direct GPU presentation; do not claim improvement by reducing physical quality, skipping work, adding Android-specific equations or hiding dropped simulation time.",
+  "acceptance": [
+    "Opt-in Android Vulkan telemetry reports host physics time, GPU elapsed time and dispatch counts grouped by major schedule phase, with bounded storage, stable machine-readable output, tests for aggregation, and no required readback or timestamp-query overhead when disabled.",
+    "A tracked current-main Pixel 7 baseline records identical 60-frame windows for Rigid Body, Fluid and Smoke Soft Body, including physics/render time, effective simulation-to-wall-clock rate, thermal state, dispatch counts and phase timings.",
+    "Implement only optimizations justified by the captured phase evidence. Retain the 30 Hz fixed timestep, eight substeps, workload counts, capability records and shared physical equations, and document every synchronization or dispatch-order change.",
+    "On the same Pixel 7 and identical workloads, reduce mean physics time by at least 2x for Rigid Body and Fluid and by at least 1.5x for Smoke Soft Body, without increasing render time by more than 20%, introducing validation/runtime errors, or weakening the existing physical-quality gates.",
+    "Re-run the Android Vulkan command/API, asynchronous submission, bounded reset, relevant analytic/reference cases and direct-presentation lifecycle checks; preserve failures independently rather than converting execution or performance into physical qualification."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
