@@ -1,7 +1,7 @@
 {
   "id": "P3-02",
   "title": "Profile and optimize Android Vulkan stepping",
-  "status": "open",
+  "status": "deferred",
   "dependencies": [
     "F5-07",
     "F5-15",
