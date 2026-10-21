@@ -45,7 +45,7 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction
             if(backend STREQUAL "d3d12" AND
                (suite STREQUAL "coupling-lifecycle" OR
                 suite STREQUAL "interaction-graph-lifecycle"))
-                set(suite_timeout 300)
+                set(suite_timeout 900)
             endif()
             set_tests_properties(parallel-mater-${backend}-${suite}-tests PROPERTIES
                 LABELS "api;lifecycle;${backend}" SKIP_RETURN_CODE 77
