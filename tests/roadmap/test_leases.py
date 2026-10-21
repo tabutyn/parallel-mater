@@ -80,6 +80,18 @@ class LeaseTests(unittest.TestCase):
         self.assertIn('roadmap/tasks/F8-01.json', text)
         self.assertIn('roadmap/tasks/F8-02.json', text)
 
+    def test_completed_f5_is_archived_out_of_live_index(self):
+        done = task('F5-01') | {'status': 'done', 'evidence': ['PASS']}
+        tasks = {'F5-01': done}
+        self.assertNotIn('F5.', roadmap.index(tasks))
+        self.assertNotIn('roadmap/tasks/F5-01.json', roadmap.index(tasks))
+
+        tasks['F5-02'] = task('F5-02', dependencies=['F5-01'])
+        text = roadmap.index(tasks)
+        self.assertIn('### F5.', text)
+        self.assertIn('roadmap/tasks/F5-01.json', text)
+        self.assertIn('roadmap/tasks/F5-02.json', text)
+
     def test_new_claim_is_metadata_only_and_needs_merged_dependencies(self):
         base = {'F1-01': task()}
         candidate = copy.deepcopy(base)
