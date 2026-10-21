@@ -1,6 +1,6 @@
 # Qualification scope and open gates
 
-Updated 2026-10-19. This is an evidence index, not blanket driver certification.
+Updated 2026-10-21. This is an evidence index, not blanket driver certification.
 Each release must attach a revisioned machine-readable evidence package with
 the exact source, driver, toolchain, device, case hashes and settings. Repeat the
 affected scope after changes; historical passes do not automatically qualify a
@@ -33,7 +33,8 @@ promoting those results to capability certification.
 | Interaction graph lifecycle (F2-04) | Linux RTX 3050 Ti and current Windows GTX 1080 CUDA plus Apple M4 Metal execute all 12 implemented pairs through create/update/clear, endpoint replacement, three-family mutation and partial-create rollback. | Current CUDA and Metal console evidence lacks required F5-03 checkpoint fingerprints; D3D12 reports the complete three-family case unsupported because it does not advertise rope, soft-body or smoke. Unsupported/missing never passes the lifecycle evaluator. |
 | Native Vulkan validation (F5-09) | A standalone shader-module/pipeline probe pins the layer, fluid SPIR-V and probe hashes. Debian layer 1.3.239 exits 139 inside `vkCreateShaderModule`; pinned SDK layer 1.4.341 completes the same probe and the unchanged 4,096-replacement validated lifecycle case on the RTX 3050 Ti. | This isolates a host validation-tool defect and supplies a working validation setup. It does not qualify Vulkan physics, other drivers or imported engine devices. |
 | Vendor-neutral physical quality (F5-02, F5-05, F5-25–F5-29) | Hashed `core-conservation-stability-v1`, `rigid-brick-penetration-v1`, three exact fluid-self profiles, `rope-self-contact-v1` and `smoke-self-pressure-v1` independently evaluate fluid conservation/stability, rigid surface separation, fluid self contact/pressure/viscosity, sampled-node rope separation and particle/grid smoke pressure. Current Windows CUDA passes those physical gates, including both smoke representations and their new lifecycle profile. D3D12 passes the brick and fluid-self gates; Apple M4 Metal passes the brick gate. | D3D12 does not advertise rope, smoke or separate-system equal-fluid modes, and Metal does not advertise separate-system equal-fluid. Historical and unrecaptured builds remain unqualified. Analytic quality never overrides failed reference regression or missing exact lifecycle evidence; remaining modes need separate fixtures. |
-| Capability evidence obligations (F5-01) | Hashed `capability-obligations-v1` rules cover all 49 API 0.2 interaction records exactly once and keep compilation, execution, regression, lifecycle, analytic and timing evidence separate. Current physical results register 49 CUDA and 10 D3D12 records on GTX 1080 plus 46 Metal records on Apple M4. | Qualification remains 0/49 for current Windows CUDA, 0/10 D3D12 and 0/46 Metal. Reference failures, process crashes, missing exact lifecycle captures and rule-level analytic gaps stay explicit. |
+| Capability evidence obligations (F5-01) | The hashed `capability-obligations-v1` profile has 46 exact rules and keeps compilation, execution, regression, lifecycle, analytic and timing evidence separate. The generated index validates 47 revisioned reports from five drivers with no index-validation failure. | Current aggregate qualification is 1/336 report-scoped capability occurrences: Slang CPU 0/2, CUDA 0/125, D3D12 0/12, Vulkan 0/92 and Metal 1/105. Reference failures, process crashes, missing exact lifecycle captures and rule-level analytic gaps stay explicit. |
+| Independent conformance and quality exit review (F5-99) | All 56 dependencies are merged `done` with reviewable evidence. The installed runner, 46 exact obligation rules, revisioned index and separate execution/regression/lifecycle/analytic/performance gates establish the independent qualification mechanism. Candidate Apple M4 verification passes 112/112 macOS Metal preset tests and the unchanged brick-penetration gate. | The original every-advertised-mode current-evidence exit is not met: the generated index qualifies 1/336 report-scoped capability occurrences and retains 990 known failures. Historical passes from different source revisions cannot be composed. P1-01 owns the current driver/domain inventory and same-revision recapture split. |
 | iPadOS development qualification runner (F5-13) | The opt-in, development-only app channel reuses the canonical 30-case public-API runner, rigid penetration oracle, equal-fluid fixture and adverse lifecycle operations. Collection pins a fresh nonce, source, app/driver hashes, public device/OS/Metal and toolchain metadata and rejects stale, partial, mismatched and Gallery-only reports. | This runner is not enabled by default in ordinary iOS builds. Equal-fluid remains unsupported on Metal and the existing lifecycle fixtures still lack F5-03 checkpoint fingerprints; device execution and evidence publication remain separate gates. |
 | Quality-gated performance (F5-07) | Independent headless gate computes throughput, median/p95 timing and public memory peaks from raw samples; every metric carries the fixed quality-profile hash and exact source/binary/device/toolchain tuple | This defines score admission but publishes no production benchmark. Missing, failed, unsupported, stale or mismatched physical-quality evidence leaves measurements unqualified. |
 | Distinct fluid–fluid systems | F2-05–F2-10 specify, schedule and qualify equal-material contact/pressure/viscosity with bounded pair storage, combined-population tolerances, balanced momentum, stable-ID ownership and lifecycle recovery. Linux RTX 3050 Ti CUDA qualifies all three records. Current Windows GTX 1080 CUDA independently passes the same 18/18 physical samples and fluid-pair graph lifecycle console test. | Windows CUDA lacks the exact F5-03 checkpoint artifact, so its three records remain unqualified; D3D12 and Metal do not advertise these records, and their tests skip without fallback. Different-material modes remain P1-04–P1-18, and phase transfer remains undefined. |
@@ -322,6 +323,45 @@ The [Windows physics report](../conformance/v1/evidence/windows-gtx1080-physics-
 records tested source/binary/case hashes, original first divergences, comparison
 results, independent physical metrics and reproduction commands. See also the
 [shared correction and regression scope](slang-unification-validation.md#current-cross-driver-qualification-2026-10-16).
+
+### F5-99 independent conformance and quality exit review
+
+The F5-99 review is complete, but the original F5 exit is not a blanket pass.
+F5-01 through F5-56 are all merged `done`, carry nonempty evidence and have
+completed lease history. Together they establish an installed, standalone
+conformance runner; immutable case, lifecycle and analytic profiles; 46 exact
+capability-obligation rules; quality-gated performance admission; and a
+revisioned evidence index. Compilation, execution, reference regression,
+adverse lifecycle, analytic quality and timing remain separate evidence.
+
+The current generated index is the controlling boundary: it evaluates 47
+reports from five drivers, has zero index-validation failures and qualifies
+only 1 of 336 report-scoped capability occurrences. The other 335 occurrences
+remain unqualified and produce 990 retained failures. `qualification_complete`
+means that every indexed report was evaluated; it does not mean every
+capability passed. The one exact current pass cannot certify Metal generally,
+and historical per-feature passes from different source revisions cannot be
+combined to certify CUDA, D3D12, Vulkan, Metal or Slang CPU on this candidate.
+
+Apple M4 verification of candidate `92486e4a5b8054089d20d60942176721fde473a8`
+builds the shared Slang Metal kernels, driver, standalone conformance runner
+and Gallery. All 112 macOS Metal preset tests pass; 15 unsupported cases remain
+skips rather than passes. The review also made the immutable
+`rigid-brick-penetration-v1` profile a required Metal CTest gate. Metal passes
+the unchanged 2 mm bound at 0.178732 mm maximum penetration; a supplemental
+Slang CPU run passes at 0.604257 mm. Raw state identity is retained for the
+stable constraint comparisons but is not used as a false oracle for a chaotic
+stacked-contact trajectory.
+
+Accordingly, the installed-suite half of the original exit is met, while the
+requirement that every advertised mode have current correctness and quality
+evidence is not. P1-01 becomes the owner of the exact current driver/domain
+inventory and same-revision implementation/evidence split after foundation
+reviews. Existing P1 same-family and material cards plus P1-59 retain known
+implementation work. F5-23 already split and completed the missing-contract
+leaves, so this review creates no duplicate aggregate task. The machine-readable
+[F5-99 evidence](roadmap/evidence/F5-99-exit-review.json) records the decision,
+counts, physical scope, repairs and unresolved limits.
 
 ### F5-11 current Windows driver evidence
 

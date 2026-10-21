@@ -1,7 +1,7 @@
 {
   "id": "F5-99",
   "title": "Review F5 exit evidence",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-01",
     "F5-02",
@@ -71,15 +71,31 @@
     "All dependency tasks are merged done with reviewable evidence.",
     "Update the qualification index with exact scope and unresolved limitations; an implementation/demo alone cannot close the gate."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "9adeef8b-1cae-4bf6-a434-a8a34ededfc2",
-    "owner": "codex-macos-review",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F5-99/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-21T17:54:33Z",
-    "heartbeat_at": "2026-10-21T17:54:33Z",
-    "expires_at": "2026-10-22T17:54:33Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: all 56 dependencies are merged done with nonempty evidence and completed history; the installed independent runner, 46 exact obligation rules and generated evidence index are reviewable in docs/roadmap/evidence/F5-99-exit-review.json.",
+    "PASS: Apple M4 candidate 92486e4a builds and passes 112/112 macOS Metal preset tests; unchanged rigid-brick-penetration-v1 passes at 0.178732 mm; 391/391 conformance and 31/31 roadmap tests pass.",
+    "LIMITATION: the original every-advertised-mode current-evidence exit is not met; the generated index qualifies 1/336 occurrences and retains 990 failures. P1-01 owns current driver/domain inventory and same-revision recapture; unsupported skips remain non-passes."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "9adeef8b-1cae-4bf6-a434-a8a34ededfc2",
+        "owner": "codex-macos-review",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F5-99/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-21T17:54:33Z",
+        "heartbeat_at": "2026-10-21T17:54:33Z",
+        "expires_at": "2026-10-22T17:54:33Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-21T18:14:02Z",
+      "reason": "Completed the F5 exit audit, repaired exposed macOS Gallery gates, and published the exact not-yet-qualified boundary without composing stale evidence.",
+      "evidence": [
+        "PASS: all 56 dependencies are merged done with nonempty evidence and completed history; the installed independent runner, 46 exact obligation rules and generated evidence index are reviewable in docs/roadmap/evidence/F5-99-exit-review.json.",
+        "PASS: Apple M4 candidate 92486e4a builds and passes 112/112 macOS Metal preset tests; unchanged rigid-brick-penetration-v1 passes at 0.178732 mm; 391/391 conformance and 31/31 roadmap tests pass.",
+        "LIMITATION: the original every-advertised-mode current-evidence exit is not met; the generated index qualifies 1/336 occurrences and retains 990 failures. P1-01 owns current driver/domain inventory and same-revision recapture; unsupported skips remain non-passes."
+      ]
+    }
+  ]
 }

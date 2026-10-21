@@ -1,0 +1,169 @@
+{
+  "schema": "parallel-mater-roadmap-foundation-exit-review/v1",
+  "task": "F5-99",
+  "foundation": "F5",
+  "result": "review_complete_exit_not_met",
+  "reviewed_exit": "An independent driver can run the suite using the installed SDK alone; every advertised mode has current correctness and quality evidence.",
+  "source": {
+    "reviewed_main_commit": "4f9c43c33ab4ef05b8fb337d981e4bbc7e882267",
+    "candidate_commit": "92486e4a5b8054089d20d60942176721fde473a8",
+    "branch": "work/F5-99/Thomass-MacBook-Air",
+    "lease_token": "9adeef8b-1cae-4bf6-a434-a8a34ededfc2"
+  },
+  "dependency_review": {
+    "range": "F5-01 through F5-56",
+    "task_count": 56,
+    "status": "56/56 merged done",
+    "evidence": "56/56 carry nonempty evidence and completed lease history",
+    "uncovered_contract_tasks": []
+  },
+  "exit_decision": {
+    "installed_sdk_independence": {
+      "result": "passed",
+      "basis": "F5-24 exposes lifecycle qualification through the installed CLI; F6-12 and F6-13 keep the installed corpus and standalone source closure synchronized; relocated SDK verification is recorded by F6-99."
+    },
+    "current_correctness_for_every_advertised_mode": {
+      "result": "not_met",
+      "basis": "The generated current index qualifies 1 of 336 report-scoped capability occurrences. Historical per-feature passes come from different source revisions and cannot be composed into current-build certification."
+    },
+    "review_result": "The F5 review task is complete, but the original F5 exit is not a blanket driver or current-build qualification pass."
+  },
+  "contract_review": {
+    "obligation_profile": "conformance/v1/qualification/capability-obligations-v1.json",
+    "obligation_rule_count": 46,
+    "profile_validation_failures": 0,
+    "separate_evidence_categories": [
+      "compilation",
+      "execution",
+      "reference regression",
+      "adverse lifecycle",
+      "analytic quality",
+      "timing and performance"
+    ],
+    "performance_policy": "Measurements remain unqualified unless their immutable physical-quality requirements pass."
+  },
+  "current_evidence_index": {
+    "path": "conformance/v1/evidence/index-v1.json",
+    "report_count": 47,
+    "driver_count": 5,
+    "capability_occurrence_count": 336,
+    "qualified_capability_occurrence_count": 1,
+    "known_failure_count": 990,
+    "validation_failure_count": 0,
+    "qualification_complete_meaning": "All indexed reports were evaluated; this field does not mean that every capability passed.",
+    "drivers": {
+      "slang-cpu": {
+        "qualified": 0,
+        "unqualified": 2,
+        "reports": 1
+      },
+      "slang-cuda": {
+        "qualified": 0,
+        "unqualified": 125,
+        "reports": 28
+      },
+      "slang-d3d12": {
+        "qualified": 0,
+        "unqualified": 12,
+        "reports": 4
+      },
+      "slang-vulkan": {
+        "qualified": 0,
+        "unqualified": 92,
+        "reports": 2
+      },
+      "slang-metal": {
+        "qualified": 1,
+        "unqualified": 104,
+        "reports": 12
+      }
+    }
+  },
+  "physical_evidence_scope": [
+    {
+      "tasks": ["F5-11"],
+      "host": "Windows GTX 1080",
+      "drivers": ["slang-cuda", "slang-d3d12"],
+      "scope": "revisioned capability, reference, lifecycle and analytic evidence; unresolved results remain explicit"
+    },
+    {
+      "tasks": ["F5-12", "F5-25", "F5-26", "F5-27", "F5-30", "F5-32", "F5-33", "F5-37", "F5-38", "F5-41", "F5-45"],
+      "host": "Apple M4 macOS",
+      "drivers": ["slang-metal"],
+      "scope": "revisioned Metal execution and per-capability physical evidence; only the current exact soft-rope contact occurrence is qualified by the generated index"
+    },
+    {
+      "tasks": ["F5-13", "F5-14"],
+      "host": "Apple M1 iPadOS",
+      "drivers": ["slang-metal"],
+      "scope": "device-side public-API runner and revisioned report; missing lifecycle fingerprints remain non-passes"
+    },
+    {
+      "tasks": ["F5-15"],
+      "host": "Pixel 7 Android",
+      "drivers": ["slang-vulkan"],
+      "scope": "revisioned physical Vulkan report with every unresolved obligation retained"
+    },
+    {
+      "tasks": ["F5-16"],
+      "host": "Linux RTX 3050 Ti laptop",
+      "drivers": ["slang-cpu", "slang-cuda", "slang-vulkan"],
+      "scope": "revisioned Linux driver reports and explicit unsupported or missing results"
+    }
+  ],
+  "candidate_verification": {
+    "host": "macOS 26.5.2 arm64, Apple M4, Apple Clang 21.0.0, CMake 4.3.4, Python 3.14.7, Slang 2026.18",
+    "checks": [
+      {
+        "command": "cmake --build --preset macos-metal-preview",
+        "result": "passed; shared Slang Metal kernels, Metal driver, conformance runner and Gallery built"
+      },
+      {
+        "command": "ctest --preset macos-metal-preview --output-on-failure",
+        "result": "112/112 passed; 15 unsupported tests were reported as skips, not passes"
+      },
+      {
+        "command": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py' -v",
+        "result": "391/391 passed"
+      },
+      {
+        "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py' -v",
+        "result": "31/31 passed"
+      },
+      {
+        "command": "parallel-mater-conformance --quality rigid-brick-penetration-v1 (Metal) plus quality.py",
+        "result": "passed unchanged 2 mm limit; maximum independent penetration 0.00017873197793960571 m at frame 49"
+      },
+      {
+        "command": "parallel-mater-conformance --quality rigid-brick-penetration-v1 (Slang CPU) plus quality.py",
+        "result": "supplemental pass against the same profile; maximum independent penetration 0.00060425698757171631 m at frame 236"
+      },
+      {
+        "command": "python3 conformance/v1/evidence_index.py --check && python3 conformance/v1/update_manifest.py --check",
+        "result": "passed; index is 1/336 across 47 reports and manifest hashes are current"
+      }
+    ],
+    "repairs_found_by_review": [
+      "The Metal renderer adapter now links its shared frame-timing implementation for standalone consumers.",
+      "The Gallery accepts loader-selected installed drivers instead of rejecting the parallel-mater-loader presentation name.",
+      "Metal smoke tests locate the final frame header in version-5 physics captures.",
+      "Chaotic stacked-contact execution is no longer judged by raw CPU/GPU trajectory identity; the unchanged independent brick-penetration profile is now a required physical Metal CTest gate."
+    ]
+  },
+  "limitations": [
+    "The generated index has 335 unqualified capability occurrences; F5-99 does not certify CUDA, D3D12, Vulkan, Metal or Slang CPU generally.",
+    "Evidence is source-, binary-, device- and profile-scoped. Passing reports from different revisions cannot be combined into a qualification claim for this candidate.",
+    "Unsupported and skipped tests remain unsupported; successful execution is not analytic quality, lifecycle, regression or performance evidence.",
+    "The current exact driver/domain inventory and same-revision recapture plan remain P1-01 work.",
+    "Unimplemented same-family and material modes remain in their existing P1 leaf queues and are not advertised by this review."
+  ],
+  "follow_up": {
+    "existing_gap_owners": [
+      "P1-01",
+      "P1-19 through P1-55",
+      "P1-59"
+    ],
+    "new_tasks": [],
+    "reason_no_duplicate_tasks": "F5-23 already split missing obligation contracts into the completed F5 leaves. P1-01 explicitly owns the remaining per-driver/domain inventory and hardware-test split after all foundation reviews; the P1 same-family/material cards and P1-59 already own known implementation gaps."
+  }
+}
