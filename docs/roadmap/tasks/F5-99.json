@@ -1,7 +1,7 @@
 {
   "id": "F5-99",
   "title": "Review F5 exit evidence",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F5-01",
     "F5-02",
@@ -72,6 +72,14 @@
     "Update the qualification index with exact scope and unresolved limitations; an implementation/demo alone cannot close the gate."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "9adeef8b-1cae-4bf6-a434-a8a34ededfc2",
+    "owner": "codex-macos-review",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F5-99/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-21T17:54:33Z",
+    "heartbeat_at": "2026-10-21T17:54:33Z",
+    "expires_at": "2026-10-22T17:54:33Z"
+  },
   "history": []
 }
