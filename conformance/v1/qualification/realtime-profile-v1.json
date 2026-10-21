@@ -1,0 +1,347 @@
+{
+  "schema": "parallel-mater-realtime-profile-contract/v1",
+  "id": "realtime-single-step-v1",
+  "task": "F8-00",
+  "status": "normative-design-contract-not-yet-implemented-or-qualified",
+  "sources": {
+    "architecture": "docs/roadmap/F8-REALTIME-60HZ.md",
+    "spatial_epoch": "docs/roadmap/F8-05-SHARED-SPATIAL-INDEX.md",
+    "device_inventory": "conformance/v1/qualification/kernel-device-obligations-v1.json",
+    "human_contract": "docs/roadmap/F8-00-REALTIME-CONTRACT.md"
+  },
+  "profile": {
+    "semantic_name": "realtime-single-step",
+    "version": {"major": 1, "minor": 0},
+    "timestep_seconds": {"numerator": 1, "denominator": 60},
+    "step_timestep_tolerance_ulps": 1,
+    "time_advances_per_successful_tick": 1,
+    "dynamic_spatial_updates_per_tick_maximum": 1,
+    "dynamic_spatial_publications_per_successful_tick": 1,
+    "render_callbacks_per_physics_tick": "zero-or-more",
+    "physics_ticks_per_render_callback_maximum": 1,
+    "catch_up_ticks": 0,
+    "adaptive_time_subdivision": false,
+    "hidden_domain_substeps": false
+  },
+  "negotiation": {
+    "scope": "immutable-per-simulation",
+    "request": "explicit profile name plus exact major and minor version in the simulation-create extension chain",
+    "support_query": "physical-device execution-profile properties report supported versions separately from qualification records",
+    "omitted_request": "legacy schedule and existing PmStepInfo semantics; never select this profile implicitly",
+    "unsupported_profile": "PM_ERROR_FEATURE_NOT_PRESENT",
+    "unsupported_major_or_minor": "PM_ERROR_INCOMPATIBLE_VERSION",
+    "missing_extension": "PM_ERROR_EXTENSION_NOT_PRESENT",
+    "invalid_parameter": "PM_ERROR_INVALID_ARGUMENT",
+    "fallback": "forbidden",
+    "step_rule": "PmStepInfo.timestep must equal 1/60 within one binary32 ULP and substeps must equal 1; reject instead of reinterpret",
+    "validation_rule": "core runtime enforcement is mandatory with validation disabled; validation may add diagnostics only",
+    "version_rule": "major changes may change schedule or material meaning; minor changes may add optional observability but cannot relax v1.0 limits",
+    "qualification_rule": "execution support and physical qualification are distinct; an unqualified adapter must never be reported as qualified"
+  },
+  "clock_and_presentation": {
+    "tick_input_sampling": "once at the tick boundary",
+    "high_rate_policy": "interpolate previous and current committed snapshots; never extrapolate or advance physics for presentation",
+    "interpolation_alpha_range": {"minimum_inclusive": 0.0, "maximum_exclusive": 1.0},
+    "maximum_presentation_latency_ticks": 1,
+    "overload_policy": "at most one tick per render callback; retain dt=1/60 and allow simulation to run slower than wall time",
+    "sustained_30_hz_result": "30 physics ticks and 0.5 simulated seconds per wall-clock second",
+    "stall_policy": "discard accumulated presentation debt after a stall, reset or background transition; never repay a backlog",
+    "reset_policy": "previous and current snapshots become the reset state and interpolation alpha becomes zero"
+  },
+  "input_envelope": {
+    "finite_values_required": true,
+    "absolute_world_coordinate_m_maximum": 10000.0,
+    "characteristic_length_m": {"minimum": 0.005, "maximum": 2.0},
+    "dynamic_mass_kg": {"minimum": 0.001, "maximum": 10000.0},
+    "interacting_dynamic_mass_ratio_maximum": 100.0,
+    "static_or_kinematic_endpoint_mass_ratio_exception": true,
+    "linear_speed_m_s_maximum": 20.0,
+    "linear_travel_per_tick_characteristic_length_maximum": 0.5,
+    "angular_speed_rad_s_maximum": 31.41592653589793,
+    "angular_travel_per_tick_rad_maximum": 0.5235987755982988,
+    "acceleration_displacement_per_tick_characteristic_length_maximum": 0.25,
+    "total_solver_correction_per_tick_characteristic_length_maximum": 0.25,
+    "friction_coefficient": {"minimum": 0.0, "maximum": 2.0},
+    "restitution": {"minimum": 0.0, "maximum": 0.8},
+    "dimensionless_constraint_stiffness": {"disabled": 0.0, "active_minimum": 0.05, "maximum": 0.995},
+    "dimensionless_compliance_ratio": {"definition": "compliance / (dt^2 * effective_inverse_mass)", "active_minimum": 0.005025125628140708, "active_maximum": 19.0},
+    "compliance_conversion": "response = 1 / (1 + dimensionless_compliance_ratio); apply the same generalized-mass conversion to linear, angular and volume constraints",
+    "solver_added_velocity_damping_fraction_per_tick_maximum": 0.12,
+    "fluid_travel_per_tick_support_radius_maximum": 0.5,
+    "smoke_grid_cfl_maximum": 1.0,
+    "deformable_authored_strain_maximum": 0.25,
+    "rule": "all global and applicable domain bounds must hold; a larger absolute speed never overrides a normalized travel bound",
+    "teleport_rule": "teleports are staged boundary mutations, not motion during a tick; the target state must satisfy overlap and correction limits"
+  },
+  "algebraic_iteration_budget": {
+    "policy": "the following counts are exact for v1.0, never data-dependent maxima; an iteration cannot advance time or republish the spatial epoch",
+    "rigid_contact_and_joint_sweeps": 8,
+    "liquid_density_sweeps": 6,
+    "cloth_constraint_sweeps": 8,
+    "soft_body_constraint_sweeps": 8,
+    "rope_constraint_sweeps": 8,
+    "particle_smoke_pressure_sweeps": 6,
+    "grid_smoke_projection_cycles": 12,
+    "coupling_sweeps_per_registered_edge": 4,
+    "adaptive_extra_iterations": 0,
+    "high_strain_recovery_iterations": 0
+  },
+  "quality_measurement": {
+    "units": "SI unless a metric is explicitly dimensionless",
+    "characteristic_length": "minimum relevant contact diameter, rest edge, support radius or grid-cell width named by the fixture",
+    "relative_residual": "norm(residual) / max(norm(applied exchange), 1e-6 in the metric's SI unit)",
+    "cold_window_ticks": 120,
+    "settled_window_ticks": 600,
+    "long_run_ticks": 3600,
+    "every_sample_must_be_finite": true,
+    "threshold_change_rule": "changing a fixture, range, metric or threshold requires a new profile version and invalidates affected candidate evidence"
+  },
+  "domain_quality": [
+    {
+      "domain": "RIGID_BODY",
+      "limits": {
+        "maximum_contact_penetration_m": 0.005,
+        "maximum_contact_penetration_characteristic_length": 0.1,
+        "tunneling_events": 0,
+        "resting_translation_drift_m_over_settled_window": 0.01,
+        "resting_rotation_drift_rad_over_settled_window": 0.035,
+        "maximum_joint_position_error_m": 0.01,
+        "maximum_joint_angle_error_rad": 0.05235987755982989,
+        "maximum_unforced_mechanical_energy_growth_fraction": 0.05
+      }
+    },
+    {
+      "domain": "FLUID",
+      "limits": {
+        "density_relative_error_p95": 0.15,
+        "density_relative_error_maximum": 0.3,
+        "free_surface_particle_loss_fraction": 0.0,
+        "closed_container_leaked_particle_fraction": 0.01,
+        "closed_system_center_of_mass_drift_support_radius": 0.05,
+        "maximum_unforced_mechanical_energy_growth_fraction": 0.05
+      }
+    },
+    {
+      "domain": "CLOTH",
+      "limits": {
+        "stretch_relative_error_rms": 0.03,
+        "stretch_relative_error_maximum": 0.1,
+        "bend_angle_error_rad_rms": 0.17453292519943295,
+        "closed_surface_volume_relative_error": 0.15,
+        "pinned_vertex_drift_m": 0.002,
+        "tunneling_events": 0
+      }
+    },
+    {
+      "domain": "SOFT_BODY",
+      "limits": {
+        "bond_stretch_relative_error_rms": 0.04,
+        "bond_stretch_relative_error_maximum": 0.12,
+        "volume_relative_error": 0.15,
+        "shape_matching_position_error_characteristic_length_rms": 0.1,
+        "inverted_volume_elements": 0,
+        "tunneling_events": 0
+      }
+    },
+    {
+      "domain": "ROPE",
+      "limits": {
+        "segment_stretch_relative_error_rms": 0.03,
+        "segment_stretch_relative_error_maximum": 0.08,
+        "bend_angle_error_rad_rms": 0.2617993877991494,
+        "attachment_position_error_m": 0.01,
+        "tunneling_events": 0
+      }
+    },
+    {
+      "domain": "SMOKE",
+      "limits": {
+        "grid_divergence_dt_rms": 0.025,
+        "grid_divergence_dt_maximum": 0.1,
+        "closed_tracer_mass_relative_error": 0.1,
+        "analytic_transport_centroid_error_grid_cells": 1.0,
+        "particle_density_relative_error_p95": 0.25,
+        "maximum_speed_overshoot_m_s": 0.0001
+      }
+    }
+  ],
+  "coupling_quality_by_mode": [
+    {
+      "mode": "CONTACT",
+      "limits": {
+        "maximum_penetration_m": 0.005,
+        "maximum_penetration_contact_distance": 0.15,
+        "maximum_final_closing_speed_m_s": 0.05,
+        "reciprocal_linear_impulse_relative_residual": 0.02,
+        "reciprocal_angular_impulse_relative_residual": 0.05,
+        "tunneling_events": 0
+      }
+    },
+    {
+      "mode": "ATTACHMENT",
+      "limits": {
+        "maximum_endpoint_separation_m": 0.01,
+        "maximum_endpoint_separation_support_radius": 0.05,
+        "reciprocal_linear_impulse_relative_residual": 0.02
+      }
+    },
+    {
+      "mode": "CONTAINMENT",
+      "limits": {
+        "leaked_element_fraction": 0.01,
+        "maximum_surface_penetration_characteristic_length": 0.15,
+        "reciprocal_linear_impulse_relative_residual": 0.02
+      }
+    },
+    {
+      "mode": "DRAG",
+      "limits": {
+        "reciprocal_linear_impulse_relative_residual": 0.05,
+        "closed_system_energy_growth_fraction": 0.01,
+        "minimum_relative_speed_reduction_fraction": 0.05
+      }
+    },
+    {
+      "mode": "PRESSURE",
+      "limits": {
+        "reciprocal_linear_impulse_relative_residual": 0.02,
+        "split_vs_combined_state_normalized_error": 0.05,
+        "density_relative_error_p95": 0.15
+      }
+    },
+    {
+      "mode": "VISCOSITY",
+      "limits": {
+        "reciprocal_linear_impulse_relative_residual": 0.02,
+        "closed_system_energy_growth_fraction": 0.01,
+        "minimum_relative_speed_reduction_fraction": 0.05
+      }
+    },
+    {
+      "mode": "THERMAL",
+      "limits": {
+        "thermal_energy_relative_residual": 0.05,
+        "maximum_temperature_overshoot_celsius": 2.0,
+        "monotonic_heating_violations": 0
+      }
+    },
+    {
+      "mode": "PHASE",
+      "limits": {
+        "mass_relative_error": 0.02,
+        "boundary_latency_ticks": 1,
+        "duplicate_or_missing_stable_ids": 0,
+        "source_loss_on_rejected_destination": 0
+      }
+    }
+  ],
+  "coupling_application_rule": "each registered capability must satisfy both endpoint domain gates and every gate for each enabled advertised mode; no pair-specific or backend-specific tolerance overrides",
+  "boundary_semantics": {
+    "births": "stage bounded proposals, build once including them, then apply deterministic identity-priority admission; rejection and intentional underfill are observable and never trigger another build",
+    "removals": "unconditional removals apply at the next tick boundary",
+    "phase_transfer": "solve-discovered transfer is staged for the next boundary; source removal and destination admission are atomic, and capacity failure retains the source",
+    "coupling_order": "all endpoints use one published epoch and commit once; operator splitting is allowed only within the coupling metrics",
+    "topology_changes": "stage at a boundary, invalidate affected warm starts and interpolation generations, and publish at most one new epoch"
+  },
+  "failure_behavior": {
+    "atomic_tick": true,
+    "preserve_previous_committed_state": true,
+    "preserve_simulation_clock": true,
+    "preserve_pending_inputs": true,
+    "silent_clamping": false,
+    "partial_commit": false,
+    "retry_with_substeps": false,
+    "retry_with_second_spatial_update": false,
+    "known_invalid_input": "reject synchronously before recording or submission",
+    "gpu_discovered_envelope_escape": "invalidate the tick and report PM_ERROR_INVALID_STATE on completion or explicit wait",
+    "capacity_or_candidate_overflow": "invalidate the tick and report PM_ERROR_CAPACITY_EXCEEDED",
+    "non_finite_state": "invalidate the tick and report PM_ERROR_INVALID_STATE",
+    "recovery": "caller changes inputs or capacities and submits a later tick; recovery work is separately measured"
+  },
+  "performance": {
+    "frame_budget_ms": 16.666666666666668,
+    "measurement": {
+      "physics_time": "host monotonic critical path from physics encoding start through physics completion, including required waits but excluding rendering and presentation",
+      "warmup_ticks": 600,
+      "measured_ticks": 7200,
+      "samples": "retain all successful measured ticks including stalls; any failed tick fails the run",
+      "required_statistics": ["p50", "p95", "p99", "maximum"],
+      "minimum_simulated_to_wall_time_ratio": 0.99,
+      "instrumentation": "asynchronous GPU phase timing where supported; unsupported GPU timing remains unavailable and is never replaced with CPU time"
+    },
+    "tiers": [
+      {
+        "id": "desktop-full-v1",
+        "physics_p95_ms_maximum": 10.0,
+        "render_input_reserve_ms_minimum": 6.666666666666668,
+        "workloads": [
+          {"id": "rigid-wall", "counts": {"rigid_bodies_live": 386, "rigid_bodies_capacity": 386, "constraints_live": 0, "constraints_capacity": 0, "contact_capacity": 65536}},
+          {"id": "fluid-rigid", "counts": {"rigid_bodies_live": 65, "rigid_bodies_capacity": 65, "fluid_systems": 1, "fluid_particles_live": 30000, "fluid_particles_capacity": 30000, "neighbors_per_particle_capacity": 128, "couplings_live": 1, "couplings_capacity": 1, "contact_capacity": 65536}},
+          {"id": "deformable-mixed", "counts": {"cloth_systems": 2, "cloth_vertices_live": 578, "cloth_vertices_capacity": 578, "cloth_triangle_indices_live": 3072, "cloth_triangle_indices_capacity": 3072, "soft_body_systems": 1, "soft_nodes_live": 912, "soft_nodes_capacity": 912, "soft_bonds_live": 130033, "soft_bonds_capacity": 130033, "rope_systems": 1, "rope_nodes_live": 72, "rope_nodes_capacity": 72, "couplings_live": 3, "couplings_capacity": 3, "contact_capacity": 65536}},
+          {"id": "smoke-coupled", "counts": {"smoke_systems": 1, "smoke_particles_live": 4500, "smoke_particles_capacity": 4500, "rigid_bodies_live": 4, "rigid_bodies_capacity": 4, "couplings_live": 1, "couplings_capacity": 1, "contact_capacity": 16384}},
+          {"id": "six-family-mixed", "counts": {"rigid_bodies_live": 32, "rigid_bodies_capacity": 32, "fluid_systems": 2, "fluid_particles_live": 4096, "fluid_particles_capacity": 4096, "cloth_systems": 1, "cloth_vertices_live": 1024, "cloth_vertices_capacity": 1024, "soft_body_systems": 1, "soft_nodes_live": 512, "soft_nodes_capacity": 512, "rope_systems": 1, "rope_nodes_live": 512, "rope_nodes_capacity": 512, "smoke_systems": 1, "smoke_particles_live": 2048, "smoke_particles_capacity": 2048, "couplings_live": 16, "couplings_capacity": 16, "contact_capacity": 32768}}
+        ]
+      },
+      {
+        "id": "ipad-gallery-v1",
+        "physics_p95_ms_maximum": 8.5,
+        "render_input_reserve_ms_minimum": 8.166666666666668,
+        "workloads": [
+          {"id": "rigid-gallery", "counts": {"authored_bricks_live": 4, "rigid_bodies_live": 6, "rigid_bodies_capacity": 6, "contact_capacity": 4096}},
+          {"id": "fluid-gallery", "counts": {"fluid_systems": 1, "fluid_particles_live": 256, "fluid_particles_capacity": 256, "neighbors_per_particle_capacity": 128, "contact_capacity": 4096}},
+          {"id": "coupled-gallery", "counts": {"coupled_dynamic_bodies_live": 4, "coupled_dynamic_bodies_capacity": 4, "couplings_live": 1, "couplings_capacity": 1, "contact_capacity": 4096}},
+          {"id": "smoke-gallery", "counts": {"smoke_systems": 1, "smoke_particles_live": 128, "smoke_particles_capacity": 128, "contact_capacity": 4096}}
+        ]
+      },
+      {
+        "id": "pixel7-gallery-v1",
+        "physics_p95_ms_maximum": 8.5,
+        "render_input_reserve_ms_minimum": 8.166666666666668,
+        "workloads": [
+          {"id": "rigid-gallery", "counts": {"authored_bricks_live": 4, "rigid_bodies_live": 6, "rigid_bodies_capacity": 6, "contact_capacity": 4096}},
+          {"id": "fluid-gallery", "counts": {"fluid_systems": 1, "fluid_particles_live": 128, "fluid_particles_capacity": 128, "neighbors_per_particle_capacity": 128, "contact_capacity": 4096}},
+          {"id": "coupled-gallery", "counts": {"coupled_dynamic_bodies_live": 4, "coupled_dynamic_bodies_capacity": 4, "couplings_live": 1, "couplings_capacity": 1, "contact_capacity": 4096}},
+          {"id": "smoke-gallery", "counts": {"smoke_systems": 1, "smoke_particles_live": 128, "smoke_particles_capacity": 128, "contact_capacity": 4096}}
+        ]
+      },
+      {
+        "id": "cpu-reference-v1",
+        "physics_p95_ms_maximum": 10.0,
+        "render_input_reserve_ms_minimum": 6.666666666666668,
+        "workloads": [
+          {"id": "rigid-brick-oracle", "counts": {"rigid_bodies_live": 8, "rigid_bodies_capacity": 8, "constraints_live": 8, "constraints_capacity": 8, "contact_capacity": 2048}}
+        ]
+      }
+    ],
+    "target_assignments": [
+      {"target": "windows-gtx1080-slang-cuda", "tier": "desktop-full-v1"},
+      {"target": "windows-gtx1080-slang-d3d12", "tier": "desktop-full-v1"},
+      {"target": "linux-thomas-laptop-slang-cpu", "tier": "cpu-reference-v1"},
+      {"target": "linux-rtx3050ti-slang-cuda", "tier": "desktop-full-v1"},
+      {"target": "linux-rtx3050ti-slang-vulkan", "tier": "desktop-full-v1"},
+      {"target": "macos-m4-slang-metal", "tier": "desktop-full-v1"},
+      {"target": "ipados-m1-slang-metal", "tier": "ipad-gallery-v1"},
+      {"target": "android-pixel7-slang-vulkan", "tier": "pixel7-gallery-v1"}
+    ],
+    "count_rule": "every listed live/object/capacity count is exact; a run with a lower count, simplified geometry, fewer active interactions or smaller capacity is a different workload and cannot pass this tier",
+    "applicability_rule": "a target runs every workload supported by its advertised capabilities; an unsupported workload remains missing/unsupported and never becomes a pass",
+    "render_rule": "installed Gallery qualification separately proves that rendering and input fit the reserved time; headless physics timing alone cannot qualify a 60 Hz client"
+  },
+  "intentional_tradeoffs": [
+    "one 1/60 time advance replaces the legacy profile's multiple time substeps",
+    "bounded compliance, damping and correction may produce up to the stated stretch, volume, penetration and drift errors",
+    "one shared spatial epoch uses conservative candidates and may do false-positive narrow-phase work instead of rebuilding during a solve",
+    "fixed algebraic work may converge less accurately than legacy adaptive or high-iteration recovery",
+    "deterministic source admission may underfill because rejected earlier proposals still exclude later proposals",
+    "phase transfers and solve-discovered removals have one boundary of latency",
+    "overload slows simulation rather than advancing a larger timestep or running catch-up ticks",
+    "presentation interpolation adds at most one completed-tick of latency"
+  ],
+  "legacy_separation": {
+    "legacy_profile_id": "legacy-default",
+    "legacy_default_retained_until_explicit_retirement": true,
+    "legacy_goldens_reused_for_realtime_qualification": false,
+    "realtime_results_relabel_legacy_results": false,
+    "comparison_policy": "report both profiles with their own hashes, schedules, tolerances and results; never weaken a legacy threshold to make v1.0 pass"
+  }
+}
