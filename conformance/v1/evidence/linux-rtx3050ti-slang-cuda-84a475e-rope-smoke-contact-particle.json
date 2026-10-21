@@ -1,0 +1,101 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-50",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "84a475e8a17102f9b38697bcaeb784bd68a41a47",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+84a475e",
+    "binary_sha256": "52854125dc55b8d9cb507967045d759c4ec2edeed50e9d140686d3f1e7dfbb0c"
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13010 (NVIDIA 590.44.01)"
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "80914afc238e76f3c476a75675cfd28c0459c9bffa57cfcfd3d6ed07a5850b9d",
+    "capabilities_sha256": "4f1f17830a833fc6c7cbb6e6f768649b74ed7084d0f526da37c448d74d63e6e5"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "ROPE",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "FIRST_TO_SECOND",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:smoke-rope",
+      "sha256": "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7"
+    },
+    "quality": {
+      "id": "quality:rope-smoke-contact-v1",
+      "sha256": "821c94ef42abeb047390383ef6fd0f28476aa5880414235defb8348532bbbc7a"
+    },
+    "lifecycle": {
+      "id": "lifecycle:rope-smoke-contact-lifecycle-v1#particle-rope-smoke-contact-capacity-replacement-removal-rollback",
+      "sha256": "a67278e662dbe41a1d1c5ec0ed54c1ec1dc38c78af5d19da0670b56a5b9e4c3f"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "33701ecca870fcae2015487f3a3c6ed4506ec55be05227606c076cb8db93b876",
+    "comparison_report_sha256": "5a706d1db83e9e10630cb2a8ceeffa103e6361ca3e93ff2e9d7d2590fffdce4f",
+    "reference_regression": {"passed": 1, "failed": 0, "unsupported": 0}
+  },
+  "analytic_invariants": {
+    "result_sha256": "13f66c1a4d012f53dfd21cc9cf95141b07f4a61193444e60e710d503e78b6d04",
+    "report_sha256": "7cd1d42473626238f74679773c13c76c220a28c61897390d2421a7726471e6de",
+    "passed": true,
+    "sample_count": 2,
+    "failure_count": 0,
+    "observations": {
+      "particle-rope-contact": {
+        "initial_rope_distance_m": 0.020010764323243238,
+        "control_final_rope_distance_m": 0.010021511972323802,
+        "coupled_final_rope_distance_m": 0.015000000072806125,
+        "coupled_contact_segment_fraction": 0.590081712381878,
+        "coupled_relative_radial_velocity_m_s": -1.849310753490596e-08,
+        "coupled_relative_tangential_speed_m_s": 0.2584348960133991,
+        "maximum_smoke_speed_m_s": 1.0307764064044151
+      }
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "2d394e96b7ffbee2792153721e30bf689b1cd9f94db6d9ea0f59be686fa0caf3",
+    "report_sha256": "79cdeec684f211b6cc3bf7b419c1c3a54b50ada2bd89fab438aa850de51654d7",
+    "passed": true,
+    "profile_case_count": 2,
+    "profile_checkpoint_count": 10,
+    "failure_count": 0,
+    "bound_case": "particle-rope-smoke-contact-capacity-replacement-removal-rollback",
+    "bound_case_checkpoint_count": 5
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case smoke-rope --output <trajectory-output>",
+    "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case smoke-rope --report <trajectory-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality rope-smoke-contact-v1 --output <quality-output>",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/rope-smoke-contact-v1.json --actual <quality-output>/rope-smoke-contact-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle-profile rope-smoke-contact-lifecycle-v1 --output <lifecycle-result>",
+    "python3 conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/rope-smoke-contact-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "The paired public-state oracle proves an uncoupled particle tracer enters the rope capsule while CONTACT holds the coupled tracer at the explicit rope radius, removes relative radial flow, and preserves tangential motion.",
+    "Both dynamic public rope nodes retain canonical positions and zero velocities in paired control and coupled runs, proving no unadvertised reverse mechanical response.",
+    "The particle lifecycle changes CONTACT distance across accepted generations, preserves the replacement after record-time capacity rejection, changes behavior on removal, and restores redirection on recovery.",
+    "The shared analytic and lifecycle profiles execute both smoke representations, but this aggregate advertises and qualifies only the exact SMOKE_PARTICLE CONTACT tuple."
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "id": "F5-49",
   "title": "Qualify soft-rigid contact",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,7 +17,33 @@
     "Add exact bounded capacity, replacement, removal and rollback lifecycle checks; a rejected mutation preserves the last usable state and recovery is deterministic.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: CUDA analytic quality, 2 samples and 0 failures; docs/roadmap/evidence/F5-49-soft-rigid-contact.json",
+    "PASS: intrinsic endpoint lifecycle, 1 case, 5 checkpoints and 0 failures; docs/roadmap/evidence/F5-49-7396577-cuda-lifecycle-report.json",
+    "PASS: exact soft-rigid CONTACT qualification, 1/1; conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7396577-soft-rigid-contact-qualification.json",
+    "PASS: 300 conformance tests, 31 roadmap tests, canonical CUDA golden, manifest and command-input checks"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "5604ed1c-a303-4e7d-9bb2-856d65acdb58",
+        "owner": "codex-linux-qualification",
+        "machine": "ThomasLaptop",
+        "branch": "work/F5-49/ThomasLaptop",
+        "claimed_at": "2026-10-19T18:30:41Z",
+        "heartbeat_at": "2026-10-19T18:30:41Z",
+        "expires_at": "2026-10-20T18:30:41Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T18:50:37Z",
+      "reason": "Published an exact public-state soft-rigid CONTACT oracle with unique-node mass accounting, intrinsic endpoint lifecycle coverage, and clean physical CUDA qualification without inventing an interaction graph.",
+      "evidence": [
+        "PASS: CUDA analytic quality, 2 samples and 0 failures; docs/roadmap/evidence/F5-49-soft-rigid-contact.json",
+        "PASS: intrinsic endpoint lifecycle, 1 case, 5 checkpoints and 0 failures; docs/roadmap/evidence/F5-49-7396577-cuda-lifecycle-report.json",
+        "PASS: exact soft-rigid CONTACT qualification, 1/1; conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7396577-soft-rigid-contact-qualification.json",
+        "PASS: 300 conformance tests, 31 roadmap tests, canonical CUDA golden, manifest and command-input checks"
+      ]
+    }
+  ]
 }

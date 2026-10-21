@@ -1,0 +1,62 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-51",
+  "source_commit": "0dc9fbf2a35181b29b6b151d87289d173158a971",
+  "captured_at": "2026-10-19",
+  "host": "ThomasLaptop",
+  "driver": "slang-cuda",
+  "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+  "capabilities": [
+    "ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_PARTICLE",
+    "ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST/SMOKE_GRID"
+  ],
+  "contracts": {
+    "trajectory": "case:smoke-rope",
+    "quality": "quality:smoke-rope-drag-v1",
+    "particle_lifecycle": "lifecycle:smoke-rope-drag-lifecycle-v1#particle-smoke-rope-drag-capacity-replacement-removal-rollback",
+    "grid_lifecycle": "lifecycle:smoke-rope-drag-lifecycle-v1#grid-smoke-rope-drag-capacity-replacement-removal-rollback"
+  },
+  "results": {
+    "trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "reference_regression": "PASS: smoke-rope against the canonical CUDA golden",
+    "analytic_invariants": "PASS: 6 paired representation samples, 0 failures",
+    "particle_forward_response_fraction": 0.09999871253967285,
+    "particle_reverse_response_fraction": 0.10000020265579224,
+    "particle_maximum_drag_acceleration_m_s2": 10.000020265579224,
+    "particle_minimum_tracer_segment_clearance_m": 0.10411272626082052,
+    "grid_forward_response_fraction": 0.009642541408538818,
+    "grid_reverse_response_fraction": 0.009642541408538818,
+    "grid_maximum_drag_acceleration_m_s2": 1.0490417491416375,
+    "grid_minimum_tracer_segment_clearance_m": 0.10411272626082052,
+    "one_way_smoke_invariance": "PASS: maximum paired public smoke-state delta is zero for both representations",
+    "stationary_null": "PASS: control-subtracted rope mean velocity is zero for both representations",
+    "lifecycle": "PASS: 2 exact representation cases, 10 checkpoints, 0 failures",
+    "particle_qualification": "PASS: 1/1 exact SMOKE_PARTICLE DRAG capability, 0 failures",
+    "grid_qualification": "PASS: 1/1 exact SMOKE_GRID DRAG capability, 0 failures",
+    "python_tests": "PASS: 339 tests after evidence integration",
+    "native_build": "PASS: conformance runner and slang-cuda driver",
+    "command_inputs": "PASS: all pinned conformance inputs match the manifest",
+    "evidence_index": "PASS: 2/331 capability records qualified across 42 revisioned reports; stale and unrecaptured records remain visible and unqualified"
+  },
+  "artifacts": {
+    "provenance": "docs/roadmap/evidence/F5-51-0dc9fbf-cuda-provenance.json",
+    "capabilities": "docs/roadmap/evidence/F5-51-0dc9fbf-cuda-capabilities.json",
+    "trajectory_result": "docs/roadmap/evidence/F5-51-0dc9fbf-cuda-trajectory/smoke-rope.json",
+    "trajectory_report": "docs/roadmap/evidence/F5-51-0dc9fbf-cuda-smoke-rope-report.json",
+    "quality_result": "docs/roadmap/evidence/F5-51-0dc9fbf-cuda-quality/smoke-rope-drag-v1.json",
+    "quality_report": "docs/roadmap/evidence/F5-51-0dc9fbf-cuda-quality-report.json",
+    "lifecycle_result": "docs/roadmap/evidence/F5-51-0dc9fbf-cuda-lifecycle-result.json",
+    "lifecycle_report": "docs/roadmap/evidence/F5-51-0dc9fbf-cuda-lifecycle-report.json",
+    "particle_physical_evidence": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-particle.json",
+    "grid_physical_evidence": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-grid.json",
+    "particle_qualification": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-particle-qualification.json",
+    "grid_qualification": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-grid-qualification.json"
+  },
+  "notes": [
+    "The immutable oracle uses a free dynamic two-node rope with exact public segment geometry and paired zero-drag controls for forward, stationary and reverse carrier flow.",
+    "Signed response, acceleration, forward/reverse symmetry, transverse drift, segment preservation and one-way smoke invariance are derived only from public rope-node and smoke snapshots.",
+    "Every observed tracer remains over 0.104 m from the public rope segment, more than ten times the 0.01 m contact distance, proving DRAG without contact.",
+    "Particle and grid graph cases independently prove exact capacity, replacement, rejected-overflow rollback, removal and deterministic recovery.",
+    "CONTACT and DRAG obligation rules remain disjoint. These qualification results advertise only DRAG; historical and unrecaptured records remain visible and unqualified after the obligation hash changed."
+  ]
+}

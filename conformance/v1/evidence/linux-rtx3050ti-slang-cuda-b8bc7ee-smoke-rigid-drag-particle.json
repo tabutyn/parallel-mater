@@ -1,0 +1,170 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-55",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "b8bc7ee292262d0a26c3532834df7d339ecf2bc0",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+b8bc7ee",
+    "binary_sha256": "0db5a8d820e280d1d569bc87ad8c7941e3ff643239b06ccaf90b0f1c2149c518"
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13010 (NVIDIA 590.44.01)"
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "761b2071b98f7a57685acf41b8b0c265135b6008796a3a42832b3b28e8901d3c",
+    "capabilities_sha256": "4f1f17830a833fc6c7cbb6e6f768649b74ed7084d0f526da37c448d74d63e6e5"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "SMOKE",
+      "second_family": "RIGID_BODY",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "DRAG",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:smoke-grid",
+      "sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3"
+    },
+    "quality": {
+      "id": "quality:smoke-rigid-drag-v1",
+      "sha256": "15d40028ec945834d7f49f44ddcaddcfa3fddedcf984730b20e112d86ec73315"
+    },
+    "lifecycle": {
+      "id": "lifecycle:smoke-rigid-drag-lifecycle-v1#particle-smoke-rigid-drag-capacity-replacement-removal-rollback",
+      "sha256": "f723cfe22394d304ab39070a4e6522f5837592154dd4abfd3757cfa4d006792d"
+    }
+  },
+  "runner": {
+    "binary_sha256": "3c56df7b6a248495ee2c51e9114fd6790657735127d88d233fd2992e4dd82ce8",
+    "validation_layer_sha256": "6b32f55d1b4d8062f86b2f7553969c78bd2ce8f04fda37c325865e45a3ab885d"
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "f27b627629fee398529a4fb3eebbb79101333c84c7f19b40f1c47d240b2b4958",
+    "comparison_report_sha256": "d5e48ec037c33ccc89c84d2a9223f6fefd7d20dee2827150067430d4e3357576",
+    "reference_regression": {
+      "passed": 1,
+      "failed": 0,
+      "unsupported": 0
+    }
+  },
+  "analytic_invariants": {
+    "result_sha256": "f1744bdfef694092b6bf150b88779ffe4ab365b45315829fa09462c033531f6f",
+    "report_sha256": "52c6cef0333c5dfc08f310f5ffc6d1327717cd54f04b47c0874e1a3ffec76387",
+    "passed": true,
+    "sample_count": 6,
+    "failure_count": 0,
+    "observations": {
+      "particle-smoke-rigid-drag": {
+        "forward_reverse_response_difference": 0.0,
+        "maximum_kinetic_energy_increase_j": 0.0,
+        "maximum_paired_initial_rigid_state_delta": 0.0,
+        "maximum_paired_initial_smoke_state_delta": 0.0,
+        "maximum_pressure_delta_m_s2": 0.0,
+        "maximum_rigid_angular_speed_rad_s": 0.017209794824622773,
+        "maximum_rigid_speed_m_s": 0.0011470928020207425,
+        "maximum_smoke_speed_m_s": 1.0,
+        "maximum_transverse_velocity_m_s": 6.049465793562661e-06,
+        "maximum_zero_drag_rigid_velocity_drift_m_s": 0.0,
+        "maximum_zero_drag_smoke_velocity_drift_m_s": 0.0,
+        "minimum_tracer_rigid_clearance_m": 0.01993628740310671,
+        "reciprocal_force_residuals_n": {
+          "forward": 1.6763809572674894e-09,
+          "reverse": 1.6763808110872241e-09,
+          "stationary": 0.0
+        },
+        "reciprocal_momentum_residuals_kg_m_s": {
+          "forward": 3.352761914534979e-11,
+          "reverse": 3.3527616221744484e-11,
+          "stationary": 0.0
+        },
+        "rigid_drag_impulses_kg_m_s": {
+          "forward": [
+            0.0011470927856862545,
+            4.977044332221681e-10,
+            1.935820534981758e-07
+          ],
+          "reverse": [
+            -0.0011470927856862545,
+            4.976860035199593e-10,
+            1.9358228087185125e-07
+          ],
+          "stationary": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "rigid_response_fractions": {
+          "forward": 0.0011470927856862545,
+          "reverse": 0.0011470927856862545,
+          "stationary": 0.0
+        },
+        "smoke_drag_impulses_kg_m_s": {
+          "forward": [
+            -0.0011470928192138673,
+            -4.977043772669277e-10,
+            -1.9358203280717134e-07
+          ],
+          "reverse": [
+            0.0011470928192138673,
+            -4.976859599992167e-10,
+            -1.93582265637815e-07
+          ],
+          "stationary": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "smoke_response_fractions": {
+          "forward": 0.03584665060043335,
+          "reverse": 0.03584665060043335,
+          "stationary": 0.0
+        }
+      }
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "f918b3045bbf53faf8335d521138dd719b0db224143978cfe7292cdd95da41dd",
+    "report_sha256": "20f381009e0fd26536d0c2143b14bad81e7a2afd14d8d0a090b1fa472ced35a7",
+    "passed": true,
+    "profile_case_count": 2,
+    "profile_checkpoint_count": 10,
+    "failure_count": 0,
+    "bound_case": "particle-smoke-rigid-drag-capacity-replacement-removal-rollback",
+    "bound_case_checkpoint_count": 5
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case smoke-grid --output <trajectory-output>",
+    "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case smoke-grid --report <trajectory-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality smoke-rigid-drag-v1 --output <quality-output>",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/smoke-rigid-drag-v1.json --actual <quality-output>/smoke-rigid-drag-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle-profile smoke-rigid-drag-lifecycle-v1 --output <lifecycle-result>",
+    "python3 conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/smoke-rigid-drag-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "Six public-state runs pair zero-drag controls with forward, stationary and reverse carrier flow; the dynamic cube and smoke particles produce signed bidirectional DRAG response.",
+    "Minimum tracer-to-rigid clearance is 0.01993628740310671 m, above the 0.012 m non-contact floor, while pressure delta and zero-drag velocity drift remain zero.",
+    "Particle momentum and force are reciprocal within 3.352761914534979e-11 kg m/s and 1.6763809572674894e-09 N respectively, with no kinetic-energy increase.",
+    "The exact SMOKE_PARTICLE graph lifecycle proves bounded capacity, accepted replacement, rejected-overflow rollback, removal and deterministic recovery while preserving both endpoints.",
+    "A repeated physical quality run was byte-identical to the retained result SHA-256 f1744bdfef694092b6bf150b88779ffe4ab365b45315829fa09462c033531f6f.",
+    "The shared analytic and lifecycle profiles execute both representations, but this aggregate advertises only the exact SMOKE_PARTICLE DRAG tuple."
+  ]
+}

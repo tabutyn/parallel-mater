@@ -645,22 +645,59 @@ def _verify_capture_results(aggregate: dict[str, Any],
 
     lifecycle_contract = aggregate.get("contracts", {}).get("lifecycle", {})
     aggregate_lifecycle = aggregate.get("lifecycle_invariants", {})
-    aggregate_case_count = aggregate_lifecycle.get(
-        "profile_case_count", aggregate_lifecycle.get("case_count"))
-    aggregate_checkpoint_count = aggregate_lifecycle.get(
-        "profile_checkpoint_count", aggregate_lifecycle.get("checkpoint_count"))
-    if (lifecycle_result.get("execution_status") != "completed" or
-            lifecycle_result.get("profile_sha256") !=
-            lifecycle_contract.get("sha256") or
-            lifecycle_report.get("profile_sha256") !=
-            lifecycle_contract.get("sha256") or
-            lifecycle_report.get("passed") is not True or
-            lifecycle_report.get("failure_count") != 0 or
-            lifecycle_report.get("case_count") !=
-            aggregate_case_count or
-            lifecycle_report.get("checkpoint_count") !=
-            aggregate_checkpoint_count):
-        raise ValueError("lifecycle result does not prove the aggregate claim")
+    lifecycle_contract_id = lifecycle_contract.get("id")
+    if (isinstance(lifecycle_contract_id, str) and
+            lifecycle_contract_id.startswith("case:")):
+        lifecycle_result_sha = aggregate_lifecycle.get("result_sha256")
+        lifecycle_report_sha = aggregate_lifecycle.get("report_sha256")
+        trajectory_result_sha = aggregate.get("trajectory", {}).get(
+            "execution_result_sha256")
+        trajectory_report_sha = aggregate.get("trajectory", {}).get(
+            "comparison_report_sha256")
+        if (lifecycle_contract != trajectory_contract or
+                lifecycle_result_sha != trajectory_result_sha or
+                lifecycle_report_sha != trajectory_report_sha):
+            raise ValueError(
+                "case lifecycle must exactly reuse its trajectory capture")
+        case_id = lifecycle_contract_id.removeprefix("case:")
+        report_cases = lifecycle_report.get("cases")
+        report_case = (next((item for item in report_cases
+                             if isinstance(item, dict) and
+                             item.get("id") == case_id), None)
+                       if isinstance(report_cases, list) else None)
+        if (lifecycle_result.get("execution_status") != "completed" or
+                lifecycle_result.get("case_id") != case_id or
+                lifecycle_result.get("case_sha256") !=
+                lifecycle_contract.get("sha256") or
+                lifecycle_report.get("passed") != 1 or
+                lifecycle_report.get("failed") != 0 or
+                lifecycle_report.get("unsupported") != 0 or
+                not isinstance(report_case, dict) or
+                report_case.get("passed") is not True or
+                report_case.get("status") != "passed" or
+                aggregate_lifecycle.get("passed") is not True or
+                aggregate_lifecycle.get("failure_count") != 0):
+            raise ValueError(
+                "case lifecycle result does not prove the aggregate claim")
+    else:
+        aggregate_case_count = aggregate_lifecycle.get(
+            "profile_case_count", aggregate_lifecycle.get("case_count"))
+        aggregate_checkpoint_count = aggregate_lifecycle.get(
+            "profile_checkpoint_count",
+            aggregate_lifecycle.get("checkpoint_count"))
+        if (lifecycle_result.get("execution_status") != "completed" or
+                lifecycle_result.get("profile_sha256") !=
+                lifecycle_contract.get("sha256") or
+                lifecycle_report.get("profile_sha256") !=
+                lifecycle_contract.get("sha256") or
+                lifecycle_report.get("passed") is not True or
+                lifecycle_report.get("failure_count") != 0 or
+                lifecycle_report.get("case_count") !=
+                aggregate_case_count or
+                lifecycle_report.get("checkpoint_count") !=
+                aggregate_checkpoint_count):
+            raise ValueError(
+                "lifecycle result does not prove the aggregate claim")
 
 
 def main() -> int:

@@ -1,0 +1,43 @@
+{
+  "schema": "parallel-mater-conformance-lifecycle-profile/v1",
+  "id": "rope-smoke-contact-lifecycle-v1",
+  "title": "Rope-to-smoke contact graph bounded lifecycle",
+  "sources": {
+    "capacity": "include/parallel_mater/parallel_mater.h: PmSimulationCreateInfo::couplingCapacity and pmCmdSetCouplings",
+    "qualification": "docs/ROADMAP.md: F5-50",
+    "rollback": "docs/RESOURCE-LIFETIME.md: rejected graph mutations preserve the last usable graph"
+  },
+  "state_fingerprint": "Graph SHA-256 combines the accepted descriptor with the public CONTACT-redirected predicate and dynamic rope invariance. Endpoint SHA-256 is a canonical public behavioral signature containing smoke tracer count and the same predicates. CONTACT-redirected means closest-polyline distance at least 0.0145 m and absolute public relative radial velocity at most 0.001 m/s. Raw public rope-node and smoke fields remain in each checkpoint probe for audit; exclude handles, timings and driver-private state.",
+  "observation_boundary": "After every accepted mutation and the record-time capacity rejection, execute a fresh zero-gravity smoke probe step and public rope/smoke readback under the surviving graph. Generation is the harness ordinal of an accepted graph mutation, never a private driver handle.",
+  "scope": "SMOKE_PARTICLE and SMOKE_GRID capacity, CONTACT replacement, removal and capacity rollback. API 0.2 groups CONTACT and DRAG in one descriptor; DRAG stays inert. A retained +X tracer must be reprojected by every active CONTACT checkpoint, move when the graph is removed, and be reprojected after recovery. The one-way edge must leave the dynamic public rope state unchanged.",
+  "cases": [
+    {
+      "id": "particle-rope-smoke-contact-capacity-replacement-removal-rollback",
+      "families": ["rope", "smoke"],
+      "unrelated_resources": ["particle-rope-smoke-endpoints"],
+      "tracked_resources": ["particle-rope-smoke-contact-graph", "particle-rope-smoke-endpoints"],
+      "track_graph": false,
+      "checkpoints": [
+        {"id": "baseline", "expected_outcome": "PM_SUCCESS", "resources": {"particle-rope-smoke-contact-graph": {"active": true}, "particle-rope-smoke-endpoints": {"active": true}}},
+        {"id": "replacement", "expected_outcome": "PM_SUCCESS", "resources": {"particle-rope-smoke-contact-graph": {"active": true, "generation_different_from": "baseline", "state_different_from": "baseline"}, "particle-rope-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}}},
+        {"id": "rejected-overflow", "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED", "resources": {"particle-rope-smoke-contact-graph": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"}, "particle-rope-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "replacement"}}},
+        {"id": "removal", "expected_outcome": "PM_SUCCESS", "resources": {"particle-rope-smoke-contact-graph": {"active": false, "generation_different_from": "replacement", "state_different_from": "replacement"}, "particle-rope-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_different_from": "replacement"}}},
+        {"id": "recovery", "expected_outcome": "PM_SUCCESS", "resources": {"particle-rope-smoke-contact-graph": {"active": true, "generation_different_from": "removal", "state_different_from": "removal"}, "particle-rope-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "replacement", "state_different_from": "removal"}}}
+      ]
+    },
+    {
+      "id": "grid-rope-smoke-contact-capacity-replacement-removal-rollback",
+      "families": ["rope", "smoke"],
+      "unrelated_resources": ["grid-rope-smoke-endpoints"],
+      "tracked_resources": ["grid-rope-smoke-contact-graph", "grid-rope-smoke-endpoints"],
+      "track_graph": false,
+      "checkpoints": [
+        {"id": "baseline", "expected_outcome": "PM_SUCCESS", "resources": {"grid-rope-smoke-contact-graph": {"active": true}, "grid-rope-smoke-endpoints": {"active": true}}},
+        {"id": "replacement", "expected_outcome": "PM_SUCCESS", "resources": {"grid-rope-smoke-contact-graph": {"active": true, "generation_different_from": "baseline", "state_different_from": "baseline"}, "grid-rope-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}}},
+        {"id": "rejected-overflow", "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED", "resources": {"grid-rope-smoke-contact-graph": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"}, "grid-rope-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "replacement"}}},
+        {"id": "removal", "expected_outcome": "PM_SUCCESS", "resources": {"grid-rope-smoke-contact-graph": {"active": false, "generation_different_from": "replacement", "state_different_from": "replacement"}, "grid-rope-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_different_from": "replacement"}}},
+        {"id": "recovery", "expected_outcome": "PM_SUCCESS", "resources": {"grid-rope-smoke-contact-graph": {"active": true, "generation_different_from": "removal", "state_different_from": "removal"}, "grid-rope-smoke-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "replacement", "state_different_from": "removal"}}}
+      ]
+    }
+  ]
+}

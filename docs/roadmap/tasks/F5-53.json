@@ -1,7 +1,7 @@
 {
   "id": "F5-53",
   "title": "Qualify rope-rigid attachment",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,7 +17,31 @@
     "Retain the existing exact lifecycle binding and prove the new analytic fixture does not broaden or substitute for its capacity, replacement and rollback obligations.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: rope-rigid-attachment-v1 on physical RTX 3050 Ti CUDA; 1 sample, 0 failures; transformed-anchor drift, reciprocal rope/body momentum, public constraint force, off-center angular reaction, rope length and inactive contact all satisfy the immutable profile; docs/roadmap/evidence/F5-53-rope-rigid-attachment.json.",
+    "PASS: repeated physical quality capture is byte-identical; rope-core completed all 3 checkpoints with zero execution failures; 363 conformance tests, pinned-input check, manifest check, evidence-index check and roadmap check pass.",
+    "LIMITATION RETAINED: historical CUDA rope-core golden differs by 242 broad values; the exact CUDA row remains unqualified, no golden or tolerance changed, and F5-56 owns adjudication."
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "3a20fec4-4784-46c6-9217-39ae1dcf67e1",
+        "owner": "codex-linux-qualification",
+        "machine": "ThomasLaptop",
+        "branch": "work/F5-53/ThomasLaptop",
+        "claimed_at": "2026-10-19T20:06:46Z",
+        "heartbeat_at": "2026-10-19T20:06:46Z",
+        "expires_at": "2026-10-20T20:06:46Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T20:22:47Z",
+      "reason": "Published and physically exercised the exact graph-free rope-rigid attachment oracle; retained rope-core lifecycle binding and stale historical golden failure without claiming qualification.",
+      "evidence": [
+        "PASS: rope-rigid-attachment-v1 on physical RTX 3050 Ti CUDA; 1 sample, 0 failures; transformed-anchor drift, reciprocal rope/body momentum, public constraint force, off-center angular reaction, rope length and inactive contact all satisfy the immutable profile; docs/roadmap/evidence/F5-53-rope-rigid-attachment.json.",
+        "PASS: repeated physical quality capture is byte-identical; rope-core completed all 3 checkpoints with zero execution failures; 363 conformance tests, pinned-input check, manifest check, evidence-index check and roadmap check pass.",
+        "LIMITATION RETAINED: historical CUDA rope-core golden differs by 242 broad values; the exact CUDA row remains unqualified, no golden or tolerance changed, and F5-56 owns adjudication."
+      ]
+    }
+  ]
 }

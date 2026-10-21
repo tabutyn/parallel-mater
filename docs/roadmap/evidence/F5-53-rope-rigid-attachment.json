@@ -1,0 +1,88 @@
+{
+  "schema": "parallel-mater-roadmap-rope-rigid-attachment-evidence/v1",
+  "task": "F5-53",
+  "scope": "ROPE/RIGID_BODY/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+  "source": {
+    "commit": "1b362ad54f8842a503d98bacd8c30f625477e368",
+    "branch": "work/F5-53/ThomasLaptop",
+    "lease_token": "3a20fec4-4784-46c6-9217-39ae1dcf67e1",
+    "clean_source_revision_at_capture": true
+  },
+  "host": {
+    "machine": "ThomasLaptop",
+    "platform": "Linux",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "driver": "slang-cuda",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "cuda_driver_version": 13010,
+    "host_compiler": "GCC 12.2.0",
+    "cuda": "13.1.80",
+    "slang": "2026.18"
+  },
+  "binaries": {
+    "driver_sha256": "0db5a8d820e280d1d569bc87ad8c7941e3ff643239b06ccaf90b0f1c2149c518",
+    "runner_sha256": "f18180688e9458995231d84db85072939e2b5477b8dd0924853eb2ae04b1ddb9"
+  },
+  "contracts": {
+    "analytic": {
+      "id": "quality:rope-rigid-attachment-v1",
+      "sha256": "f11a7dd5b27e5da058a4384b2154b2db6a3ee1f8c3cc94d6333b9f8d8c5fb6d0",
+      "behavior": "A native off-center rope endpoint follows its force-driven dynamic rigid anchor with bounded drift and exchanges reciprocal linear and angular constraint reaction without contact substitution."
+    },
+    "trajectory_and_lifecycle": {
+      "id": "case:rope-core",
+      "sha256": "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41"
+    },
+    "obligations": {
+      "id": "capability-obligations-v1",
+      "sha256": "d0827eb8fc070a133388821504fb9f2de2c7cfb0273f661155572789e0296fe8"
+    }
+  },
+  "results": {
+    "analytic_invariants": "PASS: 1 sample, 0 failures",
+    "analytic_repeatability": "PASS: two physical quality runs are byte-identical at SHA-256 b937a70a2b56ee5d8ecba5846280a80a133f8851e5a07c456065b6392a32ebbb",
+    "final_attachment_drift_m": 2.250640657308347e-09,
+    "body_attachment_impulse_n_s": [0.0002832858881447464, -0.01702868938446045, 0.0],
+    "reaction_impulse_activity_n_s": 0.017031045565286295,
+    "reciprocal_linear_impulse_residual_n_s": 1.6535544015115795e-07,
+    "force_impulse_residual_n_s": 1.144409181158083e-07,
+    "angular_reaction_impulse_n_m_s": [0.0, 0.0, -0.003386819362640381],
+    "reciprocal_angular_impulse_residual_n_m_s": 2.78533134179422e-06,
+    "maximum_contact_force_n": 0.0,
+    "maximum_rope_length_error_m": 2.126754256731589e-08,
+    "rigid_angular_speed_rad_s": 4.021114826202393,
+    "trajectory_execution": "PASS: rope-core completed all 3 checkpoints with 0 execution failures",
+    "lifecycle_binding": "The exact case:rope-core lifecycle binding is retained and reuses the same physical trajectory and comparison report; the analytic fixture does not substitute for it.",
+    "historical_cuda_reference": "FAIL retained: the same 242 differences as F5-52 against the pre-shared-contact CUDA rope-core golden; the comparison report is byte-identical to the retained F5-52 report",
+    "qualification": "The exact CUDA record remains unqualified because the required historical CUDA reference scope failed; no passing qualification result is registered in evidence-sources-v1.json.",
+    "evidence_index": "PASS: the rebuilt index retains 0/331 qualified capability rows across 42 revisioned reports under the new obligation hash."
+  },
+  "artifacts": {
+    "provenance": {"path": "docs/roadmap/evidence/F5-53-1b362ad-cuda-provenance.json", "sha256": "42c3e772793f51d0c5bf0539717ee0cacbf19c60ae25c26b0a201dde597391b6"},
+    "capabilities": {"path": "docs/roadmap/evidence/F5-53-1b362ad-cuda-capabilities.json", "sha256": "4f1f17830a833fc6c7cbb6e6f768649b74ed7084d0f526da37c448d74d63e6e5"},
+    "quality_result": {"path": "docs/roadmap/evidence/F5-53-1b362ad-cuda-quality/rope-rigid-attachment-v1.json", "sha256": "b937a70a2b56ee5d8ecba5846280a80a133f8851e5a07c456065b6392a32ebbb"},
+    "quality_report": {"path": "docs/roadmap/evidence/F5-53-1b362ad-cuda-quality-report.json", "sha256": "15b3c2d51313420a0d721b519cd4b9451d167adc61b914c9a1ab27fa4431e331"},
+    "trajectory_result": {"path": "docs/roadmap/evidence/F5-53-1b362ad-cuda-trajectory/rope-core.json", "sha256": "f6386e44b7bf57659616ce757e6a952fe70cf4e4b0bea0ef3871f98b780b8f06"},
+    "reference_report": {"path": "docs/roadmap/evidence/F5-53-1b362ad-cuda-rope-core-report.json", "sha256": "fe46419ea5c87139de97cd61c20a63a2f9650f773eddbaeeb53911b45440bca7"},
+    "historical_cuda_golden": {"path": "conformance/v1/golden/cuda/rope-core.json", "sha256": "5acebe386a9c24cf9d9a84b44bb7c12bf734392ad91d41e63ef031f8066cddd8"}
+  },
+  "advertisement_review": {
+    "decision": "retain",
+    "reason": "The immutable exact public-state oracle passes repeatably on the physical CUDA driver and proves the advertised rope-rigid attachment behavior. The failed broad rope-core comparison is the unchanged historical reference limitation retained by F5-52 and does not show failure of this exact capability."
+  },
+  "reproduction": [
+    "Configure clean source 1b362ad54f8842a503d98bacd8c30f625477e368, then build parallel-mater-conformance, parallel-mater-driver-slang-cuda and parallel-mater-layer-validation.",
+    "Select the generated CUDA and validation manifests with PM_DRIVER_FILES and PM_LAYER_FILES and set PM_TEST_VALIDATION=1.",
+    "Run parallel-mater-conformance --provenance and --capabilities and retain their exact JSON output.",
+    "Run parallel-mater-conformance --quality rope-rigid-attachment-v1 --output docs/roadmap/evidence/F5-53-1b362ad-cuda-quality and evaluate it with conformance/v1/quality.py.",
+    "Repeat the physical quality run and require a byte-identical rope-rigid-attachment-v1.json.",
+    "Run parallel-mater-conformance --case rope-core --output docs/roadmap/evidence/F5-53-1b362ad-cuda-trajectory and compare it with conformance/v1/golden/cuda using conformance/v1/compare.py.",
+    "Run the full conformance Python suite, native build, pinned-input check, evidence-index check and manifest check."
+  ],
+  "limitations": [
+    "This evidence completes and physically exercises the exact analytic contract while retaining the existing rope-core trajectory/lifecycle binding; it does not claim a fully qualified CUDA capability row.",
+    "The historical CUDA golden differs in broad rope-core behavior outside the exact F5-53 oracle. F5-56 owns independent same-revision CUDA/Metal adjudication; no tolerance or golden changed here.",
+    "Historical and unrecaptured drivers remain visible and unqualified after the obligation hash changed. Rope-rigid CONTACT remains a separate exact analytic contract and cannot substitute for ATTACHMENT."
+  ]
+}

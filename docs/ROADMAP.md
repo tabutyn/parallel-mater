@@ -221,19 +221,20 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-41](roadmap/tasks/F5-41.json) | Qualify cloth-rope attachment | done | F5-23 | — |
 | [F5-42](roadmap/tasks/F5-42.json) | Qualify cloth-to-smoke contact | done | F5-23 | — |
 | [F5-43](roadmap/tasks/F5-43.json) | Qualify smoke-to-cloth drag | done | F5-23 | — |
-| [F5-44](roadmap/tasks/F5-44.json) | Qualify cloth-rigid contact | leased | F5-23 | codex-windows-qualification / windows-gtx1080 / 2026-10-20T17:09:39Z |
-| [F5-45](roadmap/tasks/F5-45.json) | Qualify soft-rope contact | leased | F5-23 | codex-macos-qualification / Thomass-MacBook-Air / 2026-10-20T17:17:53Z |
+| [F5-44](roadmap/tasks/F5-44.json) | Qualify cloth-rigid contact | done | F5-23 | — |
+| [F5-45](roadmap/tasks/F5-45.json) | Qualify soft-rope contact | leased | F5-23, F5-56 | codex-macos-qualification / Thomass-MacBook-Air / 2026-10-22T16:53:55Z |
 | [F5-46](roadmap/tasks/F5-46.json) | Qualify soft-rope attachment | done | F5-23 | — |
 | [F5-47](roadmap/tasks/F5-47.json) | Qualify soft-to-smoke contact | done | F5-23 | — |
-| [F5-48](roadmap/tasks/F5-48.json) | Qualify smoke-to-soft drag | leased | F5-23 | codex-linux-qualification / ThomasLaptop / 2026-10-20T18:11:52Z |
-| [F5-49](roadmap/tasks/F5-49.json) | Qualify soft-rigid contact | ready | F5-23 | — |
-| [F5-50](roadmap/tasks/F5-50.json) | Qualify rope-to-smoke contact | ready | F5-23 | — |
-| [F5-51](roadmap/tasks/F5-51.json) | Qualify smoke-to-rope drag | ready | F5-23 | — |
-| [F5-52](roadmap/tasks/F5-52.json) | Qualify rope-rigid contact | ready | F5-23 | — |
-| [F5-53](roadmap/tasks/F5-53.json) | Qualify rope-rigid attachment | ready | F5-23 | — |
-| [F5-54](roadmap/tasks/F5-54.json) | Qualify smoke-rigid contact | ready | F5-23 | — |
-| [F5-55](roadmap/tasks/F5-55.json) | Qualify smoke-rigid drag | ready | F5-23 | — |
-| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17, F5-18, F5-19, F5-20, F5-21, F5-22, F5-23, F5-24, F5-25, F5-26, F5-27, F5-28, F5-29, F5-30, F5-31, F5-32, F5-33, F5-34, F5-35, F5-36, F5-37, F5-38, F5-39, F5-40, F5-41, F5-42, F5-43, F5-44, F5-45, F5-46, F5-47, F5-48, F5-49, F5-50, F5-51, F5-52, F5-53, F5-54, F5-55 | — |
+| [F5-48](roadmap/tasks/F5-48.json) | Qualify smoke-to-soft drag | done | F5-23 | — |
+| [F5-49](roadmap/tasks/F5-49.json) | Qualify soft-rigid contact | done | F5-23 | — |
+| [F5-50](roadmap/tasks/F5-50.json) | Qualify rope-to-smoke contact | done | F5-23 | — |
+| [F5-51](roadmap/tasks/F5-51.json) | Qualify smoke-to-rope drag | done | F5-23 | — |
+| [F5-52](roadmap/tasks/F5-52.json) | Qualify rope-rigid contact | done | F5-23 | — |
+| [F5-53](roadmap/tasks/F5-53.json) | Qualify rope-rigid attachment | done | F5-23 | — |
+| [F5-54](roadmap/tasks/F5-54.json) | Qualify smoke-rigid contact | done | F5-23 | — |
+| [F5-55](roadmap/tasks/F5-55.json) | Qualify smoke-rigid drag | done | F5-23 | — |
+| [F5-56](roadmap/tasks/F5-56.json) | Align coupled rope state across GPU drivers | done | F5-46, F6-11 | — |
+| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | waiting on dependencies | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17, F5-18, F5-19, F5-20, F5-21, F5-22, F5-23, F5-24, F5-25, F5-26, F5-27, F5-28, F5-29, F5-30, F5-31, F5-32, F5-33, F5-34, F5-35, F5-36, F5-37, F5-38, F5-39, F5-40, F5-41, F5-42, F5-43, F5-44, F5-45, F5-46, F5-47, F5-48, F5-49, F5-50, F5-51, F5-52, F5-53, F5-54, F5-55, F5-56 | — |
 
 ### F6. SDK releases and repository ownership
 
@@ -349,6 +350,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-56](roadmap/tasks/P1-56.json) | Expose immiscible interface state | done | P1-04 | — |
 | [P1-57](roadmap/tasks/P1-57.json) | Expose interface thermal conductance | deferred | P1-15, P1-56 | — |
 | [P1-58](roadmap/tasks/P1-58.json) | Release fluid-pair interface storage | done | P1-10 | — |
+| [P1-59](roadmap/tasks/P1-59.json) | Complete D3D12 common-domain parity | leased | F4-04, F5-10, F7-06 | codex-windows-d3d12-parity / windows-gtx1080 / 2026-10-22T13:38:46Z |
 
 ### P2. Deferred engine integration
 
@@ -364,6 +366,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [P3-01](roadmap/tasks/P3-01.json) | Plan measured platform and shader optimization | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
+| [P3-02](roadmap/tasks/P3-02.json) | Profile and optimize Android Vulkan stepping | leased | F5-07, F5-15, F7-18, F7-99 | codex-android-vulkan / thomas-laptop / 2026-10-22T16:24:51Z |
 
 ### P4. Deferred vendor and standards adoption
 

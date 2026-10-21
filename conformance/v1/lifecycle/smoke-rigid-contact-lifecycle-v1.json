@@ -1,0 +1,43 @@
+{
+  "schema": "parallel-mater-conformance-lifecycle-profile/v1",
+  "id": "smoke-rigid-contact-lifecycle-v1",
+  "title": "Smoke-rigid contact graph bounded lifecycle",
+  "sources": {
+    "capacity": "include/parallel_mater/parallel_mater.h: PmSimulationCreateInfo::couplingCapacity and pmCmdSetCouplings",
+    "qualification": "docs/ROADMAP.md: F5-54",
+    "rollback": "docs/RESOURCE-LIFETIME.md: rejected graph mutations preserve the last usable graph"
+  },
+  "state_fingerprint": "Graph SHA-256 combines the accepted public descriptor with public clearance and rigid-response predicates. Endpoint SHA-256 records retained public smoke/rigid endpoint cardinality and finite-state validity so graph mutation cannot replace or remove either unrelated endpoint. Raw smoke and rigid fields remain in checkpoint probes for audit; exclude handles, timings and driver-private state.",
+  "observation_boundary": "After every accepted mutation and record-time capacity rejection, execute a fresh zero-gravity probe step and public smoke/rigid readback under the surviving graph. Generation is the harness ordinal of an accepted graph mutation, never a private driver handle.",
+  "scope": "SMOKE_PARTICLE and SMOKE_GRID CONTACT capacity, replacement, removal and rollback. CONTACT and DRAG share one descriptor; wind drag remains inert. Graph fingerprints record accepted descriptor changes and capacity rollback while the unrelated public smoke and rigid endpoints remain present and finite through removal and recovery.",
+  "cases": [
+    {
+      "id": "particle-smoke-rigid-contact-capacity-replacement-removal-rollback",
+      "families": ["smoke", "rigid_body"],
+      "unrelated_resources": ["particle-smoke-rigid-endpoints"],
+      "tracked_resources": ["particle-smoke-rigid-contact-graph", "particle-smoke-rigid-endpoints"],
+      "track_graph": false,
+      "checkpoints": [
+        {"id": "baseline", "expected_outcome": "PM_SUCCESS", "resources": {"particle-smoke-rigid-contact-graph": {"active": true}, "particle-smoke-rigid-endpoints": {"active": true}}},
+        {"id": "replacement", "expected_outcome": "PM_SUCCESS", "resources": {"particle-smoke-rigid-contact-graph": {"active": true, "generation_different_from": "baseline", "state_different_from": "baseline"}, "particle-smoke-rigid-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}}},
+        {"id": "rejected-overflow", "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED", "resources": {"particle-smoke-rigid-contact-graph": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"}, "particle-smoke-rigid-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "replacement"}}},
+        {"id": "removal", "expected_outcome": "PM_SUCCESS", "resources": {"particle-smoke-rigid-contact-graph": {"active": false, "generation_different_from": "replacement", "state_different_from": "replacement"}, "particle-smoke-rigid-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "replacement"}}},
+        {"id": "recovery", "expected_outcome": "PM_SUCCESS", "resources": {"particle-smoke-rigid-contact-graph": {"active": true, "generation_different_from": "removal", "state_different_from": "removal"}, "particle-smoke-rigid-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "removal"}}}
+      ]
+    },
+    {
+      "id": "grid-smoke-rigid-contact-capacity-replacement-removal-rollback",
+      "families": ["smoke", "rigid_body"],
+      "unrelated_resources": ["grid-smoke-rigid-endpoints"],
+      "tracked_resources": ["grid-smoke-rigid-contact-graph", "grid-smoke-rigid-endpoints"],
+      "track_graph": false,
+      "checkpoints": [
+        {"id": "baseline", "expected_outcome": "PM_SUCCESS", "resources": {"grid-smoke-rigid-contact-graph": {"active": true}, "grid-smoke-rigid-endpoints": {"active": true}}},
+        {"id": "replacement", "expected_outcome": "PM_SUCCESS", "resources": {"grid-smoke-rigid-contact-graph": {"active": true, "generation_different_from": "baseline", "state_different_from": "baseline"}, "grid-smoke-rigid-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}}},
+        {"id": "rejected-overflow", "expected_outcome": "PM_ERROR_CAPACITY_EXCEEDED", "resources": {"grid-smoke-rigid-contact-graph": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"}, "grid-smoke-rigid-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "replacement"}}},
+        {"id": "removal", "expected_outcome": "PM_SUCCESS", "resources": {"grid-smoke-rigid-contact-graph": {"active": false, "generation_different_from": "replacement", "state_different_from": "replacement"}, "grid-smoke-rigid-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "replacement"}}},
+        {"id": "recovery", "expected_outcome": "PM_SUCCESS", "resources": {"grid-smoke-rigid-contact-graph": {"active": true, "generation_different_from": "removal", "state_different_from": "removal"}, "grid-smoke-rigid-endpoints": {"active": true, "generation_same_as": "baseline", "state_same_as": "removal"}}}
+      ]
+    }
+  ]
+}

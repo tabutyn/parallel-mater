@@ -1,7 +1,7 @@
 {
   "id": "F5-55",
   "title": "Qualify smoke-rigid drag",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F5-23"
   ],
@@ -17,7 +17,27 @@
     "Add exact bounded capacity, replacement, removal and rollback lifecycle checks; a rejected mutation preserves the last usable state and recovery is deterministic.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
+  "evidence": [
+    "docs/roadmap/evidence/F5-55-smoke-rigid-drag.json"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "1eef330c-2862-4f60-b00b-e1a492a7e0a8",
+        "owner": "codex-linux-qualification",
+        "machine": "ThomasLaptop",
+        "branch": "work/F5-55/ThomasLaptop",
+        "claimed_at": "2026-10-19T20:23:51Z",
+        "heartbeat_at": "2026-10-19T20:23:51Z",
+        "expires_at": "2026-10-20T20:23:51Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-19T20:56:06Z",
+      "reason": "Published and physically qualified exact particle/grid smoke-rigid non-contact drag with bounded lifecycle recovery.",
+      "evidence": [
+        "docs/roadmap/evidence/F5-55-smoke-rigid-drag.json"
+      ]
+    }
+  ]
 }

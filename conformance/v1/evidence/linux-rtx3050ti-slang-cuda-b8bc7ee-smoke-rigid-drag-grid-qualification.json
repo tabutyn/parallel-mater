@@ -1,0 +1,83 @@
+{
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "62550cced880510e9caeac1d7457ff456bdec44e5eaebe2486695d13d95598a9",
+  "execution_status": "completed",
+  "source": {
+    "commit": "b8bc7ee292262d0a26c3532834df7d339ecf2bc0",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+b8bc7ee",
+    "binary_sha256": "0db5a8d820e280d1d569bc87ad8c7941e3ff643239b06ccaf90b0f1c2149c518"
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13010 (NVIDIA 590.44.01)"
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "SMOKE",
+      "second_family": "RIGID_BODY",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "DRAG",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "evidence": [
+    {
+      "scope": "analytic_invariants",
+      "contract": "quality:smoke-rigid-drag-v1",
+      "status": "passed",
+      "source_commit": "b8bc7ee292262d0a26c3532834df7d339ecf2bc0",
+      "contract_sha256": "15d40028ec945834d7f49f44ddcaddcfa3fddedcf984730b20e112d86ec73315",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-grid.json",
+      "artifact_sha256": "667c75c65d35d387464336b696661aa8b1a8a8d6c0d2c2e21f00e82bbba6a3f7"
+    },
+    {
+      "scope": "compilation",
+      "contract": "registry:interaction-capabilities",
+      "status": "passed",
+      "source_commit": "b8bc7ee292262d0a26c3532834df7d339ecf2bc0",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-grid.json",
+      "artifact_sha256": "667c75c65d35d387464336b696661aa8b1a8a8d6c0d2c2e21f00e82bbba6a3f7"
+    },
+    {
+      "scope": "execution",
+      "contract": "case:smoke-grid",
+      "status": "passed",
+      "source_commit": "b8bc7ee292262d0a26c3532834df7d339ecf2bc0",
+      "contract_sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-grid.json",
+      "artifact_sha256": "667c75c65d35d387464336b696661aa8b1a8a8d6c0d2c2e21f00e82bbba6a3f7"
+    },
+    {
+      "scope": "lifecycle_invariants",
+      "contract": "lifecycle:smoke-rigid-drag-lifecycle-v1#grid-smoke-rigid-drag-capacity-replacement-removal-rollback",
+      "status": "passed",
+      "source_commit": "b8bc7ee292262d0a26c3532834df7d339ecf2bc0",
+      "contract_sha256": "f723cfe22394d304ab39070a4e6522f5837592154dd4abfd3757cfa4d006792d",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-grid.json",
+      "artifact_sha256": "667c75c65d35d387464336b696661aa8b1a8a8d6c0d2c2e21f00e82bbba6a3f7"
+    },
+    {
+      "scope": "reference_regression",
+      "contract": "case:smoke-grid",
+      "status": "passed",
+      "source_commit": "b8bc7ee292262d0a26c3532834df7d339ecf2bc0",
+      "contract_sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-grid.json",
+      "artifact_sha256": "667c75c65d35d387464336b696661aa8b1a8a8d6c0d2c2e21f00e82bbba6a3f7"
+    }
+  ]
+}

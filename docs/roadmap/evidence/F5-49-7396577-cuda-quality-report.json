@@ -1,0 +1,60 @@
+{
+  "driver": {
+    "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "device_id": 0,
+    "driver_version": "13010",
+    "name": "slang-cuda",
+    "vendor_id": 4318
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 2,
+  "observations": {
+    "centered-bound-surface-impact": {
+      "expected_impulse_error_n_s": 4.76837158203125e-07,
+      "expected_normal_impulse_n_s": 1.0,
+      "final_node_clearance_m": 0.004999810159206382,
+      "initial_face_point_m": [
+        -0.1,
+        -0.1,
+        -0.1
+      ],
+      "kinetic_energy_change_j": -0.500000357627755,
+      "maximum_surface_face_penetration_m": 0.0,
+      "maximum_surface_reconstruction_error_m": 2.6203927124981416e-08,
+      "minimum_binding_incidence": 4,
+      "observed_normal_impulse_n_s": 1.0000004768371582,
+      "reciprocal_impulse_residual_n_s": 0.0,
+      "relative_closing_speed_m_s": 0.0,
+      "surface_vertex_count": 10,
+      "tangential_impulse_n_s": 0.0,
+      "unique_node_count": 4
+    },
+    "separated-no-contact-control": {
+      "expected_impulse_error_n_s": 1.0,
+      "expected_normal_impulse_n_s": 1.0,
+      "final_node_clearance_m": 0.1350000214576721,
+      "initial_face_point_m": [
+        -0.1,
+        -0.1,
+        -0.1
+      ],
+      "kinetic_energy_change_j": 0.0,
+      "maximum_surface_face_penetration_m": 0.0,
+      "maximum_surface_reconstruction_error_m": 0.0,
+      "minimum_binding_incidence": 4,
+      "observed_normal_impulse_n_s": 0.0,
+      "reciprocal_impulse_residual_n_s": 0.0,
+      "relative_closing_speed_m_s": 1.0,
+      "surface_vertex_count": 10,
+      "tangential_impulse_n_s": 0.0,
+      "unique_node_count": 4
+    }
+  },
+  "passed": true,
+  "profile_id": "soft-rigid-contact-v1",
+  "profile_sha256": "2cc79bdc7ce270490c00e92dd3e00911bf10c624ed49f5c36b99d8143a96fad6",
+  "sample_count": 2,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

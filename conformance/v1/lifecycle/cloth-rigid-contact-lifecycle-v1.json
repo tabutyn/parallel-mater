@@ -1,0 +1,63 @@
+{
+  "schema": "parallel-mater-conformance-lifecycle-profile/v1",
+  "id": "cloth-rigid-contact-lifecycle-v1",
+  "title": "Graph-free cloth-rigid endpoint capacity lifecycle",
+  "sources": {
+    "capacity": "include/parallel_mater/parallel_mater.h: PmSimulationCreateInfo clothCount/rigidBodyCapacity, PmClothCapacity and endpoint write commands",
+    "qualification": "docs/ROADMAP.md: F5-44",
+    "rollback": "docs/RESOURCE-LIFETIME.md: a rejected command records no mutation and preserves the last usable endpoint state"
+  },
+  "state_fingerprint": "SHA-256 of canonical public cloth and rigid outputs for the implicit contact pair; exclude handles, timings and driver-private state",
+  "observation_boundary": "Complete each endpoint mutation and zero-gravity step before public readback; generation is the harness ordinal of an accepted pair mutation, never a private driver handle",
+  "cases": [
+    {
+      "id": "cloth-rigid-contact-capacity-replacement-removal-rollback",
+      "families": ["cloth", "rigid_body"],
+      "unrelated_resources": ["cloth-rigid-rigid-counterpart"],
+      "tracked_resources": ["cloth-rigid-contact-pair", "cloth-rigid-rigid-counterpart"],
+      "track_graph": false,
+      "checkpoints": [
+        {
+          "id": "baseline",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "cloth-rigid-contact-pair": {"active": true},
+            "cloth-rigid-rigid-counterpart": {"active": true}
+          }
+        },
+        {
+          "id": "replacement",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "cloth-rigid-contact-pair": {"active": true, "generation_different_from": "baseline", "state_different_from": "baseline"},
+            "cloth-rigid-rigid-counterpart": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "rejected-over-capacity",
+          "expected_outcome": "PM_ERROR_INVALID_ARGUMENT",
+          "resources": {
+            "cloth-rigid-contact-pair": {"active": true, "generation_same_as": "replacement", "state_same_as": "replacement"},
+            "cloth-rigid-rigid-counterpart": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "removal",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "cloth-rigid-contact-pair": {"active": false, "generation_different_from": "replacement", "state_different_from": "replacement"},
+            "cloth-rigid-rigid-counterpart": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        },
+        {
+          "id": "recovery",
+          "expected_outcome": "PM_SUCCESS",
+          "resources": {
+            "cloth-rigid-contact-pair": {"active": true, "generation_different_from": "removal", "state_different_from": "removal"},
+            "cloth-rigid-rigid-counterpart": {"active": true, "generation_same_as": "baseline", "state_same_as": "baseline"}
+          }
+        }
+      ]
+    }
+  ]
+}

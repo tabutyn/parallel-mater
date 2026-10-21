@@ -1,6 +1,6 @@
 # Qualification scope and open gates
 
-Updated 2026-10-18. This is an evidence index, not blanket driver certification.
+Updated 2026-10-19. This is an evidence index, not blanket driver certification.
 Each release must attach a revisioned machine-readable evidence package with
 the exact source, driver, toolchain, device, case hashes and settings. Repeat the
 affected scope after changes; historical passes do not automatically qualify a
@@ -12,12 +12,12 @@ new build.
 | Driver | Current capability result | Qualified records | Open evidence |
 |---|---|---:|---|
 | Slang CPU | [`linux-thomas-laptop-slang-cpu-eed669e`](../conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-qualification.json) | 0 | 8 qualification failure |
-| CUDA | [`linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17`](../conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17.json), [`linux-rtx3050ti-slang-cuda-eed669e`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-eed669e-qualification.json), [`linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment-qualification.json), [`linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid-qualification.json), [`linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle-qualification.json), [`linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment-qualification.json), [`linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-grid`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-grid-qualification.json), [`linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-particle`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-particle-qualification.json), [`windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid-qualification.json), [`windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle-qualification.json), [`windows-gtx1080-slang-cuda-2b04e55`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-2b04e55-qualification.json), [`windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact-qualification.json), [`windows-gtx1080-slang-cuda-b191454-cloth-soft-contact`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact-qualification.json), [`windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid-qualification.json), [`windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle-qualification.json) | 0 | Supplemental: [`windows-gtx1080-physics-2026-10-16`](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json); 1 case validation, 10 historical baseline failure, 3 limitation, 357 qualification failure |
-| D3D12 | [`windows-gtx1080-slang-d3d12-2b04e55`](../conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-qualification.json), [`windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact`](../conformance/v1/evidence/windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact-qualification.json) | 0 | Supplemental: [`windows-gtx1080-physics-2026-10-16`](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json); 1 case validation, 10 historical baseline failure, 3 limitation, 39 qualification failure, 2 unsupported |
-| Vulkan | [`android-pixel7-slang-vulkan-3187375`](../conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json), [`linux-rtx3050ti-slang-vulkan-eed669e`](../conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-qualification.json) | 0 | 222 qualification failure |
-| Metal | [`ipados-m1-slang-metal-9f7e72e`](../conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e-qualification.json), [`macos-m4-slang-metal-16169d5-smoke-cloth-grid`](../conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-grid-qualification.json), [`macos-m4-slang-metal-16169d5-smoke-cloth-particle`](../conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-particle-qualification.json), [`macos-m4-slang-metal-4e09ecb-fluid-rigid-contact`](../conformance/v1/evidence/macos-m4-slang-metal-4e09ecb-fluid-rigid-contact-qualification.json), [`macos-m4-slang-metal-e09edbe-cloth-rope-attachment`](../conformance/v1/evidence/macos-m4-slang-metal-e09edbe-cloth-rope-attachment-qualification.json), [`macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid`](../conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid-qualification.json), [`macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle`](../conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle-qualification.json), [`macos-m4-slang-metal-86f10b2-fluid-cloth-containment`](../conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-cloth-containment-qualification.json), [`macos-m4-slang-metal-86f10b2-fluid-soft-contact`](../conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-soft-contact-qualification.json), [`macos-m4-slang-metal-86f10b2-smoke-viscosity`](../conformance/v1/evidence/macos-m4-slang-metal-86f10b2-smoke-viscosity-qualification.json), [`macos-m4-slang-metal-aac6d59`](../conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json) | 0 | 315 qualification failure |
+| CUDA | [`linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17`](../conformance/v1/evidence/linux-rtx3050ti-cuda-equal-fluid-qualification-2026-10-17.json), [`linux-rtx3050ti-slang-cuda-eed669e`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-eed669e-qualification.json), [`linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-e3256bc-fluid-rigid-containment-qualification.json), [`linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-grid-qualification.json), [`linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7934b3f-cloth-smoke-contact-particle-qualification.json), [`linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-9a71fd6-soft-rope-attachment-qualification.json), [`linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-grid`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-grid-qualification.json), [`linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-particle`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-cc2b9c0-soft-smoke-contact-particle-qualification.json), [`linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-grid`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-grid-qualification.json), [`linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-8bbbeb8-smoke-soft-drag-particle-qualification.json), [`linux-rtx3050ti-slang-cuda-7396577-soft-rigid-contact`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-7396577-soft-rigid-contact-qualification.json), [`linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-grid-qualification.json), [`linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-particle`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-84a475e-rope-smoke-contact-particle-qualification.json), [`linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-grid`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-grid-qualification.json), [`linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-particle`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-particle-qualification.json), [`linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-grid`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-grid-qualification.json), [`linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-particle`](../conformance/v1/evidence/linux-rtx3050ti-slang-cuda-b8bc7ee-smoke-rigid-drag-particle-qualification.json), [`windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid-qualification.json), [`windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-particle-qualification.json), [`windows-gtx1080-slang-cuda-2b04e55`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-2b04e55-qualification.json), [`windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-5001123-fluid-cloth-contact-qualification.json), [`windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-59eb0ce-cloth-rigid-contact-qualification.json), [`windows-gtx1080-slang-cuda-b191454-cloth-soft-contact`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-b191454-cloth-soft-contact-qualification.json), [`windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-grid-qualification.json), [`windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-dac1c20-externally-heated-fluid-particle-qualification.json), [`windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-grid`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-grid-qualification.json), [`windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-particle`](../conformance/v1/evidence/windows-gtx1080-slang-cuda-ec024d7-smoke-rigid-contact-particle-qualification.json) | 0 | Supplemental: [`windows-gtx1080-physics-2026-10-16`](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json); 1 case validation, 10 historical baseline failure, 3 limitation, 371 qualification failure |
+| D3D12 | [`windows-gtx1080-slang-d3d12-2b04e55`](../conformance/v1/evidence/windows-gtx1080-slang-d3d12-2b04e55-qualification.json), [`windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact`](../conformance/v1/evidence/windows-gtx1080-slang-d3d12-5001123-fluid-cloth-contact-qualification.json), [`windows-gtx1080-slang-d3d12-59eb0ce-cloth-rigid-contact`](../conformance/v1/evidence/windows-gtx1080-slang-d3d12-59eb0ce-cloth-rigid-contact-qualification.json) | 0 | Supplemental: [`windows-gtx1080-physics-2026-10-16`](../conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json); 1 case validation, 10 historical baseline failure, 3 limitation, 40 qualification failure, 2 unsupported |
+| Vulkan | [`android-pixel7-slang-vulkan-3187375`](../conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json), [`linux-rtx3050ti-slang-vulkan-eed669e`](../conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-qualification.json) | 0 | 224 qualification failure |
+| Metal | [`ipados-m1-slang-metal-9f7e72e`](../conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e-qualification.json), [`macos-m4-slang-metal-16169d5-smoke-cloth-grid`](../conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-grid-qualification.json), [`macos-m4-slang-metal-16169d5-smoke-cloth-particle`](../conformance/v1/evidence/macos-m4-slang-metal-16169d5-smoke-cloth-particle-qualification.json), [`macos-m4-slang-metal-4e09ecb-fluid-rigid-contact`](../conformance/v1/evidence/macos-m4-slang-metal-4e09ecb-fluid-rigid-contact-qualification.json), [`macos-m4-slang-metal-e09edbe-cloth-rope-attachment`](../conformance/v1/evidence/macos-m4-slang-metal-e09edbe-cloth-rope-attachment-qualification.json), [`macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid`](../conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-grid-qualification.json), [`macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle`](../conformance/v1/evidence/macos-m4-slang-metal-7161cca-fluid-smoke-phase-particle-qualification.json), [`macos-m4-slang-metal-86f10b2-fluid-cloth-containment`](../conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-cloth-containment-qualification.json), [`macos-m4-slang-metal-86f10b2-fluid-soft-contact`](../conformance/v1/evidence/macos-m4-slang-metal-86f10b2-fluid-soft-contact-qualification.json), [`macos-m4-slang-metal-86f10b2-smoke-viscosity`](../conformance/v1/evidence/macos-m4-slang-metal-86f10b2-smoke-viscosity-qualification.json), [`macos-m4-slang-metal-aac6d59`](../conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json) | 0 | 317 qualification failure |
 
-Index status: **0 qualified capability records from 33 revisioned report records**. Supplemental and historical evidence remains visible but never certifies a capability.
+Index status: **0 qualified capability records from 46 revisioned report records**. Supplemental and historical evidence remains visible but never certifies a capability.
 <!-- END GENERATED DRIVER EVIDENCE -->
 
 Only the generated block states current per-driver capability qualification.
@@ -637,4 +637,205 @@ The obligation matrix binds only
 trajectory, both representation-specific lifecycle cases and the analytic
 profile remain independent requirements. Smoke self-viscosity retains its
 separate missing contract, and historical or unrecaptured drivers remain
+unqualified.
+
+### F5-50 rope-to-smoke contact quality
+
+Clean source `84a475e8a17102f9b38697bcaeb784bd68a41a47` adds the immutable
+`rope-smoke-contact-v1` profile and two exact cases in
+`rope-smoke-contact-lifecycle-v1`, without changing a solver or backend path.
+The paired public-API fixture drives particle and projected-grid smoke from
+outside a dynamic two-node rope capsule into its explicit `0.015 m` radius.
+Its independent oracle derives closest-segment distance, interpolated rope
+velocity, relative radial rejection, tangential retention, speed bounds and
+rope invariance only from public rope-node and smoke snapshots.
+
+Physical RTX 3050 Ti CUDA passes both analytic samples, the canonical
+`smoke-rope` reference comparison and all ten lifecycle checkpoints. Both
+representations move from `0.020010764323243238 m` outside the rope to a
+control distance of `0.010021511972323802 m`, while CONTACT holds them at
+`0.015000000072806125 m`. Relative radial velocity is
+`-1.849310753490596e-08 m/s`, tangential speed is
+`0.2584348960133991 m/s`, and every public rope position and velocity
+difference is zero. The [versioned F5-50 evidence](roadmap/evidence/F5-50-rope-smoke-contact.json)
+pins the clean source, production driver, raw public output and reports.
+
+The obligation matrix binds only the exact particle and grid
+`ROPE/SMOKE/DISTINCT_FAMILY/CONTACT/FIRST_TO_SECOND` records. Each exact
+representation-specific lifecycle contract remains required alongside the
+shared analytic profile and `smoke-rope` trajectory. The two inverse-direction
+DRAG records keep separate explicit missing rules for F5-51; CONTACT evidence
+cannot qualify them. Historical and unrecaptured drivers remain visible and
+unqualified.
+
+### F5-51 smoke-to-rope drag quality
+
+Clean source `0dc9fbf2a35181b29b6b151d87289d173158a971` adds the immutable
+`smoke-rope-drag-v1` profile and two exact cases in
+`smoke-rope-drag-lifecycle-v1`, without changing a solver or backend path.
+Its paired public-API fixture places a free dynamic two-node rope outside all
+smoke tracers, then compares zero-drag controls with forward, stationary and
+reverse carrier flow. The independent oracle derives signed rope response,
+acceleration, symmetry, transverse drift, segment preservation, tracer
+clearance and one-way smoke invariance only from public snapshots.
+
+Physical RTX 3050 Ti CUDA passes all six analytic samples, the canonical
+`smoke-rope` reference comparison and all ten lifecycle checkpoints. Particle
+forward and reverse response fractions are `0.09999871253967285` and
+`0.10000020265579224`; projected-grid response is
+`0.009642541408538818` in both directions. Maximum accelerations remain at
+`10.000020265579224 m/s^2` and `1.0490417491416375 m/s^2`, stationary
+response and every paired public smoke-state delta are zero, and the minimum
+tracer-to-segment clearance is `0.10411272626082052 m`. The
+[versioned F5-51 evidence](roadmap/evidence/F5-51-smoke-rope-drag.json)
+pins the clean source, production driver, raw public output and reports.
+
+The obligation matrix binds only the exact particle and grid
+`ROPE/SMOKE/DISTINCT_FAMILY/DRAG/SECOND_TO_FIRST` records. Each exact
+representation-specific lifecycle contract remains required alongside the
+shared analytic profile and `smoke-rope` trajectory. The two opposite
+rope-to-smoke CONTACT records retain their separate evidence; CONTACT cannot
+substitute for DRAG. Historical and unrecaptured drivers remain visible and
+unqualified.
+
+### F5-52 rope-rigid contact quality
+
+Clean source `6ca716beb0c21e51a78a4d509ab9608b2449fd4f` adds the immutable
+`rope-rigid-contact-v1` profile without changing a solver or backend path. A
+public preparation step drives a free two-node rope segment into a centered
+dynamic cube beside a separated control. The independent oracle reconstructs
+capsule-to-mesh clearance and checks coherent reduced-mass impulse, reciprocal
+rope/body momentum, public contact-force consistency, frictionless slip,
+closing speed, rotation, energy and speed only from public snapshots.
+
+Physical RTX 3050 Ti CUDA passes both analytic samples. The impact retains
+`0.02002456114350934 m` capsule clearance, exchanges
+`0.49873446114361286 N s`, and has reciprocal and force-impulse residuals of
+`6.146728992462158e-08 N s` and `1.1265277866101542e-07 N s`. Tangential
+impulse, final closing speed, angular speed, control momentum and control
+contact force are all zero. The first physical attempt is retained: an exactly
+one-spacing segment could round to three sampled nodes and was rejected by the
+two-node capacity; the corrected `0.02 m` segment removes that ambiguity.
+
+The existing `rope-core` case completes all three checkpoints and repeats
+byte-identically, but its current physical output retains 242 differences from
+the historical CUDA golden. The first divergence is rigid-only contact
+topology outside this exact oracle. No tolerance or golden changes here;
+F5-56 owns the required same-revision CUDA/Metal adjudication. The exact CUDA
+record therefore remains unqualified, while its advertisement is retained
+because the independent physical contract passes. The
+[versioned F5-52 evidence](roadmap/evidence/F5-52-rope-rigid-contact.json)
+pins both attempts, binaries, raw outputs, reports and hashes.
+
+The obligation matrix binds the analytic profile only to
+`ROPE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE` and
+retains `case:rope-core` independently for trajectory and lifecycle evidence.
+Rope-rigid ATTACHMENT remains a separate exact rule; its F5-53 analytic
+contract and physical result are documented below. Historical and unrecaptured
+drivers remain visible and unqualified.
+
+### F5-53 rope-rigid attachment quality
+
+Clean source `1b362ad54f8842a503d98bacd8c30f625477e368` adds the immutable
+`rope-rigid-attachment-v1` profile without changing a solver or backend path.
+Its public-API fixture attaches the first endpoint of a five-node rope directly
+to an off-center `0.2 m` local anchor on a force-driven dynamic cube. Over four
+zero-gravity steps, the independent oracle reconstructs the transformed anchor
+from public rigid state and checks endpoint drift, free-rope and rigid momentum,
+public constraint-force impulse, angular reaction, rope length and inactive
+contact state without reading driver-private data.
+
+Physical RTX 3050 Ti CUDA passes the analytic sample twice with byte-identical
+raw output. Final attachment drift is `2.250640657308347e-09 m`. The body
+attachment impulse is `[0.0002832858881447464, -0.01702868938446045, 0] N s`;
+reciprocal linear and public constraint-force residuals are
+`1.6535544015115795e-07 N s` and `1.144409181158083e-07 N s`. The off-center
+anchor produces `[0, 0, -0.003386819362640381] N m s` angular reaction with
+`2.78533134179422e-06 N m s` residual and `4.021114826202393 rad/s` rigid
+angular speed. Contact force remains zero and maximum rope-length error is
+`2.126754256731589e-08 m`.
+
+The existing `rope-core` case again completes all three checkpoints, but the
+comparison retains the same 242 differences and byte-identical failed report
+from F5-52 against the historical CUDA golden. No tolerance or golden changes
+here; F5-56 owns the required same-revision CUDA/Metal adjudication. The exact
+CUDA record therefore remains unqualified, no passing result is registered in
+the evidence-source registry, and its advertisement is retained because the
+independent physical contract passes repeatably. The
+[versioned F5-53 evidence](roadmap/evidence/F5-53-rope-rigid-attachment.json)
+pins the clean source, production driver, binaries, raw outputs and reports.
+
+The obligation matrix binds the analytic profile only to
+`ROPE/RIGID_BODY/DISTINCT_FAMILY/ATTACHMENT/BIDIRECTIONAL/ENDPOINT_NATIVE` and
+retains `case:rope-core` independently for trajectory and lifecycle evidence.
+The analytic fixture cannot substitute for that exact binding, and the separate
+rope-rigid CONTACT profile cannot qualify ATTACHMENT. Historical and
+unrecaptured drivers remain visible and unqualified.
+
+### F5-54 smoke-to-rigid contact quality
+
+Clean source `ec024d7ea0010f25654dab170d4ad8bc607aa6e9` adds the immutable
+`smoke-rigid-contact-v1` profile and two exact cases in
+`smoke-rigid-contact-lifecycle-v1`, without changing a solver or backend path.
+Its paired public-API fixture drives particle and projected-grid smoke into a
+dynamic rigid cuboid, then compares each coupled run with a zero-contact
+control. The independent oracle derives face clearance, relative normal
+velocity, outward smoke response, reciprocal rigid impulse, angular response
+and speed bounds only from public smoke and rigid snapshots.
+
+Physical GTX 1080 CUDA passes both analytic samples, the canonical
+`smoke-grid` reference comparison and all ten lifecycle checkpoints. Both
+representations finish at `0.015000000149011612 m` face clearance with only
+`1.4901161207725444e-10 m` error. Particle and grid smoke produce outward
+responses of `1.0 m/s` and `0.994413879700005 m/s`; reciprocal rigid impulses
+are `0.0009999999403953552 N s` and `5.4725231602787975e-05 N s`, with
+non-zero angular responses. D3D12 does not advertise smoke and rigid support;
+its two exit-77 results are retained and grant no qualification. The
+[versioned F5-54 evidence](roadmap/evidence/F5-54-smoke-rigid-contact.json)
+pins both profiles, the clean source, runner, validation layer, production
+driver, raw public outputs and evaluator reports.
+
+The obligation matrix binds only the exact particle and grid
+`SMOKE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL` records. Each exact
+representation-specific lifecycle contract remains required alongside the
+shared analytic profile and `smoke-grid` trajectory. The separate smoke-to-
+rigid DRAG records are now qualified independently by F5-55 evidence. CONTACT
+cannot substitute for DRAG, or DRAG for CONTACT. Historical and unrecaptured
+drivers remain visible and unqualified.
+
+### F5-55 smoke-to-rigid drag quality
+
+Clean source `b8bc7ee292262d0a26c3532834df7d339ecf2bc0` pins the immutable
+`smoke-rigid-drag-v1` profile and two exact cases in
+`smoke-rigid-drag-lifecycle-v1`. Six public-state runs pair zero-drag controls
+with forward, stationary and reverse carrier velocities for particle and grid
+smoke. The independent oracle derives rigid and smoke response, forward/reverse
+symmetry, transverse drift, non-contact clearance, stationary null behavior and
+speed bounds only from public smoke and rigid snapshots. Particle smoke also
+supports reciprocal momentum, force and kinetic-energy checks; public grid
+tracers are not the Eulerian field mass, so the grid oracle intentionally makes
+no reciprocal-momentum or energy claim.
+
+Physical RTX 3050 Ti CUDA passes all six analytic samples, the canonical
+`smoke-grid` reference comparison and all ten lifecycle checkpoints. Particle
+forward and reverse rigid response fractions are both
+`0.0011470927856862545`; smoke response fractions are both
+`0.03584665060043335`. Reciprocal residuals remain below
+`3.352761914534979e-11 kg m/s` and `1.6763809572674894e-09 N`, with no
+kinetic-energy increase. Grid forward/reverse rigid response fractions are
+`0.006723881234397` and `0.007830076848351696`; paired public-tracer response
+magnitudes are `0.00016030669212341309` and `0.0002097785472869873`.
+Minimum particle and grid clearances are `0.01993628740310671 m` and
+`0.09471385176949018 m`, both above the `0.012 m` non-contact floor. A repeated
+physical quality capture is byte-identical. The
+[versioned F5-55 evidence](roadmap/evidence/F5-55-smoke-rigid-drag.json) pins
+the clean source, profiles, runner, validation layer, production driver, raw
+public outputs and evaluator reports.
+
+The obligation matrix binds only the exact particle and grid
+`SMOKE/RIGID_BODY/DISTINCT_FAMILY/DRAG/BIDIRECTIONAL` records. Each exact
+representation-specific lifecycle contract remains required alongside the
+shared analytic profile and `smoke-grid` trajectory. Both qualification
+results pass `1/1`, while CONTACT evidence remains disjoint and cannot
+substitute. Historical and unrecaptured drivers remain visible and
 unqualified.

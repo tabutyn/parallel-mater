@@ -69,7 +69,7 @@ PmResult evaluate_rigid_leaf_pairs(
     std::uint32_t *active_pair_count, void *leaf_pairs,
     std::uint32_t *leaf_pair_counts, std::uint32_t leaf_pairs_per_slot,
     void *leaf_manifolds, std::uint32_t blocks_per_pair, float timestep,
-    void *manifolds) noexcept {
+    bool canonicalize_swept_witness, void *manifolds) noexcept {
     return metal::launch(stream, "pm_evaluate_rigid_leaf_pairs", grid,
         parameters, previous_states,
         states, count, meshes,
@@ -77,7 +77,7 @@ PmResult evaluate_rigid_leaf_pairs(
         constraint_capacity, active_pairs, active_pair_count,
         leaf_pairs, leaf_pair_counts, leaf_pairs_per_slot,
         leaf_manifolds, blocks_per_pair, timestep,
-        manifolds);
+        canonicalize_swept_witness, manifolds);
 }
 
 PmResult reduce_rigid_leaf_manifolds(
@@ -85,11 +85,11 @@ PmResult reduce_rigid_leaf_manifolds(
     std::uint32_t count, std::uint32_t *active_pairs,
     std::uint32_t *active_pair_count, std::uint32_t *leaf_pair_counts,
     std::uint32_t leaf_pairs_per_slot, void *leaf_manifolds,
-    void *manifolds) noexcept {
+    bool canonicalize_swept_witness, void *manifolds) noexcept {
     return metal::launch(stream, "pm_reduce_rigid_leaf_manifolds", grid,
         parameters, count, active_pairs,
         active_pair_count, leaf_pair_counts, leaf_pairs_per_slot,
-        leaf_manifolds, manifolds);
+        leaf_manifolds, canonicalize_swept_witness, manifolds);
 }
 
 PmResult finalize_rigid_contact_manifolds(

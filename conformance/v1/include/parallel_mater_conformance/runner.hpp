@@ -44,7 +44,22 @@ struct CaseExecution {
 [[nodiscard]] std::string conformance_soft_rope_contact_quality(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_cloth_rigid_contact_quality(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_rope_rigid_contact_quality(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_rope_rigid_attachment_quality(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_fluid_rigid_contact_quality(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_smoke_rigid_contact_quality(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_soft_rigid_contact_quality(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_fluid_rigid_containment_quality(
@@ -70,10 +85,22 @@ struct CaseExecution {
 [[nodiscard]] std::string conformance_soft_smoke_contact_quality(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_rope_smoke_contact_quality(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_smoke_fluid_drag_quality(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_smoke_cloth_drag_quality(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_smoke_soft_drag_quality(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_smoke_rope_drag_quality(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_smoke_rigid_drag_quality(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_fluid_smoke_phase_quality(
@@ -109,10 +136,22 @@ struct CaseExecution {
 [[nodiscard]] std::string conformance_soft_smoke_contact_lifecycle(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_rope_smoke_contact_lifecycle(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_cloth_soft_contact_lifecycle(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_cloth_rigid_contact_lifecycle(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_fluid_rigid_contact_lifecycle(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_smoke_rigid_contact_lifecycle(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_soft_rigid_contact_lifecycle(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_fluid_rigid_containment_lifecycle(
@@ -125,6 +164,15 @@ struct CaseExecution {
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_smoke_cloth_grid_drag_lifecycle(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_smoke_soft_drag_lifecycle(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_smoke_rope_drag_lifecycle(
+    const std::filesystem::path &root,
+    ExecutionStatus *status = nullptr);
+[[nodiscard]] std::string conformance_smoke_rigid_drag_lifecycle(
     const std::filesystem::path &root,
     ExecutionStatus *status = nullptr);
 [[nodiscard]] std::string conformance_fluid_smoke_phase_lifecycle(

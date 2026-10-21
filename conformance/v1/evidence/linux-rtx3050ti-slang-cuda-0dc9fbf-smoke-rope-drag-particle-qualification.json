@@ -1,0 +1,83 @@
+{
+  "schema": "parallel-mater-conformance-qualification-result/v1",
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "78cd365860967283098124a91958160ca3d5c4d85d32ce806bb47b17cfa4247a",
+  "execution_status": "completed",
+  "source": {
+    "commit": "0dc9fbf2a35181b29b6b151d87289d173158a971",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+0dc9fbf",
+    "binary_sha256": "4b7a08ce2bc56ce31cf85f40bfce9c7353943c0008d4f8665f780b93ccda7800"
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13010 (NVIDIA 590.44.01)"
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "ROPE",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "DRAG",
+      "direction": "SECOND_TO_FIRST",
+      "material_profile": "SMOKE_PARTICLE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "evidence": [
+    {
+      "scope": "analytic_invariants",
+      "contract": "quality:smoke-rope-drag-v1",
+      "status": "passed",
+      "source_commit": "0dc9fbf2a35181b29b6b151d87289d173158a971",
+      "contract_sha256": "9554669ec21ac7c5dd6c1110d66bf974c115f7755cba4f78769cce2b1e3d318d",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-particle.json",
+      "artifact_sha256": "351ac32951139dabd6b441cce94343e9516bf68cf6a8b23669d50441620356a4"
+    },
+    {
+      "scope": "compilation",
+      "contract": "registry:interaction-capabilities",
+      "status": "passed",
+      "source_commit": "0dc9fbf2a35181b29b6b151d87289d173158a971",
+      "contract_sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-particle.json",
+      "artifact_sha256": "351ac32951139dabd6b441cce94343e9516bf68cf6a8b23669d50441620356a4"
+    },
+    {
+      "scope": "execution",
+      "contract": "case:smoke-rope",
+      "status": "passed",
+      "source_commit": "0dc9fbf2a35181b29b6b151d87289d173158a971",
+      "contract_sha256": "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-particle.json",
+      "artifact_sha256": "351ac32951139dabd6b441cce94343e9516bf68cf6a8b23669d50441620356a4"
+    },
+    {
+      "scope": "lifecycle_invariants",
+      "contract": "lifecycle:smoke-rope-drag-lifecycle-v1#particle-smoke-rope-drag-capacity-replacement-removal-rollback",
+      "status": "passed",
+      "source_commit": "0dc9fbf2a35181b29b6b151d87289d173158a971",
+      "contract_sha256": "5266327b4ea77d9bac1b7b8f4bef8b287704c59db1363b7d4aeb0ea25a1cb4d2",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-particle.json",
+      "artifact_sha256": "351ac32951139dabd6b441cce94343e9516bf68cf6a8b23669d50441620356a4"
+    },
+    {
+      "scope": "reference_regression",
+      "contract": "case:smoke-rope",
+      "status": "passed",
+      "source_commit": "0dc9fbf2a35181b29b6b151d87289d173158a971",
+      "contract_sha256": "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7",
+      "artifact_path": "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-0dc9fbf-smoke-rope-drag-particle.json",
+      "artifact_sha256": "351ac32951139dabd6b441cce94343e9516bf68cf6a8b23669d50441620356a4"
+    }
+  ]
+}

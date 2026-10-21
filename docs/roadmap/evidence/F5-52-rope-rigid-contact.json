@@ -1,0 +1,99 @@
+{
+  "schema": "parallel-mater-roadmap-rope-rigid-contact-evidence/v1",
+  "task": "F5-52",
+  "scope": "ROPE/RIGID_BODY/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+  "source": {
+    "commit": "6ca716beb0c21e51a78a4d509ab9608b2449fd4f",
+    "branch": "work/F5-52/ThomasLaptop",
+    "lease_token": "d07fb46a-7ba9-4846-85e5-20cc1f24f584",
+    "clean_source_revision_at_capture": true
+  },
+  "host": {
+    "machine": "ThomasLaptop",
+    "platform": "Linux",
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "driver": "slang-cuda",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "cuda_driver_version": 13010,
+    "host_compiler": "GCC 12.2.0",
+    "cuda": "13.1.80",
+    "slang": "2026.18"
+  },
+  "binaries": {
+    "driver_sha256": "0db5a8d820e280d1d569bc87ad8c7941e3ff643239b06ccaf90b0f1c2149c518",
+    "runner_sha256": "3dd3082e082a41f544facbd2c9f850f75c2bafb04a29a58b07cd3d1d87368c77"
+  },
+  "contracts": {
+    "analytic": {
+      "id": "quality:rope-rigid-contact-v1",
+      "sha256": "2cd3e0ff2be4463e635bc855810b933d38c5e2b099fbb511df8360846202c9e3",
+      "behavior": "A free two-node rope capsule and dynamic rigid cube prevent overlap at rope radius plus rigid margin and exchange reciprocal normal response without hidden attachment."
+    },
+    "trajectory_and_lifecycle": {
+      "id": "case:rope-core",
+      "sha256": "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41"
+    },
+    "obligations": {
+      "id": "capability-obligations-v1",
+      "sha256": "411e6339c01b723496e869eab066352b8e2a008733674cffbac8c73b4cdda6cb"
+    }
+  },
+  "results": {
+    "analytic_invariants": "PASS: 2 samples, 0 failures",
+    "minimum_capsule_geometry_clearance_m": 0.02002456114350934,
+    "maximum_overlap_penetration_m": 0.0,
+    "contact_impulse_activity_n_s": 0.49873446114361286,
+    "expected_impulse_error_n_s": 0.0012220804815861186,
+    "reciprocal_impulse_residual_n_s": 6.146728992462158e-08,
+    "force_impulse_residual_n_s": 1.1265277866101542e-07,
+    "tangential_impulse_n_s": 0.0,
+    "frictionless_slip_m_s": 1.0,
+    "final_closing_speed_m_s": 0.0,
+    "angular_speed_rad_s": 0.0,
+    "control_momentum_change_n_s": 0.0,
+    "control_contact_force_n": 0.0,
+    "trajectory_execution": "PASS: rope-core completed 3/3 checkpoints with 0 execution failures",
+    "trajectory_repeatability": "PASS: two 388b28a physical runs are byte-identical at SHA-256 e70efecc93aaa993c5229e2a00bd138c556d37b4803f7edfa668bf7cce301a36",
+    "historical_cuda_reference": "FAIL retained: 242 differences against the pre-shared-contact CUDA rope-core golden; first divergence is the rigid-only Icosphere/Plane contact topology at checkpoint 36",
+    "qualification": "The exact CUDA record remains unqualified because the required historical CUDA reference scope failed; no passing qualification result is registered.",
+    "evidence_index": "PASS: the rebuilt index retains 0/331 qualified capability rows across 42 revisioned reports under the new obligation hash."
+  },
+  "failed_attempt": {
+    "source_commit": "388b28a529a8bd952362c7acf140e2e811857944",
+    "profile_sha256": "004a0109d3aeedb24ea54302b28dae5691a6ac89afb133d1d0ef2768e1393672",
+    "reason": "The exactly 0.03 m authored segment could round above one node-spacing interval and request three sampled nodes from a two-node capacity. pmCmdWriteRopes rejected the input before any analytic sample.",
+    "resolution": "The immutable replacement profile uses a 0.02 m segment with the unchanged 0.03 m spacing, preserving two public nodes and centered impact geometry.",
+    "quality_result_sha256": "6e3dd38ce13f70a73e02fdbcf2217ecdcc34d7011945c61fd19fc5391fa757e4",
+    "quality_report_sha256": "2b7765f2c89ac0415464bc3f1fdf044da4cb92e4b66fe00d4ac12773ab01ccbd"
+  },
+  "artifacts": {
+    "provenance": {"path": "docs/roadmap/evidence/F5-52-6ca716b-cuda-provenance.json", "sha256": "d04f107e98349a3b48576ccbe1856c00d752cbe12f015f57e33d402afdeb7aa4"},
+    "capabilities": {"path": "docs/roadmap/evidence/F5-52-6ca716b-cuda-capabilities.json", "sha256": "4f1f17830a833fc6c7cbb6e6f768649b74ed7084d0f526da37c448d74d63e6e5"},
+    "quality_result": {"path": "docs/roadmap/evidence/F5-52-6ca716b-cuda-quality/rope-rigid-contact-v1.json", "sha256": "5072c8c7d47b2907c39c15804dd99b3c018cd920f38511a679b20769789f263d"},
+    "quality_report": {"path": "docs/roadmap/evidence/F5-52-6ca716b-cuda-quality-report.json", "sha256": "4db29addd521ba75694aaf4e4a9c2459a77e7d5ab2ead0ee82a3d7848f5b2663"},
+    "trajectory_result": {"path": "docs/roadmap/evidence/F5-52-6ca716b-cuda-trajectory/rope-core.json", "sha256": "77b6775905601cba3873893062ec04dcbd2abff934a3b88dac9277464e65cdc6"},
+    "reference_report": {"path": "docs/roadmap/evidence/F5-52-6ca716b-cuda-rope-core-report.json", "sha256": "fe46419ea5c87139de97cd61c20a63a2f9650f773eddbaeeb53911b45440bca7"},
+    "retained_failed_quality_result": {"path": "docs/roadmap/evidence/F5-52-388b28a-cuda-quality/rope-rigid-contact-v1.json", "sha256": "6e3dd38ce13f70a73e02fdbcf2217ecdcc34d7011945c61fd19fc5391fa757e4"},
+    "retained_failed_quality_report": {"path": "docs/roadmap/evidence/F5-52-388b28a-cuda-quality-report.json", "sha256": "2b7765f2c89ac0415464bc3f1fdf044da4cb92e4b66fe00d4ac12773ab01ccbd"},
+    "repeat_trajectory_result": {"path": "docs/roadmap/evidence/F5-52-388b28a-cuda-trajectory-repeat/rope-core.json", "sha256": "e70efecc93aaa993c5229e2a00bd138c556d37b4803f7edfa668bf7cce301a36"},
+    "repeat_trajectory_report": {"path": "docs/roadmap/evidence/F5-52-388b28a-cuda-trajectory-repeat-report.json", "sha256": "619b785ee9e6425bc95572884aa9c614d08e852834b9f4e1517e917db4558041"},
+    "historical_cuda_golden": {"path": "conformance/v1/golden/cuda/rope-core.json", "sha256": "5acebe386a9c24cf9d9a84b44bb7c12bf734392ad91d41e63ef031f8066cddd8"}
+  },
+  "advertisement_review": {
+    "decision": "retain",
+    "reason": "The immutable exact public-state oracle passes on the physical CUDA driver, proving the advertised rope-rigid contact behavior. The failed broad rope-core comparison begins in rigid-only contact outside this profile and is retained for F5-56 adjudication; it does not justify deleting an exact capability that satisfies its independent physical contract."
+  },
+  "reproduction": [
+    "Configure a clean build, then build parallel-mater-conformance, parallel-mater-driver-slang-cuda and parallel-mater-layer-validation.",
+    "Select the generated CUDA and validation manifests with PM_DRIVER_FILES and PM_LAYER_FILES and set PM_TEST_VALIDATION=1.",
+    "Run parallel-mater-conformance --quality rope-rigid-contact-v1 and evaluate it with conformance/v1/quality.py.",
+    "Run parallel-mater-conformance --case rope-core and compare it with conformance/v1/golden/cuda using conformance/v1/compare.py.",
+    "Run the full conformance Python suite, native build, pinned-input check, evidence-index check and manifest check."
+  ],
+  "limitations": [
+    "This evidence completes and physically exercises the exact analytic contract while retaining the existing rope-core trajectory/lifecycle binding; it does not claim a fully qualified CUDA capability row.",
+    "The historical CUDA golden predates shared rigid/contact feature changes and differs in rigid-only behavior outside the exact F5-52 oracle. F5-56 owns independent same-revision CUDA/Metal adjudication; no tolerance or golden changed here.",
+    "Historical and unrecaptured drivers remain visible and unqualified after the obligation hash changed. Rope-rigid ATTACHMENT remains a separate missing analytic contract for F5-53."
+  ]
+}

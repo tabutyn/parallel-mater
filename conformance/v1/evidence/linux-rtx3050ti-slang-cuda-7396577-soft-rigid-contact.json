@@ -1,0 +1,120 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-49",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "73965770b9b18b9c497fcd8e45cc892aee2694a0",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+7396577",
+    "binary_sha256": "52854125dc55b8d9cb507967045d759c4ec2edeed50e9d140686d3f1e7dfbb0c"
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13010 (NVIDIA 590.44.01)"
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "6442a246f443ab2d9072741c63ddd9a9159c3d422a7bd51a1868dcec128b458c",
+    "capabilities_sha256": "4f1f17830a833fc6c7cbb6e6f768649b74ed7084d0f526da37c448d74d63e6e5"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "SOFT_BODY",
+      "second_family": "RIGID_BODY",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "not-applicable"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:soft-body-core",
+      "sha256": "e453b88e5a753b608b9a56857df82f3176fe43ae9b7f351c36dc792e601abffc"
+    },
+    "quality": {
+      "id": "quality:soft-rigid-contact-v1",
+      "sha256": "2cc79bdc7ce270490c00e92dd3e00911bf10c624ed49f5c36b99d8143a96fad6"
+    },
+    "lifecycle": {
+      "id": "lifecycle:soft-rigid-contact-lifecycle-v1#soft-rigid-contact-capacity-replacement-removal-rollback",
+      "sha256": "11a11ed96e09c8f8fcee037d029d9730a2aba3f48183b69eb6017d8164e015fb"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "162c2cd557cb714fcdd895fe7a71af4fefdd2ef914beab75f30c0492b9ada18a",
+    "comparison_report_sha256": "58b3671de1a961588be458156d711a1105064ad2f2dc9084e65681d9b881b276",
+    "reference_regression": {
+      "passed": 1,
+      "failed": 0,
+      "unsupported": 0
+    }
+  },
+  "analytic_invariants": {
+    "result_sha256": "30b58a3575362c483ea59fafb9876b92dd973a02519cf83cf3343c257f77eaab",
+    "report_sha256": "5f2f9f4fd925153225e0de716da16fa046e6d13fe5744e0b916af4a11345c9b4",
+    "passed": true,
+    "sample_count": 2,
+    "failure_count": 0,
+    "observations": {
+      "centered-bound-surface-impact": {
+        "expected_impulse_error_n_s": 4.76837158203125e-07,
+        "expected_normal_impulse_n_s": 1.0,
+        "final_node_clearance_m": 0.004999810159206382,
+        "kinetic_energy_change_j": -0.500000357627755,
+        "maximum_surface_face_penetration_m": 0.0,
+        "maximum_surface_reconstruction_error_m": 2.6203927124981416e-08,
+        "minimum_binding_incidence": 4,
+        "observed_normal_impulse_n_s": 1.0000004768371582,
+        "reciprocal_impulse_residual_n_s": 0.0,
+        "relative_closing_speed_m_s": 0.0,
+        "surface_vertex_count": 10,
+        "tangential_impulse_n_s": 0.0,
+        "unique_node_count": 4
+      },
+      "separated-no-contact-control": {
+        "final_node_clearance_m": 0.1350000214576721,
+        "kinetic_energy_change_j": 0.0,
+        "maximum_surface_face_penetration_m": 0.0,
+        "observed_normal_impulse_n_s": 0.0,
+        "reciprocal_impulse_residual_n_s": 0.0,
+        "relative_closing_speed_m_s": 1.0
+      }
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "d1c6b9877461db3a6c7fe20e1a232d29e35d8c8252ae0cb0afa98346379064a9",
+    "report_sha256": "deb3d96dc68e2f4141dd363c4f3da6bc46ada65843937710ba38c046df8f874a",
+    "passed": true,
+    "profile_case_count": 1,
+    "profile_checkpoint_count": 5,
+    "failure_count": 0,
+    "bound_case": "soft-rigid-contact-capacity-replacement-removal-rollback",
+    "bound_case_checkpoint_count": 5
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case soft-body-core --output <trajectory-output>",
+    "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case soft-body-core --report <trajectory-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality soft-rigid-contact-v1 --output <quality-output>",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/soft-rigid-contact-v1.json --actual <quality-output>/soft-rigid-contact-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle soft-rigid-contact-lifecycle-v1 --output <lifecycle-result>",
+    "python3 conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/soft-rigid-contact-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "The four-node tetrahedron has one bound ten-vertex public surface with at least four bindings incident on every unique node, so mass and momentum are counted once per node rather than once per surface binding.",
+    "A centered one metre-per-second impact transfers 1.00000048 N s, leaves zero reciprocal impulse residual, prevents face penetration and closes at zero relative normal speed; the separated control remains ballistic.",
+    "Intrinsic soft-rigid contact has no interaction-graph resource and advertises the required not-applicable graph-capacity sentinel.",
+    "The exact endpoint lifecycle proves bounded capacity, replacement, rejected-overflow rollback, removal and deterministic recovery while preserving the unrelated rigid endpoint.",
+    "The supplementary soft-body-core trajectory exercises the soft endpoint against rigid geometry without the unrelated dynamic rigid-rigid contacts in the legacy soft-body-rigid gallery scene."
+  ]
+}

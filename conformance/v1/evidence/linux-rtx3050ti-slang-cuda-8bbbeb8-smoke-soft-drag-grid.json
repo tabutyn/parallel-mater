@@ -1,0 +1,105 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-48",
+  "captured_at": "2026-10-19",
+  "source": {
+    "commit": "8bbbeb88d37280113e5ca07d7b0bef4ce18de92d",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-cuda",
+    "version": "0.2.0+8bbbeb8",
+    "binary_sha256": "52854125dc55b8d9cb507967045d759c4ec2edeed50e9d140686d3f1e7dfbb0c"
+  },
+  "device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318,
+    "device_id": 0,
+    "driver_version": "13010 (NVIDIA 590.44.01)"
+  },
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "68684a1977e926308369482bec4340a84da2cd2559a27c36d5712340b2655058",
+    "capabilities_sha256": "4f1f17830a833fc6c7cbb6e6f768649b74ed7084d0f526da37c448d74d63e6e5"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "SOFT_BODY",
+      "second_family": "SMOKE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "DRAG",
+      "direction": "SECOND_TO_FIRST",
+      "material_profile": "SMOKE_GRID",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:smoke-soft-body",
+      "sha256": "a3566fe480be274b850d10f10b88ee4f3ea22e59d5cae5ccf9a652fa7d6b9cb8"
+    },
+    "quality": {
+      "id": "quality:smoke-soft-drag-v1",
+      "sha256": "b7d5c09ba966e1ddbd8c7580ee6868f9d9e4de62462b069d9fb0e749904b766c"
+    },
+    "lifecycle": {
+      "id": "lifecycle:smoke-soft-drag-lifecycle-v1#grid-smoke-soft-drag-capacity-replacement-removal-rollback",
+      "sha256": "e26456e4df5e7860229e93530dfddd6a08842a2484a2bfbd006b6b86f0368027"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "16598dee4701eadfc3bfe0e4df8e2da16eee15feaeb6a39db9854725e65f7ffa",
+    "comparison_report_sha256": "526edc90cf5668eaf323046cc9359cc9726148214ddd3f5fcae9003646ca2949",
+    "reference_regression": {"passed": 1, "failed": 0, "unsupported": 0}
+  },
+  "analytic_invariants": {
+    "result_sha256": "6f745bc4603da216ab6a15f9caee0f4cb7110bdb332e29ab6c47d5a935ab81cb",
+    "report_sha256": "cabef9aa3ec726ecb3b720b885b76eff230540c3a5a48636b229dd720666b073",
+    "passed": true,
+    "sample_count": 6,
+    "failure_count": 0,
+    "observations": {
+      "grid-smoke-soft-drag": {
+        "control_velocity_drift_m_s": 0.0,
+        "forward_response_fraction": 0.015585259068757296,
+        "reverse_response_fraction": 0.015563498251140118,
+        "forward_reverse_response_difference": 2.1760817617177963e-05,
+        "forward_transverse_velocity_m_s": 1.2812257624359756e-05,
+        "reverse_transverse_velocity_m_s": 4.540389465794658e-06,
+        "stationary_velocity_m_s": 0.0,
+        "maximum_drag_acceleration_m_s2": 1.5585264335077122,
+        "maximum_soft_body_node_speed_m_s": 0.0207803524467695,
+        "minimum_tracer_surface_clearance_m": 0.1039201021194458,
+        "maximum_reverse_smoke_state_delta": 0.0
+      }
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "70093052af6a1e8818048637e4e752927ed31992f962b169c18e49ab795b17d4",
+    "report_sha256": "0a910122660807d9fa17016f2018c8eae63cc89dc71b963fcfc1794dee2243db",
+    "passed": true,
+    "profile_case_count": 2,
+    "profile_checkpoint_count": 10,
+    "failure_count": 0,
+    "bound_case": "grid-smoke-soft-drag-capacity-replacement-removal-rollback",
+    "bound_case_checkpoint_count": 5
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --case smoke-soft-body --output <trajectory-output>",
+    "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case smoke-soft-body --report <trajectory-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --quality smoke-soft-drag-v1 --output <quality-output>",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/smoke-soft-drag-v1.json --actual <quality-output>/smoke-soft-drag-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<cuda-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 <build>/parallel-mater-conformance --root . --lifecycle smoke-soft-drag-lifecycle-v1 --output <lifecycle-result>",
+    "python3 conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/smoke-soft-drag-lifecycle-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "Six public-state runs pair zero-drag controls with forward, stationary and reverse grid carrier flow; the dynamic four-node soft body responds in the carrier direction within the authored acceleration cap.",
+    "Closest-triangle clearance remains above 0.103 m, more than ten times the 0.01 m contact distance, while public smoke output is identical to each paired control.",
+    "The exact grid graph lifecycle proves bounded capacity, accepted replacement, rejected-overflow rollback, removal and deterministic recovery.",
+    "The shared analytic and lifecycle profiles execute both representations, but this aggregate advertises only the exact SMOKE_GRID DRAG tuple."
+  ]
+}

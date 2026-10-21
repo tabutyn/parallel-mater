@@ -1,0 +1,117 @@
+{
+  "capabilities": [
+    {
+      "key": {
+        "direction": "BIDIRECTIONAL",
+        "first_family": "SMOKE",
+        "material_profile": "SMOKE_PARTICLE",
+        "mode": "DRAG",
+        "scope": "DISTINCT_FAMILY",
+        "second_family": "RIGID_BODY"
+      },
+      "max_graph_edges_per_simulation": "simulation-capacity",
+      "qualified": true,
+      "rule_id": "smoke-rigid-drag-particle",
+      "scopes": {
+        "analytic_invariants": {
+          "contracts": [
+            "quality:smoke-rigid-drag-v1"
+          ],
+          "status": "passed"
+        },
+        "compilation": {
+          "contracts": [
+            "registry:interaction-capabilities"
+          ],
+          "status": "passed"
+        },
+        "execution": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "lifecycle_invariants": {
+          "contracts": [
+            "lifecycle:smoke-rigid-drag-lifecycle-v1#particle-smoke-rigid-drag-capacity-replacement-removal-rollback"
+          ],
+          "status": "passed"
+        },
+        "reference_regression": {
+          "contracts": [
+            "case:smoke-grid"
+          ],
+          "status": "passed"
+        },
+        "timing": {
+          "contracts": [],
+          "status": "optional"
+        }
+      }
+    }
+  ],
+  "capability_count": 1,
+  "device": {
+    "device_id": 0,
+    "driver_version": "13010 (NVIDIA 590.44.01)",
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "vendor_id": 4318
+  },
+  "driver": {
+    "binary_sha256": "0db5a8d820e280d1d569bc87ad8c7941e3ff643239b06ccaf90b0f1c2149c518",
+    "name": "slang-cuda",
+    "version": "0.2.0+b8bc7ee"
+  },
+  "evidence_summary": {
+    "analytic_invariants": {
+      "failed": 0,
+      "missing": 0,
+      "passed": 1,
+      "unsupported": 0
+    },
+    "compilation": {
+      "failed": 0,
+      "missing": 0,
+      "passed": 1,
+      "unsupported": 0
+    },
+    "execution": {
+      "failed": 0,
+      "missing": 0,
+      "passed": 1,
+      "unsupported": 0
+    },
+    "lifecycle_invariants": {
+      "failed": 0,
+      "missing": 0,
+      "passed": 1,
+      "unsupported": 0
+    },
+    "reference_regression": {
+      "failed": 0,
+      "missing": 0,
+      "passed": 1,
+      "unsupported": 0
+    },
+    "timing": {
+      "failed": 0,
+      "missing": 0,
+      "passed": 0,
+      "unsupported": 0
+    }
+  },
+  "failure_count": 0,
+  "failures": [],
+  "obligations_id": "capability-obligations-v1",
+  "obligations_sha256": "62550cced880510e9caeac1d7457ff456bdec44e5eaebe2486695d13d95598a9",
+  "passed": true,
+  "qualified_count": 1,
+  "schema": "parallel-mater-conformance-qualification-report/v1",
+  "scope": "capability_qualification",
+  "source_commit": "b8bc7ee292262d0a26c3532834df7d339ecf2bc0",
+  "toolchain": {
+    "compiler": "GCC, NVIDIA CUDA Compiler, Slang",
+    "version": "GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"
+  },
+  "unused_evidence": []
+}
