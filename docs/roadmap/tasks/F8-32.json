@@ -1,7 +1,7 @@
 {
   "id": "F8-32",
   "title": "Expose the real-time profile through the registry and SDK",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-00"
   ],
@@ -21,6 +21,14 @@
     "Pass generated-contract, ABI, validation and installed-SDK gates; preserve historical evidence and either honor legacy requests or explicitly reject them under the reviewed version policy."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "ed82c98f-8e4b-44ca-9387-3d5c3c1b69be",
+    "owner": "codex-macos-realtime-profile",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-32/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-21T23:22:20Z",
+    "heartbeat_at": "2026-10-21T23:22:20Z",
+    "expires_at": "2026-10-22T23:22:20Z"
+  },
   "history": []
 }
