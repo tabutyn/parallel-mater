@@ -119,7 +119,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [F8-00](roadmap/tasks/F8-00.json) | Specify the versioned 60 Hz real-time quality contract | ready | — | — |
-| [F8-01](roadmap/tasks/F8-01.json) | Inventory every kernel, capability and physical test target | leased | — | codex-windows-f8-inventory / windows-gtx1080 / 2026-10-22T20:09:23Z |
+| [F8-01](roadmap/tasks/F8-01.json) | Inventory every kernel, capability and physical test target | done | — | — |
 | [F8-02](roadmap/tasks/F8-02.json) | Verify deployed binaries and capture trustworthy Android baselines | waiting on dependencies | F8-00, F8-01 | — |
 | [F8-03](roadmap/tasks/F8-03.json) | Build independent single-step quality and work-budget oracles | waiting on dependencies | F8-00, F8-01, F8-32 | — |
 | [F8-04](roadmap/tasks/F8-04.json) | Implement fixed 60 Hz presentation and overload clock policy | waiting on dependencies | F8-00, F8-03, F8-32 | — |
