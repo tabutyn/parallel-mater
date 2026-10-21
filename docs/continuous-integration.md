@@ -1,5 +1,8 @@
 # Continuous integration
 
+Temporary rollout probe: this documentation-only branch must execute the quick
+contract checks and aggregate gate, without allocating platform build runners.
+
 `.github/workflows/roadmap-leases.yml` is the single automatic **CI** entrypoint.
 The historical filename is retained; it now routes the platform workflows as
 well as enforcing roadmap ownership. Other workflows are reusable and may also
