@@ -1,7 +1,7 @@
 {
   "id": "F8-05",
   "title": "Design one shared spatial-index epoch for all consumers",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "f8-shared-spatial-design"
@@ -17,6 +17,14 @@
     "Specify one mutation/admission phase for emission/removal/teleport/topology changes, then one dynamic index publication reused by all domains and edges; record per-consumer migration interfaces."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "22d52f7b-4a25-485f-b61f-6415dd0c51ce",
+    "owner": "codex-linux-spatial",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-05/thomas-laptop",
+    "claimed_at": "2026-10-21T20:12:37Z",
+    "heartbeat_at": "2026-10-21T20:12:37Z",
+    "expires_at": "2026-10-22T20:12:37Z"
+  },
   "history": []
 }
