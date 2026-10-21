@@ -234,7 +234,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F5-54](roadmap/tasks/F5-54.json) | Qualify smoke-rigid contact | done | F5-23 | — |
 | [F5-55](roadmap/tasks/F5-55.json) | Qualify smoke-rigid drag | done | F5-23 | — |
 | [F5-56](roadmap/tasks/F5-56.json) | Align coupled rope state across GPU drivers | done | F5-46, F6-11 | — |
-| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | ready | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17, F5-18, F5-19, F5-20, F5-21, F5-22, F5-23, F5-24, F5-25, F5-26, F5-27, F5-28, F5-29, F5-30, F5-31, F5-32, F5-33, F5-34, F5-35, F5-36, F5-37, F5-38, F5-39, F5-40, F5-41, F5-42, F5-43, F5-44, F5-45, F5-46, F5-47, F5-48, F5-49, F5-50, F5-51, F5-52, F5-53, F5-54, F5-55, F5-56 | — |
+| [F5-99](roadmap/tasks/F5-99.json) | Review F5 exit evidence | leased | F5-01, F5-02, F5-03, F5-04, F5-05, F5-06, F5-07, F5-08, F5-09, F5-10, F5-11, F5-12, F5-13, F5-14, F5-15, F5-16, F5-17, F5-18, F5-19, F5-20, F5-21, F5-22, F5-23, F5-24, F5-25, F5-26, F5-27, F5-28, F5-29, F5-30, F5-31, F5-32, F5-33, F5-34, F5-35, F5-36, F5-37, F5-38, F5-39, F5-40, F5-41, F5-42, F5-43, F5-44, F5-45, F5-46, F5-47, F5-48, F5-49, F5-50, F5-51, F5-52, F5-53, F5-54, F5-55, F5-56 | codex-macos-review / Thomass-MacBook-Air / 2026-10-22T17:54:33Z |
 
 ### F6. SDK releases and repository ownership
 
