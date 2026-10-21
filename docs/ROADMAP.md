@@ -121,7 +121,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-00](roadmap/tasks/F8-00.json) | Specify the versioned 60 Hz real-time quality contract | done | — | — |
 | [F8-01](roadmap/tasks/F8-01.json) | Inventory every kernel, capability and physical test target | done | — | — |
 | [F8-02](roadmap/tasks/F8-02.json) | Verify deployed binaries and capture trustworthy Android baselines | leased | F8-00, F8-01 | codex-linux-android-baseline / thomas-laptop / 2026-10-22T23:16:33Z |
-| [F8-03](roadmap/tasks/F8-03.json) | Build independent single-step quality and work-budget oracles | waiting on dependencies | F8-00, F8-01, F8-32 | — |
+| [F8-03](roadmap/tasks/F8-03.json) | Build independent single-step quality and work-budget oracles | ready | F8-00, F8-01, F8-32 | — |
 | [F8-04](roadmap/tasks/F8-04.json) | Implement fixed 60 Hz presentation and overload clock policy | waiting on dependencies | F8-00, F8-03, F8-32 | — |
 | [F8-05](roadmap/tasks/F8-05.json) | Design one shared spatial-index epoch for all consumers | done | — | — |
 | [F8-06](roadmap/tasks/F8-06.json) | Implement low-dispatch shared spatial build primitives | waiting on dependencies | F8-00, F8-01, F8-03, F8-05 | — |
@@ -150,7 +150,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-29](roadmap/tasks/F8-29.json) | Qualify the candidate on physical iOS Metal devices | waiting on dependencies | F8-22 | — |
 | [F8-30](roadmap/tasks/F8-30.json) | Qualify the candidate and sustained performance on Android | waiting on dependencies | F8-02, F8-22 | — |
 | [F8-31](roadmap/tasks/F8-31.json) | Ship and document the qualified real-time SDK and Gallery profile | waiting on dependencies | F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30 | — |
-| [F8-32](roadmap/tasks/F8-32.json) | Expose the real-time profile through the registry and SDK | leased | F8-00 | codex-macos-realtime-profile / Thomass-MacBook-Air / 2026-10-22T23:22:20Z |
+| [F8-32](roadmap/tasks/F8-32.json) | Expose the real-time profile through the registry and SDK | done | F8-00 | — |
 | [F8-99](roadmap/tasks/F8-99.json) | Review F8 single-step quality, performance and device exit evidence | waiting on dependencies | F8-00, F8-01, F8-02, F8-03, F8-04, F8-05, F8-06, F8-07, F8-08, F8-09, F8-10, F8-11, F8-12, F8-13, F8-14, F8-15, F8-16, F8-17, F8-18, F8-19, F8-20, F8-21, F8-22, F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30, F8-31, F8-32 | — |
 
 ### P1. Deferred domain and interaction coverage

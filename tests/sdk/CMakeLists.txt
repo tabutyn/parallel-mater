@@ -67,11 +67,26 @@ target_link_libraries(scene-consumer PRIVATE ParallelMater::scene)
 add_executable(compatibility-consumer compatibility.c)
 target_compile_features(compatibility-consumer PRIVATE c_std_11)
 target_link_libraries(compatibility-consumer PRIVATE ParallelMater::api)
+add_executable(realtime-profile-consumer realtime_profile.c)
+target_compile_features(realtime-profile-consumer PRIVATE c_std_11)
+target_link_libraries(realtime-profile-consumer PRIVATE ParallelMater::api)
+add_executable(legacy-0-2-consumer legacy_0_2_client.c)
+target_compile_features(legacy-0-2-consumer PRIVATE c_std_11)
+target_link_libraries(legacy-0-2-consumer PRIVATE ParallelMater::api)
 foreach(consumer c-consumer diagnostics-consumer cpp-consumer scene-consumer)
     add_test(NAME ${consumer} COMMAND ${consumer})
     set_tests_properties(${consumer} PROPERTIES ENVIRONMENT
         "PM_DRIVER_FILES=$<TARGET_FILE_DIR:external-mock>/mock.json")
 endforeach()
+foreach(mode IN ITEMS plain validation)
+    add_test(NAME realtime-profile-${mode}
+        COMMAND realtime-profile-consumer ${mode})
+    set_tests_properties(realtime-profile-${mode} PROPERTIES ENVIRONMENT
+        "PM_DRIVER_FILES=$<TARGET_FILE_DIR:external-mock>/mock.json")
+endforeach()
+add_test(NAME legacy-0-2-consumer COMMAND legacy-0-2-consumer)
+set_tests_properties(legacy-0-2-consumer PROPERTIES ENVIRONMENT
+    "PM_DRIVER_FILES=$<TARGET_FILE_DIR:external-mock>/mock.json")
 
 function(add_compatibility_test name mode driver layer)
     add_test(NAME compatibility-${name} COMMAND compatibility-consumer ${mode})

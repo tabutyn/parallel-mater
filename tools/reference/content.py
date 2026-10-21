@@ -168,6 +168,28 @@ SECTIONS = [
                 PmPhysicalDevice physicalDevice,
                 PmPhysicalDeviceFeatures* pFeatures);
         """, text="Supported features are not automatically enabled. Request only needed features at device creation. Constraints require rigidBodies; each coupling requires its participating domains. Timeline semaphores are required for a conforming command-API device; other features may be false."),
+        c("execution_profiles", "Execution profile negotiation", types="""
+            #define PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME "PM_EXT_simulation_profile"
+            #define PM_EXT_SIMULATION_PROFILE_SPEC_VERSION 1u
+            #define PM_EXECUTION_PROFILE_NAME_MAX_SIZE 64u
+            #define PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP "realtime-single-step"
+            typedef struct PmExecutionProfileProperties {
+                char profileName[PM_EXECUTION_PROFILE_NAME_MAX_SIZE];
+                uint32_t versionMajor;
+                uint32_t versionMinor;
+            } PmExecutionProfileProperties;
+            typedef struct PmSimulationProfileCreateInfo {
+                PmStructureType sType;
+                const void* pNext;
+                const char* pProfileName;
+                uint32_t versionMajor;
+                uint32_t versionMinor;
+            } PmSimulationProfileCreateInfo;
+        """, functions="""
+            PmResult pmEnumerateExecutionProfiles(
+                PmPhysicalDevice physicalDevice, uint32_t* pCount,
+                PmExecutionProfileProperties* pProperties);
+        """, text="Lists executable name/version pairs, not qualification. Enable PM_EXT_simulation_profile and chain PmSimulationProfileCreateInfo at simulation creation; omission keeps the legacy schedule. Unknown profiles and versions fail without fallback. realtime-single-step 1.0 requires one substep and 1/60 second within one binary32 ULP, enforced without validation."),
         c("device", "Logical device", types="""
             typedef struct PmDeviceQueueCreateInfo {
                 uint32_t queueFamilyIndex;

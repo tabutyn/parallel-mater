@@ -48,6 +48,44 @@ using parallel_mater::Vec3;
 
 [[nodiscard]] bool finite(float value) noexcept { return std::isfinite(value); }
 
+struct StructureHeader {
+    PmStructureType sType;
+    const void *pNext;
+};
+
+[[nodiscard]] bool realtime_timestep(float value) noexcept {
+    constexpr float expected = 1.0F / 60.0F;
+    const float lower = std::nextafter(expected, 0.0F);
+    const float upper = std::nextafter(
+        expected, std::numeric_limits<float>::infinity());
+    return std::isfinite(value) && value >= lower && value <= upper;
+}
+
+[[nodiscard]] PmResult select_execution_profile(
+    PmDevice device, const void *chain,
+    PmSimulationExecutionProfile &profile) noexcept {
+    profile = PmSimulationExecutionProfile::legacy_default;
+    if (chain == nullptr) return PM_SUCCESS;
+    const auto *header = static_cast<const StructureHeader *>(chain);
+    if (header->sType != PM_STRUCTURE_TYPE_SIMULATION_PROFILE_CREATE_INFO ||
+        header->pNext != nullptr)
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (!device->simulation_profile_extension)
+        return PM_ERROR_EXTENSION_NOT_PRESENT;
+    const auto *request = static_cast<
+        const PmSimulationProfileCreateInfo *>(chain);
+    if (request->pProfileName == nullptr || request->pProfileName[0] == '\0')
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (std::strcmp(request->pProfileName,
+                    PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP) != 0)
+        return PM_ERROR_FEATURE_NOT_PRESENT;
+    if (request->versionMajor != 1U || request->versionMinor != 0U)
+        return PM_ERROR_INCOMPATIBLE_VERSION;
+    // The public negotiation contract lands before the F8 schedule and solver
+    // work. Never accept this profile until those tasks provide the runtime.
+    return PM_ERROR_FEATURE_NOT_PRESENT;
+}
+
 [[nodiscard]] bool finite(const PmRigidState &state) noexcept {
     for (float component : state.position) if (!finite(component)) return false;
     for (float component : state.orientation) if (!finite(component)) return false;
@@ -435,8 +473,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
     if (simulation == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     *simulation = nullptr;
     if (device == nullptr || info == nullptr ||
-        !parallel_mater::api::valid_structure(
-            info->sType, PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO, info->pNext) ||
+        info->sType != PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO ||
         info->queueFamilyIndex != 0U ||
         (info->rigidBodyCapacity == 0U && info->fluidCount == 0U &&
          info->clothCount == 0U && info->ropeCount == 0U &&
@@ -456,6 +493,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
          device->enabled.rigidConstraints == PM_FALSE) ||
         (info->fluidCount != 0U && device->enabled.particleLiquids == PM_FALSE))
         return PM_ERROR_INVALID_ARGUMENT;
+    PmSimulationExecutionProfile execution_profile{};
+    const PmResult profile_result = select_execution_profile(
+        device, info->pNext, execution_profile);
+    if (profile_result != PM_SUCCESS) return profile_result;
     if ((info->clothCount != 0U && device->enabled.cloth == PM_FALSE) ||
         (info->ropeCount != 0U && device->enabled.rope == PM_FALSE) ||
         (info->softBodyCount != 0U && device->enabled.softBodies == PM_FALSE) ||
@@ -504,6 +545,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
     if (created == nullptr) return PM_ERROR_OUT_OF_HOST_MEMORY;
     created->device = device;
     created->info = *info;
+    created->info.pNext = nullptr;
+    created->execution_profile = execution_profile;
     created->requirements = memory_requirements;
     try {
         if (info->fluidCount != 0U)
@@ -1127,6 +1170,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdStepSimulation(
         step->substeps == 0U || simulation->device != command_buffer->device ||
         command_buffer->bound_pipeline == nullptr ||
         (step->flags & ~PM_STEP_COLLECT_CONTACT_EVENTS_BIT) != 0U)
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (simulation->execution_profile ==
+            PmSimulationExecutionProfile::realtime_single_step &&
+        (!realtime_timestep(step->timestep) || step->substeps != 1U))
         return PM_ERROR_INVALID_ARGUMENT;
     const PmStepInfo copied = *step;
     const PmPhysicsPipeline pipeline = command_buffer->bound_pipeline;

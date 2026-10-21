@@ -43,6 +43,27 @@ Commands may be linked directly through the loader or resolved through
 `pmGetInstanceProcAddr` and `pmGetDeviceProcAddr`. An enabled extension must
 still have non-null function pointers for the selected device.
 
+## Simulation profiles
+
+`pmEnumerateExecutionProfiles` lists only the named,
+versioned schedules a physical device can execute. These records are runtime
+support, not physical qualification. The separately published qualification
+evidence determines whether a supported profile has passed its device gates.
+
+The `realtime-single-step` 1.0 request is opt-in. Enable
+`PM_EXT_simulation_profile` at device creation and chain one
+`PmSimulationProfileCreateInfo` through `PmSimulationCreateInfo`. Omitting the
+chain preserves the legacy schedule and existing `PmStepInfo` semantics. There
+is no fallback: missing extension enablement, unknown names, and incompatible
+versions report distinct errors. A selected 1.0 profile accepts only one
+substep and a timestep within one binary32 ULP of 1/60 second, with the rule
+enforced by the driver even when validation is disabled.
+
+The current reference drivers expose the negotiation extension but enumerate
+no `realtime-single-step` execution record until the F8 schedule and solver are
+implemented. They therefore reject an exact 1.0 request rather than running the
+legacy solver under the new name.
+
 ## Memory and resources
 
 Applications allocate `PmDeviceMemory` explicitly and bind it to buffers,

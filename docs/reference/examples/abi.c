@@ -37,3 +37,8 @@ const PmValidationDiagnosticsCreateInfo checked_diagnostics = {
     checked_diagnostic_callback,
     NULL
 };
+
+void checked_abi_symbols(void) {
+    (void)checked_submit;
+    (void)checked_diagnostics;
+}
