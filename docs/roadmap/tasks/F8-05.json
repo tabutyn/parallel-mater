@@ -1,0 +1,22 @@
+{
+  "id": "F8-05",
+  "title": "Design one shared spatial-index epoch for all consumers",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "f8-shared-spatial-design"
+  ],
+  "requires": [
+    "Any development host; access to current API, schedule and qualification records"
+  ],
+  "scope": "Inventory current broad phases and design the shared dynamic BVH, its leaf/query contracts and one-update tick lifecycle. Do not assume liquid sorted grids already share rigid mesh BVHs. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Map rigid N-squared pair filtering, liquid per-population/per-edge sorts, deformable surface refits and smoke collision lookups to shared bounds/build/traversal primitives; retain static mesh trees and regular-grid field operators where appropriate.",
+    "Define generation-tagged identities, active counts, particle radius and swept rigid/deformable queries, deterministic ownership and bounded scratch/overflow behavior.",
+    "Specify conservative full-tick translation/rotation/solver-correction bounds and candidate completeness tests, with explicit out-of-envelope failure behavior that never adds a hidden rebuild or substep.",
+    "Specify one mutation/admission phase for emission/removal/teleport/topology changes, then one dynamic index publication reused by all domains and edges; record per-consumer migration interfaces."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

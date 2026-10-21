@@ -1,0 +1,27 @@
+{
+  "id": "F8-06",
+  "title": "Implement low-dispatch shared spatial build primitives",
+  "status": "open",
+  "dependencies": [
+    "F8-00",
+    "F8-01",
+    "F8-03",
+    "F8-05"
+  ],
+  "locks": [
+    "shared-gpu-primitives"
+  ],
+  "requires": [
+    "A physical supported GPU, shared Slang build toolchain and public-API test harness"
+  ],
+  "scope": "Implement and benchmark the shared sort/scan/compaction/BVH-building primitives selected by F8-05 without forcing the current sixteen three-dispatch radix rounds into every consumer. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Compare justified algorithm choices on fixed dense, sparse, empty and duplicate-key inputs; record dispatch/workgroup counts, scratch bytes and timing rather than assuming fewer launches are faster.",
+    "Check key/identity stability, bounds, overflow and brute-force candidate correctness; work should scale with live elements rather than reserved capacity where practical.",
+    "Use shared Slang with portable subgroup/workgroup assumptions and reflection/binding compile checks for all backends; no vendor-specific physical equations.",
+    "Retain independent primitive oracles and explicit empty/small/large-capacity budget tests; no hot-path allocation or mandatory host count readback."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

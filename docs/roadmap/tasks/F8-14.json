@@ -1,0 +1,26 @@
+{
+  "id": "F8-14",
+  "title": "Stabilize soft bodies at one 60 Hz step",
+  "status": "open",
+  "dependencies": [
+    "F8-00",
+    "F8-03",
+    "F8-10"
+  ],
+  "locks": [
+    "soft-body-equations"
+  ],
+  "requires": [
+    "A physical supported GPU, shared Slang build toolchain and public-API test harness"
+  ],
+  "scope": "Redesign soft-body integration/volume/shape constraints at dt=1/60 under explicit deformation and material limits. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Volume/shape error, stiff and mass-ratio extremes, inversion policy, impacts, cold starts and long-run resting cases satisfy the new envelope.",
+    "Document the chosen equations, timestep/material semantics and intentional accuracy losses; share Slang physics across adapters and negotiate the new profile explicitly.",
+    "Independent tests prove exactly one dt=1/60 advance, bounded algebraic iterations, no spatial rebuild in the solve, and adherence to the predeclared dispatch/work/memory budget.",
+    "Publish new-profile quality/energy/performance evidence beside unchanged legacy-profile results; no post-result tolerance changes or per-device physics fork."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -45,7 +45,12 @@ negative controls must establish which layer rejects an invalid operation.
 Run the generated-contract and installed-SDK gates for API/package changes and
 the affected lifecycle/physics cases for runtime changes. Preserve original
 failure data. A tolerance or golden change requires separate physical reasoning
-and review; performance gains never justify reduced physical quality.
+and review; performance gains do not justify silently reducing an existing
+profile's physical quality. The user-authorized [F8 real-time redesign](docs/roadmap/F8-REALTIME-60HZ.md)
+may trade accuracy for stability and speed through a separately versioned profile.
+Specify its bounds before implementation, retain legacy results, and qualify
+the new contract independently; do not relabel old failures or relax goldens
+after seeing an optimized result.
 
 A release reviewer checks the exact source/toolchain/device tuple, complete
 case scope, unsupported outcomes and unresolved failures. Authors cannot turn

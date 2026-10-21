@@ -1,0 +1,26 @@
+{
+  "id": "F8-09",
+  "title": "Move liquid populations and sources onto shared BVH queries",
+  "status": "open",
+  "dependencies": [
+    "F8-03",
+    "F8-07"
+  ],
+  "locks": [
+    "liquid-neighbor-index",
+    "reference-schedule"
+  ],
+  "requires": [
+    "A physical supported GPU, shared Slang build toolchain and public-API test harness"
+  ],
+  "scope": "Replace per-fluid/per-coupling sorted-grid rebuilds with shared particle-radius queries and one admission/index epoch. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Self and distinct-population queries share the same published hierarchy and preserve material/generation identities without constructing a fresh index for every pair.",
+    "Handle source vacancy/admission, outflow, inactive capacity, zero particles and stable particle IDs once at the documented boundary; no source-sort plus solver-sort duplication.",
+    "Compare all relevant neighbors and overflow results with brute-force radius queries across heterogeneous supports and full-tick motion bounds.",
+    "Assert one update per tick and no neighbor sort/build in algebraic solve loops; publish sparse/live-versus-capacity dispatch and memory measurements."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

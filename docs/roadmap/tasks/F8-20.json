@@ -1,0 +1,28 @@
+{
+  "id": "F8-20",
+  "title": "Assemble the one-tick backend-neutral schedule",
+  "status": "open",
+  "dependencies": [
+    "F8-04",
+    "F8-17",
+    "F8-18",
+    "F8-19"
+  ],
+  "locks": [
+    "reference-schedule",
+    "android-vulkan-frame-performance"
+  ],
+  "requires": [
+    "A physical supported GPU, shared Slang build toolchain and public-API test harness"
+  ],
+  "scope": "Assemble and enforce the new profile's single advance with one shared spatial publication, bounded domain/coupling solves and final state commit. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Tests assert exactly one time advance, at most one dynamic index update and no per-domain/per-edge time subdivision for empty, single-domain and mixed scenes.",
+    "Remove routine between-phase host waits/readbacks; retain producer/consumer GPU hazards and explicit application synchronization with validation evidence.",
+    "Enforce per-domain iteration and dispatch/work budgets, GPU-resident active counts and allocation-free steady state; expose input/render snapshot ownership safely.",
+    "Run all new-profile independent integration cases at dt=1/60; report simulation rate without using slow-motion to pass a frame-time gate."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

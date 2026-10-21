@@ -44,6 +44,42 @@ class LeaseTests(unittest.TestCase):
         self.assertEqual((ROOT / roadmap.ROADMAP).read_text(), roadmap.rendered(ROOT, tasks))
         self.assertGreaterEqual(len(tasks), 60)
 
+    def test_registered_f8_ids_validate_but_unknown_groups_do_not(self):
+        roadmap.validate({'F8-00': task('F8-00')})
+        for id in ('F9-00', 'P5-00', 'F8-1', 'F08-00'):
+            with self.assertRaisesRegex(ValueError, 'invalid ID'):
+                roadmap.validate({id: task(id)})
+
+    def test_only_entirely_completed_categories_are_collapsed(self):
+        done = task() | {'status': 'done', 'evidence': ['Historical evidence']}
+        for status in ('open', 'leased', 'deferred'):
+            tasks = {'F1-01': done, 'F8-01': task('F8-01')}
+            if status == 'leased':
+                claim(tasks, 'F8-01')
+            else:
+                tasks['F8-01']['status'] = status
+            roadmap.validate(tasks)
+            before = copy.deepcopy(tasks)
+            text = roadmap.index(tasks)
+            active, archived = text.split('### Completed categories')
+            self.assertIn('### F8.', active)
+            self.assertNotIn('### F1.', active)
+            self.assertNotIn('### F2.', text)  # Empty groups are not completed.
+            self.assertIn('<summary>F1.', archived)
+            self.assertIn('roadmap/tasks/F1-01.json', archived)
+            self.assertNotIn('<summary>F8.', archived)
+            self.assertEqual(before, tasks)  # Rendering never rewrites history.
+
+    def test_new_followup_makes_completed_category_visible_again(self):
+        tasks = {'F8-01': task('F8-01') | {'status': 'done', 'evidence': ['PASS']}}
+        self.assertIn('<summary>F8.', roadmap.index(tasks))
+        tasks['F8-02'] = task('F8-02', dependencies=['F8-01'])
+        text = roadmap.index(tasks)
+        self.assertIn('### F8.', text)
+        self.assertNotIn('<summary>F8.', text)
+        self.assertIn('roadmap/tasks/F8-01.json', text)
+        self.assertIn('roadmap/tasks/F8-02.json', text)
+
     def test_new_claim_is_metadata_only_and_needs_merged_dependencies(self):
         base = {'F1-01': task()}
         candidate = copy.deepcopy(base)

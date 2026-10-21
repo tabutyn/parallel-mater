@@ -1,0 +1,27 @@
+{
+  "id": "F8-04",
+  "title": "Implement fixed 60 Hz presentation and overload clock policy",
+  "status": "open",
+  "dependencies": [
+    "F8-00",
+    "F8-03",
+    "F8-32"
+  ],
+  "locks": [
+    "gallery-frame-policy",
+    "android-vulkan-frame-performance"
+  ],
+  "requires": [
+    "Any development host; access to current API, schedule and qualification records"
+  ],
+  "scope": "Implement the shared Gallery/client tick clock and previous/current-state interpolation contract, not domain solver changes. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Clock tests cover 30/60/90/120/144 Hz and jitter: at most one dt=1/60 tick per render callback, interpolation above 60, half-speed simulation at sustained 30, no catch-up or enlarged dt.",
+    "Specify and test presentation latency, orientation interpolation, spawn/removal/topology changes, resets, input/kinematic sampling, pause/background/resume and unavailable GPU snapshots.",
+    "Remove the new profile's 240-substeps-per-second policy; version any replacement of legacy behavior explicitly. Rendering must not require per-frame CPU physics readback.",
+    "Report simulation-to-wall-clock rate and interpolation alpha; slow-motion cannot masquerade as meeting a 60 Hz performance budget."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

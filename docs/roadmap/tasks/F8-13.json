@@ -1,0 +1,26 @@
+{
+  "id": "F8-13",
+  "title": "Stabilize cloth at one 60 Hz step",
+  "status": "open",
+  "dependencies": [
+    "F8-00",
+    "F8-03",
+    "F8-10"
+  ],
+  "locks": [
+    "cloth-equations"
+  ],
+  "requires": [
+    "A physical supported GPU, shared Slang build toolchain and public-API test harness"
+  ],
+  "scope": "Redesign cloth integration/constraints/contact at dt=1/60 with bounded compliance/correction and no hidden smaller timesteps. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Stretch/bend error, hanging/resting cloth, stiff settings, self-contact where advertised, fast impacts and topology/reset cases satisfy the new envelope.",
+    "Document the chosen equations, timestep/material semantics and intentional accuracy losses; share Slang physics across adapters and negotiate the new profile explicitly.",
+    "Independent tests prove exactly one dt=1/60 advance, bounded algebraic iterations, no spatial rebuild in the solve, and adherence to the predeclared dispatch/work/memory budget.",
+    "Publish new-profile quality/energy/performance evidence beside unchanged legacy-profile results; no post-result tolerance changes or per-device physics fork."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

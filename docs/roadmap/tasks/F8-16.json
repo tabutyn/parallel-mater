@@ -1,0 +1,26 @@
+{
+  "id": "F8-16",
+  "title": "Stabilize smoke transport and projection at one 60 Hz step",
+  "status": "open",
+  "dependencies": [
+    "F8-00",
+    "F8-03",
+    "F8-10"
+  ],
+  "locks": [
+    "smoke-equations"
+  ],
+  "requires": [
+    "A physical supported GPU, shared Slang build toolchain and public-API test harness"
+  ],
+  "scope": "Redesign smoke advection/projection and supported smoke representations for dt=1/60 with explicit divergence/diffusion tradeoffs and bounded solve work. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Sources, buoyancy/advection, obstacle boundaries, high velocities within the profile, long runs and cold starts satisfy the new finite-state/divergence/transport limits.",
+    "Document the chosen equations, timestep/material semantics and intentional accuracy losses; share Slang physics across adapters and negotiate the new profile explicitly.",
+    "Independent tests prove exactly one dt=1/60 advance, bounded algebraic iterations, no spatial rebuild in the solve, and adherence to the predeclared dispatch/work/memory budget.",
+    "Publish new-profile quality/energy/performance evidence beside unchanged legacy-profile results; no post-result tolerance changes or per-device physics fork."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

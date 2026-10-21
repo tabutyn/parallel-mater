@@ -1,0 +1,31 @@
+{
+  "id": "F8-31",
+  "title": "Ship and document the qualified real-time SDK and Gallery profile",
+  "status": "open",
+  "dependencies": [
+    "F8-23",
+    "F8-24",
+    "F8-25",
+    "F8-26",
+    "F8-27",
+    "F8-28",
+    "F8-29",
+    "F8-30"
+  ],
+  "locks": [
+    "sdk-realtime-profile-release"
+  ],
+  "requires": [
+    "Any development host; access to current API, schedule and qualification records"
+  ],
+  "scope": "Package the already-qualified candidate and document the user-facing fixed-step, interpolation, slow-motion and accuracy tradeoffs without silently changing its equations or defaults. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Installed SDK and Gallery tests demonstrate explicit profile/version selection and capability behavior, including unsupported requests and clear rejection of incompatible old clients. Keeping a legacy solver available is optional, not an exit requirement.",
+    "Publish exact device/workload quality and performance limits, remaining unsupported modes and honest default-selection behavior; legacy evidence is not relabeled.",
+    "Verify relocatable packages and runtime artifact hashes against the frozen candidate; any material kernel/schedule/profile change triggers candidate refresh and affected requalification.",
+    "Show 30/60/high-refresh presentation behavior and bounded long-running memory/resource ownership through public clients."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

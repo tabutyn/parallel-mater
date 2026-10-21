@@ -10,8 +10,9 @@ This is cooperative Git coordination, not an identity/authentication service.
 1. Fetch current `main`; inspect open lease PRs to avoid duplicate proposals.
 2. Run `python3 tools/roadmap.py list --ready` and read the selected task card.
 3. Check its machine requirements, acceptance checks, dependencies and locks.
-   F1 has priority, but independent ready F2–F7 tasks may run concurrently.
-4. Reserve one leaf ID per claim PR. Do not claim an F1–F7 area wholesale. If a
+   F8 is the next architecture/performance priority; honor existing leases and
+   finish outstanding foundation reviews. Independent ready tasks may run concurrently.
+4. Reserve one leaf ID per claim PR. Do not claim an entire F-series area. If a
    leaf is too large for one focused implementation/review, split it in a
    planning PR before claiming. Keep old IDs and history; never renumber/reuse.
 
@@ -165,6 +166,12 @@ silently discard or take over another machine's unfinished changes.
 Coordination-only maintenance uses a planning PR; it is not a bypass for physics,
 platform, runtime or SDK implementation. Existing historical roadmap snapshots
 are context only and must never become competing task queues.
+
+Entirely completed categories are collapsed automatically in the generated index.
+Their cards and history stay canonical. A new open/deferred follow-up makes its
+category visible again; never delete completed cards to clean the work queue.
+For F8, follow [the 60 Hz plan](F8-REALTIME-60HZ.md), including the frozen candidate
+revision, complete kernel/device matrix and separate legacy/new quality profiles.
 
 ## Merge serialization and checks
 

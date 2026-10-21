@@ -1,0 +1,26 @@
+{
+  "id": "F8-10",
+  "title": "Move deformable and smoke collision lookup onto shared indexing",
+  "status": "open",
+  "dependencies": [
+    "F8-03",
+    "F8-07"
+  ],
+  "locks": [
+    "deformable-spatial-index",
+    "reference-schedule"
+  ],
+  "requires": [
+    "A physical supported GPU, shared Slang build toolchain and public-API test harness"
+  ],
+  "scope": "Adopt the shared conservative spatial snapshot for cloth, rope, soft surfaces and smoke obstacle/collision consumers; retain regular-grid smoke field stencils. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Migrate repeated deformable surface refits and relevant collision lookups to one tick epoch and shared leaf/traversal primitives.",
+    "Test deforming surface/segment bounds, thin contact, self-contact exclusions, static geometry, topology/generation changes and correction-envelope limits against independent candidates.",
+    "Smoke retains its structured pressure/advection grid while obstacle queries share spatial services; no forced BVH replacement of regular-grid numerical operators.",
+    "Enforce one update, bounded candidate memory and no per-edge rebuilds; preserve registered mode/capability boundaries."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
