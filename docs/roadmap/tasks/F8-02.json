@@ -1,7 +1,7 @@
 {
   "id": "F8-02",
   "title": "Verify deployed binaries and capture trustworthy Android baselines",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-00",
     "F8-01"
@@ -20,6 +20,14 @@
     "Publish reproducible commands and reviewable artifacts; no solver/accuracy change in this task."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "dd10d8db-9dff-4db0-ab37-69baa5f0a0db",
+    "owner": "codex-linux-android-baseline",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-02/thomas-laptop",
+    "claimed_at": "2026-10-21T23:16:33Z",
+    "heartbeat_at": "2026-10-21T23:16:33Z",
+    "expires_at": "2026-10-22T23:16:33Z"
+  },
   "history": []
 }
