@@ -1,14 +1,9 @@
 name: Mobile Gallery builds
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_call:
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: mobile-gallery-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
   ipad:
     runs-on: macos-26
