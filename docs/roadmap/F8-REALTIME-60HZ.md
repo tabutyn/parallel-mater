@@ -184,8 +184,8 @@ results. The owner must merge a separate release-only PR, then a planning PR may
 defer the superseded task and point at F8. F8-02/F8-30 share its existing lock,
 so deployment/profiling cannot silently race it. Clock and rigid-equation changes
 also take that lock. This plan does not mutate any live lease. P1-59 D3D12 parity
-and F5-99 historical qualification review retain their existing owners/contracts;
-new equations need new qualification.
+retains its existing owner/contract. The completed F5-99 review remains evidence
+for the legacy implementation; new equations need new qualification.
 
 F8-99 closes only when all dependencies, device rows, quantitative quality and
 frame budgets pass on the final candidate, the once-per-tick invariants are
