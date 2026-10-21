@@ -1,12 +1,15 @@
 name: Windows loader and shared gallery contracts
 
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   loader:
+    timeout-minutes: 15
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4

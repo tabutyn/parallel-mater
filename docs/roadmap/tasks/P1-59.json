@@ -1,7 +1,7 @@
 {
   "id": "P1-59",
   "title": "Complete D3D12 common-domain parity",
-  "status": "done",
+  "status": "leased",
   "dependencies": [
     "F4-04",
     "F5-10",
@@ -21,14 +21,16 @@
     "Capture physical GTX 1080 D3D12 execution, unchanged reference regression, analytic-quality and lifecycle evidence for the newly advertised records. Compare the same-revision shared cases against CUDA where available; preserve every failure and do not qualify a record until all exact obligations pass.",
     "Build and test the D3D12 driver, loader, shared Gallery, generated DXIL/reflection bindings, conformance runner and roadmap/evidence checks from D: artifacts, then update capability and qualification documentation to the measured result."
   ],
-  "evidence": [
-    "PASS: source cbba6a467bef657feb38fa90767371be9c409ff5 advertises 46 D3D12 API 0.2 records through reflection-generated DXIL and the thin native adapter; equal-fluid remains unadvertised.",
-    "PASS: physical GTX 1080 D3D12 execution completes 30/30 cases; 28/28 Gallery scenes pass 300 frames; real-window switching, reset and controls pass at five seconds per scene.",
-    "PASS: 22/22 applicable analytic profiles and 17/17 applicable lifecycle profiles pass capture and independent evaluation.",
-    "PRESERVED: pinned regression is 18 pass/12 fail; same-revision CUDA comparison is 26 pass/1 fail across 27 available results; CUDA crashes soft-body-fluid, rope-soft-body and rope-cloth.",
-    "REVIEW: docs/roadmap/evidence/P1-59-d3d12-common-domain-parity.json and docs/QUALIFICATION.md pin hashes, artifacts, exact profiles, failure lists and non-qualification boundary."
-  ],
-  "lease": null,
+  "evidence": [],
+  "lease": {
+    "token": "aa7657c4-03d5-4749-82fb-517db068323c",
+    "owner": "codex-windows-d3d12-parity",
+    "machine": "windows-gtx1080",
+    "branch": "work/P1-59/windows-gtx1080",
+    "claimed_at": "2026-10-21T13:38:46Z",
+    "heartbeat_at": "2026-10-21T13:38:46Z",
+    "expires_at": "2026-10-22T13:38:46Z"
+  },
   "history": [
     {
       "lease": {
@@ -40,16 +42,10 @@
         "heartbeat_at": "2026-10-19T22:17:54Z",
         "expires_at": "2026-10-20T22:17:54Z"
       },
-      "outcome": "completed",
-      "at": "2026-10-20T01:34:51Z",
-      "reason": "Common Slang D3D12 domain parity implemented and physical evidence captured; preserved numerical failures remain qualification work.",
-      "evidence": [
-        "PASS: source cbba6a467bef657feb38fa90767371be9c409ff5 advertises 46 D3D12 API 0.2 records through reflection-generated DXIL and the thin native adapter; equal-fluid remains unadvertised.",
-        "PASS: physical GTX 1080 D3D12 execution completes 30/30 cases; 28/28 Gallery scenes pass 300 frames; real-window switching, reset and controls pass at five seconds per scene.",
-        "PASS: 22/22 applicable analytic profiles and 17/17 applicable lifecycle profiles pass capture and independent evaluation.",
-        "PRESERVED: pinned regression is 18 pass/12 fail; same-revision CUDA comparison is 26 pass/1 fail across 27 available results; CUDA crashes soft-body-fluid, rope-soft-body and rope-cloth.",
-        "REVIEW: docs/roadmap/evidence/P1-59-d3d12-common-domain-parity.json and docs/QUALIFICATION.md pin hashes, artifacts, exact profiles, failure lists and non-qualification boundary."
-      ]
+      "outcome": "reclaimed",
+      "at": "2026-10-21T13:38:46Z",
+      "reason": "Prior lease expired during CI review; same owner adopting completed implementation and targeted hosted-adapter timeout fix.",
+      "evidence": []
     }
   ]
 }

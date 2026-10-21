@@ -1,0 +1,44 @@
+{
+  "id": "F8-01",
+  "title": "Inventory every kernel, capability and physical test target",
+  "status": "done",
+  "dependencies": [],
+  "locks": [
+    "f8-kernel-device-matrix"
+  ],
+  "requires": [
+    "Any development host; access to current API, schedule and qualification records"
+  ],
+  "scope": "Create the machine-readable obligations manifest mapping all shared kernel entrypoints and compiled variants to domains, modes, public cases and registered physical device/backend tuples. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Enumerate kernels from build manifests, including spatial primitives, auxiliary/paint and coupling kernels, and map each applicable target to an execution test and owner.",
+    "Record real device availability, OS/GPU/driver/toolchain identifiers and current capability exclusions; include Pixel 7, available Windows CUDA/D3D12, Linux CUDA/Vulkan and macOS/iOS Metal targets without inventing hardware availability.",
+    "Add separate bounded qualification cards for additional device tuples: each depends on F8-22 and becomes a dependency of F8-99, never the reverse. Unavailable hardware and unsupported modes never become passing coverage.",
+    "Account for existing live P3-02, P1-59 and F5-99 work and handoff boundaries; archive old evidence without assigning it to the new solver."
+  ],
+  "evidence": [
+    "conformance/v1/qualification/kernel-device-obligations-v1.json: exact inventory of 147 canonical entrypoints, eight physical tuples, owners, tests and current exclusions.",
+    "PASS: tests/roadmap/test_f8_01_kernel_device_inventory.py; roadmap suite 62/62 and conformance suite 391/391."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "b87ef139-46eb-4148-92d2-a55d48692fa5",
+        "owner": "codex-windows-f8-inventory",
+        "machine": "windows-gtx1080",
+        "branch": "work/F8-01/windows-gtx1080",
+        "claimed_at": "2026-10-21T20:09:23Z",
+        "heartbeat_at": "2026-10-21T20:09:23Z",
+        "expires_at": "2026-10-22T20:09:23Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-21T20:55:00Z",
+      "reason": "Published exact F8 kernel/device obligations without promoting legacy evidence.",
+      "evidence": [
+        "conformance/v1/qualification/kernel-device-obligations-v1.json: exact inventory of 147 canonical entrypoints, eight physical tuples, owners, tests and current exclusions.",
+        "PASS: tests/roadmap/test_f8_01_kernel_device_inventory.py; roadmap suite 62/62 and conformance suite 391/391."
+      ]
+    }
+  ]
+}

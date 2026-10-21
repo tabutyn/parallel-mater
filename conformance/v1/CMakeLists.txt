@@ -18,6 +18,7 @@ add_library(parallel-mater-conformance-runner STATIC
     src/fluid_soft_contact_quality.cpp
     src/fluid_rope_contact_quality.cpp
     src/cloth_soft_contact.cpp
+    src/soft_rope_contact.cpp
     src/cloth_rigid_contact.cpp
     src/rope_rigid_contact.cpp
     src/rope_rigid_attachment.cpp

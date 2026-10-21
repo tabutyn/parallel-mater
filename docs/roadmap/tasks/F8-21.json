@@ -1,0 +1,27 @@
+{
+  "id": "F8-21",
+  "title": "Add measured dispatch, GPU phase and synchronization budgets",
+  "status": "open",
+  "dependencies": [
+    "F8-01",
+    "F8-02",
+    "F8-20"
+  ],
+  "locks": [
+    "schedule-telemetry",
+    "reference-schedule"
+  ],
+  "requires": [
+    "A physical supported GPU, shared Slang build toolchain and public-API test harness"
+  ],
+  "scope": "Make the real-time schedule's emitted work and synchronization cost observable and regression-tested on all adapters without required instrumentation stalls. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Report actual dispatches/workgroups, index build/refit/publication counts, numerical iterations, barriers, submissions, readbacks and bytes moved by major phase in per-tick units.",
+    "Capture CPU encode/submit/wait and GPU index/candidate/domain/coupling/commit time using asynchronous bounded query storage; explicitly label unsupported timing and instrumentation overhead.",
+    "Machine-readable reports include source/artifact/deployment identity, workload counts, profile/budget versions, warmup, p50/p95/p99, thermals and simulation-to-wall-clock ratio.",
+    "Negative tests catch extra iterations/rebuilds and budget regressions; disabling telemetry removes mandatory query/readback overhead."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

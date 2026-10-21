@@ -1,0 +1,32 @@
+{
+  "id": "F8-18",
+  "title": "Integrate liquid cross-system couplings into the single-step solve",
+  "status": "open",
+  "dependencies": [
+    "F8-09",
+    "F8-10",
+    "F8-11",
+    "F8-12",
+    "F8-13",
+    "F8-14",
+    "F8-15",
+    "F8-16"
+  ],
+  "locks": [
+    "liquid-domain-couplings",
+    "reference-schedule"
+  ],
+  "requires": [
+    "A physical supported GPU, shared Slang build toolchain and public-API test harness"
+  ],
+  "scope": "Move existing liquid-liquid, liquid-rigid and liquid-deformable/smoke operators to the shared snapshot and one same-epoch advance. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Reuse one particle/geometry hierarchy for self and cross-population queries, with no per-pair sorts or time subdivision.",
+    "Independent cases check equal-material split-versus-combined populations where valid, balanced exchange, containment, material identity and three-plus-family interactions within the new envelope.",
+    "Test sources/outflow, endpoint replacement, differing supported material parameters and bounded overflow/recovery; unsupported modes remain unsupported.",
+    "Record bounded algebraic iterations, per-operator dispatch budgets and splitting/dissipation changes; no double integration or stale endpoint snapshot."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

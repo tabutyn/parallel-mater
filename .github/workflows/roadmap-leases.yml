@@ -1,26 +1,37 @@
-name: Roadmap leases
+name: CI
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened]
   push:
     branches: [main]
   merge_group:
   workflow_dispatch:
+  schedule:
+    - cron: '23 4 * * *'
 
 concurrency:
-  group: roadmap-leases-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # Coalesce updates to one PR. A docs-only main push must not cancel an older
+  # code-change build; immutable non-PR revisions therefore have distinct runs.
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
-  lease-contract:
-    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+  plan:
     name: Roadmap lease contract
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      plan: ${{ steps.route.outputs.plan }}
+      shaders: ${{ steps.route.outputs.shaders }}
+      sdk: ${{ steps.route.outputs.sdk }}
+      reference: ${{ steps.route.outputs.reference }}
+      timing: ${{ steps.route.outputs.timing }}
+      windows: ${{ steps.route.outputs.windows }}
+      mobile: ${{ steps.route.outputs.mobile }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -28,6 +39,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+      - name: Install CI contract-test dependency
+        run: python3 -m pip install -r tools/ci/requirements.txt
+      - name: Test CI routing, workflow wiring and failure gates
+        run: python3 -m unittest discover -s tests/ci -p 'test_*.py'
       - name: Test lease races and state transitions
         run: python3 -m unittest discover -s tests/roadmap -p 'test_*.py'
       - name: Check task catalog and generated roadmap
@@ -45,3 +60,47 @@ jobs:
           else
             python3 tools/roadmap.py check --base origin/main
           fi
+      - name: Select suites from complete commit diff
+        id: route
+        run: python3 tools/ci/route.py
+
+  shaders:
+    needs: plan
+    if: needs.plan.outputs.shaders == 'true'
+    uses: ./.github/workflows/shader-portability.yml
+  sdk:
+    needs: plan
+    if: needs.plan.outputs.sdk == 'true'
+    uses: ./.github/workflows/sdk-install.yml
+  reference:
+    needs: plan
+    if: needs.plan.outputs.reference == 'true'
+    uses: ./.github/workflows/reference-artifacts.yml
+  timing:
+    needs: plan
+    if: needs.plan.outputs.timing == 'true'
+    uses: ./.github/workflows/gallery-frame-timing.yml
+  windows:
+    needs: plan
+    if: needs.plan.outputs.windows == 'true'
+    uses: ./.github/workflows/windows-loader.yml
+  mobile:
+    needs: plan
+    if: needs.plan.outputs.mobile == 'true'
+    uses: ./.github/workflows/mobile-gallery.yml
+
+  required:
+    name: CI required
+    needs: [plan, shaders, sdk, reference, timing, windows, mobile]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Require routing and every selected suite to succeed
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: python3 tools/ci/check_result.py

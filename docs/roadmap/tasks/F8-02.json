@@ -1,0 +1,25 @@
+{
+  "id": "F8-02",
+  "title": "Verify deployed binaries and capture trustworthy Android baselines",
+  "status": "open",
+  "dependencies": [
+    "F8-00",
+    "F8-01"
+  ],
+  "locks": [
+    "android-vulkan-frame-performance"
+  ],
+  "requires": [
+    "Physical Pixel 7 and Android Vulkan build/install/profiling tools"
+  ],
+  "scope": "Repair build/deploy/run provenance and reproduce the legacy baseline. Preserve the unfinished P3-02 branch and quarantine unverified local-APK comparisons; claim only after the current conflicting lease is released. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Bind source revision/dirty-patch identity, toolchain, local artifact hash, installed package/binary identity and fresh runtime nonce; reject missing installation and stale/wrong-device runs with negative tests.",
+    "Capture fixed legacy Rigid Body, Fluid and Smoke Soft Body workloads, including live/capacity counts, true per-tick dispatches, CPU/GPU phase timings, simulation/wall-clock rate and thermals.",
+    "Retain original failures and explicitly label O3/rank-one/cooperative comparisons without verified deployed binaries as unqualified; do not infer optimization results from those labels.",
+    "Publish reproducible commands and reviewable artifacts; no solver/accuracy change in this task."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,44 @@
+{
+  "id": "F8-00",
+  "title": "Specify the versioned 60 Hz real-time quality contract",
+  "status": "done",
+  "dependencies": [],
+  "locks": [
+    "f8-realtime-contract"
+  ],
+  "requires": [
+    "Any development host; access to current API, schedule and qualification records"
+  ],
+  "scope": "Define the user-authorized stability/accuracy/performance tradeoff before implementation, including API negotiation and quantitative supported input envelopes. This is specification work, not approval to simply lower the old substep count. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Specify dt=1/60, one time advance and one spatial-index publication per tick, no catch-up, high-rate interpolation, slow-motion overload and fixed algebraic-iteration caps.",
+    "Set measurable per-domain and per-coupling stability/error limits, allowed damping/compliance, speed/correction/stiffness/mass-ratio ranges and failure behavior; retain old contract and goldens separately.",
+    "Freeze workload tiers, unchanged object/live/capacity counts and p95 physics budgets leaving render/input time inside 16.67 ms on nominated 60 Hz devices. Have F8-01 confirm device inventory before implementation budgets are finalized.",
+    "Document new profile/version negotiation, unsupported parameter behavior and compatibility policy; record which accuracy is intentionally sacrificed and why."
+  ],
+  "evidence": [
+    "docs/roadmap/F8-00-REALTIME-CONTRACT.md and conformance/v1/qualification/realtime-profile-v1.json: normative v1.0 schedule, negotiation, limits, failure semantics and device budgets.",
+    "PASS: python3 -m unittest discover -s tests/roadmap -p test_*.py (70/70); python3 tools/roadmap.py check; JSON parse and git diff checks."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "88a20fe5-ee5e-4c8a-bb4a-3899cf52435c",
+        "owner": "codex-macos-realtime-contract",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-00/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-21T21:11:18Z",
+        "heartbeat_at": "2026-10-21T21:11:18Z",
+        "expires_at": "2026-10-22T21:11:18Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-21T21:35:30Z",
+      "reason": "Specified the versioned single-step profile, shared numerical envelope, exact work budgets and frozen F8-01 device tiers before implementation.",
+      "evidence": [
+        "docs/roadmap/F8-00-REALTIME-CONTRACT.md and conformance/v1/qualification/realtime-profile-v1.json: normative v1.0 schedule, negotiation, limits, failure semantics and device budgets.",
+        "PASS: python3 -m unittest discover -s tests/roadmap -p test_*.py (70/70); python3 tools/roadmap.py check; JSON parse and git diff checks."
+      ]
+    }
+  ]
+}

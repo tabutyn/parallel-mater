@@ -1,0 +1,2 @@
+# YAML parsing for workflow-wiring regression tests, not the router itself.
+PyYAML==6.0.2

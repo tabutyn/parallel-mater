@@ -808,7 +808,8 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         PUBLIC include examples/support/include
         PRIVATE examples/support examples/gallery)
     target_link_libraries(parallel-mater-gallery-renderer-adapters
-        PUBLIC parallel-mater-gallery-renderer-contract)
+        PUBLIC parallel-mater-gallery-renderer-contract
+        PRIVATE parallel-mater-gallery-frame-timing)
     target_compile_features(parallel-mater-gallery-renderer-adapters
         PUBLIC cxx_std_20)
     if(pm_gallery_host_renderer_optix)

@@ -168,6 +168,31 @@ if(BUILD_TESTING)
                 $<TARGET_FILE:parallel-mater-gallery>)
         set_tests_properties(parallel-mater-slang-metal-gallery-domains PROPERTIES
             LABELS "gallery;metal;gpu;preview" TIMEOUT 1200)
+        if(TARGET parallel-mater-conformance AND TARGET parallel-mater-layer-validation)
+            set(PM_METAL_RIGID_QUALITY_DIRECTORY
+                "${CMAKE_CURRENT_BINARY_DIR}/metal-rigid-brick-quality")
+            file(MAKE_DIRECTORY "${PM_METAL_RIGID_QUALITY_DIRECTORY}")
+            add_test(NAME parallel-mater-slang-metal-rigid-brick-quality-execution
+                COMMAND "${CMAKE_COMMAND}" -E env
+                    "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-metal.json"
+                    "PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json"
+                    $<TARGET_FILE:parallel-mater-conformance>
+                    --quality rigid-brick-penetration-v1
+                    --output "${PM_METAL_RIGID_QUALITY_DIRECTORY}")
+            add_test(NAME parallel-mater-slang-metal-rigid-brick-quality
+                COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/quality.py"
+                    --profile "${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/quality/rigid-brick-penetration-v1.json"
+                    --actual "${PM_METAL_RIGID_QUALITY_DIRECTORY}/rigid-brick-penetration-v1.json"
+                    --report "${PM_METAL_RIGID_QUALITY_DIRECTORY}/report.json")
+            set_tests_properties(
+                parallel-mater-slang-metal-rigid-brick-quality-execution
+                parallel-mater-slang-metal-rigid-brick-quality PROPERTIES
+                LABELS "conformance;metal;gpu;quality" TIMEOUT 300)
+            set_tests_properties(parallel-mater-slang-metal-rigid-brick-quality
+                PROPERTIES DEPENDS
+                    parallel-mater-slang-metal-rigid-brick-quality-execution)
+        endif()
     endif()
     add_test(NAME parallel-mater-macos-gallery-help
              COMMAND $<TARGET_FILE:parallel-mater-gallery> --help)

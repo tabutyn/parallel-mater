@@ -1518,6 +1518,8 @@ int conformance_command_main(int argc, char **argv) {
                 "fluid-rope-contact-v1";
             const bool cloth_soft_contact = arguments.quality_id ==
                 "cloth-soft-contact-v1";
+            const bool soft_rope_contact = arguments.quality_id ==
+                "soft-rope-contact-v1";
             const bool cloth_rigid_contact = arguments.quality_id ==
                 "cloth-rigid-contact-v1";
             const bool rope_rigid_contact = arguments.quality_id ==
@@ -1575,6 +1577,7 @@ int conformance_command_main(int argc, char **argv) {
                 !fluid_soft_contact &&
                 !fluid_rope_contact &&
                 !cloth_soft_contact &&
+                !soft_rope_contact &&
                 !cloth_rigid_contact &&
                 !rope_rigid_contact &&
                 !rope_rigid_attachment &&
@@ -1627,7 +1630,8 @@ int conformance_command_main(int argc, char **argv) {
                            fluid_rigid_containment ||
                            cloth_rope_attachment || soft_rope_attachment ||
                            cloth_soft_contact || cloth_rigid_contact ||
-                           rope_rigid_contact || rope_rigid_attachment) {
+                           rope_rigid_contact || rope_rigid_attachment ||
+                           soft_rope_contact) {
                     ExecutionStatus status{};
                     if (fluid_cloth_containment)
                         result = conformance_fluid_cloth_containment_quality(
@@ -1640,6 +1644,9 @@ int conformance_command_main(int argc, char **argv) {
                             root, &status);
                     else if (cloth_soft_contact)
                         result = conformance_cloth_soft_contact_quality(
+                            root, &status);
+                    else if (soft_rope_contact)
+                        result = conformance_soft_rope_contact_quality(
                             root, &status);
                     else if (cloth_rigid_contact)
                         result = conformance_cloth_rigid_contact_quality(

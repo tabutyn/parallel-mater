@@ -1,0 +1,24 @@
+{
+  "id": "F8-29",
+  "title": "Qualify the candidate on physical iOS Metal devices",
+  "status": "open",
+  "dependencies": [
+    "F8-22"
+  ],
+  "locks": [
+    "f8-qualification-ios-metal"
+  ],
+  "requires": [
+    "Every registered physical iOS/iPadOS target and deployment/signing toolchain"
+  ],
+  "scope": "Execute and report the frozen F8-22 candidate: Each registered iPhone/iPad Metal tuple; simulator or macOS execution does not substitute. This is qualification, not authority to introduce unreviewed solver fixes. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Run every applicable kernel/variant, domain, coupling, lifecycle and negative case in the frozen matrix; record unsupported and missing cases explicitly. All required rows must execute and pass.",
+    "Prove one dt=1/60 advance and one spatial publication per tick; verify high-rate interpolation, low-rate slow-motion, no catch-up and fixed dispatch/iteration/synchronization budgets.",
+    "Report the fixed profile's independent quality assertions and per-tier CPU/GPU/frame p50/p95/p99 budgets, plus cold-start and sustained runs. Never lower counts/tolerances or substitute another device.",
+    "Attach reviewable artifacts identifying exact candidate, binary/deployment, device/OS/GPU/driver/toolchain and manifest hashes; preserve failures and create separate fix/requalification leaves instead of declaring partial success."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
