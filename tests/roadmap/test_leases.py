@@ -39,6 +39,20 @@ def paths(id='F1-01'):
 
 
 class LeaseTests(unittest.TestCase):
+    def test_ci_maintenance_is_coordination_but_runtime_still_requires_lease(self):
+        tasks = {'F1-01': task()}
+        ci = ['.github/workflows/sdk-install.yml', 'tools/ci/route.py',
+              'tests/ci/test_routing.py', 'docs/continuous-integration.md']
+        self.assertEqual(roadmap.transitions(tasks, tasks, NOW, ci), [])
+        with self.assertRaisesRegex(ValueError, 'implementation PR'):
+            roadmap.transitions(tasks, tasks, NOW, ci + ['src/simulation/runtime.cpp'])
+
+    def test_claim_cannot_bundle_ci_maintenance(self):
+        base, candidate = {'F1-01': task()}, {'F1-01': task()}
+        claim(candidate)
+        with self.assertRaisesRegex(ValueError, 'only its task card'):
+            roadmap.transitions(base, candidate, NOW, paths() + ['tools/ci/route.py'])
+
     def test_catalog_is_valid_and_index_current(self):
         tasks = roadmap.load(ROOT)
         self.assertEqual((ROOT / roadmap.ROADMAP).read_text(), roadmap.rendered(ROOT, tasks))
