@@ -1,7 +1,7 @@
 {
   "id": "F8-00",
   "title": "Specify the versioned 60 Hz real-time quality contract",
-  "status": "open",
+  "status": "leased",
   "dependencies": [],
   "locks": [
     "f8-realtime-contract"
@@ -17,6 +17,14 @@
     "Document new profile/version negotiation, unsupported parameter behavior and compatibility policy; record which accuracy is intentionally sacrificed and why."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "88a20fe5-ee5e-4c8a-bb4a-3899cf52435c",
+    "owner": "codex-macos-realtime-contract",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-00/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-21T21:11:18Z",
+    "heartbeat_at": "2026-10-21T21:11:18Z",
+    "expires_at": "2026-10-22T21:11:18Z"
+  },
   "history": []
 }
