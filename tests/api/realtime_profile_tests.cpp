@@ -2,6 +2,7 @@
 #include <parallel_mater/parallel_mater.h>
 
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <limits>

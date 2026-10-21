@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater/parallel_mater.h>
 
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <vector>
