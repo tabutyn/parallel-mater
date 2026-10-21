@@ -26,6 +26,7 @@ GROUPS = {'F1': 'Resource lifetime and capacity', 'F2': 'Interaction graph and s
           'F8': '60 Hz single-step simulation and shared spatial indexing',
           'P1': 'Deferred domain and interaction coverage', 'P2': 'Deferred engine integration',
           'P3': 'Deferred measured optimization', 'P4': 'Deferred vendor and standards adoption'}
+ARCHIVED_COMPLETED_GROUPS = {'F5'}
 
 
 def require(condition, message):
@@ -149,7 +150,8 @@ def index(tasks):
         if not selected:
             continue
         if all(t['status'] == 'done' for t in selected):
-            completed.append((group, title, selected))
+            if group not in ARCHIVED_COMPLETED_GROUPS:
+                completed.append((group, title, selected))
             continue
         rows += [f'### {group}. {title}', ''] + task_table(selected, tasks)
     if completed:

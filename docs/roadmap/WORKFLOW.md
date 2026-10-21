@@ -168,8 +168,9 @@ platform, runtime or SDK implementation. Existing historical roadmap snapshots
 are context only and must never become competing task queues.
 
 Entirely completed categories are collapsed automatically in the generated index.
-Their cards and history stay canonical. A new open/deferred follow-up makes its
-category visible again; never delete completed cards to clean the work queue.
+Completed F5 is archived out of the live index. Its cards and history stay
+canonical, and a new open/deferred F5 follow-up makes the category visible again;
+never delete completed cards to clean the work queue.
 For F8, follow [the 60 Hz plan](F8-REALTIME-60HZ.md), including the frozen candidate
 revision, complete kernel/device matrix and separate legacy/new quality profiles.
 
