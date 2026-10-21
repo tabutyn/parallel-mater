@@ -12,8 +12,37 @@ spec = importlib.util.spec_from_file_location("deploy", pathlib.Path(__file__).r
 deploy = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(deploy)
 
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+
 
 class DeploymentTests(unittest.TestCase):
+    def test_windows_gallery_preset_owns_dual_backend_auto_deployment(self):
+        presets = json.loads((ROOT / "CMakePresets.json").read_text())
+        configure = {item["name"]: item for item in presets["configurePresets"]}
+        build = {item["name"]: item for item in presets["buildPresets"]}
+
+        canonical = configure["windows-gallery"]
+        variables = canonical["cacheVariables"]
+        self.assertEqual(variables["PARALLEL_MATER_BUILD_CUDA"], "ON")
+        self.assertEqual(variables["PARALLEL_MATER_BUILD_D3D12"], "ON")
+        self.assertEqual(
+            variables["PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY"], "ON")
+        self.assertEqual(build["windows-gallery"]["targets"],
+                         ["parallel-mater-gallery"])
+
+        preview = configure["windows-d3d12-preview"]["cacheVariables"]
+        self.assertEqual(
+            preview["PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY"], "OFF")
+
+    def test_windows_auto_deploy_requires_backend_picker_package(self):
+        cmake = (ROOT / "CMakeLists.txt").read_text()
+        installer = (ROOT / "scripts" / "Install-WindowsGallery.ps1").read_text()
+        self.assertIn("AUTO_DEPLOY requires both CUDA and D3D12", cmake)
+        self.assertIn("-RequiredDriverManifests", cmake)
+        self.assertIn(
+            "Canonical Parallel-Mater installation requires driver manifest",
+            installer)
+
     def physics_report(self):
         artifacts = [
             {"path": f"physics-qualification/cases/case-{index}.json",

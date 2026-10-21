@@ -53,14 +53,16 @@ Automated and headless runs bypass the prompt with `--backend cuda` or
 `--backend d3d12` or `--backend vulkan`. Without an explicit backend, non-interactive runs retain the
 loader's normal compatible-device selection.
 
-On Windows, each successful `parallel-mater-gallery` build refreshes the
-current user's single canonical Start Menu installation. Its package manifest
-records the Git revision, configuration, executable hash, and all installed
-file hashes; `Parallel-Mater.exe --version` prints the embedded revision and
-per-build timestamp. Both
-the CUDA and Direct3D 12 portable manifests are installed when those drivers
-were built, so this installed executable presents the same backend selection
-that was tested in the build tree.
+On Windows, the `windows-gallery` preset builds CUDA and Direct3D 12 together.
+Each successful `parallel-mater-gallery` link refreshes the current user's
+single canonical Start Menu installation. Its package manifest records the Git
+revision, configuration, executable hash, selected driver manifests, and all
+installed file hashes; `Parallel-Mater.exe --version` prints the embedded
+revision and per-build timestamp. Canonical auto-deployment fails configuration
+unless both drivers are enabled, and the installer verifies both manifests
+before changing the installed app. Specialized presets such as
+`windows-d3d12-preview` keep auto-deployment disabled and run from their build
+tree, so they cannot silently remove the backend picker from the installed app.
 
 On Linux, `scripts/Run-DesktopGallery.sh` starts the prepared
 `build-desktop-switch` build with both driver manifests. Install its single canonical

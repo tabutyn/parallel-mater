@@ -195,20 +195,25 @@ Deployment checks the built revision, signature, installed backend, and a native
 rendering smoke test. It requires a clean checkout and matching build by
 default; `--allow-dirty` permits an explicit development iteration.
 
-### Windows: D3D12
+### Windows: CUDA + D3D12 Gallery
 
-Use Visual Studio 2022 with its C++ tools and Windows SDK, plus the pinned Slang
-compiler:
+Use Visual Studio 2022 with its C++ tools and Windows SDK, the CUDA toolkit,
+and the pinned Slang compiler:
 
 ```powershell
-cmake --preset windows-d3d12-preview
-cmake --build --preset windows-d3d12-preview
-.\build-windows-d3d12-preview\Release\Parallel-Mater.exe --backend d3d12
+cmake --preset windows-gallery
+cmake --build --preset windows-gallery
 ```
 
-The preview preset leaves the installed application unchanged. To refresh the
-canonical Start Menu app, run
-`cmake --build --preset windows-d3d12-preview --target install-windows-gallery`.
+This canonical development preset builds CUDA and D3D12 together and refreshes
+the Start Menu installation after every successful Gallery link. Launching
+**Parallel-Mater** then presents the backend picker. Auto-deployment rejects a
+single-backend configuration, preventing a specialized build from silently
+replacing the canonical dual-backend app.
+
+Use `windows-d3d12-preview` only for isolated D3D12 work. It leaves the
+installed application unchanged; run its build-tree executable directly with
+`--backend d3d12`.
 The [Gallery guide](docs/GALLERY.md#backend-selection) explains installation
 and backend selection.
 

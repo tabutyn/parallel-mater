@@ -128,6 +128,25 @@
       }
     },
     {
+      "name": "windows-gallery",
+      "inherits": "gallery-preview-base",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/build-windows-gallery",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "BUILD_TESTING": "ON",
+        "CMAKE_CUDA_ARCHITECTURES": "native",
+        "PARALLEL_MATER_BUILD_CUDA": "ON",
+        "PARALLEL_MATER_BUILD_D3D12": "ON",
+        "PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY": "ON"
+      }
+    },
+    {
       "name": "windows-d3d12-preview",
       "inherits": "gallery-preview-base",
       "generator": "Visual Studio 17 2022",
@@ -140,7 +159,8 @@
       },
       "cacheVariables": {
         "BUILD_TESTING": "ON",
-        "PARALLEL_MATER_BUILD_D3D12": "ON"
+        "PARALLEL_MATER_BUILD_D3D12": "ON",
+        "PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY": "OFF"
       }
     }
   ],
@@ -171,6 +191,15 @@
     {
       "name": "linux-vulkan-preview",
       "configurePreset": "linux-vulkan-preview",
+      "jobs": 2
+    },
+    {
+      "name": "windows-gallery",
+      "configurePreset": "windows-gallery",
+      "configuration": "Release",
+      "targets": [
+        "parallel-mater-gallery"
+      ],
       "jobs": 2
     },
     {

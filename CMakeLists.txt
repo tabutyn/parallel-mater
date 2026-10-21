@@ -88,7 +88,7 @@ option(PARALLEL_MATER_BUILD_GALLERY
        "Build the backend-neutral gallery application" ${APPLE})
 if(WIN32)
     option(PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY
-           "Refresh the current-user Start Menu gallery after every build" ON)
+           "Refresh the current-user Start Menu gallery after every build" OFF)
 else()
     set(PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY OFF)
 endif()
@@ -150,6 +150,17 @@ if(WIN32 AND (PARALLEL_MATER_BUILD_GALLERY OR
               PARALLEL_MATER_BUILD_D3D12))
     set(PARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS ON CACHE BOOL
         "Build and validate the portable Slang rigid constraint core" FORCE)
+endif()
+
+if(PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY)
+    if(NOT PARALLEL_MATER_BUILD_GALLERY)
+        message(FATAL_ERROR
+            "PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY requires PARALLEL_MATER_BUILD_GALLERY")
+    endif()
+    if(NOT PARALLEL_MATER_BUILD_CUDA OR NOT PARALLEL_MATER_BUILD_D3D12)
+        message(FATAL_ERROR
+            "PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY requires both CUDA and D3D12 so the canonical app keeps its backend picker; use the windows-gallery preset")
+    endif()
 endif()
 
 if(PARALLEL_MATER_SLANG_TEST_BUILD)
@@ -991,12 +1002,33 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             VERBATIM)
     endif()
     if(WIN32)
+        set(PARALLEL_MATER_WINDOWS_GALLERY_DRIVER_MANIFESTS)
+        if(PARALLEL_MATER_BUILD_CUDA)
+            list(APPEND PARALLEL_MATER_WINDOWS_GALLERY_DRIVER_MANIFESTS
+                 slang-cuda.json)
+        endif()
+        if(PARALLEL_MATER_BUILD_D3D12)
+            list(APPEND PARALLEL_MATER_WINDOWS_GALLERY_DRIVER_MANIFESTS
+                 slang-d3d12.json)
+        endif()
+        if(PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER)
+            list(APPEND PARALLEL_MATER_WINDOWS_GALLERY_DRIVER_MANIFESTS
+                 slang-cpu.json)
+        endif()
+        list(JOIN PARALLEL_MATER_WINDOWS_GALLERY_DRIVER_MANIFESTS ","
+             PARALLEL_MATER_WINDOWS_GALLERY_DRIVER_MANIFEST_ARGUMENT)
         set(PARALLEL_MATER_WINDOWS_GALLERY_INSTALL_COMMAND
             powershell.exe -NoProfile -ExecutionPolicy Bypass
             -File "${CMAKE_CURRENT_SOURCE_DIR}/scripts/Install-WindowsGallery.ps1"
             -BuildDirectory "$<TARGET_FILE_DIR:parallel-mater-gallery>"
             -BuildConfiguration "$<CONFIG>"
-            -Version "${PROJECT_VERSION}")
+            -Version "${PROJECT_VERSION}"
+            -DriverManifests
+                "${PARALLEL_MATER_WINDOWS_GALLERY_DRIVER_MANIFEST_ARGUMENT}")
+        if(PARALLEL_MATER_WINDOWS_GALLERY_AUTO_DEPLOY)
+            list(APPEND PARALLEL_MATER_WINDOWS_GALLERY_INSTALL_COMMAND
+                -RequiredDriverManifests "slang-cuda.json,slang-d3d12.json")
+        endif()
         set(PARALLEL_MATER_WINDOWS_GALLERY_DEPLOY_TRIGGER
             "${CMAKE_CURRENT_BINARY_DIR}/generated/windows_gallery_deploy.cpp")
         file(WRITE "${PARALLEL_MATER_WINDOWS_GALLERY_DEPLOY_TRIGGER}"

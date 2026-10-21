@@ -4,7 +4,9 @@ param(
     [string]$BuildDirectory,
     [string]$RuntimeDirectory,
     [string]$BuildConfiguration = 'Release',
-    [string]$Version = '0.1.0'
+    [string]$Version = '0.1.0',
+    [string]$DriverManifests = '',
+    [string]$RequiredDriverManifests = ''
 )
 $ErrorActionPreference = 'Stop'
 if (![Environment]::Is64BitOperatingSystem) { throw 'Parallel-Mater requires 64-bit Windows.' }
@@ -104,16 +106,35 @@ if ($packagedAssetCount -eq 0) {
     throw "No packaged gallery scenes were found in: $packagedAssetDirectory"
 }
 $files['config\device-profiles.json'] = (Resolve-Path -LiteralPath (Join-Path $BuildDirectory 'config\device-profiles.json')).Path
-$driverManifestCount = 0
-foreach ($manifestName in @('slang-cuda.json','slang-d3d12.json','slang-cpu.json')) {
-    $driverManifest = Join-Path $BuildDirectory "manifests\portable\$manifestName"
-    if (Test-Path -LiteralPath $driverManifest -PathType Leaf) {
-        $files["manifests\$manifestName"] = (Resolve-Path -LiteralPath $driverManifest).Path
-        $driverManifestCount++
-    }
+$knownDriverManifests = @('slang-cuda.json','slang-d3d12.json','slang-cpu.json')
+$selectedDriverManifests = if ($DriverManifests) {
+    @($DriverManifests.Split(',') | Where-Object { $_ })
+} else {
+    @($knownDriverManifests | Where-Object {
+        Test-Path -LiteralPath (Join-Path $BuildDirectory "manifests\portable\$_") -PathType Leaf
+    })
 }
-if ($driverManifestCount -eq 0) {
+foreach ($manifestName in $selectedDriverManifests) {
+    if ($knownDriverManifests -notcontains $manifestName) {
+        throw "Unknown Parallel-Mater driver manifest requested: $manifestName"
+    }
+    $driverManifest = Join-Path $BuildDirectory "manifests\portable\$manifestName"
+    if (!(Test-Path -LiteralPath $driverManifest -PathType Leaf)) {
+        throw "Missing configured Parallel-Mater driver manifest: $driverManifest"
+    }
+    $files["manifests\$manifestName"] = (Resolve-Path -LiteralPath $driverManifest).Path
+}
+if ($selectedDriverManifests.Count -eq 0) {
     throw "No portable Parallel-Mater driver manifest was found in: $BuildDirectory"
+}
+$requiredDriverManifestNames = @($RequiredDriverManifests.Split(',') | Where-Object { $_ })
+foreach ($manifestName in $requiredDriverManifestNames) {
+    if ($knownDriverManifests -notcontains $manifestName) {
+        throw "Unknown required Parallel-Mater driver manifest: $manifestName"
+    }
+    if ($selectedDriverManifests -notcontains $manifestName) {
+        throw "Canonical Parallel-Mater installation requires driver manifest: $manifestName"
+    }
 }
 $files['manifests\validation.json'] = (Resolve-Path -LiteralPath (Join-Path $BuildDirectory 'manifests\portable\validation.json')).Path
 $files['LICENSE'] = "$sourceRoot\LICENSE"
@@ -153,7 +174,8 @@ $manifestFilesDuringInstall = @($previousFiles + @($files.Keys) | Sort-Object -U
 $manifest = [ordered]@{ application='Parallel-Mater'; directory=$installRoot; version=$Version;
     configuration=$BuildConfiguration; revision=$revision; reportedVersion=$reportedVersion;
     executableSha256=$sourceHashes['Parallel-Mater.exe']; state='installing';
-    files=$manifestFilesDuringInstall; hashes=$sourceHashes }
+    driverManifests=@($selectedDriverManifests); files=$manifestFilesDuringInstall;
+    hashes=$sourceHashes }
 # Keep the ownership marker even if a copy fails, so rerunning can repair it.
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
 foreach ($name in $files.Keys) {
