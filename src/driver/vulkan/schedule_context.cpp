@@ -3,6 +3,7 @@
 #include "simulation/geometry_storage.hpp"
 #include "simulation/paint_storage.hpp"
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -33,8 +34,22 @@ void check(VkResult result, const char *operation) {
 
 void log_schedule_profile(const std::string &payload) noexcept {
 #ifdef __ANDROID__
-    __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
-                        "VulkanScheduleProfile %s", payload.c_str());
+    constexpr std::size_t chunk_size = 768U;
+    if (payload.size() <= chunk_size) {
+        __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
+                            "VulkanScheduleProfile %s", payload.c_str());
+        return;
+    }
+    static std::atomic<std::uint64_t> sequence{};
+    const auto id = sequence.fetch_add(1U, std::memory_order_relaxed);
+    const auto count = (payload.size() + chunk_size - 1U) / chunk_size;
+    for (std::size_t index = 0U; index < count; ++index) {
+        const auto chunk = payload.substr(index * chunk_size, chunk_size);
+        __android_log_print(ANDROID_LOG_INFO, "ParallelMater",
+            "VulkanScheduleProfileChunk %llu %zu/%zu %s",
+            static_cast<unsigned long long>(id), index + 1U, count,
+            chunk.c_str());
+    }
 #else
     std::fprintf(stderr, "VulkanScheduleProfile %s\n", payload.c_str());
 #endif
