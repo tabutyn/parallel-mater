@@ -366,7 +366,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [P3-01](roadmap/tasks/P3-01.json) | Plan measured platform and shader optimization | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
-| [P3-02](roadmap/tasks/P3-02.json) | Profile and optimize Android Vulkan stepping | leased | F5-07, F5-15, F7-18, F7-99 | codex-android-vulkan / thomas-laptop / 2026-10-21T13:29:02Z |
+| [P3-02](roadmap/tasks/P3-02.json) | Profile and optimize Android Vulkan stepping | leased | F5-07, F5-15, F7-18, F7-99 | codex-android-vulkan / thomas-laptop / 2026-10-22T16:24:51Z |
 
 ### P4. Deferred vendor and standards adoption
 

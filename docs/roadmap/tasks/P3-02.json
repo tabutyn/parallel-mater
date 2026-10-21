@@ -24,13 +24,29 @@
   ],
   "evidence": [],
   "lease": {
-    "token": "d171db3d-fbbd-4710-a28a-2ada65a2d9d1",
+    "token": "af1d8962-1fdd-491c-81d5-9a008d63d765",
     "owner": "codex-android-vulkan",
     "machine": "thomas-laptop",
     "branch": "work/P3-02/thomas-laptop",
-    "claimed_at": "2026-10-20T13:29:02Z",
-    "heartbeat_at": "2026-10-20T13:29:02Z",
-    "expires_at": "2026-10-21T13:29:02Z"
+    "claimed_at": "2026-10-21T16:24:51Z",
+    "heartbeat_at": "2026-10-21T16:24:51Z",
+    "expires_at": "2026-10-22T16:24:51Z"
   },
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "d171db3d-fbbd-4710-a28a-2ada65a2d9d1",
+        "owner": "codex-android-vulkan",
+        "machine": "thomas-laptop",
+        "branch": "work/P3-02/thomas-laptop",
+        "claimed_at": "2026-10-20T13:29:02Z",
+        "heartbeat_at": "2026-10-20T13:29:02Z",
+        "expires_at": "2026-10-21T13:29:02Z"
+      },
+      "outcome": "reclaimed",
+      "at": "2026-10-21T16:24:51Z",
+      "reason": "Prior lease expired during connected-device profiling; preserved implementation branch and adopting the same measured Android Vulkan optimization scope",
+      "evidence": []
+    }
+  ]
 }
