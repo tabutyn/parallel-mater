@@ -1,0 +1,63 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-45",
+  "source_commit": "cffde482190a233dca25153b1d45cf9e6c856c9d",
+  "captured_at": "2026-10-21",
+  "host": "Thomass-MacBook-Air",
+  "driver": "slang-metal",
+  "device": "Apple M4 - Metal GPU preview (qualification incomplete)",
+  "capabilities": [
+    "SOFT_BODY/ROPE/DISTINCT_FAMILY/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE"
+  ],
+  "contracts": {
+    "trajectory": "case:rope-soft-body",
+    "quality": "quality:soft-rope-contact-v1",
+    "lifecycle": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"
+  },
+  "results": {
+    "trajectory_execution": "PASS: 1 completed, 0 unsupported, 0 failed",
+    "reference_regression": "PASS: rope-soft-body against the unchanged CUDA golden",
+    "analytic_invariants": "PASS: 7 endpoint samples, 0 failures",
+    "initial_overlap_m": 0.09000000022351742,
+    "contact_penetration_m": 0.0,
+    "contact_impulse_activity_n_s": 10.643656195137588,
+    "reciprocal_impulse_residual_n_s": 1.3160612855616881e-06,
+    "contact_force_activity_n": 1064.365662359771,
+    "reciprocal_force_residual_n": 0.00015831280901037852,
+    "force_impulse_residual_n_s": 8.529229554432159e-07,
+    "contact_frictionless_slip_m_s": 1.1297842251757781,
+    "released_frictionless_slip_m_s": 1.129784130801757,
+    "released_contact_force_activity_n": 0.0,
+    "maximum_surface_reconstruction_error_m": 3.4597098121432046e-08,
+    "lifecycle": "PASS: 2 profile cases, 9 checkpoints, 0 failures; retained three-family partial rollback binding",
+    "qualification": "PASS: 1/1 exact CONTACT capability, 0 failures",
+    "python_conformance_tests": "PASS: 391 tests",
+    "roadmap_tests": "PASS: 31 tests",
+    "native_build": "PASS: conformance runner, Slang Metal driver, native Metal shaders and cross-target shader validation",
+    "focused_native_tests": "PASS: 11/11 conformance and Slang Metal tests",
+    "native_tests": "PASS: 83 passed, 15 unsupported-driver skips, 0 failed out of 98",
+    "command_inputs": "PASS: all pinned conformance inputs match the manifest",
+    "evidence_index": "PASS: 1/336 capability records qualified across 47 revisioned reports; stale and unrecaptured records remain visible and unqualified"
+  },
+  "artifacts": {
+    "provenance": "docs/roadmap/evidence/F5-45-cffde48-metal-provenance.json",
+    "capabilities": "docs/roadmap/evidence/F5-45-cffde48-metal-capabilities.json",
+    "trajectory_result": "docs/roadmap/evidence/F5-45-cffde48-metal-trajectory/rope-soft-body.json",
+    "trajectory_report": "docs/roadmap/evidence/F5-45-cffde48-metal-rope-soft-body-report.json",
+    "quality_result": "docs/roadmap/evidence/F5-45-cffde48-metal-quality-result.json",
+    "quality_report": "docs/roadmap/evidence/F5-45-cffde48-metal-quality-report.json",
+    "lifecycle_result": "docs/roadmap/evidence/F5-45-cffde48-metal-lifecycle-result.json",
+    "lifecycle_report": "docs/roadmap/evidence/F5-45-cffde48-metal-lifecycle-report.json",
+    "qualification_report": "docs/roadmap/evidence/F5-45-cffde48-metal-qualification-report.json",
+    "physical_evidence": "conformance/v1/evidence/macos-m4-slang-metal-cffde48-soft-rope-contact.json",
+    "qualification": "conformance/v1/evidence/macos-m4-slang-metal-cffde48-soft-rope-contact-qualification.json",
+    "evidence_index": "conformance/v1/evidence/index-v1.json"
+  },
+  "notes": [
+    "The immutable public-API oracle starts a resampled rope inside a moving bound tetrahedral surface, then independently checks surface reconstruction, separation, reciprocal impulse, reciprocal public force and force-to-impulse consistency in SI units.",
+    "Contact and released states retain frictionless relative slip and release clears the public contact-force channel, so a hidden or persistent attachment cannot satisfy the contact contract.",
+    "The exact CONTACT obligation keeps the existing adverse three-family partial-rollback lifecycle case; the new fixture does not substitute for or broaden that lifecycle evidence.",
+    "The Apple GPU reproduces the unchanged rope-soft-body CUDA golden after F5-56 made coupled rope reduction order explicit in the shared Slang implementation.",
+    "Only the exact recaptured Metal CONTACT record qualifies. Older and unrecaptured driver records remain visible and unqualified after the obligation hash changed."
+  ]
+}

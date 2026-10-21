@@ -1,0 +1,55 @@
+{
+  "driver": {
+    "device": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "device_id": 0,
+    "driver_version": "202618",
+    "name": "slang-metal",
+    "vendor_id": 4203
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 1,
+  "observations": {
+    "contact_clearance_m": 0.20579577659851434,
+    "contact_force_activity_n": 1064.365662359771,
+    "contact_frictionless_slip_m_s": 1.1297842251757781,
+    "contact_impulse_activity_n_s": 10.643656195137588,
+    "contact_penetration_m": 0.0,
+    "force_impulse_residual_n_s": 8.529229554432159e-07,
+    "initial_clearance_m": 0.009999999776482582,
+    "initial_overlap_m": 0.09000000022351742,
+    "maximum_endpoint_speed_m_s": 10.315590142682533,
+    "maximum_surface_reconstruction_error_m": 3.4597098121432046e-08,
+    "reciprocal_force_residual_n": 0.00015831280901037852,
+    "reciprocal_impulse_residual_n_s": 1.3160612855616881e-06,
+    "released_clearance_m": 0.22752329890020104,
+    "released_contact_force_activity_n": 0.0,
+    "released_frictionless_slip_m_s": 1.129784130801757,
+    "rope_contact_impulse_n_s": [
+      -0.2831658087670803,
+      -10.63988883048296,
+      4.742224768254644e-10
+    ],
+    "rope_reaction_force_n": [
+      -28.316508293151855,
+      -1063.9889278411865,
+      4.742224124498762e-08
+    ],
+    "soft_body_contact_impulse_n_s": [
+      0.28316497802734375,
+      10.639887809753418,
+      -4.742224390952288e-10
+    ],
+    "soft_body_reaction_force_n": [
+      28.31650733947754,
+      1063.98876953125,
+      -4.7422243909522876e-08
+    ]
+  },
+  "passed": true,
+  "profile_id": "soft-rope-contact-v1",
+  "profile_sha256": "df6d15ea4e3d96346a23894c557292da15f6acf26dafd33384a17028226a1de6",
+  "sample_count": 7,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

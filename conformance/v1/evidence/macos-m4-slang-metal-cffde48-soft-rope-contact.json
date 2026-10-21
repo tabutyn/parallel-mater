@@ -1,0 +1,108 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "F5-45",
+  "captured_at": "2026-10-21",
+  "source": {
+    "commit": "cffde482190a233dca25153b1d45cf9e6c856c9d",
+    "dirty": false
+  },
+  "driver": {
+    "name": "slang-metal",
+    "version": "0.2.0+cffde48",
+    "binary_sha256": "4623a6259e9539d9916b77b92f09f0ee26dea822cbb028fcbc5ea37b6f38631d"
+  },
+  "device": {
+    "name": "Apple M4 - Metal GPU preview (qualification incomplete)",
+    "vendor_id": 4203,
+    "device_id": 0,
+    "driver_version": "202618 (Apple Metal 32023.883)"
+  },
+  "toolchain": {
+    "compiler": "Apple Clang, Slang Metal",
+    "version": "Apple LLVM 21.0.0 (clang-2100.1.1.101); Xcode 26.6 (17F113); Apple Metal 32023.883; Slang 2026.18"
+  },
+  "captures": {
+    "provenance_sha256": "9b46e2ba2dc8572469a9a056de2b8c72dbee24ca58f44dc3fdba2a6b50897fd8",
+    "capabilities_sha256": "4a1e1930f58007a1c6a42af8182948ac12718dd72f1feb41ebf7c0a965d6ac80"
+  },
+  "advertised_capabilities": [
+    {
+      "first_family": "SOFT_BODY",
+      "second_family": "ROPE",
+      "scope": "DISTINCT_FAMILY",
+      "mode": "CONTACT",
+      "direction": "BIDIRECTIONAL",
+      "material_profile": "ENDPOINT_NATIVE",
+      "max_graph_edges_per_simulation": "simulation-capacity"
+    }
+  ],
+  "contracts": {
+    "trajectory": {
+      "id": "case:rope-soft-body",
+      "sha256": "8d774dd377086780d1b4d52735290a73ccaa7fd4cc9334dfa5ad4fb0763b3549"
+    },
+    "quality": {
+      "id": "quality:soft-rope-contact-v1",
+      "sha256": "df6d15ea4e3d96346a23894c557292da15f6acf26dafd33384a17028226a1de6"
+    },
+    "lifecycle": {
+      "id": "lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback",
+      "sha256": "50726a7743f3eb9d1b3c22cbcc73e89acfdfc2bca20623f48eace1d4b15547b2"
+    }
+  },
+  "trajectory": {
+    "execution_status": "completed",
+    "execution_result_sha256": "c23fe2d78510da557492ea11bf2414290a3eea7d09d5d6e35815fc8605e4232f",
+    "comparison_report_sha256": "88b0678791d9784d5fbd7b4827d0d79710e9a9b28087e5ce4f38e666e14d68a8",
+    "reference_regression": {
+      "passed": 1,
+      "failed": 0,
+      "unsupported": 0
+    }
+  },
+  "analytic_invariants": {
+    "result_sha256": "986027b107f53d236a8aa1ac051625318cf7eeb7ff4d40d35a3d0a3c9630d6e1",
+    "report_sha256": "c3e96f56874faf3362e4dba1f6baee08f299b685c774d7904a7eed815321265c",
+    "passed": true,
+    "sample_count": 7,
+    "failure_count": 0,
+    "observations": {
+      "initial_overlap_m": 0.09000000022351742,
+      "contact_penetration_m": 0.0,
+      "contact_impulse_activity_n_s": 10.643656195137588,
+      "reciprocal_impulse_residual_n_s": 1.3160612855616881e-06,
+      "contact_force_activity_n": 1064.365662359771,
+      "reciprocal_force_residual_n": 0.00015831280901037852,
+      "force_impulse_residual_n_s": 8.529229554432159e-07,
+      "contact_frictionless_slip_m_s": 1.1297842251757781,
+      "released_frictionless_slip_m_s": 1.129784130801757,
+      "released_contact_force_activity_n": 0.0,
+      "maximum_surface_reconstruction_error_m": 3.4597098121432046e-08
+    }
+  },
+  "lifecycle_invariants": {
+    "result_sha256": "dfb45babf4def7e69543ed57f816b3a3cf355d5e2b2cb92e289dac9308611e38",
+    "report_sha256": "ec2b02585e534d739521534be79f21f8e491a1cb7b8faba4dce21936062cff9e",
+    "passed": true,
+    "profile_case_count": 2,
+    "profile_checkpoint_count": 9,
+    "failure_count": 0,
+    "bound_case": "three-family-partial-rollback",
+    "bound_case_checkpoint_count": 5
+  },
+  "commands": [
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --case rope-soft-body --output <trajectory-output>",
+    "python3 conformance/v1/compare.py --cases conformance/v1/cases --expected conformance/v1/golden/cuda --actual <trajectory-output> --case rope-soft-body --report <trajectory-report>",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --quality soft-rope-contact-v1 --output <quality-output>",
+    "python3 conformance/v1/quality.py --profile conformance/v1/quality/soft-rope-contact-v1.json --actual <quality-output>/soft-rope-contact-v1.json --report <quality-report>",
+    "PM_DRIVER_FILES=<metal-manifest> PM_LAYER_FILES=<validation-manifest> <build>/parallel-mater-conformance --root . --lifecycle-profile adverse-capacity-three-family-v1 --output <lifecycle-result>",
+    "python3 conformance/v1/lifecycle.py --profile conformance/v1/lifecycle/adverse-capacity-three-family-v1.json --actual <lifecycle-result> --report <lifecycle-report>"
+  ],
+  "notes": [
+    "The immutable public-state oracle starts a resampled rope inside the bound tetrahedral soft-body surface and checks separation through public rope, soft-node, surface and contact-force outputs only.",
+    "The capture proves reciprocal impulse and force response, force-to-impulse consistency, reconstructed surface bindings and frictionless tangential slip without reading driver-private state or introducing GPU synchronization.",
+    "Contact force clears after graph removal and the endpoints retain relative slip, preventing an attachment implementation from satisfying the contact contract.",
+    "The exact contact tuple retains the independently versioned three-family partial-rollback lifecycle binding, whose full two-case, nine-checkpoint profile passed on this revision.",
+    "The Apple GPU reproduces the unchanged rope-soft-body CUDA reference after the shared coupled-rope numerical fix from F5-56."
+  ]
+}
