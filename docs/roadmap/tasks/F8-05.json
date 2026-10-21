@@ -1,7 +1,7 @@
 {
   "id": "F8-05",
   "title": "Design one shared spatial-index epoch for all consumers",
-  "status": "leased",
+  "status": "done",
   "dependencies": [],
   "locks": [
     "f8-shared-spatial-design"
@@ -16,15 +16,33 @@
     "Specify conservative full-tick translation/rotation/solver-correction bounds and candidate completeness tests, with explicit out-of-envelope failure behavior that never adds a hidden rebuild or substep.",
     "Specify one mutation/admission phase for emission/removal/teleport/topology changes, then one dynamic index publication reused by all domains and edges; record per-consumer migration interfaces."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "22d52f7b-4a25-485f-b61f-6415dd0c51ce",
-    "owner": "codex-linux-spatial",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-05/thomas-laptop",
-    "claimed_at": "2026-10-21T20:12:37Z",
-    "heartbeat_at": "2026-10-21T20:12:37Z",
-    "expires_at": "2026-10-22T20:12:37Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/roadmap/F8-05-SHARED-SPATIAL-INDEX.md sections 1-3 and 6-8 map inspected main f8f7c52 source paths to shared bounds/build/query interfaces, cached mesh trees, retained grid operators, generation identities and bounded GPU-active work.",
+    "PASS: sections 4-7 define translation/rotation/total-correction candidate inclusion, one private update and publication, provisional births, atomic phase-transfer fallback, and tick rejection without hidden rebuilds/substeps.",
+    "PASS: python3 -m unittest discover -s tests/roadmap -p test_*.py; Linux host Python 3.11.2 CPU model; 55 tests (35 lease/workflow plus 20 tests in tests/roadmap/test_f8_spatial_design.py) on synchronized main bdf66c1. Includes randomized candidate inclusion, endpoint-rotation negative control, signed bindings, tombstones, capacity/overflow and no partial commit.",
+    "LIMIT: design/model only, no GPU kernels or device timing/physical qualification. F8-00 must approve concrete motion/correction budgets and admission/phase timing tradeoffs; F8-03 and F8-06 through F8-21 implement and qualify the contracts. Model covers one-to-one transfers, not multi-particle conversion physics."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "22d52f7b-4a25-485f-b61f-6415dd0c51ce",
+        "owner": "codex-linux-spatial",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-05/thomas-laptop",
+        "claimed_at": "2026-10-21T20:12:37Z",
+        "heartbeat_at": "2026-10-21T20:12:37Z",
+        "expires_at": "2026-10-22T20:12:37Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-21T20:30:09Z",
+      "reason": "Specified one shared spatial-index epoch, conservative whole-tick envelopes, transactional admission and per-consumer migration; executable design model passes.",
+      "evidence": [
+        "PASS: docs/roadmap/F8-05-SHARED-SPATIAL-INDEX.md sections 1-3 and 6-8 map inspected main f8f7c52 source paths to shared bounds/build/query interfaces, cached mesh trees, retained grid operators, generation identities and bounded GPU-active work.",
+        "PASS: sections 4-7 define translation/rotation/total-correction candidate inclusion, one private update and publication, provisional births, atomic phase-transfer fallback, and tick rejection without hidden rebuilds/substeps.",
+        "PASS: python3 -m unittest discover -s tests/roadmap -p test_*.py; Linux host Python 3.11.2 CPU model; 55 tests (35 lease/workflow plus 20 tests in tests/roadmap/test_f8_spatial_design.py) on synchronized main bdf66c1. Includes randomized candidate inclusion, endpoint-rotation negative control, signed bindings, tombstones, capacity/overflow and no partial commit.",
+        "LIMIT: design/model only, no GPU kernels or device timing/physical qualification. F8-00 must approve concrete motion/correction budgets and admission/phase timing tradeoffs; F8-03 and F8-06 through F8-21 implement and qualify the contracts. Model covers one-to-one transfers, not multi-particle conversion physics."
+      ]
+    }
+  ]
 }
