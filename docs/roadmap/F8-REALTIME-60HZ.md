@@ -108,16 +108,16 @@ with an independent executable model. It is not GPU implementation evidence.
 
 ## Quality and measurement gates
 
-F8-00 defines a named/versioned real-time profile before implementation. It must
-set quantitative limits for contact penetration/tunneling, resting stability,
-joint/stretch/volume error, liquid compression/free-surface behavior, smoke
-divergence, coupling imbalance and long-run finite-state/energy behavior over
-explicit input ranges. Lower accuracy is allowed and reported, not disguised as
-legacy conformance. Keep old-profile tests/results separate. Capability/version
-negotiation and unsupported behavior must be explicit if public behavior changes.
-This does not require shipping two solvers forever: an explicitly versioned
-replacement may retire the old implementation. Preserve its historical evidence
-and reject incompatible requests clearly instead of silently reinterpreting them.
+The normative [F8-00 real-time contract](F8-00-REALTIME-CONTRACT.md) and its
+machine-readable `conformance/v1/qualification/realtime-profile-v1.json` define
+the named/versioned profile, quantitative input and quality envelopes, exact
+iteration counts, frozen device workloads and p95 allocations before
+implementation. Lower accuracy is allowed and reported, not disguised as legacy
+conformance. Keep old-profile tests/results separate. Capability/version
+negotiation and unsupported behavior are explicit. This does not require shipping
+two solvers forever: an explicitly versioned replacement may retire the old
+implementation. Preserve its historical evidence and reject incompatible
+requests clearly instead of silently reinterpreting them.
 
 F8-03 implements independent small-scene oracles, fixed workloads and adversarial
 cases: cold/warm starts, long runs, high mass ratios/stiffness, fast rotation and
