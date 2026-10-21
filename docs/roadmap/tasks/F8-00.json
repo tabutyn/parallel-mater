@@ -1,0 +1,22 @@
+{
+  "id": "F8-00",
+  "title": "Specify the versioned 60 Hz real-time quality contract",
+  "status": "open",
+  "dependencies": [],
+  "locks": [
+    "f8-realtime-contract"
+  ],
+  "requires": [
+    "Any development host; access to current API, schedule and qualification records"
+  ],
+  "scope": "Define the user-authorized stability/accuracy/performance tradeoff before implementation, including API negotiation and quantitative supported input envelopes. This is specification work, not approval to simply lower the old substep count. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Specify dt=1/60, one time advance and one spatial-index publication per tick, no catch-up, high-rate interpolation, slow-motion overload and fixed algebraic-iteration caps.",
+    "Set measurable per-domain and per-coupling stability/error limits, allowed damping/compliance, speed/correction/stiffness/mass-ratio ranges and failure behavior; retain old contract and goldens separately.",
+    "Freeze workload tiers, unchanged object/live/capacity counts and p95 physics budgets leaving render/input time inside 16.67 ms on nominated 60 Hz devices. Have F8-01 confirm device inventory before implementation budgets are finalized.",
+    "Document new profile/version negotiation, unsupported parameter behavior and compatibility policy; record which accuracy is intentionally sacrificed and why."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,26 @@
+{
+  "id": "F8-32",
+  "title": "Expose the real-time profile through the registry and SDK",
+  "status": "open",
+  "dependencies": [
+    "F8-00"
+  ],
+  "locks": [
+    "registry-contract",
+    "validation-layer",
+    "realtime-profile-negotiation"
+  ],
+  "requires": [
+    "Any development host with registry generation and installed-SDK test tools"
+  ],
+  "scope": "Implement the separately versioned real-time profile contract from F8-00 in the registry, generated C API, loader/validation and reference-runtime selection. This task does not implement new solver equations or claim hardware qualification. Follow docs/roadmap/F8-REALTIME-60HZ.md.",
+  "acceptance": [
+    "Reserve explicit profile/version and parameter semantics in registry/pm.xml before generated bindings; do not reinterpret existing timestep/substep fields or silently change legacy defaults. A documented incompatible version may replace the old solver; retaining two implementations is not required.",
+    "Test independently built old/new clients, negotiated new-profile selection, unsupported requests, invalid input envelopes and validation-on/off rejection behavior.",
+    "Runtime dispatch can select the new schedule only when implemented and supported; capability qualification remains separate from execution support and no unfinished solver is advertised as qualified.",
+    "Pass generated-contract, ABI, validation and installed-SDK gates; preserve historical evidence and either honor legacy requests or explicitly reject them under the reviewed version policy."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

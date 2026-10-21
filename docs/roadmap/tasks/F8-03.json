@@ -1,0 +1,26 @@
+{
+  "id": "F8-03",
+  "title": "Build independent single-step quality and work-budget oracles",
+  "status": "open",
+  "dependencies": [
+    "F8-00",
+    "F8-01",
+    "F8-32"
+  ],
+  "locks": [
+    "f8-realtime-test-contract"
+  ],
+  "requires": [
+    "Any development host; access to current API, schedule and qualification records"
+  ],
+  "scope": "Implement the new profile's independent public-API test cases and small-scene numerical/candidate oracles before changing solver equations. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Translate every F8-00 limit into a named assertion over fixed workloads and input envelopes; include all advertised domains/modes and mixed three-plus-family cases.",
+    "Test cold starts, long runs, impacts/rotation, stiff systems, mass ratios, containment, sources/removals, replacement, overflow and recovery; include failing negative controls.",
+    "Keep old-profile regression/quality results separate; baseline failures at one 1/60 step are recorded rather than weakening thresholds.",
+    "Specify dispatch/iteration/index-update and timing assertions in per-tick units, with deterministic mock-clock tests where hardware timing is not applicable."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

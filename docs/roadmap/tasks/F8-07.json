@@ -1,0 +1,29 @@
+{
+  "id": "F8-07",
+  "title": "Implement the once-per-tick shared BVH resource service",
+  "status": "open",
+  "dependencies": [
+    "F8-00",
+    "F8-03",
+    "F8-05",
+    "F8-06",
+    "F8-32"
+  ],
+  "locks": [
+    "shared-spatial-index",
+    "reference-schedule"
+  ],
+  "requires": [
+    "A physical supported GPU, shared Slang build toolchain and public-API test harness"
+  ],
+  "scope": "Implement the backend-neutral spatial resource lifecycle and shared kernel service with one published dynamic hierarchy epoch per tick. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Implement admission, conservative bounds, active-leaf generation, build/refit, candidate queries and snapshot lifetime per F8-05; immutable mesh-local trees remain cached.",
+    "Enforce at most one dynamic update per tick across domains/populations/edges; reject stale epoch/generation use and test topology edits, compaction, spawn/removal and reset.",
+    "Verify full-tick candidate completeness against independent small-scene brute force, including rotation and allowed solve corrections; enforce explicit bounded overflow/out-of-envelope behavior.",
+    "Keep counts/scratch GPU resident with bounded memory and no new routine CPU phase waits; expose accurate update/build/refit counts for later telemetry."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

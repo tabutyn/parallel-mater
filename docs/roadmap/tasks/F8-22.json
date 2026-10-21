@@ -1,0 +1,27 @@
+{
+  "id": "F8-22",
+  "title": "Freeze the cross-machine candidate and complete kernel coverage",
+  "status": "open",
+  "dependencies": [
+    "F8-01",
+    "F8-03",
+    "F8-20",
+    "F8-21"
+  ],
+  "locks": [
+    "f8-candidate-freeze"
+  ],
+  "requires": [
+    "Any development host; access to current API, schedule and qualification records"
+  ],
+  "scope": "Freeze a single integrated source/profile/kernel/workload/tolerance/budget tuple and prepare the exhaustive device qualification matrix before parallel hardware testing. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Compile shared kernels/reflection/bindings for CUDA, Vulkan, D3D12 and Metal and validate that every manifest entry/variant has an applicable runtime test; compile-only results are not qualification.",
+    "Record exact source revision, artifacts/toolchains, profile version and manifest hashes; enumerate all physical registered devices and missing availability explicitly.",
+    "Create extra bounded device qualification/fix tasks where needed and add them to the exit dependencies before claiming F8-99; keep active task definitions frozen.",
+    "Document candidate invalidation: later kernel/schedule/physics/profile changes require a new candidate and affected-device reruns, never a union of incompatible green reports."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
