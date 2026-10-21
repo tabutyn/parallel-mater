@@ -1,7 +1,7 @@
 {
   "id": "F5-45",
   "title": "Qualify soft-rope contact",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-23",
     "F5-56"
@@ -18,16 +18,10 @@
     "Retain the existing exact lifecycle binding and prove the new analytic fixture does not broaden or substitute for its capacity, replacement and rollback obligations.",
     "Bind only the exact tuple records in capability-obligations-v1 and rebuild the evidence index; retain failures, leave unrecaptured drivers unqualified, and remove any production advertisement that cannot satisfy the contract."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "1c8416c6-3562-4f31-8686-abc67e1121bf",
-    "owner": "codex-macos-qualification",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F5-45/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-21T16:53:55Z",
-    "heartbeat_at": "2026-10-21T16:53:55Z",
-    "expires_at": "2026-10-22T16:53:55Z"
-  },
+  "evidence": [
+    "docs/roadmap/evidence/F5-45-soft-rope-contact.json"
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -43,6 +37,23 @@
       "at": "2026-10-19T18:37:27Z",
       "reason": "Metal physical oracle passes, but current CUDA rope-soft-body regression still exposes cross-driver rope contact-candidate drift; implementation retained on work/F5-45/Thomass-MacBook-Air pending a separately scoped shared-physics repair.",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "1c8416c6-3562-4f31-8686-abc67e1121bf",
+        "owner": "codex-macos-qualification",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F5-45/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-21T16:53:55Z",
+        "heartbeat_at": "2026-10-21T16:53:55Z",
+        "expires_at": "2026-10-22T16:53:55Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-21T17:03:59Z",
+      "reason": "Apple M4 Slang Metal passes the immutable soft-rope contact oracle, retained adverse-capacity lifecycle binding, unchanged rope-soft-body CUDA-reference regression, and exact capability qualification.",
+      "evidence": [
+        "docs/roadmap/evidence/F5-45-soft-rope-contact.json"
+      ]
     }
   ]
 }

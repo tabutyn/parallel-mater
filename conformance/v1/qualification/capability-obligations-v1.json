@@ -62,6 +62,7 @@
     {"id": "quality:soft-rigid-contact-v1", "path": "conformance/v1/quality/soft-rigid-contact-v1.json", "sha256": "2cc79bdc7ce270490c00e92dd3e00911bf10c624ed49f5c36b99d8143a96fad6"},
     {"id": "quality:fluid-rigid-containment-v1", "path": "conformance/v1/quality/fluid-rigid-containment-v1.json", "sha256": "d6ea84babcdc0ede00303f4960336320b165ac3a573e196725a5b69abe31f7f6"},
     {"id": "quality:cloth-rope-attachment-v1", "path": "conformance/v1/quality/cloth-rope-attachment-v1.json", "sha256": "774081efcc918b9c7c144c0189fb24d72f511d44cadd40510d07e7dc9a760023"},
+    {"id": "quality:soft-rope-contact-v1", "path": "conformance/v1/quality/soft-rope-contact-v1.json", "sha256": "df6d15ea4e3d96346a23894c557292da15f6acf26dafd33384a17028226a1de6"},
     {"id": "quality:soft-rope-attachment-v1", "path": "conformance/v1/quality/soft-rope-attachment-v1.json", "sha256": "7c43ecebb7083f0b7e4a2aeab8768f6236cf44edcd7f409022eccbea98a49549"},
     {"id": "quality:smoke-self-pressure-v1", "path": "conformance/v1/quality/smoke-self-pressure-v1.json", "sha256": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150"},
     {"id": "quality:fluid-cloth-contact-v1", "path": "conformance/v1/quality/fluid-cloth-contact-v1.json", "sha256": "1216cf9e7252b5fe4c27f14639a1031e698d459a2001db60153a088ebb600445"},

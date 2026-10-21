@@ -29,7 +29,7 @@
   "id": "driver-evidence-sources-v1",
   "obligations": {
     "path": "conformance/v1/qualification/capability-obligations-v1.json",
-    "sha256": "b7667f614f0a24a0511d4dbe0f30b740c5b21d3be744e4bbc416efb862a70d1f"
+    "sha256": "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5"
   },
   "qualification_results": [
     {
@@ -186,6 +186,11 @@
       "id": "macos-m4-slang-metal-aac6d59",
       "path": "conformance/v1/evidence/macos-m4-slang-metal-aac6d59-qualification.json",
       "sha256": "4c8bacefffcaed67e300d2bdf90a683d46b0c12efeac14f6c83151ecac0bc9ef"
+    },
+    {
+      "id": "macos-m4-slang-metal-cffde48-soft-rope-contact",
+      "path": "conformance/v1/evidence/macos-m4-slang-metal-cffde48-soft-rope-contact-qualification.json",
+      "sha256": "18e91a78c6e0cc470707ae1e61ff3578d758135086e131e05c6c9a0e48601c09"
     },
     {
       "id": "windows-gtx1080-slang-cuda-03c78b1-smoke-fluid-drag-grid",
