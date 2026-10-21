@@ -177,13 +177,12 @@ Common scheduler/API/spatial locks intentionally serialize overlapping edits;
 domain equation work may run on different machines when its shared changes have
 landed. Replan an overlarge leaf before claiming rather than widening its lease.
 
-P3-02 still owns Android optimization with a frozen eight-substep/30 Hz contract.
-Its unfinished branch `work/P3-02/thomas-laptop` and experiments must be preserved.
-Do not implement F8 under that lease or mark P3-02 done using lower-accuracy
-results. The owner must merge a separate release-only PR, then a planning PR may
-defer the superseded task and point at F8. F8-02/F8-30 share its existing lock,
-so deployment/profiling cannot silently race it. Clock and rigid-equation changes
-also take that lock. This plan does not mutate any live lease. P1-59 D3D12 parity
+P3-02's eight-substep/30 Hz optimization was released in PR #437 and is deferred
+as superseded by F8. Its unfinished branch `work/P3-02/thomas-laptop` and dirty
+experiments remain preserved; it was not completed or physically qualified.
+Do not reactivate it to perform the single-step redesign. F8-02/F8-30 retain
+the Android profiling lock, as do the clock and rigid-equation changes, so these
+tasks cannot race deployment or overlapping experiments. P1-59 D3D12 parity
 retains its existing owner/contract. The completed F5-99 review remains evidence
 for the legacy implementation; new equations need new qualification.
 
