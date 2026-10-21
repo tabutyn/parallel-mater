@@ -23,13 +23,29 @@
   ],
   "evidence": [],
   "lease": {
-    "token": "8cc53813-ee6f-4e63-bd9d-07b02d53d159",
+    "token": "aa7657c4-03d5-4749-82fb-517db068323c",
     "owner": "codex-windows-d3d12-parity",
     "machine": "windows-gtx1080",
     "branch": "work/P1-59/windows-gtx1080",
-    "claimed_at": "2026-10-19T22:17:54Z",
-    "heartbeat_at": "2026-10-19T22:17:54Z",
-    "expires_at": "2026-10-20T22:17:54Z"
+    "claimed_at": "2026-10-21T13:38:46Z",
+    "heartbeat_at": "2026-10-21T13:38:46Z",
+    "expires_at": "2026-10-22T13:38:46Z"
   },
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "8cc53813-ee6f-4e63-bd9d-07b02d53d159",
+        "owner": "codex-windows-d3d12-parity",
+        "machine": "windows-gtx1080",
+        "branch": "work/P1-59/windows-gtx1080",
+        "claimed_at": "2026-10-19T22:17:54Z",
+        "heartbeat_at": "2026-10-19T22:17:54Z",
+        "expires_at": "2026-10-20T22:17:54Z"
+      },
+      "outcome": "reclaimed",
+      "at": "2026-10-21T13:38:46Z",
+      "reason": "Prior lease expired during CI review; same owner adopting completed implementation and targeted hosted-adapter timeout fix.",
+      "evidence": []
+    }
+  ]
 }
