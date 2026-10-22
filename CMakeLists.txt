@@ -560,6 +560,16 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     parallel_mater_enable_warnings(parallel-mater-gallery-scene)
 
     if(BUILD_TESTING)
+        add_executable(parallel-mater-gallery-presentation-interpolation-tests
+                       tests/gallery/presentation_interpolation_tests.cpp)
+        target_link_libraries(
+            parallel-mater-gallery-presentation-interpolation-tests
+            PRIVATE parallel-mater-gallery-scene)
+        parallel_mater_enable_warnings(
+            parallel-mater-gallery-presentation-interpolation-tests)
+        add_test(NAME parallel-mater-gallery-presentation-interpolation-tests
+            COMMAND parallel-mater-gallery-presentation-interpolation-tests)
+
         add_executable(parallel-mater-command-gallery-tests
                        tests/gallery/command_gallery_tests.cpp)
         target_link_libraries(parallel-mater-command-gallery-tests
@@ -1319,9 +1329,16 @@ if(BUILD_TESTING)
         if(gallery_session_test_driver)
             add_executable(parallel-mater-gallery-session-contract-tests
                 tests/gallery/gallery_session_contract_tests.cpp)
+            add_executable(parallel-mater-gallery-session-clock-tests
+                tests/gallery/gallery_session_clock_tests.cpp)
             target_link_libraries(parallel-mater-gallery-session-contract-tests PRIVATE
                 parallel-mater-gallery-session)
+            target_link_libraries(parallel-mater-gallery-session-clock-tests PRIVATE
+                parallel-mater-gallery-session)
             target_compile_definitions(parallel-mater-gallery-session-contract-tests PRIVATE
+                PM_GALLERY_SESSION_TEST_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
+                PM_GALLERY_SESSION_TEST_BACKEND="${gallery_session_test_backend}")
+            target_compile_definitions(parallel-mater-gallery-session-clock-tests PRIVATE
                 PM_GALLERY_SESSION_TEST_ROOT="${CMAKE_CURRENT_SOURCE_DIR}"
                 PM_GALLERY_SESSION_TEST_BACKEND="${gallery_session_test_backend}")
             if(gallery_session_test_native_backend)
@@ -1330,14 +1347,24 @@ if(BUILD_TESTING)
             endif()
             add_dependencies(parallel-mater-gallery-session-contract-tests
                 ${gallery_session_test_driver} parallel-mater-layer-validation)
+            add_dependencies(parallel-mater-gallery-session-clock-tests
+                ${gallery_session_test_driver} parallel-mater-layer-validation)
             add_test(NAME parallel-mater-gallery-session-contract-tests
                 COMMAND parallel-mater-gallery-session-contract-tests)
+            add_test(NAME parallel-mater-gallery-session-clock-tests
+                COMMAND parallel-mater-gallery-session-clock-tests)
             set_tests_properties(parallel-mater-gallery-session-contract-tests PROPERTIES
                 LABELS "gallery;runtime;contract" TIMEOUT 120
                 SKIP_RETURN_CODE 77
                 ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/${gallery_session_test_manifest};PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
+            set_tests_properties(parallel-mater-gallery-session-clock-tests PROPERTIES
+                LABELS "gallery;runtime;contract" TIMEOUT 120
+                SKIP_RETURN_CODE 77
+                ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/${gallery_session_test_manifest};PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
             if(gallery_session_test_backend STREQUAL "vulkan")
-                set_tests_properties(parallel-mater-gallery-session-contract-tests
+                set_tests_properties(
+                    parallel-mater-gallery-session-contract-tests
+                    parallel-mater-gallery-session-clock-tests
                     PROPERTIES TIMEOUT 600 RUN_SERIAL TRUE)
             endif()
         endif()

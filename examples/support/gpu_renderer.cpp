@@ -56,7 +56,9 @@ bool resolve_gpu_renderer_device(const GpuSceneBuffers &buffers,
 bool make_gpu_render_request(
     const GpuSceneBuffers &buffers, std::uint64_t frame_generation,
     Camera camera, GpuRenderTarget target, GpuDiagnosticReadback readback,
-    FrameTimingCollector *timing, std::span<const std::uint32_t> overlay,
+    float interpolation_alpha, bool interpolation_history_valid,
+    FrameTimingCollector *timing,
+    std::span<const std::uint32_t> overlay,
     GpuRenderRequest &output, std::string &error) {
     error.clear();
     output = {};
@@ -87,9 +89,21 @@ bool make_gpu_render_request(
     output.target = target;
     output.readback = readback;
     output.camera = camera;
+    output.interpolation_alpha =
+        std::clamp(interpolation_alpha, 0.0F, 1.0F);
+    output.interpolation_history_valid = interpolation_history_valid;
     output.timing = timing;
     output.overlay = overlay;
     return true;
+}
+
+float gpu_draw_interpolation_alpha(const GpuRenderRequest &request,
+                                   const GpuDrawCommand &draw) noexcept {
+    // A domain without a previous GPU output snaps to current in-place. This
+    // fallback never requests a host physics readback.
+    return !request.interpolation_history_valid ||
+            draw.previous_output.size == 0U
+        ? 1.0F : std::clamp(request.interpolation_alpha, 0.0F, 1.0F);
 }
 
 bool make_gpu_scene_draw_list(const SceneDefinition &scene,

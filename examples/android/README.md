@@ -46,10 +46,14 @@ samples the authored initial population down to capacity, and emitters retain
 that capacity. Lower counts change the physical amount and sampling of liquid;
 this is not a quality-equivalent benchmark against the full desktop workload.
 Solver timestep, material parameters and contact iteration quality are retained.
-The common Gallery clock advances fixed 1/target_fps steps with approximately
-240 solver substeps/second. Slow display frames may catch up by at most four
-steps and only within the shared 8 ms physics-work budget; excess whole steps
-are discarded so rendering and input cannot accumulate an unbounded queue.
+The default `legacy-v1` Gallery clock advances fixed 1/target_fps steps with
+approximately 240 solver substeps/second. Slow display frames may catch up by at
+most four steps and only within the shared 8 ms physics-work budget; excess
+whole steps are discarded so rendering and input cannot accumulate an unbounded
+queue. The explicitly selected `realtime-single-step-v1` client clock instead
+uses one `dt=1/60` tick and one substep per callback, never catches up, and runs
+at half simulation speed under sustained 30 Hz overload. Runtime support is
+still negotiated separately; the new clock is not a silent default.
 Pause, backgrounding, surface loss, and profile changes reset elapsed time. The
 UI schedules one worker frame from display callbacks; it does not implement a
 second target-FPS clock.

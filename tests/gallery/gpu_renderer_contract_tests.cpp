@@ -93,6 +93,20 @@ void validate_interop_and_ownership() {
     std::string error;
 
     auto request = request_for(views, device, 2U);
+    request.interpolation_alpha = 0.25F;
+    gallery::GpuDrawCommand interpolated;
+    interpolated.previous_output = views.previous_rigid;
+    gallery::GpuDrawCommand unavailable;
+    require(gallery::gpu_draw_interpolation_alpha(request, interpolated) ==
+                    0.25F &&
+                gallery::gpu_draw_interpolation_alpha(request, unavailable) ==
+                    1.0F,
+            "GPU snapshot fallback did not snap unavailable domains to current");
+    request.interpolation_history_valid = false;
+    require(gallery::gpu_draw_interpolation_alpha(request, interpolated) ==
+                    1.0F,
+            "Reset GPU history did not snap to the current output");
+    request.interpolation_history_valid = true;
     require(renderer.render(request, error),
             "mock renderer rejected a valid public interop frame");
     require(renderer.render(request, error),

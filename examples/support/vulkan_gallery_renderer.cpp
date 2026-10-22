@@ -948,7 +948,6 @@ class VulkanGalleryRenderer final : public GpuGalleryRenderer {
             right, vertical * static_cast<float>(width_) /
                        static_cast<float>(height_));
         result.up = vector(up, vertical);
-        result.settings[1] = 1.0F;
         return result;
     }
 
@@ -971,6 +970,7 @@ class VulkanGalleryRenderer final : public GpuGalleryRenderer {
                 checked_offset(draw.previous_output.offset)};
             values.paint = {};
             values.settings[0] = draw.radius;
+            values.settings[1] = gpu_draw_interpolation_alpha(request, draw);
             values.settings[3] =
                 draw.domain == GpuOutputDomain::fluid ? 1.0F : 0.0F;
             if (draw.kind == GpuDrawKind::particles)

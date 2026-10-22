@@ -76,11 +76,14 @@ std::string details_text(
          << "\nRenderer: " << renderer_label(state)
          << "\nReadback: " << readback_label(state.readback)
          << "\n\nProfile: " << state.workload_profile
+         << " · clock " << state.frame_profile
          << "\n" << state.fluid_particle_limit << " liquid particles · "
          << state.coupled_body_limit << " coupled bodies"
          << "\n" << state.width << " × " << state.height << " · target "
          << state.target_updates_per_second << " updates/s"
-         << "\nHost work: " << state.host_work_frames_per_second << " frames/s";
+         << "\nHost work: " << state.host_work_frames_per_second << " frames/s"
+         << "\nSimulation/wall: " << state.simulation_to_wall_clock_rate
+         << " · interpolation alpha: " << state.interpolation_alpha;
     if (state.latest_timing) {
         const auto &sample = *state.latest_timing;
         text << "\nFrame work: " << sample.total_ms << " ms"

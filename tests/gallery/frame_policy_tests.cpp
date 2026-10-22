@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater_gallery/frame_policy.hpp>
 
+#include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
@@ -26,6 +28,38 @@ std::pair<std::uint32_t, std::uint32_t> run_frame(
     while (policy.can_step()) policy.record_step(step_cost);
     policy.finish_frame();
     return {policy.frame_steps(), policy.dropped_steps()};
+}
+
+void validate_realtime_rate(unsigned display_hz, unsigned seconds) {
+    Policy policy(nullptr,
+        parallel_mater::gallery::GalleryFrameProfile::realtime_single_step_v1);
+    policy.reset(at(0.0));
+    std::uint64_t ticks = 0U;
+    bool saw_interpolated_render = false;
+    for (unsigned frame = 1U; frame <= display_hz * seconds; ++frame) {
+        const auto result = run_frame(
+            policy, at(static_cast<double>(frame) / display_hz));
+        require(result.first <= 1U,
+                "Real-time callback submitted more than one tick");
+        ticks += result.first;
+        saw_interpolated_render |= result.first == 0U &&
+            policy.interpolation_alpha() > 0.0F &&
+            policy.interpolation_alpha() < 1.0F;
+        require(policy.interpolation_alpha() >= 0.0F &&
+                    policy.interpolation_alpha() < 1.0F,
+                "Real-time interpolation extrapolated");
+    }
+    const std::uint64_t expected = std::min(display_hz, 60U) * seconds;
+    require(ticks >= expected - 1U && ticks <= expected,
+            "Display-rate trace produced the wrong real-time tick count");
+    if (display_hz > 60U)
+        require(saw_interpolated_render,
+                "High-refresh trace did not render between ticks");
+    const double expected_rate = std::min(
+        1.0, static_cast<double>(display_hz) / 60.0);
+    require(std::fabs(policy.simulation_to_wall_clock_rate() - expected_rate) <
+                    0.002,
+            "Simulation-to-wall-clock report hid overload");
 }
 } // namespace
 
@@ -109,6 +143,63 @@ int main() {
             require(desktop_result == mobile_result,
                     "Equal adapter traces produced different submissions");
         }
+
+        for (const unsigned display_hz : {30U, 60U, 90U, 120U, 144U})
+            validate_realtime_rate(display_hz, 10U);
+
+        Policy realtime(nullptr,
+            parallel_mater::gallery::GalleryFrameProfile::
+                realtime_single_step_v1);
+        require(realtime.timestep() == 1.0F / 60.0F &&
+                    realtime.substeps() == 1U &&
+                    realtime.target_fps() == 60U,
+                "Real-time profile retained the 240-substep policy");
+        parallel_mater::gallery::GalleryWorkloadLimits low_refresh;
+        low_refresh.target_fps = 30U;
+        Policy realtime_low_refresh(
+            &low_refresh,
+            parallel_mater::gallery::GalleryFrameProfile::
+                realtime_single_step_v1);
+        require(realtime_low_refresh.timestep() == 1.0F / 60.0F &&
+                    realtime_low_refresh.substeps() == 1U,
+                "30 Hz workload enlarged the real-time physics tick");
+        realtime.reset(at(0.0));
+        const auto overloaded = run_frame(realtime, at(1.0 / 30.0));
+        require(overloaded.first == 1U && overloaded.second == 1U,
+                "30 Hz overload caught up or enlarged the timestep");
+        require(std::fabs(realtime.simulation_to_wall_clock_rate() - 0.5) <
+                    0.0001,
+                "30 Hz overload was not reported as half-speed");
+
+        // Irregular display intervals may produce zero or one tick. Debt is
+        // discarded after the callback, never repaid by a burst.
+        const std::vector<double> jitter{
+            0.040, 0.044, 0.061, 0.070, 0.105, 0.111, 0.129};
+        for (double timestamp : jitter) {
+            const auto result = run_frame(realtime, at(timestamp));
+            require(result.first <= 1U,
+                    "Jitter trace triggered real-time catch-up");
+        }
+
+        realtime.reset(at(1.0));
+        const auto stall = run_frame(realtime, at(2.0));
+        require(stall.first == 0U && stall.second >= 60U &&
+                    realtime.interpolation_alpha() == 0.0F,
+                "Stall debt was not discarded with zero presentation alpha");
+        realtime.set_paused(true);
+        require(run_frame(realtime, at(3.0)).first == 0U &&
+                    realtime.interpolation_alpha() == 0.0F,
+                "Real-time pause retained presentation debt");
+        realtime.set_paused(false);
+        require(run_frame(realtime, at(4.0)).first == 0U,
+                "Real-time resume caught up paused time");
+        realtime.set_active(false);
+        require(run_frame(realtime, at(5.0)).first == 0U,
+                "Real-time background submitted physics");
+        realtime.set_active(true);
+        require(run_frame(realtime, at(6.0)).first == 0U &&
+                    realtime.interpolation_alpha() == 0.0F,
+                "Real-time foreground caught up background time");
         return EXIT_SUCCESS;
     } catch (const std::exception &error) {
         std::cerr << error.what() << '\n';

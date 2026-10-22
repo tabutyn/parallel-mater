@@ -180,7 +180,12 @@ bool GalleryRuntime::step(const GalleryStepOptions &options,
                             : PmFlags{}};
         if (!capture_history.record(frame, step, error)) return false;
     }
-    return make_render_scene_frame(scene, frame, render_frame, error);
+    RenderSceneFrame next_render_frame;
+    if (!make_render_scene_frame(scene, frame, next_render_frame, error))
+        return false;
+    advance_render_scene_snapshots(render_frame, next_render_frame);
+    render_frame = std::move(next_render_frame);
+    return true;
 }
 
 bool GalleryRuntime::initialize_controllers(std::string &error) {
