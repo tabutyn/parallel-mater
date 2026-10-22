@@ -78,6 +78,7 @@ public uint pmAtomicMinPositiveFloat(PMBuffer<float> value, float candidate)
 public void pmSyncWarp(uint) {}
 public void pmGridBarrier() {}
 public void pmGroupBarrier() {}
+public void pmDeviceBarrier() {}
 #elif defined(PM_TARGET_VULKAN) || defined(PM_TARGET_METAL)
 public in uint3 pmGroupId : SV_GroupID;
 public in uint3 pmGroupThreadId : SV_GroupThreadID;
@@ -358,6 +359,7 @@ public uint3 pmGridDim() { return pmDispatchGroupCount; }
 // split logical schedules at each grid dependency; this remains a group
 // barrier within one dispatch.
 public void pmGridBarrier() { DeviceMemoryBarrierWithGroupSync(); }
+public void pmDeviceBarrier() { DeviceMemoryBarrier(); }
 #else
 public uint3 pmBlockIndex() { return cudaBlockIdx(); }
 public uint3 pmGroupThreadIndex() { return cudaThreadIdx(); }
@@ -382,6 +384,7 @@ __target_intrinsic(cuda, "atomicOr") public uint64_t pmAtomicOr(
     uint64_t* value, uint64_t candidate);
 __target_intrinsic(cuda, "atomicExch") public uint pmAtomicExchange(uint* value, uint replacement);
 __target_intrinsic(cuda, "__syncwarp") public void pmSyncWarp(uint mask);
+__target_intrinsic(cuda, "__threadfence") public void pmDeviceBarrier();
 __target_intrinsic(cuda, "pm_cuda_grid_barrier()")
 public void pmNativeGridBarrier();
 

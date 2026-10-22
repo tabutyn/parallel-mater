@@ -1,0 +1,53 @@
+{
+  "schema": "parallel-mater-f8-spatial-primitives-evidence/v1",
+  "task": "F8-06",
+  "recorded_at": "2026-10-22",
+  "branch": "work/F8-06/windows-gtx1080",
+  "device": {
+    "name": "NVIDIA GeForce GTX 1080",
+    "compute_capability": "6.1",
+    "driver": "582.66",
+    "cuda_driver_api": 13000,
+    "cuda_runtime": 12090
+  },
+  "method": {
+    "sort_warmups": 5,
+    "sort_samples": 40,
+    "build_warmups": 3,
+    "build_samples": 24,
+    "timing": "CUDA events; allocation and seed reset excluded from sort interval",
+    "legacy_comparator": "existing sixteen-pass 4-bit radix path, 48 dispatches"
+  },
+  "results": [
+    {"capacity": 65536, "live": 128, "policy": "workgroup-bitonic", "sort_dispatches": 1, "build_dispatches": 9, "workgroups": 519, "scratch_bytes": 2631732, "output_bytes": 5504992, "sort_p50_ms": 0.032768, "sort_p95_ms": 0.047104, "legacy_p50_ms": 0.380928, "legacy_p95_ms": 0.421888, "build_p50_ms": 0.140288, "build_p95_ms": 0.162816},
+    {"capacity": 386, "live": 386, "policy": "workgroup-bitonic", "sort_dispatches": 1, "build_dispatches": 9, "workgroups": 15, "scratch_bytes": 16628, "output_bytes": 32416, "sort_p50_ms": 0.043008, "sort_p95_ms": 0.050176, "legacy_p50_ms": 0.398336, "legacy_p95_ms": 0.493568, "build_p50_ms": 0.158720, "build_p95_ms": 0.164864},
+    {"capacity": 1024, "live": 1024, "policy": "workgroup-bitonic", "sort_dispatches": 1, "build_dispatches": 9, "workgroups": 27, "scratch_bytes": 41172, "output_bytes": 85984, "sort_p50_ms": 0.035840, "sort_p95_ms": 0.047104, "legacy_p50_ms": 0.389120, "legacy_p95_ms": 0.457728, "build_p50_ms": 0.168800, "build_p95_ms": 0.207872},
+    {"capacity": 4500, "live": 4500, "policy": "radix8", "sort_dispatches": 24, "build_dispatches": 32, "workgroups": 406, "scratch_bytes": 181652, "output_bytes": 377968, "sort_p50_ms": 0.250880, "sort_p95_ms": 0.272384, "legacy_p50_ms": 0.943104, "legacy_p95_ms": 0.974848, "build_p50_ms": 0.378880, "build_p95_ms": 0.407552},
+    {"capacity": 30065, "live": 30065, "policy": "radix8", "sort_dispatches": 24, "build_dispatches": 32, "workgroups": 2606, "scratch_bytes": 1208580, "output_bytes": 2525440, "sort_p50_ms": 1.019904, "sort_p95_ms": 1.185792, "legacy_p50_ms": 4.568064, "legacy_p95_ms": 4.930560, "build_p50_ms": 1.050624, "build_p95_ms": 1.224704}
+  ],
+  "correctness_cases": [
+    "GPU empty and singleton",
+    "GPU sparse 65,536 capacity / 128 live",
+    "GPU sparse 1,048,576 capacity / 128 live scan stress",
+    "GPU dense 386, 1,024, 4,500, and 30,065 live",
+    "duplicate Morton positions with complete identity ordering",
+    "duplicate complete key status",
+    "invalid NaN bounds status",
+    "GPU active-count overflow status",
+    "GPU wrong small-sort policy status",
+    "independent randomized brute-force overlap oracle",
+    "zero-extent scene and inclusive touching",
+    "checked plan arithmetic and disjoint aligned ranges"
+  ],
+  "compile_checks": [
+    "canonical DXIL schedules plus reflection",
+    "production CUDA module and physical execution",
+    "CUDA and Vulkan SPIR-V canonical mirrors",
+    "per-entry Metal source plus reflection"
+  ],
+  "limits": [
+    "Only CUDA received physical runtime evidence in F8-06.",
+    "F8-07 owns epoch publication, once-per-tick scheduling, admission, and lifecycle.",
+    "F8-22 through F8-30 retain candidate-wide physical qualification."
+  ]
+}
