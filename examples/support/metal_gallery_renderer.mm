@@ -22,8 +22,9 @@ struct VertexData { Vec3 position; Vec2 uv; std::uint32_t output_index; };
 struct Uniforms {
     std::array<float,4> eye{}, right{}, up{}, forward{}, color{};
     std::uint32_t offset{}, stride{}, kind{}, count{};
-    std::uint32_t paint_offset{}, paint_resolution{}, paint_count{}, padding{};
-    float radius{}, height{}, padding2{}, padding3{};
+    std::uint32_t paint_offset{}, paint_resolution{}, paint_count{},
+        previous_offset{};
+    float radius{}, height{}, interpolation_alpha{}, padding3{};
 };
 static_assert(sizeof(VertexData) == 24 && sizeof(Uniforms) == 128);
 static_assert(sizeof(PmRigidState) == 52 && offsetof(PmRigidState, orientation) == 12);
@@ -174,6 +175,12 @@ struct MetalGalleryRenderer final : GpuGalleryRenderer {
             region(semantics.output, semantics.output_stride,
                    semantics.output_has_header);
             u.kind = semantics.kind == GpuDrawKind::rigid_mesh ? 0 : 1;
+            require(semantics.previous_output.offset <= UINT32_MAX,
+                    "Previous GPU output offset exceeds Metal range");
+            u.previous_offset = static_cast<std::uint32_t>(
+                semantics.previous_output.offset);
+            u.interpolation_alpha =
+                gpu_draw_interpolation_alpha(request, semantics);
             u.color = vector(semantics.color, 1); u.paint_resolution = 0;
             if (semantics.paint_output.size != 0U) {
                 const auto paint = semantics.paint_output;

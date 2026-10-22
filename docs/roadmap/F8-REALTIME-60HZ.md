@@ -68,6 +68,8 @@ the structural motivation, not a validated F8 speedup or a literal BVH-build cos
 
 ## Tick design and invariants
 
+The [F8-04 presentation-clock contract](F8-04-PRESENTATION-CLOCK.md) specifies
+display cadence, overload, lifecycle, interpolation and reporting behavior.
 The [F8-05 shared spatial-index design](F8-05-SHARED-SPATIAL-INDEX.md) details
 consumer migration, full-tick bounds, admission/publication and failure behavior,
 with an independent executable model. It is not GPU implementation evidence.

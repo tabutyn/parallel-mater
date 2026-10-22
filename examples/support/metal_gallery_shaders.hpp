@@ -7,8 +7,8 @@ struct Vertex { packed_float3 position; packed_float2 uv; uint output_index; };
 struct Uniforms {
     float4 eye, right, up, forward, color;
     uint offset, stride, kind, count;
-    uint paint_offset, paint_resolution, paint_count, padding;
-    float radius, height, padding2, padding3;
+    uint paint_offset, paint_resolution, paint_count, previous_offset;
+    float radius, height, interpolation_alpha, padding3;
 };
 struct Out {
     float4 position [[position]];
@@ -37,7 +37,22 @@ vertex Out mesh_vertex(uint id [[vertex_id]], device const Vertex *vertices [[bu
     if (u.kind == 0) {
         // Public PmRigidState: packed position, quaternion, velocities.
         device const float *q = reinterpret_cast<device const float *>(data + 12);
-        p = rotate(normalize(float4(q[0],q[1],q[2],q[3])), p) + read3(data);
+        float4 orientation = float4(q[0],q[1],q[2],q[3]);
+        float3 position = read3(data);
+        if (u.interpolation_alpha < 1.f) {
+            device const uchar *old_data = output + u.previous_offset;
+            device const float *old_q =
+                reinterpret_cast<device const float *>(old_data + 12);
+            float4 old_orientation = float4(
+                old_q[0], old_q[1], old_q[2], old_q[3]);
+            if (dot(old_orientation, orientation) < 0.f)
+                old_orientation = -old_orientation;
+            orientation = normalize(mix(
+                old_orientation, orientation, u.interpolation_alpha));
+            position = mix(
+                read3(old_data), position, u.interpolation_alpha);
+        } else orientation = normalize(orientation);
+        p = rotate(orientation, p) + position;
     } else {
         uint active = min(*reinterpret_cast<device const uint *>(data), u.count);
         if (v.output_index >= active) { Out out = {}; out.position = float4(2,2,2,1); return out; }

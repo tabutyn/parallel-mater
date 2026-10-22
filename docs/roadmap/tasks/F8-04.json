@@ -1,7 +1,7 @@
 {
   "id": "F8-04",
   "title": "Implement fixed 60 Hz presentation and overload clock policy",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-00",
     "F8-03",
@@ -21,15 +21,33 @@
     "Remove the new profile's 240-substeps-per-second policy; version any replacement of legacy behavior explicitly. Rendering must not require per-frame CPU physics readback.",
     "Report simulation-to-wall-clock rate and interpolation alpha; slow-motion cannot masquerade as meeting a 60 Hz performance budget."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "6bada42d-183d-4cb2-8584-84ddad82c51f",
-    "owner": "codex-f8-clock",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-04/thomas-laptop",
-    "claimed_at": "2026-10-22T16:19:51Z",
-    "heartbeat_at": "2026-10-22T16:19:51Z",
-    "expires_at": "2026-10-23T16:19:51Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: cmake --build /tmp/parallel-mater-f8-build --target parallel-mater-gallery parallel-mater-gallery-frame-policy-tests parallel-mater-gallery-presentation-interpolation-tests parallel-mater-gallery-gpu-renderer-contract-tests parallel-mater-gallery-session-clock-tests parallel-mater-software-renderer-tests -j 4; ctest --test-dir /tmp/parallel-mater-f8-build --output-on-failure -R gallery-(frame-policy|presentation-interpolation|gpu-renderer-contract|session-clock)-tests|software-renderer-tests; Linux thomas-laptop, GNU 12.2.0, Release Slang CPU: 5/5 passed.",
+    "PASS: cmake --build /tmp/parallel-mater-f8-vulkan-build --target parallel-mater-gallery-frame-policy-tests parallel-mater-gallery-presentation-interpolation-tests parallel-mater-gallery-gpu-renderer-contract-tests parallel-mater-gallery-session-clock-tests parallel-mater-vulkan-gallery-renderer-tests -j 4; Vulkan renderer and shader alpha path compiled. Focused ctest: 3 passed, session-clock skipped because this host exposes no Vulkan physical device; no physical-device or performance claim.",
+    "PASS: python3 -m unittest discover -s tests/roadmap -p test_*.py; Python 3.11.2 on thomas-laptop: 72/72 passed.",
+    "REVIEWABLE CONTRACT: docs/roadmap/F8-04-PRESENTATION-CLOCK.md specifies explicit legacy/realtime versioning, one-tick latency, identity/topology/reset/lifecycle behavior, input sampling, unavailable GPU snapshots, and simulation/wall versus frame-performance reporting."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "6bada42d-183d-4cb2-8584-84ddad82c51f",
+        "owner": "codex-f8-clock",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-04/thomas-laptop",
+        "claimed_at": "2026-10-22T16:19:51Z",
+        "heartbeat_at": "2026-10-22T16:19:51Z",
+        "expires_at": "2026-10-23T16:19:51Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-22T17:07:13Z",
+      "reason": "Implemented the explicit versioned 60 Hz single-step client clock, overload slow-motion reporting, lifecycle-safe previous/current interpolation, and GPU current-state fallback without changing legacy defaults or solver equations.",
+      "evidence": [
+        "PASS: cmake --build /tmp/parallel-mater-f8-build --target parallel-mater-gallery parallel-mater-gallery-frame-policy-tests parallel-mater-gallery-presentation-interpolation-tests parallel-mater-gallery-gpu-renderer-contract-tests parallel-mater-gallery-session-clock-tests parallel-mater-software-renderer-tests -j 4; ctest --test-dir /tmp/parallel-mater-f8-build --output-on-failure -R gallery-(frame-policy|presentation-interpolation|gpu-renderer-contract|session-clock)-tests|software-renderer-tests; Linux thomas-laptop, GNU 12.2.0, Release Slang CPU: 5/5 passed.",
+        "PASS: cmake --build /tmp/parallel-mater-f8-vulkan-build --target parallel-mater-gallery-frame-policy-tests parallel-mater-gallery-presentation-interpolation-tests parallel-mater-gallery-gpu-renderer-contract-tests parallel-mater-gallery-session-clock-tests parallel-mater-vulkan-gallery-renderer-tests -j 4; Vulkan renderer and shader alpha path compiled. Focused ctest: 3 passed, session-clock skipped because this host exposes no Vulkan physical device; no physical-device or performance claim.",
+        "PASS: python3 -m unittest discover -s tests/roadmap -p test_*.py; Python 3.11.2 on thomas-laptop: 72/72 passed.",
+        "REVIEWABLE CONTRACT: docs/roadmap/F8-04-PRESENTATION-CLOCK.md specifies explicit legacy/realtime versioning, one-tick latency, identity/topology/reset/lifecycle behavior, input sampling, unavailable GPU snapshots, and simulation/wall versus frame-performance reporting."
+      ]
+    }
+  ]
 }

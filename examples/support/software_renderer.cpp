@@ -84,31 +84,6 @@ Vec3 rotate(Quaternion quaternion, Vec3 vector) noexcept {
     return add(vector, add(multiply(twice, quaternion.w), cross(q, twice)));
 }
 
-Quaternion normalized(Quaternion value) noexcept {
-    const float size = std::sqrt(value.x * value.x + value.y * value.y +
-                                 value.z * value.z + value.w * value.w);
-    if (size <= 1.0e-8F) return {};
-    return {value.x / size, value.y / size, value.z / size, value.w / size};
-}
-
-RigidBodyState interpolate(RigidBodyState previous, RigidBodyState current,
-                           float alpha) noexcept {
-    alpha = std::clamp(alpha, 0.0F, 1.0F);
-    const auto blend = [alpha](float first, float second) {
-        return first + (second - first) * alpha;
-    };
-    RigidBodyState result = current;
-    result.position = {blend(previous.position.x, current.position.x),
-                       blend(previous.position.y, current.position.y),
-                       blend(previous.position.z, current.position.z)};
-    result.orientation = normalized({
-        blend(previous.orientation.x, current.orientation.x),
-        blend(previous.orientation.y, current.orientation.y),
-        blend(previous.orientation.z, current.orientation.z),
-        blend(previous.orientation.w, current.orientation.w)});
-    return result;
-}
-
 std::uint32_t packed(Vec3 color) noexcept {
     const auto channel = [](float value) {
         return static_cast<std::uint32_t>(
@@ -162,6 +137,8 @@ void draw_triangle(Projected a, Projected b, Projected c, Vec3 color,
 }
 
 void draw_mesh(const TriangleMesh &mesh, const std::vector<Vec3> *positions,
+               const std::vector<Vec3> *previous_positions,
+               float interpolation_alpha,
                const RigidBodyState *transform, const CameraBasis &camera,
                std::uint32_t width, std::uint32_t height,
                std::vector<float> &depth,
@@ -173,6 +150,13 @@ void draw_mesh(const TriangleMesh &mesh, const std::vector<Vec3> *positions,
         const auto position_index = corner_positions ? corner : index;
         Vec3 value = positions != nullptr && position_index < positions->size()
             ? (*positions)[position_index] : mesh.vertices[index].position;
+        if (positions != nullptr && previous_positions != nullptr &&
+            previous_positions->size() == positions->size() &&
+            position_index < previous_positions->size()) {
+            const float alpha = std::clamp(interpolation_alpha, 0.0F, 1.0F);
+            const Vec3 old = (*previous_positions)[position_index];
+            value = add(old, multiply(subtract(value, old), alpha));
+        }
         if (transform != nullptr)
             value = add(rotate(transform->orientation, value),
                         transform->position);
@@ -291,12 +275,13 @@ class SoftwareRenderer final : public Renderer {
             if (body_index < frame.rigid_states.size()) {
                 state = frame.rigid_states[body_index];
                 if (body_index < frame.previous_rigid_states.size())
-                    state = interpolate(frame.previous_rigid_states[body_index],
-                                        state, rigid_interpolation_alpha);
+                    state = presentation_rigid_state(
+                        frame, body_index, rigid_interpolation_alpha);
             }
             for (std::uint32_t mesh_index : body.mesh_indices)
                 if (mesh_index < scene_.meshes.size())
-                    draw_mesh(scene_.meshes[mesh_index], nullptr, &state, basis,
+                    draw_mesh(scene_.meshes[mesh_index], nullptr, nullptr,
+                              rigid_interpolation_alpha, &state, basis,
                               width_, height_, depth_, rgba);
         }
         for (std::size_t index = 0U; index < scene_.cloths.size(); ++index) {
@@ -305,7 +290,11 @@ class SoftwareRenderer final : public Renderer {
             const std::vector<Vec3> *positions =
                 index < frame.cloth_surface_vertices.size()
                 ? &frame.cloth_surface_vertices[index] : nullptr;
-            draw_mesh(scene_.meshes[mesh_index], positions, nullptr, basis,
+            const std::vector<Vec3> *previous =
+                index < frame.previous_cloth_surface_vertices.size()
+                ? &frame.previous_cloth_surface_vertices[index] : nullptr;
+            draw_mesh(scene_.meshes[mesh_index], positions, previous,
+                      rigid_interpolation_alpha, nullptr, basis,
                       width_, height_, depth_, rgba,
                       scene_.cloths[index].break_strain > 0.0F ||
                       scene_.cloths[index].impact_break_impulse > 0.0F);
@@ -316,24 +305,39 @@ class SoftwareRenderer final : public Renderer {
             const std::vector<Vec3> *positions =
                 index < frame.soft_body_surface_vertices.size()
                 ? &frame.soft_body_surface_vertices[index] : nullptr;
-            draw_mesh(scene_.meshes[mesh_index], positions, nullptr, basis,
+            const std::vector<Vec3> *previous =
+                index < frame.previous_soft_body_surface_vertices.size()
+                ? &frame.previous_soft_body_surface_vertices[index] : nullptr;
+            draw_mesh(scene_.meshes[mesh_index], positions, previous,
+                      rigid_interpolation_alpha, nullptr, basis,
                       width_, height_, depth_, rgba);
         }
-        for (const auto &particle : frame.fluid_particles)
-            draw_particle(particle.position,
+        for (std::size_t index = 0U;
+             index < frame.fluid_particles.size(); ++index)
+            draw_particle(presentation_fluid_position(
+                              frame, index, rigid_interpolation_alpha),
                           std::max(frame.fluid_particle_radius, 0.02F),
-                          {0.05F, 0.42F + 0.45F * particle.foam, 0.92F},
+                          {0.05F, 0.42F +
+                               0.45F * frame.fluid_particles[index].foam,
+                           0.92F},
                           basis, width_, height_, depth_, rgba);
         if (show_smoke_particles) {
-            for (const auto &particle : frame.smoke_particles)
-                draw_particle(particle.position,
+            for (std::size_t index = 0U;
+                 index < frame.smoke_particles.size(); ++index)
+                draw_particle(presentation_smoke_position(
+                                  frame, index, rigid_interpolation_alpha),
                               std::max(frame.smoke_particle_radius, 0.03F),
                               {0.58F, 0.61F, 0.65F}, basis, width_, height_,
                               depth_, rgba);
         }
-        for (const auto &rope : frame.rope_nodes)
-            for (Vec3 node : rope)
-                draw_particle(node, 0.025F, {0.85F, 0.62F, 0.18F}, basis,
+        for (std::size_t rope = 0U; rope < frame.rope_nodes.size(); ++rope)
+            for (std::size_t node = 0U;
+                 node < frame.rope_nodes[rope].size(); ++node)
+                draw_particle(presentation_domain_position(
+                                  frame.previous_rope_nodes,
+                                  frame.rope_nodes, rope, node,
+                                  rigid_interpolation_alpha),
+                              0.025F, {0.85F, 0.62F, 0.18F}, basis,
                               width_, height_, depth_, rgba);
         painted_texels_ = 0U;
         for (const auto &field : frame.paint_fields)
