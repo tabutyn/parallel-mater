@@ -1,7 +1,7 @@
 {
   "id": "F8-06",
   "title": "Implement low-dispatch shared spatial build primitives",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-00",
     "F8-01",
@@ -22,6 +22,14 @@
     "Retain independent primitive oracles and explicit empty/small/large-capacity budget tests; no hot-path allocation or mandatory host count readback."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "cabcdecc-2ce1-4c49-9911-08f24d0f8d24",
+    "owner": "codex-windows-spatial",
+    "machine": "windows-gtx1080",
+    "branch": "work/F8-06/windows-gtx1080",
+    "claimed_at": "2026-10-22T16:00:49Z",
+    "heartbeat_at": "2026-10-22T16:00:49Z",
+    "expires_at": "2026-10-23T16:00:49Z"
+  },
   "history": []
 }
