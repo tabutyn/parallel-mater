@@ -574,3 +574,436 @@ void soft_body_apply_surface_contacts(
     }
     positions[node] = add(positions[node], correction);
 }
+
+// Shared-spatial ABI mirrors PmSpatial* from primitives/spatial_build.slang.
+// These kernels only stage deformable leaves and consume service candidates;
+// the once-per-tick spatial service remains the sole hierarchy owner.
+struct DeformableSpatialIdentity
+{
+    uint family;
+    uint owner_slot;
+    uint owner_generation;
+    uint topology_revision;
+    uint primitive_kind;
+    uint primitive_slot;
+    uint primitive_generation;
+};
+
+struct DeformableSpatialLeafMetadata
+{
+    DeformableSpatialIdentity identity;
+    uint sort_key;
+    uint payload_ref;
+    uint query_mask;
+    uint admission_mask;
+    uint flags;
+    uint transfer_group;
+    uint reserved0;
+    uint reserved1;
+    uint reserved2;
+};
+
+struct DeformableSpatialAabb
+{
+    float4 minimum;
+    float4 maximum;
+};
+
+static const uint kDeformableSpatialClothFamily = 3u;
+static const uint kDeformableSpatialStaticFamily = 6u;
+static const uint kDeformableSpatialSegmentPrimitive = 1u;
+static const uint kDeformableSpatialTrianglePrimitive = 2u;
+static const uint kDeformableSpatialLeafRetained = 1u;
+static const uint kDeformableSpatialLeafInactive = 1u << 4u;
+static const uint kDeformableSpatialInvalidIdentity = 1u << 8u;
+static const uint kDeformableSpatialStaleEpoch = 1u << 9u;
+static const uint kDeformableSpatialQueryOverflow = 1u << 10u;
+static const uint kDeformableSpatialInvalidBounds = 1u << 11u;
+static const uint kDeformableSpatialAdmissionInvalid = 1u << 12u;
+
+bool deformable_spatial_finite_vec3(Vec3 value)
+{
+    return isfinite(value.x) && isfinite(value.y) && isfinite(value.z);
+}
+
+bool deformable_spatial_nonnegative_vec3(Vec3 value)
+{
+    return value.x >= 0.0f && value.y >= 0.0f && value.z >= 0.0f;
+}
+
+bool deformable_spatial_valid_family(uint family)
+{
+    return family >= kDeformableSpatialClothFamily &&
+        family <= kDeformableSpatialStaticFamily;
+}
+
+bool deformable_spatial_valid_bounds(DeformableSpatialAabb value)
+{
+    return all(isfinite(value.minimum.xyz)) &&
+        all(isfinite(value.maximum.xyz)) &&
+        all(value.minimum.xyz <= value.maximum.xyz);
+}
+
+bool deformable_spatial_identity_equal(
+    DeformableSpatialIdentity left, DeformableSpatialIdentity right)
+{
+    return left.family == right.family &&
+        left.owner_slot == right.owner_slot &&
+        left.owner_generation == right.owner_generation &&
+        left.topology_revision == right.topology_revision &&
+        left.primitive_kind == right.primitive_kind &&
+        left.primitive_slot == right.primitive_slot &&
+        left.primitive_generation == right.primitive_generation;
+}
+
+bool deformable_spatial_current_primitive(
+    DeformableSpatialLeafMetadata leaf, uint family, uint ownerSlot,
+    uint ownerGeneration, uint topologyRevision,
+    PMBuffer<uint> primitiveGenerations, uint primitiveCount,
+    uint primitiveKind)
+{
+    uint primitive = leaf.payload_ref;
+    return leaf.identity.family == family &&
+        leaf.identity.owner_slot == ownerSlot &&
+        leaf.identity.owner_generation == ownerGeneration &&
+        leaf.identity.topology_revision == topologyRevision &&
+        leaf.identity.primitive_kind == primitiveKind &&
+        primitive < primitiveCount &&
+        leaf.identity.primitive_slot == primitive &&
+        primitiveGenerations[primitive] ==
+            leaf.identity.primitive_generation;
+}
+
+bool deformable_spatial_share_vertex(
+    PMBuffer<uint> firstIndices, uint firstPrimitive,
+    uint firstVerticesPerPrimitive, PMBuffer<uint> secondIndices,
+    uint secondPrimitive, uint secondVerticesPerPrimitive)
+{
+    uint firstBase = firstPrimitive * firstVerticesPerPrimitive;
+    uint secondBase = secondPrimitive * secondVerticesPerPrimitive;
+    for (uint first = 0u; first < firstVerticesPerPrimitive; ++first)
+        for (uint second = 0u; second < secondVerticesPerPrimitive; ++second)
+            if (firstIndices[firstBase + first] ==
+                secondIndices[secondBase + second]) return true;
+    return false;
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void pm_emit_deformable_spatial_primitives(
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> predicted_positions, uniform uint vertex_count,
+    uniform PMBuffer<uint> indices,
+    uniform PMBuffer<uint> primitive_generations,
+    uniform uint primitive_count, uniform uint vertices_per_primitive,
+    uniform uint family, uniform uint owner_slot,
+    uniform uint owner_generation, uniform uint topology_revision,
+    uniform uint primitive_kind, uniform uint leaf_offset,
+    uniform uint leaf_capacity, uniform uint query_offset,
+    uniform uint query_capacity, uniform uint sort_key_base,
+    uniform uint query_mask, uniform uint admission_mask,
+    uniform float thickness, uniform Vec3 path_deviation,
+    uniform Vec3 correction_budget, uniform float epsilon,
+    uniform PMBuffer<DeformableSpatialLeafMetadata> metadata,
+    uniform PMBuffer<DeformableSpatialAabb> bounds,
+    uniform PMByteBuffer build_flags,
+    uniform PMBuffer<DeformableSpatialAabb> query_bounds,
+    uniform PMBuffer<uint> query_masks,
+    uniform PMBuffer<uint> excluded_sort_keys,
+    uniform PMBuffer<uint> query_leaf_sources,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint primitive = pmThreadIndex();
+    if (primitive >= primitive_count) return;
+    if (leaf_offset > leaf_capacity ||
+        primitive >= leaf_capacity - leaf_offset ||
+        query_offset > query_capacity ||
+        primitive >= query_capacity - query_offset)
+    {
+        pmAtomicOr(status, kDeformableSpatialQueryOverflow);
+        return;
+    }
+    uint source = leaf_offset + primitive;
+    uint query = query_offset + primitive;
+    DeformableSpatialLeafMetadata leaf = {};
+    leaf.flags = kDeformableSpatialLeafInactive;
+    metadata[source] = leaf;
+    build_flags[source] = PMResourceUint8(0u);
+    query_masks[query] = 0u;
+    excluded_sort_keys[query] = 0u;
+    query_leaf_sources[query] = source;
+
+    bool shapeValid =
+        (vertices_per_primitive == 2u &&
+            primitive_kind == kDeformableSpatialSegmentPrimitive) ||
+        (vertices_per_primitive == 3u &&
+            primitive_kind == kDeformableSpatialTrianglePrimitive);
+    bool valid = shapeValid && deformable_spatial_valid_family(family) &&
+        owner_generation != 0u && topology_revision != 0u &&
+        primitive_generations[primitive] != 0u &&
+        admission_mask != 0u && isfinite(thickness) && thickness >= 0.0f &&
+        isfinite(epsilon) && epsilon > 0.0f &&
+        deformable_spatial_finite_vec3(path_deviation) &&
+        deformable_spatial_finite_vec3(correction_budget) &&
+        deformable_spatial_nonnegative_vec3(path_deviation) &&
+        deformable_spatial_nonnegative_vec3(correction_budget) &&
+        sort_key_base < 0xffffffffu - primitive;
+    if (!valid)
+    {
+        pmAtomicOr(status, kDeformableSpatialInvalidIdentity);
+        return;
+    }
+
+    Vec3 minimum = Vec3(3.402823466e+38f);
+    Vec3 maximum = Vec3(-3.402823466e+38f);
+    uint base = primitive * vertices_per_primitive;
+    for (uint corner = 0u; corner < vertices_per_primitive; ++corner)
+    {
+        uint vertex = indices[base + corner];
+        if (vertex >= vertex_count ||
+            !deformable_spatial_finite_vec3(previous_positions[vertex]) ||
+            !deformable_spatial_finite_vec3(predicted_positions[vertex]))
+        {
+            pmAtomicOr(status, kDeformableSpatialInvalidIdentity);
+            return;
+        }
+        minimum = component_min(minimum, component_min(
+            previous_positions[vertex], predicted_positions[vertex]));
+        maximum = component_max(maximum, component_max(
+            previous_positions[vertex], predicted_positions[vertex]));
+    }
+    Vec3 expansion = add(add(path_deviation, correction_budget),
+        Vec3(thickness + epsilon, thickness + epsilon,
+            thickness + epsilon));
+    minimum = subtract(minimum, expansion);
+    maximum = add(maximum, expansion);
+    DeformableSpatialAabb envelope;
+    envelope.minimum = float4(minimum.x, minimum.y, minimum.z, 0.0f);
+    envelope.maximum = float4(maximum.x, maximum.y, maximum.z, 0.0f);
+    if (!deformable_spatial_valid_bounds(envelope))
+    {
+        pmAtomicOr(status, kDeformableSpatialInvalidBounds);
+        return;
+    }
+
+    uint sortKey = sort_key_base + primitive + 1u;
+    leaf.identity.family = family;
+    leaf.identity.owner_slot = owner_slot;
+    leaf.identity.owner_generation = owner_generation;
+    leaf.identity.topology_revision = topology_revision;
+    leaf.identity.primitive_kind = primitive_kind;
+    leaf.identity.primitive_slot = primitive;
+    leaf.identity.primitive_generation = primitive_generations[primitive];
+    leaf.sort_key = sortKey;
+    leaf.payload_ref = primitive;
+    leaf.query_mask = query_mask;
+    leaf.admission_mask = admission_mask;
+    leaf.flags = kDeformableSpatialLeafRetained;
+    metadata[source] = leaf;
+    bounds[source] = envelope;
+    build_flags[source] = PMResourceUint8(1u);
+    query_bounds[query] = envelope;
+    query_masks[query] = query_mask;
+    excluded_sort_keys[query] = sortKey;
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void pm_filter_deformable_spatial_candidates(
+    uniform PMBuffer<DeformableSpatialLeafMetadata> metadata,
+    uniform PMByteBuffer admission, uniform uint leaf_capacity,
+    uniform PMBuffer<uint> query_leaf_sources, uniform uint query_count,
+    uniform uint query_family, uniform uint query_owner_slot,
+    uniform uint query_owner_generation, uniform uint query_topology_revision,
+    uniform uint query_primitive_kind,
+    uniform PMBuffer<uint> query_primitive_generations,
+    uniform uint query_primitive_count, uniform PMBuffer<uint> query_indices,
+    uniform uint query_vertices_per_primitive, uniform uint target_family,
+    uniform uint target_owner_slot, uniform uint target_owner_generation,
+    uniform uint target_topology_revision, uniform uint target_primitive_kind,
+    uniform PMBuffer<uint> target_primitive_generations,
+    uniform uint target_primitive_count, uniform PMBuffer<uint> target_indices,
+    uniform uint target_vertices_per_primitive,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query,
+    uniform PMBuffer<uint> filtered_counts,
+    uniform PMBuffer<uint> filtered_sources,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint query = pmThreadIndex();
+    if (query >= query_count) return;
+    filtered_counts[query] = 0u;
+    uint querySource = query_leaf_sources[query];
+    if (querySource >= leaf_capacity || admission[querySource] == 0u)
+    {
+        pmAtomicOr(status, kDeformableSpatialAdmissionInvalid);
+        return;
+    }
+    DeformableSpatialLeafMetadata queryLeaf = metadata[querySource];
+    if (!deformable_spatial_current_primitive(queryLeaf, query_family,
+        query_owner_slot, query_owner_generation, query_topology_revision,
+        query_primitive_generations, query_primitive_count,
+        query_primitive_kind))
+    {
+        pmAtomicOr(status, kDeformableSpatialStaleEpoch);
+        return;
+    }
+    uint count = candidate_counts[query];
+    if (count > candidates_per_query)
+    {
+        pmAtomicOr(status, kDeformableSpatialQueryOverflow);
+        return;
+    }
+    uint base = query * candidates_per_query;
+    uint written = 0u;
+    for (uint candidate = 0u; candidate < count; ++candidate)
+    {
+        uint source = candidate_sources[base + candidate];
+        if (source >= leaf_capacity)
+        {
+            pmAtomicOr(status, kDeformableSpatialAdmissionInvalid);
+            filtered_counts[query] = 0u;
+            return;
+        }
+        if (admission[source] == 0u) continue;
+        DeformableSpatialLeafMetadata target = metadata[source];
+        if (target.identity.family != target_family ||
+            target.identity.owner_slot != target_owner_slot ||
+            target.identity.owner_generation != target_owner_generation ||
+            target.identity.topology_revision != target_topology_revision ||
+            target.identity.primitive_kind != target_primitive_kind)
+            continue;
+        if (!deformable_spatial_current_primitive(target, target_family,
+            target_owner_slot, target_owner_generation,
+            target_topology_revision, target_primitive_generations,
+            target_primitive_count, target_primitive_kind))
+        {
+            pmAtomicOr(status, kDeformableSpatialStaleEpoch);
+            filtered_counts[query] = 0u;
+            return;
+        }
+        if (deformable_spatial_identity_equal(
+                queryLeaf.identity, target.identity)) continue;
+        bool sameOwner = query_family == target_family &&
+            query_owner_slot == target_owner_slot &&
+            query_owner_generation == target_owner_generation;
+        if (sameOwner && deformable_spatial_share_vertex(
+            query_indices, queryLeaf.payload_ref,
+            query_vertices_per_primitive, target_indices,
+            target.payload_ref, target_vertices_per_primitive)) continue;
+        filtered_sources[base + written++] = source;
+    }
+    filtered_counts[query] = written;
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void pm_emit_smoke_spatial_queries(
+    uniform PMBuffer<Vec3> cell_centers, uniform uint query_count,
+    uniform uint query_offset, uniform uint query_capacity,
+    uniform uint query_mask, uniform Vec3 half_extent,
+    uniform Vec3 path_deviation, uniform Vec3 correction_budget,
+    uniform float epsilon,
+    uniform PMBuffer<DeformableSpatialAabb> query_bounds,
+    uniform PMBuffer<uint> query_masks,
+    uniform PMBuffer<uint> excluded_sort_keys,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint item = pmThreadIndex();
+    if (item >= query_count) return;
+    if (query_offset > query_capacity || item >= query_capacity - query_offset)
+    {
+        pmAtomicOr(status, kDeformableSpatialQueryOverflow);
+        return;
+    }
+    uint query = query_offset + item;
+    query_masks[query] = 0u;
+    excluded_sort_keys[query] = 0u;
+    bool valid = query_mask != 0u && isfinite(epsilon) && epsilon > 0.0f &&
+        deformable_spatial_finite_vec3(cell_centers[item]) &&
+        deformable_spatial_finite_vec3(half_extent) &&
+        deformable_spatial_finite_vec3(path_deviation) &&
+        deformable_spatial_finite_vec3(correction_budget) &&
+        deformable_spatial_nonnegative_vec3(half_extent) &&
+        deformable_spatial_nonnegative_vec3(path_deviation) &&
+        deformable_spatial_nonnegative_vec3(correction_budget);
+    if (!valid)
+    {
+        pmAtomicOr(status, kDeformableSpatialInvalidBounds);
+        return;
+    }
+    Vec3 expansion = add(add(half_extent, path_deviation),
+        add(correction_budget, Vec3(epsilon, epsilon, epsilon)));
+    Vec3 minimum = subtract(cell_centers[item], expansion);
+    Vec3 maximum = add(cell_centers[item], expansion);
+    DeformableSpatialAabb envelope;
+    envelope.minimum = float4(minimum.x, minimum.y, minimum.z, 0.0f);
+    envelope.maximum = float4(maximum.x, maximum.y, maximum.z, 0.0f);
+    if (!deformable_spatial_valid_bounds(envelope))
+    {
+        pmAtomicOr(status, kDeformableSpatialInvalidBounds);
+        return;
+    }
+    query_bounds[query] = envelope;
+    query_masks[query] = query_mask;
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void pm_filter_smoke_spatial_obstacles(
+    uniform PMBuffer<DeformableSpatialLeafMetadata> metadata,
+    uniform PMByteBuffer admission, uniform uint leaf_capacity,
+    uniform uint query_count, uniform uint accepted_family_mask,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query,
+    uniform PMBuffer<uint> filtered_counts,
+    uniform PMBuffer<uint> filtered_sources,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint query = pmThreadIndex();
+    if (query >= query_count) return;
+    filtered_counts[query] = 0u;
+    uint count = candidate_counts[query];
+    if (count > candidates_per_query)
+    {
+        pmAtomicOr(status, kDeformableSpatialQueryOverflow);
+        return;
+    }
+    uint base = query * candidates_per_query;
+    uint written = 0u;
+    for (uint candidate = 0u; candidate < count; ++candidate)
+    {
+        uint source = candidate_sources[base + candidate];
+        if (source >= leaf_capacity)
+        {
+            pmAtomicOr(status, kDeformableSpatialAdmissionInvalid);
+            filtered_counts[query] = 0u;
+            return;
+        }
+        if (admission[source] == 0u) continue;
+        DeformableSpatialLeafMetadata leaf = metadata[source];
+        uint familyBit = leaf.identity.family < 32u
+            ? (1u << leaf.identity.family) : 0u;
+        bool validIdentity = leaf.identity.family != 0u &&
+            leaf.identity.owner_generation != 0u &&
+            leaf.identity.topology_revision != 0u &&
+            leaf.identity.primitive_generation != 0u &&
+            (leaf.flags & kDeformableSpatialLeafInactive) == 0u &&
+            (leaf.flags & kDeformableSpatialLeafRetained) != 0u;
+        if (!validIdentity)
+        {
+            pmAtomicOr(status, kDeformableSpatialStaleEpoch);
+            filtered_counts[query] = 0u;
+            return;
+        }
+        if ((accepted_family_mask & familyBit) == 0u) continue;
+        filtered_sources[base + written++] = source;
+    }
+    filtered_counts[query] = written;
+}

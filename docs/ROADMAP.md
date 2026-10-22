@@ -128,13 +128,13 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-07](roadmap/tasks/F8-07.json) | Implement the once-per-tick shared BVH resource service | done | F8-00, F8-03, F8-05, F8-06, F8-32 | — |
 | [F8-08](roadmap/tasks/F8-08.json) | Move rigid broad phase onto the shared BVH | done | F8-03, F8-07 | — |
 | [F8-09](roadmap/tasks/F8-09.json) | Move liquid populations and sources onto shared BVH queries | done | F8-03, F8-07 | — |
-| [F8-10](roadmap/tasks/F8-10.json) | Move deformable and smoke collision lookup onto shared indexing | leased | F8-03, F8-07 | codex-f8-deformable-smoke / thomas-laptop / 2026-10-23T20:44:29Z |
+| [F8-10](roadmap/tasks/F8-10.json) | Move deformable and smoke collision lookup onto shared indexing | done | F8-03, F8-07 | — |
 | [F8-11](roadmap/tasks/F8-11.json) | Stabilize rigid contacts and joints at one 60 Hz step | ready | F8-00, F8-03, F8-08 | — |
 | [F8-12](roadmap/tasks/F8-12.json) | Stabilize liquid dynamics at one 60 Hz step | ready | F8-00, F8-03, F8-09 | — |
-| [F8-13](roadmap/tasks/F8-13.json) | Stabilize cloth at one 60 Hz step | waiting on dependencies | F8-00, F8-03, F8-10 | — |
-| [F8-14](roadmap/tasks/F8-14.json) | Stabilize soft bodies at one 60 Hz step | waiting on dependencies | F8-00, F8-03, F8-10 | — |
-| [F8-15](roadmap/tasks/F8-15.json) | Stabilize ropes at one 60 Hz step | waiting on dependencies | F8-00, F8-03, F8-10 | — |
-| [F8-16](roadmap/tasks/F8-16.json) | Stabilize smoke transport and projection at one 60 Hz step | waiting on dependencies | F8-00, F8-03, F8-10 | — |
+| [F8-13](roadmap/tasks/F8-13.json) | Stabilize cloth at one 60 Hz step | ready | F8-00, F8-03, F8-10 | — |
+| [F8-14](roadmap/tasks/F8-14.json) | Stabilize soft bodies at one 60 Hz step | ready | F8-00, F8-03, F8-10 | — |
+| [F8-15](roadmap/tasks/F8-15.json) | Stabilize ropes at one 60 Hz step | ready | F8-00, F8-03, F8-10 | — |
+| [F8-16](roadmap/tasks/F8-16.json) | Stabilize smoke transport and projection at one 60 Hz step | ready | F8-00, F8-03, F8-10 | — |
 | [F8-17](roadmap/tasks/F8-17.json) | Integrate rigid two-way couplings into the single-step solve | waiting on dependencies | F8-08, F8-10, F8-11, F8-13, F8-14, F8-15, F8-16 | — |
 | [F8-18](roadmap/tasks/F8-18.json) | Integrate liquid cross-system couplings into the single-step solve | waiting on dependencies | F8-09, F8-10, F8-11, F8-12, F8-13, F8-14, F8-15, F8-16 | — |
 | [F8-19](roadmap/tasks/F8-19.json) | Integrate remaining deformable and smoke coupling operators | waiting on dependencies | F8-10, F8-13, F8-14, F8-15, F8-16 | — |
