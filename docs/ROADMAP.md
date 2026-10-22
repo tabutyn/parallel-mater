@@ -127,8 +127,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-06](roadmap/tasks/F8-06.json) | Implement low-dispatch shared spatial build primitives | done | F8-00, F8-01, F8-03, F8-05 | — |
 | [F8-07](roadmap/tasks/F8-07.json) | Implement the once-per-tick shared BVH resource service | done | F8-00, F8-03, F8-05, F8-06, F8-32 | — |
 | [F8-08](roadmap/tasks/F8-08.json) | Move rigid broad phase onto the shared BVH | done | F8-03, F8-07 | — |
-| [F8-09](roadmap/tasks/F8-09.json) | Move liquid populations and sources onto shared BVH queries | ready | F8-03, F8-07 | — |
-| [F8-10](roadmap/tasks/F8-10.json) | Move deformable and smoke collision lookup onto shared indexing | ready | F8-03, F8-07 | — |
+| [F8-09](roadmap/tasks/F8-09.json) | Move liquid populations and sources onto shared BVH queries | leased | F8-03, F8-07 | codex-f8-liquid / thomas-laptop / 2026-10-23T20:09:38Z |
+| [F8-10](roadmap/tasks/F8-10.json) | Move deformable and smoke collision lookup onto shared indexing | waiting on lock | F8-03, F8-07 | — |
 | [F8-11](roadmap/tasks/F8-11.json) | Stabilize rigid contacts and joints at one 60 Hz step | ready | F8-00, F8-03, F8-08 | — |
 | [F8-12](roadmap/tasks/F8-12.json) | Stabilize liquid dynamics at one 60 Hz step | waiting on dependencies | F8-00, F8-03, F8-09 | — |
 | [F8-13](roadmap/tasks/F8-13.json) | Stabilize cloth at one 60 Hz step | waiting on dependencies | F8-00, F8-03, F8-10 | — |

@@ -1,7 +1,7 @@
 {
   "id": "F8-09",
   "title": "Move liquid populations and sources onto shared BVH queries",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-03",
     "F8-07"
@@ -21,6 +21,14 @@
     "Assert one update per tick and no neighbor sort/build in algebraic solve loops; publish sparse/live-versus-capacity dispatch and memory measurements."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "bc94daca-49bf-4e12-9f07-0b9a76541495",
+    "owner": "codex-f8-liquid",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-09/thomas-laptop",
+    "claimed_at": "2026-10-22T20:09:38Z",
+    "heartbeat_at": "2026-10-22T20:09:38Z",
+    "expires_at": "2026-10-23T20:09:38Z"
+  },
   "history": []
 }
