@@ -59,6 +59,9 @@ set(PARALLEL_MATER_SLANG_geometry_ENTRIES
     pm_integrate_rigid_bodies
     pm_compute_rigid_world_bounds
     pm_broad_phase_rigid_pairs
+    pm_emit_rigid_spatial_proxies
+    pm_filter_rigid_spatial_candidates
+    pm_gather_rigid_spatial_pairs
     pm_generate_rigid_leaf_pairs
     pm_evaluate_rigid_leaf_pairs
     pm_reduce_rigid_leaf_manifolds

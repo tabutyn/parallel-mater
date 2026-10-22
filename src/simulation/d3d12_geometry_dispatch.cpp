@@ -133,6 +133,113 @@ PmResult broad_phase_rigid_pairs(
                   grid, block, values);
 }
 
+PmResult emit_rigid_spatial_proxies(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *parameters, void *previous_states,
+    void *predicted_states, void *meshes, std::uint32_t mesh_capacity,
+    void *ids, std::uint32_t body_count, std::uint32_t leaf_offset,
+    std::uint32_t leaf_capacity, std::uint32_t sort_key_base,
+    std::uint32_t topology_revision, std::uint32_t query_mask,
+    const float path_deviation[3], const float correction_budget[3],
+    float epsilon, void *metadata, void *bounds,
+    std::uint8_t *build_flags, void *query_bounds,
+    std::uint32_t *query_masks, std::uint32_t *excluded_sort_keys,
+    std::uint32_t *status) noexcept {
+    auto *execution = d3d12::context(stream.native_handle);
+    if (execution == nullptr || path_deviation == nullptr ||
+        correction_budget == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_emit_rigid_spatial_proxies;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_parameters, *execution, parameters);
+    values.buffer(Layout::arg_previous_states, *execution, previous_states);
+    values.buffer(Layout::arg_predicted_states, *execution, predicted_states);
+    values.set(Layout::arg_meshes, execution->translated_meshes(
+        meshes, parameters, body_count, mesh_capacity));
+    values.set(Layout::arg_mesh_capacity, mesh_capacity);
+    values.buffer(Layout::arg_ids, *execution, ids);
+    values.set(Layout::arg_body_count, body_count);
+    values.set(Layout::arg_leaf_offset, leaf_offset);
+    values.set(Layout::arg_leaf_capacity, leaf_capacity);
+    values.set(Layout::arg_sort_key_base, sort_key_base);
+    values.set(Layout::arg_topology_revision, topology_revision);
+    values.set(Layout::arg_query_mask, query_mask);
+    values.set(Layout::arg_path_deviation,
+        Vec3{path_deviation[0], path_deviation[1], path_deviation[2]});
+    values.set(Layout::arg_correction_budget,
+        Vec3{correction_budget[0], correction_budget[1],
+             correction_budget[2]});
+    values.set(Layout::arg_epsilon, epsilon);
+    values.buffer(Layout::arg_metadata, *execution, metadata);
+    values.buffer(Layout::arg_bounds, *execution, bounds);
+    values.buffer(Layout::arg_build_flags, *execution, build_flags);
+    values.buffer(Layout::arg_query_bounds, *execution, query_bounds);
+    values.buffer(Layout::arg_query_masks, *execution, query_masks);
+    values.buffer(Layout::arg_excluded_sort_keys, *execution,
+                  excluded_sort_keys);
+    values.buffer(Layout::arg_status, *execution, status);
+    return launch(stream, "geometry", "pm_emit_rigid_spatial_proxies",
+                  grid, block, values);
+}
+
+PmResult filter_rigid_spatial_candidates(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *metadata,
+    std::uint32_t leaf_capacity, std::uint32_t rigid_leaf_offset,
+    std::uint32_t *candidate_counts, std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_body,
+    std::uint32_t candidate_slot_capacity, void *parameters, void *ids,
+    void *constraints, std::uint32_t constraint_capacity,
+    void *fixed_groups, std::uint32_t body_count,
+    std::uint32_t *pair_codes, std::uint8_t *pair_flags,
+    std::uint32_t *status) noexcept {
+    auto *execution = d3d12::context(stream.native_handle);
+    if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_filter_rigid_spatial_candidates;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_metadata, *execution, metadata);
+    values.set(Layout::arg_leaf_capacity, leaf_capacity);
+    values.set(Layout::arg_rigid_leaf_offset, rigid_leaf_offset);
+    values.buffer(Layout::arg_candidate_counts, *execution, candidate_counts);
+    values.buffer(Layout::arg_candidate_sources, *execution,
+                  candidate_sources);
+    values.set(Layout::arg_candidates_per_body, candidates_per_body);
+    values.set(Layout::arg_candidate_slot_capacity, candidate_slot_capacity);
+    values.buffer(Layout::arg_parameters, *execution, parameters);
+    values.buffer(Layout::arg_ids, *execution, ids);
+    values.buffer(Layout::arg_constraints, *execution, constraints);
+    values.set(Layout::arg_constraint_capacity, constraint_capacity);
+    values.buffer(Layout::arg_fixed_groups, *execution, fixed_groups);
+    values.set(Layout::arg_body_count, body_count);
+    values.buffer(Layout::arg_pair_codes, *execution, pair_codes);
+    values.buffer(Layout::arg_pair_flags, *execution, pair_flags);
+    values.buffer(Layout::arg_status, *execution, status);
+    return launch(stream, "geometry", "pm_filter_rigid_spatial_candidates",
+                  grid, block, values);
+}
+
+PmResult gather_rigid_spatial_pairs(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, std::uint32_t *compacted_slots,
+    std::uint32_t *active_pair_count,
+    std::uint32_t *candidate_pair_codes,
+    std::uint32_t candidate_slot_capacity, std::uint32_t *active_pairs,
+    std::uint32_t *status) noexcept {
+    auto *execution = d3d12::context(stream.native_handle);
+    if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+    using Layout = d3d12::generated::layout::geometry::Kernel_pm_gather_rigid_spatial_pairs;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_compacted_slots, *execution, compacted_slots);
+    values.buffer(Layout::arg_active_pair_count, *execution,
+                  active_pair_count);
+    values.buffer(Layout::arg_candidate_pair_codes, *execution,
+                  candidate_pair_codes);
+    values.set(Layout::arg_candidate_slot_capacity, candidate_slot_capacity);
+    values.buffer(Layout::arg_active_pairs, *execution, active_pairs);
+    values.buffer(Layout::arg_status, *execution, status);
+    return launch(stream, "geometry", "pm_gather_rigid_spatial_pairs",
+                  grid, block, values);
+}
+
 PmResult generate_rigid_leaf_pairs(
     device::DispatchSize grid, device::DispatchSize block, std::size_t, device::ExecutionQueue stream,
     void *parameters, void *previous_states, void *states,

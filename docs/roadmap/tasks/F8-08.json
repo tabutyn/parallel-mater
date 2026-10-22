@@ -1,7 +1,7 @@
 {
   "id": "F8-08",
   "title": "Move rigid broad phase onto the shared BVH",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-03",
     "F8-07"
@@ -20,15 +20,35 @@
     "Reuse the one tick index throughout bounded contact/joint solves; no second build/refit after an iteration.",
     "Retain narrow-phase correctness/lifetime tests and record dispatch/candidate/byte budgets at unchanged body/mesh counts."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "a677bf6d-7f68-4d0e-b6d0-b1c60a0f0ab4",
-    "owner": "codex-f8-rigid",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-08/thomas-laptop",
-    "claimed_at": "2026-10-22T19:18:18Z",
-    "heartbeat_at": "2026-10-22T19:18:18Z",
-    "expires_at": "2026-10-23T19:18:18Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/roadmap/evidence/F8-08-rigid-shared-bvh.json records exact sparse/dense dispatch, candidate, byte, correctness, device, and portability results",
+    "PASS: physical RTX 3050 Ti generated Slang CUDA proxy/filter/gather, overflow, stale-generation, and 386-leaf shared-BVH tests",
+    "PASS: independent brute-force fast-motion, full-turn thin-bound, margin, disabled-pair, fixed-group, generation, and eight-sweep epoch tests",
+    "PASS: CPU/CUDA/Vulkan canonical driver builds, SPIR-V validation, Metal/HLSL source compilation, 414 conformance tests, and 72 roadmap tests",
+    "PASS: legacy schedule unchanged, cached mesh-local BVHs retained, and public realtime profile remains unsupported pending F8-20/F8-21"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "a677bf6d-7f68-4d0e-b6d0-b1c60a0f0ab4",
+        "owner": "codex-f8-rigid",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-08/thomas-laptop",
+        "claimed_at": "2026-10-22T19:18:18Z",
+        "heartbeat_at": "2026-10-22T19:18:18Z",
+        "expires_at": "2026-10-23T19:18:18Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-22T19:48:30Z",
+      "reason": "Implemented bounded rigid candidates from the once-per-tick shared BVH with conservative proxies and unchanged cached mesh narrow phase",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/F8-08-rigid-shared-bvh.json records exact sparse/dense dispatch, candidate, byte, correctness, device, and portability results",
+        "PASS: physical RTX 3050 Ti generated Slang CUDA proxy/filter/gather, overflow, stale-generation, and 386-leaf shared-BVH tests",
+        "PASS: independent brute-force fast-motion, full-turn thin-bound, margin, disabled-pair, fixed-group, generation, and eight-sweep epoch tests",
+        "PASS: CPU/CUDA/Vulkan canonical driver builds, SPIR-V validation, Metal/HLSL source compilation, 414 conformance tests, and 72 roadmap tests",
+        "PASS: legacy schedule unchanged, cached mesh-local BVHs retained, and public realtime profile remains unsupported pending F8-20/F8-21"
+      ]
+    }
+  ]
 }

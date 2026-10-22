@@ -245,6 +245,50 @@ struct LeafPair
     uint collider_count;
 };
 
+// ABI mirrors PmSpatial* in primitives/spatial_build.slang. Geometry owns the
+// rigid-domain staging/filter kernels, while the shared service owns the tree.
+struct RigidSpatialAabb
+{
+    float4 minimum;
+    float4 maximum;
+};
+
+struct RigidSpatialIdentity
+{
+    uint family;
+    uint owner_slot;
+    uint owner_generation;
+    uint topology_revision;
+    uint primitive_kind;
+    uint primitive_slot;
+    uint primitive_generation;
+};
+
+struct RigidSpatialLeafMetadata
+{
+    RigidSpatialIdentity identity;
+    uint sort_key;
+    uint payload_ref;
+    uint query_mask;
+    uint admission_mask;
+    uint flags;
+    uint transfer_group;
+    uint reserved0;
+    uint reserved1;
+    uint reserved2;
+};
+
+static const uint kRigidSpatialFamily = 1u;
+static const uint kRigidSpatialBodyPrimitive = 1u;
+static const uint kRigidSpatialLeafRetained = 1u << 0u;
+static const uint kRigidSpatialLeafInactive = 1u << 4u;
+static const uint kRigidSpatialInvalidBounds = 1u;
+static const uint kRigidSpatialCountOverflow = 1u << 2u;
+static const uint kRigidSpatialInvalidIdentity = 1u << 8u;
+static const uint kRigidSpatialStaleEpoch = 1u << 9u;
+static const uint kRigidSpatialQueryOverflow = 1u << 10u;
+static const uint kRigidSpatialAdmissionInvalid = 1u << 12u;
+
 struct RigidContactEvent
 {
     RigidBodyId body;
@@ -275,6 +319,48 @@ uint find_rigid_body_dense(RigidBodyId id, PMBuffer<RigidBodyId> ids, uint count
 bool same_id(RigidBodyId a, RigidBodyId b)
 {
     return a.index == b.index && a.generation == b.generation;
+}
+
+bool rigid_spatial_identity_less(
+    RigidSpatialIdentity left, RigidSpatialIdentity right)
+{
+    if (left.family != right.family) return left.family < right.family;
+    if (left.owner_slot != right.owner_slot)
+        return left.owner_slot < right.owner_slot;
+    if (left.owner_generation != right.owner_generation)
+        return left.owner_generation < right.owner_generation;
+    if (left.topology_revision != right.topology_revision)
+        return left.topology_revision < right.topology_revision;
+    if (left.primitive_kind != right.primitive_kind)
+        return left.primitive_kind < right.primitive_kind;
+    if (left.primitive_slot != right.primitive_slot)
+        return left.primitive_slot < right.primitive_slot;
+    return left.primitive_generation < right.primitive_generation;
+}
+
+bool rigid_spatial_metadata_current(RigidSpatialLeafMetadata leaf,
+    uint dense, PMBuffer<BodyParameters> parameters,
+    PMBuffer<RigidBodyId> ids)
+{
+    RigidBodyId id = ids[dense];
+    TriangleMeshId mesh = parameters[dense].mesh;
+    return leaf.identity.family == kRigidSpatialFamily &&
+        leaf.identity.owner_slot == id.index &&
+        leaf.identity.owner_generation == id.generation &&
+        leaf.identity.primitive_kind == kRigidSpatialBodyPrimitive &&
+        leaf.identity.primitive_slot == mesh.index &&
+        leaf.identity.primitive_generation == mesh.generation &&
+        leaf.payload_ref == dense;
+}
+
+bool rigid_spatial_finite_vec3(Vec3 value)
+{
+    return isfinite(value.x) && isfinite(value.y) && isfinite(value.z);
+}
+
+bool rigid_spatial_nonnegative_vec3(Vec3 value)
+{
+    return value.x >= 0.0f && value.y >= 0.0f && value.z >= 0.0f;
 }
 
 uint rigid_find_dense(RigidBodyId id, PMBuffer<RigidBodyId> ids, uint count)
@@ -614,6 +700,232 @@ void pm_broad_phase_rigid_pairs(
                 meshes[parameters[colliderIndex].mesh.index], margin);
     }
     active_flags[pair] = active ? PMResourceUint8(1u) : PMResourceUint8(0u);
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void pm_emit_rigid_spatial_proxies(
+    uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> previous_states,
+    uniform PMBuffer<RigidBodyState> predicted_states,
+    uniform PMBuffer<TriangleMeshResource> meshes,
+    uniform uint mesh_capacity, uniform PMBuffer<RigidBodyId> ids,
+    uniform uint body_count, uniform uint leaf_offset,
+    uniform uint leaf_capacity, uniform uint sort_key_base,
+    uniform uint topology_revision, uniform uint query_mask,
+    uniform Vec3 path_deviation, uniform Vec3 correction_budget,
+    uniform float epsilon,
+    uniform PMBuffer<RigidSpatialLeafMetadata> metadata,
+    uniform PMBuffer<RigidSpatialAabb> bounds,
+    uniform PMByteBuffer build_flags,
+    uniform PMBuffer<RigidSpatialAabb> query_bounds,
+    uniform PMBuffer<uint> query_masks,
+    uniform PMBuffer<uint> excluded_sort_keys,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint dense = pmThreadIndex();
+    if (dense >= body_count) return;
+    if (leaf_offset > leaf_capacity || dense >= leaf_capacity - leaf_offset)
+    {
+        pmAtomicOr(status, kRigidSpatialCountOverflow);
+        return;
+    }
+    uint source = leaf_offset + dense;
+    RigidSpatialLeafMetadata leaf = {};
+    leaf.flags = kRigidSpatialLeafInactive;
+    metadata[source] = leaf;
+    build_flags[source] = PMResourceUint8(0u);
+    query_masks[dense] = 0u;
+    excluded_sort_keys[dense] = 0u;
+
+    BodyParameters body = parameters[dense];
+    RigidBodyId id = ids[dense];
+    bool valid = topology_revision != 0u && query_mask != 0u &&
+        id.generation != 0u && body.mesh.generation != 0u &&
+        body.mesh.index < mesh_capacity && isfinite(epsilon) &&
+        epsilon > 0.0f && rigid_spatial_finite_vec3(path_deviation) &&
+        rigid_spatial_finite_vec3(correction_budget) &&
+        rigid_spatial_nonnegative_vec3(path_deviation) &&
+        rigid_spatial_nonnegative_vec3(correction_budget) &&
+        rigid_spatial_finite_vec3(previous_states[dense].position) &&
+        rigid_spatial_finite_vec3(predicted_states[dense].position) &&
+        isfinite(body.collision_margin) && body.collision_margin >= 0.0f &&
+        sort_key_base < 0xffffffffu - dense;
+    if (!valid)
+    {
+        pmAtomicOr(status, kRigidSpatialInvalidIdentity);
+        return;
+    }
+    TriangleMeshResource mesh = meshes[body.mesh.index];
+    valid = mesh.alive != 0u && mesh.generation == body.mesh.generation &&
+        isfinite(mesh.bounding_radius) && mesh.bounding_radius >= 0.0f &&
+        rigid_spatial_finite_vec3(mesh.bounding_center);
+    if (!valid)
+    {
+        pmAtomicOr(status, kRigidSpatialInvalidIdentity);
+        return;
+    }
+
+    float reach = vector_length(mesh.bounding_center) +
+        mesh.bounding_radius + body.collision_margin + epsilon;
+    Vec3 expansion = add(add(path_deviation, correction_budget),
+        Vec3(reach, reach, reach));
+    Vec3 minimum = subtract(component_min(previous_states[dense].position,
+        predicted_states[dense].position), expansion);
+    Vec3 maximum = add(component_max(previous_states[dense].position,
+        predicted_states[dense].position), expansion);
+    if (!isfinite(reach) || !rigid_spatial_finite_vec3(minimum) ||
+        !rigid_spatial_finite_vec3(maximum) ||
+        minimum.x > maximum.x || minimum.y > maximum.y ||
+        minimum.z > maximum.z)
+    {
+        pmAtomicOr(status, kRigidSpatialInvalidBounds);
+        return;
+    }
+
+    uint sort_key = sort_key_base + dense + 1u;
+    leaf.identity.family = kRigidSpatialFamily;
+    leaf.identity.owner_slot = id.index;
+    leaf.identity.owner_generation = id.generation;
+    leaf.identity.topology_revision = topology_revision;
+    leaf.identity.primitive_kind = kRigidSpatialBodyPrimitive;
+    leaf.identity.primitive_slot = body.mesh.index;
+    leaf.identity.primitive_generation = mesh.generation;
+    leaf.sort_key = sort_key;
+    leaf.payload_ref = dense;
+    leaf.query_mask = query_mask;
+    leaf.admission_mask = query_mask;
+    leaf.flags = kRigidSpatialLeafRetained;
+    RigidSpatialAabb proxy;
+    proxy.minimum = float4(minimum.x, minimum.y, minimum.z, 0.0f);
+    proxy.maximum = float4(maximum.x, maximum.y, maximum.z, 0.0f);
+    metadata[source] = leaf;
+    bounds[source] = proxy;
+    build_flags[source] = PMResourceUint8(1u);
+    query_bounds[dense] = proxy;
+    query_masks[dense] = query_mask;
+    excluded_sort_keys[dense] = sort_key;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void pm_filter_rigid_spatial_candidates(
+    uniform PMBuffer<RigidSpatialLeafMetadata> metadata,
+    uniform uint leaf_capacity, uniform uint rigid_leaf_offset,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_body, uniform uint candidate_slot_capacity,
+    uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyId> ids,
+    uniform PMBuffer<RigidConstraintResource> constraints,
+    uniform uint constraint_capacity,
+    uniform PMBuffer<FixedContactProjection> fixed_groups,
+    uniform uint body_count, uniform PMBuffer<uint> pair_codes,
+    uniform PMByteBuffer pair_flags,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint slot = pmThreadIndex();
+    if (slot >= candidate_slot_capacity) return;
+    pair_flags[slot] = PMResourceUint8(0u);
+    pair_codes[slot] = 0u;
+    if (candidates_per_body == 0u) return;
+    uint body_index = slot / candidates_per_body;
+    uint candidate_index = slot % candidates_per_body;
+    if (body_index >= body_count) return;
+    uint candidate_count = candidate_counts[body_index];
+    if (candidate_count > candidates_per_body)
+    {
+        if (candidate_index == 0u)
+            pmAtomicOr(status, kRigidSpatialQueryOverflow);
+        return;
+    }
+    if (candidate_index >= candidate_count) return;
+    if (rigid_leaf_offset > leaf_capacity ||
+        body_index >= leaf_capacity - rigid_leaf_offset)
+    {
+        pmAtomicOr(status, kRigidSpatialAdmissionInvalid);
+        return;
+    }
+    RigidSpatialLeafMetadata body_leaf =
+        metadata[rigid_leaf_offset + body_index];
+    if (!rigid_spatial_metadata_current(
+            body_leaf, body_index, parameters, ids))
+    {
+        pmAtomicOr(status, kRigidSpatialStaleEpoch);
+        return;
+    }
+
+    uint candidate_source = candidate_sources[slot];
+    if (candidate_source >= leaf_capacity)
+    {
+        pmAtomicOr(status, kRigidSpatialAdmissionInvalid);
+        return;
+    }
+    RigidSpatialLeafMetadata candidate_leaf = metadata[candidate_source];
+    if (candidate_leaf.identity.family != kRigidSpatialFamily ||
+        candidate_leaf.identity.primitive_kind !=
+            kRigidSpatialBodyPrimitive) return;
+    uint collider_index = candidate_leaf.payload_ref;
+    if (collider_index >= body_count ||
+        !rigid_spatial_metadata_current(
+            candidate_leaf, collider_index, parameters, ids))
+    {
+        pmAtomicOr(status, kRigidSpatialStaleEpoch);
+        return;
+    }
+
+    bool active = parameters[body_index].motion == MotionType.dynamic &&
+        body_index != collider_index;
+    if (active && parameters[collider_index].motion == MotionType.dynamic &&
+        !rigid_spatial_identity_less(
+            body_leaf.identity, candidate_leaf.identity)) active = false;
+    if (active && pmBufferPresent(fixed_groups) &&
+        fixed_groups[body_index].root == fixed_groups[collider_index].root)
+        active = false;
+    if (active && constrained_collision_disabled(ids[body_index],
+        ids[collider_index], constraints, constraint_capacity)) active = false;
+    uint64_t pair = uint64_t(body_index) * uint64_t(body_count) +
+        uint64_t(collider_index);
+    if (active && pair > 0xffffffffu)
+    {
+        pmAtomicOr(status, kRigidSpatialCountOverflow);
+        active = false;
+    }
+    if (active)
+    {
+        pair_codes[slot] = uint(pair);
+        pair_flags[slot] = PMResourceUint8(1u);
+    }
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void pm_gather_rigid_spatial_pairs(
+    uniform PMBuffer<uint> compacted_slots,
+    uniform PMBuffer<uint> active_pair_count,
+    uniform PMBuffer<uint> candidate_pair_codes,
+    uniform uint candidate_slot_capacity,
+    uniform PMBuffer<uint> active_pairs,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint rank = pmThreadIndex();
+    uint count = active_pair_count[0];
+    if (count > candidate_slot_capacity)
+    {
+        if (rank == 0u) pmAtomicOr(status, kRigidSpatialCountOverflow);
+        return;
+    }
+    if (rank >= count) return;
+    uint slot = compacted_slots[rank];
+    if (slot >= candidate_slot_capacity)
+    {
+        pmAtomicOr(status, kRigidSpatialAdmissionInvalid);
+        return;
+    }
+    active_pairs[rank] = candidate_pair_codes[slot];
 }
 
 void rigid_closest_segments(Vec3 p0, Vec3 p1, Vec3 q0, Vec3 q1,
