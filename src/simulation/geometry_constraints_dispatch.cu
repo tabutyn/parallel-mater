@@ -118,6 +118,7 @@ PmResult prepare_geometry_constraints(device::ExecutionQueue stream,
     RigidBodyId *ids, GeometryConstraintBody *bodies, void *schedule,
     float timestep, Vec3 gravity, std::uint32_t base_iterations,
     std::uint32_t requested_iterations,
+    std::uint32_t profile_version,
     std::uint32_t grid_blocks) noexcept {
     const Vec3_0 shader_gravity{gravity.x, gravity.y, gravity.z};
     prepare_avbd_kernel<<<1U, 128U, 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
@@ -130,7 +131,7 @@ PmResult prepare_geometry_constraints(device::ExecutionQueue stream,
         reinterpret_cast<RigidBodyId_0 *>(ids),
         reinterpret_cast<AvbdBody_0 *>(bodies),
         as<ContactSchedule_0>(schedule), timestep, shader_gravity,
-        base_iterations, requested_iterations, grid_blocks);
+        base_iterations, requested_iterations, profile_version, grid_blocks);
     return device::from_driver_error(cudaGetLastError());
 }
 

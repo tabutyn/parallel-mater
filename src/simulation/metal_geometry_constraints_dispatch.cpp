@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "geometry_constraints_dispatch.hpp"
 #include "avbd_schedule.hpp"
+#include "rigid_realtime.hpp"
 #include "driver/metal/schedule_context.hpp"
 
 namespace parallel_mater::simulation {
@@ -15,12 +16,14 @@ PmResult prepare_geometry_constraints(device::ExecutionQueue stream,
     void *constraints, std::uint32_t constraint_capacity,
     RigidBodyId *ids, GeometryConstraintBody *bodies, void *schedule,
     float timestep, Vec3 gravity, std::uint32_t base_iterations,
-    std::uint32_t requested_iterations, std::uint32_t) noexcept {
+    std::uint32_t requested_iterations, std::uint32_t profile_version,
+    std::uint32_t) noexcept {
     return metal::launch(stream, "prepare_avbd_kernel", 1U,
         parameters, previous, predicted, body_count, manifolds,
         active_pairs, active_pair_count, constraints, constraint_capacity,
         ids, bodies, schedule, timestep, gravity, base_iterations,
-        requested_iterations, std::max(1U, (body_count + 31U) / 32U));
+        requested_iterations, profile_version,
+        std::max(1U, (body_count + 31U) / 32U));
 }
 PmResult solve_geometry_constraints(device::ExecutionQueue stream,
     const void *parameters, const RigidBodyState *previous,
@@ -47,7 +50,8 @@ PmResult solve_geometry_constraints(device::ExecutionQueue stream,
                     active_pairs, active_pair_count, constraints, constraint_capacity,
                     bodies, schedule, timestep, static_cast<std::uint32_t>(operation),
                     phase, iteration, color);
-            });
+            }, prepared.offsets[0] == rigid_realtime_profile_version
+                ? 1U : 2U);
         if (result != PM_SUCCESS) throw std::runtime_error("Metal staged AVBD dispatch failed");
     });
 }

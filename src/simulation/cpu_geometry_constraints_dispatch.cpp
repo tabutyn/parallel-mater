@@ -43,7 +43,8 @@ PmResult prepare_geometry_constraints(
     void *constraints, std::uint32_t constraint_capacity, RigidBodyId *ids,
     GeometryConstraintBody *bodies, void *schedule, float timestep,
     Vec3 gravity, std::uint32_t base_iterations,
-    std::uint32_t requested_iterations, std::uint32_t) noexcept {
+    std::uint32_t requested_iterations, std::uint32_t profile_version,
+    std::uint32_t) noexcept {
     EntryPointParams_0 args{
         const_cast<BodyParameters_0 *>(as<BodyParameters_0>(parameters)),
         const_cast<RigidBodyState_0 *>(
@@ -55,7 +56,7 @@ PmResult prepare_geometry_constraints(
         reinterpret_cast<AvbdBody_0 *>(bodies),
         as<ContactSchedule_0>(schedule), timestep,
         Vec3_0{gravity.x, gravity.y, gravity.z}, base_iterations,
-        requested_iterations, 1U};
+        requested_iterations, profile_version, 1U};
     device::dispatch_cpu_serial(prepare_avbd_kernel_Thread, &args);
     return PM_SUCCESS;
 }

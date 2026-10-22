@@ -27,6 +27,7 @@
 #include "simulation/resource_plan.hpp"
 #include "simulation/primitives.hpp"
 #include "simulation/reference_schedule.hpp"
+#include "simulation/rigid_realtime.hpp"
 
 #include <algorithm>
 #include <array>

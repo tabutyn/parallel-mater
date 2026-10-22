@@ -483,6 +483,7 @@ void check_avbd_schedule(Gpu &gpu) {
                 prepare.set("gravity", Vec3{});
                 prepare.set("base_iterations", iterations);
                 prepare.set("requested_iterations", iterations);
+                prepare.set("profile_version", 0U);
                 prepare.set("grid_blocks", groups);
                 gpu.encode(prepare, 1, command);
                 Arguments solve(gpu.kernels.at(staged
