@@ -21,7 +21,8 @@ INTERACTION_DIRECTIONS = (
     "EXTERNAL_TO_FIRST", "EXTERNAL_TO_SECOND")
 INTERACTION_PROFILES = (
     "ENDPOINT_NATIVE", "SMOKE_PARTICLE", "SMOKE_GRID", "EQUAL",
-    "MISCIBLE", "IMMISCIBLE_INTERFACE", "THERMAL_PHASE")
+    "MISCIBLE", "IMMISCIBLE_INTERFACE", "THERMAL_PHASE",
+    "SMOKE_PARTICLE_GRID")
 INTERACTION_FEATURES = (
     "rigidBodies", "rigidConstraints", "particleLiquids",
     "liquidRigidCoupling", "liquidLiquidCoupling", "cloth", "rope",

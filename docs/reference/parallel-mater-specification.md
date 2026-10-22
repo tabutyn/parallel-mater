@@ -1,4 +1,4 @@
-<!-- Generated from registry/pm.xml sha256:e3373207b92f7065fa2def13e53178aa56f4dc49e850bd86d5cc15cf71790d62 -->
+<!-- Generated from registry/pm.xml sha256:a9d8f5ed8c0a1a075c3f0ac50dbe9914db9a3dcf1abae2524a4a5fd97fc1344d -->
 
 # Parallel Mater 0.2 — API Specification
 
@@ -1177,7 +1177,8 @@ typedef enum PmInteractionMaterialProfile {
     PM_INTERACTION_MATERIAL_EQUAL = 3,
     PM_INTERACTION_MATERIAL_MISCIBLE = 4,
     PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE = 5,
-    PM_INTERACTION_MATERIAL_THERMAL_PHASE = 6
+    PM_INTERACTION_MATERIAL_THERMAL_PHASE = 6,
+    PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID = 7
 } PmInteractionMaterialProfile;
 typedef enum PmCouplingType {
     PM_COUPLING_LIQUID_RIGID = 0,
@@ -1192,7 +1193,8 @@ typedef enum PmCouplingType {
     PM_COUPLING_SMOKE_RIGID = 9,
     PM_COUPLING_SMOKE_CLOTH = 10,
     PM_COUPLING_SMOKE_ROPE = 11,
-    PM_COUPLING_SMOKE_SOFT_BODY = 12
+    PM_COUPLING_SMOKE_SOFT_BODY = 12,
+    PM_COUPLING_SMOKE_SMOKE = 13
 } PmCouplingType;
 typedef struct PmMechanicalCouplingState {
     float contactDistance;
@@ -1240,8 +1242,7 @@ typedef struct PmCouplingParameters {
 } PmCouplingParameters;
 typedef struct PmCouplingState {
     PmCouplingType type;
-    uint32_t first;
-    uint32_t second;
+    uint32_t first, second;
     PmInteractionModeFlags modeFlags;
     PmInteractionMaterialProfile materialProfile;
     PmCouplingParameters parameters;
@@ -1250,8 +1251,7 @@ typedef struct PmCouplingStateInfo {
     PmStructureType sType;
     const void* pNext;
     PmCouplingType type;
-    uint32_t first;
-    uint32_t second;
+    uint32_t first, second;
     PmInteractionModeFlags modeFlags;
     PmInteractionMaterialProfile materialProfile;
     PmCouplingParameters parameters;
@@ -1278,7 +1278,7 @@ PmResult pmCmdSetCouplings2(PmCommandBuffer commandBuffer,
     const PmCouplingStateInfo *pCouplings);
 ```
 
-first and second are stable slots in the domains named by type. PM_INVALID_INDEX denotes the all-rigid endpoint for LIQUID_RIGID. modeFlags is a nonzero bit set and materialProfile selects the exact advertised interaction records consumed by the edge. API 0.2 coupling types use fixed mode bundles; omitting or adding a known mode returns FEATURE_NOT_PRESENT, while zero or unknown bits return INVALID_ARGUMENT. Non-smoke pairs require ENDPOINT_NATIVE. Smoke pairs require an advertised SMOKE_PARTICLE or SMOKE_GRID profile.
+first and second are stable domain slots; PM_INVALID_INDEX names all rigid bodies. SMOKE_SMOKE requires first < second: SMOKE_PARTICLE/GRID select PRESSURE|VISCOSITY|THERMAL; SMOKE_PARTICLE_GRID selects DRAG|THERMAL. Modes are independent and unadvertised. Other bundles are fixed; invalid bits are errors.
 
 PmCouplingState is the API 0.2 descriptor. PmCouplingStateInfo is an ABI-compatible extensible path: sType identifies that exact structure and pNext is NULL except for separately permitted typed state. A LIQUID_LIQUID edge using MISCIBLE or IMMISCIBLE_INTERFACE must chain exactly one PmFluidPairMaterialState. Its material indices must equal first and second, so the edge consumes the two endpoint PmLiquidMaterialState records without copying, averaging or silently changing ownership. MISCIBLE requests contact, pressure and viscosity as one mechanical bundle. IMMISCIBLE_INTERFACE also chains exactly one PmFluidInterfaceState and requests contact, pressure and interface. surfaceTension is finite and nonnegative in N/m; zero disables capillary traction while retaining the material boundary. The interface normal points from the first fluid endpoint to the second, so positive curvature obeys pressure_first - pressure_second = surfaceTension * (1 / R1 + 1 / R2). Interfacial viscosity remains a separate capability. Both different-material profiles remain unsupported until their operator and qualification leaves complete. A well-formed request therefore returns FEATURE_NOT_PRESENT, while missing, mismatched, duplicate, unknown, profile-inapplicable or nonfinite typed state returns INVALID_ARGUMENT and cannot replace a live graph.
 
