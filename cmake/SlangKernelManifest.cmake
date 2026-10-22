@@ -46,7 +46,10 @@ set(PARALLEL_MATER_SLANG_fluid_ENTRIES
     fluid_apply_immiscible_pair_pressure_capillarity
     fluid_emit_spatial_particles fluid_emit_spatial_source_proposals
     fluid_apply_spatial_source_admission
-    fluid_filter_spatial_candidates fluid_count_spatial_neighbors)
+    fluid_filter_spatial_candidates fluid_count_spatial_neighbors
+    fluid_realtime_predict fluid_realtime_density_lambda
+    fluid_realtime_position_delta fluid_realtime_apply_position_delta
+    fluid_realtime_viscosity_delta fluid_realtime_commit)
 
 set(PARALLEL_MATER_SLANG_geometry_constraints_ENTRIES
     prepare_avbd_kernel solve_avbd_kernel solve_avbd_stage_kernel)

@@ -114,6 +114,16 @@ add_test(NAME parallel-mater-fluid-spatial-tests
 set_tests_properties(parallel-mater-fluid-spatial-tests PROPERTIES
     LABELS "fluid;spatial;lifecycle;f8")
 
+add_executable(parallel-mater-fluid-realtime-tests
+    fluid_realtime_tests.cpp)
+target_compile_features(parallel-mater-fluid-realtime-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-fluid-realtime-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-fluid-realtime-tests
+    COMMAND parallel-mater-fluid-realtime-tests)
+set_tests_properties(parallel-mater-fluid-realtime-tests PROPERTIES
+    LABELS "fluid;realtime;f8")
+
 add_executable(parallel-mater-deformable-spatial-tests
     deformable_spatial_tests.cpp)
 target_compile_features(parallel-mater-deformable-spatial-tests PRIVATE cxx_std_20)
@@ -330,6 +340,22 @@ if("CUDA" IN_LIST contact_test_languages)
             COMMAND parallel-mater-fluid-spatial-cuda-tests)
         set_tests_properties(parallel-mater-fluid-spatial-cuda-tests PROPERTIES
             SKIP_RETURN_CODE 77 LABELS "cuda;slang;fluid;spatial;f8"
+            TIMEOUT 300)
+
+        add_executable(parallel-mater-fluid-realtime-cuda-tests
+            fluid_realtime_cuda_tests.cu)
+        add_dependencies(parallel-mater-fluid-realtime-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(parallel-mater-fluid-realtime-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(parallel-mater-fluid-realtime-cuda-tests PRIVATE
+            CUDA::cudart)
+        set_target_properties(parallel-mater-fluid-realtime-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-fluid-realtime-cuda-tests
+            COMMAND parallel-mater-fluid-realtime-cuda-tests)
+        set_tests_properties(parallel-mater-fluid-realtime-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77 LABELS "cuda;slang;fluid;realtime;f8"
             TIMEOUT 300)
 
         add_executable(parallel-mater-deformable-spatial-cuda-tests

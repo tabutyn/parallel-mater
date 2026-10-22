@@ -1,0 +1,149 @@
+{
+  "schema": "parallel-mater-f8-liquid-60hz-evidence/v1",
+  "task": "F8-12",
+  "recorded_at": "2026-10-22",
+  "branch": "work/F8-12/thomas-laptop",
+  "base_commit": "39b8ecd97718c2dfe660ff2b21c848c4e683b1c4",
+  "profile": {
+    "name": "realtime-single-step",
+    "version": "1.0",
+    "timestep_seconds": 0.016666666666666666,
+    "time_advances": 1,
+    "liquid_density_sweeps": 6,
+    "solver_added_velocity_damping_fraction": 0.05,
+    "maximum_solver_correction_support_radius": 0.25,
+    "spatial_updates_during_solve": 0,
+    "density_error_metric": "positive compression error for constrained particles; free-surface under-support is covered by separate loss, finite-state and center-drift gates"
+  },
+  "toolchain": {
+    "cmake": "3.25.1",
+    "slang": "2026.18",
+    "cuda_compiler": "13.1"
+  },
+  "cuda_device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "compute_capability": "8.6",
+    "driver": "590.44.01"
+  },
+  "production_kernels": [
+    "fluid_realtime_predict",
+    "fluid_realtime_density_lambda",
+    "fluid_realtime_position_delta",
+    "fluid_realtime_apply_position_delta",
+    "fluid_realtime_viscosity_delta",
+    "fluid_realtime_commit"
+  ],
+  "workload_budget": {
+    "workload": "desktop-full-v1/fluid-rigid liquid self-domain portion",
+    "particles_live": 30000,
+    "particles_capacity": 30000,
+    "candidate_slots_per_query": 128,
+    "algebraic_sweeps": 6,
+    "time_advances": 1,
+    "spatial_updates_during_solve": 0,
+    "domain_dispatches": 21,
+    "domain_workgroups_128_threads": 4935,
+    "candidate_visits_upper_bound": 49920000,
+    "solver_scratch_bytes": 1320008,
+    "filtered_candidate_bytes_from_f8_09": 15360000,
+    "policy": "fixed six Jacobi sweeps over one owner-filtered epoch; no adaptive pass, hidden substep, solve-time index update, sort, host retry or per-device physics fork"
+  },
+  "physical_cuda_quality": {
+    "fixture": "generated production Slang, explicit profile version 1 and one 1/60 s advance per tick",
+    "compression": {
+      "particles": 64,
+      "support_radius_m": 0.1,
+      "rest_spacing_m": 0.05,
+      "initial_spacing_m": 0.045,
+      "initial_density_compression_error_p95": 0.385601163,
+      "final_density_compression_error_p95": 0.0,
+      "final_density_compression_error_maximum": 0.0,
+      "maximum_correction_m": 0.0229181051,
+      "maximum_correction_support_radius": 0.229181051,
+      "time_advances": 1,
+      "density_sweeps": 6
+    },
+    "cold_settled_window": {
+      "measured_ticks": 720,
+      "final_particles": 65,
+      "outflows": 1,
+      "source_admissions": 2,
+      "free_surface_particle_loss_fraction": 0.0,
+      "closed_envelope_leaked_particles": 0,
+      "closed_envelope_leak_fraction": 0.0,
+      "center_of_mass_drift_support_radius": 0.0296186749,
+      "first_tick_viscosity_energy_ratio": 0.553376317,
+      "maximum_unforced_energy_ratio": 1.0,
+      "maximum_unforced_energy_growth_fraction": 0.0
+    },
+    "equation_path_timing_ms": {
+      "workload": "65-particle all-candidate cold/settled fixture",
+      "samples": 720,
+      "p50": 0.849919975,
+      "p95": 1.09247994,
+      "p99": 1.34451199,
+      "maximum": 1.60771203,
+      "scope": "CUDA events around 21 domain dispatches; not a full desktop-full-v1 frame-budget result"
+    }
+  },
+  "qualification": [
+    {
+      "command": "/tmp/parallel-mater-f8-08-cuda-build/tests/solver/parallel-mater-fluid-realtime-cuda-tests",
+      "result": "PASS",
+      "notes": "physical RTX generated-Slang invalid-profile rejection, compressed cold pack, exact one advance/six sweeps, viscosity, source/outflow boundary mutation and 720-tick quality/timing"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-08-cuda-build -R 'parallel-mater-(fluid-realtime-cuda|fluid-spatial-cuda|fluid-realtime|fluid-spatial)-tests' --output-on-failure -j1",
+      "result": "PASS",
+      "notes": "4/4 host contract, shared epoch and physical CUDA tests"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-08-host-build --output-on-failure -j8",
+      "result": "PASS",
+      "notes": "63/63 host tests, including profile, exact budget, epoch and source manifest coverage"
+    },
+    {
+      "command": "generated CPU, CUDA and Vulkan driver builds",
+      "result": "PASS",
+      "notes": "six versioned fluid entry points compile from common Slang source through all local adapters"
+    },
+    {
+      "command": "Slang fluid realtime entry points to Metal and HLSL SM 6.6",
+      "result": "PASS",
+      "notes": "all six entry points compile from one source; local DXIL emission is unavailable because DXC is not installed"
+    },
+    {
+      "command": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "414 tests"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "72 tests; canonical inventory contains 182 shared entry points"
+    },
+    {
+      "command": "python3 conformance/v1/realtime_oracle.py --check-contract",
+      "result": "PASS",
+      "notes": "243 named limits, 49 advertised capability cases, 14 fixed workloads and 5 runtime adapters"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-08-cpu-build -R 'parallel-mater-(fluid-realtime|cpu-realtime-profile-reference|cpu-fluid-self-(contact|pressure|viscosity)-quality)-tests' --output-on-failure -j1",
+      "result": "LEGACY_BASELINE_PRESERVED",
+      "notes": "new host contract and unsupported-public-profile tests pass; the three legacy self-quality fixtures retain the pre-existing 'fluid stable ID did not preserve input order' failure reproduced from the untouched F8-11 base"
+    }
+  ],
+  "legacy_profile": {
+    "profile_marker": 0,
+    "cell_sort_force_integrate_path": "unchanged",
+    "authored_substeps_and_iteration_selection": "unchanged",
+    "new_entry_points_selected_implicitly": false,
+    "public_realtime_profile": "unsupported and unadvertised until F8-20"
+  },
+  "limits": [
+    "Positive compression is the density constraint; raw free-surface density deficiency does not create tensile pressure and is checked separately through particle loss and drift.",
+    "The closed-envelope check bounds self-solver motion but is not rigid/deformable containment qualification; F8-18 owns reciprocal cross-system containment and impact exchange.",
+    "The 65-particle CUDA timing is equation-path evidence; F8-21 freezes final desktop-full-v1 frame budgets and F8-23 through F8-30 qualify registered devices.",
+    "Physical D3D12 and Metal execution remains required in platform leaves; common Metal/HLSL source compilation passes locally."
+  ]
+}
