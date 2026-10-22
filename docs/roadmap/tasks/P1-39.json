@@ -1,7 +1,7 @@
 {
   "id": "P1-39",
   "title": "Expose smoke pair profiles and edges",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "P1-02"
   ],
@@ -18,6 +18,14 @@
     "Current API 0.2 self records remain unchanged and no driver exposes a separate-system record."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "d62e8b94-eda0-4c5c-9f83-da30d36ebcef",
+    "owner": "codex-macos-p139",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/P1-39/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-22T16:27:08Z",
+    "heartbeat_at": "2026-10-22T16:27:08Z",
+    "expires_at": "2026-10-23T16:27:08Z"
+  },
   "history": []
 }
