@@ -1,7 +1,7 @@
 {
   "id": "F8-04",
   "title": "Implement fixed 60 Hz presentation and overload clock policy",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-00",
     "F8-03",
@@ -22,6 +22,14 @@
     "Report simulation-to-wall-clock rate and interpolation alpha; slow-motion cannot masquerade as meeting a 60 Hz performance budget."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "6bada42d-183d-4cb2-8584-84ddad82c51f",
+    "owner": "codex-f8-clock",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-04/thomas-laptop",
+    "claimed_at": "2026-10-22T16:19:51Z",
+    "heartbeat_at": "2026-10-22T16:19:51Z",
+    "expires_at": "2026-10-23T16:19:51Z"
+  },
   "history": []
 }
