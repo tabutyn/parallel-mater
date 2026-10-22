@@ -689,15 +689,15 @@ public void pm_spatial_stage_leaves(
     if (index >= capacity) return;
     if (index >= leaf_count)
     {
-        build_flags[index] = uint8_t(0u);
-        admission[index] = uint8_t(0u);
+        build_flags[index] = PMResourceUint8(0u);
+        admission[index] = PMResourceUint8(0u);
         return;
     }
     PmSpatialLeafMetadata leaf = metadata[index];
     if ((leaf.flags & kPmSpatialLeafInactive) != 0u)
     {
-        build_flags[index] = uint8_t(0u);
-        admission[index] = uint8_t(0u);
+        build_flags[index] = PMResourceUint8(0u);
+        admission[index] = PMResourceUint8(0u);
         return;
     }
     uint role = leaf.flags &
@@ -718,8 +718,8 @@ public void pm_spatial_stage_leaves(
         (!(transfer_source || transfer_destination) ||
          leaf.transfer_group != 0u);
     bool valid = identity_valid && bounds_valid && role_valid;
-    build_flags[index] = uint8_t(valid ? 1u : 0u);
-    admission[index] = uint8_t(valid &&
+    build_flags[index] = PMResourceUint8(valid ? 1u : 0u);
+    admission[index] = PMResourceUint8(valid &&
         (leaf.flags & kPmSpatialLeafRetained) != 0u ? 1u : 0u);
     if (!identity_valid) pmAtomicOr(status, kPmSpatialInvalidIdentity);
     if (!bounds_valid) pmAtomicOr(status, kPmSpatialInvalidBounds);
@@ -798,7 +798,7 @@ public void pm_spatial_resolve_admission(
         pending[pending_count++] = right_children[node];
         pending[pending_count++] = left_children[node];
     }
-    admission[source] = uint8_t(!conflict && !overflow ? 1u : 0u);
+    admission[source] = PMResourceUint8(!conflict && !overflow ? 1u : 0u);
     if (overflow) pmAtomicOr(status, kPmSpatialQueryOverflow);
 }
 
@@ -854,7 +854,8 @@ public void pm_spatial_finalize_transfers(
         pmAtomicOr(status, kPmSpatialAdmissionInvalid);
         return;
     }
-    admission[source] = uint8_t(admission[destination] == 0u ? 1u : 0u);
+    admission[source] = PMResourceUint8(
+        admission[destination] == 0u ? 1u : 0u);
 }
 
 [shader("compute")]
