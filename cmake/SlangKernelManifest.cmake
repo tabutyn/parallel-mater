@@ -89,7 +89,15 @@ set(PARALLEL_MATER_SLANG_primitives_ENTRIES
     pm_spatial_radix_prefix_u32
     pm_spatial_radix_scatter_u64_u32
     pm_spatial_build_topology
-    pm_spatial_union_bounds)
+    pm_spatial_union_bounds
+    pm_spatial_refit_leaves
+    pm_spatial_initialize_epoch
+    pm_spatial_stage_leaves
+    pm_spatial_resolve_admission
+    pm_spatial_finalize_transfers
+    pm_spatial_publish_epoch
+    pm_spatial_query_aabbs
+    pm_spatial_validate_envelopes)
 
 set(PARALLEL_MATER_SLANG_cloth_ENTRIES
     cloth_project_volume cloth_break_bonds cloth_limit_strain

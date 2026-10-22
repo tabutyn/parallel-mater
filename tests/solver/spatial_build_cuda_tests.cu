@@ -14,18 +14,32 @@
 #include <vector>
 
 #include "simulation/spatial_build.hpp"
+#include "simulation/spatial_service.hpp"
 #include "parallel_mater_primitives_runtime.cu"
 
 namespace {
 using parallel_mater::simulation::SpatialSortPolicy;
+using parallel_mater::simulation::SpatialEpochHeader;
+using parallel_mater::simulation::SpatialLeafMetadata;
 using parallel_mater::simulation::make_spatial_build_plan;
 using parallel_mater::simulation::spatial_build_dispatch_budget;
+using parallel_mater::simulation::spatial_epoch_status_duplicate_publication;
+using parallel_mater::simulation::spatial_epoch_status_envelope_escape;
+using parallel_mater::simulation::spatial_epoch_status_query_overflow;
+using parallel_mater::simulation::spatial_epoch_status_stale_epoch;
+using parallel_mater::simulation::spatial_leaf_provisional;
+using parallel_mater::simulation::spatial_leaf_retained;
+using parallel_mater::simulation::spatial_leaf_inactive;
+using parallel_mater::simulation::spatial_leaf_transfer_destination;
+using parallel_mater::simulation::spatial_leaf_transfer_source;
 using parallel_mater::simulation::spatial_status_count_overflow;
 using parallel_mater::simulation::spatial_status_duplicate_key;
 using parallel_mater::simulation::spatial_status_invalid_bounds;
 using parallel_mater::simulation::spatial_status_policy_mismatch;
 
 constexpr unsigned tile = 256U;
+static_assert(sizeof(SpatialLeafMetadata) == sizeof(PmSpatialLeafMetadata_0));
+static_assert(sizeof(SpatialEpochHeader) == sizeof(PmSpatialEpochHeader_0));
 int failures{};
 #define CHECK(condition) do { if (!(condition)) { \
     if (++failures <= 80) std::fprintf(stderr, "%s:%d check failed: %s\n", \
@@ -374,6 +388,206 @@ void validate_errors() {
     CHECK((*wrong_policy.status & spatial_status_policy_mismatch) != 0U);
 }
 
+void validate_service_kernels() {
+    Fixture fixture(7U, 4U);
+    auto *metadata = managed<SpatialLeafMetadata>(fixture.capacity);
+    auto *admission = managed<std::uint8_t>(fixture.capacity);
+    auto *header = managed<SpatialEpochHeader>(1U);
+    auto *query_counter = managed<unsigned>(1U);
+    auto *query_status = managed<unsigned>(1U);
+    auto *queries = managed<PmSpatialAabb_0>(1U);
+    auto *query_masks = managed<unsigned>(1U);
+    auto *excluded = managed<unsigned>(1U);
+    auto *candidate_counts = managed<unsigned>(1U);
+    auto *candidates = managed<unsigned>(fixture.capacity);
+    auto *visited = managed<unsigned>(1U);
+    CHECK(fixture.allocated() && metadata && admission && header &&
+          query_counter && query_status && queries &&
+          query_masks && excluded && candidate_counts && candidates && visited);
+    if (!fixture.allocated() || !metadata || !admission || !header ||
+        !query_counter || !query_status || !queries || !query_masks ||
+        !excluded || !candidate_counts || !candidates || !visited) return;
+
+    const std::array<std::array<float, 2>, 4> x{{
+        {{0.0F, 1.0F}}, {{0.5F, 1.5F}},
+        {{3.0F, 4.0F}}, {{3.5F, 4.5F}}}};
+    unsigned active_ordinal = 0U;
+    for (unsigned index = 0U; index < fixture.capacity; ++index) {
+        metadata[index] = {};
+        if (active_ordinal == fixture.expected_sources.size() ||
+            fixture.expected_sources[active_ordinal] != index) {
+            metadata[index].flags = spatial_leaf_inactive;
+            continue;
+        }
+        metadata[index].identity = {1U, 0U, 1U, 1U, 1U, index, 1U};
+        metadata[index].sort_key = 10U * (active_ordinal + 1U);
+        metadata[index].payload_ref = index;
+        metadata[index].query_mask = 1U;
+        metadata[index].admission_mask = 1U;
+        metadata[index].flags = active_ordinal == 0U
+            ? spatial_leaf_retained | spatial_leaf_transfer_source
+            : spatial_leaf_provisional;
+        if (active_ordinal == 1U)
+            metadata[index].flags |= spatial_leaf_transfer_destination;
+        if (active_ordinal <= 1U) metadata[index].transfer_group = 7U;
+        fixture.identities[index] = metadata[index].sort_key;
+        fixture.input_bounds[index].minimum_0 =
+            make_float4(x[active_ordinal][0], 0.0F, 0.0F, 0.0F);
+        fixture.input_bounds[index].maximum_0 =
+            make_float4(x[active_ordinal][1], 1.0F, 1.0F, 0.0F);
+        ++active_ordinal;
+    }
+    *fixture.status = 0U;
+    pm_spatial_initialize_epoch<<<1U, 1U>>>(
+        reinterpret_cast<PmSpatialEpochHeader_0 *>(header),
+        1ULL, 7ULL, 9ULL, 1U, 1U, fixture.capacity, 1U,
+        query_counter, query_status, fixture.status);
+    pm_spatial_stage_leaves<<<1U, tile>>>(
+        reinterpret_cast<PmSpatialLeafMetadata_0 *>(metadata),
+        fixture.input_bounds, fixture.capacity, fixture.capacity,
+        fixture.flags, admission, fixture.status);
+    CHECK(cudaDeviceSynchronize() == cudaSuccess);
+    CHECK(*fixture.status == 0U);
+    for (unsigned index = 0U; index < fixture.capacity; ++index)
+        CHECK(fixture.flags[index] ==
+              (std::find(fixture.expected_sources.begin(),
+                         fixture.expected_sources.end(), index) !=
+                       fixture.expected_sources.end() ? 1U : 0U));
+
+    fixture.launch_build();
+    CHECK(cudaDeviceSynchronize() == cudaSuccess);
+    CHECK(*fixture.status == 0U);
+    pm_spatial_resolve_admission<<<1U, tile>>>(
+        reinterpret_cast<PmSpatialLeafMetadata_0 *>(metadata),
+        fixture.input_bounds, fixture.active_count, fixture.capacity,
+        fixture.active_indices, fixture.left, fixture.right,
+        fixture.leaf_sources,
+        fixture.node_bounds, admission, fixture.status);
+    pm_spatial_finalize_transfers<<<1U, tile>>>(
+        reinterpret_cast<PmSpatialLeafMetadata_0 *>(metadata),
+        fixture.active_count, fixture.capacity, fixture.active_indices,
+        admission, fixture.status);
+    pm_spatial_publish_epoch<<<1U, 1U>>>(
+        reinterpret_cast<PmSpatialEpochHeader_0 *>(header),
+        fixture.active_count, fixture.capacity, fixture.status);
+    CHECK(cudaDeviceSynchronize() == cudaSuccess);
+    CHECK(*fixture.status == 0U);
+    CHECK((std::array<std::uint8_t, 7>{
+               admission[0], admission[1], admission[2], admission[3],
+               admission[4], admission[5], admission[6]} ==
+           std::array<std::uint8_t, 7>{0U, 1U, 0U, 1U, 0U, 0U, 0U}));
+    CHECK(header->tick == 1U && header->graph_revision == 7U &&
+          header->resource_revision == 9U && header->leaf_count == 4U &&
+          header->node_count == 7U && header->build_count == 1U &&
+          header->refit_count == 0U && header->publication_count == 1U);
+
+    queries[0].minimum_0 = make_float4(0.0F, 0.0F, 0.0F, 0.0F);
+    queries[0].maximum_0 = make_float4(5.0F, 1.0F, 1.0F, 0.0F);
+    query_masks[0] = 1U;
+    excluded[0] = std::numeric_limits<unsigned>::max();
+    pm_spatial_query_aabbs<<<1U, 64U>>>(
+        reinterpret_cast<PmSpatialEpochHeader_0 *>(header), query_counter,
+        queries,
+        query_masks, excluded, 1U, fixture.capacity,
+        fixture.capacity, fixture.left, fixture.right,
+        fixture.leaf_sources, fixture.node_bounds,
+        reinterpret_cast<PmSpatialLeafMetadata_0 *>(metadata), admission,
+        candidate_counts, candidates, visited, query_status);
+    CHECK(cudaDeviceSynchronize() == cudaSuccess);
+    CHECK(*query_status == 0U);
+    CHECK(*candidate_counts == 2U);
+    CHECK(metadata[candidates[0]].identity.primitive_slot == 1U);
+    CHECK(metadata[candidates[1]].identity.primitive_slot == 3U);
+    CHECK(*visited == 7U);
+
+    *query_status = 0U;
+    pm_spatial_query_aabbs<<<1U, 64U>>>(
+        reinterpret_cast<PmSpatialEpochHeader_0 *>(header), query_counter,
+        queries,
+        query_masks, excluded, 1U, 1U,
+        fixture.capacity, fixture.left, fixture.right,
+        fixture.leaf_sources, fixture.node_bounds,
+        reinterpret_cast<PmSpatialLeafMetadata_0 *>(metadata), admission,
+        candidate_counts, candidates, visited, query_status);
+    CHECK(cudaDeviceSynchronize() == cudaSuccess);
+    CHECK((*query_status & spatial_epoch_status_query_overflow) != 0U);
+    CHECK(*candidate_counts == 0U);
+    CHECK(*query_counter == 2U);
+
+    *query_status = 0U;
+    auto *current_metadata = managed<SpatialLeafMetadata>(fixture.capacity);
+    auto *current_bounds = managed<PmSpatialAabb_0>(fixture.capacity);
+    CHECK(current_metadata && current_bounds);
+    if (current_metadata && current_bounds) {
+        std::copy(metadata, metadata + fixture.capacity, current_metadata);
+        std::copy(fixture.input_bounds,
+                  fixture.input_bounds + fixture.capacity, current_bounds);
+        pm_spatial_validate_envelopes<<<1U, tile>>>(
+            reinterpret_cast<PmSpatialLeafMetadata_0 *>(metadata),
+            fixture.input_bounds, fixture.capacity,
+            reinterpret_cast<PmSpatialLeafMetadata_0 *>(current_metadata),
+            current_bounds, fixture.capacity, query_status);
+        CHECK(cudaDeviceSynchronize() == cudaSuccess);
+        CHECK(*query_status == 0U);
+        current_metadata[3].identity.primitive_generation = 2U;
+        current_bounds[3].maximum_0.x = 5.0F;
+        pm_spatial_validate_envelopes<<<1U, tile>>>(
+            reinterpret_cast<PmSpatialLeafMetadata_0 *>(metadata),
+            fixture.input_bounds, fixture.capacity,
+            reinterpret_cast<PmSpatialLeafMetadata_0 *>(current_metadata),
+            current_bounds, fixture.capacity, query_status);
+        CHECK(cudaDeviceSynchronize() == cudaSuccess);
+        CHECK((*query_status & spatial_epoch_status_stale_epoch) != 0U);
+        CHECK((*query_status & spatial_epoch_status_envelope_escape) != 0U);
+    }
+
+    *fixture.status = 0U;
+    pm_spatial_publish_epoch<<<1U, 1U>>>(
+        reinterpret_cast<PmSpatialEpochHeader_0 *>(header),
+        fixture.active_count, fixture.capacity, fixture.status);
+    CHECK(cudaDeviceSynchronize() == cudaSuccess);
+    CHECK((*fixture.status & spatial_epoch_status_duplicate_publication) != 0U);
+
+    // Unchanged topology/identity can select a two-dispatch leaf refit + union
+    // instead of another sort/build. Counts remain GPU resident in the header.
+    *fixture.status = 0U;
+    fixture.input_bounds[5].maximum_0.x = 6.0F;
+    pm_spatial_initialize_epoch<<<1U, 1U>>>(
+        reinterpret_cast<PmSpatialEpochHeader_0 *>(header),
+        2ULL, 7ULL, 10ULL, 1U, 2U, fixture.live, 2U,
+        query_counter, query_status, fixture.status);
+    pm_spatial_refit_leaves<<<1U, tile>>>(
+        fixture.active_count, fixture.capacity, fixture.leaf_sources,
+        fixture.input_bounds, fixture.node_bounds, fixture.arrivals,
+        fixture.status);
+    pm_spatial_union_bounds<<<1U, tile>>>(
+        fixture.active_count, fixture.capacity, fixture.left, fixture.right,
+        fixture.parents, fixture.node_bounds, fixture.arrivals, fixture.status);
+    pm_spatial_publish_epoch<<<1U, 1U>>>(
+        reinterpret_cast<PmSpatialEpochHeader_0 *>(header),
+        fixture.active_count, fixture.capacity, fixture.status);
+    CHECK(cudaDeviceSynchronize() == cudaSuccess);
+    CHECK(*fixture.status == 0U);
+    CHECK(close(fixture.node_bounds[0].maximum_0.x, 6.0F));
+    CHECK(header->build_count == 0U && header->refit_count == 1U &&
+          header->publication_count == 1U);
+    CHECK(*query_counter == 0U);
+
+    cudaFree(current_bounds);
+    cudaFree(current_metadata);
+    cudaFree(visited);
+    cudaFree(candidates);
+    cudaFree(candidate_counts);
+    cudaFree(excluded);
+    cudaFree(query_masks);
+    cudaFree(queries);
+    cudaFree(query_status);
+    cudaFree(query_counter);
+    cudaFree(header);
+    cudaFree(admission);
+    cudaFree(metadata);
+}
+
 float percentile(std::vector<float> values, float fraction) {
     std::sort(values.begin(), values.end());
     const auto index = static_cast<std::size_t>(
@@ -441,8 +655,16 @@ void benchmark(unsigned capacity, unsigned live) {
     std::copy(fixture.values[0], fixture.values[0] + live, seed_values);
     std::reverse(seed_keys, seed_keys + live);
     std::reverse(seed_values, seed_values + live);
+#if CUDART_VERSION >= 13000
+    const cudaMemLocation device_location{cudaMemLocationTypeDevice, 0};
+    cudaMemPrefetchAsync(seed_keys, live * sizeof(*seed_keys),
+                         device_location, 0U);
+    cudaMemPrefetchAsync(seed_values, live * sizeof(*seed_values),
+                         device_location, 0U);
+#else
     cudaMemPrefetchAsync(seed_keys, live * sizeof(*seed_keys), 0);
     cudaMemPrefetchAsync(seed_values, live * sizeof(*seed_values), 0);
+#endif
     cudaDeviceSynchronize();
 
     const auto reset_sort = [&] {
@@ -502,6 +724,9 @@ int main(int argc, char **argv) {
             capacity, live, failures - before);
     }
     validate_errors();
+    validate_service_kernels();
+    if (failures == 0)
+        std::printf("F8-07 spatial service CUDA tests passed\n");
     if (argc > 1 && std::string_view(argv[1]) == "--benchmark") {
         for (const auto [capacity, live] :
              std::array<std::pair<unsigned, unsigned>, 5>{

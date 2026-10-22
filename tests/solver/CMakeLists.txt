@@ -74,6 +74,16 @@ add_test(NAME parallel-mater-spatial-build-primitives-tests
 set_tests_properties(parallel-mater-spatial-build-primitives-tests PROPERTIES
     LABELS "slang;spatial;f8")
 
+add_executable(parallel-mater-spatial-service-tests
+    spatial_service_tests.cpp)
+target_compile_features(parallel-mater-spatial-service-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-spatial-service-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-spatial-service-tests
+    COMMAND parallel-mater-spatial-service-tests)
+set_tests_properties(parallel-mater-spatial-service-tests PROPERTIES
+    LABELS "spatial;lifecycle;f8")
+
 add_executable(parallel-mater-geometry-resource-plan-tests
     geometry_resource_plan_tests.cpp ../../src/simulation/memory_arena.cpp)
 target_compile_features(parallel-mater-geometry-resource-plan-tests PRIVATE cxx_std_20)

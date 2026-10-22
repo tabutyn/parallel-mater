@@ -270,12 +270,20 @@
         "pm_spatial_radix_prefix_u32",
         "pm_spatial_radix_scatter_u64_u32",
         "pm_spatial_build_topology",
-        "pm_spatial_union_bounds"
+        "pm_spatial_union_bounds",
+        "pm_spatial_refit_leaves",
+        "pm_spatial_initialize_epoch",
+        "pm_spatial_stage_leaves",
+        "pm_spatial_resolve_admission",
+        "pm_spatial_finalize_transfers",
+        "pm_spatial_publish_epoch",
+        "pm_spatial_query_aabbs",
+        "pm_spatial_validate_envelopes"
       ],
       "domains": ["SPATIAL_INDEX", "AUXILIARY"],
       "advertised_modes": [],
       "public_case_sets": ["all"],
-      "existing_execution_tests": ["parallel-mater-spatial-build-primitives-tests", "parallel-mater-spatial-build-cuda-tests", "parallel-mater-fluid-pair-neighbor-index-tests", "shader portability build"],
+      "existing_execution_tests": ["parallel-mater-spatial-build-primitives-tests", "parallel-mater-spatial-service-tests", "parallel-mater-spatial-build-cuda-tests", "parallel-mater-fluid-pair-neighbor-index-tests", "shader portability build"],
       "implementation_owners": ["F8-06", "F8-07"]
     },
     {
@@ -669,7 +677,7 @@
     {
       "contract": "stage_boundary, emit_envelopes, build_or_refit_once, resolve_admission, publish_epoch, and shared query helpers",
       "owners": ["F8-07"],
-      "status": "planned-not-in-canonical-build-manifest"
+      "status": "implemented-canonical-build-manifest"
     },
     {
       "contract": "port F8-05 independent model obligations into public entrypoint execution tests",

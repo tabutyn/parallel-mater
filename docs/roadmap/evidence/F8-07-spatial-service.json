@@ -1,0 +1,99 @@
+{
+  "schema": "parallel-mater-f8-spatial-service-evidence/v1",
+  "task": "F8-07",
+  "recorded_at": "2026-10-22",
+  "branch": "work/F8-07/thomas-laptop",
+  "cuda_device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "compute_capability": "8.6",
+    "driver_api": 13010,
+    "runtime": 13010,
+    "driver": "590.44.01"
+  },
+  "vulkan_devices": [
+    {
+      "name": "Intel(R) Xe Graphics (TGL GT2)",
+      "api": "1.3.230",
+      "driver": "Mesa 22.3.6"
+    },
+    {
+      "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+      "api": "1.4.325",
+      "driver": "590.44.01"
+    }
+  ],
+  "resource_contract": {
+    "snapshot_slots": {"minimum": 2, "maximum": 4},
+    "epoch_header_bytes": 80,
+    "leaf_metadata_bytes": 64,
+    "alignment_bytes": 16,
+    "allocation_policy": "checked persistent snapshots plus reusable build/query scratch allocated only at capacity changes",
+    "count_residency": "GPU active-count and status buffers; no routine service readback",
+    "successful_update_limit": "builds + refits <= 1 and publications == 1"
+  },
+  "production_kernels": [
+    "pm_spatial_initialize_epoch",
+    "pm_spatial_stage_leaves",
+    "pm_spatial_refit_leaves",
+    "pm_spatial_resolve_admission",
+    "pm_spatial_finalize_transfers",
+    "pm_spatial_publish_epoch",
+    "pm_spatial_query_aabbs",
+    "pm_spatial_validate_envelopes"
+  ],
+  "correctness_cases": [
+    "randomized full-tick path/deviation/total-correction envelopes",
+    "full rigid rotation-origin-radius enclosure and signed weighted intervals",
+    "randomized production traversal candidates equal independent brute-force overlap",
+    "inclusive touching and canonical full-identity ordering",
+    "retained/provisional deterministic underfill and atomic transfer XOR",
+    "sparse inactive tombstones, compaction, spawn/removal and slot reuse",
+    "topology/resource revision edits and stale slot-generation rejection",
+    "old snapshot pinning across commit, retirement, reset and reuse",
+    "all-or-none candidate/traversal overflow and envelope-escape abort",
+    "empty epoch, one build, one refit and duplicate update/publication rejection"
+  ],
+  "qualification": [
+    {
+      "command": "parallel-mater-spatial-service-tests",
+      "result": "PASS",
+      "notes": "independent host lifecycle, envelope, admission and brute-force candidate oracles"
+    },
+    {
+      "command": "parallel-mater-spatial-build-cuda-tests",
+      "result": "PASS",
+      "notes": "physical RTX execution of generated production Slang, including sparse service build/refit/admission/query/failure cases"
+    },
+    {
+      "command": "parallel-mater-vulkan-spirv-primitives",
+      "result": "PASS",
+      "notes": "Vulkan 1.3 scalar-layout SPIR-V validation"
+    },
+    {
+      "command": "parallel-mater-vulkan-command-api-tests",
+      "result": "PASS",
+      "notes": "physical Vulkan driver execution; 3.40 seconds"
+    },
+    {
+      "command": "Slang per-entry Metal source compilation",
+      "result": "PASS",
+      "notes": "stage, sparse admission/finalization and refit entries"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "72 tests"
+    },
+    {
+      "command": "python3 tests/solver/test_slang_abi.py",
+      "result": "PASS",
+      "notes": "9 tests"
+    }
+  ],
+  "limits": [
+    "F8-08 through F8-10 migrate domain consumers; F8-20 integrates the final reference schedule.",
+    "Immutable mesh-local BVHs remain owned and cached by existing geometry resources.",
+    "Local Linux qualification lacks DXC; canonical Windows DXIL reflection remains a required completion-PR CI gate.",
+    "No new interaction mode or real-time profile is advertised by F8-07."
+  ]
+}
