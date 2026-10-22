@@ -1,7 +1,7 @@
 {
   "id": "F8-10",
   "title": "Move deformable and smoke collision lookup onto shared indexing",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-03",
     "F8-07"
@@ -21,6 +21,14 @@
     "Enforce one update, bounded candidate memory and no per-edge rebuilds; preserve registered mode/capability boundaries."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "929ca92f-2b16-4d47-8ad5-555331b06401",
+    "owner": "codex-f8-deformable-smoke",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-10/thomas-laptop",
+    "claimed_at": "2026-10-22T20:44:29Z",
+    "heartbeat_at": "2026-10-22T20:44:29Z",
+    "expires_at": "2026-10-23T20:44:29Z"
+  },
   "history": []
 }
