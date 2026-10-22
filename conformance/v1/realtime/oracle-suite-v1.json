@@ -1,0 +1,254 @@
+{
+  "schema": "parallel-mater-realtime-oracle-suite/v1",
+  "id": "realtime-single-step-oracles-v1",
+  "task": "F8-03",
+  "profile": "realtime-single-step-v1",
+  "status": "independent-oracles-ready-runtime-unqualified",
+  "sources": {
+    "profile": "conformance/v1/qualification/realtime-profile-v1.json",
+    "inventory": "conformance/v1/qualification/kernel-device-obligations-v1.json",
+    "capabilities": "conformance/v1/qualification/capability-obligations-v1.json"
+  },
+  "case_generation": {
+    "domains": "derive every domain_quality entry from the profile contract",
+    "advertised_capabilities": "expand every authoritative capability rule; do not maintain a second pair or mode list",
+    "fixed_workloads": "derive every tier and exact count from the profile contract",
+    "runtime_adapters": "derive every runtime compiled variant and its f8_execution_test from the kernel/device inventory"
+  },
+  "public_api": {
+    "rule": "Fixtures create, mutate, step, synchronize and read state only through the installed public API. Driver-private state cannot satisfy an assertion.",
+    "required_extension": "PM_EXT_simulation_profile",
+    "requested_profile": "realtime-single-step",
+    "requested_version": {
+      "major": 1,
+      "minor": 0
+    },
+    "operation_sequence": [
+      "pmEnumerateExecutionProfiles",
+      "pmCreateDevice",
+      "pmCreateSimulation",
+      "pmCreatePhysicsPipeline",
+      "pmCreateQueryPool",
+      "pmBeginCommandBuffer",
+      "pmCmdResetQueryPool",
+      "pmCmdBeginStatisticsQuery",
+      "pmCmdBindPhysicsPipeline",
+      "pmCmdStepSimulation",
+      "pmCmdEndStatisticsQuery",
+      "pmEndCommandBuffer",
+      "pmQueueSubmit",
+      "pmWaitForFences",
+      "pmGetSimulationStatus",
+      "pmGetQueryPoolResults"
+    ],
+    "execution_cases": [
+      "f8-kernel-entrypoint-execution/cuda",
+      "f8-kernel-entrypoint-execution/vulkan",
+      "f8-kernel-entrypoint-execution/d3d12",
+      "f8-kernel-entrypoint-execution/metal",
+      "f8-kernel-entrypoint-execution/cpu"
+    ],
+    "unsupported_rule": "A driver that does not enumerate the exact profile produces an unsupported result, never a pass or a legacy fallback."
+  },
+  "public_trajectory_cases": [
+    {
+      "id": "f8-fluid-pair-index",
+      "inventory_groups": ["fluid-pair-index"],
+      "domains": ["FLUID"],
+      "modes": ["CONTACT", "PRESSURE", "VISCOSITY"],
+      "ticks": 2,
+      "fixture": {
+        "fluid_systems": 2,
+        "particles_per_system": 2,
+        "support_radius_m": 0.4,
+        "stable_ids": [1, 2, 3, 4],
+        "motion": "two bounded crossing pairs and one separated negative-control pair"
+      },
+      "required_observations": [
+        "public stable IDs before and after the step",
+        "complete cross-population candidate pairs",
+        "one spatial publication and no private pair sort"
+      ]
+    },
+    {
+      "id": "f8-fluid-pair-miscible",
+      "inventory_groups": ["fluid-pair-miscible"],
+      "domains": ["FLUID"],
+      "modes": ["CONTACT", "PRESSURE", "VISCOSITY"],
+      "ticks": 120,
+      "fixture": {
+        "split_systems": 2,
+        "combined_reference_systems": 1,
+        "particles_per_split_system": 4,
+        "material_profile": "MISCIBLE",
+        "mass_ratio": 10.0,
+        "characteristic_length_m": 0.1
+      },
+      "required_observations": [
+        "split-versus-combined normalized public state error",
+        "reciprocal linear impulse residual",
+        "density p95 and maximum error"
+      ]
+    },
+    {
+      "id": "f8-fluid-pair-immiscible",
+      "inventory_groups": ["fluid-pair-immiscible"],
+      "domains": ["FLUID"],
+      "modes": ["CONTACT", "PRESSURE"],
+      "ticks": 120,
+      "fixture": {
+        "fluid_systems": 2,
+        "particles_per_system": 8,
+        "material_profile": "IMMISCIBLE",
+        "interface": "two four-by-two particle slabs sharing a planar boundary",
+        "characteristic_length_m": 0.1
+      },
+      "required_observations": [
+        "finite reconstructed interface response through public particle state",
+        "reciprocal linear impulse residual",
+        "zero missing swept candidates at the interface"
+      ]
+    },
+    {
+      "id": "f8-paint-contact-stamping",
+      "inventory_groups": ["paint-contact-stamping"],
+      "domains": ["RIGID_BODY", "FLUID", "CLOTH"],
+      "modes": ["CONTACT"],
+      "ticks": 4,
+      "fixture": {
+        "rigid_paint_fields": 1,
+        "cloth_paint_fields": 1,
+        "fluid_particles": 1,
+        "replacement_at_tick": 2,
+        "paint_resolution": [4, 4]
+      },
+      "required_observations": [
+        "nonzero public paint field after contact",
+        "retired generation is absent after replacement",
+        "replacement generation can receive a later stamp"
+      ]
+    }
+  ],
+  "scenario_fixtures": [
+    {
+      "id": "rigid-cold-impact-rotation",
+      "domains": ["RIGID_BODY"],
+      "ticks": 120,
+      "tags": ["cold-start", "impact", "rotation", "mass-ratio", "stiff-system"]
+    },
+    {
+      "id": "rigid-settled-long-run",
+      "domains": ["RIGID_BODY"],
+      "ticks": 3600,
+      "tags": ["long-run"]
+    },
+    {
+      "id": "fluid-closed-container-source-outflow",
+      "domains": ["FLUID"],
+      "ticks": 600,
+      "tags": ["containment", "source", "removal", "long-run"]
+    },
+    {
+      "id": "cloth-stiff-pin-impact",
+      "domains": ["CLOTH"],
+      "ticks": 600,
+      "tags": ["stiff-system", "impact", "cold-start"]
+    },
+    {
+      "id": "soft-body-mass-ratio-volume",
+      "domains": ["SOFT_BODY"],
+      "ticks": 600,
+      "tags": ["mass-ratio", "stiff-system", "impact"]
+    },
+    {
+      "id": "rope-attachment-rotation",
+      "domains": ["ROPE"],
+      "ticks": 600,
+      "tags": ["rotation", "impact", "stiff-system"]
+    },
+    {
+      "id": "smoke-analytic-transport-long-run",
+      "domains": ["SMOKE"],
+      "ticks": 3600,
+      "tags": ["long-run", "source", "removal"]
+    },
+    {
+      "id": "fluid-cloth-rigid-containment",
+      "domains": ["FLUID", "CLOTH", "RIGID_BODY"],
+      "ticks": 600,
+      "tags": ["containment", "impact", "mass-ratio"]
+    },
+    {
+      "id": "six-family-mixed",
+      "domains": ["RIGID_BODY", "FLUID", "CLOTH", "SOFT_BODY", "ROPE", "SMOKE"],
+      "ticks": 600,
+      "tags": ["cold-start", "long-run", "containment", "source", "removal"]
+    },
+    {
+      "id": "boundary-replacement-generation",
+      "domains": ["RIGID_BODY", "FLUID", "ROPE"],
+      "ticks": 4,
+      "tags": ["replacement", "source", "removal"]
+    },
+    {
+      "id": "capacity-overflow-atomic-recovery",
+      "domains": ["FLUID", "CLOTH", "SMOKE"],
+      "ticks": 3,
+      "tags": ["overflow", "recovery"]
+    },
+    {
+      "id": "empty-and-sparse-capacity",
+      "domains": ["RIGID_BODY", "FLUID", "CLOTH", "SOFT_BODY", "ROPE", "SMOKE"],
+      "ticks": 2,
+      "tags": ["empty", "sparse"]
+    }
+  ],
+  "spatial_candidate_oracle": {
+    "shape": "continuously swept spheres with per-leaf support radius and maximum solver correction",
+    "reference": "brute-force all unordered stable-id pairs",
+    "requirement": "every continuous swept overlap must appear; false positives are permitted",
+    "cases": ["empty", "sparse", "crossing", "fast-impact", "correction-bound", "deterministic-random"]
+  },
+  "work_accounting": {
+    "unit": "per-tick",
+    "required_counters": [
+      "dispatches",
+      "workgroups",
+      "barriers",
+      "queue_submissions",
+      "intra_tick_host_readbacks",
+      "bytes_moved",
+      "spatial_index_updates",
+      "spatial_index_publications",
+      "time_advances",
+      "iterations"
+    ],
+    "dispatch_rule": "the total equals the sum of emitted phase dispatches; F8-21 sets candidate/device ceilings",
+    "iteration_rule": "active algebraic budgets equal the profile exactly; coupling sweeps equal registered edges times four",
+    "index_rule": "at most one update and exactly one publication per successful tick",
+    "readback_rule": "intra-tick host readbacks are zero; explicit post-completion public queries are separate",
+    "failure_rule": "failed ticks publish and advance zero times, preserve state/clock/inputs and emit no hidden retry substeps or index updates"
+  },
+  "timing": {
+    "unit": "per-tick",
+    "clock": "injected host-monotonic clock",
+    "warmup": "exclude exactly the contract warmup prefix",
+    "samples": "retain every measured tick including stalls",
+    "statistics": ["p50", "p95", "p99", "maximum"],
+    "gpu_unavailable": "label unavailable and leave GPU phase samples absent; never substitute host time"
+  },
+  "negative_controls": {
+    "one_per_named_limit": true,
+    "candidate_missing_pair": true,
+    "atomic_failure_violation": true,
+    "hidden_retry_violation": true,
+    "timing_stall_retained": true,
+    "timing_failed_tick": true
+  },
+  "legacy_separation": {
+    "legacy_profile": "legacy-default",
+    "accept_legacy_as_realtime": false,
+    "baseline_policy": "A one-substep legacy baseline is recorded under its own profile and may fail realtime assertions. The failure is retained; neither threshold nor profile identity changes.",
+    "current_runtime_state": "Reference drivers enumerate no realtime profile until solver implementation tasks complete. Unsupported is explicit and is not qualification evidence."
+  }
+}

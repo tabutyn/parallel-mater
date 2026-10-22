@@ -121,10 +121,10 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-00](roadmap/tasks/F8-00.json) | Specify the versioned 60 Hz real-time quality contract | done | — | — |
 | [F8-01](roadmap/tasks/F8-01.json) | Inventory every kernel, capability and physical test target | done | — | — |
 | [F8-02](roadmap/tasks/F8-02.json) | Verify deployed binaries and capture trustworthy Android baselines | done | F8-00, F8-01 | — |
-| [F8-03](roadmap/tasks/F8-03.json) | Build independent single-step quality and work-budget oracles | leased | F8-00, F8-01, F8-32 | codex-macos-f8-oracles / Thomass-MacBook-Air / 2026-10-23T11:58:52Z |
-| [F8-04](roadmap/tasks/F8-04.json) | Implement fixed 60 Hz presentation and overload clock policy | waiting on dependencies | F8-00, F8-03, F8-32 | — |
+| [F8-03](roadmap/tasks/F8-03.json) | Build independent single-step quality and work-budget oracles | done | F8-00, F8-01, F8-32 | — |
+| [F8-04](roadmap/tasks/F8-04.json) | Implement fixed 60 Hz presentation and overload clock policy | ready | F8-00, F8-03, F8-32 | — |
 | [F8-05](roadmap/tasks/F8-05.json) | Design one shared spatial-index epoch for all consumers | done | — | — |
-| [F8-06](roadmap/tasks/F8-06.json) | Implement low-dispatch shared spatial build primitives | waiting on dependencies | F8-00, F8-01, F8-03, F8-05 | — |
+| [F8-06](roadmap/tasks/F8-06.json) | Implement low-dispatch shared spatial build primitives | ready | F8-00, F8-01, F8-03, F8-05 | — |
 | [F8-07](roadmap/tasks/F8-07.json) | Implement the once-per-tick shared BVH resource service | waiting on dependencies | F8-00, F8-03, F8-05, F8-06, F8-32 | — |
 | [F8-08](roadmap/tasks/F8-08.json) | Move rigid broad phase onto the shared BVH | waiting on dependencies | F8-03, F8-07 | — |
 | [F8-09](roadmap/tasks/F8-09.json) | Move liquid populations and sources onto shared BVH queries | waiting on dependencies | F8-03, F8-07 | — |

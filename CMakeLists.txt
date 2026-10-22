@@ -1550,6 +1550,12 @@ if(BUILD_TESTING)
         COMMAND ${Python3_EXECUTABLE} -m unittest discover
                 -s ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/tests
                 -p test_*.py)
+    add_test(NAME parallel-mater-realtime-oracle-contract
+        COMMAND ${Python3_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/realtime_oracle.py
+                --check-contract)
+    set_tests_properties(parallel-mater-realtime-oracle-contract PROPERTIES
+        LABELS "conformance;profile;oracle;realtime")
     add_test(NAME parallel-mater-benchmark-qualification-tests
         COMMAND ${Python3_EXECUTABLE} -m unittest discover
                 -s ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/tests
