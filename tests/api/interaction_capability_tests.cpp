@@ -60,6 +60,9 @@ int main() {
         CHECK(same_key(record.key, queried.key));
         CHECK(record.maxGraphEdgesPerSimulation ==
               queried.maxGraphEdgesPerSimulation);
+        CHECK(!(record.key.firstFamily == PM_INTERACTION_FAMILY_SMOKE &&
+                record.key.secondFamily == PM_INTERACTION_FAMILY_SMOKE &&
+                record.key.scope == PM_INTERACTION_SCOPE_SEPARATE_SYSTEM));
         rigid_contact |=
             record.key.firstFamily == PM_INTERACTION_FAMILY_RIGID_BODY &&
             record.key.secondFamily == PM_INTERACTION_FAMILY_RIGID_BODY &&
@@ -106,6 +109,34 @@ int main() {
     unsupported.scope = PM_INTERACTION_SCOPE_DISTINCT_FAMILY;
     CHECK(pmGetPhysicalDeviceInteractionCapability(
               physical, &unsupported, &queried) == PM_ERROR_INVALID_ARGUMENT);
+
+    // The public identities exist before any driver may advertise a
+    // separate-system smoke operator.
+    unsupported.firstFamily = PM_INTERACTION_FAMILY_SMOKE;
+    unsupported.secondFamily = PM_INTERACTION_FAMILY_SMOKE;
+    unsupported.scope = PM_INTERACTION_SCOPE_SEPARATE_SYSTEM;
+    unsupported.direction = PM_INTERACTION_DIRECTION_BIDIRECTIONAL;
+    for (const auto profile : {PM_INTERACTION_MATERIAL_SMOKE_PARTICLE,
+                               PM_INTERACTION_MATERIAL_SMOKE_GRID}) {
+        unsupported.materialProfile = profile;
+        for (const auto mode : {PM_INTERACTION_MODE_PRESSURE,
+                                PM_INTERACTION_MODE_VISCOSITY,
+                                PM_INTERACTION_MODE_THERMAL}) {
+            unsupported.mode = mode;
+            CHECK(pmGetPhysicalDeviceInteractionCapability(
+                      physical, &unsupported, &queried) ==
+                  PM_ERROR_FEATURE_NOT_PRESENT);
+        }
+    }
+    unsupported.materialProfile =
+        PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID;
+    for (const auto mode : {PM_INTERACTION_MODE_DRAG,
+                            PM_INTERACTION_MODE_THERMAL}) {
+        unsupported.mode = mode;
+        CHECK(pmGetPhysicalDeviceInteractionCapability(
+                  physical, &unsupported, &queried) ==
+              PM_ERROR_FEATURE_NOT_PRESENT);
+    }
 
     PmPhysicalDeviceFeatures features{};
     pmGetPhysicalDeviceFeatures(physical, &features);

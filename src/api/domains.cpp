@@ -1565,6 +1565,17 @@ PmResult validate_coupling_endpoints(
             return result;
         return PM_SUCCESS;
     }
+    case PM_COUPLING_SMOKE_SMOKE: {
+        if (source.first >= source.second) return PM_ERROR_INVALID_ARGUMENT;
+        SmokeId first{};
+        SmokeId second{};
+        if ((result = require_slot(simulation->smokes, source.first, first)) !=
+                PM_SUCCESS ||
+            (result = require_slot(simulation->smokes, source.second, second)) !=
+                PM_SUCCESS)
+            return result;
+        return PM_SUCCESS;
+    }
     }
     return PM_ERROR_INVALID_ARGUMENT;
 }
@@ -1821,6 +1832,10 @@ PmResult install_couplings(
             if (result == PM_SUCCESS) simulation->active_couplings.emplace_back(created);
             break;
         }
+        case PM_COUPLING_SMOKE_SMOKE:
+            // Capability records remain absent until a later scheduling and
+            // qualification leaf supplies a portable implementation.
+            return rollback(PM_ERROR_FEATURE_NOT_PRESENT);
         }
         if (result != PM_SUCCESS) return rollback(result);
     }
@@ -1884,13 +1899,16 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetCouplings(
         return PM_ERROR_INVALID_ARGUMENT;
     if (count > simulation->info.couplingCapacity) return PM_ERROR_CAPACITY_EXCEEDED;
     for (std::uint32_t i = 0; i < count; ++i) {
-        const auto result = parallel_mater::api::validate_coupling(simulation->device, couplings[i]);
-        if (result != PM_SUCCESS) return result;
         for (std::uint32_t prior = 0U; prior < i; ++prior)
             if (couplings[prior].type == couplings[i].type &&
                 couplings[prior].first == couplings[i].first &&
                 couplings[prior].second == couplings[i].second)
                 return PM_ERROR_INVALID_ARGUMENT;
+    }
+    for (std::uint32_t i = 0; i < count; ++i) {
+        const auto result = parallel_mater::api::validate_coupling(
+            simulation->device, couplings[i]);
+        if (result != PM_SUCCESS) return result;
     }
     try {
         std::vector<PmCouplingState> copied;
@@ -1920,6 +1938,13 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetCouplings2(
     if (count > simulation->info.couplingCapacity)
         return PM_ERROR_CAPACITY_EXCEEDED;
 
+    for (std::uint32_t index = 0U; index < count; ++index)
+        for (std::uint32_t prior = 0U; prior < index; ++prior)
+            if (couplings[prior].type == couplings[index].type &&
+                couplings[prior].first == couplings[index].first &&
+                couplings[prior].second == couplings[index].second)
+                return PM_ERROR_INVALID_ARGUMENT;
+
     try {
         std::vector<PmCouplingState> copied;
         copied.reserve(count);
@@ -1928,11 +1953,6 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdSetCouplings2(
             const auto result = parallel_mater::api::normalize_coupling_info(
                 simulation->device, couplings[index], normalized);
             if (result != PM_SUCCESS) return result;
-            for (const auto &prior : copied)
-                if (prior.type == normalized.type &&
-                    prior.first == normalized.first &&
-                    prior.second == normalized.second)
-                    return PM_ERROR_INVALID_ARGUMENT;
             copied.push_back(normalized);
         }
         return parallel_mater::api::record_simulation(
