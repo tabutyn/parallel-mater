@@ -109,8 +109,11 @@ set(PARALLEL_MATER_SLANG_primitives_ENTRIES
     pm_spatial_validate_envelopes)
 
 set(PARALLEL_MATER_SLANG_cloth_ENTRIES
-    cloth_project_volume cloth_break_bonds cloth_limit_strain
-    cloth_update_surface)
+    cloth_project_volume
+    cloth_realtime_predict cloth_realtime_project_links
+    cloth_realtime_apply_position_delta cloth_realtime_project_volume
+    cloth_realtime_project_contacts cloth_realtime_commit
+    cloth_break_bonds cloth_limit_strain cloth_update_surface)
 set(PARALLEL_MATER_SLANG_soft_body_ENTRIES
     deformable_predict soft_body_measure_momentum soft_body_restore_momentum
     soft_body_project_rest_shape deformable_project_links
