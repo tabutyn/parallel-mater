@@ -1,7 +1,7 @@
 {
   "id": "F8-03",
   "title": "Build independent single-step quality and work-budget oracles",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-00",
     "F8-01",
@@ -21,6 +21,14 @@
     "Specify dispatch/iteration/index-update and timing assertions in per-tick units, with deterministic mock-clock tests where hardware timing is not applicable."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "b62ae99b-3ce1-430b-9386-f0c530de66bc",
+    "owner": "codex-macos-f8-oracles",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-03/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-22T11:58:52Z",
+    "heartbeat_at": "2026-10-22T11:58:52Z",
+    "expires_at": "2026-10-23T11:58:52Z"
+  },
   "history": []
 }
