@@ -1,7 +1,7 @@
 {
   "id": "F8-07",
   "title": "Implement the once-per-tick shared BVH resource service",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-00",
     "F8-03",
@@ -24,6 +24,14 @@
     "Keep counts/scratch GPU resident with bounded memory and no new routine CPU phase waits; expose accurate update/build/refit counts for later telemetry."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "61e8e10a-8b17-4681-819e-51969e3323ef",
+    "owner": "codex-f8-spatial",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-07/thomas-laptop",
+    "claimed_at": "2026-10-22T17:53:07Z",
+    "heartbeat_at": "2026-10-22T17:53:07Z",
+    "expires_at": "2026-10-23T17:53:07Z"
+  },
   "history": []
 }
