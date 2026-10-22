@@ -1,4 +1,4 @@
-<!-- Generated from registry/pm.xml sha256:c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af -->
+<!-- Generated from registry/pm.xml sha256:e3373207b92f7065fa2def13e53178aa56f4dc49e850bd86d5cc15cf71790d62 -->
 
 # Parallel Mater 0.2 — API Specification
 
@@ -147,7 +147,7 @@ With instance = NULL, pmGetInstanceProcAddr resolves only itself, pmEnumerateIns
 
 Obtain pmGetInstanceProcAddr by linking or the platform's library-symbol lookup. Instance-resolved pointers are valid only for that instance and its children; device-resolved pointers only for that device and its children. Keep their owner and the library alive while using them.
 
-Related sections: [3.2](#spec-instance), [4.5](#spec-device).
+Related sections: [3.2](#spec-instance), [4.6](#spec-device).
 
 <a id="spec-instance"></a>
 
@@ -377,9 +377,40 @@ void pmGetPhysicalDeviceFeatures(
 
 Supported features are not automatically enabled. Request only needed features at device creation. Constraints require rigidBodies; each coupling requires its participating domains. Timeline semaphores are required for a conforming command-API device; other features may be false.
 
+<a id="spec-execution_profiles"></a>
+
+### 4.5 Execution profile negotiation
+
+```c
+#define PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME "PM_EXT_simulation_profile"
+#define PM_EXT_SIMULATION_PROFILE_SPEC_VERSION 1u
+#define PM_EXECUTION_PROFILE_NAME_MAX_SIZE 64u
+#define PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP "realtime-single-step"
+typedef struct PmExecutionProfileProperties {
+    char profileName[PM_EXECUTION_PROFILE_NAME_MAX_SIZE];
+    uint32_t versionMajor;
+    uint32_t versionMinor;
+} PmExecutionProfileProperties;
+typedef struct PmSimulationProfileCreateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    const char* pProfileName;
+    uint32_t versionMajor;
+    uint32_t versionMinor;
+} PmSimulationProfileCreateInfo;
+```
+
+```c
+PmResult pmEnumerateExecutionProfiles(
+    PmPhysicalDevice physicalDevice, uint32_t* pCount,
+    PmExecutionProfileProperties* pProperties);
+```
+
+Lists executable name/version pairs, not qualification. Enable PM_EXT_simulation_profile and chain PmSimulationProfileCreateInfo at simulation creation; omission keeps the legacy schedule. Unknown profiles and versions fail without fallback. realtime-single-step 1.0 requires one substep and 1/60 second within one binary32 ULP, enforced without validation.
+
 <a id="spec-device"></a>
 
-### 4.5 Logical device
+### 4.6 Logical device
 
 ```c
 typedef struct PmDeviceQueueCreateInfo {
@@ -2829,6 +2860,7 @@ typedef enum PmStructureType {
     PM_STRUCTURE_TYPE_FLUID_PAIR_MATERIAL_STATE = 16,
     PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_COUPLING_STATE_INFO = 17,
     PM_STRUCTURE_TYPE_FLUID_INTERFACE_STATE = 18,
+    PM_STRUCTURE_TYPE_SIMULATION_PROFILE_CREATE_INFO = 19,
 } PmStructureType;
 ```
 
@@ -2920,7 +2952,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmCouplingType | [9.3](#spec-coupling) |
 | pmCreateBuffer | [6.1](#spec-buffer) |
 | pmCreateCommandPool | [11.1](#spec-command_pool) |
-| pmCreateDevice | [4.5](#spec-device) |
+| pmCreateDevice | [4.6](#spec-device) |
 | pmCreateFence | [13.5](#spec-fences) |
 | pmCreateGeometry | [6.4](#spec-geometry) |
 | pmCreateInstance | [3.2](#spec-instance) |
@@ -2933,7 +2965,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmDebugRecordType | [10.8](#spec-event_outputs) |
 | pmDestroyBuffer | [6.1](#spec-buffer) |
 | pmDestroyCommandPool | [11.1](#spec-command_pool) |
-| pmDestroyDevice | [4.5](#spec-device) |
+| pmDestroyDevice | [4.6](#spec-device) |
 | pmDestroyFence | [13.5](#spec-fences) |
 | pmDestroyGeometry | [6.4](#spec-geometry) |
 | pmDestroyInstance | [3.2](#spec-instance) |
@@ -2942,19 +2974,21 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmDestroySemaphore | [13.3](#spec-semaphores) |
 | pmDestroySimulation | [7.1](#spec-simulation_create) |
 | PmDevice | [18.1](#spec-base_types) |
-| PmDeviceCreateInfo | [4.5](#spec-device) |
+| PmDeviceCreateInfo | [4.6](#spec-device) |
 | PmDeviceMemory | [18.1](#spec-base_types) |
-| PmDeviceQueueCreateInfo | [4.5](#spec-device) |
+| PmDeviceQueueCreateInfo | [4.6](#spec-device) |
 | PmDeviceSize | [18.1](#spec-base_types) |
 | pmDeviceWaitIdle | [13.4](#spec-submission) |
 | PmDomainOutputHeader | [10.1](#spec-domain_records) |
 | pmEndCommandBuffer | [11.2](#spec-command_buffers) |
 | pmEnumerateDeviceExtensionProperties | [3.2](#spec-instance) |
+| pmEnumerateExecutionProfiles | [4.5](#spec-execution_profiles) |
 | pmEnumerateInstanceExtensionProperties | [3.2](#spec-instance) |
 | pmEnumerateInstanceLayerProperties | [3.2](#spec-instance) |
 | pmEnumerateInstanceVersion | [3.2](#spec-instance) |
 | pmEnumeratePhysicalDeviceInteractionCapabilities | [16.1](#spec-interaction_capabilities) |
 | pmEnumeratePhysicalDevices | [4.1](#spec-physical_devices) |
+| PmExecutionProfileProperties | [4.5](#spec-execution_profiles) |
 | PmExtensionProperties | [3.2](#spec-instance) |
 | PmFence | [18.1](#spec-base_types) |
 | PmFlags | [18.1](#spec-base_types) |
@@ -2975,7 +3009,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmGetBufferMemoryRequirements | [6.2](#spec-buffer_binding) |
 | pmGetDeviceMemoryBudget | [15.5](#spec-memory_budget) |
 | pmGetDeviceProcAddr | [3.1](#spec-function_pointers) |
-| pmGetDeviceQueue | [4.5](#spec-device) |
+| pmGetDeviceQueue | [4.6](#spec-device) |
 | pmGetFenceStatus | [13.5](#spec-fences) |
 | pmGetGeometryMemoryRequirements | [6.4](#spec-geometry) |
 | pmGetInstanceProcAddr | [3.1](#spec-function_pointers) |
@@ -3082,6 +3116,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmSimulationCreateInfo | [7.1](#spec-simulation_create) |
 | PmSimulationMemoryBinding | [7.2](#spec-simulation_memory) |
 | PmSimulationMemoryRequirements | [7.2](#spec-simulation_memory) |
+| PmSimulationProfileCreateInfo | [4.5](#spec-execution_profiles) |
 | PmSmokeCapacity | [7.1](#spec-simulation_create) |
 | PmSmokeCouplingState | [9.3](#spec-coupling) |
 | PmSmokeInfo | [10.5](#spec-smoke_resources) |

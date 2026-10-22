@@ -65,7 +65,12 @@ int main(int argc, char **argv) {
     std::uint32_t extension_count{};
     CHECK(pmEnumerateDeviceExtensionProperties(
               physical, nullptr, &extension_count, nullptr) == PM_SUCCESS);
-    CHECK(extension_count == 0U);
+    CHECK(extension_count == 1U);
+    PmExtensionProperties extension{};
+    CHECK(pmEnumerateDeviceExtensionProperties(
+              physical, nullptr, &extension_count, &extension) == PM_SUCCESS);
+    CHECK(std::strcmp(extension.extensionName,
+                      PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME) == 0);
 
     PmDeviceCreateInfo device_info{};
     device_info.sType = PM_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

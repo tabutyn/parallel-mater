@@ -1,7 +1,7 @@
 {
   "id": "F8-32",
   "title": "Expose the real-time profile through the registry and SDK",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-00"
   ],
@@ -20,15 +20,33 @@
     "Runtime dispatch can select the new schedule only when implemented and supported; capability qualification remains separate from execution support and no unfinished solver is advertised as qualified.",
     "Pass generated-contract, ABI, validation and installed-SDK gates; preserve historical evidence and either honor legacy requests or explicitly reject them under the reviewed version policy."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "ed82c98f-8e4b-44ca-9387-3d5c3c1b69be",
-    "owner": "codex-macos-realtime-profile",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-32/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-21T23:22:20Z",
-    "heartbeat_at": "2026-10-21T23:22:20Z",
-    "expires_at": "2026-10-22T23:22:20Z"
-  },
-  "history": []
+  "evidence": [
+    "ctest --preset sdk-ci --output-on-failure: 51/51 passed, including profile negotiation with validation enabled and disabled",
+    "python3 tools/check_sdk_install.py --build-dir build-sdk-ci --output /private/tmp/parallel-mater-f832.BW8xWu/sdk-install-evidence-3: all installed-SDK gates passed, including independently built API 0.2 and new-profile clients",
+    "tools/reference/check.py --skip-vulkan-header under pinned CPython 3.13.15: deterministic headers, searchable specification, API coverage, PDFs, layouts, and release manifest passed",
+    "ctest --test-dir build-sdk-cpu -R realtime-profile-reference --output-on-failure: Slang CPU reference preserved legacy creation and advertised no unfinished real-time solver"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "ed82c98f-8e4b-44ca-9387-3d5c3c1b69be",
+        "owner": "codex-macos-realtime-profile",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-32/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-21T23:22:20Z",
+        "heartbeat_at": "2026-10-21T23:22:20Z",
+        "expires_at": "2026-10-22T23:22:20Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-21T23:50:41Z",
+      "reason": "Published the versioned real-time profile negotiation ABI without advertising an unfinished solver, preserved legacy clients and historical evidence, and passed generated, validation, installed-SDK, and reference-runtime gates.",
+      "evidence": [
+        "ctest --preset sdk-ci --output-on-failure: 51/51 passed, including profile negotiation with validation enabled and disabled",
+        "python3 tools/check_sdk_install.py --build-dir build-sdk-ci --output /private/tmp/parallel-mater-f832.BW8xWu/sdk-install-evidence-3: all installed-SDK gates passed, including independently built API 0.2 and new-profile clients",
+        "tools/reference/check.py --skip-vulkan-header under pinned CPython 3.13.15: deterministic headers, searchable specification, API coverage, PDFs, layouts, and release manifest passed",
+        "ctest --test-dir build-sdk-cpu -R realtime-profile-reference --output-on-failure: Slang CPU reference preserved legacy creation and advertised no unfinished real-time solver"
+      ]
+    }
+  ]
 }

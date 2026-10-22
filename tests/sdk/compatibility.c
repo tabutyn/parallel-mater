@@ -66,6 +66,7 @@ static int check_device_extensions(void) {
     PmPhysicalDevice physical = NULL;
     PmDevice device = NULL;
     PmDeviceCreateInfo info = {0};
+    PmExtensionProperties extension = {0};
     const char* unknown = "PM_EXT_unknown";
     uint32_t count = 1U;
     uint32_t extension_count = UINT32_MAX;
@@ -75,7 +76,13 @@ static int check_device_extensions(void) {
     CHECK(count == 1U && physical != NULL);
     CHECK(pmEnumerateDeviceExtensionProperties(
               physical, NULL, &extension_count, NULL) == PM_SUCCESS);
-    CHECK(extension_count == 0U);
+    CHECK(extension_count == 1U);
+    CHECK(pmEnumerateDeviceExtensionProperties(
+              physical, NULL, &extension_count, &extension) == PM_SUCCESS);
+    CHECK(strcmp(extension.extensionName,
+                 PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME) == 0);
+    CHECK(extension.specificationVersion ==
+          PM_EXT_SIMULATION_PROFILE_SPEC_VERSION);
     CHECK(pmEnumerateDeviceExtensionProperties(
               physical, "PM_LAYER_unknown", &extension_count, NULL) ==
           PM_ERROR_LAYER_NOT_PRESENT);
