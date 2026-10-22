@@ -59,8 +59,23 @@ class VulkanScheduleProfileTests(unittest.TestCase):
         second = MODULE.aggregate_profile_schedules([
             profile(2, 1, True, 1, 1.0, [])])[0]
         summary = MODULE.summarize_schedules([first, second])
-        self.assertEqual(summary["mean_dispatches"], 1.5)
-        self.assertEqual(summary["phases"][0]["mean_gpu_ms"], 1.0)
+        self.assertEqual(summary["dispatches_per_tick"]["mean"], 1.5)
+        self.assertEqual(summary["phases"][0]["gpu_ms"]["mean"], 1.0)
+
+    def test_chunked_profile_is_reassembled(self):
+        value = profile(9, 1, True, 4, 3.0, [])
+        payload = json.dumps(value)
+        midpoint = len(payload) // 2
+        log = "\n".join([
+            "I ParallelMater: VulkanScheduleProfileChunk 2 1/2 " + payload[:midpoint],
+            "I ParallelMater: VulkanScheduleProfileChunk 2 2/2 " + payload[midpoint:],
+        ])
+        self.assertEqual(MODULE.parse_profiles(log), [value])
+
+    def test_incomplete_chunked_profile_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "incomplete"):
+            MODULE.parse_profiles(
+                "I ParallelMater: VulkanScheduleProfileChunk 2 1/2 {\"x\":")
 
     def test_overflow_is_rejected(self):
         schedule = MODULE.aggregate_profile_schedules([

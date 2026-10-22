@@ -1,7 +1,7 @@
 {
   "registry": {
     "path": "registry/pm.xml",
-    "sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af"
+    "sha256": "e3373207b92f7065fa2def13e53178aa56f4dc49e850bd86d5cc15cf71790d62"
   },
   "contract": "Parallel Mater command API 0.2",
   "implementation": "src/loader public entry points routed to installable drivers",
@@ -107,8 +107,16 @@
       "status": "driver-routed"
     },
     {
-      "name": "pmCreateDevice",
+      "name": "pmEnumerateExecutionProfiles",
       "section": "4.5",
+      "card": "execution_profiles",
+      "header": "parallel_mater.h",
+      "source": "generated/api/loader_forward.inc",
+      "status": "driver-routed"
+    },
+    {
+      "name": "pmCreateDevice",
+      "section": "4.6",
       "card": "device",
       "header": "parallel_mater.h",
       "source": "src/loader/entry.cpp:282",
@@ -116,7 +124,7 @@
     },
     {
       "name": "pmDestroyDevice",
-      "section": "4.5",
+      "section": "4.6",
       "card": "device",
       "header": "parallel_mater.h",
       "source": "src/loader/entry.cpp:344",
@@ -124,7 +132,7 @@
     },
     {
       "name": "pmGetDeviceQueue",
-      "section": "4.5",
+      "section": "4.6",
       "card": "device",
       "header": "parallel_mater.h",
       "source": "src/loader/entry.cpp:358",
@@ -1045,13 +1053,23 @@
       "card": "features"
     },
     {
-      "name": "PmDeviceCreateInfo",
+      "name": "PmExecutionProfileProperties",
       "section": "4.5",
+      "card": "execution_profiles"
+    },
+    {
+      "name": "PmSimulationProfileCreateInfo",
+      "section": "4.5",
+      "card": "execution_profiles"
+    },
+    {
+      "name": "PmDeviceCreateInfo",
+      "section": "4.6",
       "card": "device"
     },
     {
       "name": "PmDeviceQueueCreateInfo",
-      "section": "4.5",
+      "section": "4.6",
       "card": "device"
     },
     {
@@ -1738,6 +1756,7 @@
     "PFN_pmGetPhysicalDeviceProperties",
     "PFN_pmGetPhysicalDeviceQueueFamilies",
     "PFN_pmGetPhysicalDeviceFeatures",
+    "PFN_pmEnumerateExecutionProfiles",
     "PFN_pmCreateDevice",
     "PFN_pmDestroyDevice",
     "PFN_pmGetDeviceQueue",

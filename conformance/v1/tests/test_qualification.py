@@ -1010,6 +1010,26 @@ class QualificationTests(unittest.TestCase):
         result["evidence"][0]["artifact_sha256"] = "bad"
         self.assert_rejected(result, "artifact SHA-256 is required")
 
+    def test_compatible_contract_and_obligations_hashes_pass(self):
+        result = valid_equal_fluid_result(self.profile)
+        result["obligations_sha256"] = self.profile[
+            "compatible_obligations_sha256"][0]
+        result["evidence"][0]["contract_sha256"] = contract_map(
+            self.profile)["registry:interaction-capabilities"][
+                "compatible_sha256"][0]
+        report = self.evaluate(result)
+        self.assertTrue(report["passed"], report)
+
+    def test_malformed_compatible_hashes_fail(self):
+        profile = copy.deepcopy(self.profile)
+        profile["compatible_obligations_sha256"] = ["bad"]
+        report = qualification.evaluate(
+            profile, valid_equal_fluid_result(profile),
+            qualification.profile_sha256(PROFILE_PATH))
+        self.assertFalse(report["passed"], report)
+        self.assertTrue(any("array of SHA-256" in failure["message"]
+                            for failure in report["failures"]))
+
     def test_incomplete_evaluation_and_dirty_source_fail(self):
         result = valid_equal_fluid_result(self.profile)
         result["execution_status"] = "unsupported"

@@ -1,0 +1,52 @@
+{
+  "id": "F8-03",
+  "title": "Build independent single-step quality and work-budget oracles",
+  "status": "done",
+  "dependencies": [
+    "F8-00",
+    "F8-01",
+    "F8-32"
+  ],
+  "locks": [
+    "f8-realtime-test-contract"
+  ],
+  "requires": [
+    "Any development host; access to current API, schedule and qualification records"
+  ],
+  "scope": "Implement the new profile's independent public-API test cases and small-scene numerical/candidate oracles before changing solver equations. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Translate every F8-00 limit into a named assertion over fixed workloads and input envelopes; include all advertised domains/modes and mixed three-plus-family cases.",
+    "Test cold starts, long runs, impacts/rotation, stiff systems, mass ratios, containment, sources/removals, replacement, overflow and recovery; include failing negative controls.",
+    "Keep old-profile regression/quality results separate; baseline failures at one 1/60 step are recorded rather than weakening thresholds.",
+    "Specify dispatch/iteration/index-update and timing assertions in per-tick units, with deterministic mock-clock tests where hardware timing is not applicable."
+  ],
+  "evidence": [
+    "python3 conformance/v1/realtime_oracle.py --check-contract: PASS (243 named limits, 49 advertised capability cases, 14 fixed workloads, 5 runtime adapters)",
+    "python3 -m unittest discover -s conformance/v1/tests -p test_*.py: PASS (414 tests)",
+    "python3 -m unittest discover -s tests/roadmap -p test_*.py: PASS (72 tests)",
+    "cmake --preset sdk-ci; cmake --build --preset sdk-ci --parallel 8; ctest --preset sdk-ci --output-on-failure: PASS (54/54)"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "b62ae99b-3ce1-430b-9386-f0c530de66bc",
+        "owner": "codex-macos-f8-oracles",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-03/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-22T11:58:52Z",
+        "heartbeat_at": "2026-10-22T11:58:52Z",
+        "expires_at": "2026-10-23T11:58:52Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-22T12:18:27Z",
+      "reason": "Implemented independent realtime-single-step quality, candidate, mutation, work, timing, workload, and public-observation oracles without changing solver equations or advertising profile support.",
+      "evidence": [
+        "python3 conformance/v1/realtime_oracle.py --check-contract: PASS (243 named limits, 49 advertised capability cases, 14 fixed workloads, 5 runtime adapters)",
+        "python3 -m unittest discover -s conformance/v1/tests -p test_*.py: PASS (414 tests)",
+        "python3 -m unittest discover -s tests/roadmap -p test_*.py: PASS (72 tests)",
+        "cmake --preset sdk-ci; cmake --build --preset sdk-ci --parallel 8; ctest --preset sdk-ci --output-on-failure: PASS (54/54)"
+      ]
+    }
+  ]
+}

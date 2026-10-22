@@ -92,11 +92,21 @@ A conforming driver implements:
 - command recording, submission, barriers, and asynchronous execution;
 - fences, timeline semaphores, timestamps, statistics, and memory queries;
 - advertised interoperability extensions;
+- advertised execution-profile negotiation and immutable per-simulation
+  selection;
 - the behavior required by the Parallel Mater specification and conformance
   cases.
 
 The loader does not compile Slang, allocate device memory, record native command
 buffers, schedule physics, or implement equations.
+
+`PM_EXT_simulation_profile` advertises the negotiation ABI, not a solver.
+`pmEnumerateExecutionProfiles` must return only exact
+name/version pairs the device can execute. Physical qualification is separate
+revisioned evidence and never appears implicitly from this runtime query. A
+driver that understands the extension but has not implemented
+`realtime-single-step` 1.0 enumerates no such record and returns
+`PM_ERROR_FEATURE_NOT_PRESENT` for the exact request.
 
 ## Reference implementation
 

@@ -38,7 +38,8 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction
             add_test(NAME parallel-mater-${backend}-${suite}-tests
                 COMMAND parallel-mater-${suite}-tests ${suite_arguments})
             set_tests_properties(parallel-mater-${backend}-${suite}-tests PROPERTIES
-                LABELS "api;lifecycle;${backend}" SKIP_RETURN_CODE 77 TIMEOUT 120
+                LABELS "api;lifecycle;${backend}" SKIP_RETURN_CODE 77
+                TIMEOUT 120
                 ENVIRONMENT "${suite_environment}")
             if(suite STREQUAL "resource-lifecycle")
                 add_test(NAME parallel-mater-${backend}-validated-lifecycle-tests
@@ -72,6 +73,29 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction
         set_tests_properties(parallel-mater-external-${suite}-tests PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
     endif()
 endforeach()
+
+if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    add_executable(parallel-mater-realtime-profile-reference-tests
+        realtime_profile_reference_tests.cpp)
+    target_compile_features(parallel-mater-realtime-profile-reference-tests
+        PRIVATE cxx_std_20)
+    target_link_libraries(parallel-mater-realtime-profile-reference-tests
+        PRIVATE ParallelMater::parallel_mater)
+    foreach(backend cpu cuda vulkan d3d12 metal)
+        if(TARGET parallel-mater-driver-slang-${backend})
+            add_dependencies(parallel-mater-realtime-profile-reference-tests
+                parallel-mater-driver-slang-${backend})
+            add_test(NAME parallel-mater-${backend}-realtime-profile-reference-tests
+                COMMAND parallel-mater-realtime-profile-reference-tests)
+            set_tests_properties(
+                parallel-mater-${backend}-realtime-profile-reference-tests
+                PROPERTIES LABELS "api;profile;${backend}"
+                SKIP_RETURN_CODE 77 TIMEOUT 120
+                ENVIRONMENT
+                    "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-${backend}.json")
+        endif()
+    endforeach()
+endif()
 
 target_include_directories(parallel-mater-interaction-graph-lifecycle-tests
     PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../../conformance/v1/include")

@@ -1,0 +1,51 @@
+{
+  "id": "F8-02",
+  "title": "Verify deployed binaries and capture trustworthy Android baselines",
+  "status": "done",
+  "dependencies": [
+    "F8-00",
+    "F8-01"
+  ],
+  "locks": [
+    "android-vulkan-frame-performance"
+  ],
+  "requires": [
+    "Physical Pixel 7 and Android Vulkan build/install/profiling tools"
+  ],
+  "scope": "Repair build/deploy/run provenance and reproduce the legacy baseline. Preserve the unfinished P3-02 branch and quarantine unverified local-APK comparisons; claim only after the current conflicting lease is released. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Bind source revision/dirty-patch identity, toolchain, local artifact hash, installed package/binary identity and fresh runtime nonce; reject missing installation and stale/wrong-device runs with negative tests.",
+    "Capture fixed legacy Rigid Body, Fluid and Smoke Soft Body workloads, including live/capacity counts, true per-tick dispatches, CPU/GPU phase timings, simulation/wall-clock rate and thermals.",
+    "Retain original failures and explicitly label O3/rank-one/cooperative comparisons without verified deployed binaries as unqualified; do not infer optimization results from those labels.",
+    "Publish reproducible commands and reviewable artifacts; no solver/accuracy change in this task."
+  ],
+  "evidence": [
+    "PASS: python3 scripts/Test-AndroidVulkanSchedule.py --serial 2B241FDH20060P --apk examples/android/app/build/outputs/apk/debug/app-debug.apk --output docs/roadmap/evidence/F8-02-android-legacy-baseline; Pixel 7 panther, Android 17/API 37, Vulkan; tracked profile.json and device.log",
+    "PASS: python3 -m unittest discover -s tests/gallery -p *android*py; 16 tests including missing installation, mismatched APK, wrong device and stale nonce rejection",
+    "PASS: ANDROID_HOME=/home/thomas/Android/Sdk SLANGC=Slang-2026.18 ./scripts/Build-AndroidGallery.sh; clean revision 7a6d0b5, Gradle 9.1.0, AGP 9.0.1, NDK 29.0.14206865, CMake 4.1.2",
+    "REVIEWED: docs/roadmap/evidence/F8-02-P3-02-QUARANTINE.md preserves failed/incomplete P3-02 attempts and marks O3/rank-one/cooperative comparisons unqualified"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "dd10d8db-9dff-4db0-ab37-69baa5f0a0db",
+        "owner": "codex-linux-android-baseline",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-02/thomas-laptop",
+        "claimed_at": "2026-10-21T23:16:33Z",
+        "heartbeat_at": "2026-10-21T23:16:33Z",
+        "expires_at": "2026-10-22T23:16:33Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-21T23:39:12Z",
+      "reason": "Verified installed Pixel 7 build provenance and captured fixed legacy Vulkan baselines without solver changes",
+      "evidence": [
+        "PASS: python3 scripts/Test-AndroidVulkanSchedule.py --serial 2B241FDH20060P --apk examples/android/app/build/outputs/apk/debug/app-debug.apk --output docs/roadmap/evidence/F8-02-android-legacy-baseline; Pixel 7 panther, Android 17/API 37, Vulkan; tracked profile.json and device.log",
+        "PASS: python3 -m unittest discover -s tests/gallery -p *android*py; 16 tests including missing installation, mismatched APK, wrong device and stale nonce rejection",
+        "PASS: ANDROID_HOME=/home/thomas/Android/Sdk SLANGC=Slang-2026.18 ./scripts/Build-AndroidGallery.sh; clean revision 7a6d0b5, Gradle 9.1.0, AGP 9.0.1, NDK 29.0.14206865, CMake 4.1.2",
+        "REVIEWED: docs/roadmap/evidence/F8-02-P3-02-QUARANTINE.md preserves failed/incomplete P3-02 attempts and marks O3/rank-one/cooperative comparisons unqualified"
+      ]
+    }
+  ]
+}

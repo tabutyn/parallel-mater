@@ -1,12 +1,15 @@
 name: Shared Gallery frame timing
 
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   portable-timing:
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:

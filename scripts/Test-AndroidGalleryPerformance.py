@@ -6,9 +6,13 @@ import hashlib
 import json
 import pathlib
 import re
-import subprocess
+import sys
 import time
 import zipfile
+
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import android_deployment as deployment  # noqa: E402
 
 
 PACKAGE = "org.parallelmater.gallery"
@@ -86,12 +90,17 @@ def main():
     if len(scenes) != 28 or not all(scene.get("available") for scene in scenes):
         raise RuntimeError("Performance sweep requires 28 available qualified scenes")
     revision = qualification["revision"]
+    root = pathlib.Path(__file__).resolve().parents[1]
+    source = deployment.source_identity(root)
+    if revision != source["revision"]:
+        raise RuntimeError("qualification revision does not match current source")
     args.output.mkdir(parents=True, exist_ok=True)
+    adb_client = deployment.Adb(args.adb, args.serial)
+    installed = deployment.install_and_verify(adb_client, args.apk)
+    nonce = deployment.fresh_nonce()
 
     def adb(*command):
-        return subprocess.run(
-            [args.adb, "-s", args.serial, *command], check=True,
-            text=True, capture_output=True).stdout
+        return adb_client.text(*command)
 
     def thermal():
         return parse_thermal(adb("shell", "dumpsys", "thermalservice"))
@@ -115,7 +124,8 @@ def main():
     for index, scene in enumerate(scenes):
         adb("logcat", "-c")
         adb("shell", "am", "start", "-f", "0x20000000", "-n", ACTIVITY,
-            "--ei", "pm_scene", str(index), "--es", "pm_action", "unfreeze")
+            "--ei", "pm_scene", str(index), "--es", "pm_action", "unfreeze",
+            "--es", "pm_nonce", nonce)
         deadline = time.monotonic() + args.scene_timeout
         windows = []
         log = ""
@@ -154,6 +164,7 @@ def main():
 
     runtime = json.loads(adb(
         "shell", "run-as", PACKAGE, "cat", "files/runtime-info.json"))
+    deployment.verify_runtime_identity(runtime, nonce, source)
     end = thermal()
     adb("shell", "input", "keyevent", "KEYCODE_BACK")
     all_logs = "\n".join(logs)
@@ -173,6 +184,9 @@ def main():
     report = {
         "schema": "parallel-mater-android-gallery-performance/v1",
         "revision": revision,
+        "source": source,
+        "deployment": installed,
+        "run_nonce": nonce,
         "device": props,
         "backend": "vulkan",
         "artifacts": {

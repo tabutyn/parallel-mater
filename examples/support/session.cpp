@@ -19,7 +19,7 @@ void require(bool ok, const std::string &error) {
 
 std::optional<PmNativeBackend> required_backend(std::string_view name) {
     const auto backend = gallery_backend_from_name(name);
-    if (!backend && name != "slang-cpu")
+    if (!backend && name != "slang-cpu" && name != "parallel-mater-loader")
         throw std::runtime_error("Unknown Gallery backend: " + std::string(name));
     return backend;
 }

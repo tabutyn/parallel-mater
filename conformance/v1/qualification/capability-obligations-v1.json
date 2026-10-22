@@ -1,6 +1,9 @@
 {
   "schema": "parallel-mater-conformance-obligations/v1",
   "id": "capability-obligations-v1",
+  "compatible_obligations_sha256": [
+    "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5"
+  ],
   "api_version": "0.2",
   "title": "Interaction capability qualification obligations",
   "sources": {
@@ -25,7 +28,7 @@
     ]
   },
   "contracts": [
-    {"id": "registry:interaction-capabilities", "path": "registry/pm.xml", "sha256": "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af"},
+    {"id": "registry:interaction-capabilities", "path": "registry/pm.xml", "sha256": "e3373207b92f7065fa2def13e53178aa56f4dc49e850bd86d5cc15cf71790d62", "compatible_sha256": ["c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af"]},
     {"id": "case:fluid-lifecycle", "path": "conformance/v1/cases/fluid-lifecycle.json", "sha256": "43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b"},
     {"id": "case:rope-core", "path": "conformance/v1/cases/rope-core.json", "sha256": "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41"},
     {"id": "case:smoke-grid", "path": "conformance/v1/cases/smoke-grid.json", "sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3"},
@@ -62,6 +65,7 @@
     {"id": "quality:soft-rigid-contact-v1", "path": "conformance/v1/quality/soft-rigid-contact-v1.json", "sha256": "2cc79bdc7ce270490c00e92dd3e00911bf10c624ed49f5c36b99d8143a96fad6"},
     {"id": "quality:fluid-rigid-containment-v1", "path": "conformance/v1/quality/fluid-rigid-containment-v1.json", "sha256": "d6ea84babcdc0ede00303f4960336320b165ac3a573e196725a5b69abe31f7f6"},
     {"id": "quality:cloth-rope-attachment-v1", "path": "conformance/v1/quality/cloth-rope-attachment-v1.json", "sha256": "774081efcc918b9c7c144c0189fb24d72f511d44cadd40510d07e7dc9a760023"},
+    {"id": "quality:soft-rope-contact-v1", "path": "conformance/v1/quality/soft-rope-contact-v1.json", "sha256": "df6d15ea4e3d96346a23894c557292da15f6acf26dafd33384a17028226a1de6"},
     {"id": "quality:soft-rope-attachment-v1", "path": "conformance/v1/quality/soft-rope-attachment-v1.json", "sha256": "7c43ecebb7083f0b7e4a2aeab8768f6236cf44edcd7f409022eccbea98a49549"},
     {"id": "quality:smoke-self-pressure-v1", "path": "conformance/v1/quality/smoke-self-pressure-v1.json", "sha256": "52c0258c6f91ec3effeacbd21bea9cb95783b3a66f9b679f800fdb2b1f041150"},
     {"id": "quality:fluid-cloth-contact-v1", "path": "conformance/v1/quality/fluid-cloth-contact-v1.json", "sha256": "1216cf9e7252b5fe4c27f14639a1031e698d459a2001db60153a088ebb600445"},
@@ -407,8 +411,11 @@
       "id": "soft-body-rope-contact",
       "match": {"first_family": ["SOFT_BODY"], "second_family": ["ROPE"], "scope": ["DISTINCT_FAMILY"], "mode": ["CONTACT"], "direction": ["BIDIRECTIONAL"], "material_profile": ["ENDPOINT_NATIVE"]},
       "trajectory_contract": "case:rope-soft-body",
-      "required": {"lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"]},
-      "missing": {"analytic_invariants": "No vendor-neutral soft-body-rope contact quality case is registered."}
+      "required": {
+        "lifecycle_invariants": ["lifecycle:adverse-capacity-three-family-v1#three-family-partial-rollback"],
+        "analytic_invariants": ["quality:soft-rope-contact-v1"]
+      },
+      "missing": {}
     },
     {
       "id": "soft-body-rope-attachment",

@@ -159,6 +159,23 @@ if(BUILD_TESTING)
             LABELS "api;loader;validation" ENVIRONMENT
             "PM_DRIVER_FILES=${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
     endforeach()
+    add_executable(parallel-mater-realtime-profile-tests
+        tests/api/realtime_profile_tests.cpp)
+    target_compile_features(parallel-mater-realtime-profile-tests PRIVATE
+        cxx_std_20)
+    target_link_libraries(parallel-mater-realtime-profile-tests PRIVATE
+        ParallelMater::parallel_mater)
+    add_dependencies(parallel-mater-realtime-profile-tests
+        parallel-mater-mock-driver parallel-mater-layer-validation)
+    foreach(mode IN ITEMS plain validation)
+        add_test(NAME parallel-mater-realtime-profile-${mode}-tests
+            COMMAND parallel-mater-realtime-profile-tests ${mode})
+        set_tests_properties(
+            parallel-mater-realtime-profile-${mode}-tests PROPERTIES
+            LABELS "api;loader;validation;profile"
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
+    endforeach()
     add_library(parallel-mater-legacy-layer SHARED tests/api/mock_legacy_layer.cpp)
     target_include_directories(parallel-mater-legacy-layer PRIVATE include)
     file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/legacy-layer.json"

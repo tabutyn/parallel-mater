@@ -2,9 +2,11 @@
 #include "schedule_context.hpp"
 
 #include "simulation/geometry_storage.hpp"
+#include "simulation/paint_storage.hpp"
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstring>
 #include <cstdio>
 #include <limits>
@@ -100,6 +102,49 @@ struct GraphicsTriangleMeshResource {
 };
 static_assert(sizeof(GraphicsTriangleMeshResource) == 152U);
 
+// PMBuffer<T> is a 12-byte descriptor tuple on D3D12, so pointer-bearing
+// records require an explicit graphics ABI instead of a host-memory copy.
+struct GraphicsPaintFieldResource {
+    RigidBodyId body{};
+    TriangleMeshId mesh{};
+    ClothId cloth{};
+    GraphicsBufferAddress vertex_uvs{};
+    std::uint32_t vertex_uvs_padding{};
+    std::uint64_t vertex_uv_count{};
+    std::uint32_t width{};
+    std::uint32_t height{};
+    GraphicsBufferAddress uvs{};
+    GraphicsBufferAddress pixels{};
+    std::uint32_t generation{};
+    std::uint32_t alive{};
+};
+static_assert(sizeof(GraphicsPaintFieldResource) == 88U);
+static_assert(offsetof(GraphicsPaintFieldResource, vertex_uvs) == 24U);
+static_assert(offsetof(GraphicsPaintFieldResource, vertex_uv_count) == 40U);
+static_assert(offsetof(GraphicsPaintFieldResource, width) == 48U);
+static_assert(offsetof(GraphicsPaintFieldResource, uvs) == 56U);
+static_assert(offsetof(GraphicsPaintFieldResource, pixels) == 68U);
+static_assert(offsetof(GraphicsPaintFieldResource, generation) == 80U);
+static_assert(offsetof(GraphicsPaintFieldResource, alive) == 84U);
+
+struct GraphicsPaintRuleResource {
+    FluidId source{};
+    RigidBodyId rigid_source{};
+    PaintFieldId target{};
+    float reach{};
+    float brush_radius{};
+    std::uint32_t enabled{};
+    std::uint32_t generation{};
+    std::uint32_t alive{};
+};
+static_assert(sizeof(GraphicsPaintRuleResource) == 44U);
+static_assert(offsetof(GraphicsPaintRuleResource, rigid_source) == 8U);
+static_assert(offsetof(GraphicsPaintRuleResource, target) == 16U);
+static_assert(offsetof(GraphicsPaintRuleResource, reach) == 24U);
+static_assert(offsetof(GraphicsPaintRuleResource, enabled) == 32U);
+static_assert(offsetof(GraphicsPaintRuleResource, generation) == 36U);
+static_assert(offsetof(GraphicsPaintRuleResource, alive) == 40U);
+
 } // namespace
 
 struct ScheduleContext::Impl {
@@ -119,7 +164,11 @@ struct ScheduleContext::Impl {
         bool gpu_written{};
     };
 
-    enum class AuxiliaryKind : std::uint8_t { meshes };
+    enum class AuxiliaryKind : std::uint8_t {
+        meshes,
+        paint_fields,
+        paint_rules,
+    };
     struct Auxiliary {
         const void *key{};
         AuxiliaryKind kind{};
@@ -551,7 +600,9 @@ GraphicsBufferAddress ScheduleContext::address(const void *pointer) noexcept {
 
 GraphicsBufferAddress ScheduleContext::translated_meshes(
     const void *mesh_pointer, const void *parameter_pointer,
-    std::uint32_t body_count, std::uint32_t mesh_capacity) noexcept {
+    std::uint32_t body_count, std::uint32_t mesh_capacity,
+    const void *paint_field_pointer,
+    std::uint32_t paint_field_capacity) noexcept {
     if (mesh_pointer == nullptr) return {};
     const auto *meshes = static_cast<const simulation::TriangleMeshResource *>(
         mesh_pointer);
@@ -560,6 +611,14 @@ GraphicsBufferAddress ScheduleContext::translated_meshes(
     std::uint32_t required = mesh_capacity;
     for (std::uint32_t index = 0U; index < body_count; ++index)
         required = std::max(required, parameters[index].mesh.index + 1U);
+    const auto *paint_fields =
+        static_cast<const simulation::PaintFieldResource *>(
+            paint_field_pointer);
+    for (std::uint32_t index = 0U; index < paint_field_capacity; ++index)
+        if (paint_fields[index].alive &&
+            paint_fields[index].options.mesh.generation != 0U)
+            required = std::max(
+                required, paint_fields[index].options.mesh.index + 1U);
     required = std::max(1U, required);
     for (const auto &item : impl_->auxiliary)
         if (item.key == mesh_pointer && item.kind == Impl::AuxiliaryKind::meshes &&
@@ -624,16 +683,153 @@ GraphicsBufferAddress ScheduleContext::translated_meshes(
     return result;
 }
 
+GraphicsBufferAddress ScheduleContext::translated_paint_fields(
+    const void *pointer, std::uint32_t capacity) noexcept {
+    if (pointer == nullptr || capacity == 0U) return {};
+    for (const auto &item : impl_->auxiliary)
+        if (item.key == pointer &&
+            item.kind == Impl::AuxiliaryKind::paint_fields &&
+            item.count >= capacity)
+            return {item.descriptor, 0U, 1U};
+    if (impl_->begin() != PM_SUCCESS) return {};
+    const auto *fields =
+        static_cast<const simulation::PaintFieldResource *>(pointer);
+    std::vector<GraphicsPaintFieldResource> translated;
+    try {
+        translated.resize(capacity);
+    } catch (const std::bad_alloc &) {
+        impl_->last_error = PM_ERROR_OUT_OF_DEVICE_MEMORY;
+        return {};
+    }
+    for (std::uint32_t index = 0U; index < capacity; ++index) {
+        const auto &source = fields[index];
+        auto &destination = translated[index];
+        destination.body = source.options.body;
+        destination.mesh = source.options.mesh;
+        destination.cloth = source.options.cloth;
+        destination.vertex_uvs = address(source.options.vertex_uvs.data);
+        destination.vertex_uv_count = source.options.vertex_uvs.size;
+        destination.width = source.options.width;
+        destination.height = source.options.height;
+        destination.uvs = address(source.uvs);
+        destination.pixels = address(source.pixels);
+        destination.generation = source.generation;
+        destination.alive = source.alive ? 1U : 0U;
+    }
+    Impl::Auxiliary item{};
+    item.key = pointer;
+    item.kind = Impl::AuxiliaryKind::paint_fields;
+    item.count = capacity;
+    item.size = translated.size() * sizeof(translated[0]);
+    const HRESULT created = impl_->create_buffer_set(
+        item.size, item.storage, item.upload, item.readback,
+        &item.upload_data, &item.readback_data, &item.descriptor);
+    if (FAILED(created)) {
+        impl_->last_error = translate_hresult(created);
+        return {};
+    }
+    std::memcpy(item.upload_data, translated.data(), item.size);
+    impl_->transition(item.storage.Get(), item.state,
+                      D3D12_RESOURCE_STATE_COPY_DEST);
+    impl_->commands->CopyBufferRegion(item.storage.Get(), 0U,
+                                      item.upload.Get(), 0U, item.size);
+    impl_->transition(item.storage.Get(), item.state,
+                      D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    const auto result = GraphicsBufferAddress{item.descriptor, 0U, 1U};
+    try {
+        impl_->auxiliary.push_back(std::move(item));
+    } catch (const std::bad_alloc &) {
+        impl_->last_error = PM_ERROR_OUT_OF_DEVICE_MEMORY;
+        return {};
+    }
+    return result;
+}
+
+GraphicsBufferAddress ScheduleContext::translated_paint_rules(
+    const void *pointer, std::uint32_t capacity) noexcept {
+    if (pointer == nullptr || capacity == 0U) return {};
+    for (const auto &item : impl_->auxiliary)
+        if (item.key == pointer &&
+            item.kind == Impl::AuxiliaryKind::paint_rules &&
+            item.count >= capacity)
+            return {item.descriptor, 0U, 1U};
+    if (impl_->begin() != PM_SUCCESS) return {};
+    const auto *rules =
+        static_cast<const simulation::PaintRuleResource *>(pointer);
+    std::vector<GraphicsPaintRuleResource> translated;
+    try {
+        translated.resize(capacity);
+    } catch (const std::bad_alloc &) {
+        impl_->last_error = PM_ERROR_OUT_OF_DEVICE_MEMORY;
+        return {};
+    }
+    for (std::uint32_t index = 0U; index < capacity; ++index) {
+        const auto &source = rules[index];
+        auto &destination = translated[index];
+        destination.source = source.options.source;
+        destination.rigid_source = source.options.rigid_source;
+        destination.target = source.options.target;
+        destination.reach = source.options.reach;
+        destination.brush_radius = source.options.brush_radius;
+        destination.enabled = source.options.enabled ? 1U : 0U;
+        destination.generation = source.generation;
+        destination.alive = source.alive ? 1U : 0U;
+    }
+    Impl::Auxiliary item{};
+    item.key = pointer;
+    item.kind = Impl::AuxiliaryKind::paint_rules;
+    item.count = capacity;
+    item.size = translated.size() * sizeof(translated[0]);
+    const HRESULT created = impl_->create_buffer_set(
+        item.size, item.storage, item.upload, item.readback,
+        &item.upload_data, &item.readback_data, &item.descriptor);
+    if (FAILED(created)) {
+        impl_->last_error = translate_hresult(created);
+        return {};
+    }
+    std::memcpy(item.upload_data, translated.data(), item.size);
+    impl_->transition(item.storage.Get(), item.state,
+                      D3D12_RESOURCE_STATE_COPY_DEST);
+    impl_->commands->CopyBufferRegion(item.storage.Get(), 0U,
+                                      item.upload.Get(), 0U, item.size);
+    impl_->transition(item.storage.Get(), item.state,
+                      D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    const auto result = GraphicsBufferAddress{item.descriptor, 0U, 1U};
+    try {
+        impl_->auxiliary.push_back(std::move(item));
+    } catch (const std::bad_alloc &) {
+        impl_->last_error = PM_ERROR_OUT_OF_DEVICE_MEMORY;
+        return {};
+    }
+    return result;
+}
+
 PmResult ScheduleContext::dispatch(
     std::string_view module, std::string_view entry, device::DispatchSize grid, device::DispatchSize block,
     std::span<const std::byte> entry_constants) noexcept {
     active_context = this;
-    if (!impl_->slang.matches_group_size(module, entry, block.x, block.y, block.z)) {
-        std::fprintf(stderr, "D3D12 Slang launch size mismatch: %.*s.%.*s (%u,%u,%u)\n",
-            static_cast<int>(module.size()), module.data(),
-            static_cast<int>(entry.size()), entry.data(), block.x, block.y, block.z);
+    device::DispatchSize reflected{};
+    if (!impl_->slang.group_size(module, entry, reflected.x, reflected.y,
+                                 reflected.z) ||
+        block.x == 0U || block.y == 0U || block.z == 0U) {
         return impl_->last_error = PM_ERROR_INVALID_ARGUMENT;
     }
+    const auto normalize = [](std::uint32_t groups, std::uint32_t source,
+                              std::uint32_t target,
+                              std::uint32_t &result) noexcept {
+        const auto threads = static_cast<std::uint64_t>(groups) * source;
+        const auto adjusted = (threads + target - 1U) / target;
+        if (adjusted == 0U ||
+            adjusted > std::numeric_limits<std::uint32_t>::max())
+            return false;
+        result = static_cast<std::uint32_t>(adjusted);
+        return true;
+    };
+    if (!normalize(grid.x, block.x, reflected.x, grid.x) ||
+        !normalize(grid.y, block.y, reflected.y, grid.y) ||
+        !normalize(grid.z, block.z, reflected.z, grid.z))
+        return impl_->last_error = PM_ERROR_INVALID_ARGUMENT;
+    block = reflected;
     const PmResult started = impl_->begin();
     if (started != PM_SUCCESS) return started;
     const DispatchConstants global{

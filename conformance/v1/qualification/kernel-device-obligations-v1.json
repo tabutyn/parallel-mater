@@ -1,0 +1,848 @@
+{
+  "schema": "parallel-mater-f8-kernel-device-obligations/v1",
+  "id": "kernel-device-obligations-v1",
+  "task": "F8-01",
+  "title": "F8 shared-kernel and physical-device obligations",
+  "policy": {
+    "profile": "F8 single-step 60 Hz",
+    "canonical_kernel_source": "cmake/SlangKernelManifest.cmake",
+    "capability_source": "conformance/v1/qualification/capability-obligations-v1.json",
+    "spatial_design_source": "docs/roadmap/F8-05-SHARED-SPATIAL-INDEX.md",
+    "qualification_rule": "Compilation is not execution. Legacy-profile evidence is registration history only. Every runtime row remains not-qualified until the exact F8-22 candidate executes its F8 test contract on the named physical tuple.",
+    "unsupported_rule": "Unavailable hardware, an unsupported mode, a skipped test, or a compile-only artifact never becomes passing coverage.",
+    "mode_rule": "This inventory maps only modes already advertised by API 0.2; it does not add a capability."
+  },
+  "advertised_modes": [
+    "ATTACHMENT",
+    "CONTACT",
+    "CONTAINMENT",
+    "DRAG",
+    "PHASE",
+    "PRESSURE",
+    "THERMAL",
+    "VISCOSITY"
+  ],
+  "public_case_sets": {
+    "all": [
+      "cloth-core",
+      "cloth-tear",
+      "cloth-water",
+      "compound-weld-lifecycle",
+      "constraint-breaking",
+      "constraint-fixed",
+      "constraint-generic",
+      "constraint-generic-spring",
+      "constraint-hinge",
+      "constraint-motor",
+      "constraint-piston",
+      "constraint-point",
+      "constraint-slider",
+      "fluid-lifecycle",
+      "fluid-rigid",
+      "passive-active",
+      "rigid-direct",
+      "rope-cloth",
+      "rope-core",
+      "rope-fluid",
+      "rope-soft-body",
+      "smoke-cloth",
+      "smoke-grid",
+      "smoke-rope",
+      "smoke-soft-body",
+      "smoke-water",
+      "soft-body-cloth",
+      "soft-body-core",
+      "soft-body-fluid",
+      "soft-body-rigid"
+    ],
+    "rigid": [
+      "compound-weld-lifecycle",
+      "constraint-breaking",
+      "constraint-fixed",
+      "constraint-generic",
+      "constraint-generic-spring",
+      "constraint-hinge",
+      "constraint-motor",
+      "constraint-piston",
+      "constraint-point",
+      "constraint-slider",
+      "fluid-rigid",
+      "passive-active",
+      "rigid-direct",
+      "soft-body-rigid"
+    ],
+    "fluid": [
+      "cloth-water",
+      "fluid-lifecycle",
+      "fluid-rigid",
+      "rope-fluid",
+      "smoke-water",
+      "soft-body-fluid"
+    ],
+    "cloth": [
+      "cloth-core",
+      "cloth-tear",
+      "cloth-water",
+      "rope-cloth",
+      "smoke-cloth",
+      "soft-body-cloth"
+    ],
+    "soft-body": [
+      "rope-soft-body",
+      "smoke-soft-body",
+      "soft-body-cloth",
+      "soft-body-core",
+      "soft-body-fluid",
+      "soft-body-rigid"
+    ],
+    "rope": [
+      "rope-cloth",
+      "rope-core",
+      "rope-fluid",
+      "rope-soft-body",
+      "smoke-rope"
+    ],
+    "smoke": [
+      "smoke-cloth",
+      "smoke-grid",
+      "smoke-rope",
+      "smoke-soft-body",
+      "smoke-water"
+    ]
+  },
+  "kernel_groups": [
+    {
+      "id": "fluid-index-lifecycle",
+      "module": "fluid",
+      "entries": [
+        "fluid_emit_cells",
+        "fluid_reserve_contact_events",
+        "fluid_gather_contact_events",
+        "fluid_source_vacancies",
+        "fluid_source_emit",
+        "fluid_destroy_flags",
+        "fluid_gather",
+        "fluid_copy_initial"
+      ],
+      "domains": ["FLUID", "SPATIAL_INDEX"],
+      "advertised_modes": [],
+      "public_case_sets": ["fluid"],
+      "existing_execution_tests": ["parallel-mater-conformance --case fluid-lifecycle"],
+      "implementation_owners": ["F8-09", "F8-12"]
+    },
+    {
+      "id": "fluid-self-dynamics",
+      "module": "fluid",
+      "entries": ["fluid_compute_forces", "fluid_integrate"],
+      "domains": ["FLUID"],
+      "advertised_modes": ["CONTACT", "PRESSURE", "VISCOSITY"],
+      "public_case_sets": ["fluid"],
+      "existing_execution_tests": ["parallel-mater-<backend>-fluid-self-*-quality-tests"],
+      "implementation_owners": ["F8-12"]
+    },
+    {
+      "id": "fluid-pair-index",
+      "module": "fluid",
+      "entries": ["fluid_emit_pair_cells", "fluid_count_pair_neighbors"],
+      "domains": ["FLUID", "SPATIAL_INDEX"],
+      "advertised_modes": ["CONTACT", "PRESSURE", "VISCOSITY"],
+      "public_case_sets": [],
+      "existing_execution_tests": ["parallel-mater-<backend>-fluid-pair-graph-lifecycle-tests"],
+      "f8_public_cases": ["f8-fluid-pair-index"],
+      "implementation_owners": ["F8-09", "F8-18"]
+    },
+    {
+      "id": "fluid-pair-miscible",
+      "module": "fluid",
+      "entries": [
+        "fluid_apply_pair_pressure_contact",
+        "fluid_apply_pair_viscosity",
+        "fluid_apply_miscible_pair_pressure_contact",
+        "fluid_apply_miscible_pair_viscosity"
+      ],
+      "domains": ["FLUID"],
+      "advertised_modes": ["CONTACT", "PRESSURE", "VISCOSITY"],
+      "public_case_sets": [],
+      "existing_execution_tests": ["parallel-mater-<backend>-fluid-pair-quality-tests"],
+      "f8_public_cases": ["f8-fluid-pair-miscible"],
+      "implementation_owners": ["F8-18"]
+    },
+    {
+      "id": "fluid-pair-immiscible",
+      "module": "fluid",
+      "entries": [
+        "fluid_reconstruct_immiscible_interface_normals",
+        "fluid_reconstruct_immiscible_interface_curvature",
+        "fluid_apply_immiscible_pair_pressure_capillarity"
+      ],
+      "domains": ["FLUID"],
+      "advertised_modes": ["CONTACT", "PRESSURE"],
+      "public_case_sets": [],
+      "existing_execution_tests": [
+        "parallel-mater-fluid-interface-reconstruction-tests",
+        "parallel-mater-fluid-immiscible-pressure-capillarity-tests"
+      ],
+      "f8_public_cases": ["f8-fluid-pair-immiscible"],
+      "implementation_owners": ["F8-18"]
+    },
+    {
+      "id": "rigid-constraints",
+      "module": "geometry_constraints",
+      "entries": ["prepare_avbd_kernel", "solve_avbd_kernel", "solve_avbd_stage_kernel"],
+      "domains": ["RIGID_BODY"],
+      "advertised_modes": ["ATTACHMENT", "CONTACT"],
+      "public_case_sets": ["rigid"],
+      "existing_execution_tests": ["parallel-mater-avbd-core-tests", "parallel-mater-conformance --case constraint-*"],
+      "implementation_owners": ["F8-11"]
+    },
+    {
+      "id": "public-query-export",
+      "module": "queries",
+      "entries": [
+        "export_fluid_particles",
+        "export_cloth_vertices",
+        "export_surface_positions",
+        "export_rope_nodes",
+        "export_soft_body_nodes",
+        "export_smoke_particles",
+        "query_rigid_hit_box_kernel",
+        "query_particle_hit_box_kernel"
+      ],
+      "domains": ["QUERY_EXPORT", "RIGID_BODY", "FLUID", "CLOTH", "SOFT_BODY", "ROPE", "SMOKE"],
+      "advertised_modes": [],
+      "public_case_sets": ["all"],
+      "existing_execution_tests": ["parallel-mater-conformance --case all", "parallel-mater-<backend>-command-api-tests"],
+      "implementation_owners": ["F8-20", "F8-32"]
+    },
+    {
+      "id": "rigid-candidate-generation",
+      "module": "geometry",
+      "entries": [
+        "pm_compute_rigid_world_bounds",
+        "pm_broad_phase_rigid_pairs",
+        "pm_generate_rigid_leaf_pairs",
+        "pm_evaluate_rigid_leaf_pairs",
+        "pm_reduce_rigid_leaf_manifolds",
+        "pm_prepare_rigid_face_manifolds",
+        "pm_finalize_rigid_contact_manifolds"
+      ],
+      "domains": ["RIGID_BODY", "SPATIAL_INDEX"],
+      "advertised_modes": ["CONTACT"],
+      "public_case_sets": ["rigid"],
+      "existing_execution_tests": ["parallel-mater-conformance --case rigid-direct", "parallel-mater-conformance --case passive-active"],
+      "implementation_owners": ["F8-08", "F8-11"]
+    },
+    {
+      "id": "rigid-step-state",
+      "module": "geometry",
+      "entries": [
+        "pm_integrate_rigid_bodies",
+        "pm_clear_rigid_inputs",
+        "pm_capture_rigid_inputs",
+        "pm_prepare_parallel_contact_events",
+        "pm_load_rigid_contact_cache",
+        "pm_save_rigid_contact_cache",
+        "pm_gather_rigid_debug_samples",
+        "pm_clamp_rigid_speeds",
+        "pm_build_fixed_collision_groups"
+      ],
+      "domains": ["RIGID_BODY"],
+      "advertised_modes": ["ATTACHMENT", "CONTACT"],
+      "public_case_sets": ["rigid"],
+      "existing_execution_tests": ["parallel-mater-conformance --case rigid-direct", "parallel-mater-<backend>-geometry-lifecycle-tests"],
+      "implementation_owners": ["F8-11"]
+    },
+    {
+      "id": "shared-spatial-primitives",
+      "module": "primitives",
+      "entries": [
+        "pm_exclusive_scan_u32",
+        "pm_compact_count_blocks",
+        "pm_compact_scatter_indices",
+        "pm_radix_histogram_u64",
+        "pm_radix_prefix_u32",
+        "pm_radix_scatter_u64_u32"
+      ],
+      "domains": ["SPATIAL_INDEX", "AUXILIARY"],
+      "advertised_modes": [],
+      "public_case_sets": ["all"],
+      "existing_execution_tests": ["parallel-mater-fluid-pair-neighbor-index-tests", "shader portability build"],
+      "implementation_owners": ["F8-06", "F8-07"]
+    },
+    {
+      "id": "cloth-core",
+      "module": "cloth",
+      "entries": ["cloth_project_volume", "cloth_break_bonds", "cloth_limit_strain", "cloth_update_surface"],
+      "domains": ["CLOTH"],
+      "advertised_modes": [],
+      "public_case_sets": ["cloth"],
+      "existing_execution_tests": ["parallel-mater-conformance --case cloth-core", "parallel-mater-conformance --case cloth-tear"],
+      "implementation_owners": ["F8-13"]
+    },
+    {
+      "id": "soft-body-core",
+      "module": "soft_body",
+      "entries": [
+        "deformable_predict",
+        "soft_body_measure_momentum",
+        "soft_body_restore_momentum",
+        "soft_body_project_rest_shape",
+        "deformable_project_links",
+        "deformable_project_links_warp",
+        "soft_body_finalize_velocities",
+        "soft_body_apply_contact_friction",
+        "soft_body_damp_springs",
+        "soft_body_damp_springs_warp",
+        "soft_body_update_surface"
+      ],
+      "domains": ["SOFT_BODY"],
+      "advertised_modes": [],
+      "public_case_sets": ["soft-body"],
+      "existing_execution_tests": ["parallel-mater-conformance --case soft-body-core"],
+      "implementation_owners": ["F8-14"]
+    },
+    {
+      "id": "soft-body-cloth-coupling",
+      "module": "soft_body_cloth",
+      "entries": ["soft_cloth_detect", "soft_cloth_apply_soft", "soft_cloth_apply_cloth"],
+      "domains": ["SOFT_BODY", "CLOTH"],
+      "advertised_modes": ["CONTACT"],
+      "public_case_sets": ["soft-body"],
+      "existing_execution_tests": ["parallel-mater-conformance --case soft-body-cloth"],
+      "implementation_owners": ["F8-19"]
+    },
+    {
+      "id": "cloth-rope-coupling",
+      "module": "cloth_rope",
+      "entries": ["rope_cloth_sample_anchor", "rope_cloth_apply_anchor"],
+      "domains": ["CLOTH", "ROPE"],
+      "advertised_modes": ["ATTACHMENT"],
+      "public_case_sets": ["rope"],
+      "existing_execution_tests": ["parallel-mater-conformance --case rope-cloth"],
+      "implementation_owners": ["F8-19"]
+    },
+    {
+      "id": "soft-body-rope-coupling",
+      "module": "soft_body_rope",
+      "entries": ["rope_soft_sample_anchor", "rope_soft_scatter_anchor", "rope_soft_apply"],
+      "domains": ["SOFT_BODY", "ROPE"],
+      "advertised_modes": ["ATTACHMENT", "CONTACT"],
+      "public_case_sets": ["rope"],
+      "existing_execution_tests": ["parallel-mater-conformance --case rope-soft-body"],
+      "implementation_owners": ["F8-19"]
+    },
+    {
+      "id": "fluid-cloth-coupling",
+      "module": "fluid_cloth",
+      "entries": ["fluid_cloth_containment_forces", "cloth_apply_fluid_forces", "fluid_project_inside_cloth"],
+      "domains": ["FLUID", "CLOTH"],
+      "advertised_modes": ["CONTACT", "CONTAINMENT"],
+      "public_case_sets": ["cloth"],
+      "existing_execution_tests": ["parallel-mater-conformance --case cloth-water"],
+      "implementation_owners": ["F8-18"]
+    },
+    {
+      "id": "fluid-rope-coupling",
+      "module": "fluid_rope",
+      "entries": ["fluid_rope_contacts", "fluid_rope_apply"],
+      "domains": ["FLUID", "ROPE"],
+      "advertised_modes": ["CONTACT"],
+      "public_case_sets": ["rope"],
+      "existing_execution_tests": ["parallel-mater-conformance --case rope-fluid"],
+      "implementation_owners": ["F8-18"]
+    },
+    {
+      "id": "fluid-smoke-coupling",
+      "module": "fluid_smoke",
+      "entries": ["fluid_smoke_drag", "fluid_smoke_grid_drag", "fluid_smoke_exchange", "fluid_clear_inactive_keep"],
+      "domains": ["FLUID", "SMOKE"],
+      "advertised_modes": ["DRAG", "PHASE", "THERMAL"],
+      "public_case_sets": ["smoke"],
+      "existing_execution_tests": ["parallel-mater-conformance --case smoke-water"],
+      "implementation_owners": ["F8-18"]
+    },
+    {
+      "id": "cloth-smoke-coupling",
+      "module": "cloth_smoke",
+      "entries": ["smoke_cloth_wind", "smoke_cloth_contact"],
+      "domains": ["CLOTH", "SMOKE"],
+      "advertised_modes": ["CONTACT", "DRAG"],
+      "public_case_sets": ["smoke"],
+      "existing_execution_tests": ["parallel-mater-conformance --case smoke-cloth"],
+      "implementation_owners": ["F8-19"]
+    },
+    {
+      "id": "soft-body-smoke-coupling",
+      "module": "soft_body_smoke",
+      "entries": ["smoke_soft_body_wind", "smoke_soft_body_contact"],
+      "domains": ["SOFT_BODY", "SMOKE"],
+      "advertised_modes": ["CONTACT", "DRAG"],
+      "public_case_sets": ["smoke"],
+      "existing_execution_tests": ["parallel-mater-conformance --case smoke-soft-body"],
+      "implementation_owners": ["F8-19"]
+    },
+    {
+      "id": "rope-smoke-coupling",
+      "module": "rope_smoke",
+      "entries": ["smoke_rope_wind", "smoke_rope_contact"],
+      "domains": ["ROPE", "SMOKE"],
+      "advertised_modes": ["CONTACT", "DRAG"],
+      "public_case_sets": ["smoke"],
+      "existing_execution_tests": ["parallel-mater-conformance --case smoke-rope"],
+      "implementation_owners": ["F8-19"]
+    },
+    {
+      "id": "fluid-soft-body-coupling",
+      "module": "fluid_soft_body",
+      "entries": ["fluid_soft_refit", "fluid_soft_detect", "fluid_soft_solve", "fluid_soft_apply", "fluid_soft_recover"],
+      "domains": ["FLUID", "SOFT_BODY", "SPATIAL_INDEX"],
+      "advertised_modes": ["CONTACT"],
+      "public_case_sets": ["soft-body"],
+      "existing_execution_tests": ["parallel-mater-conformance --case soft-body-fluid"],
+      "implementation_owners": ["F8-10", "F8-18"]
+    },
+    {
+      "id": "rigid-cloth-coupling",
+      "module": "geometry_cloth",
+      "entries": ["cloth_constrain_bodies", "cloth_apply_body_corrections"],
+      "domains": ["RIGID_BODY", "CLOTH", "PAINT"],
+      "advertised_modes": ["CONTACT"],
+      "public_case_sets": ["cloth"],
+      "existing_execution_tests": ["parallel-mater-conformance --case cloth-core", "parallel-mater-<backend>-paint-lifecycle-tests"],
+      "implementation_owners": ["F8-17"]
+    },
+    {
+      "id": "rigid-fluid-coupling",
+      "module": "geometry_fluid",
+      "entries": [
+        "fluid_static_contacts",
+        "fluid_body_bounds_kernel",
+        "fluid_index_body_cells",
+        "fluid_detect_moving_contacts",
+        "fluid_resolve_moving_contacts",
+        "reduce_point_body_impulses"
+      ],
+      "domains": ["RIGID_BODY", "FLUID", "PAINT", "SPATIAL_INDEX"],
+      "advertised_modes": ["CONTACT", "CONTAINMENT"],
+      "public_case_sets": ["fluid"],
+      "existing_execution_tests": ["parallel-mater-conformance --case fluid-rigid", "parallel-mater-<backend>-paint-lifecycle-tests"],
+      "implementation_owners": ["F8-09", "F8-18"]
+    },
+    {
+      "id": "rigid-smoke-coupling",
+      "module": "geometry_smoke",
+      "entries": [
+        "smoke_emit_cells",
+        "smoke_density_pressure",
+        "smoke_pair_forces",
+        "smoke_compute_vorticity",
+        "smoke_advect",
+        "smoke_emit",
+        "smoke_deformable_bounds",
+        "smoke_rigid_contact",
+        "smoke_apply_rigid_impulses"
+      ],
+      "domains": ["RIGID_BODY", "SMOKE", "SPATIAL_INDEX"],
+      "advertised_modes": ["CONTACT", "DRAG", "PRESSURE", "VISCOSITY"],
+      "public_case_sets": ["smoke"],
+      "existing_execution_tests": ["parallel-mater-conformance --case smoke-grid"],
+      "implementation_owners": ["F8-10", "F8-16", "F8-17"]
+    },
+    {
+      "id": "rigid-soft-body-coupling",
+      "module": "geometry_soft_body",
+      "entries": ["deformable_collide", "soft_body_surface_contacts", "soft_body_apply_surface_contacts"],
+      "domains": ["RIGID_BODY", "SOFT_BODY", "SPATIAL_INDEX"],
+      "advertised_modes": ["CONTACT"],
+      "public_case_sets": ["soft-body"],
+      "existing_execution_tests": ["parallel-mater-conformance --case soft-body-rigid"],
+      "implementation_owners": ["F8-10", "F8-17"]
+    },
+    {
+      "id": "smoke-grid-core",
+      "module": "smoke_grid",
+      "entries": [
+        "smoke_grid_initialize_cells",
+        "smoke_grid_initialize_faces",
+        "smoke_grid_clear_obstacles",
+        "smoke_grid_raster_rigid",
+        "smoke_grid_raster_deformable",
+        "smoke_grid_raster_soft",
+        "smoke_grid_resolve_particle_fields",
+        "smoke_grid_splat_particles",
+        "smoke_grid_advect_face",
+        "smoke_grid_correct_face",
+        "smoke_grid_cell_diagnostics",
+        "smoke_grid_subgrid_force",
+        "smoke_grid_apply_face_forces",
+        "smoke_grid_apply_face_boundaries",
+        "smoke_grid_divergence",
+        "smoke_grid_pressure_smooth",
+        "smoke_grid_pressure_residual",
+        "smoke_grid_restrict_residual",
+        "smoke_grid_clear_scalar",
+        "smoke_grid_restrict_open",
+        "smoke_grid_mark_domain_boundaries",
+        "smoke_grid_prolong_add",
+        "smoke_grid_compare_residual",
+        "smoke_grid_reset_residual",
+        "smoke_grid_project_face",
+        "smoke_grid_trace",
+        "smoke_grid_soft_body_force",
+        "smoke_grid_cloth_force",
+        "smoke_grid_apply_cloth_force",
+        "smoke_grid_rigid_force"
+      ],
+      "domains": ["SMOKE", "RIGID_BODY", "CLOTH", "SOFT_BODY"],
+      "advertised_modes": ["CONTACT", "DRAG", "PRESSURE", "VISCOSITY"],
+      "public_case_sets": ["smoke"],
+      "existing_execution_tests": ["parallel-mater-conformance --case smoke-grid"],
+      "implementation_owners": ["F8-16", "F8-17", "F8-19"]
+    },
+    {
+      "id": "rope-core",
+      "module": "rope",
+      "entries": ["rope_advance"],
+      "domains": ["ROPE"],
+      "advertised_modes": ["CONTACT"],
+      "public_case_sets": ["rope"],
+      "existing_execution_tests": ["parallel-mater-conformance --case rope-core"],
+      "implementation_owners": ["F8-15"]
+    },
+    {
+      "id": "rope-rigid-coupling",
+      "module": "rope",
+      "entries": ["rope_advance_coupled"],
+      "domains": ["ROPE", "RIGID_BODY"],
+      "advertised_modes": ["ATTACHMENT", "CONTACT"],
+      "public_case_sets": ["rope"],
+      "existing_execution_tests": ["parallel-mater-conformance --case rope-core"],
+      "implementation_owners": ["F8-17"]
+    }
+  ],
+  "auxiliary_paths": [
+    {
+      "id": "paint-contact-stamping",
+      "canonical_entrypoints": [
+        "geometry_cloth.cloth_constrain_bodies",
+        "geometry_fluid.fluid_static_contacts",
+        "geometry_fluid.fluid_detect_moving_contacts"
+      ],
+      "existing_execution_tests": ["parallel-mater-<backend>-paint-lifecycle-tests", "parallel-mater-paint-resource-plan-tests"],
+      "f8_public_cases": ["f8-paint-contact-stamping"],
+      "implementation_owners": ["F8-17", "F8-18"]
+    },
+    {
+      "id": "avbd-conformance-entry",
+      "noncanonical_entrypoints": ["geometry_constraints.avbdConformanceMain"],
+      "compiled_targets": ["cuda", "metal", "hlsl", "wgsl"],
+      "classification": "test-only numerical-core entry, not a production shared-schedule entry",
+      "existing_execution_tests": ["parallel-mater-avbd-core-tests", "parallel-mater-avbd-slang-reflection-tests"],
+      "implementation_owners": ["F8-11"]
+    },
+    {
+      "id": "metal-device-contract",
+      "noncanonical_entrypoints": ["metal_device_contract.metal_device_contract", "metal_device_contract.metal_record_contract"],
+      "compiled_targets": ["metal"],
+      "classification": "BUILD_TESTING-only device contract, not a production shared-schedule entry",
+      "existing_execution_tests": ["parallel-mater-slang-metal-kernel-tests"],
+      "implementation_owners": ["F8-03"]
+    }
+  ],
+  "compiled_variants": [
+    {
+      "id": "cuda-runtime",
+      "kind": "runtime",
+      "build_source": "cmake/SlangKernelManifest.cmake::parallel_mater_compile_slang_cuda",
+      "artifacts": ["one generated CUDA source per canonical module, compiled by NVCC"],
+      "canonical_coverage": "all",
+      "driver": "slang-cuda",
+      "applicable_targets": ["linux-rtx3050ti-slang-cuda", "windows-gtx1080-slang-cuda"],
+      "existing_execution_test": "parallel-mater-conformance --case all",
+      "f8_execution_test": "f8-kernel-entrypoint-execution/cuda",
+      "test_contract_owner": "F8-03",
+      "qualification_owners": ["F8-24", "F8-26"]
+    },
+    {
+      "id": "vulkan-runtime",
+      "kind": "runtime",
+      "build_source": "cmake/ParallelMaterVulkan.cmake",
+      "artifacts": ["SPIR-V module and reflection per canonical module", "generated native dispatch wrapper"],
+      "canonical_coverage": "all",
+      "driver": "slang-vulkan",
+      "applicable_targets": ["android-pixel7-slang-vulkan", "linux-rtx3050ti-slang-vulkan"],
+      "existing_execution_test": "parallel-mater-conformance --case all",
+      "f8_execution_test": "f8-kernel-entrypoint-execution/vulkan",
+      "test_contract_owner": "F8-03",
+      "qualification_owners": ["F8-25", "F8-30"]
+    },
+    {
+      "id": "d3d12-runtime",
+      "kind": "runtime-with-current-stubs",
+      "build_source": "cmake/SlangKernelManifest.cmake::parallel_mater_compile_slang_dxil",
+      "artifacts": ["DXIL and reflection per canonical entrypoint", "embedded reflection-derived dispatch library"],
+      "canonical_coverage": "all-compiled; runtime parity pending P1-59",
+      "driver": "slang-d3d12",
+      "applicable_targets": ["windows-gtx1080-slang-d3d12"],
+      "existing_execution_test": "parallel-mater-conformance --case all (only advertised/runtime-bound scopes count)",
+      "f8_execution_test": "f8-kernel-entrypoint-execution/d3d12",
+      "test_contract_owner": "F8-03",
+      "qualification_owners": ["F8-27"]
+    },
+    {
+      "id": "metal-runtime",
+      "kind": "runtime",
+      "build_source": "cmake/SlangMetal.cmake",
+      "artifacts": ["MSL and reflection per canonical entrypoint", "AIR and metallib per entrypoint on Apple"],
+      "canonical_coverage": "all",
+      "driver": "slang-metal",
+      "applicable_targets": ["ipados-m1-slang-metal", "macos-m4-slang-metal"],
+      "existing_execution_test": "parallel-mater-conformance --case all",
+      "f8_execution_test": "f8-kernel-entrypoint-execution/metal",
+      "test_contract_owner": "F8-03",
+      "qualification_owners": ["F8-28", "F8-29"]
+    },
+    {
+      "id": "cpu-runtime",
+      "kind": "runtime-subset",
+      "build_source": "cmake/ParallelMaterSlangCpu.cmake",
+      "artifacts": ["Slang C++ for rigid geometry, two AVBD entries, and query/export entries", "optional experimental Slang C++ liquid modules"],
+      "canonical_coverage": "explicit-subset",
+      "required_entrypoints": [
+        "geometry.*",
+        "geometry_constraints.prepare_avbd_kernel",
+        "geometry_constraints.solve_avbd_kernel",
+        "queries.*"
+      ],
+      "optional_entrypoints": ["fluid.*", "geometry_fluid.*"],
+      "driver": "slang-cpu",
+      "applicable_targets": ["linux-thomas-laptop-slang-cpu"],
+      "existing_execution_test": "parallel-mater-conformance --case all (unsupported domains remain unsupported)",
+      "f8_execution_test": "f8-kernel-entrypoint-execution/cpu",
+      "test_contract_owner": "F8-03",
+      "qualification_owners": ["F8-23"]
+    },
+    {
+      "id": "cuda-source-mirror",
+      "kind": "compile-only",
+      "build_source": "cmake/SlangKernelMirrors.cmake",
+      "artifacts": ["one CUDA source mirror per canonical module"],
+      "canonical_coverage": "all",
+      "driver": null,
+      "applicable_targets": [],
+      "compile_test": "parallel-mater-slang-kernel-mirrors",
+      "execution_not_applicable": "Mirror compilation is portability evidence only and cannot satisfy a physical target row."
+    },
+    {
+      "id": "ptx-mirror",
+      "kind": "conditional-compile-only",
+      "build_source": "cmake/SlangKernelMirrors.cmake",
+      "artifacts": ["one NVRTC-backed PTX mirror per canonical module when NVRTC is available"],
+      "canonical_coverage": "all-when-enabled",
+      "driver": null,
+      "applicable_targets": [],
+      "compile_test": "parallel-mater-slang-kernel-mirrors",
+      "execution_not_applicable": "PTX mirror generation does not dispatch the production CUDA adapter."
+    },
+    {
+      "id": "spirv-mirror",
+      "kind": "compile-only",
+      "build_source": "cmake/SlangKernelMirrors.cmake",
+      "artifacts": ["one SPIR-V mirror per canonical module"],
+      "canonical_coverage": "all",
+      "driver": null,
+      "applicable_targets": [],
+      "compile_test": "parallel-mater-slang-kernel-mirrors",
+      "execution_not_applicable": "Mirror compilation is separate from the production Vulkan wrapper and physical dispatch."
+    }
+  ],
+  "planned_shared_spatial_entrypoints": [
+    {
+      "contract": "checked compaction, bounds reduction, key ordering, binary topology, and conservative union",
+      "owners": ["F8-06"],
+      "status": "planned-not-in-canonical-build-manifest"
+    },
+    {
+      "contract": "stage_boundary, emit_envelopes, build_or_refit_once, resolve_admission, publish_epoch, and shared query helpers",
+      "owners": ["F8-07"],
+      "status": "planned-not-in-canonical-build-manifest"
+    },
+    {
+      "contract": "port F8-05 independent model obligations into public entrypoint execution tests",
+      "owners": ["F8-03"],
+      "status": "planned-test-contract"
+    }
+  ],
+  "out_of_scope_build_entrypoints": [
+    {
+      "entries": ["surface_index_particles", "surface_build_field", "vertexMain", "fragmentMain", "overlayVertex", "overlayFragment", "surfaceClear", "surfaceHash", "surfaceBounds", "surfaceField", "surfaceMesh", "surfaceFinalize"],
+      "reason": "Gallery rendering shaders do not advance physics and are owned by renderer tests, not the F8 solver/device matrix."
+    }
+  ],
+  "physical_targets": [
+    {
+      "id": "windows-gtx1080-slang-cuda",
+      "platform": "Windows",
+      "backend": "slang-cuda",
+      "compiled_variant": "cuda-runtime",
+      "device": "NVIDIA GeForce GTX 1080",
+      "gpu_identity": "compute capability 6.1",
+      "os": "Microsoft Windows 10.0.26200.9711 observed for F8-01; legacy qualification recorded Windows without a build number",
+      "driver": "NVIDIA 582.66",
+      "toolchain": "Legacy evidence: MSVC 19.44.35228.0, CUDA 12.9.86, Slang 2026.18; current inventory host: CMake 4.4.2, cl/nvcc not present on PATH",
+      "availability": "available-on-inventory-host-2026-10-21; adapter presence only, not an F8 run",
+      "legacy_evidence": ["conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json"],
+      "current_exclusions": ["No F8 profile/candidate execution", "Legacy results are not transferable to F8"],
+      "f8_execution_test": "f8-kernel-entrypoint-execution/cuda",
+      "qualification_owner": "F8-26",
+      "qualification_status": "not-run"
+    },
+    {
+      "id": "windows-gtx1080-slang-d3d12",
+      "platform": "Windows",
+      "backend": "slang-d3d12",
+      "compiled_variant": "d3d12-runtime",
+      "device": "NVIDIA GeForce GTX 1080",
+      "gpu_identity": "D3D12 adapter device id 7040 in legacy evidence",
+      "os": "Microsoft Windows 10.0.26200.9711 observed for F8-01; legacy qualification recorded Windows without a build number",
+      "driver": "NVIDIA 582.66; D3D12 adapter revision 1 in legacy evidence",
+      "toolchain": "Legacy evidence: MSVC 19.44.35228.0, Slang 2026.18, DXC 1.9.0.5399 (a107ba613); current inventory host: CMake 4.4.2",
+      "availability": "available-on-inventory-host-2026-10-21; adapter presence only, not an F8 run",
+      "legacy_evidence": ["conformance/v1/evidence/windows-gtx1080-physics-2026-10-16.json"],
+      "current_exclusions": ["P1-59 owns rope, soft-body, smoke, paint, and coupling runtime parity", "Compiled DXIL is not proof that a formerly stubbed schedule executes", "No F8 profile/candidate execution"],
+      "f8_execution_test": "f8-kernel-entrypoint-execution/d3d12",
+      "qualification_owner": "F8-27",
+      "qualification_status": "blocked-by-P1-59-and-F8-22"
+    },
+    {
+      "id": "linux-thomas-laptop-slang-cpu",
+      "platform": "Debian GNU/Linux 12 (bookworm), Linux 6.1.0-53-amd64, x86_64",
+      "backend": "slang-cpu",
+      "compiled_variant": "cpu-runtime",
+      "device": "11th Gen Intel Core i7-11370H",
+      "gpu_identity": "not applicable",
+      "os": "Debian GNU/Linux 12 (bookworm), Linux 6.1.0-53-amd64",
+      "driver": "Slang CPU",
+      "toolchain": "Legacy evidence: GCC 12.2.0, Slang 2026.18",
+      "availability": "registered-from-legacy-evidence; current access unverified",
+      "legacy_evidence": ["docs/roadmap/evidence/F5-16-linux-driver-evidence.json", "conformance/v1/evidence/linux-thomas-laptop-slang-cpu-eed669e-evidence.json"],
+      "current_exclusions": ["Only rigid contact/attachment are advertised in legacy evidence", "Experimental liquids are optional and do not imply GPU-mode support", "No F8 profile/candidate execution"],
+      "f8_execution_test": "f8-kernel-entrypoint-execution/cpu",
+      "qualification_owner": "F8-23",
+      "qualification_status": "not-run"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda",
+      "platform": "Debian GNU/Linux 12 (bookworm), Linux 6.1.0-53-amd64, x86_64",
+      "backend": "slang-cuda",
+      "compiled_variant": "cuda-runtime",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU on ThomasLaptop",
+      "gpu_identity": "NVIDIA vendor id 4318 in legacy evidence",
+      "os": "Debian GNU/Linux 12 (bookworm), Linux 6.1.0-53-amd64",
+      "driver": "NVIDIA 590.44.01",
+      "toolchain": "Legacy evidence: GCC 12.2.0, CUDA 13.1.80, Slang 2026.18",
+      "availability": "registered-from-legacy-evidence; current access unverified",
+      "legacy_evidence": ["docs/roadmap/evidence/F5-16-linux-driver-evidence.json", "conformance/v1/evidence/linux-rtx3050ti-slang-cuda-eed669e-evidence.json"],
+      "current_exclusions": ["Legacy index records no generally qualified driver", "No F8 profile/candidate execution"],
+      "f8_execution_test": "f8-kernel-entrypoint-execution/cuda",
+      "qualification_owner": "F8-24",
+      "qualification_status": "not-run"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-vulkan",
+      "platform": "Debian GNU/Linux 12 (bookworm), Linux 6.1.0-53-amd64, x86_64",
+      "backend": "slang-vulkan",
+      "compiled_variant": "vulkan-runtime",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU on ThomasLaptop",
+      "gpu_identity": "NVIDIA vendor id 4318 in legacy evidence",
+      "os": "Debian GNU/Linux 12 (bookworm), Linux 6.1.0-53-amd64",
+      "driver": "NVIDIA 590.44.01; Vulkan loader 1.3.239",
+      "toolchain": "Legacy evidence: GCC 12.2.0, Slang 2026.18, shaderc 2023.2",
+      "availability": "registered-from-legacy-evidence; current access unverified",
+      "legacy_evidence": ["docs/roadmap/evidence/F5-16-linux-driver-evidence.json", "conformance/v1/evidence/linux-rtx3050ti-slang-vulkan-eed669e-evidence.json"],
+      "current_exclusions": ["Legacy analytic/lifecycle gaps remain explicit", "No F8 profile/candidate execution"],
+      "f8_execution_test": "f8-kernel-entrypoint-execution/vulkan",
+      "qualification_owner": "F8-25",
+      "qualification_status": "not-run"
+    },
+    {
+      "id": "macos-m4-slang-metal",
+      "platform": "macOS arm64",
+      "backend": "slang-metal",
+      "compiled_variant": "metal-runtime",
+      "device": "MacBook Air Mac16,12, Apple M4, 16 GB",
+      "gpu_identity": "Apple M4 GPU, vendor id 4203 in legacy evidence",
+      "os": "macOS 26.5.2 (25F84)",
+      "driver": "Apple Metal 32023.883",
+      "toolchain": "Legacy evidence: Apple Clang 21.0.0 (clang-2100.1.1.101), Xcode 26.6 (17F113), Slang 2026.18",
+      "availability": "registered-from-legacy-evidence; current access unverified",
+      "legacy_evidence": ["conformance/v1/evidence/macos-m4-slang-metal-aac6d59-evidence.json"],
+      "current_exclusions": ["Legacy index qualifies only one isolated capability occurrence, not the driver", "No F8 profile/candidate execution"],
+      "f8_execution_test": "f8-kernel-entrypoint-execution/metal",
+      "qualification_owner": "F8-28",
+      "qualification_status": "not-run"
+    },
+    {
+      "id": "ipados-m1-slang-metal",
+      "platform": "iPadOS",
+      "backend": "slang-metal",
+      "compiled_variant": "metal-runtime",
+      "device": "iPad13,8, Apple M1 GPU",
+      "gpu_identity": "Apple M1 GPU",
+      "os": "iPadOS 26.6.2",
+      "driver": "Metal 4 Apple7",
+      "toolchain": "Legacy evidence: AppleClang 21.0.0.21000101, Slang 2026.18",
+      "availability": "registered-from-legacy-evidence; current paired-device access unverified; simulator is not a substitute",
+      "legacy_evidence": ["conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e/capture-index.json", "conformance/v1/evidence/ipados-m1-slang-metal-9f7e72e-qualification.json"],
+      "current_exclusions": ["Legacy report retained missing lifecycle/contract failures", "No F8 profile/candidate execution", "No registered iPhone tuple exists in current evidence"],
+      "f8_execution_test": "f8-kernel-entrypoint-execution/metal",
+      "qualification_owner": "F8-29",
+      "qualification_status": "not-run"
+    },
+    {
+      "id": "android-pixel7-slang-vulkan",
+      "platform": "Android",
+      "backend": "slang-vulkan",
+      "compiled_variant": "vulkan-runtime",
+      "device": "Google Pixel 7 (panther), Mali-G710",
+      "gpu_identity": "Mali-G710, Vulkan driver id 9",
+      "os": "Android 17, API 37, security patch 2026-09-05",
+      "driver": "Vulkan API 1.4.343; v1.r54p3-00eac0.1848e3b066182d5bb5a345ab256f13ee",
+      "toolchain": "Legacy evidence: Android Clang 21.0.0 (r563880c), NDK 29.0.14206865, Slang 2026.18",
+      "availability": "registered-from-legacy-evidence; current connected-device access unverified",
+      "legacy_evidence": ["docs/roadmap/evidence/F5-15-android-vulkan.json", "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json"],
+      "current_exclusions": ["F8-02 must verify build/install/run provenance", "Legacy APK and results are not an F8 candidate", "No F8 profile/candidate execution"],
+      "f8_execution_test": "f8-kernel-entrypoint-execution/vulkan",
+      "qualification_owner": "F8-30",
+      "qualification_status": "blocked-by-F8-02-and-F8-22"
+    }
+  ],
+  "device_registration_audit": {
+    "basis": ["docs/roadmap/evidence/F5-99-exit-review.json", "conformance/v1/evidence/index-v1.json"],
+    "registered_host_count": 5,
+    "registered_backend_tuple_count": 8,
+    "covered_qualification_cards": ["F8-23", "F8-24", "F8-25", "F8-26", "F8-27", "F8-28", "F8-29", "F8-30"],
+    "additional_device_cards_added": [],
+    "conclusion": "No additional durable physical device/backend tuple exists beyond the eight rows above. If one is discovered, add a bounded leaf that depends on F8-22 and add that leaf to F8-99; never make F8-22 depend on qualification."
+  },
+  "handoffs": [
+    {
+      "task": "P3-02",
+      "state_at_inventory": "deferred, no live lease",
+      "boundary": "PR #437 released the superseded eight-substep/30 Hz Android optimization. Preserve work/P3-02/thomas-laptop and its dirty experiments; they provide no F8 execution or timing proof.",
+      "f8_owners": ["F8-02", "F8-30"]
+    },
+    {
+      "task": "P1-59",
+      "state_at_inventory": "leased by codex-windows-d3d12-parity on windows-gtx1080 through 2026-10-22T13:38:46Z",
+      "boundary": "P1-59 alone owns D3D12 common-domain parity. F8-01 inventories compiled DXIL and the gap; F8-27 depends on P1-59 and must not duplicate or preempt it.",
+      "f8_owners": ["F8-27"]
+    },
+    {
+      "task": "F5-99",
+      "state_at_inventory": "done",
+      "boundary": "Its 47-report legacy index records 1/336 qualified capability occurrences and 990 known failures. Preserve it as legacy-profile registration evidence only; new F8 equations require a frozen F8-22 candidate and new device runs.",
+      "f8_owners": ["F8-22", "F8-23", "F8-24", "F8-25", "F8-26", "F8-27", "F8-28", "F8-29", "F8-30", "F8-99"]
+    }
+  ]
+}

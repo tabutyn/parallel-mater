@@ -221,6 +221,25 @@ python3 conformance/v1/lifecycle.py \
   --report /path/to/cloth-rope-lifecycle-report.json
 ```
 
+Soft-body-rope contact uses the immutable `soft-rope-contact-v1` profile. Its
+public-API fixture starts a resampled rope inside a moving bound tetrahedral
+surface, reconstructs every public surface vertex from its node bindings, and
+checks separation, reciprocal endpoint impulse, public reaction-force
+consistency, and frictionless tangential slip. A second step removes the graph
+and requires contact force to clear while relative slip remains, so a hidden
+attachment cannot satisfy the contact contract. Capacity, replacement and
+rollback remain a separate obligation supplied by the existing
+`adverse-capacity-three-family-v1#three-family-partial-rollback` case:
+
+```text
+parallel-mater-conformance --quality soft-rope-contact-v1 \
+  --output /path/to/soft-rope-contact-quality-results
+python3 conformance/v1/quality.py \
+  --profile conformance/v1/quality/soft-rope-contact-v1.json \
+  --actual /path/to/soft-rope-contact-quality-results/soft-rope-contact-v1.json \
+  --report /path/to/soft-rope-contact-quality-report.json
+```
+
 Soft-body-rope endpoint attachment uses the immutable
 `soft-rope-attachment-v1` profile. Its public-API fixture attaches the first
 rope endpoint to a supported tetrahedral surface, bounds endpoint and pinned

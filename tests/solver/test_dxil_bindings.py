@@ -42,6 +42,11 @@ def reflection(entry='execute'):
 
 
 class DxilBindingGeneratorTest(unittest.TestCase):
+    def test_generated_struct_dereference_uses_host_descriptor(self):
+        self.assertEqual(
+            generate_dxil_dispatch.unwrap('*as<TriangleMeshResource_0>(mesh)'),
+            '*static_cast<const TriangleMeshResource *>(mesh)')
+
     def test_embedded_library_emits_reflected_symbolic_layout(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -111,6 +116,83 @@ void run_fixture(device::DispatchSize grid, device::DispatchSize block,
             with self.assertRaisesRegex(ValueError, 'args !='):
                 generate_dxil_dispatch.generate(
                     root, root / 'reflection', [Path('fixture_dispatch.cu')])
+
+    def test_accepts_prebound_native_queue(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'fixture_dispatch.cu').write_text('''
+void fixture(device::ExecutionQueue stream, void *values,
+             bool enabled) noexcept {
+    const auto native = static_cast<cudaStream_t>(stream.native_handle);
+    execute<<<1U, 64U, 0U, native>>>(values, enabled);
+}
+''', encoding='utf-8')
+            reflected = root / 'reflection' / 'fixture'
+            reflected.mkdir(parents=True)
+            (reflected / 'execute.json').write_text(
+                json.dumps(reflection()), encoding='utf-8')
+            text = generate_dxil_dispatch.generate(
+                root, root / 'reflection', [Path('fixture_dispatch.cu')])
+            self.assertIn('execution->dispatch("fixture", "execute"', text)
+
+    def test_preserves_bool_selected_dual_launch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'fixture_dispatch.cu').write_text('''
+void fixture(device::ExecutionQueue stream, void *values,
+             bool enabled) noexcept {
+    const auto native = static_cast<cudaStream_t>(stream.native_handle);
+    const bool coupled = enabled || values != nullptr;
+    if (coupled)
+        execute_coupled<<<1U, 64U, 0U, native>>>(values, enabled);
+    else
+        execute<<<1U, 64U, 0U, native>>>(values, enabled);
+}
+''', encoding='utf-8')
+            reflected = root / 'reflection' / 'fixture'
+            reflected.mkdir(parents=True)
+            for entry in ('execute_coupled', 'execute'):
+                data = reflection(entry)
+                (reflected / f'{entry}.json').write_text(
+                    json.dumps(data), encoding='utf-8')
+            text = generate_dxil_dispatch.generate(
+                root, root / 'reflection', [Path('fixture_dispatch.cu')])
+            self.assertIn(
+                'const bool coupled = enabled || values != nullptr;', text)
+            self.assertIn(
+                'execution->dispatch("fixture", "execute_coupled"', text)
+            self.assertIn('execution->dispatch("fixture", "execute"', text)
+
+    def test_translates_pointer_bearing_paint_tables(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'fixture_dispatch.cu').write_text('''
+void fixture(device::ExecutionQueue stream, const void *paint_fields,
+             std::uint32_t paint_field_capacity, const void *paint_rules,
+             std::uint32_t paint_rule_capacity) noexcept {
+    execute<<<1U, 64U, 0U, stream>>>(
+        as<PaintFieldResource_0>(paint_fields), paint_field_capacity,
+        as<PaintRuleResource_0>(paint_rules), paint_rule_capacity);
+}
+''', encoding='utf-8')
+            data = reflection()
+            data['entryPoints'][0]['scope']['parameters'] = [
+                parameter('paint_fields', resource(), 0, 12),
+                parameter('field_capacity', scalar('uint32', 4), 12, 4),
+                parameter('paint_rules', resource(), 16, 12),
+                parameter('rule_capacity', scalar('uint32', 4), 28, 4)]
+            reflected = root / 'reflection' / 'fixture'
+            reflected.mkdir(parents=True)
+            (reflected / 'execute.json').write_text(
+                json.dumps(data), encoding='utf-8')
+            text = generate_dxil_dispatch.generate(
+                root, root / 'reflection', [Path('fixture_dispatch.cu')])
+            self.assertIn(
+                'translated_paint_fields(paint_fields, paint_field_capacity)',
+                text)
+            self.assertIn(
+                'translated_paint_rules(paint_rules, paint_rule_capacity)',
+                text)
 
     def test_unsupported_uniform_shape_fails_both_dxil_generators(self):
         with tempfile.TemporaryDirectory() as directory:

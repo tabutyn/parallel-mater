@@ -1,0 +1,29 @@
+{
+  "id": "F8-19",
+  "title": "Integrate remaining deformable and smoke coupling operators",
+  "status": "open",
+  "dependencies": [
+    "F8-10",
+    "F8-13",
+    "F8-14",
+    "F8-15",
+    "F8-16"
+  ],
+  "locks": [
+    "deformable-smoke-couplings",
+    "reference-schedule"
+  ],
+  "requires": [
+    "A physical supported GPU, shared Slang build toolchain and public-API test harness"
+  ],
+  "scope": "Move existing non-rigid/non-liquid cloth/soft/rope/smoke interactions onto the one-tick shared snapshot, without adding new pair/mode semantics. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Map every applicable existing pair/mode to its single-step operator and independent case; explicitly exclude unsupported pairs instead of claiming all couplings.",
+    "Validate two-way balance, stable contact, mass ratios, self/same-family modes where supported, cold starts and three-plus-family scenes under F8-00.",
+    "Reuse one spatial epoch, integrate each endpoint once and cap algebraic iterations; smoke field steps remain grid operations without extra collision-index rebuilds.",
+    "Test lifecycle, topology/endpoint replacement, overflow and reset; publish operator-level dispatch/quality budgets and documented approximation errors."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

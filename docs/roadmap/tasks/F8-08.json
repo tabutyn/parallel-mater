@@ -1,0 +1,26 @@
+{
+  "id": "F8-08",
+  "title": "Move rigid broad phase onto the shared BVH",
+  "status": "open",
+  "dependencies": [
+    "F8-03",
+    "F8-07"
+  ],
+  "locks": [
+    "rigid-broad-phase",
+    "reference-schedule"
+  ],
+  "requires": [
+    "A physical supported GPU, shared Slang build toolchain and public-API test harness"
+  ],
+  "scope": "Replace rigid all-pairs world-bound scanning with shared tick-snapshot candidates while retaining cached mesh-local collision geometry. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Remove count-squared candidate flag work from the new profile; demonstrate sparse/dense scaling and bounded candidate storage.",
+    "Match independent collision-candidate oracles for fast motion, rotating thin shapes, margins, disabled constrained pairs and generation changes.",
+    "Reuse the one tick index throughout bounded contact/joint solves; no second build/refit after an iteration.",
+    "Retain narrow-phase correctness/lifetime tests and record dispatch/candidate/byte budgets at unchanged body/mesh counts."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

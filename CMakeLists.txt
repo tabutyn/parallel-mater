@@ -587,9 +587,12 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             add_dependencies(${test_target} parallel-mater-driver-slang-d3d12
                 parallel-mater-layer-validation)
         endforeach()
-        foreach(scene RigidBody ConstraintFixed ConstraintPoint ConstraintHinge
+        foreach(scene RigidBody ConstraintFixed Celestial ConstraintHinge
                 ConstraintPiston ConstraintGeneric ConstraintMotorSpring DumpTruck
-                Fluid FluidRigid Cloth ClothTear ClothWater)
+                Fluid FluidRigid Pegs Cloth ClothTear ClothPaint ClothWater
+                Softbody SoftbodyRigidBody SoftbodyCloth SoftbodyFluid
+                Rope RopeFluid RopeSoftbody RopeCloth Smoke SmokeWater
+                SmokeSoftbody SmokeCloth SmokeRope)
             add_test(NAME parallel-mater-d3d12-gallery-${scene}
                 COMMAND parallel-mater-command-gallery-tests --backend d3d12
                     --scene ${scene}.glb --frames 300)
@@ -805,7 +808,8 @@ if(PARALLEL_MATER_BUILD_GALLERY)
         PUBLIC include examples/support/include
         PRIVATE examples/support examples/gallery)
     target_link_libraries(parallel-mater-gallery-renderer-adapters
-        PUBLIC parallel-mater-gallery-renderer-contract)
+        PUBLIC parallel-mater-gallery-renderer-contract
+        PRIVATE parallel-mater-gallery-frame-timing)
     target_compile_features(parallel-mater-gallery-renderer-adapters
         PUBLIC cxx_std_20)
     if(pm_gallery_host_renderer_optix)
@@ -1077,26 +1081,26 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/slang_abi.py"
         COMMENT "Embedding common Slang DXIL schedules in the D3D12 driver"
         VERBATIM)
-    set(PARALLEL_MATER_D3D12_STUB_SOURCE
-        "${PARALLEL_MATER_D3D12_GENERATED_DIR}/parallel_mater_unadvertised_dispatch.cpp")
-    set(PARALLEL_MATER_D3D12_STUB_HEADERS
-        src/simulation/fluid_rope_dispatch.hpp
-        src/simulation/fluid_smoke_dispatch.hpp
-        src/simulation/fluid_soft_body_dispatch.hpp
-        src/simulation/geometry_smoke_dispatch.hpp
-        src/simulation/rope_coupling_dispatch.hpp
-        src/simulation/rope_dispatch.hpp
-        src/simulation/smoke_coupling_dispatch.hpp
-        src/simulation/smoke_grid_dispatch.hpp
-        src/simulation/soft_body_cloth_dispatch.hpp)
     set(PARALLEL_MATER_D3D12_DOMAIN_SOURCES
         src/simulation/fluid_dispatch.cu
         src/simulation/cloth_dispatch.cu
         src/simulation/soft_body_dispatch.cu
+        src/simulation/soft_body_cloth_dispatch.cu
+        src/simulation/cloth_rope_dispatch.cu
+        src/simulation/soft_body_rope_dispatch.cu
+        src/simulation/rope_dispatch.cu
         src/simulation/fluid_cloth_dispatch.cu
+        src/simulation/fluid_rope_dispatch.cu
+        src/simulation/fluid_smoke_dispatch.cu
+        src/simulation/cloth_smoke_dispatch.cu
+        src/simulation/soft_body_smoke_dispatch.cu
+        src/simulation/rope_smoke_dispatch.cu
+        src/simulation/fluid_soft_body_dispatch.cu
         src/simulation/geometry_fluid_dispatch.cu
         src/simulation/geometry_cloth_dispatch.cu
+        src/simulation/geometry_smoke_dispatch.cu
         src/simulation/geometry_soft_body_dispatch.cu
+        src/simulation/smoke_grid_dispatch.cu
         src/simulation/exports.cu)
     set(PARALLEL_MATER_D3D12_DOMAIN_DISPATCH
         "${PARALLEL_MATER_D3D12_GENERATED_DIR}/parallel_mater_domain_dispatch.cpp")
@@ -1114,19 +1118,6 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         COMMENT "Binding shared domain schedules using Slang DXIL reflection"
         VERBATIM)
-    add_custom_command(
-        OUTPUT "${PARALLEL_MATER_D3D12_STUB_SOURCE}"
-        COMMAND "${Python3_EXECUTABLE}"
-                "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_cpu_dispatch_stubs.py"
-                --output "${PARALLEL_MATER_D3D12_STUB_SOURCE}"
-                ${PARALLEL_MATER_D3D12_STUB_HEADERS}
-        DEPENDS tools/generate_cpu_dispatch_stubs.py
-                ${PARALLEL_MATER_D3D12_STUB_HEADERS}
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        COMMENT "Generating guarded stubs for unadvertised D3D12 domains"
-        VERBATIM)
-    set_source_files_properties("${PARALLEL_MATER_D3D12_STUB_SOURCE}"
-        PROPERTIES GENERATED TRUE COMPILE_OPTIONS "/w")
     add_library(parallel-mater-driver-slang-d3d12 SHARED
         src/api/instance.cpp
         src/api/device.cpp
@@ -1146,7 +1137,6 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
         src/simulation/runtime.cpp
         src/simulation/d3d12_geometry_dispatch.cpp
         src/simulation/memory_arena.cpp
-        "${PARALLEL_MATER_D3D12_STUB_SOURCE}"
         "${PARALLEL_MATER_D3D12_DOMAIN_DISPATCH}"
         "${PARALLEL_MATER_D3D12_DXIL_LIBRARY}")
     add_dependencies(parallel-mater-driver-slang-d3d12
@@ -1547,6 +1537,12 @@ if(BUILD_TESTING)
                 -p android_vulkan_schedule_tests.py)
     set_tests_properties(parallel-mater-android-vulkan-schedule-profile-tests
         PROPERTIES LABELS "gallery;mobile;android;vulkan;performance")
+    add_test(NAME parallel-mater-android-deployment-tests
+        COMMAND ${Python3_EXECUTABLE} -m unittest discover
+                -s ${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery
+                -p android_deployment_tests.py)
+    set_tests_properties(parallel-mater-android-deployment-tests
+        PROPERTIES LABELS "gallery;mobile;android;deployment")
     add_test(NAME parallel-mater-conformance-case-registry
         COMMAND parallel-mater-conformance-cases --check
                 ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/cases)
@@ -1554,6 +1550,12 @@ if(BUILD_TESTING)
         COMMAND ${Python3_EXECUTABLE} -m unittest discover
                 -s ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/tests
                 -p test_*.py)
+    add_test(NAME parallel-mater-realtime-oracle-contract
+        COMMAND ${Python3_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/realtime_oracle.py
+                --check-contract)
+    set_tests_properties(parallel-mater-realtime-oracle-contract PROPERTIES
+        LABELS "conformance;profile;oracle;realtime")
     add_test(NAME parallel-mater-benchmark-qualification-tests
         COMMAND ${Python3_EXECUTABLE} -m unittest discover
                 -s ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/tests

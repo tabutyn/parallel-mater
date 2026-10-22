@@ -10,8 +10,9 @@ This is cooperative Git coordination, not an identity/authentication service.
 1. Fetch current `main`; inspect open lease PRs to avoid duplicate proposals.
 2. Run `python3 tools/roadmap.py list --ready` and read the selected task card.
 3. Check its machine requirements, acceptance checks, dependencies and locks.
-   F1 has priority, but independent ready F2–F7 tasks may run concurrently.
-4. Reserve one leaf ID per claim PR. Do not claim an F1–F7 area wholesale. If a
+   F8 is the next architecture/performance priority; honor existing leases and
+   finish outstanding foundation reviews. Independent ready tasks may run concurrently.
+4. Reserve one leaf ID per claim PR. Do not claim an entire F-series area. If a
    leaf is too large for one focused implementation/review, split it in a
    planning PR before claiming. Keep old IDs and history; never renumber/reuse.
 
@@ -166,9 +167,16 @@ Coordination-only maintenance uses a planning PR; it is not a bypass for physics
 platform, runtime or SDK implementation. Existing historical roadmap snapshots
 are context only and must never become competing task queues.
 
+Entirely completed categories are collapsed automatically in the generated index.
+Completed F5 is archived out of the live index. Its cards and history stay
+canonical, and a new open/deferred F5 follow-up makes the category visible again;
+never delete completed cards to clean the work queue.
+For F8, follow [the 60 Hz plan](F8-REALTIME-60HZ.md), including the frozen candidate
+revision, complete kernel/device matrix and separate legacy/new quality profiles.
+
 ## Merge serialization and checks
 
-`Roadmap leases / Roadmap lease contract` validates task structure, dependency
+`CI / Roadmap lease contract` validates task structure, dependency
 cycles, exclusive locks, generated-index consistency and PR state transitions.
 It also tests competing claims, expiry/reclaim and stale completions. It reads
 current fetched main, rejects outdated branches, and requires implementation
@@ -181,9 +189,16 @@ python3 tools/roadmap.py check
 python3 -m unittest discover -s tests/roadmap -p 'test_*.py'
 ```
 
-For automated multi-machine merging, make the lease check a required status
-check and require up-to-date branches. Each merge candidate permits one lease
-operation; merge-queue groups containing multiple lease operations are rejected.
+CI routing is documented in [the CI policy](../continuous-integration.md).
+Coordination/prose-only PRs run the quick contract checks and stable result gate;
+shared code, CI configuration and unknown paths retain full platform verification.
+Workflow/CI-policy maintenance is coordination-only; runtime changes still need
+a merged task lease. Claim/renew/release PRs still change only their card/index.
+
+For automated multi-machine merging, make `CI required` and the lease check
+required status checks and require up-to-date branches. Each merge candidate
+permits one lease operation; merge-queue groups containing multiple lease
+operations are rejected.
 Use one-at-a-time merges for lease-affecting PRs. This repository
 change does not configure those administrator settings. Until they are enabled,
 one merge coordinator must fetch current main, update the PR, rerun the check

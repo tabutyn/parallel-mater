@@ -39,10 +39,72 @@ def paths(id='F1-01'):
 
 
 class LeaseTests(unittest.TestCase):
+    def test_ci_maintenance_is_coordination_but_runtime_still_requires_lease(self):
+        tasks = {'F1-01': task()}
+        ci = ['.github/workflows/sdk-install.yml', 'tools/ci/route.py',
+              'tests/ci/test_routing.py', 'docs/continuous-integration.md']
+        self.assertEqual(roadmap.transitions(tasks, tasks, NOW, ci), [])
+        with self.assertRaisesRegex(ValueError, 'implementation PR'):
+            roadmap.transitions(tasks, tasks, NOW, ci + ['src/simulation/runtime.cpp'])
+
+    def test_claim_cannot_bundle_ci_maintenance(self):
+        base, candidate = {'F1-01': task()}, {'F1-01': task()}
+        claim(candidate)
+        with self.assertRaisesRegex(ValueError, 'only its task card'):
+            roadmap.transitions(base, candidate, NOW, paths() + ['tools/ci/route.py'])
+
     def test_catalog_is_valid_and_index_current(self):
         tasks = roadmap.load(ROOT)
         self.assertEqual((ROOT / roadmap.ROADMAP).read_text(), roadmap.rendered(ROOT, tasks))
         self.assertGreaterEqual(len(tasks), 60)
+
+    def test_registered_f8_ids_validate_but_unknown_groups_do_not(self):
+        roadmap.validate({'F8-00': task('F8-00')})
+        for id in ('F9-00', 'P5-00', 'F8-1', 'F08-00'):
+            with self.assertRaisesRegex(ValueError, 'invalid ID'):
+                roadmap.validate({id: task(id)})
+
+    def test_only_entirely_completed_categories_are_collapsed(self):
+        done = task() | {'status': 'done', 'evidence': ['Historical evidence']}
+        for status in ('open', 'leased', 'deferred'):
+            tasks = {'F1-01': done, 'F8-01': task('F8-01')}
+            if status == 'leased':
+                claim(tasks, 'F8-01')
+            else:
+                tasks['F8-01']['status'] = status
+            roadmap.validate(tasks)
+            before = copy.deepcopy(tasks)
+            text = roadmap.index(tasks)
+            active, archived = text.split('### Completed categories')
+            self.assertIn('### F8.', active)
+            self.assertNotIn('### F1.', active)
+            self.assertNotIn('### F2.', text)  # Empty groups are not completed.
+            self.assertIn('<summary>F1.', archived)
+            self.assertIn('roadmap/tasks/F1-01.json', archived)
+            self.assertNotIn('<summary>F8.', archived)
+            self.assertEqual(before, tasks)  # Rendering never rewrites history.
+
+    def test_new_followup_makes_completed_category_visible_again(self):
+        tasks = {'F8-01': task('F8-01') | {'status': 'done', 'evidence': ['PASS']}}
+        self.assertIn('<summary>F8.', roadmap.index(tasks))
+        tasks['F8-02'] = task('F8-02', dependencies=['F8-01'])
+        text = roadmap.index(tasks)
+        self.assertIn('### F8.', text)
+        self.assertNotIn('<summary>F8.', text)
+        self.assertIn('roadmap/tasks/F8-01.json', text)
+        self.assertIn('roadmap/tasks/F8-02.json', text)
+
+    def test_completed_f5_is_archived_out_of_live_index(self):
+        done = task('F5-01') | {'status': 'done', 'evidence': ['PASS']}
+        tasks = {'F5-01': done}
+        self.assertNotIn('F5.', roadmap.index(tasks))
+        self.assertNotIn('roadmap/tasks/F5-01.json', roadmap.index(tasks))
+
+        tasks['F5-02'] = task('F5-02', dependencies=['F5-01'])
+        text = roadmap.index(tasks)
+        self.assertIn('### F5.', text)
+        self.assertIn('roadmap/tasks/F5-01.json', text)
+        self.assertIn('roadmap/tasks/F5-02.json', text)
 
     def test_new_claim_is_metadata_only_and_needs_merged_dependencies(self):
         base = {'F1-01': task()}

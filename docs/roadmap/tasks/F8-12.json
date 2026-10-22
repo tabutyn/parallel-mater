@@ -1,0 +1,26 @@
+{
+  "id": "F8-12",
+  "title": "Stabilize liquid dynamics at one 60 Hz step",
+  "status": "open",
+  "dependencies": [
+    "F8-00",
+    "F8-03",
+    "F8-09"
+  ],
+  "locks": [
+    "liquid-equations"
+  ],
+  "requires": [
+    "A physical supported GPU, shared Slang build toolchain and public-API test harness"
+  ],
+  "scope": "Redesign liquid self dynamics for a stable low-iteration dt=1/60 profile, using the shared snapshot rather than repeated pressure/neighbor substeps. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "acceptance": [
+    "Compression, free-surface behavior, containment, impacts, viscosity/dissipation where implemented, source/outflow and cold/warm starts satisfy the explicit new error envelope.",
+    "Document the chosen equations, timestep/material semantics and intentional accuracy losses; share Slang physics across adapters and negotiate the new profile explicitly.",
+    "Independent tests prove exactly one dt=1/60 advance, bounded algebraic iterations, no spatial rebuild in the solve, and adherence to the predeclared dispatch/work/memory budget.",
+    "Publish new-profile quality/energy/performance evidence beside unchanged legacy-profile results; no post-result tolerance changes or per-device physics fork."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

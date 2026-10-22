@@ -4,8 +4,10 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <map>
 #include <mutex>
 #include <new>
@@ -43,6 +45,7 @@ struct Simulation {
     PmDeviceMemory persistent_memory{};
     PmDeviceMemory scratch_memory{};
     bool bound{};
+    bool realtime_single_step{};
     std::uint32_t rigid_body_capacity{};
     std::uint32_t constraint_capacity{};
     std::uint32_t fluid_count{};
@@ -138,6 +141,7 @@ struct Queue {
     std::uint32_t family{};
 };
 struct Device {
+    bool simulation_profile_extension{};
     std::unordered_map<PmDeviceMemory, Memory> memories;
     std::unordered_map<PmBuffer, Buffer> buffers;
     std::unordered_map<PmGeometry, Geometry> geometries;
@@ -189,6 +193,46 @@ bool fits(PmDeviceSize offset, PmDeviceSize size, PmDeviceSize capacity) {
 }
 bool range_fits(PmDeviceSize offset, PmDeviceSize size, PmDeviceSize capacity) {
     return offset <= capacity && (size == PM_WHOLE_SIZE || fits(offset, size, capacity));
+}
+
+struct StructureHeader {
+    PmStructureType sType;
+    const void *pNext;
+};
+
+bool realtime_timestep(float value) {
+    constexpr float expected = 1.0F / 60.0F;
+    const float lower = std::nextafter(expected, 0.0F);
+    const float upper = std::nextafter(
+        expected, std::numeric_limits<float>::infinity());
+    return std::isfinite(value) && value >= lower && value <= upper;
+}
+
+PmResult validate_profile_request(PmDevice device, const void *chain,
+                                  bool &realtime) {
+    realtime = false;
+    if (!chain) return PM_SUCCESS;
+    const auto *header = static_cast<const StructureHeader *>(chain);
+    if (header->sType != PM_STRUCTURE_TYPE_SIMULATION_PROFILE_CREATE_INFO ||
+        header->pNext)
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (tracking_available) {
+        const auto found = devices.find(device);
+        if (found == devices.end()) return PM_ERROR_INVALID_ARGUMENT;
+        if (!found->second.simulation_profile_extension)
+            return PM_ERROR_EXTENSION_NOT_PRESENT;
+    }
+    const auto *request = static_cast<
+        const PmSimulationProfileCreateInfo *>(chain);
+    if (!request->pProfileName || request->pProfileName[0] == '\0')
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (std::strcmp(request->pProfileName,
+                    PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP) != 0)
+        return PM_ERROR_FEATURE_NOT_PRESENT;
+    if (request->versionMajor != 1U || request->versionMinor != 0U)
+        return PM_ERROR_INCOMPATIBLE_VERSION;
+    realtime = true;
+    return PM_SUCCESS;
 }
 Memory *memory(PmDevice device, PmDeviceMemory value) {
     const auto d = devices.find(device);
@@ -531,7 +575,15 @@ template<class T> PmResult validate(const T &) { return PM_SUCCESS; }
 template<class T> void record(const T &) {}
 
 void record(const PmLayerArgs_pmCreateDevice &a) {
-    if (a.pDevice && *a.pDevice) devices.try_emplace(*a.pDevice);
+    if (!a.pDevice || !*a.pDevice) return;
+    Device tracked{};
+    for (std::uint32_t index = 0U;
+         a.pInfo && index < a.pInfo->enabledExtensionCount; ++index)
+        if (a.pInfo->ppEnabledExtensionNames[index] &&
+            std::strcmp(a.pInfo->ppEnabledExtensionNames[index],
+                        PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME) == 0)
+            tracked.simulation_profile_extension = true;
+    devices.try_emplace(*a.pDevice, std::move(tracked));
 }
 void record(const PmLayerArgs_pmImportNativeDevice &a) {
     if (a.pDevice && *a.pDevice) devices.try_emplace(*a.pDevice);
@@ -1042,9 +1094,10 @@ void record(const PmLayerArgs_pmBindGeometryMemory &a) {
 }
 
 PmResult validate(const PmLayerArgs_pmCreateSimulation &a) {
+    bool realtime{};
     if (!a.pInfo || !a.pSimulation ||
         a.pInfo->sType != PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO ||
-        a.pInfo->pNext || a.pInfo->queueFamilyIndex != 0U ||
+        a.pInfo->queueFamilyIndex != 0U ||
         (!a.pInfo->rigidBodyCapacity && !a.pInfo->fluidCount &&
          !a.pInfo->clothCount && !a.pInfo->ropeCount &&
          !a.pInfo->softBodyCount && !a.pInfo->smokeCount) ||
@@ -1055,11 +1108,14 @@ PmResult validate(const PmLayerArgs_pmCreateSimulation &a) {
         (a.pInfo->smokeCount && !a.pInfo->pSmokeCapacities) ||
         (a.pInfo->paintFieldCount && !a.pInfo->pPaintFieldCapacities))
         return PM_ERROR_INVALID_ARGUMENT;
-    return PM_SUCCESS;
+    return validate_profile_request(a.device, a.pInfo->pNext, realtime);
 }
 void record(const PmLayerArgs_pmCreateSimulation &a) {
     if (!a.pSimulation || !*a.pSimulation) return;
     Simulation tracked{};
+    bool realtime{};
+    (void)validate_profile_request(a.device, a.pInfo->pNext, realtime);
+    tracked.realtime_single_step = realtime;
     tracked.rigid_body_capacity = a.pInfo->rigidBodyCapacity;
     tracked.constraint_capacity = a.pInfo->constraintCapacity;
     tracked.fluid_count = a.pInfo->fluidCount;
@@ -1278,10 +1334,14 @@ void record(const PmLayerArgs_pmCmdSetFluidParticles &a) {
                                  a.pParticles->range.buffer);
 }
 PmResult validate(const PmLayerArgs_pmCmdStepSimulation &a) {
+    Simulation *tracked{};
     if (!a.pStep || a.pStep->timestep <= 0.0F || !a.pStep->substeps ||
         (a.pStep->flags & ~PM_STEP_COLLECT_CONTACT_EVENTS_BIT) != 0U ||
-        validate_simulation_command(a.commandBuffer, a.simulation) !=
+        validate_simulation_command(a.commandBuffer, a.simulation, &tracked) !=
             PM_SUCCESS)
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (tracking_available && tracked->realtime_single_step &&
+        (!realtime_timestep(a.pStep->timestep) || a.pStep->substeps != 1U))
         return PM_ERROR_INVALID_ARGUMENT;
     return !tracking_available || bound_pipeline(a.commandBuffer)
         ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT;
