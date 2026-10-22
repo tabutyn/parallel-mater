@@ -70,7 +70,9 @@ void rigid_avbd_solve_stage(
 {
     // Uniform guards permit a host-known upper-bound schedule without reading
     // GPU-generated color/impact counts back to the host.
-    if (phase > 1u || (phase != 0u && schedule[0].counts[0] == 0u)) return;
+    bool realtime = schedule[0].offsets[0] == kRigidRealtimeProfileVersion;
+    if (phase > (realtime ? 0u : 1u) ||
+        (phase != 0u && schedule[0].counts[0] == 0u)) return;
     if ((operation == kAvbdStage_solve_color ||
          operation == kAvbdStage_advance_duals) &&
         iteration >= schedule[0].budget) return;
@@ -558,6 +560,13 @@ void rigid_avbd_solve_stage(
             state.angular_velocity = add(state.angular_velocity,
                 multiply(quaternion_rotation_vector(
                     bodies[bodyIndex].orientation_delta), 1.0f / dt));
+            if (realtime)
+            {
+                state.linear_velocity = multiply(state.linear_velocity,
+                    1.0f - kRigidRealtimeSolverDamping);
+                state.angular_velocity = multiply(state.angular_velocity,
+                    1.0f - kRigidRealtimeSolverDamping);
+            }
             states[bodyIndex] = state;
         }
     }
@@ -614,7 +623,9 @@ void solve_avbd_kernel(
     PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
-    for (uint phase = 0u; phase < 2u; ++phase)
+    uint phaseCount = schedule[0].offsets[0] ==
+        kRigidRealtimeProfileVersion ? 1u : 2u;
+    for (uint phase = 0u; phase < phaseCount; ++phase)
     {
         if (phase != 0u && schedule[0].counts[0] == 0u) break;
         if (phase != 0u)

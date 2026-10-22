@@ -27,6 +27,9 @@ static const float kRigidSurfaceTolerance = 1.0e-5f;
 static const float kRigidRestOffset = 1.0e-3f;
 static const float kRigidGuidedRestOffset = 1.0e-4f;
 static const float kAvbdLimitStabilization = 0.8f;
+static const uint kRigidRealtimeProfileVersion = 1u;
+static const uint kRigidRealtimeSweeps = 8u;
+static const float kRigidRealtimeSolverDamping = 0.05f;
 
 static const uint kAvbdInitializeJoint = 0u;
 static const uint kAvbdAccumulateJoint = 1u;
@@ -909,9 +912,11 @@ void prepare_avbd_kernel(
     uniform PM_AVBD_BUFFER(ContactSchedule) schedule,
     uniform float dt, uniform Vec3 gravity,
     uniform uint base_iterations, uniform uint requested_iterations,
+    uniform uint profile_version,
     uniform uint grid_blocks PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
+    bool realtime = profile_version == kRigidRealtimeProfileVersion;
     uint lane = pmGroupThreadIndex().x;
     for (uint bodyIndex = lane; bodyIndex < count;
          bodyIndex += pmGroupSize().x)
@@ -1030,9 +1035,17 @@ void prepare_avbd_kernel(
             contact.initial_normal_speed = -closing / dt;
             float skin = rigid_avbd_contact_skin(
                 contact, parameters[a], parameters[b]);
+            float impactDisplacement = realtime &&
+                    contact.avbd_cached == 0u &&
+                    contact.initial_normal_speed < -0.1f
+                ? -(1.0f + min(parameters[a].restitution,
+                               parameters[b].restitution)) *
+                    contact.initial_normal_speed * dt
+                : 0.0f;
             contact.avbd_error = {
                 contact.penetration -
-                    clamp_scalar(oldPenetration, 0.0f, skin),
+                    clamp_scalar(oldPenetration, 0.0f, skin) +
+                    impactDisplacement,
                 dot(tangentError, tangent0),
                 dot(tangentError, tangent1)};
             for (uint axis = 0u; axis < 3u; ++axis)
@@ -1105,8 +1118,10 @@ void prepare_avbd_kernel(
     if (lane == 0u)
     {
         ContactSchedule value = {};
-        value.budget = requested_iterations != 0u
-            ? requested_iterations : base_iterations;
+        value.budget = realtime ? kRigidRealtimeSweeps :
+            (requested_iterations != 0u
+                ? requested_iterations : base_iterations);
+        value.offsets[0] = profile_version;
         value.offsets[1] = base_iterations;
         // Early exit requires a per-island constraint-residual test. A small
         // pose update alone is not sufficient for motors, springs, limits, or
@@ -1135,7 +1150,7 @@ void prepare_avbd_kernel(
                 continue;
             uint a = rigid_avbd_graph_joint_a(jointIndex, joints);
             uint b = rigid_avbd_graph_joint_b(jointIndex, joints);
-            if (requested_iterations == 0u)
+            if (!realtime && requested_iterations == 0u)
             {
                 schedule[0].budget = max(schedule[0].budget,
                     rigid_avbd_graph_joint_iterations(jointIndex, joints));

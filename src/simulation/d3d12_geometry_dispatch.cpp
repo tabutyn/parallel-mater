@@ -543,6 +543,7 @@ PmResult prepare_geometry_constraints(
     RigidBodyId *ids, GeometryConstraintBody *bodies, void *schedule,
     float timestep, Vec3 gravity, std::uint32_t base_iterations,
     std::uint32_t requested_iterations,
+    std::uint32_t profile_version,
     std::uint32_t grid_blocks) noexcept {
     auto *execution = d3d12::context(stream.native_handle);
     if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
@@ -564,6 +565,7 @@ PmResult prepare_geometry_constraints(
     values.set(Layout::arg_gravity, gravity);
     values.set(Layout::arg_base_iterations, base_iterations);
     values.set(Layout::arg_requested_iterations, requested_iterations);
+    values.set(Layout::arg_profile_version, profile_version);
     values.set(Layout::arg_grid_blocks, grid_blocks);
     return launch(stream, "geometry_constraints", "prepare_avbd_kernel",
                   device::DispatchSize(grid_blocks), device::DispatchSize(128U), values);

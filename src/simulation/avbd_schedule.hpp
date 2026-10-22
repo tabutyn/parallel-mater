@@ -17,8 +17,9 @@ enum class AvbdStage : std::uint32_t {
 // is needed. Adapters may optimize empty dispatches with indirect work later.
 template<class Emit>
 void encode_avbd_schedule(std::uint32_t iteration_bound,
-                          std::uint32_t color_bound, Emit &&emit) {
-    for (std::uint32_t phase = 0; phase < 2; ++phase) {
+                          std::uint32_t color_bound, Emit &&emit,
+                          std::uint32_t phase_count = 2U) {
+    for (std::uint32_t phase = 0; phase < phase_count; ++phase) {
         const auto stage = [&](AvbdStage operation) {
             emit(operation, phase, 0U, 0U);
         };

@@ -1195,6 +1195,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdStepSimulation(
             options.substeps = copied.substeps;
             options.gravity = vector3(copied.gravity);
             options.rigid_contact_iterations = pipeline->rigid.rigidIterations;
+            options.profile = simulation->execution_profile ==
+                    PmSimulationExecutionProfile::realtime_single_step
+                ? parallel_mater::PhysicsStepProfile::realtime_single_step_v1
+                : parallel_mater::PhysicsStepProfile::legacy_default;
             const bool collect_contacts =
                 (copied.flags & PM_STEP_COLLECT_CONTACT_EVENTS_BIT) != 0U;
             options.collect_rigid_contacts = collect_contacts;
