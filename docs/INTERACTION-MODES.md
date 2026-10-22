@@ -433,12 +433,14 @@ particle pressure solve. The API 0.2 `self` records describe the internal solve
 of one live smoke slot only. They do not allow one smoke slot to read another
 slot's particles, grid cells, velocity faces, density or temperature.
 
-Separate-system smoke is a future graph edge between two different live smoke
+Separate-system smoke is a graph edge between two different live smoke
 slots. It has three representation identities: particle-particle uses
-`smoke-particle`, grid-grid uses `smoke-grid`, and particle-grid uses the future
-`smoke-particle-grid` profile. These identities remain unsupported until their
-individual implementation and qualification leaves finish. A driver cannot
-infer one from another or from a distinct-family smoke capability.
+`smoke-particle`, grid-grid uses `smoke-grid`, and particle-grid uses
+`smoke-particle-grid`. API 0.2 reserves these identities and the canonical
+`PM_COUPLING_SMOKE_SMOKE` edge without advertising any separate-system record.
+They remain unsupported until their individual implementation and qualification
+leaves finish. A driver cannot infer one from another or from a distinct-family
+smoke capability.
 
 The edge never merges ownership. Each endpoint retains its emitter, particle
 count and capacity, stable-ID namespace, grid origin and spacing, output range,
@@ -604,7 +606,7 @@ The initial profiles are:
 | `endpoint-native` | Use both endpoint materials plus the pair's parameters. No unspecified averaging is permitted. | Reference profile for implemented distinct-family modes. |
 | `smoke-particle` | Smoke is the particle tracer model. | Reference profile for implemented smoke pairs. |
 | `smoke-grid` | Smoke is the projected Eulerian grid model. | Reference profile for implemented smoke pairs; support is independent from `smoke-particle`. |
-| `smoke-particle-grid` | A particle smoke endpoint exchanges with a projected-grid smoke endpoint. | Future profile specified by F2-15; only reciprocal drag and thermal exchange are defined. |
+| `smoke-particle-grid` | A particle smoke endpoint exchanges with a projected-grid smoke endpoint. | Reserved and unsupported; only reciprocal drag and thermal exchange are defined. |
 | `equal-material` | Distinct fluid systems use numerically equal material state and a symmetric cross-population operator. | CUDA qualification complete for `contact`, `pressure` and `viscosity`; other production drivers remain unsupported. |
 | `miscible` | Different Newtonian fluid materials share a mechanical neighborhood without a material interface. | Typed mechanical request exists; all drivers remain unadvertised pending implementation and qualification. |
 | `immiscible-interface` | Different Newtonian fluids retain a material boundary with defined pressure, shear and capillary behavior. | Typed mechanical and capillary request exists; all drivers remain unadvertised pending implementation and qualification. |
