@@ -1,7 +1,7 @@
 {
   "id": "F8-13",
   "title": "Stabilize cloth at one 60 Hz step",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-00",
     "F8-03",
@@ -21,6 +21,14 @@
     "Publish new-profile quality/energy/performance evidence beside unchanged legacy-profile results; no post-result tolerance changes or per-device physics fork."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "98d87101-a90e-47c3-baf7-b38b867ffea6",
+    "owner": "codex-f8-cloth-60hz",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-13/thomas-laptop",
+    "claimed_at": "2026-10-22T23:06:57Z",
+    "heartbeat_at": "2026-10-22T23:06:57Z",
+    "expires_at": "2026-10-23T23:06:57Z"
+  },
   "history": []
 }

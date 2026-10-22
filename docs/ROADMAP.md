@@ -131,7 +131,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-10](roadmap/tasks/F8-10.json) | Move deformable and smoke collision lookup onto shared indexing | done | F8-03, F8-07 | — |
 | [F8-11](roadmap/tasks/F8-11.json) | Stabilize rigid contacts and joints at one 60 Hz step | done | F8-00, F8-03, F8-08 | — |
 | [F8-12](roadmap/tasks/F8-12.json) | Stabilize liquid dynamics at one 60 Hz step | done | F8-00, F8-03, F8-09 | — |
-| [F8-13](roadmap/tasks/F8-13.json) | Stabilize cloth at one 60 Hz step | ready | F8-00, F8-03, F8-10 | — |
+| [F8-13](roadmap/tasks/F8-13.json) | Stabilize cloth at one 60 Hz step | leased | F8-00, F8-03, F8-10 | codex-f8-cloth-60hz / thomas-laptop / 2026-10-23T23:06:57Z |
 | [F8-14](roadmap/tasks/F8-14.json) | Stabilize soft bodies at one 60 Hz step | ready | F8-00, F8-03, F8-10 | — |
 | [F8-15](roadmap/tasks/F8-15.json) | Stabilize ropes at one 60 Hz step | ready | F8-00, F8-03, F8-10 | — |
 | [F8-16](roadmap/tasks/F8-16.json) | Stabilize smoke transport and projection at one 60 Hz step | ready | F8-00, F8-03, F8-10 | — |
