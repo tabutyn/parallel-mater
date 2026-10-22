@@ -304,11 +304,11 @@
     {
       "id": "cloth-core",
       "module": "cloth",
-      "entries": ["cloth_project_volume", "cloth_break_bonds", "cloth_limit_strain", "cloth_update_surface"],
+      "entries": ["cloth_project_volume", "cloth_realtime_predict", "cloth_realtime_project_links", "cloth_realtime_apply_position_delta", "cloth_realtime_project_volume", "cloth_realtime_project_contacts", "cloth_realtime_commit", "cloth_break_bonds", "cloth_limit_strain", "cloth_update_surface"],
       "domains": ["CLOTH"],
       "advertised_modes": [],
       "public_case_sets": ["cloth"],
-      "existing_execution_tests": ["parallel-mater-conformance --case cloth-core", "parallel-mater-conformance --case cloth-tear"],
+      "existing_execution_tests": ["parallel-mater-conformance --case cloth-core", "parallel-mater-conformance --case cloth-tear", "parallel-mater-cloth-realtime-cuda-tests"],
       "implementation_owners": ["F8-13"]
     },
     {
