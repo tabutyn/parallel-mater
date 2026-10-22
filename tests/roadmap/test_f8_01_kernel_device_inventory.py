@@ -15,6 +15,9 @@ CAPABILITY_PATH = (
     ROOT / "conformance" / "v1" / "qualification"
     / "capability-obligations-v1.json"
 )
+REALTIME_SUITE_PATH = (
+    ROOT / "conformance" / "v1" / "realtime" / "oracle-suite-v1.json"
+)
 TASK_DIR = ROOT / "docs" / "roadmap" / "tasks"
 
 
@@ -44,6 +47,7 @@ class F801KernelDeviceInventoryTests(unittest.TestCase):
         cls.inventory = load_json(INVENTORY_PATH)
         cls.canonical = canonical_kernels()
         cls.capabilities = load_json(CAPABILITY_PATH)
+        cls.realtime_suite = load_json(REALTIME_SUITE_PATH)
 
     def test_schema_and_canonical_kernel_inventory_are_exact(self):
         self.assertEqual(
@@ -91,7 +95,20 @@ class F801KernelDeviceInventoryTests(unittest.TestCase):
             self.assertLessEqual(set(group["advertised_modes"]), contract_modes)
             for case_set in group["public_case_sets"]:
                 self.assertIn(case_set, case_sets)
-            self.assertTrue(group["public_case_sets"] or group.get("coverage_gap"))
+            self.assertTrue(
+                group["public_case_sets"] or group.get("f8_public_cases")
+                or group.get("coverage_gap")
+            )
+
+        realtime_cases = {
+            case["id"] for case in self.realtime_suite["public_trajectory_cases"]
+        }
+        inventory_cases = {
+            case_id
+            for group in self.inventory["kernel_groups"]
+            for case_id in group.get("f8_public_cases", [])
+        }
+        self.assertLessEqual(inventory_cases, realtime_cases)
 
     def test_auxiliary_paint_and_test_kernels_are_accounted_for(self):
         auxiliary = {item["id"]: item for item in self.inventory["auxiliary_paths"]}
@@ -106,6 +123,10 @@ class F801KernelDeviceInventoryTests(unittest.TestCase):
         }
         for entry in auxiliary["paint-contact-stamping"]["canonical_entrypoints"]:
             self.assertIn(entry, canonical)
+        self.assertEqual(
+            auxiliary["paint-contact-stamping"]["f8_public_cases"],
+            ["f8-paint-contact-stamping"],
+        )
 
         geometry_constraints = (
             ROOT / "cmake" / "SlangGeometryConstraints.cmake"

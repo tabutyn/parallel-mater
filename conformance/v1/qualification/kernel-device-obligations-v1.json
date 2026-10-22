@@ -148,7 +148,7 @@
       "advertised_modes": ["CONTACT", "PRESSURE", "VISCOSITY"],
       "public_case_sets": [],
       "existing_execution_tests": ["parallel-mater-<backend>-fluid-pair-graph-lifecycle-tests"],
-      "coverage_gap": "No registered public conformance case isolates distinct-fluid index construction; F8-03 owns the replacement public case.",
+      "f8_public_cases": ["f8-fluid-pair-index"],
       "implementation_owners": ["F8-09", "F8-18"]
     },
     {
@@ -164,7 +164,7 @@
       "advertised_modes": ["CONTACT", "PRESSURE", "VISCOSITY"],
       "public_case_sets": [],
       "existing_execution_tests": ["parallel-mater-<backend>-fluid-pair-quality-tests"],
-      "coverage_gap": "Existing pair-quality tests are not a registered public trajectory case; F8-03 owns that single-step case.",
+      "f8_public_cases": ["f8-fluid-pair-miscible"],
       "implementation_owners": ["F8-18"]
     },
     {
@@ -182,7 +182,7 @@
         "parallel-mater-fluid-interface-reconstruction-tests",
         "parallel-mater-fluid-immiscible-pressure-capillarity-tests"
       ],
-      "coverage_gap": "The current tests are solver fixtures, not a registered public F8 trajectory case; F8-03 owns that case.",
+      "f8_public_cases": ["f8-fluid-pair-immiscible"],
       "implementation_owners": ["F8-18"]
     },
     {
@@ -529,7 +529,7 @@
         "geometry_fluid.fluid_detect_moving_contacts"
       ],
       "existing_execution_tests": ["parallel-mater-<backend>-paint-lifecycle-tests", "parallel-mater-paint-resource-plan-tests"],
-      "public_case_gap": "Paint has public API lifecycle coverage but no registered conformance trajectory case; F8-03 owns the F8 case.",
+      "f8_public_cases": ["f8-paint-contact-stamping"],
       "implementation_owners": ["F8-17", "F8-18"]
     },
     {
