@@ -1,7 +1,7 @@
 {
   "id": "F8-10",
   "title": "Move deformable and smoke collision lookup onto shared indexing",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-03",
     "F8-07"
@@ -20,15 +20,37 @@
     "Smoke retains its structured pressure/advection grid while obstacle queries share spatial services; no forced BVH replacement of regular-grid numerical operators.",
     "Enforce one update, bounded candidate memory and no per-edge rebuilds; preserve registered mode/capability boundaries."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "929ca92f-2b16-4d47-8ad5-555331b06401",
-    "owner": "codex-f8-deformable-smoke",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-10/thomas-laptop",
-    "claimed_at": "2026-10-22T20:44:29Z",
-    "heartbeat_at": "2026-10-22T20:44:29Z",
-    "expires_at": "2026-10-23T20:44:29Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/roadmap/evidence/F8-10-deformable-smoke-shared-spatial.json records sparse/full dispatch, memory, correctness, device and portability results",
+    "PASS: physical RTX 3050 Ti generated Slang executes cloth/rope/static emission, self/cross filtering, smoke obstacle queries, overflow and stale-identity rejection",
+    "PASS: shared service physical CUDA cases cover empty, 30,065-live and 128-live/1,048,576-capacity build/admission/publication/query behavior",
+    "PASS: randomized host oracle covers 4,096 deforming segment/triangle states, thin contact, adjacency exclusions, static geometry and one-epoch reuse",
+    "PASS: CPU/CUDA/Vulkan builds, SPIR-V validation, Metal/HLSL source compilation, 414 conformance tests, 72 roadmap tests and 176-entry inventory",
+    "PASS: structured smoke pressure/advection grid and legacy schedule remain unchanged; public realtime profile remains unsupported pending later F8 tasks"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "929ca92f-2b16-4d47-8ad5-555331b06401",
+        "owner": "codex-f8-deformable-smoke",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-10/thomas-laptop",
+        "claimed_at": "2026-10-22T20:44:29Z",
+        "heartbeat_at": "2026-10-22T20:44:29Z",
+        "expires_at": "2026-10-23T20:44:29Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-22T20:59:16Z",
+      "reason": "Implemented one-epoch shared spatial staging and candidate consumers for cloth triangles, rope segments, soft/static surfaces and smoke obstacle queries with generation-bearing identity, topology exclusions, conservative full-tick bounds and bounded reusable storage.",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/F8-10-deformable-smoke-shared-spatial.json records sparse/full dispatch, memory, correctness, device and portability results",
+        "PASS: physical RTX 3050 Ti generated Slang executes cloth/rope/static emission, self/cross filtering, smoke obstacle queries, overflow and stale-identity rejection",
+        "PASS: shared service physical CUDA cases cover empty, 30,065-live and 128-live/1,048,576-capacity build/admission/publication/query behavior",
+        "PASS: randomized host oracle covers 4,096 deforming segment/triangle states, thin contact, adjacency exclusions, static geometry and one-epoch reuse",
+        "PASS: CPU/CUDA/Vulkan builds, SPIR-V validation, Metal/HLSL source compilation, 414 conformance tests, 72 roadmap tests and 176-entry inventory",
+        "PASS: structured smoke pressure/advection grid and legacy schedule remain unchanged; public realtime profile remains unsupported pending later F8 tasks"
+      ]
+    }
+  ]
 }

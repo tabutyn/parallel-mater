@@ -104,6 +104,16 @@ add_test(NAME parallel-mater-fluid-spatial-tests
 set_tests_properties(parallel-mater-fluid-spatial-tests PROPERTIES
     LABELS "fluid;spatial;lifecycle;f8")
 
+add_executable(parallel-mater-deformable-spatial-tests
+    deformable_spatial_tests.cpp)
+target_compile_features(parallel-mater-deformable-spatial-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-deformable-spatial-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-deformable-spatial-tests
+    COMMAND parallel-mater-deformable-spatial-tests)
+set_tests_properties(parallel-mater-deformable-spatial-tests PROPERTIES
+    LABELS "deformable;smoke;spatial;lifecycle;f8")
+
 add_executable(parallel-mater-geometry-resource-plan-tests
     geometry_resource_plan_tests.cpp ../../src/simulation/memory_arena.cpp)
 target_compile_features(parallel-mater-geometry-resource-plan-tests PRIVATE cxx_std_20)
@@ -295,6 +305,25 @@ if("CUDA" IN_LIST contact_test_languages)
         set_tests_properties(parallel-mater-fluid-spatial-cuda-tests PROPERTIES
             SKIP_RETURN_CODE 77 LABELS "cuda;slang;fluid;spatial;f8"
             TIMEOUT 300)
+
+        add_executable(parallel-mater-deformable-spatial-cuda-tests
+            deformable_spatial_cuda_tests.cu)
+        add_dependencies(parallel-mater-deformable-spatial-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(
+            parallel-mater-deformable-spatial-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(parallel-mater-deformable-spatial-cuda-tests
+            PRIVATE CUDA::cudart)
+        set_target_properties(
+            parallel-mater-deformable-spatial-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-deformable-spatial-cuda-tests
+            COMMAND parallel-mater-deformable-spatial-cuda-tests)
+        set_tests_properties(
+            parallel-mater-deformable-spatial-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77
+            LABELS "cuda;slang;deformable;smoke;spatial;f8" TIMEOUT 300)
     endif()
 
     if(TARGET parallel-mater-slang-geometry-constraints AND
