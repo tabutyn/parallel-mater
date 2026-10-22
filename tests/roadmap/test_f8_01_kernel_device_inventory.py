@@ -74,7 +74,7 @@ class F801KernelDeviceInventoryTests(unittest.TestCase):
             self.assertEqual(len(actual[module]), len(set(actual[module])))
             self.assertEqual(set(actual[module]), set(expected_entries), module)
             self.assertTrue((ROOT / "src" / "slang" / f"{module}.slang").is_file())
-        self.assertEqual(sum(map(len, actual.values())), 147)
+        self.assertEqual(sum(map(len, actual.values())), 156)
 
     def test_modes_and_public_cases_match_current_contracts(self):
         contract_modes = {
@@ -233,7 +233,7 @@ class F801KernelDeviceInventoryTests(unittest.TestCase):
 
     def test_spatial_handoff_and_legacy_boundaries_are_explicit(self):
         planned = self.inventory["planned_shared_spatial_entrypoints"]
-        self.assertEqual({owner for item in planned for owner in item["owners"]}, {"F8-03", "F8-06", "F8-07"})
+        self.assertEqual({owner for item in planned for owner in item["owners"]}, {"F8-03", "F8-07"})
         self.assertTrue(all(item["status"].startswith("planned") for item in planned))
 
         handoffs = {item["task"]: item for item in self.inventory["handoffs"]}

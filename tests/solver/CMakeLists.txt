@@ -64,6 +64,16 @@ target_compile_features(parallel-mater-owner-slot-tests PRIVATE cxx_std_20)
 target_include_directories(parallel-mater-owner-slot-tests PRIVATE ../../src)
 add_test(NAME parallel-mater-owner-slot-tests COMMAND parallel-mater-owner-slot-tests)
 
+add_executable(parallel-mater-spatial-build-primitives-tests
+    spatial_build_primitives_tests.cpp)
+target_compile_features(parallel-mater-spatial-build-primitives-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-spatial-build-primitives-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-spatial-build-primitives-tests
+    COMMAND parallel-mater-spatial-build-primitives-tests)
+set_tests_properties(parallel-mater-spatial-build-primitives-tests PROPERTIES
+    LABELS "slang;spatial;f8")
+
 add_executable(parallel-mater-geometry-resource-plan-tests
     geometry_resource_plan_tests.cpp ../../src/simulation/memory_arena.cpp)
 target_compile_features(parallel-mater-geometry-resource-plan-tests PRIVATE cxx_std_20)
@@ -207,6 +217,23 @@ if("CUDA" IN_LIST contact_test_languages)
     set_target_properties(parallel-mater-avbd-core-cuda-tests PROPERTIES CUDA_STANDARD 17)
     add_test(NAME parallel-mater-avbd-core-cuda-tests COMMAND parallel-mater-avbd-core-cuda-tests)
     set_tests_properties(parallel-mater-avbd-core-cuda-tests PROPERTIES SKIP_RETURN_CODE 77)
+
+    if(TARGET parallel-mater-driver-slang-cuda)
+        add_executable(parallel-mater-spatial-build-cuda-tests
+            spatial_build_cuda_tests.cu)
+        add_dependencies(parallel-mater-spatial-build-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(parallel-mater-spatial-build-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(parallel-mater-spatial-build-cuda-tests PRIVATE
+            CUDA::cudart)
+        set_target_properties(parallel-mater-spatial-build-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-spatial-build-cuda-tests
+            COMMAND parallel-mater-spatial-build-cuda-tests)
+        set_tests_properties(parallel-mater-spatial-build-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77 LABELS "cuda;slang;spatial;f8" TIMEOUT 300)
+    endif()
 
     if(TARGET parallel-mater-slang-geometry-constraints AND
        PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_PTX)

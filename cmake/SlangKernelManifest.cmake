@@ -80,7 +80,16 @@ set(PARALLEL_MATER_SLANG_primitives_ENTRIES
     pm_compact_scatter_indices
     pm_radix_histogram_u64
     pm_radix_prefix_u32
-    pm_radix_scatter_u64_u32)
+    pm_radix_scatter_u64_u32
+    pm_spatial_reduce_bounds_blocks
+    pm_spatial_reduce_bounds_final
+    pm_spatial_emit_keys
+    pm_spatial_sort_small_u64_u32
+    pm_spatial_radix_histogram_u64
+    pm_spatial_radix_prefix_u32
+    pm_spatial_radix_scatter_u64_u32
+    pm_spatial_build_topology
+    pm_spatial_union_bounds)
 
 set(PARALLEL_MATER_SLANG_cloth_ENTRIES
     cloth_project_volume cloth_break_bonds cloth_limit_strain

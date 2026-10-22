@@ -49,6 +49,8 @@ def type_identity(typ):
     if kind == 'array':
         return ('array', type_identity(typ['elementType']), typ['elementCount'],
                 typ.get('uniformStride'))
+    if kind == 'vector':
+        return ('vector', type_identity(typ['elementType']), typ['elementCount'])
     raise ValueError(f'unsupported ABI type: {kind}')
 
 
@@ -98,6 +100,8 @@ class ReflectedABI:
             return self.cpp_type(typ['valueType']) + '*'
         if kind == 'array':
             return f'PmShaderArray<{self.cpp_type(typ["elementType"])}, {typ["elementCount"]}>'
+        if kind == 'vector':
+            return f'PmShaderVector<{self.cpp_type(typ["elementType"])}, {typ["elementCount"]}>'
         raise ValueError(f'unsupported ABI type: {kind}')
 
     def host_size(self, typ):
@@ -112,11 +116,17 @@ class ReflectedABI:
             if typ.get('uniformStride', stride) != stride or layout(typ)[0] != size:
                 raise ValueError('padded array stride requires an explicit storage adapter')
             return size
+        if typ['kind'] == 'vector':
+            size = self.host_size(typ['elementType']) * typ['elementCount']
+            if layout(typ)[0] != size:
+                raise ValueError('padded vector layout requires an explicit storage adapter')
+            return size
         size, alignment = layout(typ)
         return (size + alignment - 1) & ~(alignment - 1)
 
     def declarations(self):
         lines = ['template<class T, unsigned N> struct PmShaderArray { T data[N]; };',
+                 'template<class T, unsigned N> struct PmShaderVector { T data[N]; };',
                  'static_assert(sizeof(void*) == 8, "reflected pointer ABI requires 64-bit host");']
         lines += [f'struct PmShader_{name};' for name in sorted(self.types)]
         emitted, visiting = set(), set()
@@ -124,7 +134,7 @@ class ReflectedABI:
             typ = self.resolve(typ)
             if typ['kind'] == 'struct':
                 emit(typ['name'])
-            elif typ['kind'] == 'array':
+            elif typ['kind'] in ('array', 'vector'):
                 dependency(typ['elementType'])
         def emit(name):
             if name in emitted:
@@ -180,7 +190,7 @@ class ReflectedABI:
             if size != 8:
                 raise ValueError(f'unsupported pointer size: {size}')
             return size
-        if kind in ('struct', 'array'):
+        if kind in ('struct', 'array', 'vector'):
             return layout(typ)[0]
         raise ValueError(f'unsupported uniform ABI type: {kind}')
 
@@ -209,6 +219,15 @@ class ReflectedABI:
             element_size = self.storage_size(typ['elementType'])
             if stride < element_size or size != stride * (count - 1) + element_size:
                 raise ValueError(f'{context}: inconsistent reflected array stride')
+            self.validate_storage(typ['elementType'], context + '[]')
+            return
+        if kind == 'vector':
+            count = typ.get('elementCount')
+            if not isinstance(count, int) or count < 1:
+                raise ValueError(f'{context}: invalid reflected vector')
+            element_size = self.storage_size(typ['elementType'])
+            if size != element_size * count:
+                raise ValueError(f'{context}: inconsistent reflected vector layout')
             self.validate_storage(typ['elementType'], context + '[]')
             return
         if kind != 'struct':

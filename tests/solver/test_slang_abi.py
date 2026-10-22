@@ -16,6 +16,13 @@ def scalar(name, size):
 def field(name, typ, offset, size):
     return {'name': name, 'type': typ, 'binding': {'kind': 'uniform', 'offset': offset, 'size': size}}
 
+def vector(element, count):
+    size = element['sizes'][0]['value'] * count
+    return {'kind': 'vector', 'elementType': element, 'elementCount': count,
+            'sizes': [{'kind': 'uniform', 'value': size,
+                       'alignment': element['sizes'][0]['alignment']}]}
+
+
 def fixture():
     record = {'kind': 'struct', 'name': 'Record', 'fields': [
         field('enabled', scalar('bool', 4), 0, 4),
@@ -76,6 +83,32 @@ class ReflectedABITest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'padded array stride'):
             abi.host_size(array)
         abi.validate_storage(array)
+
+    def test_vector_record_fields_have_checked_packed_storage(self):
+        float4 = vector(scalar('float32', 4), 4)
+        record = {'kind': 'struct', 'name': 'Bounds', 'fields': [
+            field('minimum', float4, 0, 16),
+            field('maximum', copy.deepcopy(float4), 16, 16)],
+            'sizes': [{'kind': 'uniform', 'value': 32, 'alignment': 4}]}
+        pointer = {'kind': 'pointer', 'valueType': record,
+                   'sizes': [{'kind': 'uniform', 'value': 8, 'alignment': 8}]}
+        data = {'entryPoints': [
+            {'name': 'first', 'parameters': [field('bounds', pointer, 0, 8)]},
+            {'name': 'second', 'parameters': [
+                field('bounds', copy.deepcopy(pointer), 0, 8)]}]}
+        abi = ReflectedABI(data)
+        text = '\n'.join(abi.declarations())
+        self.assertIn('PmShaderVector<float, 4> minimum;', text)
+        self.assertIn('offsetof(PmShader_Bounds, maximum) == 16U', text)
+        self.assertEqual(abi.signature(abi.entries['first']),
+                         'PmShader_Bounds* arg_bounds')
+        abi.validate_storage(record)
+
+        conflict = copy.deepcopy(data)
+        conflict['entryPoints'][1]['parameters'][0]['type']['valueType'][
+            'fields'][0]['type']['elementCount'] = 3
+        with self.assertRaisesRegex(ValueError, 'inconsistent reflected layout'):
+            ReflectedABI(conflict)
 
     def test_entry_layout_validates_offsets_sizes_and_unsupported_shapes(self):
         data = fixture()
