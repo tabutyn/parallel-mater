@@ -243,6 +243,7 @@ PFN_pmVoidFunction lookup_proc(const char *value) noexcept {
     PM_LOOKUP(pmGetPhysicalDeviceProperties);
     PM_LOOKUP(pmGetPhysicalDeviceQueueFamilies);
     PM_LOOKUP(pmGetPhysicalDeviceFeatures);
+    PM_LOOKUP(pmEnumerateExecutionProfiles);
     PM_LOOKUP(pmEnumeratePhysicalDeviceInteractionCapabilities);
     PM_LOOKUP(pmGetPhysicalDeviceInteractionCapability);
     PM_LOOKUP(pmCreateDevice);
@@ -392,24 +393,34 @@ pmEnumerateDeviceExtensionProperties(PmPhysicalDevice physical,
     if (physical == nullptr || count == nullptr)
         return PM_ERROR_INVALID_ARGUMENT;
     if (layer_name != nullptr) return PM_ERROR_LAYER_NOT_PRESENT;
+    constexpr std::uint32_t profile_index = 0U;
 #if defined(PARALLEL_MATER_HAS_VULKAN_INTEROP)
+    constexpr std::uint32_t available = 2U;
+#else
     constexpr std::uint32_t available = 1U;
+#endif
     if (properties == nullptr) {
         *count = available;
         return PM_SUCCESS;
     }
     if (*count == 0U) return PM_INCOMPLETE;
-    properties[0] = {};
-    std::strncpy(properties[0].extensionName, "PM_EXT_vulkan_interop",
-                 sizeof properties[0].extensionName - 1U);
-    properties[0].specificationVersion = 1U;
-    *count = available;
-    return PM_SUCCESS;
-#else
-    (void)properties;
-    *count = 0U;
-    return PM_SUCCESS;
+    const std::uint32_t capacity = *count;
+    properties[profile_index] = {};
+    std::strncpy(properties[profile_index].extensionName,
+                 PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME,
+                 sizeof properties[profile_index].extensionName - 1U);
+    properties[profile_index].specificationVersion =
+        PM_EXT_SIMULATION_PROFILE_SPEC_VERSION;
+#if defined(PARALLEL_MATER_HAS_VULKAN_INTEROP)
+    if (capacity > 1U) {
+        properties[1] = {};
+        std::strncpy(properties[1].extensionName, "PM_EXT_vulkan_interop",
+                     sizeof properties[1].extensionName - 1U);
+        properties[1].specificationVersion = 1U;
+    }
 #endif
+    *count = std::min(capacity, available);
+    return capacity >= available ? PM_SUCCESS : PM_INCOMPLETE;
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateInstance(
@@ -518,6 +529,19 @@ extern "C" PMAPI_ATTR void PMAPI_CALL pmGetPhysicalDeviceFeatures(
     if (features == nullptr) return;
     *features = physical == nullptr ? PmPhysicalDeviceFeatures{}
                                     : parallel_mater::api::supported_features();
+}
+
+extern "C" PMAPI_ATTR PmResult PMAPI_CALL
+pmEnumerateExecutionProfiles(
+    PmPhysicalDevice physical, std::uint32_t *count,
+    PmExecutionProfileProperties *properties) {
+    if (physical == nullptr || count == nullptr)
+        return PM_ERROR_INVALID_ARGUMENT;
+    // F8-06--21 enable this record only after the complete schedule and
+    // equations are implemented. Qualification remains separate evidence.
+    (void)properties;
+    *count = 0U;
+    return PM_SUCCESS;
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL

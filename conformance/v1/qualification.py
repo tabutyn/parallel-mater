@@ -65,6 +65,20 @@ def _sha256(value: Any) -> bool:
     return isinstance(value, str) and SHA256.fullmatch(value) is not None
 
 
+def _compatible_sha256(values: Any, path: str,
+                       failures: list[Failure]) -> set[str]:
+    if values is None:
+        return set()
+    if (not isinstance(values, list) or
+            not all(_sha256(value) for value in values)):
+        failures.append(Failure(path,
+                                "expected an array of SHA-256 digests", values))
+        return set()
+    if len(values) != len(set(values)):
+        failures.append(Failure(path, "duplicate compatible SHA-256", values))
+    return set(values)
+
+
 def _source_revision(value: Any) -> bool:
     return (isinstance(value, str) and len(value) in (40, 64) and
             HEX.fullmatch(value) is not None)
@@ -219,12 +233,19 @@ def _evidence(profile: dict[str, Any], result: dict[str, Any], commit: str | Non
             failures.append(Failure(path + ".source_commit",
                                     "evidence source revision mismatch",
                                     value.get("source_commit"), commit))
-        expected_hash = contracts[contract_id].get("sha256")
-        if value.get("contract_sha256") != expected_hash:
+        contract = contracts[contract_id]
+        expected_hash = contract.get("sha256")
+        accepted_hashes = {expected_hash}
+        compatible_hashes = contract.get("compatible_sha256")
+        if isinstance(compatible_hashes, list):
+            accepted_hashes.update(value for value in compatible_hashes
+                                   if _sha256(value))
+        if value.get("contract_sha256") not in accepted_hashes:
             invalid.add(key)
             failures.append(Failure(path + ".contract_sha256",
                                     "evidence contract hash mismatch",
-                                    value.get("contract_sha256"), expected_hash))
+                                    value.get("contract_sha256"),
+                                    sorted(accepted_hashes)))
         if not _sha256(value.get("artifact_sha256")):
             invalid.add(key)
             failures.append(Failure(path + ".artifact_sha256",
@@ -245,9 +266,18 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
     if result.get("obligations_id") != profile.get("id"):
         failures.append(Failure("$.obligations_id", "obligations identity mismatch",
                                 result.get("obligations_id"), profile.get("id")))
-    if result.get("obligations_sha256") != expected_hash:
+    compatible_obligations = _compatible_sha256(
+        profile.get("compatible_obligations_sha256"),
+        "$.profile.compatible_obligations_sha256", failures)
+    accepted_obligations = {expected_hash} | compatible_obligations
+    if expected_hash in compatible_obligations:
+        failures.append(Failure(
+            "$.profile.compatible_obligations_sha256",
+            "current SHA-256 must not be listed as compatible", expected_hash))
+    if result.get("obligations_sha256") not in accepted_obligations:
         failures.append(Failure("$.obligations_sha256", "obligations hash mismatch",
-                                result.get("obligations_sha256"), expected_hash))
+                                result.get("obligations_sha256"),
+                                sorted(accepted_obligations)))
     if result.get("execution_status") != "completed":
         failures.append(Failure("$.execution_status",
                                 "qualification evaluation must be completed",
@@ -255,6 +285,15 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
     commit = _metadata(result, failures)
 
     contracts = _index(profile.get("contracts"), "$.profile.contracts", failures)
+    for contract_id, contract in contracts.items():
+        compatible = _compatible_sha256(
+            contract.get("compatible_sha256"),
+            f"$.profile.contracts[{contract_id}].compatible_sha256", failures)
+        if contract.get("sha256") in compatible:
+            failures.append(Failure(
+                f"$.profile.contracts[{contract_id}].compatible_sha256",
+                "current SHA-256 must not be listed as compatible",
+                contract.get("sha256")))
     evidence, invalid_evidence = _evidence(
         profile, result, commit, contracts, failures)
     used_evidence: set[tuple[str, str]] = set()
@@ -397,8 +436,13 @@ def _aggregate_contract(aggregate: dict[str, Any], kind: str,
     if not isinstance(value, dict) or value.get("id") != contract_id:
         raise ValueError(
             f"physical aggregate does not bind {kind} contract {contract_id}")
-    expected = contracts.get(contract_id, {}).get("sha256")
-    if not expected or value.get("sha256") != expected:
+    contract = contracts.get(contract_id, {})
+    expected = contract.get("sha256")
+    accepted = {expected}
+    compatible = contract.get("compatible_sha256")
+    if isinstance(compatible, list):
+        accepted.update(value for value in compatible if _sha256(value))
+    if not expected or value.get("sha256") not in accepted:
         raise ValueError(
             f"physical aggregate has stale {kind} contract {contract_id}")
 
