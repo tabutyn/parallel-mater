@@ -136,11 +136,20 @@
     {
       "id": "fluid-self-dynamics",
       "module": "fluid",
-      "entries": ["fluid_compute_forces", "fluid_integrate"],
+      "entries": [
+        "fluid_compute_forces",
+        "fluid_integrate",
+        "fluid_realtime_predict",
+        "fluid_realtime_density_lambda",
+        "fluid_realtime_position_delta",
+        "fluid_realtime_apply_position_delta",
+        "fluid_realtime_viscosity_delta",
+        "fluid_realtime_commit"
+      ],
       "domains": ["FLUID"],
       "advertised_modes": ["CONTACT", "PRESSURE", "VISCOSITY"],
       "public_case_sets": ["fluid"],
-      "existing_execution_tests": ["parallel-mater-<backend>-fluid-self-*-quality-tests"],
+      "existing_execution_tests": ["parallel-mater-fluid-realtime-tests", "parallel-mater-fluid-realtime-cuda-tests", "parallel-mater-<backend>-fluid-self-*-quality-tests"],
       "implementation_owners": ["F8-12"]
     },
     {

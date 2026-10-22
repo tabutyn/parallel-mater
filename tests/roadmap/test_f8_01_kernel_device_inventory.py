@@ -74,7 +74,7 @@ class F801KernelDeviceInventoryTests(unittest.TestCase):
             self.assertEqual(len(actual[module]), len(set(actual[module])))
             self.assertEqual(set(actual[module]), set(expected_entries), module)
             self.assertTrue((ROOT / "src" / "slang" / f"{module}.slang").is_file())
-        self.assertEqual(sum(map(len, actual.values())), 176)
+        self.assertEqual(sum(map(len, actual.values())), 182)
 
     def test_modes_and_public_cases_match_current_contracts(self):
         contract_modes = {

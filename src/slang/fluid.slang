@@ -934,6 +934,487 @@ float fluid_density_kernel(float squared_distance, float support_radius)
         support_cubed;
 }
 
+// realtime-single-step v1 advances particle state once, then performs six
+// Jacobi density sweeps against the owner-filtered F8 spatial snapshot. The
+// legacy cell/sort/force/integrate path above remains profile 0.
+static const uint kFluidRealtimeProfileVersion = 1u;
+static const float kFluidRealtimeTimestep = 1.0f / 60.0f;
+static const float kFluidRealtimeSolverDamping = 0.05f;
+static const float kFluidRealtimeMaximumCorrectionFraction = 0.25f;
+static const uint kFluidRealtimeInvalidProfile = 1u << 13u;
+static const uint kFluidRealtimeInvalidTimestep = 1u << 14u;
+static const uint kFluidRealtimeInvalidMaterial = 1u << 15u;
+static const uint kFluidRealtimeNonfiniteState = 1u << 16u;
+
+bool fluid_realtime_profile_valid(uint profile_version, float dt)
+{
+    return profile_version == kFluidRealtimeProfileVersion && isfinite(dt) &&
+        abs(dt - kFluidRealtimeTimestep) <= 1.0e-7f;
+}
+
+bool fluid_realtime_material_valid(FluidOptions options)
+{
+    float densityResponse = options.repulsion == 0.0f ? 0.0f :
+        1.0f - exp(-options.repulsion * kFluidRealtimeTimestep);
+    bool responseValid = options.repulsion == 0.0f ||
+        (densityResponse >= 0.05f && densityResponse <= 0.995f);
+    return isfinite(options.particle_radius) &&
+        isfinite(options.support_radius) &&
+        isfinite(options.rest_density) &&
+        isfinite(options.rest_particle_volume) &&
+        isfinite(options.repulsion) && isfinite(options.viscosity) &&
+        isfinite(options.normal_damping) &&
+        isfinite(options.velocity_damping) &&
+        isfinite(options.maximum_speed) && options.particle_radius > 0.0f &&
+        options.support_radius >= 0.005f &&
+        options.particle_radius <= 0.5f * options.support_radius &&
+        options.rest_density > 0.0f && options.rest_particle_volume > 0.0f &&
+        options.repulsion >= 0.0f && options.viscosity >= 0.0f &&
+        options.normal_damping >= 0.0f && options.velocity_damping >= 0.0f &&
+        responseValid &&
+        options.maximum_speed >= 0.0f && options.maximum_speed <= 20.0f &&
+        options.maximum_speed * kFluidRealtimeTimestep <=
+            0.5f * options.support_radius;
+}
+
+void fluid_realtime_record_invalid(
+    uint profile_version, float dt, FluidOptions options,
+    PMBuffer<uint> status)
+{
+    if (profile_version != kFluidRealtimeProfileVersion)
+        pmAtomicOr(status, kFluidRealtimeInvalidProfile);
+    if (!isfinite(dt) || abs(dt - kFluidRealtimeTimestep) > 1.0e-7f)
+        pmAtomicOr(status, kFluidRealtimeInvalidTimestep);
+    if (!fluid_realtime_material_valid(options))
+        pmAtomicOr(status, kFluidRealtimeInvalidMaterial);
+}
+
+Vec3 fluid_realtime_density_gradient(
+    Vec3 delta, uint particle, uint other, float support_radius)
+{
+    float squared = length_squared(delta);
+    if (squared >= support_radius * support_radius) return Vec3(0.0f);
+    float distance = sqrt(max(squared, 1.0e-12f));
+    Vec3 direction;
+    if (squared > 1.0e-12f)
+        direction = multiply(delta, 1.0f / distance);
+    else
+        direction = particle < other
+            ? Vec3(-1.0f, 0.0f, 0.0f)
+            : Vec3(1.0f, 0.0f, 0.0f);
+    float remaining = max(0.0f, support_radius - distance);
+    float h2 = support_radius * support_radius;
+    float h6 = h2 * h2 * h2;
+    // Gradient of the normalized three-dimensional spiky kernel.
+    return multiply(direction,
+        -14.3239448783f * remaining * remaining / h6);
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_realtime_predict(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<uint> count, uniform uint capacity,
+    uniform FluidOptions options, uniform Vec3 gravity, uniform float dt,
+    uniform uint profile_version,
+    uniform PMBuffer<Vec3> accumulated_corrections,
+    uniform PMBuffer<uint> time_advances,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint particle = pmThreadIndex();
+    if (!fluid_realtime_profile_valid(profile_version, dt) ||
+        !fluid_realtime_material_valid(options))
+    {
+        if (particle == 0u)
+            fluid_realtime_record_invalid(profile_version, dt, options,
+                status);
+        return;
+    }
+    if (particle == 0u) ++time_advances[0];
+    if (particle >= capacity || particle >= count[0]) return;
+    Vec3 position = positions[particle];
+    Vec3 velocity = velocities[particle];
+    previous_positions[particle] = position;
+    accumulated_corrections[particle] = Vec3(0.0f);
+    velocity = add(velocity, multiply(gravity, dt));
+    velocity = multiply(velocity, exp(-options.velocity_damping * dt));
+    float travelSpeed = 0.5f * options.support_radius / dt;
+    velocity = clamp_length(velocity,
+        min(options.maximum_speed, travelSpeed));
+    position = add(position, multiply(velocity, dt));
+    if (!fluid_spatial_finite_vec3(position) ||
+        !fluid_spatial_finite_vec3(velocity))
+    {
+        pmAtomicOr(status, kFluidRealtimeNonfiniteState);
+        return;
+    }
+    positions[particle] = position;
+    velocities[particle] = velocity;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_realtime_density_lambda(
+    uniform PMBuffer<FluidSpatialLeafMetadata> metadata,
+    uniform PMByteBuffer admission, uniform uint leaf_capacity,
+    uniform PMBuffer<uint> query_leaf_sources, uniform uint query_count,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<uint> count,
+    uniform uint capacity, uniform PMBuffer<uint> filtered_counts,
+    uniform PMBuffer<uint> filtered_sources,
+    uniform uint candidates_per_query, uniform FluidOptions options,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<float> densities,
+    uniform PMBuffer<float> lambdas,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint query = pmThreadIndex();
+    if (!fluid_realtime_profile_valid(profile_version, dt) ||
+        !fluid_realtime_material_valid(options))
+    {
+        if (query == 0u)
+            fluid_realtime_record_invalid(profile_version, dt, options,
+                status);
+        return;
+    }
+    if (query >= query_count) return;
+    uint querySource = query_leaf_sources[query];
+    if (querySource >= leaf_capacity || admission[querySource] == 0u)
+    {
+        if (querySource >= leaf_capacity)
+            pmAtomicOr(status, kFluidSpatialAdmissionInvalid);
+        return;
+    }
+    uint particle = metadata[querySource].payload_ref;
+    if (particle >= capacity || particle >= count[0])
+    {
+        pmAtomicOr(status, kFluidSpatialStaleEpoch);
+        return;
+    }
+    uint candidateCount = filtered_counts[query];
+    if (candidateCount > candidates_per_query)
+    {
+        pmAtomicOr(status, kFluidSpatialQueryOverflow);
+        return;
+    }
+    float mass = fluid_particle_mass(options);
+    float density = mass * fluid_density_kernel(
+        0.0f, options.support_radius);
+    Vec3 selfGradient = Vec3(0.0f);
+    float gradientSquared = 0.0f;
+    uint base = query * candidates_per_query;
+    Vec3 position = positions[particle];
+    for (uint candidate = 0u; candidate < candidateCount; ++candidate)
+    {
+        uint source = filtered_sources[base + candidate];
+        if (source >= leaf_capacity || admission[source] == 0u)
+        {
+            pmAtomicOr(status, kFluidSpatialAdmissionInvalid);
+            return;
+        }
+        uint other = metadata[source].payload_ref;
+        if (other >= capacity || other >= count[0])
+        {
+            pmAtomicOr(status, kFluidSpatialStaleEpoch);
+            return;
+        }
+        Vec3 delta = subtract(position, positions[other]);
+        float squared = length_squared(delta);
+        if (squared >= options.support_radius * options.support_radius)
+            continue;
+        density += mass * fluid_density_kernel(
+            squared, options.support_radius);
+        Vec3 gradient = multiply(fluid_realtime_density_gradient(
+            delta, particle, other, options.support_radius),
+            mass / options.rest_density);
+        selfGradient = add(selfGradient, gradient);
+        gradientSquared += length_squared(gradient);
+    }
+    gradientSquared += length_squared(selfGradient);
+    float constraint = max(density / options.rest_density - 1.0f, 0.0f);
+    float regularization = 1.0e-6f /
+        (options.support_radius * options.support_radius);
+    float lambda = -constraint / max(gradientSquared + regularization,
+        1.0e-20f);
+    if (!isfinite(density) || !isfinite(lambda))
+    {
+        pmAtomicOr(status, kFluidRealtimeNonfiniteState);
+        density = options.rest_density;
+        lambda = 0.0f;
+    }
+    densities[particle] = density;
+    lambdas[particle] = lambda;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_realtime_position_delta(
+    uniform PMBuffer<FluidSpatialLeafMetadata> metadata,
+    uniform PMByteBuffer admission, uniform uint leaf_capacity,
+    uniform PMBuffer<uint> query_leaf_sources, uniform uint query_count,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<uint> count,
+    uniform uint capacity, uniform PMBuffer<uint> filtered_counts,
+    uniform PMBuffer<uint> filtered_sources,
+    uniform uint candidates_per_query, uniform FluidOptions options,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<float> lambdas,
+    uniform PMBuffer<Vec3> accumulated_corrections,
+    uniform PMBuffer<Vec3> position_deltas,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint query = pmThreadIndex();
+    if (!fluid_realtime_profile_valid(profile_version, dt) ||
+        !fluid_realtime_material_valid(options))
+    {
+        if (query == 0u)
+            fluid_realtime_record_invalid(profile_version, dt, options,
+                status);
+        return;
+    }
+    if (query >= query_count) return;
+    uint querySource = query_leaf_sources[query];
+    if (querySource >= leaf_capacity || admission[querySource] == 0u)
+    {
+        if (querySource >= leaf_capacity)
+            pmAtomicOr(status, kFluidSpatialAdmissionInvalid);
+        return;
+    }
+    uint particle = metadata[querySource].payload_ref;
+    if (particle >= capacity || particle >= count[0])
+    {
+        pmAtomicOr(status, kFluidSpatialStaleEpoch);
+        return;
+    }
+    uint candidateCount = filtered_counts[query];
+    if (candidateCount > candidates_per_query)
+    {
+        pmAtomicOr(status, kFluidSpatialQueryOverflow);
+        return;
+    }
+    float mass = fluid_particle_mass(options);
+    Vec3 deltaPosition = Vec3(0.0f);
+    uint base = query * candidates_per_query;
+    Vec3 position = positions[particle];
+    for (uint candidate = 0u; candidate < candidateCount; ++candidate)
+    {
+        uint source = filtered_sources[base + candidate];
+        if (source >= leaf_capacity || admission[source] == 0u)
+        {
+            pmAtomicOr(status, kFluidSpatialAdmissionInvalid);
+            return;
+        }
+        uint other = metadata[source].payload_ref;
+        if (other >= capacity || other >= count[0])
+        {
+            pmAtomicOr(status, kFluidSpatialStaleEpoch);
+            return;
+        }
+        Vec3 separation = subtract(position, positions[other]);
+        if (length_squared(separation) >=
+            options.support_radius * options.support_radius)
+            continue;
+        Vec3 gradient = fluid_realtime_density_gradient(
+            separation, particle, other, options.support_radius);
+        deltaPosition = add(deltaPosition, multiply(gradient,
+            (lambdas[particle] + lambdas[other]) * mass /
+                options.rest_density));
+    }
+    float response = options.repulsion == 0.0f ? 0.0f :
+        clamp_scalar(1.0f - exp(-options.repulsion * dt),
+            0.05f, 0.995f);
+    deltaPosition = multiply(deltaPosition, response);
+    float maximumCorrection =
+        kFluidRealtimeMaximumCorrectionFraction * options.support_radius;
+    float remaining = max(0.0f, maximumCorrection -
+        vector_length(accumulated_corrections[particle]));
+    deltaPosition = clamp_length(deltaPosition, remaining);
+    if (!fluid_spatial_finite_vec3(deltaPosition))
+    {
+        pmAtomicOr(status, kFluidRealtimeNonfiniteState);
+        deltaPosition = Vec3(0.0f);
+    }
+    position_deltas[particle] = deltaPosition;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_realtime_apply_position_delta(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> position_deltas,
+    uniform PMBuffer<Vec3> accumulated_corrections,
+    uniform PMBuffer<uint> count, uniform uint capacity,
+    uniform float dt, uniform uint profile_version,
+    uniform FluidOptions options,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint particle = pmThreadIndex();
+    if (!fluid_realtime_profile_valid(profile_version, dt) ||
+        !fluid_realtime_material_valid(options))
+    {
+        if (particle == 0u)
+            fluid_realtime_record_invalid(profile_version, dt, options,
+                status);
+        return;
+    }
+    if (particle >= capacity || particle >= count[0]) return;
+    Vec3 position = add(positions[particle], position_deltas[particle]);
+    Vec3 correction = add(accumulated_corrections[particle],
+        position_deltas[particle]);
+    if (!fluid_spatial_finite_vec3(position) ||
+        !fluid_spatial_finite_vec3(correction))
+    {
+        pmAtomicOr(status, kFluidRealtimeNonfiniteState);
+        return;
+    }
+    positions[particle] = position;
+    accumulated_corrections[particle] = correction;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_realtime_viscosity_delta(
+    uniform PMBuffer<FluidSpatialLeafMetadata> metadata,
+    uniform PMByteBuffer admission, uniform uint leaf_capacity,
+    uniform PMBuffer<uint> query_leaf_sources, uniform uint query_count,
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<uint> count, uniform uint capacity,
+    uniform PMBuffer<uint> filtered_counts,
+    uniform PMBuffer<uint> filtered_sources,
+    uniform uint candidates_per_query, uniform FluidOptions options,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<float> densities,
+    uniform PMBuffer<Vec3> velocity_deltas,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint query = pmThreadIndex();
+    if (!fluid_realtime_profile_valid(profile_version, dt) ||
+        !fluid_realtime_material_valid(options))
+    {
+        if (query == 0u)
+            fluid_realtime_record_invalid(profile_version, dt, options,
+                status);
+        return;
+    }
+    if (query >= query_count) return;
+    uint querySource = query_leaf_sources[query];
+    if (querySource >= leaf_capacity || admission[querySource] == 0u)
+    {
+        if (querySource >= leaf_capacity)
+            pmAtomicOr(status, kFluidSpatialAdmissionInvalid);
+        return;
+    }
+    uint particle = metadata[querySource].payload_ref;
+    if (particle >= capacity || particle >= count[0])
+    {
+        pmAtomicOr(status, kFluidSpatialStaleEpoch);
+        return;
+    }
+    uint candidateCount = filtered_counts[query];
+    if (candidateCount > candidates_per_query)
+    {
+        pmAtomicOr(status, kFluidSpatialQueryOverflow);
+        return;
+    }
+    float mass = fluid_particle_mass(options);
+    Vec3 viscosityDelta = Vec3(0.0f);
+    Vec3 normalDelta = Vec3(0.0f);
+    Vec3 position = positions[particle];
+    Vec3 velocity = velocities[particle];
+    uint base = query * candidates_per_query;
+    for (uint candidate = 0u; candidate < candidateCount; ++candidate)
+    {
+        uint source = filtered_sources[base + candidate];
+        if (source >= leaf_capacity || admission[source] == 0u)
+        {
+            pmAtomicOr(status, kFluidSpatialAdmissionInvalid);
+            return;
+        }
+        uint other = metadata[source].payload_ref;
+        if (other >= capacity || other >= count[0])
+        {
+            pmAtomicOr(status, kFluidSpatialStaleEpoch);
+            return;
+        }
+        Vec3 separation = subtract(position, positions[other]);
+        float squared = length_squared(separation);
+        if (squared >= options.support_radius * options.support_radius)
+            continue;
+        float pairDensity = max(densities[particle] + densities[other],
+            1.0e-6f);
+        float weight = 2.0f * mass * fluid_density_kernel(
+            squared, options.support_radius) / pairDensity;
+        Vec3 relative = subtract(velocities[other], velocity);
+        viscosityDelta = add(viscosityDelta,
+            multiply(relative, weight));
+        if (squared > 1.0e-12f)
+        {
+            Vec3 direction = multiply(separation, rsqrt(squared));
+            normalDelta = add(normalDelta, multiply(direction,
+                dot(relative, direction) * weight));
+        }
+    }
+    float viscosityResponse = options.viscosity == 0.0f ? 0.0f :
+        clamp_scalar(1.0f - exp(-options.viscosity * dt),
+            0.0f, 0.995f);
+    float normalResponse = options.normal_damping == 0.0f ? 0.0f :
+        clamp_scalar(1.0f - exp(-options.normal_damping * dt),
+            0.0f, 0.995f);
+    Vec3 result = add(multiply(viscosityDelta, viscosityResponse),
+        multiply(normalDelta, normalResponse));
+    if (!fluid_spatial_finite_vec3(result))
+    {
+        pmAtomicOr(status, kFluidRealtimeNonfiniteState);
+        result = Vec3(0.0f);
+    }
+    velocity_deltas[particle] = result;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_realtime_commit(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> velocity_deltas,
+    uniform PMBuffer<uint> count, uniform uint capacity,
+    uniform FluidOptions options, uniform float dt,
+    uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint particle = pmThreadIndex();
+    if (!fluid_realtime_profile_valid(profile_version, dt) ||
+        !fluid_realtime_material_valid(options))
+    {
+        if (particle == 0u)
+            fluid_realtime_record_invalid(profile_version, dt, options,
+                status);
+        return;
+    }
+    if (particle >= capacity || particle >= count[0]) return;
+    Vec3 velocity = add(multiply(subtract(positions[particle],
+        previous_positions[particle]), 1.0f / dt),
+        velocity_deltas[particle]);
+    velocity = clamp_length(multiply(velocity,
+        1.0f - kFluidRealtimeSolverDamping), options.maximum_speed);
+    if (!fluid_spatial_finite_vec3(positions[particle]) ||
+        !fluid_spatial_finite_vec3(velocity))
+    {
+        pmAtomicOr(status, kFluidRealtimeNonfiniteState);
+        positions[particle] = previous_positions[particle];
+        velocities[particle] = Vec3(0.0f);
+        return;
+    }
+    velocities[particle] = velocity;
+}
+
 [shader("compute")]
 [numthreads(PM_THREADS(128), 1, 1)]
 void fluid_emit_pair_cells(
