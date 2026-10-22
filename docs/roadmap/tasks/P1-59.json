@@ -27,7 +27,7 @@
     "PASS: 22/22 applicable analytic profiles and 17/17 applicable lifecycle profiles pass capture and independent evaluation.",
     "PRESERVED: pinned regression is 18 pass/12 fail; same-revision CUDA comparison is 26 pass/1 fail across 27 available results; CUDA crashes soft-body-fluid, rope-soft-body and rope-cloth.",
     "REVIEW: docs/roadmap/evidence/P1-59-d3d12-common-domain-parity.json and docs/QUALIFICATION.md pin hashes, artifacts, exact profiles, failure lists and non-qualification boundary.",
-    "PASS: fresh Windows D3D12 Release build from current main passes the shader-portability CI-equivalent 67/67 tests (65 pass, 2 expected skips); exhaustive coupling and interaction-graph lifecycle suites pass separately on physical GTX 1080."
+    "PASS: fresh Windows D3D12 Release build from current main passes the shader-portability CI-equivalent 70/70 tests (68 pass, 2 expected skips); exhaustive command API, coupling, and interaction-graph lifecycle suites pass separately on physical GTX 1080."
   ],
   "lease": null,
   "history": [
@@ -65,7 +65,7 @@
         "PASS: 22/22 applicable analytic profiles and 17/17 applicable lifecycle profiles pass capture and independent evaluation.",
         "PRESERVED: pinned regression is 18 pass/12 fail; same-revision CUDA comparison is 26 pass/1 fail across 27 available results; CUDA crashes soft-body-fluid, rope-soft-body and rope-cloth.",
         "REVIEW: docs/roadmap/evidence/P1-59-d3d12-common-domain-parity.json and docs/QUALIFICATION.md pin hashes, artifacts, exact profiles, failure lists and non-qualification boundary.",
-        "PASS: fresh Windows D3D12 Release build from current main passes the shader-portability CI-equivalent 67/67 tests (65 pass, 2 expected skips); exhaustive coupling and interaction-graph lifecycle suites pass separately on physical GTX 1080."
+        "PASS: fresh Windows D3D12 Release build from current main passes the shader-portability CI-equivalent 70/70 tests (68 pass, 2 expected skips); exhaustive command API, coupling, and interaction-graph lifecycle suites pass separately on physical GTX 1080."
       ]
     }
   ]
