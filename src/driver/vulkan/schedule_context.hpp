@@ -48,6 +48,11 @@ class ScheduleContext {
     cudaError_t query(cudaEvent_t event) noexcept;
     cudaError_t error(bool take) noexcept;
     cudaError_t elapsed(cudaEvent_t begin, cudaEvent_t end, float *ms) noexcept;
+    bool schedule_profile_enabled() const noexcept;
+    cudaError_t begin_schedule_profile() noexcept;
+    cudaError_t record_schedule_profile_stage(
+        std::string_view name, std::uint32_t launches) noexcept;
+    cudaError_t end_schedule_profile() noexcept;
     PmResult memory_budget(PmDeviceSize &available, PmDeviceSize &total) noexcept;
     int ordinal() const noexcept;
     VkDevice device() const noexcept;

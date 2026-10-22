@@ -62,6 +62,9 @@ target_include_directories(parallel-mater-driver-slang-vulkan PRIVATE
     include src src/simulation src/device/vulkan_compat "${PARALLEL_MATER_API_GENERATED_DIR}")
 target_link_libraries(parallel-mater-driver-slang-vulkan PRIVATE
     parallel-mater-host-preparation Threads::Threads Vulkan::Vulkan)
+if(ANDROID)
+    target_link_libraries(parallel-mater-driver-slang-vulkan PRIVATE log)
+endif()
 set_target_properties(parallel-mater-driver-slang-vulkan PROPERTIES
     OUTPUT_NAME parallel_mater_driver_slang_vulkan EXPORT_NAME slang_vulkan_driver
     CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN YES POSITION_INDEPENDENT_CODE ON)

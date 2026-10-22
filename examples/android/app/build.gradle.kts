@@ -4,6 +4,11 @@ val slangCompiler = providers.gradleProperty("slangc")
     .orElse(providers.environmentVariable("SLANGC"))
 val cgltfSource = providers.gradleProperty("cgltfSource")
 val sourceRevision = providers.gradleProperty("sourceRevision")
+val sourceDirty = providers.gradleProperty("sourceDirty").orElse("false").get().toBoolean()
+val sourcePatchSha256 = providers.gradleProperty("sourcePatchSha256").orElse("clean").get()
+require(sourcePatchSha256 == "clean" || sourcePatchSha256.matches(Regex("[0-9a-f]{64}"))) {
+    "sourcePatchSha256 must be clean or a lowercase SHA-256"
+}
 val physicsBackend = providers.gradleProperty("physicsBackend").orElse("vulkan").get()
 require(physicsBackend in listOf("vulkan", "cpu")) {
     "physicsBackend must be vulkan or cpu"
@@ -23,6 +28,14 @@ android {
         versionCode = 2
         versionName = "0.1-$physicsBackend-preview"
         buildConfigField("String", "PHYSICS_BACKEND", "\"$physicsBackend\"")
+        buildConfigField("String", "SOURCE_REVISION", "\"${sourceRevision.orNull ?: "unknown"}\"")
+        buildConfigField("boolean", "SOURCE_DIRTY", sourceDirty.toString())
+        buildConfigField("String", "SOURCE_PATCH_SHA256", "\"$sourcePatchSha256\"")
+        buildConfigField("String", "ANDROID_GRADLE_PLUGIN_VERSION", "\"9.0.1\"")
+        buildConfigField("String", "GRADLE_VERSION", "\"9.1.0\"")
+        buildConfigField("String", "NDK_VERSION", "\"29.0.14206865\"")
+        buildConfigField("String", "CMAKE_VERSION", "\"4.1.2\"")
+        buildConfigField("String", "SLANG_VERSION", "\"2026.18\"")
         manifestPlaceholders["vulkanRequired"] = useVulkan.toString()
         ndk { abiFilters += providers.gradleProperty("abis")
             .orElse("arm64-v8a,x86_64").get().split(",") }
