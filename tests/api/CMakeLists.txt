@@ -37,19 +37,9 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction
             endif()
             add_test(NAME parallel-mater-${backend}-${suite}-tests
                 COMMAND parallel-mater-${suite}-tests ${suite_arguments})
-            set(suite_timeout 120)
-            # Hosted Windows adapters execute the exhaustive coupling edit
-            # loops far more slowly than physical GPUs. Keep those runtime
-            # checks enabled in portability CI, but give only the two
-            # multi-domain lifecycle suites enough time to finish.
-            if(backend STREQUAL "d3d12" AND
-               (suite STREQUAL "coupling-lifecycle" OR
-                suite STREQUAL "interaction-graph-lifecycle"))
-                set(suite_timeout 900)
-            endif()
             set_tests_properties(parallel-mater-${backend}-${suite}-tests PROPERTIES
                 LABELS "api;lifecycle;${backend}" SKIP_RETURN_CODE 77
-                TIMEOUT ${suite_timeout}
+                TIMEOUT 120
                 ENVIRONMENT "${suite_environment}")
             if(suite STREQUAL "resource-lifecycle")
                 add_test(NAME parallel-mater-${backend}-validated-lifecycle-tests
