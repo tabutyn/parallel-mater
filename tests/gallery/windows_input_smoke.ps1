@@ -142,9 +142,9 @@ try {
         throw 'Point-to-Hinge scene switch failed'
     }
     Save-Window 'switched-scene'
-    # Canonical catalog indices, identical on every backend. D3D12 currently
-    # advertises rigid, liquid and cloth, but not paint/rope/soft/smoke.
-    $sceneIndices = if ($Backend -eq 'cuda') { 0..27 } else { @(0,1,2,3,4,5,6,7,8,9,11,12,14) }
+    # Canonical catalog indices are identical on every backend. Both Windows
+    # drivers execute the complete common Gallery catalog.
+    $sceneIndices = 0..27
     $currentScene = 3
     foreach ($sceneIndex in $sceneIndices) {
         Send-Key 0x09

@@ -38,7 +38,8 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction
             add_test(NAME parallel-mater-${backend}-${suite}-tests
                 COMMAND parallel-mater-${suite}-tests ${suite_arguments})
             set_tests_properties(parallel-mater-${backend}-${suite}-tests PROPERTIES
-                LABELS "api;lifecycle;${backend}" SKIP_RETURN_CODE 77 TIMEOUT 120
+                LABELS "api;lifecycle;${backend}" SKIP_RETURN_CODE 77
+                TIMEOUT 120
                 ENVIRONMENT "${suite_environment}")
             if(suite STREQUAL "resource-lifecycle")
                 add_test(NAME parallel-mater-${backend}-validated-lifecycle-tests

@@ -60,7 +60,13 @@ class ScheduleContext {
     [[nodiscard]] GraphicsBufferAddress translated_meshes(
         const void *meshes, const void *parameters,
         std::uint32_t body_count,
-        std::uint32_t mesh_capacity = 0U) noexcept;
+        std::uint32_t mesh_capacity = 0U,
+        const void *paint_fields = nullptr,
+        std::uint32_t paint_field_capacity = 0U) noexcept;
+    [[nodiscard]] GraphicsBufferAddress translated_paint_fields(
+        const void *fields, std::uint32_t capacity) noexcept;
+    [[nodiscard]] GraphicsBufferAddress translated_paint_rules(
+        const void *rules, std::uint32_t capacity) noexcept;
 
     [[nodiscard]] PmResult dispatch(
         std::string_view module, std::string_view entry,

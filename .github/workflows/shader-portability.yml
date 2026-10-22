@@ -65,14 +65,15 @@ jobs:
           -DPARALLEL_MATER_BUILD_SLANG_MIRRORS=ON
       # ALL includes the full manifest's CUDA/SPIR-V entries, the portable
       # AVBD core and reflection, Windows DXIL schedules, and every Metal
-      # entry (including native compilation on macOS). Hosted macOS runners do
-      # not expose a Metal device, so runtime Metal tests remain device gates.
+      # entry (including native compilation on macOS). Hosted runners do not
+      # expose the physical devices required by exhaustive Metal and D3D12
+      # coupling lifecycle suites, so those runtime tests remain device gates.
       - name: Compile shaders and host contracts
         run: cmake --build build --config Release --parallel 2
       - name: Validate reflection and host contracts
         run: >-
           ctest --test-dir build -C Release --output-on-failure --no-tests=error
-          -E "^parallel-mater-(d3d12-command-api-tests|slang-metal-.*)$"
+          -E "^parallel-mater-(d3d12-(command-api|coupling-lifecycle|interaction-graph-lifecycle)-tests|slang-metal-.*)$"
       - name: Validate installed package components
         run: >-
           python tools/check_sdk_components.py --build-dir build

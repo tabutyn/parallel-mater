@@ -56,9 +56,9 @@ public:
     [[nodiscard]] bool contains(std::string_view module,
                                 std::string_view entry) const noexcept;
     [[nodiscard]] std::size_t kernel_count() const noexcept;
-    [[nodiscard]] bool matches_group_size(std::string_view module,
-        std::string_view entry, std::uint32_t x, std::uint32_t y,
-        std::uint32_t z) const noexcept;
+    [[nodiscard]] bool group_size(std::string_view module,
+        std::string_view entry, std::uint32_t &x, std::uint32_t &y,
+        std::uint32_t &z) const noexcept;
 
 private:
     HRESULT pipeline(std::size_t index,

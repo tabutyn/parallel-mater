@@ -215,7 +215,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-56](roadmap/tasks/P1-56.json) | Expose immiscible interface state | done | P1-04 | — |
 | [P1-57](roadmap/tasks/P1-57.json) | Expose interface thermal conductance | deferred | P1-15, P1-56 | — |
 | [P1-58](roadmap/tasks/P1-58.json) | Release fluid-pair interface storage | done | P1-10 | — |
-| [P1-59](roadmap/tasks/P1-59.json) | Complete D3D12 common-domain parity | leased | F4-04, F5-10, F7-06 | codex-windows-d3d12-parity / windows-gtx1080 / 2026-10-22T13:38:46Z |
+| [P1-59](roadmap/tasks/P1-59.json) | Complete D3D12 common-domain parity | done | F4-04, F5-10, F7-06 | — |
 
 ### P2. Deferred engine integration
 
