@@ -261,12 +261,21 @@
         "pm_compact_scatter_indices",
         "pm_radix_histogram_u64",
         "pm_radix_prefix_u32",
-        "pm_radix_scatter_u64_u32"
+        "pm_radix_scatter_u64_u32",
+        "pm_spatial_reduce_bounds_blocks",
+        "pm_spatial_reduce_bounds_final",
+        "pm_spatial_emit_keys",
+        "pm_spatial_sort_small_u64_u32",
+        "pm_spatial_radix_histogram_u64",
+        "pm_spatial_radix_prefix_u32",
+        "pm_spatial_radix_scatter_u64_u32",
+        "pm_spatial_build_topology",
+        "pm_spatial_union_bounds"
       ],
       "domains": ["SPATIAL_INDEX", "AUXILIARY"],
       "advertised_modes": [],
       "public_case_sets": ["all"],
-      "existing_execution_tests": ["parallel-mater-fluid-pair-neighbor-index-tests", "shader portability build"],
+      "existing_execution_tests": ["parallel-mater-spatial-build-primitives-tests", "parallel-mater-spatial-build-cuda-tests", "parallel-mater-fluid-pair-neighbor-index-tests", "shader portability build"],
       "implementation_owners": ["F8-06", "F8-07"]
     },
     {
@@ -657,11 +666,6 @@
     }
   ],
   "planned_shared_spatial_entrypoints": [
-    {
-      "contract": "checked compaction, bounds reduction, key ordering, binary topology, and conservative union",
-      "owners": ["F8-06"],
-      "status": "planned-not-in-canonical-build-manifest"
-    },
     {
       "contract": "stage_boundary, emit_envelopes, build_or_refit_once, resolve_admission, publish_epoch, and shared query helpers",
       "owners": ["F8-07"],

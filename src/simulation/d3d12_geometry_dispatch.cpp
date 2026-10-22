@@ -522,7 +522,7 @@ PmResult compact_flagged_indices(
     scan_values.buffer(ScanLayout::arg_output, *execution, offsets);
     scan_values.buffer(ScanLayout::arg_total, *execution, output_count);
     result = launch(stream, "primitives", "pm_exclusive_scan_u32",
-                    device::DispatchSize(1U), device::DispatchSize(1U), scan_values);
+                    device::DispatchSize(1U), device::DispatchSize(primitive_tile_size), scan_values);
     if (result != PM_SUCCESS) return result;
     using ScatterLayout = d3d12::generated::layout::primitives::Kernel_pm_compact_scatter_indices;
     Constants<ScatterLayout::constant_size> scatter_values;
