@@ -120,7 +120,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 |---|---|---|---|---|
 | [F8-00](roadmap/tasks/F8-00.json) | Specify the versioned 60 Hz real-time quality contract | done | — | — |
 | [F8-01](roadmap/tasks/F8-01.json) | Inventory every kernel, capability and physical test target | done | — | — |
-| [F8-02](roadmap/tasks/F8-02.json) | Verify deployed binaries and capture trustworthy Android baselines | leased | F8-00, F8-01 | codex-linux-android-baseline / thomas-laptop / 2026-10-22T23:16:33Z |
+| [F8-02](roadmap/tasks/F8-02.json) | Verify deployed binaries and capture trustworthy Android baselines | done | F8-00, F8-01 | — |
 | [F8-03](roadmap/tasks/F8-03.json) | Build independent single-step quality and work-budget oracles | waiting on dependencies | F8-00, F8-01, F8-32 | — |
 | [F8-04](roadmap/tasks/F8-04.json) | Implement fixed 60 Hz presentation and overload clock policy | waiting on dependencies | F8-00, F8-03, F8-32 | — |
 | [F8-05](roadmap/tasks/F8-05.json) | Design one shared spatial-index epoch for all consumers | done | — | — |

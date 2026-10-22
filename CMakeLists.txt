@@ -1531,6 +1531,18 @@ if(BUILD_TESTING)
                 -p test_android_gallery_ui.py)
     set_tests_properties(parallel-mater-android-gallery-ui-tests
         PROPERTIES LABELS "gallery;mobile;android;ui")
+    add_test(NAME parallel-mater-android-vulkan-schedule-profile-tests
+        COMMAND ${Python3_EXECUTABLE} -m unittest discover
+                -s ${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery
+                -p android_vulkan_schedule_tests.py)
+    set_tests_properties(parallel-mater-android-vulkan-schedule-profile-tests
+        PROPERTIES LABELS "gallery;mobile;android;vulkan;performance")
+    add_test(NAME parallel-mater-android-deployment-tests
+        COMMAND ${Python3_EXECUTABLE} -m unittest discover
+                -s ${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery
+                -p android_deployment_tests.py)
+    set_tests_properties(parallel-mater-android-deployment-tests
+        PROPERTIES LABELS "gallery;mobile;android;deployment")
     add_test(NAME parallel-mater-conformance-case-registry
         COMMAND parallel-mater-conformance-cases --check
                 ${CMAKE_CURRENT_SOURCE_DIR}/conformance/v1/cases)
