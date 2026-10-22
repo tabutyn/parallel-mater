@@ -349,9 +349,49 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeRuntimeInfo(JNIEnv *env, jc
         return env->NewStringUTF(info.str().c_str());
     } catch (const std::exception &error) { exception(env, error.what()); return nullptr; }
 }
+extern "C" JNIEXPORT jstring JNICALL
+Java_org_parallelmater_gallery_GalleryActivity_nativeWorkloadInfo(
+    JNIEnv *env, jclass, jlong handle) {
+    try {
+        auto &g = session(handle).gallery();
+        std::string error;
+        if (!g.read_host_output(error))
+            throw std::runtime_error("Could not capture workload counts: " + error);
+        const auto &scene = g.scene();
+        const auto &output = g.output();
+        std::size_t soft_body_live{};
+        for (const auto &nodes : output.soft_body_nodes)
+            soft_body_live += nodes.size();
+        std::size_t soft_body_capacity{};
+        for (const auto &body : scene.soft_bodies)
+            soft_body_capacity += body.nodes.size();
+        std::ostringstream info;
+        info.imbue(std::locale::classic());
+        info << "{\"schema\":\"parallel-mater-android-workload/v1\""
+             << ",\"scene\":\"" << g.scene_file()
+             << "\",\"frame\":" << g.frames
+             << ",\"timestep_seconds\":" << g.frame_timestep()
+             << ",\"substeps_per_tick\":" << g.frame_substeps()
+             << ",\"counts\":{"
+             << "\"rigid\":{\"live\":" << output.statistics.peakActiveBodies
+             << ",\"capacity\":" << scene.rigid_bodies.size() << "},"
+             << "\"fluid\":{\"live\":" << output.fluid_particles.size()
+             << ",\"capacity\":" << scene.fluid_options.capacity << "},"
+             << "\"smoke\":{\"live\":" << output.smoke_particles.size()
+             << ",\"capacity\":"
+             << (scene.has_smoke ? scene.smoke_options.capacity : 0U) << "},"
+             << "\"soft_body_nodes\":{\"live\":" << soft_body_live
+             << ",\"capacity\":" << soft_body_capacity << "}}}";
+        return env->NewStringUTF(info.str().c_str());
+    } catch (const std::exception &error) {
+        exception(env, error.what());
+        return nullptr;
+    }
+}
 extern "C" JNIEXPORT jlong JNICALL
 Java_org_parallelmater_gallery_GalleryActivity_nativeCreate(JNIEnv *env, jclass,
-    jstring assets, jstring manifest, jstring profiles, jstring model, jstring cache) {
+    jstring assets, jstring manifest, jstring profiles, jstring model, jstring cache,
+    jboolean vulkan_profile) {
     try {
         const auto manifest_path = string(env, manifest);
         if (setenv("PM_DRIVER_FILES", manifest_path.c_str(), 1) != 0 ||
@@ -359,6 +399,9 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeCreate(JNIEnv *env, jclass,
             throw std::runtime_error("Could not configure bundled driver/layer");
         if (PM_ANDROID_VULKAN && setenv("PM_VULKAN_CACHE_DIR", string(env, cache).c_str(), 1) != 0)
             throw std::runtime_error("Could not configure Vulkan pipeline cache");
+        if (PM_ANDROID_VULKAN && vulkan_profile &&
+            setenv("PM_VULKAN_SCHEDULE_PROFILE", "1", 1) != 0)
+            throw std::runtime_error("Could not enable Vulkan schedule profiling");
         auto result = std::make_unique<Session>();
         GallerySessionConfig config;
         config.assets = string(env, assets);

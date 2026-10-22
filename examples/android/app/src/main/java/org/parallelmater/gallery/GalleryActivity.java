@@ -42,7 +42,7 @@ import java.nio.charset.StandardCharsets;
 public final class GalleryActivity extends Activity implements SurfaceHolder.Callback {
     static { System.loadLibrary("parallel_mater_gallery"); }
     private static native long nativeCreate(String assets, String manifest, String profiles,
-        String model, String cache);
+        String model, String cache, boolean vulkanProfile);
     private static native void nativeDestroy(long handle);
     private static native void nativeSurface(long handle, Surface surface, int width, int height);
     private static native String nativeFrame(long handle);
@@ -52,6 +52,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     private static native String[] nativeSceneCatalog(long handle);
     private static native String nativeQualify(long handle, int frames, String nonce);
     private static native String nativeRuntimeInfo(long handle);
+    private static native String nativeWorkloadInfo(long handle);
 
     private static final class SceneInfo {
         final String id, name, description, requirements, unavailableReason;
@@ -274,7 +275,8 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                 }
                 handle = nativeCreate(new File(files, "scenes").getPath(), manifestFile.getPath(),
                     new File(files, "config/device-profiles.json").getPath(), Build.MODEL,
-                    new File(getCacheDir(), "vulkan").getPath());
+                    new File(getCacheDir(), "vulkan").getPath(), BuildConfig.DEBUG &&
+                    getIntent().getBooleanExtra("pm_vulkan_profile", false));
                 catalog = parseCatalog(nativeSceneCatalog(handle));
                 String[] controls = nativeControlState(handle);
                 runOnUiThread(() -> {
@@ -365,9 +367,11 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
     // Release builds ignore these diagnostic extras.
     private void applyDebugRequest(Intent intent) {
         if (!BuildConfig.DEBUG || intent == null) return;
+        String requestedNonce = intent.getStringExtra("pm_nonce");
+        if (requestedNonce != null) diagnosticNonce = requestedNonce;
         if (intent.hasExtra("pm_qualify_frames")) {
             final int count = intent.getIntExtra("pm_qualify_frames", 120);
-            final String nonce = intent.getStringExtra("pm_nonce");
+            final String nonce = requestedNonce;
             intent.removeExtra("pm_qualify_frames"); intent.removeExtra("pm_nonce");
             qualifying = true;
             restartFrames();
@@ -387,8 +391,16 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
             debugFrozen = false;
             restartFrames();
         }
+        if (intent.getBooleanExtra("pm_capture_workload", false)) {
+            debugFrozen = true;
+            restartFrames();
+            final String nonce = diagnosticNonce;
+            worker.post(() -> captureWorkload(nonce));
+        }
         intent.removeExtra("pm_scene");
         intent.removeExtra("pm_action");
+        intent.removeExtra("pm_capture_workload");
+        intent.removeExtra("pm_nonce");
     }
     private void writeReport(String name, JSONObject report) throws Exception {
         android.util.AtomicFile file = new android.util.AtomicFile(new File(getFilesDir(), name));
@@ -402,8 +414,28 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
         if (!BuildConfig.DEBUG || handle == 0) return;
         try {
             JSONObject report = new JSONObject(nativeRuntimeInfo(handle));
-            report.put("nonce", diagnosticNonce).put("backgrounds", backgrounds).put("foregrounds", foregrounds);
+            JSONObject build = new JSONObject()
+                .put("source_revision", BuildConfig.SOURCE_REVISION)
+                .put("source_dirty", BuildConfig.SOURCE_DIRTY)
+                .put("source_patch_sha256", BuildConfig.SOURCE_PATCH_SHA256)
+                .put("android_gradle_plugin", BuildConfig.ANDROID_GRADLE_PLUGIN_VERSION)
+                .put("gradle", BuildConfig.GRADLE_VERSION)
+                .put("ndk", BuildConfig.NDK_VERSION)
+                .put("cmake", BuildConfig.CMAKE_VERSION)
+                .put("slang", BuildConfig.SLANG_VERSION)
+                .put("compile_sdk", 36);
+            report.put("nonce", diagnosticNonce).put("build", build)
+                .put("backgrounds", backgrounds).put("foregrounds", foregrounds);
             writeReport("runtime-info.json", report);
+        } catch (Exception error) { showFailure(error); }
+    }
+    private void captureWorkload(String nonce) {
+        if (handle == 0) return;
+        try {
+            JSONObject report = new JSONObject(nativeWorkloadInfo(handle));
+            report.put("nonce", nonce);
+            writeReport("workload-info.json", report);
+            writeRuntimeInfo();
         } catch (Exception error) { showFailure(error); }
     }
     private void qualify(int count, String nonce) {
