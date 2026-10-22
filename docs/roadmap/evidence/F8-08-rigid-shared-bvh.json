@@ -1,0 +1,113 @@
+{
+  "schema": "parallel-mater-f8-rigid-shared-bvh-evidence/v1",
+  "task": "F8-08",
+  "recorded_at": "2026-10-22",
+  "branch": "work/F8-08/thomas-laptop",
+  "base_commit": "205f79fda0c22f03508d969b7c8087f8c90d8b4a",
+  "toolchain": {
+    "cmake": "3.25.1",
+    "slang": "2026.18",
+    "cuda_compiler": "13.1"
+  },
+  "cuda_device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "compute_capability": "8.6",
+    "driver_api": 13010,
+    "runtime": 13010,
+    "driver": "590.44.01"
+  },
+  "production_kernels": [
+    "pm_emit_rigid_spatial_proxies",
+    "pm_spatial_query_aabbs",
+    "pm_filter_rigid_spatial_candidates",
+    "pm_gather_rigid_spatial_pairs"
+  ],
+  "workload_budget": {
+    "workload": "desktop-full-v1/rigid-wall",
+    "rigid_bodies_live": 386,
+    "rigid_bodies_capacity": 386,
+    "legacy_candidate_flag_bytes": 148996,
+    "consumer_dispatches": 7,
+    "sparse": {
+      "candidates_per_body": 64,
+      "candidate_slots": 24704,
+      "worst_case_workgroups": 592,
+      "query_candidate_bytes": 98816,
+      "pair_scratch_bytes": 223140,
+      "pair_output_bytes": 98820
+    },
+    "dense_oracle": {
+      "candidates_per_body": 385,
+      "candidate_slots": 148610,
+      "worst_case_workgroups": 3498,
+      "query_candidate_bytes": 594440,
+      "pair_scratch_bytes": 1342196,
+      "pair_output_bytes": 594452
+    },
+    "mesh_policy": "unchanged resource count and immutable cached per-mesh BVHs; only world-level candidate generation changes",
+    "capacity_policy": "checked fixed allocation; all-or-none overflow; no hot-path growth, retry, readback, substep, or second index update"
+  },
+  "correctness_cases": [
+    "fast swept translation",
+    "full-turn offset thin-shape enclosure",
+    "collision margins and declared correction/path envelopes",
+    "disabled constrained pairs and fixed collision groups",
+    "canonical full-identity dynamic pair ownership",
+    "owner and mesh generation validation",
+    "bounded query and pair-output overflow",
+    "one exact published epoch through eight solve sweeps"
+  ],
+  "qualification": [
+    {
+      "command": "/tmp/parallel-mater-f8-08-host-build/tests/solver/parallel-mater-rigid-spatial-tests",
+      "result": "PASS",
+      "notes": "independent shared-tree/brute-force oracle, epoch guard, checked plans, and exact sparse/dense budget output"
+    },
+    {
+      "command": "/tmp/parallel-mater-f8-08-cuda-build/tests/solver/parallel-mater-rigid-spatial-cuda-tests",
+      "result": "PASS",
+      "notes": "physical RTX execution of generated production Slang including overflow and stale-generation negatives"
+    },
+    {
+      "command": "/tmp/parallel-mater-f8-08-cuda-build/tests/solver/parallel-mater-spatial-build-cuda-tests",
+      "result": "PASS",
+      "notes": "physical shared BVH service/primitives including 386 live leaves and sparse/dense capacities"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-08-host-build -R 'parallel-mater-(compute-lifetime-tests|spatial-build-primitives-tests|spatial-service-tests|rigid-spatial-tests|contact-friction-tests|avbd-core-tests|slang-architecture)$' --output-on-failure",
+      "result": "PASS",
+      "notes": "7/7 host contract, lifetime, narrow-phase/contact, solver, and architecture tests"
+    },
+    {
+      "command": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "414 tests"
+    },
+    {
+      "command": "python3 conformance/v1/realtime_oracle.py --check-contract",
+      "result": "PASS",
+      "notes": "243 named limits, 49 advertised capability cases, 14 fixed workloads, and 5 runtime adapters"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "72 tests"
+    },
+    {
+      "command": "generated CPU/CUDA/Vulkan driver builds plus spirv-val for geometry and primitives",
+      "result": "PASS",
+      "notes": "canonical manifests and native binding layouts compile"
+    },
+    {
+      "command": "Slang per-entry Metal and HLSL SM 6.6 source compilation",
+      "result": "PASS",
+      "notes": "all three new rigid entries compile for both source targets"
+    }
+  ],
+  "limits": [
+    "F8-20 integrates and enables the new reference schedule; F8-08 leaves the legacy schedule unchanged.",
+    "F8-21 freezes final per-workload candidate and byte budgets; 64 and 385 are bounded sparse/dense evidence cases here.",
+    "The public real-time profile remains unsupported and unadvertised after this task.",
+    "Local Linux qualification lacks DXC and physical D3D12/Metal devices; those remain required platform/PR gates."
+  ]
+}

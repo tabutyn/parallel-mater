@@ -220,6 +220,9 @@
       "entries": [
         "pm_compute_rigid_world_bounds",
         "pm_broad_phase_rigid_pairs",
+        "pm_emit_rigid_spatial_proxies",
+        "pm_filter_rigid_spatial_candidates",
+        "pm_gather_rigid_spatial_pairs",
         "pm_generate_rigid_leaf_pairs",
         "pm_evaluate_rigid_leaf_pairs",
         "pm_reduce_rigid_leaf_manifolds",
@@ -229,7 +232,7 @@
       "domains": ["RIGID_BODY", "SPATIAL_INDEX"],
       "advertised_modes": ["CONTACT"],
       "public_case_sets": ["rigid"],
-      "existing_execution_tests": ["parallel-mater-conformance --case rigid-direct", "parallel-mater-conformance --case passive-active"],
+      "existing_execution_tests": ["parallel-mater-rigid-spatial-tests", "parallel-mater-rigid-spatial-cuda-tests", "parallel-mater-conformance --case rigid-direct", "parallel-mater-conformance --case passive-active"],
       "implementation_owners": ["F8-08", "F8-11"]
     },
     {

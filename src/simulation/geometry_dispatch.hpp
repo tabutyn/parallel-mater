@@ -25,6 +25,39 @@ PmResult broad_phase_rigid_pairs(
     void *ids, void *constraints, std::uint32_t constraint_capacity,
     void *fixed_groups, std::uint32_t count, std::uint8_t *active_flags) noexcept;
 
+PmResult emit_rigid_spatial_proxies(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *parameters, void *previous_states,
+    void *predicted_states, void *meshes, std::uint32_t mesh_capacity,
+    void *ids, std::uint32_t body_count, std::uint32_t leaf_offset,
+    std::uint32_t leaf_capacity, std::uint32_t sort_key_base,
+    std::uint32_t topology_revision, std::uint32_t query_mask,
+    const float path_deviation[3], const float correction_budget[3],
+    float epsilon, void *metadata, void *bounds,
+    std::uint8_t *build_flags, void *query_bounds,
+    std::uint32_t *query_masks, std::uint32_t *excluded_sort_keys,
+    std::uint32_t *status) noexcept;
+
+PmResult filter_rigid_spatial_candidates(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *metadata,
+    std::uint32_t leaf_capacity, std::uint32_t rigid_leaf_offset,
+    std::uint32_t *candidate_counts, std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_body,
+    std::uint32_t candidate_slot_capacity, void *parameters, void *ids,
+    void *constraints, std::uint32_t constraint_capacity,
+    void *fixed_groups, std::uint32_t body_count,
+    std::uint32_t *pair_codes, std::uint8_t *pair_flags,
+    std::uint32_t *status) noexcept;
+
+PmResult gather_rigid_spatial_pairs(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, std::uint32_t *compacted_slots,
+    std::uint32_t *active_pair_count,
+    std::uint32_t *candidate_pair_codes,
+    std::uint32_t candidate_slot_capacity, std::uint32_t *active_pairs,
+    std::uint32_t *status) noexcept;
+
 PmResult generate_rigid_leaf_pairs(
     device::DispatchSize grid, device::DispatchSize block, std::size_t shared_bytes, device::ExecutionQueue stream,
     void *parameters, void *previous_states, void *states,

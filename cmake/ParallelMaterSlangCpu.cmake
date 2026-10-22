@@ -103,6 +103,9 @@ add_custom_command(
             -entry pm_clamp_rigid_speeds
             -entry pm_build_fixed_collision_groups
             -entry pm_prepare_rigid_face_manifolds
+            -entry pm_emit_rigid_spatial_proxies
+            -entry pm_filter_rigid_spatial_candidates
+            -entry pm_gather_rigid_spatial_pairs
             -target cpp -fp-mode precise -O2 -line-directive-mode none
             -o "${PARALLEL_MATER_GEOMETRY_CPU_SOURCE}"
     DEPENDS src/slang/dispatch_shape.slangh src/slang/geometry.slang src/slang/types.slang
