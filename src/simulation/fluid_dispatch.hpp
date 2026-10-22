@@ -232,4 +232,80 @@ void copy_initial_fluid(device::DispatchSize grid, device::DispatchSize block, d
     std::uint32_t *ids, float *foam, float *temperatures,
     std::uint32_t *invalid) noexcept;
 
+void emit_fluid_spatial_particles(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *previous_positions,
+    const void *predicted_positions, const std::uint32_t *stable_ids,
+    const std::uint32_t *count, std::uint32_t particle_capacity,
+    std::uint32_t owner_slot, std::uint32_t owner_generation,
+    std::uint32_t material_revision, std::uint32_t leaf_offset,
+    std::uint32_t leaf_capacity, std::uint32_t query_offset,
+    std::uint32_t query_capacity, std::uint32_t sort_key_base,
+    std::uint32_t query_mask, std::uint32_t admission_mask,
+    float admission_radius, float query_radius,
+    const float path_deviation[3], const float correction_budget[3],
+    float epsilon, void *metadata, void *bounds, std::uint8_t *build_flags,
+    void *query_bounds, std::uint32_t *query_masks,
+    std::uint32_t *excluded_sort_keys, std::uint32_t *query_leaf_sources,
+    std::uint32_t *status) noexcept;
+
+void emit_fluid_spatial_source_proposals(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *points, std::uint32_t amount,
+    float spacing, const std::uint32_t *count,
+    std::uint32_t particle_capacity, std::uint32_t first_stable_id,
+    std::uint32_t owner_slot, std::uint32_t owner_generation,
+    std::uint32_t material_revision, std::uint32_t leaf_offset,
+    std::uint32_t leaf_capacity, std::uint32_t query_offset,
+    std::uint32_t query_capacity, std::uint32_t sort_key_base,
+    std::uint32_t query_mask, std::uint32_t admission_mask,
+    float query_radius, const float path_deviation[3],
+    const float correction_budget[3], float epsilon, void *metadata,
+    void *bounds, std::uint8_t *build_flags, void *query_bounds,
+    std::uint32_t *query_masks, std::uint32_t *excluded_sort_keys,
+    std::uint32_t *query_leaf_sources, std::uint32_t *status) noexcept;
+
+void apply_fluid_spatial_source_admission(
+    device::ExecutionQueue stream, const void *points, std::uint32_t amount,
+    const float velocity[3], float initial_temperature,
+    std::uint32_t proposal_leaf_offset, std::uint32_t leaf_capacity,
+    std::uint32_t proposal_query_offset, std::uint32_t query_capacity,
+    void *metadata, std::uint8_t *admission, std::uint32_t *query_masks,
+    void *positions, void *velocities, std::uint32_t *stable_ids,
+    float *foam, float *temperatures, std::uint32_t *count,
+    std::uint32_t particle_capacity, std::uint32_t *accepted,
+    std::uint32_t *rejected, std::uint32_t *capacity_misses,
+    std::uint32_t *status) noexcept;
+
+void filter_fluid_spatial_candidates(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *metadata,
+    const std::uint8_t *admission, std::uint32_t leaf_capacity,
+    const std::uint32_t *query_leaf_sources, std::uint32_t query_count,
+    std::uint32_t query_owner_slot, std::uint32_t query_owner_generation,
+    const std::uint32_t *query_stable_ids,
+    const std::uint32_t *query_live_count, std::uint32_t query_capacity,
+    std::uint32_t target_owner_slot, std::uint32_t target_owner_generation,
+    const std::uint32_t *target_stable_ids,
+    const std::uint32_t *target_live_count, std::uint32_t target_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *filtered_counts,
+    std::uint32_t *filtered_sources, std::uint32_t *status) noexcept;
+
+void count_fluid_spatial_neighbors(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *metadata,
+    const std::uint8_t *admission, std::uint32_t leaf_capacity,
+    const std::uint32_t *query_leaf_sources, std::uint32_t query_count,
+    const void *query_positions, const std::uint32_t *query_live_count,
+    std::uint32_t query_capacity, const void *target_positions,
+    const std::uint32_t *target_live_count, std::uint32_t target_capacity,
+    const std::uint32_t *filtered_counts,
+    const std::uint32_t *filtered_sources,
+    std::uint32_t candidates_per_query, float support_radius,
+    std::uint32_t maximum_neighbors, std::uint32_t *neighbor_counts,
+    std::uint32_t *neighbor_overflow,
+    std::uint32_t *maximum_neighbor_count, std::uint32_t *status) noexcept;
+
 } // namespace parallel_mater::simulation

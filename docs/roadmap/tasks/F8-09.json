@@ -1,7 +1,7 @@
 {
   "id": "F8-09",
   "title": "Move liquid populations and sources onto shared BVH queries",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-03",
     "F8-07"
@@ -20,15 +20,37 @@
     "Compare all relevant neighbors and overflow results with brute-force radius queries across heterogeneous supports and full-tick motion bounds.",
     "Assert one update per tick and no neighbor sort/build in algebraic solve loops; publish sparse/live-versus-capacity dispatch and memory measurements."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "bc94daca-49bf-4e12-9f07-0b9a76541495",
-    "owner": "codex-f8-liquid",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-09/thomas-laptop",
-    "claimed_at": "2026-10-22T20:09:38Z",
-    "heartbeat_at": "2026-10-22T20:09:38Z",
-    "expires_at": "2026-10-23T20:09:38Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/roadmap/evidence/F8-09-fluid-shared-bvh.json records sparse/full dispatch, memory, correctness, device and portability results",
+    "PASS: physical RTX 3050 Ti generated Slang CUDA retained/provisional emission, source admission, self/cross filtering, exact radius counts, overflow and stale-identity tests",
+    "PASS: shared service physical CUDA admission/publication/query cases include empty, 30,065-live and 128-live/1,048,576-capacity scenes",
+    "PASS: randomized host oracle covers heterogeneous supports, full-tick motion, outflow, inactive capacity, zero particles, stable IDs and six-sweep one-epoch reuse",
+    "PASS: CPU-liquid/CUDA/Vulkan builds, SPIR-V validation, Metal/HLSL source compilation, 414 conformance tests and 72 roadmap tests",
+    "PASS: legacy schedule unchanged and public realtime profile remains unsupported pending F8-12/F8-18/F8-20/F8-21"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "bc94daca-49bf-4e12-9f07-0b9a76541495",
+        "owner": "codex-f8-liquid",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-09/thomas-laptop",
+        "claimed_at": "2026-10-22T20:09:38Z",
+        "heartbeat_at": "2026-10-22T20:09:38Z",
+        "expires_at": "2026-10-23T20:09:38Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-22T20:28:19Z",
+      "reason": "Implemented the shared-epoch liquid particle/source path with generation-bearing identities, deterministic boundary admission, reusable self/cross population candidates, exact radius consumers, checked budgets and physical GPU evidence.",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/F8-09-fluid-shared-bvh.json records sparse/full dispatch, memory, correctness, device and portability results",
+        "PASS: physical RTX 3050 Ti generated Slang CUDA retained/provisional emission, source admission, self/cross filtering, exact radius counts, overflow and stale-identity tests",
+        "PASS: shared service physical CUDA admission/publication/query cases include empty, 30,065-live and 128-live/1,048,576-capacity scenes",
+        "PASS: randomized host oracle covers heterogeneous supports, full-tick motion, outflow, inactive capacity, zero particles, stable IDs and six-sweep one-epoch reuse",
+        "PASS: CPU-liquid/CUDA/Vulkan builds, SPIR-V validation, Metal/HLSL source compilation, 414 conformance tests and 72 roadmap tests",
+        "PASS: legacy schedule unchanged and public realtime profile remains unsupported pending F8-12/F8-18/F8-20/F8-21"
+      ]
+    }
+  ]
 }
