@@ -1,7 +1,7 @@
 {
   "id": "F8-08",
   "title": "Move rigid broad phase onto the shared BVH",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-03",
     "F8-07"
@@ -21,6 +21,14 @@
     "Retain narrow-phase correctness/lifetime tests and record dispatch/candidate/byte budgets at unchanged body/mesh counts."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "a677bf6d-7f68-4d0e-b6d0-b1c60a0f0ab4",
+    "owner": "codex-f8-rigid",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-08/thomas-laptop",
+    "claimed_at": "2026-10-22T19:18:18Z",
+    "heartbeat_at": "2026-10-22T19:18:18Z",
+    "expires_at": "2026-10-23T19:18:18Z"
+  },
   "history": []
 }
