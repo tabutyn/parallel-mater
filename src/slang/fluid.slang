@@ -378,6 +378,539 @@ void fluid_copy_initial(
     temperatures[index] = particle.temperature;
 }
 
+// ABI mirrors PmSpatial* in primitives/spatial_build.slang. Fluid-domain
+// kernels stage and consume leaves; the shared spatial service alone builds,
+// admits and publishes the hierarchy.
+struct FluidSpatialAabb
+{
+    float4 minimum;
+    float4 maximum;
+};
+
+struct FluidSpatialIdentity
+{
+    uint family;
+    uint owner_slot;
+    uint owner_generation;
+    uint topology_revision;
+    uint primitive_kind;
+    uint primitive_slot;
+    uint primitive_generation;
+};
+
+struct FluidSpatialLeafMetadata
+{
+    FluidSpatialIdentity identity;
+    uint sort_key;
+    uint payload_ref;
+    uint query_mask;
+    uint admission_mask;
+    uint flags;
+    uint transfer_group;
+    uint reserved0;
+    uint reserved1;
+    uint reserved2;
+};
+
+static const uint kFluidSpatialFamily = 2u;
+static const uint kFluidSpatialParticlePrimitive = 1u;
+static const uint kFluidSpatialLeafRetained = 1u << 0u;
+static const uint kFluidSpatialLeafProvisional = 1u << 1u;
+static const uint kFluidSpatialLeafInactive = 1u << 4u;
+static const uint kFluidSpatialInvalidBounds = 1u;
+static const uint kFluidSpatialCountOverflow = 1u << 2u;
+static const uint kFluidSpatialInvalidIdentity = 1u << 8u;
+static const uint kFluidSpatialStaleEpoch = 1u << 9u;
+static const uint kFluidSpatialQueryOverflow = 1u << 10u;
+static const uint kFluidSpatialAdmissionInvalid = 1u << 12u;
+
+bool fluid_spatial_finite_vec3(Vec3 value)
+{
+    return isfinite(value.x) && isfinite(value.y) && isfinite(value.z);
+}
+
+bool fluid_spatial_nonnegative_vec3(Vec3 value)
+{
+    return value.x >= 0.0f && value.y >= 0.0f && value.z >= 0.0f;
+}
+
+FluidSpatialAabb fluid_spatial_point_bounds(
+    Vec3 start, Vec3 predicted, Vec3 pathDeviation, Vec3 correctionBudget,
+    float radius)
+{
+    Vec3 expansion = add(add(pathDeviation, correctionBudget),
+        Vec3(radius, radius, radius));
+    Vec3 minimum = subtract(component_min(start, predicted), expansion);
+    Vec3 maximum = add(component_max(start, predicted), expansion);
+    FluidSpatialAabb result;
+    result.minimum = float4(minimum.x, minimum.y, minimum.z, 0.0f);
+    result.maximum = float4(maximum.x, maximum.y, maximum.z, 0.0f);
+    return result;
+}
+
+bool fluid_spatial_valid_bounds(FluidSpatialAabb value)
+{
+    return all(isfinite(value.minimum.xyz)) &&
+        all(isfinite(value.maximum.xyz)) &&
+        all(value.minimum.xyz <= value.maximum.xyz);
+}
+
+bool fluid_spatial_identity_equal(
+    FluidSpatialIdentity left, FluidSpatialIdentity right)
+{
+    return left.family == right.family &&
+        left.owner_slot == right.owner_slot &&
+        left.owner_generation == right.owner_generation &&
+        left.topology_revision == right.topology_revision &&
+        left.primitive_kind == right.primitive_kind &&
+        left.primitive_slot == right.primitive_slot &&
+        left.primitive_generation == right.primitive_generation;
+}
+
+bool fluid_spatial_current_particle(
+    FluidSpatialLeafMetadata leaf, uint ownerSlot, uint ownerGeneration,
+    PMBuffer<uint> stableIds, PMBuffer<uint> count, uint capacity)
+{
+    uint dense = leaf.payload_ref;
+    return leaf.identity.family == kFluidSpatialFamily &&
+        leaf.identity.primitive_kind == kFluidSpatialParticlePrimitive &&
+        leaf.identity.owner_slot == ownerSlot &&
+        leaf.identity.owner_generation == ownerGeneration &&
+        dense < capacity && dense < count[0] &&
+        stableIds[dense] == leaf.identity.primitive_slot;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_emit_spatial_particles(
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> predicted_positions,
+    uniform PMBuffer<uint> stable_ids, uniform PMBuffer<uint> count,
+    uniform uint particle_capacity, uniform uint owner_slot,
+    uniform uint owner_generation, uniform uint material_revision,
+    uniform uint leaf_offset, uniform uint leaf_capacity,
+    uniform uint query_offset, uniform uint query_capacity,
+    uniform uint sort_key_base, uniform uint query_mask,
+    uniform uint admission_mask, uniform float admission_radius,
+    uniform float query_radius, uniform Vec3 path_deviation,
+    uniform Vec3 correction_budget, uniform float epsilon,
+    uniform PMBuffer<FluidSpatialLeafMetadata> metadata,
+    uniform PMBuffer<FluidSpatialAabb> bounds,
+    uniform PMByteBuffer build_flags,
+    uniform PMBuffer<FluidSpatialAabb> query_bounds,
+    uniform PMBuffer<uint> query_masks,
+    uniform PMBuffer<uint> excluded_sort_keys,
+    uniform PMBuffer<uint> query_leaf_sources,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint dense = pmThreadIndex();
+    if (dense >= particle_capacity) return;
+    if (leaf_offset > leaf_capacity || dense >= leaf_capacity - leaf_offset ||
+        query_offset > query_capacity || dense >= query_capacity - query_offset)
+    {
+        pmAtomicOr(status, kFluidSpatialCountOverflow);
+        return;
+    }
+    uint source = leaf_offset + dense;
+    uint query = query_offset + dense;
+    FluidSpatialLeafMetadata leaf = {};
+    leaf.flags = kFluidSpatialLeafInactive;
+    metadata[source] = leaf;
+    build_flags[source] = PMResourceUint8(0u);
+    query_masks[query] = 0u;
+    excluded_sort_keys[query] = 0u;
+    query_leaf_sources[query] = source;
+    uint live = count[0];
+    if (live > particle_capacity)
+    {
+        if (dense == 0u) pmAtomicOr(status, kFluidSpatialCountOverflow);
+        live = particle_capacity;
+    }
+    if (dense >= live) return;
+    bool valid = owner_generation != 0u && material_revision != 0u &&
+        query_mask != 0u && admission_mask != 0u &&
+        isfinite(admission_radius) && admission_radius >= 0.0f &&
+        isfinite(query_radius) && query_radius > 0.0f &&
+        isfinite(epsilon) && epsilon > 0.0f &&
+        fluid_spatial_finite_vec3(path_deviation) &&
+        fluid_spatial_finite_vec3(correction_budget) &&
+        fluid_spatial_nonnegative_vec3(path_deviation) &&
+        fluid_spatial_nonnegative_vec3(correction_budget) &&
+        fluid_spatial_finite_vec3(previous_positions[dense]) &&
+        fluid_spatial_finite_vec3(predicted_positions[dense]) &&
+        sort_key_base < 0xffffffffu - dense;
+    if (!valid)
+    {
+        pmAtomicOr(status, kFluidSpatialInvalidIdentity);
+        return;
+    }
+    float leafRadius = admission_radius + epsilon;
+    float queryRadius = query_radius + epsilon;
+    FluidSpatialAabb leafBounds = fluid_spatial_point_bounds(
+        previous_positions[dense], predicted_positions[dense],
+        path_deviation, correction_budget, leafRadius);
+    FluidSpatialAabb queryBounds = fluid_spatial_point_bounds(
+        previous_positions[dense], predicted_positions[dense],
+        path_deviation, correction_budget, queryRadius);
+    if (!fluid_spatial_valid_bounds(leafBounds) ||
+        !fluid_spatial_valid_bounds(queryBounds))
+    {
+        pmAtomicOr(status, kFluidSpatialInvalidBounds);
+        return;
+    }
+    uint sortKey = sort_key_base + dense + 1u;
+    leaf.identity.family = kFluidSpatialFamily;
+    leaf.identity.owner_slot = owner_slot;
+    leaf.identity.owner_generation = owner_generation;
+    leaf.identity.topology_revision = material_revision;
+    leaf.identity.primitive_kind = kFluidSpatialParticlePrimitive;
+    leaf.identity.primitive_slot = stable_ids[dense];
+    leaf.identity.primitive_generation = 1u;
+    leaf.sort_key = sortKey;
+    leaf.payload_ref = dense;
+    leaf.query_mask = query_mask;
+    leaf.admission_mask = admission_mask;
+    leaf.flags = kFluidSpatialLeafRetained;
+    metadata[source] = leaf;
+    bounds[source] = leafBounds;
+    build_flags[source] = PMResourceUint8(1u);
+    query_bounds[query] = queryBounds;
+    query_masks[query] = query_mask;
+    excluded_sort_keys[query] = sortKey;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_emit_spatial_source_proposals(
+    uniform PMBuffer<Vec3> points, uniform uint amount,
+    uniform float spacing, uniform PMBuffer<uint> count,
+    uniform uint particle_capacity, uniform uint first_stable_id,
+    uniform uint owner_slot, uniform uint owner_generation,
+    uniform uint material_revision, uniform uint leaf_offset,
+    uniform uint leaf_capacity, uniform uint query_offset,
+    uniform uint query_capacity, uniform uint sort_key_base,
+    uniform uint query_mask, uniform uint admission_mask,
+    uniform float query_radius, uniform Vec3 path_deviation,
+    uniform Vec3 correction_budget, uniform float epsilon,
+    uniform PMBuffer<FluidSpatialLeafMetadata> metadata,
+    uniform PMBuffer<FluidSpatialAabb> bounds,
+    uniform PMByteBuffer build_flags,
+    uniform PMBuffer<FluidSpatialAabb> query_bounds,
+    uniform PMBuffer<uint> query_masks,
+    uniform PMBuffer<uint> excluded_sort_keys,
+    uniform PMBuffer<uint> query_leaf_sources,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint proposal = pmThreadIndex();
+    if (proposal >= amount) return;
+    if (leaf_offset > leaf_capacity ||
+        proposal >= leaf_capacity - leaf_offset ||
+        query_offset > query_capacity ||
+        proposal >= query_capacity - query_offset)
+    {
+        pmAtomicOr(status, kFluidSpatialCountOverflow);
+        return;
+    }
+    uint source = leaf_offset + proposal;
+    uint query = query_offset + proposal;
+    FluidSpatialLeafMetadata leaf = {};
+    leaf.flags = kFluidSpatialLeafInactive;
+    metadata[source] = leaf;
+    build_flags[source] = PMResourceUint8(0u);
+    query_masks[query] = 0u;
+    excluded_sort_keys[query] = 0u;
+    query_leaf_sources[query] = source;
+    uint live = count[0];
+    if (live > particle_capacity)
+    {
+        if (proposal == 0u) pmAtomicOr(status, kFluidSpatialCountOverflow);
+        return;
+    }
+    if (proposal >= particle_capacity - live) return;
+    bool valid = owner_generation != 0u && material_revision != 0u &&
+        query_mask != 0u && admission_mask != 0u &&
+        isfinite(spacing) && spacing > 0.0f &&
+        isfinite(query_radius) && query_radius > 0.0f &&
+        isfinite(epsilon) && epsilon > 0.0f &&
+        fluid_spatial_finite_vec3(points[proposal]) &&
+        fluid_spatial_finite_vec3(path_deviation) &&
+        fluid_spatial_finite_vec3(correction_budget) &&
+        fluid_spatial_nonnegative_vec3(path_deviation) &&
+        fluid_spatial_nonnegative_vec3(correction_budget) &&
+        sort_key_base < 0xffffffffu - proposal &&
+        first_stable_id <= 0xffffffffu - proposal;
+    if (!valid)
+    {
+        pmAtomicOr(status, kFluidSpatialInvalidIdentity);
+        return;
+    }
+    // Half spacing on every fluid/proposal leaf makes AABB admission
+    // conservative. Exact sphere tests still run in the neighbor consumer;
+    // admission may intentionally underfill but can never overlap silently.
+    float admissionRadius = 0.5f * spacing + epsilon;
+    float queryRadius = query_radius + epsilon;
+    FluidSpatialAabb leafBounds = fluid_spatial_point_bounds(points[proposal],
+        points[proposal], path_deviation, correction_budget, admissionRadius);
+    FluidSpatialAabb queryBounds = fluid_spatial_point_bounds(points[proposal],
+        points[proposal], path_deviation, correction_budget, queryRadius);
+    if (!fluid_spatial_valid_bounds(leafBounds) ||
+        !fluid_spatial_valid_bounds(queryBounds))
+    {
+        pmAtomicOr(status, kFluidSpatialInvalidBounds);
+        return;
+    }
+    uint sortKey = sort_key_base + proposal + 1u;
+    leaf.identity.family = kFluidSpatialFamily;
+    leaf.identity.owner_slot = owner_slot;
+    leaf.identity.owner_generation = owner_generation;
+    leaf.identity.topology_revision = material_revision;
+    leaf.identity.primitive_kind = kFluidSpatialParticlePrimitive;
+    leaf.identity.primitive_slot = first_stable_id + proposal;
+    leaf.identity.primitive_generation = 1u;
+    leaf.sort_key = sortKey;
+    leaf.payload_ref = live + proposal;
+    leaf.query_mask = query_mask;
+    leaf.admission_mask = admission_mask;
+    leaf.flags = kFluidSpatialLeafProvisional;
+    metadata[source] = leaf;
+    bounds[source] = leafBounds;
+    build_flags[source] = PMResourceUint8(1u);
+    query_bounds[query] = queryBounds;
+    query_masks[query] = query_mask;
+    excluded_sort_keys[query] = sortKey;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(1), 1, 1)]
+void fluid_apply_spatial_source_admission(
+    uniform PMBuffer<Vec3> points, uniform uint amount,
+    uniform Vec3 velocity, uniform float initial_temperature,
+    uniform uint proposal_leaf_offset, uniform uint leaf_capacity,
+    uniform uint proposal_query_offset, uniform uint query_capacity,
+    uniform PMBuffer<FluidSpatialLeafMetadata> metadata,
+    uniform PMByteBuffer admission, uniform PMBuffer<uint> query_masks,
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<uint> stable_ids, uniform PMBuffer<float> foam,
+    uniform PMBuffer<float> temperatures, uniform PMBuffer<uint> count,
+    uniform uint particle_capacity, uniform PMBuffer<uint> accepted,
+    uniform PMBuffer<uint> rejected, uniform PMBuffer<uint> capacity_misses,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    if (pmGroupThreadIndex().x != 0u || pmBlockIndex().x != 0u) return;
+    accepted[0] = 0u;
+    rejected[0] = 0u;
+    capacity_misses[0] = 0u;
+    if (proposal_leaf_offset > leaf_capacity ||
+        amount > leaf_capacity - proposal_leaf_offset ||
+        proposal_query_offset > query_capacity ||
+        amount > query_capacity - proposal_query_offset ||
+        count[0] > particle_capacity)
+    {
+        pmAtomicOr(status, kFluidSpatialCountOverflow);
+        return;
+    }
+    for (uint proposal = 0u; proposal < amount; ++proposal)
+    {
+        uint source = proposal_leaf_offset + proposal;
+        FluidSpatialLeafMetadata leaf = metadata[source];
+        if ((leaf.flags & kFluidSpatialLeafInactive) != 0u)
+        {
+            ++capacity_misses[0];
+            query_masks[proposal_query_offset + proposal] = 0u;
+            continue;
+        }
+        if ((leaf.flags & kFluidSpatialLeafProvisional) == 0u)
+        {
+            pmAtomicOr(status, kFluidSpatialAdmissionInvalid);
+            return;
+        }
+        if (admission[source] == 0u)
+        {
+            ++rejected[0];
+            leaf.flags = kFluidSpatialLeafInactive;
+            metadata[source] = leaf;
+            query_masks[proposal_query_offset + proposal] = 0u;
+            continue;
+        }
+        if (count[0] == particle_capacity)
+        {
+            ++capacity_misses[0];
+            leaf.flags = kFluidSpatialLeafInactive;
+            metadata[source] = leaf;
+            admission[source] = PMResourceUint8(0u);
+            query_masks[proposal_query_offset + proposal] = 0u;
+            continue;
+        }
+        uint dense = count[0]++;
+        positions[dense] = points[proposal];
+        velocities[dense] = velocity;
+        stable_ids[dense] = leaf.identity.primitive_slot;
+        foam[dense] = 0.0f;
+        temperatures[dense] = initial_temperature;
+        leaf.payload_ref = dense;
+        leaf.flags = kFluidSpatialLeafRetained;
+        metadata[source] = leaf;
+        ++accepted[0];
+    }
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_filter_spatial_candidates(
+    uniform PMBuffer<FluidSpatialLeafMetadata> metadata,
+    uniform PMByteBuffer admission, uniform uint leaf_capacity,
+    uniform PMBuffer<uint> query_leaf_sources, uniform uint query_count,
+    uniform uint query_owner_slot, uniform uint query_owner_generation,
+    uniform PMBuffer<uint> query_stable_ids,
+    uniform PMBuffer<uint> query_live_count, uniform uint query_capacity,
+    uniform uint target_owner_slot, uniform uint target_owner_generation,
+    uniform PMBuffer<uint> target_stable_ids,
+    uniform PMBuffer<uint> target_live_count, uniform uint target_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query,
+    uniform PMBuffer<uint> filtered_counts,
+    uniform PMBuffer<uint> filtered_sources,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint query = pmThreadIndex();
+    if (query >= query_count) return;
+    filtered_counts[query] = 0u;
+    uint querySource = query_leaf_sources[query];
+    if (querySource >= leaf_capacity)
+    {
+        pmAtomicOr(status, kFluidSpatialAdmissionInvalid);
+        return;
+    }
+    if (admission[querySource] == 0u) return;
+    FluidSpatialLeafMetadata queryLeaf = metadata[querySource];
+    if (!fluid_spatial_current_particle(queryLeaf, query_owner_slot,
+        query_owner_generation, query_stable_ids, query_live_count,
+        query_capacity))
+    {
+        pmAtomicOr(status, kFluidSpatialStaleEpoch);
+        return;
+    }
+    uint count = candidate_counts[query];
+    if (count > candidates_per_query)
+    {
+        pmAtomicOr(status, kFluidSpatialQueryOverflow);
+        return;
+    }
+    uint written = 0u;
+    uint base = query * candidates_per_query;
+    for (uint candidate = 0u; candidate < count; ++candidate)
+    {
+        uint source = candidate_sources[base + candidate];
+        if (source >= leaf_capacity)
+        {
+            pmAtomicOr(status, kFluidSpatialAdmissionInvalid);
+            filtered_counts[query] = 0u;
+            return;
+        }
+        if (admission[source] == 0u) continue;
+        FluidSpatialLeafMetadata target = metadata[source];
+        if (fluid_spatial_identity_equal(
+                queryLeaf.identity, target.identity)) continue;
+        if (target.identity.family != kFluidSpatialFamily ||
+            target.identity.primitive_kind !=
+                kFluidSpatialParticlePrimitive ||
+            target.identity.owner_slot != target_owner_slot ||
+            target.identity.owner_generation != target_owner_generation)
+            continue;
+        if (!fluid_spatial_current_particle(target, target_owner_slot,
+            target_owner_generation, target_stable_ids, target_live_count,
+            target_capacity))
+        {
+            pmAtomicOr(status, kFluidSpatialStaleEpoch);
+            filtered_counts[query] = 0u;
+            return;
+        }
+        filtered_sources[base + written++] = source;
+    }
+    filtered_counts[query] = written;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_count_spatial_neighbors(
+    uniform PMBuffer<FluidSpatialLeafMetadata> metadata,
+    uniform PMByteBuffer admission, uniform uint leaf_capacity,
+    uniform PMBuffer<uint> query_leaf_sources, uniform uint query_count,
+    uniform PMBuffer<Vec3> query_positions,
+    uniform PMBuffer<uint> query_live_count, uniform uint query_capacity,
+    uniform PMBuffer<Vec3> target_positions,
+    uniform PMBuffer<uint> target_live_count, uniform uint target_capacity,
+    uniform PMBuffer<uint> filtered_counts,
+    uniform PMBuffer<uint> filtered_sources,
+    uniform uint candidates_per_query, uniform float support_radius,
+    uniform uint maximum_neighbors, uniform PMBuffer<uint> neighbor_counts,
+    uniform PMBuffer<uint> neighbor_overflow,
+    uniform PMBuffer<uint> maximum_neighbor_count,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint query = pmThreadIndex();
+    if (query >= query_count) return;
+    neighbor_counts[query] = 0u;
+    if (!isfinite(support_radius) || support_radius <= 0.0f)
+    {
+        if (query == 0u) pmAtomicOr(status, kFluidSpatialInvalidBounds);
+        return;
+    }
+    uint querySource = query_leaf_sources[query];
+    if (querySource >= leaf_capacity)
+    {
+        pmAtomicOr(status, kFluidSpatialAdmissionInvalid);
+        return;
+    }
+    if (admission[querySource] == 0u) return;
+    FluidSpatialLeafMetadata queryLeaf = metadata[querySource];
+    if (queryLeaf.payload_ref >= query_capacity ||
+        queryLeaf.payload_ref >= query_live_count[0])
+    {
+        pmAtomicOr(status, kFluidSpatialStaleEpoch);
+        return;
+    }
+    uint candidateCount = filtered_counts[query];
+    if (candidateCount > candidates_per_query)
+    {
+        pmAtomicOr(status, kFluidSpatialQueryOverflow);
+        return;
+    }
+    Vec3 position = query_positions[queryLeaf.payload_ref];
+    float supportSquared = support_radius * support_radius;
+    uint neighbors = 0u;
+    uint base = query * candidates_per_query;
+    for (uint candidate = 0u; candidate < candidateCount; ++candidate)
+    {
+        uint source = filtered_sources[base + candidate];
+        if (source >= leaf_capacity || admission[source] == 0u)
+        {
+            pmAtomicOr(status, kFluidSpatialAdmissionInvalid);
+            neighbor_counts[query] = 0u;
+            return;
+        }
+        uint dense = metadata[source].payload_ref;
+        if (dense >= target_capacity || dense >= target_live_count[0])
+        {
+            pmAtomicOr(status, kFluidSpatialStaleEpoch);
+            neighbor_counts[query] = 0u;
+            return;
+        }
+        float squared = length_squared(
+            subtract(position, target_positions[dense]));
+        if (squared < supportSquared) ++neighbors;
+    }
+    neighbor_counts[query] = neighbors;
+    pmAtomicMax(maximum_neighbor_count, neighbors);
+    if (neighbors > maximum_neighbors) pmAtomicAdd(neighbor_overflow, 1u);
+}
+
 static const uint kFluidSecondPopulation = 0x80000000u;
 static const uint kFluidLocalIndexMask = 0x7fffffffu;
 

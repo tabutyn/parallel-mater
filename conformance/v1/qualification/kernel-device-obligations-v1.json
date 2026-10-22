@@ -122,12 +122,15 @@
         "fluid_source_emit",
         "fluid_destroy_flags",
         "fluid_gather",
-        "fluid_copy_initial"
+        "fluid_copy_initial",
+        "fluid_emit_spatial_particles",
+        "fluid_emit_spatial_source_proposals",
+        "fluid_apply_spatial_source_admission"
       ],
       "domains": ["FLUID", "SPATIAL_INDEX"],
       "advertised_modes": [],
       "public_case_sets": ["fluid"],
-      "existing_execution_tests": ["parallel-mater-conformance --case fluid-lifecycle"],
+      "existing_execution_tests": ["parallel-mater-fluid-spatial-tests", "parallel-mater-fluid-spatial-cuda-tests", "parallel-mater-conformance --case fluid-lifecycle"],
       "implementation_owners": ["F8-09", "F8-12"]
     },
     {
@@ -143,11 +146,11 @@
     {
       "id": "fluid-pair-index",
       "module": "fluid",
-      "entries": ["fluid_emit_pair_cells", "fluid_count_pair_neighbors"],
+      "entries": ["fluid_emit_pair_cells", "fluid_count_pair_neighbors", "fluid_filter_spatial_candidates", "fluid_count_spatial_neighbors"],
       "domains": ["FLUID", "SPATIAL_INDEX"],
       "advertised_modes": ["CONTACT", "PRESSURE", "VISCOSITY"],
       "public_case_sets": [],
-      "existing_execution_tests": ["parallel-mater-<backend>-fluid-pair-graph-lifecycle-tests"],
+      "existing_execution_tests": ["parallel-mater-fluid-spatial-tests", "parallel-mater-fluid-spatial-cuda-tests", "parallel-mater-<backend>-fluid-pair-graph-lifecycle-tests"],
       "f8_public_cases": ["f8-fluid-pair-index"],
       "implementation_owners": ["F8-09", "F8-18"]
     },

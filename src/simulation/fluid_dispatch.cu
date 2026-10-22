@@ -453,4 +453,153 @@ void copy_initial_fluid(device::DispatchSize grid, device::DispatchSize block, d
         temperatures, invalid);
 }
 
+void emit_fluid_spatial_particles(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *previous_positions,
+    const void *predicted_positions, const std::uint32_t *stable_ids,
+    const std::uint32_t *count, std::uint32_t particle_capacity,
+    std::uint32_t owner_slot, std::uint32_t owner_generation,
+    std::uint32_t material_revision, std::uint32_t leaf_offset,
+    std::uint32_t leaf_capacity, std::uint32_t query_offset,
+    std::uint32_t query_capacity, std::uint32_t sort_key_base,
+    std::uint32_t query_mask, std::uint32_t admission_mask,
+    float admission_radius, float query_radius,
+    const float path_deviation[3], const float correction_budget[3],
+    float epsilon, void *metadata, void *bounds, std::uint8_t *build_flags,
+    void *query_bounds, std::uint32_t *query_masks,
+    std::uint32_t *excluded_sort_keys, std::uint32_t *query_leaf_sources,
+    std::uint32_t *status) noexcept {
+    fluid_emit_spatial_particles<<<
+        dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        const_cast<Vec3_0 *>(as<Vec3_0>(previous_positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(predicted_positions)),
+        const_cast<std::uint32_t *>(stable_ids),
+        const_cast<std::uint32_t *>(count), particle_capacity, owner_slot,
+        owner_generation, material_revision, leaf_offset, leaf_capacity,
+        query_offset, query_capacity, sort_key_base, query_mask,
+        admission_mask, admission_radius, query_radius,
+        vec3(path_deviation), vec3(correction_budget), epsilon,
+        as<FluidSpatialLeafMetadata_0>(metadata),
+        as<FluidSpatialAabb_0>(bounds), build_flags,
+        as<FluidSpatialAabb_0>(query_bounds), query_masks,
+        excluded_sort_keys, query_leaf_sources, status);
+}
+
+void emit_fluid_spatial_source_proposals(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *points, std::uint32_t amount,
+    float spacing, const std::uint32_t *count,
+    std::uint32_t particle_capacity, std::uint32_t first_stable_id,
+    std::uint32_t owner_slot, std::uint32_t owner_generation,
+    std::uint32_t material_revision, std::uint32_t leaf_offset,
+    std::uint32_t leaf_capacity, std::uint32_t query_offset,
+    std::uint32_t query_capacity, std::uint32_t sort_key_base,
+    std::uint32_t query_mask, std::uint32_t admission_mask,
+    float query_radius, const float path_deviation[3],
+    const float correction_budget[3], float epsilon, void *metadata,
+    void *bounds, std::uint8_t *build_flags, void *query_bounds,
+    std::uint32_t *query_masks, std::uint32_t *excluded_sort_keys,
+    std::uint32_t *query_leaf_sources, std::uint32_t *status) noexcept {
+    fluid_emit_spatial_source_proposals<<<
+        dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        const_cast<Vec3_0 *>(as<Vec3_0>(points)), amount, spacing,
+        const_cast<std::uint32_t *>(count), particle_capacity,
+        first_stable_id, owner_slot, owner_generation, material_revision,
+        leaf_offset, leaf_capacity, query_offset, query_capacity,
+        sort_key_base, query_mask, admission_mask, query_radius,
+        vec3(path_deviation), vec3(correction_budget), epsilon,
+        as<FluidSpatialLeafMetadata_0>(metadata),
+        as<FluidSpatialAabb_0>(bounds), build_flags,
+        as<FluidSpatialAabb_0>(query_bounds), query_masks,
+        excluded_sort_keys, query_leaf_sources, status);
+}
+
+void apply_fluid_spatial_source_admission(
+    device::ExecutionQueue stream, const void *points, std::uint32_t amount,
+    const float velocity[3], float initial_temperature,
+    std::uint32_t proposal_leaf_offset, std::uint32_t leaf_capacity,
+    std::uint32_t proposal_query_offset, std::uint32_t query_capacity,
+    void *metadata, std::uint8_t *admission, std::uint32_t *query_masks,
+    void *positions, void *velocities, std::uint32_t *stable_ids,
+    float *foam, float *temperatures, std::uint32_t *count,
+    std::uint32_t particle_capacity, std::uint32_t *accepted,
+    std::uint32_t *rejected, std::uint32_t *capacity_misses,
+    std::uint32_t *status) noexcept {
+    fluid_apply_spatial_source_admission<<<
+        1U, 1U, 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
+        const_cast<Vec3_0 *>(as<Vec3_0>(points)), amount, vec3(velocity),
+        initial_temperature, proposal_leaf_offset, leaf_capacity,
+        proposal_query_offset, query_capacity,
+        as<FluidSpatialLeafMetadata_0>(metadata), admission, query_masks,
+        as<Vec3_0>(positions), as<Vec3_0>(velocities), stable_ids, foam,
+        temperatures, count, particle_capacity, accepted, rejected,
+        capacity_misses, status);
+}
+
+void filter_fluid_spatial_candidates(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *metadata,
+    const std::uint8_t *admission, std::uint32_t leaf_capacity,
+    const std::uint32_t *query_leaf_sources, std::uint32_t query_count,
+    std::uint32_t query_owner_slot, std::uint32_t query_owner_generation,
+    const std::uint32_t *query_stable_ids,
+    const std::uint32_t *query_live_count, std::uint32_t query_capacity,
+    std::uint32_t target_owner_slot, std::uint32_t target_owner_generation,
+    const std::uint32_t *target_stable_ids,
+    const std::uint32_t *target_live_count, std::uint32_t target_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *filtered_counts,
+    std::uint32_t *filtered_sources, std::uint32_t *status) noexcept {
+    fluid_filter_spatial_candidates<<<
+        dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        const_cast<FluidSpatialLeafMetadata_0 *>(
+            as<FluidSpatialLeafMetadata_0>(metadata)),
+        const_cast<std::uint8_t *>(admission), leaf_capacity,
+        const_cast<std::uint32_t *>(query_leaf_sources), query_count,
+        query_owner_slot, query_owner_generation,
+        const_cast<std::uint32_t *>(query_stable_ids),
+        const_cast<std::uint32_t *>(query_live_count), query_capacity,
+        target_owner_slot, target_owner_generation,
+        const_cast<std::uint32_t *>(target_stable_ids),
+        const_cast<std::uint32_t *>(target_live_count), target_capacity,
+        const_cast<std::uint32_t *>(candidate_counts),
+        const_cast<std::uint32_t *>(candidate_sources), candidates_per_query,
+        filtered_counts, filtered_sources, status);
+}
+
+void count_fluid_spatial_neighbors(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *metadata,
+    const std::uint8_t *admission, std::uint32_t leaf_capacity,
+    const std::uint32_t *query_leaf_sources, std::uint32_t query_count,
+    const void *query_positions, const std::uint32_t *query_live_count,
+    std::uint32_t query_capacity, const void *target_positions,
+    const std::uint32_t *target_live_count, std::uint32_t target_capacity,
+    const std::uint32_t *filtered_counts,
+    const std::uint32_t *filtered_sources,
+    std::uint32_t candidates_per_query, float support_radius,
+    std::uint32_t maximum_neighbors, std::uint32_t *neighbor_counts,
+    std::uint32_t *neighbor_overflow,
+    std::uint32_t *maximum_neighbor_count, std::uint32_t *status) noexcept {
+    fluid_count_spatial_neighbors<<<
+        dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        const_cast<FluidSpatialLeafMetadata_0 *>(
+            as<FluidSpatialLeafMetadata_0>(metadata)),
+        const_cast<std::uint8_t *>(admission), leaf_capacity,
+        const_cast<std::uint32_t *>(query_leaf_sources), query_count,
+        const_cast<Vec3_0 *>(as<Vec3_0>(query_positions)),
+        const_cast<std::uint32_t *>(query_live_count), query_capacity,
+        const_cast<Vec3_0 *>(as<Vec3_0>(target_positions)),
+        const_cast<std::uint32_t *>(target_live_count), target_capacity,
+        const_cast<std::uint32_t *>(filtered_counts),
+        const_cast<std::uint32_t *>(filtered_sources), candidates_per_query,
+        support_radius, maximum_neighbors, neighbor_counts,
+        neighbor_overflow, maximum_neighbor_count, status);
+}
+
 } // namespace parallel_mater::simulation
