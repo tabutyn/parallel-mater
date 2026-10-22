@@ -1,7 +1,7 @@
 {
   "id": "F8-11",
   "title": "Stabilize rigid contacts and joints at one 60 Hz step",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-00",
     "F8-03",
@@ -22,6 +22,14 @@
     "Publish new-profile quality/energy/performance evidence beside unchanged legacy-profile results; no post-result tolerance changes or per-device physics fork."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "12da83e8-e038-49b9-bc27-2ceae0943241",
+    "owner": "codex-f8-rigid-60hz",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-11/thomas-laptop",
+    "claimed_at": "2026-10-22T21:23:22Z",
+    "heartbeat_at": "2026-10-22T21:23:22Z",
+    "expires_at": "2026-10-23T21:23:22Z"
+  },
   "history": []
 }
