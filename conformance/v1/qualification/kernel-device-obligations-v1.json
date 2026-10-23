@@ -542,11 +542,11 @@
     {
       "id": "rope-core",
       "module": "rope",
-      "entries": ["rope_advance"],
+      "entries": ["rope_realtime_predict", "rope_realtime_project_constraints", "rope_realtime_apply_position_delta", "rope_realtime_project_contacts", "rope_realtime_commit", "rope_advance"],
       "domains": ["ROPE"],
       "advertised_modes": ["CONTACT"],
       "public_case_sets": ["rope"],
-      "existing_execution_tests": ["parallel-mater-conformance --case rope-core"],
+      "existing_execution_tests": ["parallel-mater-conformance --case rope-core", "parallel-mater-rope-realtime-cuda-tests"],
       "implementation_owners": ["F8-15"]
     },
     {

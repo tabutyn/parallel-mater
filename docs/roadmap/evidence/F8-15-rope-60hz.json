@@ -1,0 +1,146 @@
+{
+  "schema": "parallel-mater-f8-rope-60hz-evidence/v1",
+  "task": "F8-15",
+  "recorded_at": "2026-10-23",
+  "branch": "work/F8-15/windows-gtx1080",
+  "base_commit": "d68c12dc75178861b897ae7346e87cda2dc59e31",
+  "profile": {
+    "name": "realtime-single-step",
+    "version": "1.0",
+    "timestep_seconds": 0.016666666666666666,
+    "time_advances": 1,
+    "constraint_sweeps": 8,
+    "contact_passes": 4,
+    "solver_added_velocity_damping_fraction": 0.05,
+    "structural_correction_characteristic_length": 0.2,
+    "maximum_total_correction_characteristic_length": 0.25,
+    "maximum_nodes_per_rope": 1024,
+    "spatial_updates_during_solve": 0
+  },
+  "toolchain": {
+    "cmake": "4.4.2",
+    "slang": "2026.18",
+    "cuda_compiler": "12.9.86",
+    "msvc_generator": "Visual Studio 17 2022"
+  },
+  "cuda_device": {
+    "name": "NVIDIA GeForce GTX 1080",
+    "compute_capability": "6.1",
+    "driver": "582.66"
+  },
+  "production_kernels": [
+    "rope_realtime_predict",
+    "rope_realtime_project_constraints",
+    "rope_realtime_apply_position_delta",
+    "rope_realtime_project_contacts",
+    "rope_realtime_commit"
+  ],
+  "workload_budget": {
+    "workload": "desktop-full-v1/rope self-domain portion",
+    "nodes_live": 72,
+    "nodes_capacity": 72,
+    "segments": 71,
+    "bend_chords": 70,
+    "contact_constraints": 72,
+    "constraint_sweeps": 8,
+    "contact_passes": 4,
+    "time_advances": 1,
+    "spatial_updates_during_solve": 0,
+    "domain_dispatches": 22,
+    "domain_workgroups": 22,
+    "stretch_row_visits": 568,
+    "directed_bend_chord_visits": 1120,
+    "contact_constraint_visits": 288,
+    "solver_scratch_bytes": 26600,
+    "policy": "fixed eight chain solves and four contact passes over one F8-10 epoch; no convergence exit, hidden substep, solve-time index mutation, host retry or per-device fork"
+  },
+  "physical_cuda_quality": {
+    "fixture": "generated production Slang with explicit profile version 1 and one 1/60 s advance per tick",
+    "stiff_attachment_impact_self_contact_reset": {
+      "initial_segment_strain": 0.2,
+      "final_segment_relative_error": 0.00000007,
+      "attached_endpoint_drift_m": 0.0,
+      "moving_anchor_speed_m_s": 0.60000002,
+      "impact_plane_height_m": 0.05,
+      "final_impact_normal_speed_m_s": 0.0,
+      "canonical_self_contact_height_m": 0.05,
+      "rest_buffer_reset": "PASS",
+      "invalid_profile_rejected_without_advance": "PASS"
+    },
+    "attached_long_chain": {
+      "nodes": 72,
+      "ticks": 3600,
+      "stretch_rms": 0.00638221,
+      "stretch_maximum": 0.00927449,
+      "bend_rms_degrees": 0.0,
+      "attachment_drift_m": 0.0,
+      "tunneling_count": 0,
+      "final_kinetic_energy_j": 0.00057085,
+      "maximum_correction_m": 0.01519190
+    },
+    "equation_path_timing_ms": {
+      "workload": "72-node two-end attached chain",
+      "warmup_ticks": 120,
+      "samples": 600,
+      "p50": 0.507904,
+      "p95": 1.319936,
+      "p99": 1.352704,
+      "maximum": 1.565696,
+      "scope": "CUDA events around 22 domain dispatches; not a full desktop-full-v1 frame-budget result"
+    }
+  },
+  "qualification": [
+    {
+      "command": "parallel-mater-rope-realtime-cuda-tests",
+      "result": "PASS",
+      "notes": "physical GTX 1080 generated-Slang profile rejection, stiff chain, fixed/moving attachment, fast contact, canonical self-contact, reset and 3600-tick quality/timing"
+    },
+    {
+      "command": "ctest -C Release -R parallel-mater-(rope-realtime|deformable-spatial)(-cuda)?-tests --output-on-failure",
+      "result": "PASS",
+      "notes": "4/4 host contract, shared deformable epoch and physical CUDA tests"
+    },
+    {
+      "command": "common Slang rope realtime entry points to CPU C++, CUDA, Vulkan SPIR-V, Metal and D3D12 DXIL SM 6.6",
+      "result": "PASS",
+      "notes": "five versioned entry points compile from one source; no adapter-specific physics"
+    },
+    {
+      "command": "python -m unittest discover -s conformance/v1/tests -p test_*.py",
+      "result": "PASS",
+      "notes": "414 conformance contract tests"
+    },
+    {
+      "command": "python -m unittest discover -s tests/roadmap -p test_*.py",
+      "result": "PASS",
+      "notes": "72 roadmap tests; canonical inventory contains 193 shared entry points"
+    },
+    {
+      "command": "python conformance/v1/realtime_oracle.py --check-contract",
+      "result": "PASS",
+      "notes": "243 named limits, 49 advertised capability cases, 14 fixed workloads and 5 runtime adapters"
+    },
+    {
+      "command": "ctest -C Release -R slang-architecture --output-on-failure",
+      "result": "PASS",
+      "notes": "shared Slang architecture boundary"
+    }
+  ],
+  "legacy_profile": {
+    "profile_marker": 0,
+    "rope_advance": "unchanged",
+    "rope_advance_coupled": "unchanged",
+    "legacy_schedule_and_tolerances": "unchanged",
+    "goldens": "unchanged",
+    "p1_59_reference_baseline": "rope-core remains a recorded CUDA and D3D12 reference-regression failure while same-revision CUDA-versus-D3D12 passes",
+    "new_entry_points_selected_implicitly": false,
+    "public_realtime_profile": "unsupported and unadvertised until F8-20"
+  },
+  "limits": [
+    "The cooperative stretch solve accepts at most 1024 nodes per rope and one rope per group.",
+    "Version 1 represents bending with two-edge chord constraints and the existing stretch compliance scalar.",
+    "F8-10 generates canonical same-owner contacts; reciprocal distinct-family rope interactions remain F8-17 work.",
+    "The 72-node CUDA timing is equation-path evidence; F8-21 freezes final desktop-full-v1 frame budgets and later device cards qualify registered targets.",
+    "Physical D3D12 and Metal execution remains required in platform leaves; common Metal/DXIL source compilation passes locally."
+  ]
+}

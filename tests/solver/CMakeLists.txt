@@ -134,6 +134,16 @@ add_test(NAME parallel-mater-cloth-realtime-tests
 set_tests_properties(parallel-mater-cloth-realtime-tests PROPERTIES
     LABELS "cloth;realtime;f8")
 
+add_executable(parallel-mater-rope-realtime-tests
+    rope_realtime_tests.cpp)
+target_compile_features(parallel-mater-rope-realtime-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-rope-realtime-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-rope-realtime-tests
+    COMMAND parallel-mater-rope-realtime-tests)
+set_tests_properties(parallel-mater-rope-realtime-tests PROPERTIES
+    LABELS "rope;realtime;f8")
+
 add_executable(parallel-mater-deformable-spatial-tests
     deformable_spatial_tests.cpp)
 target_compile_features(parallel-mater-deformable-spatial-tests PRIVATE cxx_std_20)
@@ -382,6 +392,22 @@ if("CUDA" IN_LIST contact_test_languages)
             COMMAND parallel-mater-cloth-realtime-cuda-tests)
         set_tests_properties(parallel-mater-cloth-realtime-cuda-tests PROPERTIES
             SKIP_RETURN_CODE 77 LABELS "cuda;slang;cloth;realtime;f8"
+            TIMEOUT 300)
+
+        add_executable(parallel-mater-rope-realtime-cuda-tests
+            rope_realtime_cuda_tests.cu)
+        add_dependencies(parallel-mater-rope-realtime-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(parallel-mater-rope-realtime-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(parallel-mater-rope-realtime-cuda-tests PRIVATE
+            CUDA::cudart)
+        set_target_properties(parallel-mater-rope-realtime-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-rope-realtime-cuda-tests
+            COMMAND parallel-mater-rope-realtime-cuda-tests)
+        set_tests_properties(parallel-mater-rope-realtime-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77 LABELS "cuda;slang;rope;realtime;f8"
             TIMEOUT 300)
 
         add_executable(parallel-mater-deformable-spatial-cuda-tests

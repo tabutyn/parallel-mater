@@ -10,10 +10,515 @@ import geometry_fluid;
 import fluid_soft_body;
 import graphics_resources;
 
-groupshared uint ropeMaximumBits;
+// realtime-single-step v1 advances once at 1/60 s and performs exactly eight
+// algebraic sweeps. Legacy rope entry points below remain profile 0.
+static const uint kRopeRealtimeProfileVersion = 1u;
+static const float kRopeRealtimeTimestep = 1.0f / 60.0f;
+static const float kRopeRealtimeSolverDamping = 0.05f;
+static const float kRopeRealtimeMaximumCorrectionFraction = 0.25f;
+static const float kRopeRealtimeStructuralCorrectionFraction = 0.20f;
+static const uint kRopeRealtimeInvalidProfile = 1u << 17u;
+static const uint kRopeRealtimeInvalidTimestep = 1u << 18u;
+static const uint kRopeRealtimeInvalidMaterial = 1u << 19u;
+static const uint kRopeRealtimeNonfiniteState = 1u << 20u;
+static const uint kRopeRealtimeUnresolvedContact = 1u << 21u;
+
 groupshared float ropeDiagonal[1024];
 groupshared float ropeUpper[1024];
 groupshared float ropeRhs[1024];
+groupshared Vec3 ropeRealtimeDirections[1024];
+
+bool rope_realtime_finite_vec3(Vec3 value)
+{
+    return isfinite(value.x) && isfinite(value.y) && isfinite(value.z);
+}
+
+bool rope_realtime_profile_valid(uint profile_version, float dt)
+{
+    return profile_version == kRopeRealtimeProfileVersion && isfinite(dt) &&
+        abs(dt - kRopeRealtimeTimestep) <= 1.0e-7f;
+}
+
+void rope_realtime_record_profile_invalid(
+    uint profile_version, float dt, PMBuffer<uint> status)
+{
+    if (profile_version != kRopeRealtimeProfileVersion)
+        pmAtomicOr(status, kRopeRealtimeInvalidProfile);
+    if (!isfinite(dt) || abs(dt - kRopeRealtimeTimestep) > 1.0e-7f)
+        pmAtomicOr(status, kRopeRealtimeInvalidTimestep);
+}
+
+bool rope_realtime_anchor_active(
+    uint node, uint count, PMByteBuffer anchor_active)
+{
+    return (node == 0u && anchor_active[0] != 0u) ||
+        (node + 1u == count && anchor_active[1] != 0u);
+}
+
+uint rope_realtime_anchor_index(uint node, uint count)
+{
+    return node + 1u == count ? 1u : 0u;
+}
+
+float rope_realtime_inverse_mass(
+    uint node, uint count, PMBuffer<float> inverse_masses,
+    PMByteBuffer anchor_active)
+{
+    return rope_realtime_anchor_active(node, count, anchor_active)
+        ? 0.0f : inverse_masses[node];
+}
+
+bool rope_realtime_material_valid(
+    float inverse_mass, float node_spacing, float radius,
+    float maximum_speed, float velocity_damping, float friction,
+    Vec3 gravity, float dt)
+{
+    float mass = inverse_mass > 0.0f ? 1.0f / inverse_mass : 0.001f;
+    return isfinite(inverse_mass) && inverse_mass >= 0.0f &&
+        isfinite(node_spacing) && node_spacing >= 0.005f &&
+        node_spacing <= 2.0f && isfinite(radius) &&
+        radius >= 0.5f * node_spacing && radius <= node_spacing &&
+        mass >= 0.001f && mass <= 10000.0f &&
+        isfinite(maximum_speed) && maximum_speed >= 0.0f &&
+        maximum_speed <= 20.0f && maximum_speed * dt <=
+            0.5f * node_spacing && isfinite(velocity_damping) &&
+        velocity_damping >= 0.0f && isfinite(friction) &&
+        friction >= 0.0f && friction <= 2.0f &&
+        rope_realtime_finite_vec3(gravity) &&
+        vector_length(gravity) * dt * dt <= 0.25f * node_spacing;
+}
+
+bool rope_realtime_compliance_valid(
+    float compliance, float effective_inverse_mass, float dt)
+{
+    if (!isfinite(compliance) || compliance < 0.0f ||
+        !isfinite(effective_inverse_mass) || effective_inverse_mass <= 0.0f)
+        return false;
+    if (compliance == 0.0f) return true;
+    float ratio = compliance /
+        (dt * dt * effective_inverse_mass);
+    return ratio >= 0.005025125628140708f && ratio <= 19.0f;
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void rope_realtime_predict(
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<float> correction_used,
+    uniform PMBuffer<float> inverse_masses,
+    uniform PMBuffer<Vec3> anchor_targets,
+    uniform PMByteBuffer anchor_active, uniform uint count,
+    uniform uint capacity, uniform float node_spacing, uniform float radius,
+    uniform Vec3 gravity, uniform float velocity_damping,
+    uniform float friction, uniform float maximum_speed, uniform float dt,
+    uniform uint profile_version, uniform PMBuffer<uint> time_advances,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint node = pmThreadIndex();
+    if (!rope_realtime_profile_valid(profile_version, dt))
+    {
+        if (node == 0u)
+            rope_realtime_record_profile_invalid(profile_version, dt, status);
+        return;
+    }
+    if (node == 0u)
+    {
+        ++time_advances[0];
+        if (count < 2u || count > 1024u || count > capacity)
+            pmAtomicOr(status, kRopeRealtimeInvalidMaterial);
+    }
+    if (node >= capacity || node >= count) return;
+    float inverseMass = inverse_masses[node];
+    if (!rope_realtime_material_valid(inverseMass, node_spacing, radius,
+        maximum_speed, velocity_damping, friction, gravity, dt))
+    {
+        pmAtomicOr(status, kRopeRealtimeInvalidMaterial);
+        return;
+    }
+    Vec3 position = positions[node];
+    previous_positions[node] = position;
+    correction_used[node] = 0.0f;
+    if (rope_realtime_anchor_active(node, count, anchor_active))
+    {
+        Vec3 target = anchor_targets[rope_realtime_anchor_index(node, count)];
+        Vec3 motion = subtract(target, position);
+        if (!rope_realtime_finite_vec3(target) ||
+            vector_length(motion) > 0.5f * node_spacing + 1.0e-6f)
+        {
+            pmAtomicOr(status, kRopeRealtimeInvalidMaterial);
+            return;
+        }
+        Vec3 velocity = multiply(motion, 1.0f / dt);
+        if (vector_length(velocity) > maximum_speed + 1.0e-5f)
+        {
+            pmAtomicOr(status, kRopeRealtimeInvalidMaterial);
+            return;
+        }
+        positions[node] = target;
+        velocities[node] = velocity;
+        return;
+    }
+    if (inverseMass == 0.0f)
+    {
+        velocities[node] = Vec3(0.0f);
+        return;
+    }
+    Vec3 velocity = add(velocities[node], multiply(gravity, dt));
+    velocity = multiply(velocity, exp(-velocity_damping * dt));
+    velocity = clamp_length(velocity, min(maximum_speed,
+        0.5f * node_spacing / dt));
+    position = add(position, multiply(velocity, dt));
+    if (!rope_realtime_finite_vec3(position) ||
+        !rope_realtime_finite_vec3(velocity) ||
+        abs(position.x) > 10000.0f || abs(position.y) > 10000.0f ||
+        abs(position.z) > 10000.0f)
+    {
+        pmAtomicOr(status, kRopeRealtimeNonfiniteState);
+        return;
+    }
+    positions[node] = position;
+    velocities[node] = velocity;
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void rope_realtime_project_constraints(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> position_deltas,
+    uniform PMBuffer<float> correction_used,
+    uniform PMBuffer<float> inverse_masses,
+    uniform PMBuffer<float> rest_lengths,
+    uniform PMBuffer<float> rest_bend_lengths,
+    uniform PMByteBuffer anchor_active, uniform uint count,
+    uniform uint capacity, uniform float node_spacing,
+    uniform float structural_compliance, uniform float dt,
+    uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint lane = pmGroupThreadIndex().x;
+    if (pmBlockIndex().x != 0u) return;
+    if (!rope_realtime_profile_valid(profile_version, dt))
+    {
+        if (lane == 0u)
+            rope_realtime_record_profile_invalid(profile_version, dt, status);
+        return;
+    }
+    if (count < 2u || count > 1024u || count > capacity)
+    {
+        if (lane == 0u) pmAtomicOr(status, kRopeRealtimeInvalidMaterial);
+        return;
+    }
+
+    uint edges = count - 1u;
+    float alpha = structural_compliance / (dt * dt);
+    for (uint edge = lane; edge < edges; edge += pmGroupSize().x)
+    {
+        float firstMass = rope_realtime_inverse_mass(
+            edge, count, inverse_masses, anchor_active);
+        float secondMass = rope_realtime_inverse_mass(
+            edge + 1u, count, inverse_masses, anchor_active);
+        float effectiveInverseMass = firstMass + secondMass;
+        float restLength = rest_lengths[edge];
+        Vec3 difference = subtract(positions[edge + 1u], positions[edge]);
+        float currentLength = vector_length(difference);
+        bool valid = isfinite(restLength) && restLength >= 0.005f &&
+            restLength <= node_spacing * 1.25f &&
+            rope_realtime_compliance_valid(structural_compliance,
+                effectiveInverseMass, dt) && isfinite(currentLength) &&
+            currentLength >= 1.0e-7f;
+        if (!valid)
+        {
+            pmAtomicOr(status, kRopeRealtimeInvalidMaterial);
+            ropeRealtimeDirections[edge] = Vec3(1.0f, 0.0f, 0.0f);
+            ropeDiagonal[edge] = 1.0f;
+            ropeRhs[edge] = 0.0f;
+            continue;
+        }
+        ropeRealtimeDirections[edge] = multiply(
+            difference, 1.0f / currentLength);
+        ropeDiagonal[edge] = effectiveInverseMass + alpha;
+        ropeRhs[edge] = -(currentLength - restLength);
+    }
+    pmGroupBarrier();
+    for (uint edge = lane; edge + 1u < edges; edge += pmGroupSize().x)
+    {
+        float sharedMass = rope_realtime_inverse_mass(
+            edge + 1u, count, inverse_masses, anchor_active);
+        ropeUpper[edge] = -sharedMass * dot(
+            ropeRealtimeDirections[edge], ropeRealtimeDirections[edge + 1u]);
+    }
+    pmGroupBarrier();
+    if (lane == 0u)
+    {
+        for (uint edge = 1u; edge < edges; ++edge)
+        {
+            float factor = ropeUpper[edge - 1u] /
+                max(ropeDiagonal[edge - 1u], 1.0e-10f);
+            ropeDiagonal[edge] -= factor * ropeUpper[edge - 1u];
+            ropeRhs[edge] -= factor * ropeRhs[edge - 1u];
+        }
+        ropeRhs[edges - 1u] /= max(
+            ropeDiagonal[edges - 1u], 1.0e-10f);
+        for (int edge = int(edges) - 2; edge >= 0; --edge)
+            ropeRhs[edge] = (ropeRhs[edge] -
+                ropeUpper[edge] * ropeRhs[edge + 1]) /
+                max(ropeDiagonal[edge], 1.0e-10f);
+    }
+    pmGroupBarrier();
+
+    for (uint node = lane; node < count; node += pmGroupSize().x)
+    {
+        float selfMass = rope_realtime_inverse_mass(
+            node, count, inverse_masses, anchor_active);
+        Vec3 correction = Vec3(0.0f);
+        if (selfMass != 0.0f)
+        {
+            if (node != 0u)
+                correction = add(correction, multiply(
+                    ropeRealtimeDirections[node - 1u],
+                    selfMass * ropeRhs[node - 1u]));
+            if (node < edges)
+                correction = subtract(correction, multiply(
+                    ropeRealtimeDirections[node], selfMass * ropeRhs[node]));
+
+            // A two-edge chord supplies bounded bending without changing the
+            // public v1 rope material. Half-relaxed Jacobi keeps the two
+            // parity chains stable while the direct stretch solve carries
+            // tension across the complete rope.
+            Vec3 bendCorrection = Vec3(0.0f);
+            Vec3 position = positions[node];
+            for (uint side = 0u; side < 2u; ++side)
+            {
+                int otherSigned = int(node) + (side == 0u ? -2 : 2);
+                if (otherSigned < 0 || otherSigned >= int(count)) continue;
+                uint other = uint(otherSigned);
+                uint constraint = min(node, other);
+                float restLength = rest_bend_lengths[constraint];
+                float otherMass = rope_realtime_inverse_mass(
+                    other, count, inverse_masses, anchor_active);
+                float effectiveInverseMass = selfMass + otherMass;
+                if (!isfinite(restLength) || restLength < 0.005f ||
+                    restLength > 2.5f * node_spacing ||
+                    !rope_realtime_compliance_valid(structural_compliance,
+                        effectiveInverseMass, dt))
+                {
+                    pmAtomicOr(status, kRopeRealtimeInvalidMaterial);
+                    continue;
+                }
+                Vec3 difference = subtract(position, positions[other]);
+                float currentLength = vector_length(difference);
+                if (!isfinite(currentLength) || currentLength < 1.0e-7f)
+                {
+                    pmAtomicOr(status, kRopeRealtimeInvalidMaterial);
+                    continue;
+                }
+                float denominator = effectiveInverseMass + alpha;
+                float amount = -selfMass *
+                    (currentLength - restLength) /
+                    (denominator * currentLength);
+                bendCorrection = add(bendCorrection,
+                    multiply(difference, amount));
+            }
+            correction = add(correction,
+                multiply(bendCorrection, 0.5f));
+        }
+        float maximumCorrection = kRopeRealtimeStructuralCorrectionFraction *
+            node_spacing;
+        float remaining = max(0.0f,
+            maximumCorrection - correction_used[node]);
+        correction = clamp_length(correction, remaining);
+        if (!rope_realtime_finite_vec3(correction))
+        {
+            pmAtomicOr(status, kRopeRealtimeNonfiniteState);
+            correction = Vec3(0.0f);
+        }
+        position_deltas[node] = correction;
+    }
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void rope_realtime_apply_position_delta(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> position_deltas,
+    uniform PMBuffer<float> correction_used,
+    uniform PMBuffer<float> inverse_masses,
+    uniform PMByteBuffer anchor_active, uniform uint count,
+    uniform uint capacity, uniform float node_spacing, uniform float dt,
+    uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint node = pmThreadIndex();
+    if (!rope_realtime_profile_valid(profile_version, dt))
+    {
+        if (node == 0u)
+            rope_realtime_record_profile_invalid(profile_version, dt, status);
+        return;
+    }
+    if (node >= capacity || node >= count ||
+        rope_realtime_inverse_mass(node, count, inverse_masses,
+            anchor_active) == 0.0f) return;
+    Vec3 delta = position_deltas[node];
+    float used = correction_used[node] + vector_length(delta);
+    float maximumCorrection = kRopeRealtimeMaximumCorrectionFraction *
+        node_spacing;
+    Vec3 position = add(positions[node], delta);
+    if (!rope_realtime_finite_vec3(position) || !isfinite(used) ||
+        used > maximumCorrection + 1.0e-6f)
+    {
+        pmAtomicOr(status, kRopeRealtimeNonfiniteState);
+        return;
+    }
+    positions[node] = position;
+    correction_used[node] = min(used, maximumCorrection);
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void rope_realtime_project_contacts(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<float> inverse_masses,
+    uniform PMBuffer<float> correction_used,
+    uniform PMByteBuffer anchor_active,
+    uniform PMBuffer<Vec3> contact_normals,
+    uniform PMBuffer<float> contact_offsets,
+    uniform PMByteBuffer contact_active, uniform uint count,
+    uniform uint capacity, uniform float node_spacing, uniform float radius,
+    uniform float friction, uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint node = pmThreadIndex();
+    if (!rope_realtime_profile_valid(profile_version, dt))
+    {
+        if (node == 0u)
+            rope_realtime_record_profile_invalid(profile_version, dt, status);
+        return;
+    }
+    if (node >= capacity || node >= count || contact_active[node] == 0u ||
+        rope_realtime_inverse_mass(node, count, inverse_masses,
+            anchor_active) == 0.0f) return;
+    Vec3 normal = contact_normals[node];
+    float normalLength = vector_length(normal);
+    if (!rope_realtime_finite_vec3(normal) || normalLength < 1.0e-6f ||
+        !isfinite(contact_offsets[node]) || !isfinite(radius) ||
+        radius < 0.5f * node_spacing || radius > node_spacing ||
+        !isfinite(friction) || friction < 0.0f || friction > 2.0f)
+    {
+        pmAtomicOr(status, kRopeRealtimeInvalidMaterial);
+        return;
+    }
+    normal = multiply(normal, 1.0f / normalLength);
+    Vec3 position = positions[node];
+    float target = contact_offsets[node] + radius;
+    float penetration = target - dot(position, normal);
+    if (penetration <= 0.0f) return;
+    Vec3 motion = subtract(position, previous_positions[node]);
+    Vec3 tangent = subtract(motion, multiply(normal, dot(motion, normal)));
+    float tangentLength = vector_length(tangent);
+    Vec3 frictionCorrection = tangentLength > 1.0e-7f
+        ? multiply(tangent,
+            -min(tangentLength, friction * penetration) / tangentLength)
+        : Vec3(0.0f);
+    Vec3 correction = add(multiply(normal, penetration), frictionCorrection);
+    float maximumCorrection = kRopeRealtimeMaximumCorrectionFraction *
+        node_spacing;
+    float remaining = max(0.0f,
+        maximumCorrection - correction_used[node]);
+    correction = clamp_length(correction, remaining);
+    position = add(position, correction);
+    if (!rope_realtime_finite_vec3(position) ||
+        !rope_realtime_finite_vec3(correction))
+    {
+        pmAtomicOr(status, kRopeRealtimeNonfiniteState);
+        return;
+    }
+    if (dot(position, normal) < target - 1.0e-6f)
+        pmAtomicOr(status, kRopeRealtimeUnresolvedContact);
+    positions[node] = position;
+    correction_used[node] += vector_length(correction);
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void rope_realtime_commit(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<float> inverse_masses,
+    uniform PMByteBuffer anchor_active,
+    uniform PMBuffer<Vec3> contact_normals,
+    uniform PMBuffer<float> contact_offsets,
+    uniform PMByteBuffer contact_active, uniform uint count,
+    uniform uint capacity, uniform float node_spacing, uniform float radius,
+    uniform float friction, uniform float maximum_speed, uniform float dt,
+    uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint node = pmThreadIndex();
+    if (!rope_realtime_profile_valid(profile_version, dt))
+    {
+        if (node == 0u)
+            rope_realtime_record_profile_invalid(profile_version, dt, status);
+        return;
+    }
+    if (node >= capacity || node >= count) return;
+    if (rope_realtime_anchor_active(node, count, anchor_active))
+    {
+        Vec3 velocity = multiply(subtract(
+            positions[node], previous_positions[node]), 1.0f / dt);
+        if (!rope_realtime_finite_vec3(velocity) ||
+            vector_length(velocity) > maximum_speed + 1.0e-5f)
+        {
+            pmAtomicOr(status, kRopeRealtimeNonfiniteState);
+            velocity = Vec3(0.0f);
+        }
+        velocities[node] = velocity;
+        return;
+    }
+    if (inverse_masses[node] == 0.0f)
+    {
+        velocities[node] = Vec3(0.0f);
+        return;
+    }
+    Vec3 velocity = multiply(subtract(
+        positions[node], previous_positions[node]),
+        (1.0f - kRopeRealtimeSolverDamping) / dt);
+    if (contact_active[node] != 0u)
+    {
+        Vec3 normal = normalized_or(contact_normals[node], Vec3(0.0f));
+        float target = contact_offsets[node] + radius;
+        if (vector_length(normal) > 0.0f &&
+            dot(positions[node], normal) <=
+                target + 1.0e-5f * node_spacing)
+        {
+            float normalSpeed = dot(velocity, normal);
+            Vec3 normalVelocity = multiply(normal, max(normalSpeed, 0.0f));
+            Vec3 tangentVelocity = subtract(velocity,
+                multiply(normal, normalSpeed));
+            velocity = add(normalVelocity, multiply(tangentVelocity,
+                1.0f - min(friction, 1.0f)));
+        }
+    }
+    velocity = clamp_length(velocity, maximum_speed);
+    if (!rope_realtime_finite_vec3(positions[node]) ||
+        !rope_realtime_finite_vec3(velocity))
+    {
+        pmAtomicOr(status, kRopeRealtimeNonfiniteState);
+        positions[node] = previous_positions[node];
+        velocities[node] = Vec3(0.0f);
+        return;
+    }
+    velocities[node] = velocity;
+}
+
+groupshared uint ropeMaximumBits;
 groupshared uint ropeReleased;
 groupshared uint ropeConverged;
 groupshared float ropeStrain[128];

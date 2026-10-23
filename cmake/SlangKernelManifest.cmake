@@ -191,7 +191,11 @@ set(PARALLEL_MATER_SLANG_smoke_grid_ENTRIES
     smoke_grid_cloth_force
     smoke_grid_apply_cloth_force
     smoke_grid_rigid_force)
-set(PARALLEL_MATER_SLANG_rope_ENTRIES rope_advance rope_advance_coupled)
+set(PARALLEL_MATER_SLANG_rope_ENTRIES
+    rope_realtime_predict rope_realtime_project_constraints
+    rope_realtime_apply_position_delta rope_realtime_project_contacts
+    rope_realtime_commit
+    rope_advance rope_advance_coupled)
 set(PARALLEL_MATER_SLANG_rope_OPTIMIZATION 3)
 
 function(parallel_mater_slang_entry_arguments module variant output)
