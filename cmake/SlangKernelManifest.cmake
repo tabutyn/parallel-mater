@@ -155,7 +155,12 @@ set(PARALLEL_MATER_SLANG_geometry_fluid_ENTRIES
 set(PARALLEL_MATER_SLANG_geometry_smoke_ENTRIES
     smoke_emit_cells smoke_density_pressure smoke_pair_forces
     smoke_compute_vorticity smoke_advect smoke_emit smoke_deformable_bounds
-    smoke_rigid_contact smoke_apply_rigid_impulses)
+    smoke_rigid_contact smoke_apply_rigid_impulses
+    smoke_realtime_particle_emit smoke_realtime_particle_predict
+    smoke_realtime_particle_density_pressure
+    smoke_realtime_particle_position_delta
+    smoke_realtime_particle_apply_position_delta
+    smoke_realtime_particle_commit)
 set(PARALLEL_MATER_SLANG_geometry_soft_body_ENTRIES
     deformable_collide soft_body_surface_contacts
     soft_body_apply_surface_contacts
@@ -193,7 +198,17 @@ set(PARALLEL_MATER_SLANG_smoke_grid_ENTRIES
     smoke_grid_soft_body_force
     smoke_grid_cloth_force
     smoke_grid_apply_cloth_force
-    smoke_grid_rigid_force)
+    smoke_grid_rigid_force
+    smoke_realtime_grid_begin
+    smoke_realtime_grid_source
+    smoke_realtime_grid_advect_scalar
+    smoke_realtime_grid_advect_face
+    smoke_realtime_grid_face_forces
+    smoke_realtime_grid_boundaries
+    smoke_realtime_grid_divergence
+    smoke_realtime_grid_pressure_cycle
+    smoke_realtime_grid_project_face
+    smoke_realtime_grid_trace)
 set(PARALLEL_MATER_SLANG_rope_ENTRIES
     rope_realtime_predict rope_realtime_project_constraints
     rope_realtime_apply_position_delta rope_realtime_project_contacts
