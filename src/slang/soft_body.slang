@@ -20,6 +20,244 @@ groupshared float softInverseMasses[kSoftReductionThreads];
 groupshared Vec3 softCenter;
 groupshared Vec3 softCenterCorrection;
 groupshared Quaternion softOrientation;
+groupshared uint softRealtimeShapeValid;
+
+// realtime-single-step v1 advances once at 1/60 s and performs exactly eight
+// algebraic sweeps. Legacy soft-body entry points below remain profile 0.
+static const uint kSoftRealtimeProfileVersion = 1u;
+static const float kSoftRealtimeTimestep = 1.0f / 60.0f;
+static const float kSoftRealtimeSolverDamping = 0.05f;
+static const float kSoftRealtimeMaximumCorrectionFraction = 0.25f;
+static const float kSoftRealtimeStructuralCorrectionFraction = 0.20f;
+static const uint kSoftRealtimeInvalidProfile = 1u << 17u;
+static const uint kSoftRealtimeInvalidTimestep = 1u << 18u;
+static const uint kSoftRealtimeInvalidMaterial = 1u << 19u;
+static const uint kSoftRealtimeNonfiniteState = 1u << 20u;
+static const uint kSoftRealtimeUnresolvedContact = 1u << 21u;
+static const uint kSoftRealtimeInverted = 1u << 22u;
+
+bool soft_body_realtime_finite_vec3(Vec3 value)
+{
+    return isfinite(value.x) && isfinite(value.y) && isfinite(value.z);
+}
+
+bool soft_body_realtime_profile_valid(uint profile_version, float dt)
+{
+    return profile_version == kSoftRealtimeProfileVersion && isfinite(dt) &&
+        abs(dt - kSoftRealtimeTimestep) <= 1.0e-7f;
+}
+
+void soft_body_realtime_record_profile_invalid(
+    uint profile_version, float dt, PMBuffer<uint> status)
+{
+    if (profile_version != kSoftRealtimeProfileVersion)
+        pmAtomicOr(status, kSoftRealtimeInvalidProfile);
+    if (!isfinite(dt) || abs(dt - kSoftRealtimeTimestep) > 1.0e-7f)
+        pmAtomicOr(status, kSoftRealtimeInvalidTimestep);
+}
+
+bool soft_body_realtime_node_material_valid(
+    float inverse_mass, float characteristic_length, float maximum_speed,
+    float velocity_damping, Vec3 gravity, float dt)
+{
+    float mass = inverse_mass > 0.0f ? 1.0f / inverse_mass : 0.001f;
+    return isfinite(inverse_mass) && inverse_mass >= 0.0f &&
+        isfinite(characteristic_length) &&
+        characteristic_length >= 0.005f && characteristic_length <= 2.0f &&
+        mass >= 0.001f && mass <= 10000.0f &&
+        isfinite(maximum_speed) && maximum_speed >= 0.0f &&
+        maximum_speed <= 20.0f && maximum_speed * dt <=
+            0.5f * characteristic_length && isfinite(velocity_damping) &&
+        velocity_damping >= 0.0f &&
+        soft_body_realtime_finite_vec3(gravity) &&
+        vector_length(gravity) * dt * dt <=
+            0.25f * characteristic_length;
+}
+
+bool soft_body_realtime_compliance_valid(
+    float compliance, float effective_inverse_mass, float dt)
+{
+    if (!isfinite(compliance) || compliance < 0.0f ||
+        !isfinite(effective_inverse_mass) || effective_inverse_mass <= 0.0f)
+        return false;
+    if (compliance == 0.0f) return true;
+    float ratio = compliance / (dt * dt * effective_inverse_mass);
+    return ratio >= 0.005025125628140708f && ratio <= 19.0f;
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void soft_body_realtime_predict(
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<float> correction_used,
+    uniform PMBuffer<float> inverse_masses,
+    uniform PMBuffer<float> characteristic_lengths,
+    uniform uint count, uniform uint capacity, uniform Vec3 gravity,
+    uniform float velocity_damping, uniform float maximum_speed,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> time_advances,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint node = pmThreadIndex();
+    if (!soft_body_realtime_profile_valid(profile_version, dt))
+    {
+        if (node == 0u)
+            soft_body_realtime_record_profile_invalid(
+                profile_version, dt, status);
+        return;
+    }
+    if (node == 0u) ++time_advances[0];
+    if (node >= capacity || node >= count) return;
+    float inverseMass = inverse_masses[node];
+    float characteristicLength = characteristic_lengths[node];
+    if (!soft_body_realtime_node_material_valid(inverseMass,
+        characteristicLength, maximum_speed, velocity_damping, gravity, dt))
+    {
+        pmAtomicOr(status, kSoftRealtimeInvalidMaterial);
+        return;
+    }
+    Vec3 position = positions[node];
+    previous_positions[node] = position;
+    correction_used[node] = 0.0f;
+    if (inverseMass == 0.0f)
+    {
+        velocities[node] = Vec3(0.0f);
+        return;
+    }
+    Vec3 velocity = add(velocities[node], multiply(gravity, dt));
+    velocity = multiply(velocity, exp(-velocity_damping * dt));
+    velocity = clamp_length(velocity, min(maximum_speed,
+        0.5f * characteristicLength / dt));
+    position = add(position, multiply(velocity, dt));
+    if (!soft_body_realtime_finite_vec3(position) ||
+        !soft_body_realtime_finite_vec3(velocity) ||
+        abs(position.x) > 10000.0f || abs(position.y) > 10000.0f ||
+        abs(position.z) > 10000.0f)
+    {
+        pmAtomicOr(status, kSoftRealtimeNonfiniteState);
+        return;
+    }
+    positions[node] = position;
+    velocities[node] = velocity;
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void soft_body_realtime_project_links(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> position_deltas,
+    uniform PMBuffer<float> correction_used,
+    uniform PMBuffer<float> inverse_masses,
+    uniform PMBuffer<float> characteristic_lengths,
+    uniform PMBuffer<uint> offsets,
+    uniform PMBuffer<SoftBodyNeighbor> neighbors,
+    uniform uint count, uniform uint capacity, uniform float compliance,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint node = pmThreadIndex();
+    if (!soft_body_realtime_profile_valid(profile_version, dt))
+    {
+        if (node == 0u)
+            soft_body_realtime_record_profile_invalid(
+                profile_version, dt, status);
+        return;
+    }
+    if (node >= capacity || node >= count) return;
+    position_deltas[node] = Vec3(0.0f);
+    float selfMass = inverse_masses[node];
+    if (selfMass == 0.0f) return;
+    Vec3 position = positions[node];
+    Vec3 correction = Vec3(0.0f);
+    uint activeCount = 0u;
+    for (uint edge = offsets[node]; edge < offsets[node + 1u]; ++edge)
+    {
+        SoftBodyNeighbor neighbor = neighbors[edge];
+        if (neighbor.index >= count)
+        {
+            pmAtomicOr(status, kSoftRealtimeInvalidMaterial);
+            continue;
+        }
+        float otherMass = inverse_masses[neighbor.index];
+        float effectiveInverseMass = selfMass + otherMass;
+        float massRatio = otherMass > 0.0f
+            ? max(selfMass, otherMass) / min(selfMass, otherMass) : 1.0f;
+        if (!isfinite(neighbor.rest_length) || neighbor.rest_length < 0.005f ||
+            neighbor.rest_length > 2.0f || massRatio > 100.0f ||
+            !soft_body_realtime_compliance_valid(
+                compliance, effectiveInverseMass, dt))
+        {
+            pmAtomicOr(status, kSoftRealtimeInvalidMaterial);
+            continue;
+        }
+        Vec3 difference = subtract(position, positions[neighbor.index]);
+        float edgeLength = vector_length(difference);
+        if (!isfinite(edgeLength) || edgeLength < 1.0e-7f)
+        {
+            if (!isfinite(edgeLength))
+                pmAtomicOr(status, kSoftRealtimeNonfiniteState);
+            continue;
+        }
+        float denominator = effectiveInverseMass + compliance / (dt * dt);
+        float amount = -selfMass * (edgeLength - neighbor.rest_length) /
+            (denominator * edgeLength);
+        correction = add(correction, multiply(difference, amount));
+        ++activeCount;
+    }
+    if (activeCount != 0u)
+        correction = multiply(correction, 1.0f / float(activeCount));
+    float remaining = max(0.0f,
+        kSoftRealtimeStructuralCorrectionFraction *
+            characteristic_lengths[node] - correction_used[node]);
+    correction = clamp_length(correction, remaining);
+    if (!soft_body_realtime_finite_vec3(correction))
+    {
+        pmAtomicOr(status, kSoftRealtimeNonfiniteState);
+        correction = Vec3(0.0f);
+    }
+    position_deltas[node] = correction;
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void soft_body_realtime_apply_position_delta(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> position_deltas,
+    uniform PMBuffer<float> correction_used,
+    uniform PMBuffer<float> inverse_masses,
+    uniform PMBuffer<float> characteristic_lengths,
+    uniform uint count, uniform uint capacity, uniform float dt,
+    uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint node = pmThreadIndex();
+    if (!soft_body_realtime_profile_valid(profile_version, dt))
+    {
+        if (node == 0u)
+            soft_body_realtime_record_profile_invalid(
+                profile_version, dt, status);
+        return;
+    }
+    if (node >= capacity || node >= count ||
+        inverse_masses[node] == 0.0f) return;
+    Vec3 delta = position_deltas[node];
+    float used = correction_used[node] + vector_length(delta);
+    float maximumCorrection = kSoftRealtimeMaximumCorrectionFraction *
+        characteristic_lengths[node];
+    Vec3 position = add(positions[node], delta);
+    if (!soft_body_realtime_finite_vec3(position) || !isfinite(used) ||
+        used > maximumCorrection + 1.0e-6f)
+    {
+        pmAtomicOr(status, kSoftRealtimeNonfiniteState);
+        return;
+    }
+    positions[node] = position;
+    correction_used[node] = min(used, maximumCorrection);
+}
 
 [shader("compute")]
 [numthreads(128, 1, 1)]
@@ -133,6 +371,351 @@ ShapeMatrix shape_matrix_multiply(
                 multiply(first.columns[2], weights.z)));
     }
     return result;
+}
+
+float shape_matrix_determinant(ShapeMatrix value)
+{
+    return dot(value.columns[0],
+        cross(value.columns[1], value.columns[2]));
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void soft_body_realtime_project_shape(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> corrections,
+    uniform PMBuffer<Vec3> rest_positions,
+    uniform PMBuffer<float> inverse_masses,
+    uniform PMBuffer<float> characteristic_lengths,
+    uniform PMBuffer<float> correction_used,
+    uniform uint count, uniform uint capacity, uniform float movable_mass,
+    uniform Vec3 rest_center, uniform ShapeMatrix inverse_rest,
+    uniform PMBuffer<Quaternion> stored_orientation, uniform float stiffness,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    if (pmBlockIndex().x != 0u) return;
+    uint thread = pmGroupThreadIndex().x;
+    if (!soft_body_realtime_profile_valid(profile_version, dt))
+    {
+        if (thread == 0u)
+            soft_body_realtime_record_profile_invalid(
+                profile_version, dt, status);
+        return;
+    }
+    if (count > capacity || count == 0u || !isfinite(movable_mass) ||
+        movable_mass <= 0.0f || !isfinite(stiffness) ||
+        (stiffness != 0.0f && (stiffness < 0.05f || stiffness > 0.995f)) ||
+        !soft_body_realtime_finite_vec3(rest_center))
+    {
+        if (thread == 0u) pmAtomicOr(status, kSoftRealtimeInvalidMaterial);
+        return;
+    }
+    if (stiffness == 0.0f) return;
+
+    Vec3 currentCenter = Vec3(0.0f);
+    for (uint base = 0u; base < count; base += pmGroupSize().x)
+    {
+        uint node = base + thread;
+        if (node < count)
+        {
+            softValuesA[thread] = positions[node];
+            softInverseMasses[thread] = inverse_masses[node];
+        }
+        pmGroupBarrier();
+        if (thread == 0u)
+        {
+            uint valid = min(pmGroupSize().x, count - base);
+            for (uint item = 0u; item < valid; ++item)
+            {
+                float inverseMass = softInverseMasses[item];
+                if (inverseMass > 0.0f)
+                    currentCenter = add(currentCenter,
+                        multiply(softValuesA[item], 1.0f / inverseMass));
+            }
+        }
+        pmGroupBarrier();
+    }
+    if (thread == 0u)
+        softCenter = multiply(currentCenter, 1.0f / movable_mass);
+    pmGroupBarrier();
+
+    ShapeMatrix covariance = {};
+    for (uint base = 0u; base < count; base += pmGroupSize().x)
+    {
+        uint node = base + thread;
+        if (node < count)
+        {
+            softValuesA[thread] = positions[node];
+            softValuesB[thread] = rest_positions[node];
+            softInverseMasses[thread] = inverse_masses[node];
+        }
+        pmGroupBarrier();
+        if (thread == 0u)
+        {
+            uint valid = min(pmGroupSize().x, count - base);
+            for (uint item = 0u; item < valid; ++item)
+            {
+                float inverseMass = softInverseMasses[item];
+                if (inverseMass <= 0.0f) continue;
+                float mass = 1.0f / inverseMass;
+                Vec3 current = subtract(softValuesA[item], softCenter);
+                Vec3 rest = subtract(softValuesB[item], rest_center);
+                covariance.columns[0] = add(covariance.columns[0],
+                    multiply(current, mass * rest.x));
+                covariance.columns[1] = add(covariance.columns[1],
+                    multiply(current, mass * rest.y));
+                covariance.columns[2] = add(covariance.columns[2],
+                    multiply(current, mass * rest.z));
+            }
+        }
+        pmGroupBarrier();
+    }
+    if (thread == 0u)
+    {
+        ShapeMatrix deformation = shape_matrix_multiply(
+            covariance, inverse_rest);
+        float determinant = shape_matrix_determinant(deformation);
+        softRealtimeShapeValid = isfinite(determinant) &&
+            determinant > 1.0e-4f ? 1u : 0u;
+        if (softRealtimeShapeValid == 0u)
+        {
+            pmAtomicOr(status, isfinite(determinant)
+                ? kSoftRealtimeInverted : kSoftRealtimeNonfiniteState);
+        }
+        else
+        {
+            Quaternion orientation = normalized_quaternion(
+                stored_orientation[0]);
+            if (orientation.x == 0.0f && orientation.y == 0.0f &&
+                orientation.z == 0.0f && orientation.w == 0.0f)
+                orientation.w = 1.0f;
+            for (uint iteration = 0u; iteration < 12u; ++iteration)
+            {
+                Vec3 axes[3];
+                axes[0] = rotate(orientation, {1.0f, 0.0f, 0.0f});
+                axes[1] = rotate(orientation, {0.0f, 1.0f, 0.0f});
+                axes[2] = rotate(orientation, {0.0f, 0.0f, 1.0f});
+                Vec3 angular = add(cross(axes[0], deformation.columns[0]),
+                    add(cross(axes[1], deformation.columns[1]),
+                        cross(axes[2], deformation.columns[2])));
+                float denominator = abs(
+                    dot(axes[0], deformation.columns[0]) +
+                    dot(axes[1], deformation.columns[1]) +
+                    dot(axes[2], deformation.columns[2])) + 1.0e-9f;
+                angular = multiply(angular, 1.0f / denominator);
+                float magnitude = vector_length(angular);
+                if (magnitude < 1.0e-6f) break;
+                float angle = min(magnitude, 0.5f);
+                float half = 0.5f * angle;
+                Vec3 axis = multiply(angular, 1.0f / magnitude);
+                Quaternion delta = {axis.x * sin(half), axis.y * sin(half),
+                    axis.z * sin(half), cos(half)};
+                orientation = normalized_quaternion(
+                    quaternion_multiply(delta, orientation));
+            }
+            stored_orientation[0] = orientation;
+            softOrientation = orientation;
+        }
+    }
+    pmGroupBarrier();
+    if (softRealtimeShapeValid == 0u) return;
+
+    for (uint node = thread; node < count; node += pmGroupSize().x)
+    {
+        if (inverse_masses[node] <= 0.0f)
+        {
+            corrections[node] = Vec3(0.0f);
+            continue;
+        }
+        Vec3 target = add(softCenter, rotate(softOrientation,
+            subtract(rest_positions[node], rest_center)));
+        float remaining = max(0.0f,
+            kSoftRealtimeStructuralCorrectionFraction *
+                characteristic_lengths[node] - correction_used[node]);
+        corrections[node] = clamp_length(multiply(
+            subtract(target, positions[node]), stiffness), remaining);
+    }
+    pmGroupBarrier();
+    Vec3 weightedCorrection = Vec3(0.0f);
+    for (uint base = 0u; base < count; base += pmGroupSize().x)
+    {
+        uint node = base + thread;
+        if (node < count)
+        {
+            softValuesA[thread] = corrections[node];
+            softInverseMasses[thread] = inverse_masses[node];
+        }
+        pmGroupBarrier();
+        if (thread == 0u)
+        {
+            uint valid = min(pmGroupSize().x, count - base);
+            for (uint item = 0u; item < valid; ++item)
+            {
+                float inverseMass = softInverseMasses[item];
+                if (inverseMass > 0.0f)
+                    weightedCorrection = add(weightedCorrection,
+                        multiply(softValuesA[item], 1.0f / inverseMass));
+            }
+        }
+        pmGroupBarrier();
+    }
+    if (thread == 0u)
+        softCenterCorrection = multiply(
+            weightedCorrection, 1.0f / movable_mass);
+    pmGroupBarrier();
+    for (uint node = thread; node < count; node += pmGroupSize().x)
+    {
+        if (inverse_masses[node] <= 0.0f) continue;
+        float maximumCorrection = kSoftRealtimeStructuralCorrectionFraction *
+            characteristic_lengths[node];
+        float remaining = max(0.0f,
+            maximumCorrection - correction_used[node]);
+        Vec3 correction = clamp_length(subtract(
+            corrections[node], softCenterCorrection), remaining);
+        Vec3 position = add(positions[node], correction);
+        if (!soft_body_realtime_finite_vec3(position) ||
+            !soft_body_realtime_finite_vec3(correction))
+        {
+            pmAtomicOr(status, kSoftRealtimeNonfiniteState);
+            continue;
+        }
+        positions[node] = position;
+        correction_used[node] = min(maximumCorrection,
+            correction_used[node] + vector_length(correction));
+    }
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void soft_body_realtime_project_contacts(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<float> inverse_masses,
+    uniform PMBuffer<float> characteristic_lengths,
+    uniform PMBuffer<float> correction_used,
+    uniform PMBuffer<Vec3> contact_normals,
+    uniform PMBuffer<float> contact_offsets,
+    uniform PMByteBuffer contact_active,
+    uniform uint count, uniform uint capacity, uniform float node_radius,
+    uniform float friction, uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint node = pmThreadIndex();
+    if (!soft_body_realtime_profile_valid(profile_version, dt))
+    {
+        if (node == 0u)
+            soft_body_realtime_record_profile_invalid(
+                profile_version, dt, status);
+        return;
+    }
+    if (node >= capacity || node >= count ||
+        inverse_masses[node] == 0.0f || contact_active[node] == 0u)
+        return;
+    Vec3 normal = contact_normals[node];
+    float normalLength = vector_length(normal);
+    if (!soft_body_realtime_finite_vec3(normal) ||
+        normalLength < 1.0e-6f || !isfinite(contact_offsets[node]) ||
+        !isfinite(node_radius) || node_radius < 0.0f ||
+        node_radius > 0.5f * characteristic_lengths[node] ||
+        !isfinite(friction) || friction < 0.0f || friction > 2.0f)
+    {
+        pmAtomicOr(status, kSoftRealtimeInvalidMaterial);
+        return;
+    }
+    normal = multiply(normal, 1.0f / normalLength);
+    Vec3 position = positions[node];
+    float target = contact_offsets[node] + node_radius;
+    float penetration = target - dot(position, normal);
+    if (penetration <= 0.0f) return;
+    Vec3 motion = subtract(position, previous_positions[node]);
+    Vec3 tangent = subtract(motion, multiply(normal, dot(motion, normal)));
+    float tangentLength = vector_length(tangent);
+    Vec3 frictionCorrection = tangentLength > 1.0e-7f
+        ? multiply(tangent,
+            -min(tangentLength, friction * penetration) / tangentLength)
+        : Vec3(0.0f);
+    Vec3 correction = add(multiply(normal, penetration), frictionCorrection);
+    float maximumCorrection = kSoftRealtimeMaximumCorrectionFraction *
+        characteristic_lengths[node];
+    float remaining = max(0.0f,
+        maximumCorrection - correction_used[node]);
+    correction = clamp_length(correction, remaining);
+    position = add(position, correction);
+    if (!soft_body_realtime_finite_vec3(position) ||
+        !soft_body_realtime_finite_vec3(correction))
+    {
+        pmAtomicOr(status, kSoftRealtimeNonfiniteState);
+        return;
+    }
+    if (dot(position, normal) < target - 1.0e-6f)
+        pmAtomicOr(status, kSoftRealtimeUnresolvedContact);
+    positions[node] = position;
+    correction_used[node] += vector_length(correction);
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void soft_body_realtime_commit(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<float> inverse_masses,
+    uniform PMBuffer<float> characteristic_lengths,
+    uniform PMBuffer<Vec3> contact_normals,
+    uniform PMBuffer<float> contact_offsets,
+    uniform PMByteBuffer contact_active,
+    uniform uint count, uniform uint capacity, uniform float node_radius,
+    uniform float friction, uniform float maximum_speed,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint node = pmThreadIndex();
+    if (!soft_body_realtime_profile_valid(profile_version, dt))
+    {
+        if (node == 0u)
+            soft_body_realtime_record_profile_invalid(
+                profile_version, dt, status);
+        return;
+    }
+    if (node >= capacity || node >= count) return;
+    if (inverse_masses[node] == 0.0f)
+    {
+        velocities[node] = Vec3(0.0f);
+        return;
+    }
+    Vec3 velocity = multiply(subtract(
+        positions[node], previous_positions[node]),
+        (1.0f - kSoftRealtimeSolverDamping) / dt);
+    if (contact_active[node] != 0u)
+    {
+        Vec3 normal = normalized_or(contact_normals[node], Vec3(0.0f));
+        float target = contact_offsets[node] + node_radius;
+        if (vector_length(normal) > 0.0f &&
+            dot(positions[node], normal) <=
+                target + 1.0e-5f * characteristic_lengths[node])
+        {
+            float normalSpeed = dot(velocity, normal);
+            Vec3 normalVelocity = multiply(normal, max(normalSpeed, 0.0f));
+            Vec3 tangentVelocity = subtract(velocity,
+                multiply(normal, normalSpeed));
+            velocity = add(normalVelocity, multiply(tangentVelocity,
+                1.0f - min(friction, 1.0f)));
+        }
+    }
+    velocity = clamp_length(velocity, maximum_speed);
+    if (!soft_body_realtime_finite_vec3(positions[node]) ||
+        !soft_body_realtime_finite_vec3(velocity))
+    {
+        pmAtomicOr(status, kSoftRealtimeNonfiniteState);
+        positions[node] = previous_positions[node];
+        velocities[node] = Vec3(0.0f);
+        return;
+    }
+    velocities[node] = velocity;
 }
 
 [shader("compute")]

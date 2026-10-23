@@ -3,7 +3,7 @@
   "task": "F8-16",
   "recorded_at": "2026-10-23",
   "branch": "work/F8-16/thomas-laptop",
-  "base_commit": "d68c12dc75178861b897ae7346e87cda2dc59e31",
+  "base_commit": "648e461737d77bbca320fd7f706e7b302c649944",
   "profile": {
     "name": "realtime-single-step",
     "version": "1.0",
@@ -149,7 +149,7 @@
     {
       "command": "ctest --test-dir /tmp/parallel-mater-f8-16-host-build --output-on-failure -j8",
       "result": "PASS",
-      "notes": "65/65 host tests including exact schedule, epoch and budget checks"
+      "notes": "66/66 host tests including merged F8-14 and exact schedule, epoch and budget checks"
     },
     {
       "command": "common Slang realtime smoke entries to CPU, CUDA, Vulkan, Metal, PTX and D3D12 HLSL SM 6.6",
@@ -164,7 +164,7 @@
     {
       "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
       "result": "PASS",
-      "notes": "72 tests; canonical inventory contains 204 shared entry points at the recorded base"
+      "notes": "72 tests; canonical inventory contains 210 shared entry points at the recorded base"
     },
     {
       "command": "python3 conformance/v1/realtime_oracle.py --check-contract",

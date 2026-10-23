@@ -75,6 +75,12 @@ public:
                 name != "deformable_project_links_warp" &&
                 name != "soft_body_damp_springs" &&
                 name != "soft_body_damp_springs_warp" &&
+                name != "soft_body_realtime_predict" &&
+                name != "soft_body_realtime_project_links" &&
+                name != "soft_body_realtime_apply_position_delta" &&
+                name != "soft_body_realtime_project_shape" &&
+                name != "soft_body_realtime_project_contacts" &&
+                name != "soft_body_realtime_commit" &&
                 name != "prepare_avbd_kernel" && name != "solve_avbd_kernel" &&
                 name != "solve_avbd_stage_kernel") continue;
             auto native = device->load_kernel(base + ".metallib", base + ".json", name);
@@ -89,11 +95,13 @@ public:
                 const std::unique_ptr<compute::CommandList> &command) const {
         command->dispatch(arguments, {groups});
     }
-    void complete(const std::unique_ptr<compute::CommandList> &command) const {
+    double complete(const std::unique_ptr<compute::CommandList> &command) const {
         auto completion = command->submit();
         completion->wait();
-        require(completion->ready() && completion->elapsed_seconds() >= 0,
+        const double elapsed = completion->elapsed_seconds();
+        require(completion->ready() && elapsed >= 0,
             "invalid GPU completion/timestamps");
+        return elapsed;
     }
     void run(const Arguments &arguments, std::uint32_t groups) const {
         auto command = device->commands();
@@ -379,6 +387,389 @@ void check_soft_body_simd(Gpu &gpu) {
     std::cout << "Soft-body SIMD tails, pinned nodes, variable degrees: projection/damping passed\n";
 }
 
+void check_soft_body_realtime(Gpu &gpu) {
+    constexpr std::uint32_t count = 4;
+    constexpr float dt = 1.0f / 60.0f;
+    constexpr std::uint32_t profile = 1;
+    constexpr std::uint32_t sweeps = 8;
+    constexpr float radius = 0.005f;
+    struct SoftNeighbor { std::uint32_t index; float rest; };
+    struct ShapeMatrixHost { Vec3 columns[3]; };
+    static_assert(sizeof(SoftNeighbor) == 8);
+    static_assert(sizeof(ShapeMatrixHost) == 36);
+
+    const auto subtract = [](Vec3 a, Vec3 b) {
+        return Vec3{a.x - b.x, a.y - b.y, a.z - b.z};
+    };
+    const auto dot = [](Vec3 a, Vec3 b) {
+        return a.x * b.x + a.y * b.y + a.z * b.z;
+    };
+    const auto cross = [](Vec3 a, Vec3 b) {
+        return Vec3{a.y * b.z - a.z * b.y,
+            a.z * b.x - a.x * b.z,
+            a.x * b.y - a.y * b.x};
+    };
+    const auto length = [&](Vec3 value) {
+        return std::sqrt(dot(value, value));
+    };
+    const auto tetra_volume = [&](const Vec3 *positions) {
+        return std::abs(dot(subtract(positions[1], positions[0]),
+            cross(subtract(positions[2], positions[0]),
+                subtract(positions[3], positions[0])))) / 6.0f;
+    };
+
+    std::vector<Vec3> rest{{0.0f, 0.15f, 0.0f},
+        {0.1f, 0.15f, 0.0f}, {0.0f, 0.25f, 0.0f},
+        {0.0f, 0.15f, 0.1f}};
+    // Exercise the declared 100:1 interacting-mass limit on production Metal.
+    std::vector<float> inverse_masses{50.0f, 0.5f, 50.0f, 0.5f};
+    float movable_mass = 0.0f;
+    Vec3 rest_center{};
+    for (std::uint32_t node = 0; node < count; ++node) {
+        const float mass = 1.0f / inverse_masses[node];
+        movable_mass += mass;
+        rest_center.x += mass * rest[node].x;
+        rest_center.y += mass * rest[node].y;
+        rest_center.z += mass * rest[node].z;
+    }
+    rest_center.x /= movable_mass;
+    rest_center.y /= movable_mass;
+    rest_center.z /= movable_mass;
+
+    float covariance[3][3]{};
+    for (std::uint32_t node = 0; node < count; ++node) {
+        const float mass = 1.0f / inverse_masses[node];
+        const Vec3 value = subtract(rest[node], rest_center);
+        const float v[3]{value.x, value.y, value.z};
+        for (unsigned row = 0; row < 3; ++row)
+            for (unsigned column = 0; column < 3; ++column)
+                covariance[row][column] += mass * v[row] * v[column];
+    }
+    float augmented[3][6]{};
+    for (unsigned row = 0; row < 3; ++row)
+        for (unsigned column = 0; column < 3; ++column) {
+            augmented[row][column] = covariance[row][column];
+            augmented[row][column + 3] = row == column ? 1.0f : 0.0f;
+        }
+    for (unsigned pivot = 0; pivot < 3; ++pivot) {
+        unsigned best = pivot;
+        for (unsigned row = pivot + 1; row < 3; ++row)
+            if (std::abs(augmented[row][pivot]) >
+                std::abs(augmented[best][pivot])) best = row;
+        require(std::abs(augmented[best][pivot]) > 1.0e-12f,
+            "soft-body rest covariance is singular");
+        for (unsigned column = 0; column < 6; ++column)
+            std::swap(augmented[pivot][column], augmented[best][column]);
+        const float divisor = augmented[pivot][pivot];
+        for (float &value : augmented[pivot]) value /= divisor;
+        for (unsigned row = 0; row < 3; ++row) {
+            if (row == pivot) continue;
+            const float factor = augmented[row][pivot];
+            for (unsigned column = 0; column < 6; ++column)
+                augmented[row][column] -= factor * augmented[pivot][column];
+        }
+    }
+    ShapeMatrixHost inverse_rest{};
+    for (unsigned column = 0; column < 3; ++column) {
+        inverse_rest.columns[column] = {augmented[0][column + 3],
+            augmented[1][column + 3], augmented[2][column + 3]};
+    }
+
+    std::vector<std::uint32_t> offsets;
+    std::vector<SoftNeighbor> neighbors;
+    for (std::uint32_t node = 0; node < count; ++node) {
+        offsets.push_back(static_cast<std::uint32_t>(neighbors.size()));
+        for (std::uint32_t other = 0; other < count; ++other) {
+            if (other == node) continue;
+            neighbors.push_back({other, length(subtract(rest[node], rest[other]))});
+        }
+    }
+    offsets.push_back(static_cast<std::uint32_t>(neighbors.size()));
+
+    std::vector<Vec3> initial = rest;
+    initial[1].x += 0.02f;
+    initial[2].y += 0.015f;
+    initial[3].z += 0.03f;
+    std::vector<Vec3> velocities(count);
+    std::vector<float> characteristic_lengths(count, 0.1f);
+    std::vector<Vec3> normals(count, Vec3{0.0f, 1.0f, 0.0f});
+    std::vector<float> plane_offsets(count, 0.0f);
+    std::vector<std::uint8_t> contact_active(count, 1);
+    const Quaternion identity{0.0f, 0.0f, 0.0f, 1.0f};
+    auto positions = gpu.buffer(initial);
+    auto velocity_buffer = gpu.buffer(velocities);
+    auto previous = gpu.buffer(count * sizeof(Vec3));
+    auto corrections = gpu.buffer(count * sizeof(Vec3));
+    auto correction_used = gpu.buffer(count * sizeof(float));
+    auto mass_buffer = gpu.buffer(inverse_masses);
+    auto characteristic_buffer = gpu.buffer(characteristic_lengths);
+    auto offset_buffer = gpu.buffer(offsets);
+    auto neighbor_buffer = gpu.buffer(neighbors);
+    auto rest_buffer = gpu.buffer(rest);
+    auto orientation = gpu.buffer(sizeof(identity), &identity);
+    auto normal_buffer = gpu.buffer(normals);
+    auto plane_buffer = gpu.buffer(plane_offsets);
+    auto active_buffer = gpu.buffer(contact_active);
+    auto advances = gpu.buffer(sizeof(std::uint32_t));
+    auto status = gpu.buffer(sizeof(std::uint32_t));
+    for (const char *name : {"soft_body_realtime_predict",
+             "soft_body_realtime_project_links",
+             "soft_body_realtime_apply_position_delta",
+             "soft_body_realtime_project_shape",
+             "soft_body_realtime_project_contacts",
+             "soft_body_realtime_commit"})
+        require(gpu.kernels.contains(name), std::string("missing ") + name);
+    gpu.kernels.at("soft_body_realtime_project_links").check_pointee(
+        "neighbors", sizeof(SoftNeighbor));
+
+    const auto encode_tick = [&](Vec3 gravity, std::uint32_t selected_profile) {
+        auto command = gpu.device->commands();
+        const auto groups = (count + 127U) / 128U;
+        {
+            Arguments args(gpu.kernels.at("soft_body_realtime_predict"));
+            args.buffer("positions", positions);
+            args.buffer("velocities", velocity_buffer);
+            args.buffer("previous_positions", previous);
+            args.buffer("correction_used", correction_used);
+            args.buffer("inverse_masses", mass_buffer);
+            args.buffer("characteristic_lengths", characteristic_buffer);
+            args.set("count", count); args.set("capacity", count);
+            args.set("gravity", gravity); args.set("velocity_damping", 5.0f);
+            args.set("maximum_speed", 2.9f); args.set("dt", dt);
+            args.set("profile_version", selected_profile);
+            args.buffer("time_advances", advances); args.buffer("status", status);
+            gpu.encode(args, groups, command);
+        }
+        for (std::uint32_t sweep = 0; sweep < sweeps; ++sweep) {
+            {
+                // Shape is first so an inverted input is rejected before any
+                // bond projection can conceal the invalid orientation.
+                Arguments args(gpu.kernels.at("soft_body_realtime_project_shape"));
+                args.buffer("positions", positions); args.buffer("corrections", corrections);
+                args.buffer("rest_positions", rest_buffer); args.buffer("inverse_masses", mass_buffer);
+                args.buffer("characteristic_lengths", characteristic_buffer);
+                args.buffer("correction_used", correction_used);
+                args.set("count", count); args.set("capacity", count);
+                args.set("movable_mass", movable_mass); args.set("rest_center", rest_center);
+                args.set("inverse_rest", inverse_rest); args.buffer("stored_orientation", orientation);
+                args.set("stiffness", 0.35f); args.set("dt", dt);
+                args.set("profile_version", selected_profile); args.buffer("status", status);
+                gpu.encode(args, 1, command);
+            }
+            {
+                Arguments args(gpu.kernels.at("soft_body_realtime_project_links"));
+                args.buffer("positions", positions); args.buffer("position_deltas", corrections);
+                args.buffer("correction_used", correction_used);
+                args.buffer("inverse_masses", mass_buffer);
+                args.buffer("characteristic_lengths", characteristic_buffer);
+                args.buffer("offsets", offset_buffer); args.buffer("neighbors", neighbor_buffer);
+                args.set("count", count); args.set("capacity", count);
+                args.set("compliance", 0.0f); args.set("dt", dt);
+                args.set("profile_version", selected_profile); args.buffer("status", status);
+                gpu.encode(args, groups, command);
+            }
+            {
+                Arguments args(gpu.kernels.at("soft_body_realtime_apply_position_delta"));
+                args.buffer("positions", positions); args.buffer("position_deltas", corrections);
+                args.buffer("correction_used", correction_used);
+                args.buffer("inverse_masses", mass_buffer);
+                args.buffer("characteristic_lengths", characteristic_buffer);
+                args.set("count", count); args.set("capacity", count);
+                args.set("dt", dt); args.set("profile_version", selected_profile);
+                args.buffer("status", status); gpu.encode(args, groups, command);
+            }
+            if ((sweep & 1U) != 0U) {
+                Arguments args(gpu.kernels.at("soft_body_realtime_project_contacts"));
+                args.buffer("positions", positions); args.buffer("previous_positions", previous);
+                args.buffer("inverse_masses", mass_buffer);
+                args.buffer("characteristic_lengths", characteristic_buffer);
+                args.buffer("correction_used", correction_used); args.buffer("contact_normals", normal_buffer);
+                args.buffer("contact_offsets", plane_buffer); args.buffer("contact_active", active_buffer);
+                args.set("count", count); args.set("capacity", count);
+                args.set("node_radius", radius); args.set("friction", 0.4f);
+                args.set("dt", dt); args.set("profile_version", selected_profile);
+                args.buffer("status", status); gpu.encode(args, groups, command);
+            }
+        }
+        {
+            Arguments args(gpu.kernels.at("soft_body_realtime_commit"));
+            args.buffer("positions", positions); args.buffer("previous_positions", previous);
+            args.buffer("velocities", velocity_buffer); args.buffer("inverse_masses", mass_buffer);
+            args.buffer("characteristic_lengths", characteristic_buffer);
+            args.buffer("contact_normals", normal_buffer); args.buffer("contact_offsets", plane_buffer);
+            args.buffer("contact_active", active_buffer); args.set("count", count);
+            args.set("capacity", count); args.set("node_radius", radius);
+            args.set("friction", 0.4f); args.set("maximum_speed", 2.9f);
+            args.set("dt", dt); args.set("profile_version", selected_profile);
+            args.buffer("status", status); gpu.encode(args, groups, command);
+        }
+        return gpu.complete(command) * 1000.0;
+    };
+
+    const auto edge_error = [&](const Vec3 *values) {
+        double squared{};
+        double maximum{};
+        std::size_t edge{};
+        for (std::uint32_t node = 0; node < count; ++node)
+            for (std::uint32_t other = node + 1; other < count; ++other) {
+                const float target = length(subtract(rest[node], rest[other]));
+                const float strain = length(subtract(values[node], values[other])) / target - 1.0f;
+                squared += strain * strain;
+                maximum = std::max(maximum, std::abs(double(strain)));
+                ++edge;
+            }
+        return std::pair{std::sqrt(squared / double(edge)), maximum};
+    };
+    const auto shape_error = [&](const Vec3 *values, Quaternion rotation) {
+        Vec3 center{};
+        for (std::uint32_t node = 0; node < count; ++node) {
+            const float mass = 1.0f / inverse_masses[node];
+            center.x += mass * values[node].x;
+            center.y += mass * values[node].y;
+            center.z += mass * values[node].z;
+        }
+        center.x /= movable_mass; center.y /= movable_mass;
+        center.z /= movable_mass;
+        const auto rotate = [](Quaternion q, Vec3 value) {
+            const Vec3 qv{q.x, q.y, q.z};
+            const Vec3 t{2.0f * (qv.y * value.z - qv.z * value.y),
+                2.0f * (qv.z * value.x - qv.x * value.z),
+                2.0f * (qv.x * value.y - qv.y * value.x)};
+            return Vec3{value.x + q.w * t.x + qv.y * t.z - qv.z * t.y,
+                value.y + q.w * t.y + qv.z * t.x - qv.x * t.z,
+                value.z + q.w * t.z + qv.x * t.y - qv.y * t.x};
+        };
+        double squared{};
+        for (std::uint32_t node = 0; node < count; ++node) {
+            const Vec3 relative = subtract(rest[node], rest_center);
+            const Vec3 rotated = rotate(rotation, relative);
+            const Vec3 difference = subtract(values[node],
+                Vec3{center.x + rotated.x, center.y + rotated.y,
+                    center.z + rotated.z});
+            squared += dot(difference, difference);
+        }
+        return std::sqrt(squared / count) / 0.1;
+    };
+    const float target_volume = tetra_volume(rest.data());
+    const float initial_volume_error = std::abs(tetra_volume(initial.data()) / target_volume - 1.0f);
+    const auto initial_edges = edge_error(initial.data());
+    encode_tick(Vec3{}, profile);
+    require(*static_cast<std::uint32_t *>(advances->host_address()) == 1,
+        "soft-body realtime did not advance exactly once");
+    require(*static_cast<std::uint32_t *>(status->host_address()) == 0,
+        "soft-body realtime quality tick rejected valid state");
+    const auto *quality = static_cast<const Vec3 *>(positions->host_address());
+    const float final_volume_error = std::abs(tetra_volume(quality) / target_volume - 1.0f);
+    const auto final_edges = edge_error(quality);
+    const double final_shape_error = shape_error(quality,
+        *static_cast<const Quaternion *>(orientation->host_address()));
+    require(final_volume_error < initial_volume_error &&
+        final_edges.first < initial_edges.first,
+        "soft-body shape/volume error did not improve");
+    require(final_edges.first <= 0.04 && final_edges.second <= 0.12 &&
+        final_volume_error <= 0.15 && final_shape_error <= 0.1,
+        "soft-body one-step quality exceeds frozen profile gates");
+
+    // Cold-start under gravity, impact and resting energy over 3,600 fixed ticks.
+    std::memcpy(positions->host_address(), rest.data(), count * sizeof(Vec3));
+    std::memset(velocity_buffer->host_address(), 0, count * sizeof(Vec3));
+    std::memset(advances->host_address(), 0, sizeof(std::uint32_t));
+    std::memset(status->host_address(), 0, sizeof(std::uint32_t));
+    std::memcpy(orientation->host_address(), &identity, sizeof(identity));
+    std::vector<double> timings;
+    std::uint32_t tunneling_events{};
+    for (std::uint32_t tick = 0; tick < 3600; ++tick) {
+        const double elapsed = encode_tick({0.0f, -9.81f, 0.0f}, profile);
+        if (tick >= 3000) timings.push_back(elapsed);
+        const auto *tick_positions =
+            static_cast<const Vec3 *>(positions->host_address());
+        for (std::uint32_t node = 0; node < count; ++node) {
+            require(std::isfinite(tick_positions[node].x) &&
+                std::isfinite(tick_positions[node].y) &&
+                std::isfinite(tick_positions[node].z),
+                "soft-body long run produced non-finite state");
+            if (tick_positions[node].y < radius - 1.0e-5f)
+                ++tunneling_events;
+        }
+    }
+    require(*static_cast<std::uint32_t *>(advances->host_address()) == 3600,
+        "soft-body long run did not preserve one advance per tick");
+    require(*static_cast<std::uint32_t *>(status->host_address()) == 0,
+        "soft-body long run reported profile/material/contact failure");
+    const auto *settled = static_cast<const Vec3 *>(positions->host_address());
+    const auto *settled_velocity = static_cast<const Vec3 *>(velocity_buffer->host_address());
+    double energy{};
+    float minimum_height = std::numeric_limits<float>::max();
+    for (std::uint32_t node = 0; node < count; ++node) {
+        minimum_height = std::min(minimum_height, settled[node].y);
+        energy += 0.5 * (1.0 / inverse_masses[node]) *
+            dot(settled_velocity[node], settled_velocity[node]);
+    }
+    require(minimum_height >= radius - 1.0e-5f,
+        "soft-body long run tunneled through contact plane");
+    require(tunneling_events == 0,
+        "soft-body long run had an intermediate tunneling event");
+    require(std::isfinite(energy) && energy < 1.0e-4,
+        "soft-body long run failed to settle");
+    const auto settled_edges = edge_error(settled);
+    const float settled_volume_error = std::abs(
+        tetra_volume(settled) / target_volume - 1.0f);
+    const double settled_shape_error = shape_error(settled,
+        *static_cast<const Quaternion *>(orientation->host_address()));
+    require(settled_edges.first <= 0.04 && settled_edges.second <= 0.12 &&
+        settled_volume_error <= 0.15 && settled_shape_error <= 0.1,
+        "soft-body settled state exceeds frozen profile gates");
+
+    // An inverted rest mapping is rejected, never silently projected through.
+    std::memcpy(positions->host_address(), rest.data(), count * sizeof(Vec3));
+    static_cast<Vec3 *>(positions->host_address())[3].z = -0.1f;
+    std::memset(correction_used->host_address(), 0, count * sizeof(float));
+    std::memset(status->host_address(), 0, sizeof(std::uint32_t));
+    {
+        Arguments args(gpu.kernels.at("soft_body_realtime_project_shape"));
+        args.buffer("positions", positions); args.buffer("corrections", corrections);
+        args.buffer("rest_positions", rest_buffer); args.buffer("inverse_masses", mass_buffer);
+        args.buffer("characteristic_lengths", characteristic_buffer);
+        args.buffer("correction_used", correction_used); args.set("count", count);
+        args.set("capacity", count); args.set("movable_mass", movable_mass);
+        args.set("rest_center", rest_center); args.set("inverse_rest", inverse_rest);
+        args.buffer("stored_orientation", orientation); args.set("stiffness", 0.35f);
+        args.set("dt", dt); args.set("profile_version", profile);
+        args.buffer("status", status); gpu.run(args, 1);
+    }
+    require((*static_cast<std::uint32_t *>(status->host_address()) & (1U << 22U)) != 0,
+        "soft-body inversion policy did not reject inverted mapping");
+
+    // Explicit negotiation rejects another profile without advancing time.
+    std::memset(advances->host_address(), 0, sizeof(std::uint32_t));
+    std::memset(status->host_address(), 0, sizeof(std::uint32_t));
+    encode_tick(Vec3{}, profile + 1);
+    require(*static_cast<std::uint32_t *>(advances->host_address()) == 0 &&
+        (*static_cast<std::uint32_t *>(status->host_address()) & (1U << 17U)) != 0,
+        "soft-body realtime accepted an unnegotiated profile");
+
+    std::sort(timings.begin(), timings.end());
+    const auto percentile = [&](double value) {
+        return timings[std::min<std::size_t>(timings.size() - 1,
+            static_cast<std::size_t>(value * timings.size()))];
+    };
+    std::cout << "F8_SOFT_BODY_METAL_QUALITY initial_volume_error="
+              << initial_volume_error << " final_volume_error="
+              << final_volume_error << " initial_edge_rms="
+              << initial_edges.first << " final_edge_rms=" << final_edges.first
+              << " final_edge_max=" << final_edges.second
+              << " final_shape_rms_h=" << final_shape_error
+              << " resting_energy_j=" << energy << " minimum_height_m="
+              << minimum_height << " tunneling_events=" << tunneling_events
+              << " settled_volume_error=" << settled_volume_error
+              << " settled_edge_rms=" << settled_edges.first
+              << " settled_edge_max=" << settled_edges.second
+              << " settled_shape_rms_h=" << settled_shape_error
+              << " p50_ms=" << percentile(0.50)
+              << " p95_ms=" << percentile(0.95) << " p99_ms="
+              << percentile(0.99) << " maximum_ms=" << timings.back() << '\n';
+}
+
 void check_avbd_schedule(Gpu &gpu) {
     // Edges deliberately connect bodies in different 32-lane workgroups.
     // The 545-body case also exercises prepare's device-memory cache tail.
@@ -572,6 +963,7 @@ int main(int argc, char **argv) {
         check_device_teardown();
         check_rigid_integration(gpu);
         check_soft_body_simd(gpu);
+        check_soft_body_realtime(gpu);
         check_avbd_schedule(gpu);
         return 0;
     } catch (const std::exception &error) {

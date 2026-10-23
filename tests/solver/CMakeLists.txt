@@ -144,6 +144,16 @@ add_test(NAME parallel-mater-smoke-realtime-tests
 set_tests_properties(parallel-mater-smoke-realtime-tests PROPERTIES
     LABELS "smoke;realtime;f8")
 
+add_executable(parallel-mater-soft-body-realtime-tests
+    soft_body_realtime_tests.cpp)
+target_compile_features(parallel-mater-soft-body-realtime-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-soft-body-realtime-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-soft-body-realtime-tests
+    COMMAND parallel-mater-soft-body-realtime-tests)
+set_tests_properties(parallel-mater-soft-body-realtime-tests PROPERTIES
+    LABELS "soft-body;realtime;f8")
+
 add_executable(parallel-mater-deformable-spatial-tests
     deformable_spatial_tests.cpp)
 target_compile_features(parallel-mater-deformable-spatial-tests PRIVATE cxx_std_20)
