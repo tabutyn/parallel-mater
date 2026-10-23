@@ -1,7 +1,7 @@
 {
   "id": "F8-14",
   "title": "Stabilize soft bodies at one 60 Hz step",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-00",
     "F8-03",
@@ -21,6 +21,14 @@
     "Publish new-profile quality/energy/performance evidence beside unchanged legacy-profile results; no post-result tolerance changes or per-device physics fork."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "0ae3e535-c0b4-47a2-b12a-72bf9347ce30",
+    "owner": "codex-macos-f814",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-14/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-23T13:48:53Z",
+    "heartbeat_at": "2026-10-23T13:48:53Z",
+    "expires_at": "2026-10-24T13:48:53Z"
+  },
   "history": []
 }
