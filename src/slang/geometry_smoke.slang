@@ -324,6 +324,377 @@ void smoke_emit(
     vorticities[slot] = {};
 }
 
+// realtime-single-step v1 keeps particle smoke as a supported representation
+// without reusing the legacy sorted-cell force/integrate loop. Candidate lists
+// come from the one F8 spatial publication and remain fixed for six Jacobi
+// pressure sweeps. The swept publication includes the correction allowance.
+static const uint kSmokeRealtimeProfileVersion = 1u;
+static const float kSmokeRealtimeTimestep = 1.0f / 60.0f;
+static const float kSmokeRealtimeSolverDamping = 0.05f;
+static const float kSmokeRealtimeMaximumCorrectionFraction = 0.25f;
+static const uint kSmokeRealtimeInvalidProfile = 1u << 17u;
+static const uint kSmokeRealtimeInvalidTimestep = 1u << 18u;
+static const uint kSmokeRealtimeInvalidMaterial = 1u << 19u;
+static const uint kSmokeRealtimeNonfiniteState = 1u << 20u;
+
+bool smoke_realtime_finite_vec3(Vec3 value)
+{
+    return isfinite(value.x) && isfinite(value.y) && isfinite(value.z);
+}
+
+bool smoke_realtime_profile_valid(uint profile_version, float dt)
+{
+    return profile_version == kSmokeRealtimeProfileVersion && isfinite(dt) &&
+        abs(dt - kSmokeRealtimeTimestep) <= 2.0e-9f;
+}
+
+float smoke_realtime_pressure_response(SmokeOptions options)
+{
+    return options.pressure_stiffness == 0.0f ? 0.0f :
+        1.0f - exp(-options.pressure_stiffness);
+}
+
+bool smoke_realtime_particle_material_valid(SmokeOptions options)
+{
+    float support = 3.0f * options.particle_radius;
+    float pressureResponse = smoke_realtime_pressure_response(options);
+    return options.capacity > 0u && isfinite(options.lifetime) &&
+        isfinite(options.particle_radius) && isfinite(options.buoyancy) &&
+        isfinite(options.response) && isfinite(options.rest_number_density) &&
+        isfinite(options.pressure_stiffness) && isfinite(options.viscosity) &&
+        isfinite(options.maximum_speed) && options.lifetime > 0.0f &&
+        support >= 0.005f && support <= 2.0f && options.buoyancy >= 0.0f &&
+        options.response >= 0.0f && options.rest_number_density > 0.0f &&
+        options.pressure_stiffness >= 0.0f && options.viscosity >= 0.0f &&
+        (options.pressure_stiffness == 0.0f ||
+            (pressureResponse >= 0.05f && pressureResponse <= 0.995f)) &&
+        options.maximum_speed >= 0.0f && options.maximum_speed <= 20.0f &&
+        options.maximum_speed * kSmokeRealtimeTimestep <= 0.5f * support &&
+        options.buoyancy * kSmokeRealtimeTimestep *
+            kSmokeRealtimeTimestep <= 0.25f * support;
+}
+
+void smoke_realtime_record_invalid(
+    uint profile_version, float dt, SmokeOptions options,
+    PMBuffer<uint> status)
+{
+    if (profile_version != kSmokeRealtimeProfileVersion)
+        pmAtomicOr(status, kSmokeRealtimeInvalidProfile);
+    if (!isfinite(dt) || abs(dt - kSmokeRealtimeTimestep) > 2.0e-9f)
+        pmAtomicOr(status, kSmokeRealtimeInvalidTimestep);
+    if (!smoke_realtime_particle_material_valid(options))
+        pmAtomicOr(status, kSmokeRealtimeInvalidMaterial);
+}
+
+float smoke_realtime_particle_weight(float distance, float support)
+{
+    if (distance >= support) return 0.0f;
+    float q = max(0.0f, 1.0f - distance / support);
+    return q * q * q;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_particle_emit(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages,
+    uniform PMBuffer<float> thermal_lift,
+    uniform PMBuffer<float> densities, uniform PMBuffer<float> pressures,
+    uniform SmokeOptions options, uniform uint first_slot,
+    uniform uint emit_count, uniform uint64_t first_serial, uniform float dt,
+    uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint index = pmThreadIndex();
+    if (!smoke_realtime_profile_valid(profile_version, dt) ||
+        !smoke_realtime_particle_material_valid(options))
+    {
+        if (index == 0u)
+            smoke_realtime_record_invalid(profile_version, dt, options,
+                status);
+        return;
+    }
+    if (index >= emit_count) return;
+    uint slot = (first_slot + index) % options.capacity;
+    uint serial = uint(first_serial + uint64_t(index));
+    float y = 2.0f * smoke_random(serial ^ 0x132aef41u) - 1.0f;
+    float z = 2.0f * smoke_random(serial ^ 0xa385c9d3u) - 1.0f;
+    positions[slot] = add(options.emitter_center, {
+        0.0f, y * options.emitter_half_extents.x,
+        z * options.emitter_half_extents.y});
+    previous_positions[slot] = positions[slot];
+    velocities[slot] = clamp_length(
+        options.initial_velocity, options.maximum_speed);
+    ages[slot] = 0.0f;
+    thermal_lift[slot] = 0.0f;
+    densities[slot] = 1.0f;
+    pressures[slot] = 0.0f;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_particle_predict(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages,
+    uniform PMBuffer<float> thermal_lift, uniform uint count,
+    uniform SmokeOptions options, uniform Vec3 gravity, uniform float dt,
+    uniform uint profile_version,
+    uniform PMBuffer<Vec3> accumulated_corrections,
+    uniform PMBuffer<uint> time_advances,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint particle = pmThreadIndex();
+    if (!smoke_realtime_profile_valid(profile_version, dt) ||
+        !smoke_realtime_particle_material_valid(options))
+    {
+        if (particle == 0u)
+            smoke_realtime_record_invalid(profile_version, dt, options,
+                status);
+        return;
+    }
+    if (particle == 0u) ++time_advances[0];
+    if (particle >= count || particle >= options.capacity ||
+        ages[particle] >= options.lifetime) return;
+    Vec3 point = positions[particle];
+    Vec3 velocity = velocities[particle];
+    previous_positions[particle] = point;
+    accumulated_corrections[particle] = {};
+    Vec3 up = normalized_or(multiply(gravity, -1.0f), {0.0f, 1.0f, 0.0f});
+    velocity = add(velocity, multiply(up,
+        (options.buoyancy + thermal_lift[particle]) * dt));
+    float windResponse = 1.0f - exp(-options.response * dt);
+    velocity = add(velocity,
+        multiply(subtract(options.wind, velocity), windResponse));
+    float support = 3.0f * options.particle_radius;
+    velocity = clamp_length(velocity, min(options.maximum_speed,
+        0.5f * support / dt));
+    point = add(point, multiply(velocity, dt));
+    if (!smoke_realtime_finite_vec3(point) ||
+        !smoke_realtime_finite_vec3(velocity))
+    {
+        pmAtomicOr(status, kSmokeRealtimeNonfiniteState);
+        return;
+    }
+    positions[particle] = point;
+    velocities[particle] = velocity;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_particle_density_pressure(
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<float> ages,
+    uniform uint count, uniform SmokeOptions options,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_indices,
+    uniform uint candidates_per_particle, uniform float dt,
+    uniform uint profile_version, uniform PMBuffer<float> densities,
+    uniform PMBuffer<float> pressures,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint particle = pmThreadIndex();
+    if (!smoke_realtime_profile_valid(profile_version, dt) ||
+        !smoke_realtime_particle_material_valid(options))
+    {
+        if (particle == 0u)
+            smoke_realtime_record_invalid(profile_version, dt, options,
+                status);
+        return;
+    }
+    if (particle >= count || particle >= options.capacity) return;
+    if (ages[particle] >= options.lifetime)
+    {
+        densities[particle] = 0.0f;
+        pressures[particle] = 0.0f;
+        return;
+    }
+    uint candidateCount = candidate_counts[particle];
+    if (candidateCount > candidates_per_particle)
+    {
+        pmAtomicOr(status, kSmokeRealtimeInvalidMaterial);
+        return;
+    }
+    float support = 3.0f * options.particle_radius;
+    float density = 1.0f;
+    uint base = particle * candidates_per_particle;
+    for (uint candidate = 0u; candidate < candidateCount; ++candidate)
+    {
+        uint other = candidate_indices[base + candidate];
+        if (other >= count || other >= options.capacity || other == particle ||
+            ages[other] >= options.lifetime) continue;
+        density += smoke_realtime_particle_weight(vector_length(subtract(
+            positions[particle], positions[other])), support);
+    }
+    float compression = max(
+        density / options.rest_number_density - 1.0f, 0.0f);
+    float pressure = smoke_realtime_pressure_response(options) * compression;
+    if (!isfinite(density) || !isfinite(pressure))
+    {
+        pmAtomicOr(status, kSmokeRealtimeNonfiniteState);
+        density = options.rest_number_density;
+        pressure = 0.0f;
+    }
+    densities[particle] = density;
+    pressures[particle] = pressure;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_particle_position_delta(
+    uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
+    uniform PMBuffer<float> ages, uniform uint count,
+    uniform SmokeOptions options, uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_indices,
+    uniform uint candidates_per_particle, uniform PMBuffer<float> densities,
+    uniform PMBuffer<float> pressures,
+    uniform PMBuffer<Vec3> accumulated_corrections,
+    uniform PMBuffer<Vec3> position_deltas, uniform float dt,
+    uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint particle = pmThreadIndex();
+    if (!smoke_realtime_profile_valid(profile_version, dt) ||
+        !smoke_realtime_particle_material_valid(options))
+    {
+        if (particle == 0u)
+            smoke_realtime_record_invalid(profile_version, dt, options,
+                status);
+        return;
+    }
+    if (particle >= count || particle >= options.capacity ||
+        ages[particle] >= options.lifetime) return;
+    uint candidateCount = candidate_counts[particle];
+    if (candidateCount > candidates_per_particle)
+    {
+        pmAtomicOr(status, kSmokeRealtimeInvalidMaterial);
+        return;
+    }
+    float support = 3.0f * options.particle_radius;
+    Vec3 point = positions[particle];
+    Vec3 delta = {};
+    float weightSum = 0.0f;
+    uint base = particle * candidates_per_particle;
+    for (uint candidate = 0u; candidate < candidateCount; ++candidate)
+    {
+        uint other = candidate_indices[base + candidate];
+        if (other >= count || other >= options.capacity || other == particle ||
+            ages[other] >= options.lifetime) continue;
+        Vec3 separation = subtract(point, positions[other]);
+        float distanceSquared = length_squared(separation);
+        if (distanceSquared >= support * support) continue;
+        float distance = sqrt(max(distanceSquared, 1.0e-12f));
+        Vec3 direction = distanceSquared > 1.0e-12f
+            ? multiply(separation, 1.0f / distance)
+            : (particle < other ? Vec3(-1.0f, 0.0f, 0.0f)
+                                : Vec3(1.0f, 0.0f, 0.0f));
+        float weight = smoke_realtime_particle_weight(distance, support);
+        float pairPressure = 0.5f *
+            (pressures[particle] + pressures[other]);
+        delta = add(delta, multiply(direction,
+            support * weight * pairPressure));
+        // XSPH-like viscosity is a bounded displacement in the same Jacobi
+        // proposal so the sweep count and correction budget remain exact.
+        float viscosityResponse = 1.0f - exp(-options.viscosity * dt);
+        delta = add(delta, multiply(subtract(
+            velocities[other], velocities[particle]),
+            dt * viscosityResponse * weight));
+        weightSum += weight;
+    }
+    if (weightSum > 1.0e-6f) delta = multiply(delta, 1.0f / weightSum);
+    float maximumCorrection =
+        kSmokeRealtimeMaximumCorrectionFraction * support;
+    float remaining = max(0.0f, maximumCorrection -
+        vector_length(accumulated_corrections[particle]));
+    delta = clamp_length(delta, remaining);
+    if (!smoke_realtime_finite_vec3(delta))
+    {
+        pmAtomicOr(status, kSmokeRealtimeNonfiniteState);
+        delta = {};
+    }
+    position_deltas[particle] = delta;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_particle_apply_position_delta(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> position_deltas,
+    uniform PMBuffer<Vec3> accumulated_corrections,
+    uniform PMBuffer<float> ages, uniform uint count,
+    uniform SmokeOptions options, uniform float dt,
+    uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint particle = pmThreadIndex();
+    if (!smoke_realtime_profile_valid(profile_version, dt) ||
+        !smoke_realtime_particle_material_valid(options))
+    {
+        if (particle == 0u)
+            smoke_realtime_record_invalid(profile_version, dt, options,
+                status);
+        return;
+    }
+    if (particle >= count || particle >= options.capacity ||
+        ages[particle] >= options.lifetime) return;
+    Vec3 point = add(positions[particle], position_deltas[particle]);
+    Vec3 correction = add(accumulated_corrections[particle],
+        position_deltas[particle]);
+    if (!smoke_realtime_finite_vec3(point) ||
+        !smoke_realtime_finite_vec3(correction))
+    {
+        pmAtomicOr(status, kSmokeRealtimeNonfiniteState);
+        return;
+    }
+    positions[particle] = point;
+    accumulated_corrections[particle] = correction;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_particle_commit(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages,
+    uniform PMBuffer<float> thermal_lift, uniform uint count,
+    uniform SmokeOptions options, uniform float dt,
+    uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint particle = pmThreadIndex();
+    if (!smoke_realtime_profile_valid(profile_version, dt) ||
+        !smoke_realtime_particle_material_valid(options))
+    {
+        if (particle == 0u)
+            smoke_realtime_record_invalid(profile_version, dt, options,
+                status);
+        return;
+    }
+    if (particle >= count || particle >= options.capacity ||
+        ages[particle] >= options.lifetime) return;
+    Vec3 velocity = multiply(subtract(
+        positions[particle], previous_positions[particle]), 1.0f / dt);
+    velocity = clamp_length(multiply(velocity,
+        1.0f - kSmokeRealtimeSolverDamping), options.maximum_speed);
+    if (!smoke_realtime_finite_vec3(positions[particle]) ||
+        !smoke_realtime_finite_vec3(velocity))
+    {
+        pmAtomicOr(status, kSmokeRealtimeNonfiniteState);
+        positions[particle] = previous_positions[particle];
+        velocities[particle] = {};
+        return;
+    }
+    velocities[particle] = velocity;
+    ages[particle] += dt;
+    thermal_lift[particle] *= exp(-dt / 3.0f);
+}
+
 [shader("compute")]
 [numthreads(PM_THREADS(1), 1, 1)]
 void smoke_deformable_bounds(
