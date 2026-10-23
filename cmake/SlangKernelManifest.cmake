@@ -119,7 +119,10 @@ set(PARALLEL_MATER_SLANG_soft_body_ENTRIES
     soft_body_project_rest_shape deformable_project_links
     deformable_project_links_warp soft_body_finalize_velocities
     soft_body_apply_contact_friction soft_body_damp_springs
-    soft_body_damp_springs_warp soft_body_update_surface)
+    soft_body_damp_springs_warp soft_body_update_surface
+    soft_body_realtime_predict soft_body_realtime_project_links
+    soft_body_realtime_apply_position_delta soft_body_realtime_project_shape
+    soft_body_realtime_project_contacts soft_body_realtime_commit)
 set(PARALLEL_MATER_SLANG_soft_body_cloth_ENTRIES
     soft_cloth_detect soft_cloth_apply_soft soft_cloth_apply_cloth)
 set(PARALLEL_MATER_SLANG_cloth_rope_ENTRIES
