@@ -1,7 +1,7 @@
 {
   "id": "F8-16",
   "title": "Stabilize smoke transport and projection at one 60 Hz step",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-00",
     "F8-03",
@@ -21,6 +21,14 @@
     "Publish new-profile quality/energy/performance evidence beside unchanged legacy-profile results; no post-result tolerance changes or per-device physics fork."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "015d9b26-a273-49f7-8417-a333996d817d",
+    "owner": "codex-f8-smoke-60hz",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-16/thomas-laptop",
+    "claimed_at": "2026-10-23T14:05:43Z",
+    "heartbeat_at": "2026-10-23T14:05:43Z",
+    "expires_at": "2026-10-24T14:05:43Z"
+  },
   "history": []
 }
