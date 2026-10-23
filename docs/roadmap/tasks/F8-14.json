@@ -1,7 +1,7 @@
 {
   "id": "F8-14",
   "title": "Stabilize soft bodies at one 60 Hz step",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-00",
     "F8-03",
@@ -20,15 +20,31 @@
     "Independent tests prove exactly one dt=1/60 advance, bounded algebraic iterations, no spatial rebuild in the solve, and adherence to the predeclared dispatch/work/memory budget.",
     "Publish new-profile quality/energy/performance evidence beside unchanged legacy-profile results; no post-result tolerance changes or per-device physics fork."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "0ae3e535-c0b4-47a2-b12a-72bf9347ce30",
-    "owner": "codex-macos-f814",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-14/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-23T13:48:53Z",
-    "heartbeat_at": "2026-10-23T13:48:53Z",
-    "expires_at": "2026-10-24T13:48:53Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: physical Apple M4 generated-Slang Metal qualification; 100:1 mass ratio, one-tick shape/volume gates, explicit inversion/profile rejection, zero tunneling over 3600 ticks and bounded equation timing; docs/roadmap/evidence/F8-14-soft-body-60hz.json",
+    "PASS: ctest --test-dir build-sdk-cpu --output-on-failure -j8; 87/87 passed or capability-skipped, including exact advance/work/epoch contract; shared Slang generated CUDA, Vulkan SPIR-V, native Metal and D3D12 HLSL",
+    "PASS: physical Metal soft-body-core capture compared with unchanged conformance/v1/golden/cuda; legacy equations, schedule, tolerances and golden preserved"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "0ae3e535-c0b4-47a2-b12a-72bf9347ce30",
+        "owner": "codex-macos-f814",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-14/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-23T13:48:53Z",
+        "heartbeat_at": "2026-10-23T13:48:53Z",
+        "expires_at": "2026-10-24T13:48:53Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-23T14:06:33Z",
+      "reason": "Implemented and physically qualified fixed eight-sweep soft-body dynamics with shape, bond and contact projection at one 60 Hz advance.",
+      "evidence": [
+        "PASS: physical Apple M4 generated-Slang Metal qualification; 100:1 mass ratio, one-tick shape/volume gates, explicit inversion/profile rejection, zero tunneling over 3600 ticks and bounded equation timing; docs/roadmap/evidence/F8-14-soft-body-60hz.json",
+        "PASS: ctest --test-dir build-sdk-cpu --output-on-failure -j8; 87/87 passed or capability-skipped, including exact advance/work/epoch contract; shared Slang generated CUDA, Vulkan SPIR-V, native Metal and D3D12 HLSL",
+        "PASS: physical Metal soft-body-core capture compared with unchanged conformance/v1/golden/cuda; legacy equations, schedule, tolerances and golden preserved"
+      ]
+    }
+  ]
 }

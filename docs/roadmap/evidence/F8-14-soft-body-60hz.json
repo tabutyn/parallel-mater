@@ -1,0 +1,142 @@
+{
+  "schema": "parallel-mater-f8-soft-body-60hz-evidence/v1",
+  "task": "F8-14",
+  "recorded_at": "2026-10-23",
+  "branch": "work/F8-14/Thomass-MacBook-Air",
+  "base_commit": "666a7652a489758e4f98741aaf1a7d1071fb6022",
+  "profile": {
+    "name": "realtime-single-step",
+    "version": "1.0",
+    "timestep_seconds": 0.016666666666666666,
+    "time_advances": 1,
+    "constraint_sweeps": 8,
+    "contact_passes": 4,
+    "solver_added_velocity_damping_fraction": 0.05,
+    "structural_correction_characteristic_length": 0.2,
+    "maximum_total_correction_characteristic_length": 0.25,
+    "spatial_updates_during_solve": 0
+  },
+  "toolchain": {
+    "cmake": "4.3.4",
+    "slang": "2026.18",
+    "apple_clang": "21.0.0 (clang-2100.1.1.101)",
+    "macos": "26.5.2 (25F84)"
+  },
+  "metal_device": {
+    "name": "Apple M4",
+    "gpu_cores": 8,
+    "type": "built-in",
+    "metal_supported": true
+  },
+  "production_kernels": [
+    "soft_body_realtime_predict",
+    "soft_body_realtime_project_links",
+    "soft_body_realtime_apply_position_delta",
+    "soft_body_realtime_project_shape",
+    "soft_body_realtime_project_contacts",
+    "soft_body_realtime_commit"
+  ],
+  "workload_budget": {
+    "workload": "desktop-full-v1/deformable-mixed soft-body self-domain portion",
+    "nodes_live": 912,
+    "nodes_capacity": 912,
+    "directed_bonds": 130033,
+    "contact_constraints": 912,
+    "constraint_sweeps": 8,
+    "contact_passes": 4,
+    "time_advances": 1,
+    "spatial_updates_during_solve": 0,
+    "domain_dispatches": 30,
+    "domain_workgroups_128_threads": 184,
+    "directed_bond_visits": 1040264,
+    "contact_constraint_visits": 3648,
+    "solver_scratch_bytes": 25560,
+    "policy": "fixed eight shape/bond sweeps and four contact passes over one F8-10 epoch; no adaptive pass, hidden substep, solve-time index mutation, host retry or per-device fork"
+  },
+  "physical_metal_quality": {
+    "fixture": "generated production Slang, four-node tetrahedron, explicit profile version 1 and one 1/60 s advance per tick",
+    "mass_ratio": 100.0,
+    "one_tick_deformation": {
+      "initial_volume_relative_error": 0.794,
+      "final_volume_relative_error": 0.00895625,
+      "initial_bond_stretch_rms": 0.222816,
+      "final_bond_stretch_rms": 0.0102437,
+      "final_bond_stretch_maximum": 0.0199945,
+      "final_shape_position_error_characteristic_length_rms": 0.017224,
+      "inverted_input_policy": "PASS: status bit set before bond solve; state is not eligible to publish",
+      "unnegotiated_profile_policy": "PASS: status bit set and time advance remains zero"
+    },
+    "cold_start_impact_resting_long_run": {
+      "ticks": 3600,
+      "tunneling_events": 0,
+      "minimum_contact_height_m": 0.005,
+      "settled_volume_relative_error": 0.00384992,
+      "settled_bond_stretch_rms": 0.00112162,
+      "settled_bond_stretch_maximum": 0.00259012,
+      "settled_shape_position_error_characteristic_length_rms": 0.00132958,
+      "final_kinetic_energy_j": 1.32945e-9
+    },
+    "equation_path_timing_ms": {
+      "workload": "four-node 100:1 mass-ratio tetrahedron with shape, bonds and contact",
+      "warmup_and_quality_ticks": 3000,
+      "samples": 600,
+      "p50": 0.126,
+      "p95": 0.12625,
+      "p99": 0.1265,
+      "maximum": 0.202417,
+      "scope": "Metal command-buffer GPU timestamps around 30 domain dispatches; not a full desktop-full-v1 frame-budget result"
+    }
+  },
+  "qualification": [
+    {
+      "command": "build-macos-metal-preview/tests/solver/parallel-mater-slang-metal-kernel-tests build-macos-metal-preview/generated/slang/metal/manifest.txt --execution-only",
+      "result": "PASS",
+      "notes": "physical Apple M4 generated-Slang profile rejection, 100:1 stiff deformation, shape/volume, inversion, cold-start impact and 3600-tick quality/timing"
+    },
+    {
+      "command": "ctest --test-dir build-sdk-cpu --output-on-failure -j8",
+      "result": "PASS",
+      "notes": "87/87 passed or capability-skipped; host contract and shared architecture tests passed"
+    },
+    {
+      "command": "Slang 2026.18 common soft_body realtime entries to CUDA source, Vulkan SPIR-V, Metal/metallib and D3D12 HLSL SM 6.6",
+      "result": "PASS",
+      "notes": "six versioned entry points compile from one source; no adapter-specific physics; native DXIL compilation remains Windows CI because this Mac has no DXC"
+    },
+    {
+      "command": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "414 tests"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "72 tests; canonical inventory contains 194 shared entry points"
+    },
+    {
+      "command": "python3 conformance/v1/realtime_oracle.py --check-contract",
+      "result": "PASS",
+      "notes": "243 named limits, 49 advertised capability cases, 14 fixed workloads and 5 runtime adapters"
+    },
+    {
+      "command": "physical Metal legacy soft-body-core capture compared with conformance/v1/golden/cuda",
+      "result": "PASS",
+      "notes": "unchanged legacy equations and schedule remain within existing CUDA-reference tolerances"
+    }
+  ],
+  "legacy_profile": {
+    "profile_marker": 0,
+    "deformable_predict_and_authored_iteration_path": "unchanged",
+    "legacy_shape_matching_and_spring_damping": "unchanged",
+    "surface_skinning_and_contact_schedule": "unchanged",
+    "new_entry_points_selected_implicitly": false,
+    "public_realtime_profile": "unsupported and unadvertised until F8-20"
+  },
+  "limits": [
+    "The existing public soft-body representation has a global rest-shape matrix rather than tetrahedral volume elements; version 1 retains volume through bounded shape matching.",
+    "Current capability inventory does not advertise soft-body self-contact; this task does not add a public mode.",
+    "Contact constraint generation and reciprocal distinct-family impulse exchange remain F8-18 work.",
+    "The four-node Metal timing is equation-path evidence; F8-21 freezes final desktop-full-v1 frame budgets and F8-23 through F8-30 qualify registered devices.",
+    "Physical CUDA, Vulkan and D3D12 execution remains required in platform leaves; common CUDA, SPIR-V and HLSL generation passed locally."
+  ]
+}

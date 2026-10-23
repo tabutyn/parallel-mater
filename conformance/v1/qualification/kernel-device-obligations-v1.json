@@ -325,12 +325,18 @@
         "soft_body_apply_contact_friction",
         "soft_body_damp_springs",
         "soft_body_damp_springs_warp",
-        "soft_body_update_surface"
+        "soft_body_update_surface",
+        "soft_body_realtime_predict",
+        "soft_body_realtime_project_links",
+        "soft_body_realtime_apply_position_delta",
+        "soft_body_realtime_project_shape",
+        "soft_body_realtime_project_contacts",
+        "soft_body_realtime_commit"
       ],
       "domains": ["SOFT_BODY"],
       "advertised_modes": [],
       "public_case_sets": ["soft-body"],
-      "existing_execution_tests": ["parallel-mater-conformance --case soft-body-core"],
+      "existing_execution_tests": ["parallel-mater-conformance --case soft-body-core", "parallel-mater-slang-metal-kernel-tests"],
       "implementation_owners": ["F8-14"]
     },
     {
