@@ -1382,3 +1382,536 @@ void smoke_grid_rigid_force(
         settings.maximum_angular_speed);
     states[body] = next;
 }
+
+// realtime-single-step v1 grid smoke uses bounded semi-Lagrangian transport,
+// exponential diffusion and exactly twelve weighted-Jacobi pressure cycles.
+// The legacy MacCormack/multigrid path above remains profile 0.
+static const uint kSmokeGridRealtimeProfileVersion = 1u;
+static const float kSmokeGridRealtimeTimestep = 1.0f / 60.0f;
+static const uint kSmokeGridRealtimeInvalidProfile = 1u << 17u;
+static const uint kSmokeGridRealtimeInvalidTimestep = 1u << 18u;
+static const uint kSmokeGridRealtimeInvalidMaterial = 1u << 19u;
+static const uint kSmokeGridRealtimeNonfiniteState = 1u << 20u;
+
+bool smoke_grid_realtime_finite_vec3(Vec3 value)
+{
+    return isfinite(value.x) && isfinite(value.y) && isfinite(value.z);
+}
+
+bool smoke_grid_realtime_profile_valid(uint profile_version, float dt)
+{
+    return profile_version == kSmokeGridRealtimeProfileVersion &&
+        isfinite(dt) && abs(dt - kSmokeGridRealtimeTimestep) <= 2.0e-9f;
+}
+
+bool smoke_grid_realtime_material_valid(
+    SmokeOptions options, SmokeGridField grid)
+{
+    Vec3 extent = multiply(Vec3(
+        float(grid.n), float(grid.height), float(grid.n)), grid.spacing);
+    return options.capacity > 0u && grid.n >= 4u && grid.height >= 4u &&
+        grid.n == options.grid_resolution &&
+        grid.height == options.grid_vertical_resolution &&
+        options.grid_pressure_iterations == 12u &&
+        isfinite(grid.spacing) && grid.spacing >= 0.005f &&
+        grid.spacing <= 2.0f && isfinite(grid.minimum.x) &&
+        isfinite(grid.minimum.y) && isfinite(grid.minimum.z) &&
+        abs(grid.minimum.x) <= 10000.0f &&
+        abs(grid.minimum.y) <= 10000.0f &&
+        abs(grid.minimum.z) <= 10000.0f &&
+        abs(grid.minimum.x + extent.x) <= 10000.0f &&
+        abs(grid.minimum.y + extent.y) <= 10000.0f &&
+        abs(grid.minimum.z + extent.z) <= 10000.0f &&
+        isfinite(options.maximum_speed) && options.maximum_speed >= 0.0f &&
+        options.maximum_speed <= 20.0f &&
+        options.maximum_speed * kSmokeGridRealtimeTimestep <= grid.spacing &&
+        isfinite(options.buoyancy) && options.buoyancy >= 0.0f &&
+        options.buoyancy * kSmokeGridRealtimeTimestep *
+            kSmokeGridRealtimeTimestep <= 0.25f * grid.spacing &&
+        isfinite(options.rest_number_density) &&
+        options.rest_number_density > 0.0f &&
+        isfinite(options.grid_kinematic_viscosity) &&
+        options.grid_kinematic_viscosity >= 0.0f &&
+        isfinite(options.grid_les_coefficient) &&
+        options.grid_les_coefficient >= 0.0f;
+}
+
+void smoke_grid_realtime_record_invalid(
+    uint profile_version, float dt, SmokeOptions options,
+    SmokeGridField grid, PMBuffer<uint> status)
+{
+    if (profile_version != kSmokeGridRealtimeProfileVersion)
+        pmAtomicOr(status, kSmokeGridRealtimeInvalidProfile);
+    if (!isfinite(dt) || abs(dt - kSmokeGridRealtimeTimestep) > 2.0e-9f)
+        pmAtomicOr(status, kSmokeGridRealtimeInvalidTimestep);
+    if (!smoke_grid_realtime_material_valid(options, grid))
+        pmAtomicOr(status, kSmokeGridRealtimeInvalidMaterial);
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_grid_begin(
+    uniform SmokeGridField grid, uniform SmokeOptions options,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<float> pressure, uniform PMBuffer<float> divergence,
+    uniform PMBuffer<uint> time_advances,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint cell = pmThreadIndex();
+    if (!smoke_grid_realtime_profile_valid(profile_version, dt) ||
+        !smoke_grid_realtime_material_valid(options, grid))
+    {
+        if (cell == 0u)
+            smoke_grid_realtime_record_invalid(profile_version, dt, options,
+                grid, status);
+        return;
+    }
+    if (cell == 0u) ++time_advances[0];
+    if (cell >= grid.n * grid.height * grid.n) return;
+    pressure[cell] = 0.0f;
+    divergence[cell] = 0.0f;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_grid_source(
+    uniform SmokeGridField grid, uniform SmokeOptions options,
+    uniform PMBuffer<float> density_rate,
+    uniform PMBuffer<float> temperature_rate,
+    uniform PMBuffer<float> density, uniform PMBuffer<float> temperature,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint cell = pmThreadIndex();
+    if (!smoke_grid_realtime_profile_valid(profile_version, dt) ||
+        !smoke_grid_realtime_material_valid(options, grid))
+    {
+        if (cell == 0u)
+            smoke_grid_realtime_record_invalid(profile_version, dt, options,
+                grid, status);
+        return;
+    }
+    if (cell >= grid.n * grid.height * grid.n) return;
+    float densitySource = density_rate[cell];
+    float temperatureSource = temperature_rate[cell];
+    if (!isfinite(densitySource) || !isfinite(temperatureSource) ||
+        densitySource < 0.0f || temperatureSource < 0.0f)
+    {
+        pmAtomicOr(status, kSmokeGridRealtimeInvalidMaterial);
+        return;
+    }
+    float nextDensity = density[cell] + dt * densitySource;
+    float nextTemperature = temperature[cell] + dt * temperatureSource;
+    if (!isfinite(nextDensity) || !isfinite(nextTemperature))
+    {
+        pmAtomicOr(status, kSmokeGridRealtimeNonfiniteState);
+        return;
+    }
+    density[cell] = nextDensity;
+    temperature[cell] = nextTemperature;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_grid_advect_scalar(
+    uniform SmokeGridField grid, uniform SmokeOptions options,
+    uniform PMBuffer<float> source, uniform PMBuffer<float> destination,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint cell = pmThreadIndex();
+    if (!smoke_grid_realtime_profile_valid(profile_version, dt) ||
+        !smoke_grid_realtime_material_valid(options, grid))
+    {
+        if (cell == 0u)
+            smoke_grid_realtime_record_invalid(profile_version, dt, options,
+                grid, status);
+        return;
+    }
+    if (cell >= grid.n * grid.height * grid.n) return;
+    int x = int(cell % grid.n), y = int(cell / grid.n % grid.height);
+    int z = int(cell / (grid.n * grid.height));
+    Vec3 point = add(grid.minimum, multiply(
+        Vec3(float(x) + 0.5f, float(y) + 0.5f, float(z) + 0.5f),
+        grid.spacing));
+    Vec3 v0 = smoke_grid_sample_velocity(point, grid);
+    Vec3 midpoint = subtract(point, multiply(v0, 0.5f * dt));
+    Vec3 departure = subtract(point, multiply(
+        smoke_grid_sample_velocity(midpoint, grid), dt));
+    float value = max(0.0f, smoke_grid_sample_scalar(
+        source, departure, grid));
+    if (!isfinite(value))
+    {
+        pmAtomicOr(status, kSmokeGridRealtimeNonfiniteState);
+        value = 0.0f;
+    }
+    destination[cell] = value;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_grid_advect_face(
+    uniform int axis, uniform SmokeGridField grid,
+    uniform SmokeOptions options, uniform PMBuffer<float> source,
+    uniform PMBuffer<float> destination, uniform float dt,
+    uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint face = pmThreadIndex();
+    if (!smoke_grid_realtime_profile_valid(profile_version, dt) ||
+        !smoke_grid_realtime_material_valid(options, grid))
+    {
+        if (face == 0u)
+            smoke_grid_realtime_record_invalid(profile_version, dt, options,
+                grid, status);
+        return;
+    }
+    uint count = smoke_grid_face_count(axis, int(grid.n), int(grid.height));
+    if (face >= count) return;
+    int x = 0, y = 0, z = 0;
+    smoke_grid_face_coordinates(
+        axis, face, int(grid.n), int(grid.height), x, y, z);
+    Vec3 point = smoke_grid_face_position(axis, x, y, z, grid);
+    Vec3 v0 = smoke_grid_sample_velocity(point, grid);
+    Vec3 midpoint = subtract(point, multiply(v0, 0.5f * dt));
+    Vec3 departure = subtract(point, multiply(
+        smoke_grid_sample_velocity(midpoint, grid), dt));
+    float value = smoke_grid_sample_face_component(
+        axis, source, departure, grid);
+    if (!isfinite(value))
+    {
+        pmAtomicOr(status, kSmokeGridRealtimeNonfiniteState);
+        value = 0.0f;
+    }
+    destination[face] = clamp_scalar(
+        value, -options.maximum_speed, options.maximum_speed);
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_grid_face_forces(
+    uniform int axis, uniform SmokeGridField grid,
+    uniform SmokeOptions options, uniform PMBuffer<float> source,
+    uniform PMBuffer<float> destination, uniform PMBuffer<float> open,
+    uniform PMBuffer<float> wall, uniform PMBuffer<float> strain,
+    uniform PMBuffer<Vec3> subgrid, uniform PMBuffer<float> temperature,
+    uniform float dt, uniform Vec3 gravity, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint face = pmThreadIndex();
+    if (!smoke_grid_realtime_profile_valid(profile_version, dt) ||
+        !smoke_grid_realtime_material_valid(options, grid))
+    {
+        if (face == 0u)
+            smoke_grid_realtime_record_invalid(profile_version, dt, options,
+                grid, status);
+        return;
+    }
+    uint count = smoke_grid_face_count(axis, int(grid.n), int(grid.height));
+    if (face >= count) return;
+    if (open[face] <= 1.0e-4f)
+    {
+        destination[face] = wall[face];
+        return;
+    }
+    int x = 0, y = 0, z = 0;
+    smoke_grid_face_coordinates(
+        axis, face, int(grid.n), int(grid.height), x, y, z);
+    Vec3 point = smoke_grid_face_position(axis, x, y, z, grid);
+    float center = source[face];
+    float neighborAverage = (smoke_grid_source_face(
+        axis, source, x - 1, y, z, grid) + smoke_grid_source_face(
+        axis, source, x + 1, y, z, grid) + smoke_grid_source_face(
+        axis, source, x, y - 1, z, grid) + smoke_grid_source_face(
+        axis, source, x, y + 1, z, grid) + smoke_grid_source_face(
+        axis, source, x, y, z - 1, grid) + smoke_grid_source_face(
+        axis, source, x, y, z + 1, grid)) / 6.0f;
+    float localStrain = smoke_grid_sample_scalar(strain, point, grid);
+    float viscosity = options.grid_kinematic_viscosity +
+        options.grid_les_coefficient * options.grid_les_coefficient *
+        grid.spacing * grid.spacing * localStrain;
+    float diffusionResponse = clamp_scalar(1.0f - exp(
+        -6.0f * viscosity * dt / (grid.spacing * grid.spacing)),
+        0.0f, 0.995f);
+    float value = center + diffusionResponse * (neighborAverage - center);
+    Vec3 curlForce = smoke_grid_sample_vector(subgrid, point, grid);
+    float density = smoke_grid_sample_scalar(grid.density, point, grid);
+    float thermalLoading = smoke_grid_sample_scalar(temperature, point, grid);
+    float heat = density > 1.0e-5f ? clamp_scalar(
+        thermalLoading / density, 0.0f, options.maximum_speed) : 0.0f;
+    Vec3 up = normalized_or(multiply(gravity, -1.0f), {0.0f, 1.0f, 0.0f});
+    Vec3 buoyancy = multiply(up, options.buoyancy * density *
+        options.rest_number_density + 2.0f * heat);
+    float body = axis == 0 ? curlForce.x + buoyancy.x :
+        (axis == 1 ? curlForce.y + buoyancy.y : curlForce.z + buoyancy.z);
+    value += dt * body;
+    if (!isfinite(value))
+    {
+        pmAtomicOr(status, kSmokeGridRealtimeNonfiniteState);
+        value = wall[face];
+    }
+    destination[face] = clamp_scalar(
+        value, -options.maximum_speed, options.maximum_speed);
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_grid_boundaries(
+    uniform int axis, uniform SmokeGridField grid,
+    uniform SmokeOptions options, uniform PMBuffer<float> values,
+    uniform PMBuffer<float> open, uniform PMBuffer<float> wall,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint face = pmThreadIndex();
+    if (!smoke_grid_realtime_profile_valid(profile_version, dt) ||
+        !smoke_grid_realtime_material_valid(options, grid))
+    {
+        if (face == 0u)
+            smoke_grid_realtime_record_invalid(profile_version, dt, options,
+                grid, status);
+        return;
+    }
+    uint count = smoke_grid_face_count(axis, int(grid.n), int(grid.height));
+    if (face >= count) return;
+    int x = 0, y = 0, z = 0;
+    smoke_grid_face_coordinates(
+        axis, face, int(grid.n), int(grid.height), x, y, z);
+    int extent = axis == 0 ? int(grid.n) :
+        (axis == 1 ? int(grid.height) : int(grid.n));
+    int coordinate = axis == 0 ? x : (axis == 1 ? y : z);
+    if (coordinate == 0 || coordinate == extent)
+    {
+        int nx = axis == 0 ? (coordinate == 0 ? 1 : extent - 1) : x;
+        int ny = axis == 1 ? (coordinate == 0 ? 1 : extent - 1) : y;
+        int nz = axis == 2 ? (coordinate == 0 ? 1 : extent - 1) : z;
+        values[face] = open[face] <= 1.0e-4f ? wall[face] :
+            values[smoke_grid_face_index(
+                axis, nx, ny, nz, int(grid.n), int(grid.height))];
+    }
+    Vec3 point = smoke_grid_face_position(axis, x, y, z, grid);
+    if (abs(point.x - options.emitter_center.x) < 1.5f * grid.spacing &&
+        abs(point.y - options.emitter_center.y) <=
+            options.emitter_half_extents.x + 0.5f * grid.spacing &&
+        abs(point.z - options.emitter_center.z) <=
+            options.emitter_half_extents.y + 0.5f * grid.spacing)
+        values[face] = axis == 0 ? options.initial_velocity.x :
+            (axis == 1 ? options.initial_velocity.y :
+                       options.initial_velocity.z);
+    values[face] = open[face] * values[face] +
+        (1.0f - open[face]) * wall[face];
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_grid_divergence(
+    uniform SmokeGridField grid, uniform SmokeOptions options,
+    uniform PMBuffer<float> divergence, uniform float dt,
+    uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint cell = pmThreadIndex();
+    if (!smoke_grid_realtime_profile_valid(profile_version, dt) ||
+        !smoke_grid_realtime_material_valid(options, grid))
+    {
+        if (cell == 0u)
+            smoke_grid_realtime_record_invalid(profile_version, dt, options,
+                grid, status);
+        return;
+    }
+    if (cell >= grid.n * grid.height * grid.n) return;
+    int n = int(grid.n), h = int(grid.height);
+    int x = int(cell % grid.n), y = int(cell / grid.n % grid.height);
+    int z = int(cell / (grid.n * grid.height));
+    float value = (grid.face[0][smoke_grid_face_index(
+        0, x + 1, y, z, n, h)] - grid.face[0][smoke_grid_face_index(
+        0, x, y, z, n, h)] + grid.face[1][smoke_grid_face_index(
+        1, x, y + 1, z, n, h)] - grid.face[1][smoke_grid_face_index(
+        1, x, y, z, n, h)] + grid.face[2][smoke_grid_face_index(
+        2, x, y, z + 1, n, h)] - grid.face[2][smoke_grid_face_index(
+        2, x, y, z, n, h)]) / (grid.spacing * dt);
+    if (!isfinite(value))
+    {
+        pmAtomicOr(status, kSmokeGridRealtimeNonfiniteState);
+        value = 0.0f;
+    }
+    divergence[cell] = value;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_grid_pressure_cycle(
+    uniform SmokeGridField grid, uniform SmokeOptions options,
+    uniform PMBuffer<float> rhs, uniform PMBuffer<float> pressure,
+    uniform PMBuffer<float> next, uniform PMBuffer<float> open_x,
+    uniform PMBuffer<float> open_y, uniform PMBuffer<float> open_z,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint cell = pmThreadIndex();
+    if (!smoke_grid_realtime_profile_valid(profile_version, dt) ||
+        !smoke_grid_realtime_material_valid(options, grid))
+    {
+        if (cell == 0u)
+            smoke_grid_realtime_record_invalid(profile_version, dt, options,
+                grid, status);
+        return;
+    }
+    int n = int(grid.n), h = int(grid.height);
+    if (cell >= uint(n * h * n)) return;
+    int x = int(cell % uint(n));
+    int y = int(cell / uint(n) % uint(h));
+    int z = int(cell / uint(n * h));
+    int dx[6] = {-1, 1, 0, 0, 0, 0};
+    int dy[6] = {0, 0, -1, 1, 0, 0};
+    int dz[6] = {0, 0, 0, 0, -1, 1};
+    float sum = 0.0f, diagonal = 0.0f;
+    for (int direction = 0; direction < 6; ++direction)
+    {
+        float coefficient = smoke_pressure_open(
+            open_x, open_y, open_z, direction, x, y, z, n, h);
+        if (coefficient <= 1.0e-5f) continue;
+        int xx = x + dx[direction], yy = y + dy[direction];
+        int zz = z + dz[direction];
+        if (xx >= 0 && yy >= 0 && zz >= 0 &&
+            xx < n && yy < h && zz < n)
+            sum += coefficient * pressure[smoke_grid_index(
+                xx, yy, zz, n, h)];
+        diagonal += coefficient;
+    }
+    float jacobi = diagonal > 1.0e-6f
+        ? (sum - grid.spacing * grid.spacing * rhs[cell]) / diagonal
+        : 0.0f;
+    float value = pressure[cell] + (2.0f / 3.0f) *
+        (jacobi - pressure[cell]);
+    if (!isfinite(value))
+    {
+        pmAtomicOr(status, kSmokeGridRealtimeNonfiniteState);
+        value = 0.0f;
+    }
+    next[cell] = value;
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_grid_project_face(
+    uniform int axis, uniform SmokeGridField grid,
+    uniform SmokeOptions options, uniform PMBuffer<float> pressure,
+    uniform PMBuffer<float> velocity, uniform PMBuffer<float> open,
+    uniform PMBuffer<float> wall, uniform float dt,
+    uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint face = pmThreadIndex();
+    if (!smoke_grid_realtime_profile_valid(profile_version, dt) ||
+        !smoke_grid_realtime_material_valid(options, grid))
+    {
+        if (face == 0u)
+            smoke_grid_realtime_record_invalid(profile_version, dt, options,
+                grid, status);
+        return;
+    }
+    uint count = smoke_grid_face_count(axis, int(grid.n), int(grid.height));
+    if (face >= count) return;
+    int x = 0, y = 0, z = 0;
+    smoke_grid_face_coordinates(
+        axis, face, int(grid.n), int(grid.height), x, y, z);
+    int extent = axis == 0 ? int(grid.n) :
+        (axis == 1 ? int(grid.height) : int(grid.n));
+    int coordinate = axis == 0 ? x : (axis == 1 ? y : z);
+    if (open[face] <= 1.0e-4f)
+    {
+        velocity[face] = wall[face];
+        return;
+    }
+    int lx = x, ly = y, lz = z, rx = x, ry = y, rz = z;
+    if (axis == 0) { lx = max(0, x - 1); rx = min(int(grid.n) - 1, x); }
+    if (axis == 1) { ly = max(0, y - 1); ry = min(int(grid.height) - 1, y); }
+    if (axis == 2) { lz = max(0, z - 1); rz = min(int(grid.n) - 1, z); }
+    float gradient = 0.0f;
+    if (coordinate == 0 || coordinate == extent)
+    {
+        int cx = axis == 0 ? rx : x;
+        int cy = axis == 1 ? ry : y;
+        int cz = axis == 2 ? rz : z;
+        float inside = pressure[smoke_grid_index(
+            cx, cy, cz, int(grid.n), int(grid.height))];
+        gradient = (coordinate == 0 ? inside : -inside) / grid.spacing;
+    }
+    else
+        gradient = (pressure[smoke_grid_index(
+            rx, ry, rz, int(grid.n), int(grid.height))] -
+            pressure[smoke_grid_index(
+                lx, ly, lz, int(grid.n), int(grid.height))]) / grid.spacing;
+    float value = velocity[face] - dt * open[face] * gradient;
+    if (!isfinite(value))
+    {
+        pmAtomicOr(status, kSmokeGridRealtimeNonfiniteState);
+        value = wall[face];
+    }
+    velocity[face] = clamp_scalar(
+        value, -options.maximum_speed, options.maximum_speed);
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void smoke_realtime_grid_trace(
+    uniform PMBuffer<Vec3> positions,
+    uniform PMBuffer<Vec3> previous_positions,
+    uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages,
+    uniform PMBuffer<float> thermal_lift,
+    uniform PMBuffer<float> number_densities,
+    uniform PMBuffer<float> pressures,
+    uniform PMBuffer<Vec3> particle_vorticities, uniform uint count,
+    uniform SmokeOptions options, uniform SmokeGridField grid,
+    uniform float dt, uniform uint profile_version,
+    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint particle = pmThreadIndex();
+    if (!smoke_grid_realtime_profile_valid(profile_version, dt) ||
+        !smoke_grid_realtime_material_valid(options, grid))
+    {
+        if (particle == 0u)
+            smoke_grid_realtime_record_invalid(profile_version, dt, options,
+                grid, status);
+        return;
+    }
+    if (particle >= count || particle >= options.capacity ||
+        ages[particle] >= options.lifetime) return;
+    Vec3 point = positions[particle];
+    previous_positions[particle] = point;
+    Vec3 velocity = velocities[particle];
+    if (smoke_grid_contains(point, grid))
+    {
+        Vec3 v0 = smoke_grid_sample_velocity(point, grid);
+        Vec3 midpoint = add(point, multiply(v0, 0.5f * dt));
+        velocity = smoke_grid_sample_velocity(midpoint, grid);
+        number_densities[particle] = smoke_grid_sample_scalar(
+            grid.density, point, grid) * options.rest_number_density;
+        pressures[particle] = smoke_grid_sample_pressure(point, grid);
+        particle_vorticities[particle] = smoke_grid_sample_vector(
+            grid.vorticity, point, grid);
+    }
+    velocity = clamp_length(velocity, options.maximum_speed);
+    Vec3 next = add(point, multiply(velocity, dt));
+    if (!smoke_grid_realtime_finite_vec3(next) ||
+        !smoke_grid_realtime_finite_vec3(velocity))
+    {
+        pmAtomicOr(status, kSmokeGridRealtimeNonfiniteState);
+        return;
+    }
+    positions[particle] = next;
+    velocities[particle] = velocity;
+    ages[particle] += dt;
+    thermal_lift[particle] *= exp(-dt / 3.0f);
+}
