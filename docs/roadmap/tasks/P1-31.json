@@ -1,7 +1,7 @@
 {
   "id": "P1-31",
   "title": "Audit sampled-node rope self-contact",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "P1-02",
     "F5-02"
@@ -18,15 +18,29 @@
     "Nonadjacent-node separation, exclusions, fixed endpoints, momentum, capacity and long-run cases run through the public API.",
     "Evidence labels the record node-only and removes advertisement from every failing driver."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "d6ce9dad-e22b-4fb3-84dd-8a68daa646f3",
-    "owner": "codex-rope-audit",
-    "machine": "windows-gtx1080",
-    "branch": "work/P1-31/windows-gtx1080",
-    "claimed_at": "2026-10-24T18:35:29Z",
-    "heartbeat_at": "2026-10-24T18:35:29Z",
-    "expires_at": "2026-10-25T18:35:29Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: rope-self-contact-v2 on physical GTX 1080 CUDA, D3D12 and Vulkan; 9/9 checkpoints per driver, zero failures; docs/roadmap/evidence/P1-31-rope-self-contact-audit.json",
+    "PASS: separation, exclusions, fixed endpoints, momentum, exact 256-node capacity and 240-step long run; Metal exact self-contact record withdrawn; source d452150986cae9640b0546098f1b60f606044618"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "d6ce9dad-e22b-4fb3-84dd-8a68daa646f3",
+        "owner": "codex-rope-audit",
+        "machine": "windows-gtx1080",
+        "branch": "work/P1-31/windows-gtx1080",
+        "claimed_at": "2026-10-24T18:35:29Z",
+        "heartbeat_at": "2026-10-24T18:35:29Z",
+        "expires_at": "2026-10-25T18:35:29Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-24T19:41:27Z",
+      "reason": "Expanded the node-only public API audit and retained advertisements only on passing drivers",
+      "evidence": [
+        "PASS: rope-self-contact-v2 on physical GTX 1080 CUDA, D3D12 and Vulkan; 9/9 checkpoints per driver, zero failures; docs/roadmap/evidence/P1-31-rope-self-contact-audit.json",
+        "PASS: separation, exclusions, fixed endpoints, momentum, exact 256-node capacity and 240-step long run; Metal exact self-contact record withdrawn; source d452150986cae9640b0546098f1b60f606044618"
+      ]
+    }
+  ]
 }

@@ -1,0 +1,120 @@
+{
+  "schema": "parallel-mater-roadmap-evidence/v1",
+  "task": "P1-31",
+  "result": "passed",
+  "captured_at": "2026-10-24",
+  "source": {
+    "implementation_revision": "d452150986cae9640b0546098f1b60f606044618",
+    "branch": "work/P1-31/windows-gtx1080",
+    "lease_token": "d6ce9dad-e22b-4fb3-84dd-8a68daa646f3",
+    "machine": "windows-gtx1080"
+  },
+  "host": {
+    "hostname": "Thomas-Desktop",
+    "os": "Windows 10.0.26200.9711",
+    "cpu": "AMD Ryzen 5 5500",
+    "device": "NVIDIA GeForce GTX 1080",
+    "vendor_id": 4318,
+    "device_id": 7040,
+    "nvidia_driver": "582.66",
+    "generator": "Visual Studio 17 2022",
+    "msvc": "19.44.35228.0",
+    "cuda_toolkit": "12.9.86",
+    "vulkan_sdk": "1.4.357",
+    "slang": "2026.18",
+    "cmake": "4.4.2",
+    "python": "3.13.15",
+    "configuration": "Release"
+  },
+  "capability": {
+    "record": "ROPE/ROPE/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE",
+    "claim": "sampled-nodes-only",
+    "qualified_advertising_drivers": [
+      "slang-cuda",
+      "slang-d3d12",
+      "slang-vulkan"
+    ],
+    "withdrawn_drivers": [
+      {
+        "name": "slang-metal",
+        "reason": "No current rope-self-contact-v2 device capture; the exact record is no longer advertised while general rope support remains available."
+      }
+    ]
+  },
+  "profile": {
+    "id": "rope-self-contact-v2",
+    "path": "conformance/v1/quality/rope-self-contact-v2.json",
+    "sha256": "8860ec9a5ba0e79dc4b917eabaad88d99fb77b0d17b8575d650f43143d17b408",
+    "fixtures": [
+      "free-folded-four-node-long-run: nonadjacent separation, topology exclusion, linear/angular momentum and 240-step stability",
+      "fixed-endpoint-folded-six-node: separation, topology exclusion, two fixed endpoints and 60-step stability",
+      "exact-capacity-256-node-rope: exact public capacity and final checkpoint"
+    ]
+  },
+  "binaries": {
+    "conformance_runner_sha256": "73d6818c57346ef25fc60ef7078a06454fd1b9d6c3ae18a9a661783c0873a224",
+    "validation_layer_sha256": "1ce15af992a913488ff1833cec5a9e1b0196ab4bb7e3845c4f68d806c28360d5",
+    "cuda_driver_sha256": "bd6b9e0afccfecdf7a17ccc62124894f899ac68286d3b037f2657b25e79d4baf",
+    "d3d12_driver_sha256": "183bb0652827058a8adedfe93ab713e687770faf7b6045b16501304d26b7b787",
+    "vulkan_driver_sha256": "a91c74700fb6b9d4f18c28403b8bce82b2c9e74c1245e7dec3304ce2c6d95fe6"
+  },
+  "drivers": [
+    {
+      "name": "slang-cuda",
+      "driver_version": "13000",
+      "passed": true,
+      "samples": 9,
+      "failures": 0,
+      "result": "docs/roadmap/evidence/P1-31-d452150-cuda-result.json",
+      "result_sha256": "e38a1e927f353924f102d4fb8d4087d9ec9f35732e9cec8e75bfff3f499fa60e",
+      "report": "docs/roadmap/evidence/P1-31-d452150-cuda-report.json",
+      "report_sha256": "03e93d88e0f091353f2b3614f863b4544fe85979457554042f2c835f61202421"
+    },
+    {
+      "name": "slang-d3d12",
+      "driver_version": "1",
+      "passed": true,
+      "samples": 9,
+      "failures": 0,
+      "result": "docs/roadmap/evidence/P1-31-d452150-d3d12-result.json",
+      "result_sha256": "0de7aa3187a695bfae3639535efa94292e6d73a52d80cc98c799e3278e5feb7d",
+      "report": "docs/roadmap/evidence/P1-31-d452150-d3d12-report.json",
+      "report_sha256": "04ee5309366e0699572739dbfcc89581e6d58b2969123b0144645072ed964e42"
+    },
+    {
+      "name": "slang-vulkan",
+      "driver_version": "2442166272",
+      "passed": true,
+      "samples": 9,
+      "failures": 0,
+      "result": "docs/roadmap/evidence/P1-31-d452150-vulkan-result.json",
+      "result_sha256": "7f7b1ece049cb70b0719864041a5979552574a325fedb82b9d15a5135baeeefe",
+      "report": "docs/roadmap/evidence/P1-31-d452150-vulkan-report.json",
+      "report_sha256": "0275f3137cc80bb60245293d9679f6554fa2cc99989598498a1c16edd797683c"
+    }
+  ],
+  "observations": {
+    "eligible_pair_initial_separation_m": 0.019999999552965164,
+    "eligible_pair_contact_separation_m": 0.11999999507617162,
+    "required_minimum_separation_m": 0.114,
+    "linear_momentum_residual_kg_m_s": 7.932681833307467e-08,
+    "angular_momentum_residual_kg_m2_s": 0.0001987296751571289,
+    "maximum_fixed_endpoint_drift_m": 3.7997961044311523e-07,
+    "exact_capacity_nodes": 256,
+    "long_run_steps": 240
+  },
+  "commands": [
+    "cmake --build build-windows-d3d12-preview --config Release --target parallel-mater-conformance parallel-mater-layer-validation parallel-mater-driver-slang-cuda parallel-mater-driver-slang-d3d12 parallel-mater-driver-slang-vulkan",
+    "PM_DRIVER_FILES=<driver-manifest> PM_LAYER_FILES=<validation-manifest> PM_TEST_VALIDATION=1 parallel-mater-conformance --root . --quality rope-self-contact-v2 --output <driver-output>",
+    "python conformance/v1/quality.py --profile conformance/v1/quality/rope-self-contact-v2.json --actual <driver-result> --report <driver-report>",
+    "python conformance/v1/tests/test_quality.py",
+    "python conformance/v1/tests/test_qualification.py",
+    "python conformance/v1/tests/test_evidence_index.py",
+    "python conformance/v1/evidence_index.py"
+  ],
+  "boundaries": [
+    "The result qualifies sampled node pairs only; it does not imply continuous segment or capsule collision, segment-crossing prevention, high-speed CCD, self-friction, rope-pair contact or rope-rope attachment.",
+    "Analytic passage does not override independent lifecycle or reference-regression obligations.",
+    "Metal general rope support remains advertised, but this exact self-contact record is withdrawn until a current v2 device capture passes."
+  ]
+}
