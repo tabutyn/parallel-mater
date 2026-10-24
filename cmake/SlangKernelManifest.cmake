@@ -27,6 +27,7 @@ set(PARALLEL_MATER_SLANG_KERNEL_MODULES
     geometry_fluid
     geometry_smoke
     geometry_soft_body
+    rigid_coupling
     smoke_grid
     rope)
 
@@ -168,6 +169,9 @@ set(PARALLEL_MATER_SLANG_geometry_soft_body_ENTRIES
     pm_filter_deformable_spatial_candidates
     pm_emit_smoke_spatial_queries
     pm_filter_smoke_spatial_obstacles)
+set(PARALLEL_MATER_SLANG_rigid_coupling_ENTRIES
+    rigid_coupling_project rigid_coupling_apply_endpoints
+    rigid_coupling_apply_bodies)
 set(PARALLEL_MATER_SLANG_smoke_grid_ENTRIES
     smoke_grid_initialize_cells
     smoke_grid_initialize_faces
