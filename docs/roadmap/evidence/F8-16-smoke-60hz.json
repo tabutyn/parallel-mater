@@ -1,0 +1,194 @@
+{
+  "schema": "parallel-mater-f8-smoke-60hz-evidence/v1",
+  "task": "F8-16",
+  "recorded_at": "2026-10-23",
+  "branch": "work/F8-16/thomas-laptop",
+  "base_commit": "648e461737d77bbca320fd7f706e7b302c649944",
+  "profile": {
+    "name": "realtime-single-step",
+    "version": "1.0",
+    "timestep_seconds": 0.016666666666666666,
+    "time_advances": 1,
+    "particle_pressure_sweeps": 6,
+    "grid_projection_cycles": 12,
+    "particle_solver_added_velocity_damping_fraction": 0.05,
+    "maximum_total_correction_characteristic_length": 0.25,
+    "particle_travel_support_radius_maximum": 0.5,
+    "grid_cfl_maximum": 1.0,
+    "spatial_updates_during_solve": 0
+  },
+  "toolchain": {
+    "cmake": "3.25.1",
+    "slang": "2026.18",
+    "cuda_compiler": "13.1"
+  },
+  "cuda_device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "compute_capability": "8.6",
+    "driver": "590.44.01"
+  },
+  "production_kernels": {
+    "particle": [
+      "smoke_realtime_particle_emit",
+      "smoke_realtime_particle_predict",
+      "smoke_realtime_particle_density_pressure",
+      "smoke_realtime_particle_position_delta",
+      "smoke_realtime_particle_apply_position_delta",
+      "smoke_realtime_particle_commit"
+    ],
+    "grid": [
+      "smoke_realtime_grid_begin",
+      "smoke_realtime_grid_source",
+      "smoke_realtime_grid_advect_scalar",
+      "smoke_realtime_grid_advect_face",
+      "smoke_realtime_grid_face_forces",
+      "smoke_realtime_grid_boundaries",
+      "smoke_realtime_grid_divergence",
+      "smoke_realtime_grid_pressure_cycle",
+      "smoke_realtime_grid_project_face",
+      "smoke_realtime_grid_trace"
+    ]
+  },
+  "workload_budget": {
+    "workload": "desktop-full-v1/smoke-domain portion",
+    "particles_live": 4500,
+    "particles_capacity": 4500,
+    "candidates_per_particle": 64,
+    "grid_resolution": [64, 32, 64],
+    "grid_cells": 131072,
+    "grid_faces": 401408,
+    "particle": {
+      "algebraic_iterations": 6,
+      "spatial_passes": 6,
+      "domain_dispatches": 21,
+      "domain_workgroups_128_threads": 756,
+      "candidate_visits": 3456000,
+      "solver_scratch_bytes": 198008
+    },
+    "grid": {
+      "algebraic_iterations": 12,
+      "spatial_passes": 1,
+      "domain_dispatches": 30,
+      "domain_workgroups_128_threads": 29988,
+      "cell_and_face_visits": 3838356,
+      "solver_scratch_bytes": 4281080
+    },
+    "time_advances": 1,
+    "spatial_updates_during_solve": 0,
+    "policy": "fixed work over one F8-10 epoch; no convergence exit, adaptive pass, hidden substep, solve-time index mutation, host retry or per-device physics fork"
+  },
+  "physical_cuda_quality": {
+    "fixture": "generated production Slang with explicit profile version 1 and one 1/60 s advance per tick",
+    "particle_cold_start": {
+      "particles_emitted": 4,
+      "time_advances": 1,
+      "maximum_correction_m": 0.04082789,
+      "correction_allowance_m": 0.06375,
+      "invalid_profile_rejected_without_advance": true
+    },
+    "particle_long_run": {
+      "particles": 4500,
+      "ticks": 3600,
+      "density_error_p95": 0.0,
+      "maximum_speed_m_s": 0.22072044,
+      "nonfinite_state_count": 0
+    },
+    "grid_projection": {
+      "dimensionless_divergence_rms_before": 0.31249997,
+      "dimensionless_divergence_rms_after": 0.00655778,
+      "dimensionless_divergence_maximum_after": 0.02505636,
+      "projection_cycles": 12,
+      "moving_obstacle_boundary": "PASS",
+      "buoyancy": "PASS"
+    },
+    "grid_transport_long_run": {
+      "grid_resolution": [64, 32, 64],
+      "tracers": 4500,
+      "ticks": 3600,
+      "relative_mass_error": 0.00000048,
+      "centroid_error_cells": 0.00000008,
+      "maximum_speed_m_s": 1.00008619,
+      "nonfinite_state_count": 0
+    },
+    "particle_equation_path_timing_ms": {
+      "workload": "4500 particles, 64 candidates per particle, complete 21-dispatch schedule",
+      "warmup_ticks": 120,
+      "samples": 600,
+      "p50": 0.059392,
+      "p95": 0.059392,
+      "p99": 0.06144,
+      "maximum": 0.063488
+    },
+    "grid_equation_path_timing_ms": {
+      "workload": "64-by-32-by-64 grid, 4500 tracers, complete 30-dispatch schedule",
+      "warmup_ticks": 120,
+      "samples": 600,
+      "p50": 0.710656,
+      "p95": 0.775168,
+      "p99": 0.7936,
+      "maximum": 0.795648
+    },
+    "timing_scope": "CUDA events around domain dispatches; not a full desktop-full-v1 frame-budget result"
+  },
+  "qualification": [
+    {
+      "command": "/tmp/parallel-mater-f8-16-cuda-build/tests/solver/parallel-mater-smoke-particle-realtime-cuda-tests",
+      "result": "PASS",
+      "notes": "physical RTX generated-Slang source, profile rejection, dense pressure/correction, high speed, 3600-tick quality and timing"
+    },
+    {
+      "command": "/tmp/parallel-mater-f8-16-cuda-build/tests/solver/parallel-mater-smoke-grid-realtime-cuda-tests",
+      "result": "PASS",
+      "notes": "physical RTX generated-Slang source/transport, projection, obstacle, buoyancy, desktop workload, 3600-tick quality and timing"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-16-cuda-build -R 'parallel-mater-smoke-(realtime|particle-realtime-cuda|grid-realtime-cuda)-tests' --output-on-failure -j1",
+      "result": "PASS",
+      "notes": "host contract and both physical generated-Slang CUDA suites"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-16-host-build --output-on-failure -j8",
+      "result": "PASS",
+      "notes": "66/66 host tests including merged F8-14 and exact schedule, epoch and budget checks"
+    },
+    {
+      "command": "common Slang realtime smoke entries to CPU, CUDA, Vulkan, Metal, PTX and D3D12 HLSL SM 6.6",
+      "result": "PASS",
+      "notes": "16 versioned entries compile from shared sources; no adapter-specific physics"
+    },
+    {
+      "command": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "414 tests"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "72 tests; canonical inventory contains 210 shared entry points at the recorded base"
+    },
+    {
+      "command": "python3 conformance/v1/realtime_oracle.py --check-contract",
+      "result": "PASS",
+      "notes": "profile contract and frozen workload validation"
+    },
+    {
+      "command": "physical CUDA legacy smoke-grid plus unchanged golden comparison",
+      "result": "PASS",
+      "notes": "legacy trajectory matches the existing golden with no tolerance or baseline changes"
+    }
+  ],
+  "legacy_profile": {
+    "profile_marker": 0,
+    "particle_sorted_cell_path": "unchanged",
+    "grid_maccormack_multigrid_path": "unchanged",
+    "legacy_schedule": "unchanged",
+    "legacy_tolerances_and_goldens": "unchanged",
+    "new_entry_points_selected_implicitly": false,
+    "public_realtime_profile": "unsupported and unadvertised until F8-20"
+  },
+  "limits": [
+    "Rigid and deformable obstacle masks are consumed from the F8-10 epoch; reciprocal coupling remains F8-17/F8-19 work.",
+    "The domain timings do not include the shared index or other physics families; F8-21 freezes the integrated desktop-full-v1 frame budget.",
+    "Physical D3D12, Vulkan, Metal and mobile execution remains required in platform qualification leaves; common source compilation passes locally."
+  ]
+}

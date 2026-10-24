@@ -19,7 +19,7 @@ PmResult compact_flagged_indices(
     auto *offsets = counts + blocks;
     pm_compact_count_blocks<<<blocks, primitive_tile_size, 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<std::uint8_t *>(flags), count, primitive_tile_size, counts);
-    pm_exclusive_scan_u32<<<1U, 1U, 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
+    pm_exclusive_scan_u32<<<1U, primitive_tile_size, 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         counts, blocks, offsets, output_count);
     pm_compact_scatter_indices<<<blocks, primitive_tile_size, 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<std::uint8_t *>(flags), count, primitive_tile_size,

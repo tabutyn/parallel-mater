@@ -187,6 +187,14 @@ void schedule() {
     steps.clear();
     encode_avbd_schedule(0, 0, [&](auto... values) { steps.emplace_back(values...); });
     require(steps.size() == 14, "AVBD empty schedule bookkeeping wrong");
+    steps.clear();
+    encode_avbd_schedule(2, 3,
+        [&](auto... values) { steps.emplace_back(values...); }, 1U);
+    require(steps.size() == 14,
+        "realtime AVBD schedule must emit one solve phase only");
+    require(steps.front() == Step{AvbdStage::solve_color, 0, 0, 0} &&
+        steps.back() == Step{AvbdStage::finish_phase, 0, 0, 0},
+        "realtime AVBD phase boundary wrong");
 }
 }
 int main() {

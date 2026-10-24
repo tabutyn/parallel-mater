@@ -1647,7 +1647,8 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
             impl_->rigid_constraint_count ? impl_->options.rigid_constraint_capacity : 0U,
             impl_->ids, impl_->avbd_bodies, impl_->rigid_contact_schedule,
             substep_timestep, options.gravity, options.rigid_contact_iterations,
-            options.rigid_contact_pass_limit, avbd_grid);
+            options.rigid_contact_pass_limit,
+            static_cast<std::uint32_t>(options.profile), avbd_grid);
         if (error != backend.success_code())
             return backend.failure(error, "launch AVBD graph preparation");
         status = record_profile_stage("rigid_contact_graph", 1U);

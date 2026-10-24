@@ -116,6 +116,8 @@ struct GpuRenderRequest {
     GpuRenderTarget target{};
     GpuDiagnosticReadback readback{};
     Camera camera{};
+    float interpolation_alpha{1.0F};
+    bool interpolation_history_valid{true};
     FrameTimingCollector *timing{};
     std::span<const std::uint32_t> overlay{};
 };
@@ -126,8 +128,13 @@ struct GpuRenderRequest {
 [[nodiscard]] bool make_gpu_render_request(
     const GpuSceneBuffers &buffers, std::uint64_t frame_generation,
     Camera camera, GpuRenderTarget target, GpuDiagnosticReadback readback,
-    FrameTimingCollector *timing, std::span<const std::uint32_t> overlay,
+    float interpolation_alpha, bool interpolation_history_valid,
+    FrameTimingCollector *timing,
+    std::span<const std::uint32_t> overlay,
     GpuRenderRequest &output, std::string &error);
+[[nodiscard]] float gpu_draw_interpolation_alpha(
+    const GpuRenderRequest &request,
+    const GpuDrawCommand &draw) noexcept;
 [[nodiscard]] bool make_gpu_scene_draw_list(
     const SceneDefinition &scene, const CommandSceneInstance &instance,
     GpuSceneDrawList &output, std::string &error);

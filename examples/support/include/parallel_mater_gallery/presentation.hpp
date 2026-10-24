@@ -46,6 +46,7 @@ struct GalleryPresentationState {
     GalleryCountKind count_kind{GalleryCountKind::none};
 
     std::string_view workload_profile;
+    std::string_view frame_profile;
     std::uint32_t fluid_particle_limit{};
     std::uint32_t coupled_body_limit{};
     unsigned width{};
@@ -55,6 +56,10 @@ struct GalleryPresentationState {
     std::size_t moving_body_count{};
 
     double host_work_frames_per_second{};
+    double simulation_to_wall_clock_rate{};
+    float interpolation_alpha{};
+    bool interpolation_history_valid{};
+    std::uint32_t presentation_latency_ticks{};
     std::optional<FrameTimingSample> latest_timing;
     std::string_view build_revision;
 };

@@ -74,6 +74,79 @@ PmResult broad_phase_rigid_pairs(
     return device::from_driver_error(cudaPeekAtLastError());
 }
 
+PmResult emit_rigid_spatial_proxies(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *parameters, void *previous_states,
+    void *predicted_states, void *meshes, std::uint32_t mesh_capacity,
+    void *ids, std::uint32_t body_count, std::uint32_t leaf_offset,
+    std::uint32_t leaf_capacity, std::uint32_t sort_key_base,
+    std::uint32_t topology_revision, std::uint32_t query_mask,
+    const float path_deviation[3], const float correction_budget[3],
+    float epsilon, void *metadata, void *bounds,
+    std::uint8_t *build_flags, void *query_bounds,
+    std::uint32_t *query_masks, std::uint32_t *excluded_sort_keys,
+    std::uint32_t *status) noexcept {
+    if (path_deviation == nullptr || correction_budget == nullptr)
+        return PM_ERROR_INVALID_ARGUMENT;
+    const Vec3_0 deviation{path_deviation[0], path_deviation[1],
+                           path_deviation[2]};
+    const Vec3_0 correction{correction_budget[0], correction_budget[1],
+                            correction_budget[2]};
+    pm_emit_rigid_spatial_proxies<<<
+        dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        as<BodyParameters_0>(parameters),
+        as<RigidBodyState_0>(previous_states),
+        as<RigidBodyState_0>(predicted_states),
+        as<TriangleMeshResource_0>(meshes), mesh_capacity,
+        as<RigidBodyId_0>(ids), body_count, leaf_offset, leaf_capacity,
+        sort_key_base, topology_revision, query_mask, deviation, correction,
+        epsilon, as<RigidSpatialLeafMetadata_0>(metadata),
+        as<RigidSpatialAabb_0>(bounds), build_flags,
+        as<RigidSpatialAabb_0>(query_bounds), query_masks,
+        excluded_sort_keys, status);
+    return device::from_driver_error(cudaPeekAtLastError());
+}
+
+PmResult filter_rigid_spatial_candidates(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *metadata,
+    std::uint32_t leaf_capacity, std::uint32_t rigid_leaf_offset,
+    std::uint32_t *candidate_counts, std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_body,
+    std::uint32_t candidate_slot_capacity, void *parameters, void *ids,
+    void *constraints, std::uint32_t constraint_capacity,
+    void *fixed_groups, std::uint32_t body_count,
+    std::uint32_t *pair_codes, std::uint8_t *pair_flags,
+    std::uint32_t *status) noexcept {
+    pm_filter_rigid_spatial_candidates<<<
+        dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        as<RigidSpatialLeafMetadata_0>(metadata), leaf_capacity,
+        rigid_leaf_offset, candidate_counts, candidate_sources,
+        candidates_per_body, candidate_slot_capacity,
+        as<BodyParameters_0>(parameters), as<RigidBodyId_0>(ids),
+        as<RigidConstraintResource_0>(constraints), constraint_capacity,
+        as<FixedContactProjection_0>(fixed_groups), body_count, pair_codes,
+        pair_flags, status);
+    return device::from_driver_error(cudaPeekAtLastError());
+}
+
+PmResult gather_rigid_spatial_pairs(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, std::uint32_t *compacted_slots,
+    std::uint32_t *active_pair_count,
+    std::uint32_t *candidate_pair_codes,
+    std::uint32_t candidate_slot_capacity, std::uint32_t *active_pairs,
+    std::uint32_t *status) noexcept {
+    pm_gather_rigid_spatial_pairs<<<
+        dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        compacted_slots, active_pair_count, candidate_pair_codes,
+        candidate_slot_capacity, active_pairs, status);
+    return device::from_driver_error(cudaPeekAtLastError());
+}
+
 PmResult generate_rigid_leaf_pairs(
     device::DispatchSize grid, device::DispatchSize block, std::size_t shared_bytes, device::ExecutionQueue stream,
     void *parameters, void *previous_states, void *states,

@@ -1,7 +1,7 @@
 {
   "id": "F8-11",
   "title": "Stabilize rigid contacts and joints at one 60 Hz step",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F8-00",
     "F8-03",
@@ -21,7 +21,29 @@
     "Independent tests prove exactly one dt=1/60 advance, bounded algebraic iterations, no spatial rebuild in the solve, and adherence to the predeclared dispatch/work/memory budget.",
     "Publish new-profile quality/energy/performance evidence beside unchanged legacy-profile results; no post-result tolerance changes or per-device physics fork."
   ],
-  "evidence": [],
+  "evidence": [
+    "docs/roadmap/F8-11-RIGID-60HZ.md",
+    "docs/roadmap/evidence/F8-11-rigid-60hz.json"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "12da83e8-e038-49b9-bc27-2ceae0943241",
+        "owner": "codex-f8-rigid-60hz",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-11/thomas-laptop",
+        "claimed_at": "2026-10-22T21:23:22Z",
+        "heartbeat_at": "2026-10-22T21:23:22Z",
+        "expires_at": "2026-10-23T21:23:22Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-22T21:52:55Z",
+      "reason": "Implemented and qualified the versioned realtime single-step rigid contact/joint profile at one 60 Hz advance with fixed eight-sweep work and legacy isolation.",
+      "evidence": [
+        "docs/roadmap/F8-11-RIGID-60HZ.md",
+        "docs/roadmap/evidence/F8-11-rigid-60hz.json"
+      ]
+    }
+  ]
 }

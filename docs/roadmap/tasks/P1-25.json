@@ -1,7 +1,7 @@
 {
   "id": "P1-25",
   "title": "Expose soft-body contact scopes",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "P1-02"
   ],
@@ -18,6 +18,14 @@
     "Validation rejects invalid topology, duplicate/reversed edges and unsupported requests atomically."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "fea27cc4-6dde-49f2-920a-df7e6cb3ecbc",
+    "owner": "codex-macos-p125",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/P1-25/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-24T18:32:33Z",
+    "heartbeat_at": "2026-10-24T18:32:33Z",
+    "expires_at": "2026-10-25T18:32:33Z"
+  },
   "history": []
 }

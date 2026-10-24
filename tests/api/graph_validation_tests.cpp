@@ -112,6 +112,49 @@ int main() {
              PM_SUCCESS);
     PM_CHECK(context.submit() == PM_SUCCESS);
 
+    const auto reject_smoke = [&](const PmCouplingState *candidate,
+                                  std::uint32_t count, PmResult expected) {
+        context.begin();
+        PM_CHECK(pmCmdSetCouplings(context.commands, simulation, count,
+                                   candidate) == expected);
+        PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, empty) == PM_SUCCESS);
+        PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
+                 PM_SUCCESS);
+        PM_CHECK(context.submit() == PM_SUCCESS);
+    };
+
+    PmCouplingState smoke_pair{};
+    smoke_pair.type = PM_COUPLING_SMOKE_SMOKE;
+    smoke_pair.first = 0U;
+    smoke_pair.second = 1U;
+    smoke_pair.modeFlags = PM_INTERACTION_MODE_PRESSURE_BIT;
+    smoke_pair.materialProfile = PM_INTERACTION_MATERIAL_SMOKE_PARTICLE;
+    reject_smoke(&smoke_pair, 1U, PM_ERROR_FEATURE_NOT_PRESENT);
+
+    auto reversed_smoke = smoke_pair;
+    reversed_smoke.first = 1U;
+    reversed_smoke.second = 0U;
+    reject_smoke(&reversed_smoke, 1U, PM_ERROR_INVALID_ARGUMENT);
+
+    const PmCouplingState duplicate_smoke[2]{smoke_pair, smoke_pair};
+    reject_smoke(duplicate_smoke, 2U, PM_ERROR_INVALID_ARGUMENT);
+
+    auto unsupported_smoke_bundle = smoke_pair;
+    unsupported_smoke_bundle.modeFlags = PM_INTERACTION_MODE_DRAG_BIT;
+    reject_smoke(&unsupported_smoke_bundle, 1U,
+                 PM_ERROR_FEATURE_NOT_PRESENT);
+
+    unsupported_smoke_bundle.materialProfile =
+        PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID;
+    unsupported_smoke_bundle.modeFlags = PM_INTERACTION_MODE_PRESSURE_BIT;
+    reject_smoke(&unsupported_smoke_bundle, 1U,
+                 PM_ERROR_FEATURE_NOT_PRESENT);
+
+    unsupported_smoke_bundle.modeFlags = PM_INTERACTION_MODE_DRAG_BIT |
+        PM_INTERACTION_MODE_THERMAL_BIT;
+    reject_smoke(&unsupported_smoke_bundle, 1U,
+                 PM_ERROR_FEATURE_NOT_PRESENT);
+
     PmCouplingStateInfo pair{};
     pair.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
     pair.type = PM_COUPLING_LIQUID_LIQUID;

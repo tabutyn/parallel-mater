@@ -122,22 +122,22 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-01](roadmap/tasks/F8-01.json) | Inventory every kernel, capability and physical test target | done | — | — |
 | [F8-02](roadmap/tasks/F8-02.json) | Verify deployed binaries and capture trustworthy Android baselines | done | F8-00, F8-01 | — |
 | [F8-03](roadmap/tasks/F8-03.json) | Build independent single-step quality and work-budget oracles | done | F8-00, F8-01, F8-32 | — |
-| [F8-04](roadmap/tasks/F8-04.json) | Implement fixed 60 Hz presentation and overload clock policy | ready | F8-00, F8-03, F8-32 | — |
+| [F8-04](roadmap/tasks/F8-04.json) | Implement fixed 60 Hz presentation and overload clock policy | done | F8-00, F8-03, F8-32 | — |
 | [F8-05](roadmap/tasks/F8-05.json) | Design one shared spatial-index epoch for all consumers | done | — | — |
-| [F8-06](roadmap/tasks/F8-06.json) | Implement low-dispatch shared spatial build primitives | ready | F8-00, F8-01, F8-03, F8-05 | — |
-| [F8-07](roadmap/tasks/F8-07.json) | Implement the once-per-tick shared BVH resource service | waiting on dependencies | F8-00, F8-03, F8-05, F8-06, F8-32 | — |
-| [F8-08](roadmap/tasks/F8-08.json) | Move rigid broad phase onto the shared BVH | waiting on dependencies | F8-03, F8-07 | — |
-| [F8-09](roadmap/tasks/F8-09.json) | Move liquid populations and sources onto shared BVH queries | waiting on dependencies | F8-03, F8-07 | — |
-| [F8-10](roadmap/tasks/F8-10.json) | Move deformable and smoke collision lookup onto shared indexing | waiting on dependencies | F8-03, F8-07 | — |
-| [F8-11](roadmap/tasks/F8-11.json) | Stabilize rigid contacts and joints at one 60 Hz step | waiting on dependencies | F8-00, F8-03, F8-08 | — |
-| [F8-12](roadmap/tasks/F8-12.json) | Stabilize liquid dynamics at one 60 Hz step | waiting on dependencies | F8-00, F8-03, F8-09 | — |
-| [F8-13](roadmap/tasks/F8-13.json) | Stabilize cloth at one 60 Hz step | waiting on dependencies | F8-00, F8-03, F8-10 | — |
-| [F8-14](roadmap/tasks/F8-14.json) | Stabilize soft bodies at one 60 Hz step | waiting on dependencies | F8-00, F8-03, F8-10 | — |
-| [F8-15](roadmap/tasks/F8-15.json) | Stabilize ropes at one 60 Hz step | waiting on dependencies | F8-00, F8-03, F8-10 | — |
-| [F8-16](roadmap/tasks/F8-16.json) | Stabilize smoke transport and projection at one 60 Hz step | waiting on dependencies | F8-00, F8-03, F8-10 | — |
-| [F8-17](roadmap/tasks/F8-17.json) | Integrate rigid two-way couplings into the single-step solve | waiting on dependencies | F8-08, F8-10, F8-11, F8-13, F8-14, F8-15, F8-16 | — |
-| [F8-18](roadmap/tasks/F8-18.json) | Integrate liquid cross-system couplings into the single-step solve | waiting on dependencies | F8-09, F8-10, F8-11, F8-12, F8-13, F8-14, F8-15, F8-16 | — |
-| [F8-19](roadmap/tasks/F8-19.json) | Integrate remaining deformable and smoke coupling operators | waiting on dependencies | F8-10, F8-13, F8-14, F8-15, F8-16 | — |
+| [F8-06](roadmap/tasks/F8-06.json) | Implement low-dispatch shared spatial build primitives | done | F8-00, F8-01, F8-03, F8-05 | — |
+| [F8-07](roadmap/tasks/F8-07.json) | Implement the once-per-tick shared BVH resource service | done | F8-00, F8-03, F8-05, F8-06, F8-32 | — |
+| [F8-08](roadmap/tasks/F8-08.json) | Move rigid broad phase onto the shared BVH | done | F8-03, F8-07 | — |
+| [F8-09](roadmap/tasks/F8-09.json) | Move liquid populations and sources onto shared BVH queries | done | F8-03, F8-07 | — |
+| [F8-10](roadmap/tasks/F8-10.json) | Move deformable and smoke collision lookup onto shared indexing | done | F8-03, F8-07 | — |
+| [F8-11](roadmap/tasks/F8-11.json) | Stabilize rigid contacts and joints at one 60 Hz step | done | F8-00, F8-03, F8-08 | — |
+| [F8-12](roadmap/tasks/F8-12.json) | Stabilize liquid dynamics at one 60 Hz step | done | F8-00, F8-03, F8-09 | — |
+| [F8-13](roadmap/tasks/F8-13.json) | Stabilize cloth at one 60 Hz step | done | F8-00, F8-03, F8-10 | — |
+| [F8-14](roadmap/tasks/F8-14.json) | Stabilize soft bodies at one 60 Hz step | done | F8-00, F8-03, F8-10 | — |
+| [F8-15](roadmap/tasks/F8-15.json) | Stabilize ropes at one 60 Hz step | done | F8-00, F8-03, F8-10 | — |
+| [F8-16](roadmap/tasks/F8-16.json) | Stabilize smoke transport and projection at one 60 Hz step | done | F8-00, F8-03, F8-10 | — |
+| [F8-17](roadmap/tasks/F8-17.json) | Integrate rigid two-way couplings into the single-step solve | done | F8-08, F8-10, F8-11, F8-13, F8-14, F8-15, F8-16 | — |
+| [F8-18](roadmap/tasks/F8-18.json) | Integrate liquid cross-system couplings into the single-step solve | done | F8-09, F8-10, F8-11, F8-12, F8-13, F8-14, F8-15, F8-16 | — |
+| [F8-19](roadmap/tasks/F8-19.json) | Integrate remaining deformable and smoke coupling operators | ready | F8-10, F8-13, F8-14, F8-15, F8-16 | — |
 | [F8-20](roadmap/tasks/F8-20.json) | Assemble the one-tick backend-neutral schedule | waiting on dependencies | F8-04, F8-17, F8-18, F8-19 | — |
 | [F8-21](roadmap/tasks/F8-21.json) | Add measured dispatch, GPU phase and synchronization budgets | waiting on dependencies | F8-01, F8-02, F8-20 | — |
 | [F8-22](roadmap/tasks/F8-22.json) | Freeze the cross-machine candidate and complete kernel coverage | waiting on dependencies | F8-01, F8-03, F8-20, F8-21 | — |
@@ -175,27 +175,27 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-16](roadmap/tasks/P1-16.json) | Exchange conservative fluid heat | deferred | P1-05, P1-15 | — |
 | [P1-17](roadmap/tasks/P1-17.json) | Schedule fluid thermal pair graphs | deferred | P1-08, P1-13, P1-16, P1-57 | — |
 | [P1-18](roadmap/tasks/P1-18.json) | Qualify and advertise fluid heat exchange | deferred | P1-17, F5-02, F5-03 | — |
-| [P1-19](roadmap/tasks/P1-19.json) | Expose cloth contact scopes and controls | ready | P1-02 | — |
+| [P1-19](roadmap/tasks/P1-19.json) | Expose cloth contact scopes and controls | waiting on lock | P1-02 | — |
 | [P1-20](roadmap/tasks/P1-20.json) | Build bounded cloth contact generation | deferred | P1-19 | — |
 | [P1-21](roadmap/tasks/P1-21.json) | Solve cloth self-contact and friction | deferred | P1-20 | — |
 | [P1-22](roadmap/tasks/P1-22.json) | Solve contact between cloth systems | deferred | P1-20 | — |
 | [P1-23](roadmap/tasks/P1-23.json) | Schedule cloth contact scopes | deferred | P1-21, P1-22 | — |
 | [P1-24](roadmap/tasks/P1-24.json) | Qualify and advertise cloth contact | deferred | P1-23, F5-02, F5-03 | — |
-| [P1-25](roadmap/tasks/P1-25.json) | Expose soft-body contact scopes | ready | P1-02 | — |
+| [P1-25](roadmap/tasks/P1-25.json) | Expose soft-body contact scopes | leased | P1-02 | codex-macos-p125 / Thomass-MacBook-Air / 2026-10-25T18:32:33Z |
 | [P1-26](roadmap/tasks/P1-26.json) | Build bounded soft-surface contacts | deferred | P1-25 | — |
 | [P1-27](roadmap/tasks/P1-27.json) | Solve soft-body self-contact | deferred | P1-26 | — |
 | [P1-28](roadmap/tasks/P1-28.json) | Solve contact between soft bodies | deferred | P1-26 | — |
 | [P1-29](roadmap/tasks/P1-29.json) | Schedule soft-body contact scopes | deferred | P1-27, P1-28 | — |
 | [P1-30](roadmap/tasks/P1-30.json) | Qualify and advertise soft-body contact | deferred | P1-29, F5-02, F5-03 | — |
-| [P1-31](roadmap/tasks/P1-31.json) | Audit sampled-node rope self-contact | ready | P1-02, F5-02 | — |
-| [P1-32](roadmap/tasks/P1-32.json) | Expose rope capsule pairs and attachments | ready | P1-02 | — |
+| [P1-31](roadmap/tasks/P1-31.json) | Audit sampled-node rope self-contact | leased | P1-02, F5-02 | codex-rope-audit / windows-gtx1080 / 2026-10-25T18:35:29Z |
+| [P1-32](roadmap/tasks/P1-32.json) | Expose rope capsule pairs and attachments | waiting on lock | P1-02 | — |
 | [P1-33](roadmap/tasks/P1-33.json) | Build bounded rope segment contacts | deferred | P1-32 | — |
 | [P1-34](roadmap/tasks/P1-34.json) | Solve rope capsule self-contact | deferred | P1-33 | — |
 | [P1-35](roadmap/tasks/P1-35.json) | Solve contact between rope systems | deferred | P1-33 | — |
 | [P1-36](roadmap/tasks/P1-36.json) | Solve rope endpoint attachments | deferred | P1-32 | — |
 | [P1-37](roadmap/tasks/P1-37.json) | Schedule rope pair modes | deferred | P1-34, P1-35, P1-36 | — |
 | [P1-38](roadmap/tasks/P1-38.json) | Qualify and advertise rope pair modes | deferred | P1-37, F5-02, F5-03 | — |
-| [P1-39](roadmap/tasks/P1-39.json) | Expose smoke pair profiles and edges | ready | P1-02 | — |
+| [P1-39](roadmap/tasks/P1-39.json) | Expose smoke pair profiles and edges | done | P1-02 | — |
 | [P1-40](roadmap/tasks/P1-40.json) | Expose conserved smoke material state | deferred | P1-39 | — |
 | [P1-41](roadmap/tasks/P1-41.json) | Build bounded particle-smoke cross neighbors | deferred | P1-40 | — |
 | [P1-42](roadmap/tasks/P1-42.json) | Solve particle-smoke mechanical exchange | deferred | P1-41 | — |
@@ -231,7 +231,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | Task | Work unit | State | Depends on | Owner / machine / expiry (UTC) |
 |---|---|---|---|---|
 | [P3-01](roadmap/tasks/P3-01.json) | Plan measured platform and shader optimization | deferred | F1-99, F2-99, F3-99, F4-99, F5-99, F6-99, F7-99 | — |
-| [P3-02](roadmap/tasks/P3-02.json) | Profile and optimize Android Vulkan stepping | deferred | F5-07, F5-15, F7-18, F7-99 | — |
+| [P3-02](roadmap/tasks/P3-02.json) | Profile and optimize Android Vulkan stepping | leased | F5-07, F5-15, F7-18, F7-99 | codex-android-vulkan / thomas-laptop / 2026-10-25T19:12:56Z |
 
 ### P4. Deferred vendor and standards adoption
 

@@ -18,3 +18,4 @@
 #include "primitives/scan.slang"
 #include "primitives/compaction.slang"
 #include "primitives/radix_sort.slang"
+#include "primitives/spatial_build.slang"

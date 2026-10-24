@@ -20,6 +20,7 @@ PmResult prepare_geometry_constraints(device::ExecutionQueue stream,
     RigidBodyId *ids, GeometryConstraintBody *bodies, void *schedule,
     float timestep, Vec3 gravity, std::uint32_t base_iterations,
     std::uint32_t requested_iterations,
+    std::uint32_t profile_version,
     std::uint32_t grid_blocks) noexcept;
 
 PmResult solve_geometry_constraints(device::ExecutionQueue stream,

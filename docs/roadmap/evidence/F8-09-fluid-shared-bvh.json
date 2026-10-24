@@ -1,0 +1,139 @@
+{
+  "schema": "parallel-mater-f8-fluid-shared-bvh-evidence/v1",
+  "task": "F8-09",
+  "recorded_at": "2026-10-22",
+  "branch": "work/F8-09/thomas-laptop",
+  "base_commit": "39ce70bafe17c1fc60ebfc40c46706caef49ee74",
+  "toolchain": {
+    "cmake": "3.25.1",
+    "slang": "2026.18",
+    "cuda_compiler": "13.1"
+  },
+  "cuda_device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "compute_capability": "8.6",
+    "driver_api": 13010,
+    "runtime": 13010,
+    "driver": "590.44.01"
+  },
+  "production_kernels": [
+    "fluid_emit_spatial_particles",
+    "fluid_emit_spatial_source_proposals",
+    "pm_spatial_resolve_admission",
+    "fluid_apply_spatial_source_admission",
+    "pm_spatial_query_aabbs",
+    "fluid_filter_spatial_candidates",
+    "fluid_count_spatial_neighbors"
+  ],
+  "workload_budget": {
+    "workload": "desktop-full-v1/fluid-rigid",
+    "candidates_per_query": 128,
+    "neighbor_index_dispatches_in_algebraic_solve": 0,
+    "neighbor_sort_dispatches": 0,
+    "sparse": {
+      "particles_live": 128,
+      "particles_capacity": 30000,
+      "source_proposals": 64,
+      "populations": 2,
+      "directed_pair_queries": 2,
+      "boundary_consumer_dispatches": 9,
+      "live_query_workgroups": 3,
+      "capacity_query_workgroups": 470,
+      "filtered_candidate_bytes": 15392768,
+      "conservative_pair_key_bytes_avoided": 720000
+    },
+    "full": {
+      "particles_live": 30000,
+      "particles_capacity": 30000,
+      "source_proposals": 0,
+      "populations": 1,
+      "directed_pair_queries": 0,
+      "boundary_consumer_dispatches": 3,
+      "live_query_workgroups": 469,
+      "capacity_query_workgroups": 469,
+      "filtered_candidate_bytes": 15360000
+    },
+    "capacity_policy": "checked fixed allocation; GPU-resident live/proposal counts size assembled dispatches; all-or-none query overflow; no hot-path growth, source sort, pair sort, readback, retry, substep, or second index update"
+  },
+  "correctness_cases": [
+    "one flattened hierarchy for self and distinct populations",
+    "full population/material/generation/stable-particle identity",
+    "randomized heterogeneous supports over full-tick motion envelopes",
+    "outflow-before-stage and stable IDs across dense compaction",
+    "deterministic provisional-source admission and intentional underfill",
+    "accepted, rejected and capacity-limited source proposals",
+    "zero live particles and inactive reserved capacity",
+    "exact radius counts and overflow against brute force",
+    "all-or-none candidate overflow and stale stable-ID rejection",
+    "one exact published epoch through six density sweeps"
+  ],
+  "qualification": [
+    {
+      "command": "/tmp/parallel-mater-f8-08-host-build/tests/solver/parallel-mater-fluid-spatial-tests",
+      "result": "PASS",
+      "notes": "randomized full-tick brute-force oracle, boundary/admission model, checked plan, epoch guard and exact sparse/full budget output"
+    },
+    {
+      "command": "/tmp/parallel-mater-f8-08-cuda-build/tests/solver/parallel-mater-fluid-spatial-cuda-tests",
+      "result": "PASS",
+      "notes": "physical RTX execution of generated production Slang for retained/provisional emission, admission application, self/cross filtering, exact counts, overflow and stale identity"
+    },
+    {
+      "command": "/tmp/parallel-mater-f8-08-cuda-build/tests/solver/parallel-mater-spatial-build-cuda-tests",
+      "result": "PASS",
+      "notes": "physical shared admission/publication/query path including 30,065 live leaves, empty scenes and 128-live/1,048,576-capacity sparsity"
+    },
+    {
+      "command": "generated CPU-liquid, CUDA and Vulkan driver builds",
+      "result": "PASS",
+      "notes": "canonical manifests and native binding layouts compile"
+    },
+    {
+      "command": "spirv-val --target-env spv1.6 generated/vulkan/fluid.spv",
+      "result": "PASS",
+      "notes": "complete fluid module including all five new entries"
+    },
+    {
+      "command": "Slang five-entry Metal and per-entry HLSL SM 6.6 source compilation",
+      "result": "PASS",
+      "notes": "all new fluid entries compile for both source targets"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-08-host-build -R 'parallel-mater-(compute-lifetime-tests|spatial-build-primitives-tests|spatial-service-tests|rigid-spatial-tests|fluid-spatial-tests|contact-friction-tests|avbd-core-tests|slang-architecture)$' --output-on-failure",
+      "result": "PASS",
+      "notes": "8/8 host lifecycle, spatial, fluid, narrow-phase and architecture tests"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-08-cpu-build -R 'parallel-mater-fluid-(pair-neighbor-index|interface-reconstruction|immiscible-pressure-capillarity)-tests$' --output-on-failure",
+      "result": "PASS",
+      "notes": "3/3 legacy CPU-liquid pair/interface regressions"
+    },
+    {
+      "command": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "414 tests"
+    },
+    {
+      "command": "python3 conformance/v1/realtime_oracle.py --check-contract",
+      "result": "PASS",
+      "notes": "243 named limits, 49 advertised capability cases, 14 fixed workloads and 5 runtime adapters"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "72 tests"
+    },
+    {
+      "command": "python3 -m unittest tests.roadmap.test_f8_01_kernel_device_inventory",
+      "result": "PASS",
+      "notes": "172-entry canonical device-obligation inventory"
+    }
+  ],
+  "limits": [
+    "F8-12 supplies stable one-step liquid equations; F8-18 integrates cross-system force exchange.",
+    "F8-20 activates the new schedule and GPU-resident indirect/live dispatch path; the legacy schedule remains unchanged here.",
+    "F8-21 freezes final candidate, byte, dispatch and timing budgets.",
+    "The public real-time profile remains unsupported and unadvertised after this task.",
+    "Local Linux qualification lacks physical D3D12 and Metal devices; those remain required platform and PR gates."
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "id": "P1-39",
   "title": "Expose smoke pair profiles and edges",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "P1-02"
   ],
@@ -17,7 +17,31 @@
     "Registry, generated API and specification distinguish all three representation pairs and reject reversed, duplicate or unsupported bundles atomically.",
     "Current API 0.2 self records remain unchanged and no driver exposes a separate-system record."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS: ctest --preset sdk-cpu --output-on-failure; macOS Apple Clang build, 78/78 tests passed with feature-gated driver suites skipped; tests/api/graph_validation_tests.cpp and tests/api/interaction_capability_tests.cpp",
+    "PASS: out/reference-toolchain/venv/bin/python tools/reference/bootstrap.py --check --skip-vulkan-header; pinned CPython 3.13.15 deterministic reference verification; docs/reference/release-artifacts.json",
+    "LIMITATION: no driver advertises smoke-smoke separate-system records and no physics scheduling leaf is implemented; conformance/v1/qualification/capability-obligations-v1.json"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "d62e8b94-eda0-4c5c-9f83-da30d36ebcef",
+        "owner": "codex-macos-p139",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/P1-39/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-22T16:27:08Z",
+        "heartbeat_at": "2026-10-22T16:27:08Z",
+        "expires_at": "2026-10-23T16:27:08Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-22T16:50:43Z",
+      "reason": "Canonical smoke-smoke graph edge and three representation profiles exposed without advertising support",
+      "evidence": [
+        "PASS: ctest --preset sdk-cpu --output-on-failure; macOS Apple Clang build, 78/78 tests passed with feature-gated driver suites skipped; tests/api/graph_validation_tests.cpp and tests/api/interaction_capability_tests.cpp",
+        "PASS: out/reference-toolchain/venv/bin/python tools/reference/bootstrap.py --check --skip-vulkan-header; pinned CPython 3.13.15 deterministic reference verification; docs/reference/release-artifacts.json",
+        "LIMITATION: no driver advertises smoke-smoke separate-system records and no physics scheduling leaf is implemented; conformance/v1/qualification/capability-obligations-v1.json"
+      ]
+    }
+  ]
 }

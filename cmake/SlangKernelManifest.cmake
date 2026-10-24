@@ -27,6 +27,8 @@ set(PARALLEL_MATER_SLANG_KERNEL_MODULES
     geometry_fluid
     geometry_smoke
     geometry_soft_body
+    rigid_coupling
+    liquid_coupling
     smoke_grid
     rope)
 
@@ -43,7 +45,13 @@ set(PARALLEL_MATER_SLANG_fluid_ENTRIES
     fluid_apply_miscible_pair_viscosity
     fluid_reconstruct_immiscible_interface_normals
     fluid_reconstruct_immiscible_interface_curvature
-    fluid_apply_immiscible_pair_pressure_capillarity)
+    fluid_apply_immiscible_pair_pressure_capillarity
+    fluid_emit_spatial_particles fluid_emit_spatial_source_proposals
+    fluid_apply_spatial_source_admission
+    fluid_filter_spatial_candidates fluid_count_spatial_neighbors
+    fluid_realtime_predict fluid_realtime_density_lambda
+    fluid_realtime_position_delta fluid_realtime_apply_position_delta
+    fluid_realtime_viscosity_delta fluid_realtime_commit)
 
 set(PARALLEL_MATER_SLANG_geometry_constraints_ENTRIES
     prepare_avbd_kernel solve_avbd_kernel solve_avbd_stage_kernel)
@@ -66,6 +74,9 @@ set(PARALLEL_MATER_SLANG_geometry_ENTRIES
     pm_integrate_rigid_bodies
     pm_compute_rigid_world_bounds
     pm_broad_phase_rigid_pairs
+    pm_emit_rigid_spatial_proxies
+    pm_filter_rigid_spatial_candidates
+    pm_gather_rigid_spatial_pairs
     pm_generate_rigid_leaf_pairs
     pm_evaluate_rigid_leaf_pairs
     pm_reduce_rigid_leaf_manifolds
@@ -87,17 +98,40 @@ set(PARALLEL_MATER_SLANG_primitives_ENTRIES
     pm_compact_scatter_indices
     pm_radix_histogram_u64
     pm_radix_prefix_u32
-    pm_radix_scatter_u64_u32)
+    pm_radix_scatter_u64_u32
+    pm_spatial_reduce_bounds_blocks
+    pm_spatial_reduce_bounds_final
+    pm_spatial_emit_keys
+    pm_spatial_sort_small_u64_u32
+    pm_spatial_radix_histogram_u64
+    pm_spatial_radix_prefix_u32
+    pm_spatial_radix_scatter_u64_u32
+    pm_spatial_build_topology
+    pm_spatial_union_bounds
+    pm_spatial_refit_leaves
+    pm_spatial_initialize_epoch
+    pm_spatial_stage_leaves
+    pm_spatial_resolve_admission
+    pm_spatial_finalize_transfers
+    pm_spatial_publish_epoch
+    pm_spatial_query_aabbs
+    pm_spatial_validate_envelopes)
 
 set(PARALLEL_MATER_SLANG_cloth_ENTRIES
-    cloth_project_volume cloth_break_bonds cloth_limit_strain
-    cloth_update_surface)
+    cloth_project_volume
+    cloth_realtime_predict cloth_realtime_project_links
+    cloth_realtime_apply_position_delta cloth_realtime_project_volume
+    cloth_realtime_project_contacts cloth_realtime_commit
+    cloth_break_bonds cloth_limit_strain cloth_update_surface)
 set(PARALLEL_MATER_SLANG_soft_body_ENTRIES
     deformable_predict soft_body_measure_momentum soft_body_restore_momentum
     soft_body_project_rest_shape deformable_project_links
     deformable_project_links_warp soft_body_finalize_velocities
     soft_body_apply_contact_friction soft_body_damp_springs
-    soft_body_damp_springs_warp soft_body_update_surface)
+    soft_body_damp_springs_warp soft_body_update_surface
+    soft_body_realtime_predict soft_body_realtime_project_links
+    soft_body_realtime_apply_position_delta soft_body_realtime_project_shape
+    soft_body_realtime_project_contacts soft_body_realtime_commit)
 set(PARALLEL_MATER_SLANG_soft_body_cloth_ENTRIES
     soft_cloth_detect soft_cloth_apply_soft soft_cloth_apply_cloth)
 set(PARALLEL_MATER_SLANG_cloth_rope_ENTRIES
@@ -130,10 +164,25 @@ set(PARALLEL_MATER_SLANG_geometry_fluid_ENTRIES
 set(PARALLEL_MATER_SLANG_geometry_smoke_ENTRIES
     smoke_emit_cells smoke_density_pressure smoke_pair_forces
     smoke_compute_vorticity smoke_advect smoke_emit smoke_deformable_bounds
-    smoke_rigid_contact smoke_apply_rigid_impulses)
+    smoke_rigid_contact smoke_apply_rigid_impulses
+    smoke_realtime_particle_emit smoke_realtime_particle_predict
+    smoke_realtime_particle_density_pressure
+    smoke_realtime_particle_position_delta
+    smoke_realtime_particle_apply_position_delta
+    smoke_realtime_particle_commit)
 set(PARALLEL_MATER_SLANG_geometry_soft_body_ENTRIES
     deformable_collide soft_body_surface_contacts
-    soft_body_apply_surface_contacts)
+    soft_body_apply_surface_contacts
+    pm_emit_deformable_spatial_primitives
+    pm_filter_deformable_spatial_candidates
+    pm_emit_smoke_spatial_queries
+    pm_filter_smoke_spatial_obstacles)
+set(PARALLEL_MATER_SLANG_rigid_coupling_ENTRIES
+    rigid_coupling_project rigid_coupling_apply_endpoints
+    rigid_coupling_apply_bodies)
+set(PARALLEL_MATER_SLANG_liquid_coupling_ENTRIES
+    liquid_coupling_project liquid_coupling_apply_particles
+    liquid_coupling_apply_partners)
 set(PARALLEL_MATER_SLANG_smoke_grid_ENTRIES
     smoke_grid_initialize_cells
     smoke_grid_initialize_faces
@@ -164,8 +213,22 @@ set(PARALLEL_MATER_SLANG_smoke_grid_ENTRIES
     smoke_grid_soft_body_force
     smoke_grid_cloth_force
     smoke_grid_apply_cloth_force
-    smoke_grid_rigid_force)
-set(PARALLEL_MATER_SLANG_rope_ENTRIES rope_advance rope_advance_coupled)
+    smoke_grid_rigid_force
+    smoke_realtime_grid_begin
+    smoke_realtime_grid_source
+    smoke_realtime_grid_advect_scalar
+    smoke_realtime_grid_advect_face
+    smoke_realtime_grid_face_forces
+    smoke_realtime_grid_boundaries
+    smoke_realtime_grid_divergence
+    smoke_realtime_grid_pressure_cycle
+    smoke_realtime_grid_project_face
+    smoke_realtime_grid_trace)
+set(PARALLEL_MATER_SLANG_rope_ENTRIES
+    rope_realtime_predict rope_realtime_project_constraints
+    rope_realtime_apply_position_delta rope_realtime_project_contacts
+    rope_realtime_commit
+    rope_advance rope_advance_coupled)
 set(PARALLEL_MATER_SLANG_rope_OPTIMIZATION 3)
 
 function(parallel_mater_slang_entry_arguments module variant output)

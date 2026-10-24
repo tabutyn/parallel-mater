@@ -1,0 +1,153 @@
+{
+  "schema": "parallel-mater-f8-cloth-60hz-evidence/v1",
+  "task": "F8-13",
+  "recorded_at": "2026-10-22",
+  "branch": "work/F8-13/thomas-laptop",
+  "base_commit": "fe1a8f4e7f55268bf979ef8b7472a222f4ad7ef5",
+  "profile": {
+    "name": "realtime-single-step",
+    "version": "1.0",
+    "timestep_seconds": 0.016666666666666666,
+    "time_advances": 1,
+    "constraint_sweeps": 8,
+    "contact_passes": 4,
+    "solver_added_velocity_damping_fraction": 0.05,
+    "structural_correction_characteristic_length": 0.2,
+    "maximum_total_correction_characteristic_length": 0.25,
+    "spatial_updates_during_solve": 0
+  },
+  "toolchain": {
+    "cmake": "3.25.1",
+    "slang": "2026.18",
+    "cuda_compiler": "13.1"
+  },
+  "cuda_device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "compute_capability": "8.6",
+    "driver": "590.44.01"
+  },
+  "production_kernels": [
+    "cloth_realtime_predict",
+    "cloth_realtime_project_links",
+    "cloth_realtime_apply_position_delta",
+    "cloth_realtime_project_volume",
+    "cloth_realtime_project_contacts",
+    "cloth_realtime_commit"
+  ],
+  "workload_budget": {
+    "workload": "desktop-full-v1/deformable cloth self-domain portion",
+    "vertices_live": 578,
+    "vertices_capacity": 578,
+    "triangles": 1024,
+    "directed_links": 6144,
+    "contact_constraints": 578,
+    "constraint_sweeps": 8,
+    "contact_passes": 4,
+    "time_advances": 1,
+    "spatial_updates_during_solve": 0,
+    "domain_dispatches": 31,
+    "domain_workgroups_128_threads": 126,
+    "directed_link_visits": 49152,
+    "contact_constraint_visits": 2312,
+    "solver_scratch_bytes": 23132,
+    "policy": "fixed eight Jacobi sweeps and four contact passes over one F8-10 epoch; no adaptive pass, hidden substep, solve-time index mutation, host retry or per-device fork"
+  },
+  "physical_cuda_quality": {
+    "fixture": "generated production Slang with explicit profile version 1 and one 1/60 s advance per tick",
+    "stiff_pin_impact_topology": {
+      "initial_link_strain": 0.2,
+      "final_link_strain": 0.0,
+      "pinned_drift_m": 0.0,
+      "impact_plane_height_m": 0.01,
+      "final_impact_normal_speed_m_s": 0.0,
+      "inactive_then_reactivated_bond_reset": "PASS"
+    },
+    "closed_volume": {
+      "initial_relative_error": 0.5,
+      "final_relative_error": 0.00115461,
+      "target_volume_m3": 0.01066667
+    },
+    "hanging_resting_long_run": {
+      "vertices": 64,
+      "ticks": 3600,
+      "stretch_rms": 0.02632561,
+      "stretch_maximum": 0.0726066,
+      "bend_rms_degrees": 0.0,
+      "pinned_drift_m": 0.0,
+      "tunneling_count": 0,
+      "final_kinetic_energy_j": 0.0,
+      "maximum_correction_m": 0.02261475
+    },
+    "equation_path_timing_ms": {
+      "workload": "64-vertex pinned hanging/resting fixture",
+      "warmup_ticks": 120,
+      "samples": 600,
+      "p50": 0.120832,
+      "p95": 0.121856,
+      "p99": 0.121856,
+      "maximum": 0.129024,
+      "scope": "CUDA events around 31 domain dispatches; not a full desktop-full-v1 frame-budget result"
+    }
+  },
+  "qualification": [
+    {
+      "command": "/tmp/parallel-mater-f8-08-cuda-build/tests/solver/parallel-mater-cloth-realtime-cuda-tests",
+      "result": "PASS",
+      "notes": "physical RTX generated-Slang profile rejection, stiff/pin, fast contact, topology reset, closed volume and 3600-tick quality/timing"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-08-cuda-build -R 'parallel-mater-(cloth-realtime-cuda|deformable-spatial-cuda|cloth-realtime|deformable-spatial)-tests' --output-on-failure -j1",
+      "result": "PASS",
+      "notes": "4/4 host contract, shared deformable epoch and physical CUDA tests"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-08-host-build --output-on-failure -j8",
+      "result": "PASS",
+      "notes": "64/64 host tests, including profile, exact budget, topology/epoch and Metal reflection"
+    },
+    {
+      "command": "common Slang cloth realtime entry points to CPU, CUDA, Vulkan, Metal and D3D12 HLSL SM 6.6",
+      "result": "PASS",
+      "notes": "six versioned entry points compile from one source; no adapter-specific physics"
+    },
+    {
+      "command": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "414 tests"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "72 tests; canonical inventory contains 188 shared entry points"
+    },
+    {
+      "command": "python3 conformance/v1/realtime_oracle.py --check-contract",
+      "result": "PASS",
+      "notes": "243 named limits, 49 advertised capability cases, 14 fixed workloads and 5 runtime adapters"
+    },
+    {
+      "command": "physical CUDA legacy cloth-core plus unchanged golden comparison",
+      "result": "PASS",
+      "notes": "legacy trajectory remains within existing tolerances"
+    },
+    {
+      "command": "physical CUDA legacy cloth-tear plus unchanged golden comparison",
+      "result": "LEGACY_BASELINE_PRESERVED",
+      "notes": "retains the pre-existing P1-59 reference mismatch; legacy equations, schedule, tolerances and golden are unchanged"
+    }
+  ],
+  "legacy_profile": {
+    "profile_marker": 0,
+    "deformable_predict_and_authored_iteration_path": "unchanged",
+    "legacy_32_pass_strain_limiter": "unchanged",
+    "fracture_and_contact_schedule": "unchanged",
+    "new_entry_points_selected_implicitly": false,
+    "public_realtime_profile": "unsupported and unadvertised until F8-20"
+  },
+  "limits": [
+    "Current capability inventory does not advertise cloth self-contact; this task does not add a public mode.",
+    "Contact constraint generation and reciprocal distinct-family impulse exchange remain F8-18 work.",
+    "The 64-vertex CUDA timing is equation-path evidence; F8-21 freezes final desktop-full-v1 frame budgets and F8-23 through F8-30 qualify registered devices.",
+    "Physical D3D12 and Metal execution remains required in platform leaves; common Metal/HLSL source compilation passes locally."
+  ]
+}

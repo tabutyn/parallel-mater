@@ -87,8 +87,12 @@ uses four bricks, 256 liquid particles, four independent dynamic bodies in the
 Fluid + Rigid scene, 128 smoke particles, at most 960×720 pixels, and a 30-update/s
 target. Indexed mixed-scene attachments are retained. These budgets are not
 measured performance guarantees or quality-equivalent desktop benchmarks.
-Each update advances 1/30 second with eight substeps, preserving Android's 240
-substeps/second. Slow frame work slows simulation rather than building a queue.
+Under the default `legacy-v1` clock, each update advances 1/30 second with eight
+substeps, preserving the historical 240 substeps/second. The explicitly selected
+`realtime-single-step-v1` client clock instead submits at most one `dt=1/60`
+tick with one substep per callback; sustained 30 Hz overload is half-speed and
+never catches up. Runtime profile support is negotiated separately, so this new
+clock does not silently replace legacy behavior.
 
 ## Validation
 

@@ -1,7 +1,7 @@
 {
   "id": "F8-07",
   "title": "Implement the once-per-tick shared BVH resource service",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F8-00",
     "F8-03",
@@ -23,7 +23,35 @@
     "Verify full-tick candidate completeness against independent small-scene brute force, including rotation and allowed solve corrections; enforce explicit bounded overflow/out-of-envelope behavior.",
     "Keep counts/scratch GPU resident with bounded memory and no new routine CPU phase waits; expose accurate update/build/refit counts for later telemetry."
   ],
-  "evidence": [],
+  "evidence": [
+    "PASS:docs/roadmap/evidence/F8-07-spatial-service.json-records-contract-device-and-portability-results",
+    "PASS:physical-RTX3050Ti-generated-Slang-CUDA-sparse-build-refit-admission-query-and-failure-tests",
+    "PASS:independent-randomized-brute-force-envelope-candidate-lifecycle-compaction-reset-oracles-and-72-roadmap-tests",
+    "PASS:bounded-per-snapshot-resource-plan-GPU-resident-counts-no-routine-host-readback-and-immutable-mesh-local-cache-boundary",
+    "PASS:canonical-CUDA-Vulkan-SPIR-V-Metal-bindings-compile-physical-Vulkan-driver-passes-and-DXIL-remains-required-PR-CI-gate"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "61e8e10a-8b17-4681-819e-51969e3323ef",
+        "owner": "codex-f8-spatial",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-07/thomas-laptop",
+        "claimed_at": "2026-10-22T17:53:07Z",
+        "heartbeat_at": "2026-10-22T17:53:07Z",
+        "expires_at": "2026-10-23T17:53:07Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-22T18:35:48Z",
+      "reason": "Implemented-once-per-tick-shared-BVH-epoch-service-with-bounded-snapshot-lifetime-and-physical-device-evidence",
+      "evidence": [
+        "PASS:docs/roadmap/evidence/F8-07-spatial-service.json-records-contract-device-and-portability-results",
+        "PASS:physical-RTX3050Ti-generated-Slang-CUDA-sparse-build-refit-admission-query-and-failure-tests",
+        "PASS:independent-randomized-brute-force-envelope-candidate-lifecycle-compaction-reset-oracles-and-72-roadmap-tests",
+        "PASS:bounded-per-snapshot-resource-plan-GPU-resident-counts-no-routine-host-readback-and-immutable-mesh-local-cache-boundary",
+        "PASS:canonical-CUDA-Vulkan-SPIR-V-Metal-bindings-compile-physical-Vulkan-driver-passes-and-DXIL-remains-required-PR-CI-gate"
+      ]
+    }
+  ]
 }

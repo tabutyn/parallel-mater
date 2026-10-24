@@ -1,0 +1,146 @@
+{
+  "schema": "parallel-mater-f8-rigid-60hz-evidence/v1",
+  "task": "F8-11",
+  "recorded_at": "2026-10-22",
+  "branch": "work/F8-11/thomas-laptop",
+  "base_commit": "5142c424827d917f11033e3896c6b7083cbbcdb3",
+  "profile": {
+    "name": "realtime-single-step",
+    "version": "1.0",
+    "timestep_seconds": 0.016666666666666666,
+    "time_advances": 1,
+    "rigid_contact_and_joint_sweeps": 8,
+    "impact_phases": 0,
+    "solver_added_velocity_damping_fraction": 0.05,
+    "spatial_updates_during_solve": 0
+  },
+  "toolchain": {
+    "cmake": "3.25.1",
+    "slang": "2026.18",
+    "cuda_compiler": "13.1"
+  },
+  "cuda_device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "compute_capability": "8.6",
+    "driver_api": 13010,
+    "runtime": 13010,
+    "driver": "590.44.01"
+  },
+  "production_kernels": [
+    "prepare_avbd_kernel",
+    "solve_avbd_kernel",
+    "solve_avbd_stage_kernel"
+  ],
+  "workload_budget": {
+    "workload": "desktop-full-v1/rigid-wall",
+    "bodies_live": 386,
+    "contact_capacity": 65536,
+    "joint_capacity": 32,
+    "graph_colors": 8,
+    "grid_workgroups": 13,
+    "algebraic_sweeps": 8,
+    "time_advances": 1,
+    "spatial_updates_during_solve": 0,
+    "cooperative_dispatches": 2,
+    "staged_dispatches": 79,
+    "staged_workgroups": 1027,
+    "avbd_persistent_bytes": 151168728,
+    "policy": "fixed capacity and exact eight sweeps; no adaptive pass, impact phase, hidden substep, solve-time index update, host retry or per-device physics fork"
+  },
+  "physical_cuda_quality": {
+    "fixture": "generated production Slang, one 1/60 s advance per tick",
+    "single_step": {
+      "resting_penetration_m": 0.00102460198,
+      "cold_impact_final_velocity_m_s": 1.53899503,
+      "cold_impact_energy_ratio": 0.263167292,
+      "mass_ratio": 100.0,
+      "mass_ratio_penetration_m": 0.00102507975,
+      "joint_position_error_m": 0.00000208616257,
+      "joint_angle_error_rad": 0.0000429036045,
+      "fast_rotation_final_rad_s": 28.5,
+      "teleport_reset_preserved": true
+    },
+    "stack_window": {
+      "cold_ticks": 120,
+      "settled_ticks": 600,
+      "maximum_penetration_m": 0.00122846663,
+      "settled_translation_drift_m": 0.0000411868095,
+      "rotation_drift_rad": 0.0,
+      "maximum_unforced_energy_growth_fraction": 0.0,
+      "tunneling_events": 0
+    },
+    "equation_path_timing_ms": {
+      "workload": "two-body-stack",
+      "samples": 720,
+      "p50": 0.354303986,
+      "p95": 0.428032011,
+      "p99": 0.859135985,
+      "maximum": 0.907423973,
+      "scope": "CUDA events around AVBD preparation and solve; not a full desktop-full-v1 frame-budget result"
+    }
+  },
+  "qualification": [
+    {
+      "command": "/tmp/parallel-mater-f8-08-cuda-build/tests/solver/parallel-mater-rigid-realtime-cuda-tests",
+      "result": "PASS",
+      "notes": "physical RTX generated-Slang cold impact, rest, 100:1 mass ratio, fixed-joint translation/rotation, fast rotation, teleport/reset and 720-tick stack quality/timing"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-08-cuda-build -R 'parallel-mater-(avbd-core-cuda|avbd-slang-cuda)-tests' --output-on-failure",
+      "result": "PASS",
+      "notes": "unchanged legacy AVBD CUDA core and generated-Slang results"
+    },
+    {
+      "command": "generated CPU, CUDA and Vulkan driver builds",
+      "result": "PASS",
+      "notes": "explicit profile parameter and common Slang equations compile through all local adapters"
+    },
+    {
+      "command": "Slang geometry_constraints Metal, HLSL SM 6.6 and normalized SPIR-V compilation",
+      "result": "PASS",
+      "notes": "prepare, cooperative solve and staged solve entry points compile from one source"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-08-host-build --output-on-failure",
+      "result": "PASS",
+      "notes": "62/62 host tests, including profile, contract, schedule, spatial and AVBD coverage"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-08-cpu-build -R 'parallel-mater-(rigid|avbd|cpu-realtime-profile-reference)' --output-on-failure",
+      "result": "PASS",
+      "notes": "five CPU adapter, legacy AVBD and unsupported-public-profile regressions"
+    },
+    {
+      "command": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "414 tests"
+    },
+    {
+      "command": "python3 conformance/v1/realtime_oracle.py --check-contract",
+      "result": "PASS",
+      "notes": "243 named limits, 49 advertised capability cases, 14 fixed workloads and 5 runtime adapters"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "72 tests"
+    },
+    {
+      "command": "ctest --test-dir /tmp/f8-11-baseline-build -R 'parallel-mater-(cpu-resource-lifecycle|cpu-validated-lifecycle|host-descriptor-snapshot|cpu-fluid-self-contact-quality|cpu-fluid-self-pressure-quality|cpu-fluid-self-viscosity-quality|host-capacity-recovery)-tests' --output-on-failure -j1",
+      "result": "BASELINE_REPRODUCED",
+      "notes": "the same seven unrelated full-CPU-suite failures reproduce from untouched base commit 5142c424827d917f11033e3896c6b7083cbbcdb3; targeted F8-11 CPU and legacy AVBD tests pass"
+    }
+  ],
+  "legacy_profile": {
+    "profile_marker": 0,
+    "authored_iteration_selection": "unchanged",
+    "pose_and_impact_phases": 2,
+    "solver_added_realtime_damping": 0.0,
+    "public_realtime_profile": "unsupported and unadvertised until F8-20"
+  },
+  "limits": [
+    "Small-stack CUDA timing is equation-path evidence, not final desktop-full-v1 physics timing; F8-21 freezes final budgets and F8-23 through F8-30 qualify registered devices.",
+    "F8-17 and F8-18 integrate cross-system exchange; this task changes no advertised interaction mode.",
+    "Local Linux qualification lacks physical D3D12 and Metal execution; common source compilation passes, while device execution remains required in platform leaves."
+  ]
+}

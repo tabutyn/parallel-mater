@@ -64,6 +64,138 @@ target_compile_features(parallel-mater-owner-slot-tests PRIVATE cxx_std_20)
 target_include_directories(parallel-mater-owner-slot-tests PRIVATE ../../src)
 add_test(NAME parallel-mater-owner-slot-tests COMMAND parallel-mater-owner-slot-tests)
 
+add_executable(parallel-mater-spatial-build-primitives-tests
+    spatial_build_primitives_tests.cpp)
+target_compile_features(parallel-mater-spatial-build-primitives-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-spatial-build-primitives-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-spatial-build-primitives-tests
+    COMMAND parallel-mater-spatial-build-primitives-tests)
+set_tests_properties(parallel-mater-spatial-build-primitives-tests PROPERTIES
+    LABELS "slang;spatial;f8")
+
+add_executable(parallel-mater-spatial-service-tests
+    spatial_service_tests.cpp)
+target_compile_features(parallel-mater-spatial-service-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-spatial-service-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-spatial-service-tests
+    COMMAND parallel-mater-spatial-service-tests)
+set_tests_properties(parallel-mater-spatial-service-tests PROPERTIES
+    LABELS "spatial;lifecycle;f8")
+
+add_executable(parallel-mater-rigid-spatial-tests
+    rigid_spatial_tests.cpp)
+target_compile_features(parallel-mater-rigid-spatial-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-rigid-spatial-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-rigid-spatial-tests
+    COMMAND parallel-mater-rigid-spatial-tests)
+set_tests_properties(parallel-mater-rigid-spatial-tests PROPERTIES
+    LABELS "rigid;spatial;lifecycle;f8")
+
+add_executable(parallel-mater-rigid-realtime-tests
+    rigid_realtime_tests.cpp)
+target_compile_features(parallel-mater-rigid-realtime-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-rigid-realtime-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-rigid-realtime-tests
+    COMMAND parallel-mater-rigid-realtime-tests)
+set_tests_properties(parallel-mater-rigid-realtime-tests PROPERTIES
+    LABELS "rigid;realtime;f8")
+
+add_executable(parallel-mater-rigid-coupling-realtime-tests
+    rigid_coupling_realtime_tests.cpp)
+target_compile_features(parallel-mater-rigid-coupling-realtime-tests
+    PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-rigid-coupling-realtime-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-rigid-coupling-realtime-tests
+    COMMAND parallel-mater-rigid-coupling-realtime-tests)
+set_tests_properties(parallel-mater-rigid-coupling-realtime-tests PROPERTIES
+    LABELS "rigid;coupling;realtime;f8")
+
+add_executable(parallel-mater-liquid-coupling-realtime-tests
+    liquid_coupling_realtime_tests.cpp)
+target_compile_features(parallel-mater-liquid-coupling-realtime-tests
+    PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-liquid-coupling-realtime-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-liquid-coupling-realtime-tests
+    COMMAND parallel-mater-liquid-coupling-realtime-tests)
+set_tests_properties(parallel-mater-liquid-coupling-realtime-tests PROPERTIES
+    LABELS "liquid;coupling;realtime;f8")
+
+add_executable(parallel-mater-fluid-spatial-tests
+    fluid_spatial_tests.cpp)
+target_compile_features(parallel-mater-fluid-spatial-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-fluid-spatial-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-fluid-spatial-tests
+    COMMAND parallel-mater-fluid-spatial-tests)
+set_tests_properties(parallel-mater-fluid-spatial-tests PROPERTIES
+    LABELS "fluid;spatial;lifecycle;f8")
+
+add_executable(parallel-mater-fluid-realtime-tests
+    fluid_realtime_tests.cpp)
+target_compile_features(parallel-mater-fluid-realtime-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-fluid-realtime-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-fluid-realtime-tests
+    COMMAND parallel-mater-fluid-realtime-tests)
+set_tests_properties(parallel-mater-fluid-realtime-tests PROPERTIES
+    LABELS "fluid;realtime;f8")
+
+add_executable(parallel-mater-cloth-realtime-tests
+    cloth_realtime_tests.cpp)
+target_compile_features(parallel-mater-cloth-realtime-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-cloth-realtime-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-cloth-realtime-tests
+    COMMAND parallel-mater-cloth-realtime-tests)
+set_tests_properties(parallel-mater-cloth-realtime-tests PROPERTIES
+    LABELS "cloth;realtime;f8")
+
+add_executable(parallel-mater-rope-realtime-tests
+    rope_realtime_tests.cpp)
+target_compile_features(parallel-mater-rope-realtime-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-rope-realtime-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-rope-realtime-tests
+    COMMAND parallel-mater-rope-realtime-tests)
+set_tests_properties(parallel-mater-rope-realtime-tests PROPERTIES
+    LABELS "rope;realtime;f8")
+
+add_executable(parallel-mater-smoke-realtime-tests
+    smoke_realtime_tests.cpp)
+target_compile_features(parallel-mater-smoke-realtime-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-smoke-realtime-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-smoke-realtime-tests
+    COMMAND parallel-mater-smoke-realtime-tests)
+set_tests_properties(parallel-mater-smoke-realtime-tests PROPERTIES
+    LABELS "smoke;realtime;f8")
+
+add_executable(parallel-mater-soft-body-realtime-tests
+    soft_body_realtime_tests.cpp)
+target_compile_features(parallel-mater-soft-body-realtime-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-soft-body-realtime-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-soft-body-realtime-tests
+    COMMAND parallel-mater-soft-body-realtime-tests)
+set_tests_properties(parallel-mater-soft-body-realtime-tests PROPERTIES
+    LABELS "soft-body;realtime;f8")
+
+add_executable(parallel-mater-deformable-spatial-tests
+    deformable_spatial_tests.cpp)
+target_compile_features(parallel-mater-deformable-spatial-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-deformable-spatial-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-deformable-spatial-tests
+    COMMAND parallel-mater-deformable-spatial-tests)
+set_tests_properties(parallel-mater-deformable-spatial-tests PROPERTIES
+    LABELS "deformable;smoke;spatial;lifecycle;f8")
+
 add_executable(parallel-mater-geometry-resource-plan-tests
     geometry_resource_plan_tests.cpp ../../src/simulation/memory_arena.cpp)
 target_compile_features(parallel-mater-geometry-resource-plan-tests PRIVATE cxx_std_20)
@@ -207,6 +339,217 @@ if("CUDA" IN_LIST contact_test_languages)
     set_target_properties(parallel-mater-avbd-core-cuda-tests PROPERTIES CUDA_STANDARD 17)
     add_test(NAME parallel-mater-avbd-core-cuda-tests COMMAND parallel-mater-avbd-core-cuda-tests)
     set_tests_properties(parallel-mater-avbd-core-cuda-tests PROPERTIES SKIP_RETURN_CODE 77)
+
+    if(TARGET parallel-mater-driver-slang-cuda)
+        add_executable(parallel-mater-spatial-build-cuda-tests
+            spatial_build_cuda_tests.cu)
+        add_dependencies(parallel-mater-spatial-build-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(parallel-mater-spatial-build-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(parallel-mater-spatial-build-cuda-tests PRIVATE
+            CUDA::cudart)
+        set_target_properties(parallel-mater-spatial-build-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-spatial-build-cuda-tests
+            COMMAND parallel-mater-spatial-build-cuda-tests)
+        set_tests_properties(parallel-mater-spatial-build-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77 LABELS "cuda;slang;spatial;f8" TIMEOUT 300)
+
+        add_executable(parallel-mater-rigid-spatial-cuda-tests
+            rigid_spatial_cuda_tests.cu)
+        add_dependencies(parallel-mater-rigid-spatial-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(parallel-mater-rigid-spatial-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(parallel-mater-rigid-spatial-cuda-tests PRIVATE
+            CUDA::cudart)
+        set_target_properties(parallel-mater-rigid-spatial-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-rigid-spatial-cuda-tests
+            COMMAND parallel-mater-rigid-spatial-cuda-tests)
+        set_tests_properties(parallel-mater-rigid-spatial-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77 LABELS "cuda;slang;rigid;spatial;f8"
+            TIMEOUT 300)
+
+        add_executable(parallel-mater-rigid-realtime-cuda-tests
+            rigid_realtime_cuda_tests.cu)
+        add_dependencies(parallel-mater-rigid-realtime-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(parallel-mater-rigid-realtime-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(parallel-mater-rigid-realtime-cuda-tests PRIVATE
+            CUDA::cudart)
+        set_target_properties(parallel-mater-rigid-realtime-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-rigid-realtime-cuda-tests
+            COMMAND parallel-mater-rigid-realtime-cuda-tests)
+        set_tests_properties(parallel-mater-rigid-realtime-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77 LABELS "cuda;slang;rigid;realtime;f8"
+            TIMEOUT 300)
+
+        add_executable(parallel-mater-rigid-coupling-realtime-cuda-tests
+            rigid_coupling_realtime_cuda_tests.cu)
+        add_dependencies(parallel-mater-rigid-coupling-realtime-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(
+            parallel-mater-rigid-coupling-realtime-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(
+            parallel-mater-rigid-coupling-realtime-cuda-tests PRIVATE
+            CUDA::cudart)
+        set_target_properties(
+            parallel-mater-rigid-coupling-realtime-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-rigid-coupling-realtime-cuda-tests
+            COMMAND parallel-mater-rigid-coupling-realtime-cuda-tests)
+        set_tests_properties(
+            parallel-mater-rigid-coupling-realtime-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77 LABELS "cuda;slang;rigid;coupling;realtime;f8"
+            TIMEOUT 300)
+
+        add_executable(parallel-mater-liquid-coupling-realtime-cuda-tests
+            liquid_coupling_realtime_cuda_tests.cu)
+        add_dependencies(parallel-mater-liquid-coupling-realtime-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(
+            parallel-mater-liquid-coupling-realtime-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(
+            parallel-mater-liquid-coupling-realtime-cuda-tests PRIVATE
+            CUDA::cudart)
+        set_target_properties(
+            parallel-mater-liquid-coupling-realtime-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-liquid-coupling-realtime-cuda-tests
+            COMMAND parallel-mater-liquid-coupling-realtime-cuda-tests)
+        set_tests_properties(
+            parallel-mater-liquid-coupling-realtime-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77 LABELS "cuda;slang;liquid;coupling;realtime;f8"
+            TIMEOUT 300)
+
+        add_executable(parallel-mater-fluid-spatial-cuda-tests
+            fluid_spatial_cuda_tests.cu)
+        add_dependencies(parallel-mater-fluid-spatial-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(parallel-mater-fluid-spatial-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(parallel-mater-fluid-spatial-cuda-tests PRIVATE
+            CUDA::cudart)
+        set_target_properties(parallel-mater-fluid-spatial-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-fluid-spatial-cuda-tests
+            COMMAND parallel-mater-fluid-spatial-cuda-tests)
+        set_tests_properties(parallel-mater-fluid-spatial-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77 LABELS "cuda;slang;fluid;spatial;f8"
+            TIMEOUT 300)
+
+        add_executable(parallel-mater-fluid-realtime-cuda-tests
+            fluid_realtime_cuda_tests.cu)
+        add_dependencies(parallel-mater-fluid-realtime-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(parallel-mater-fluid-realtime-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(parallel-mater-fluid-realtime-cuda-tests PRIVATE
+            CUDA::cudart)
+        set_target_properties(parallel-mater-fluid-realtime-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-fluid-realtime-cuda-tests
+            COMMAND parallel-mater-fluid-realtime-cuda-tests)
+        set_tests_properties(parallel-mater-fluid-realtime-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77 LABELS "cuda;slang;fluid;realtime;f8"
+            TIMEOUT 300)
+
+        add_executable(parallel-mater-cloth-realtime-cuda-tests
+            cloth_realtime_cuda_tests.cu)
+        add_dependencies(parallel-mater-cloth-realtime-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(parallel-mater-cloth-realtime-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(parallel-mater-cloth-realtime-cuda-tests PRIVATE
+            CUDA::cudart)
+        set_target_properties(parallel-mater-cloth-realtime-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-cloth-realtime-cuda-tests
+            COMMAND parallel-mater-cloth-realtime-cuda-tests)
+        set_tests_properties(parallel-mater-cloth-realtime-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77 LABELS "cuda;slang;cloth;realtime;f8"
+            TIMEOUT 300)
+
+        add_executable(parallel-mater-rope-realtime-cuda-tests
+            rope_realtime_cuda_tests.cu)
+        add_dependencies(parallel-mater-rope-realtime-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(parallel-mater-rope-realtime-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(parallel-mater-rope-realtime-cuda-tests PRIVATE
+            CUDA::cudart)
+        set_target_properties(parallel-mater-rope-realtime-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-rope-realtime-cuda-tests
+            COMMAND parallel-mater-rope-realtime-cuda-tests)
+        set_tests_properties(parallel-mater-rope-realtime-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77 LABELS "cuda;slang;rope;realtime;f8"
+            TIMEOUT 300)
+
+        add_executable(parallel-mater-smoke-particle-realtime-cuda-tests
+            smoke_particle_realtime_cuda_tests.cu)
+        add_dependencies(parallel-mater-smoke-particle-realtime-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(
+            parallel-mater-smoke-particle-realtime-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(
+            parallel-mater-smoke-particle-realtime-cuda-tests PRIVATE
+            CUDA::cudart)
+        set_target_properties(
+            parallel-mater-smoke-particle-realtime-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-smoke-particle-realtime-cuda-tests
+            COMMAND parallel-mater-smoke-particle-realtime-cuda-tests)
+        set_tests_properties(
+            parallel-mater-smoke-particle-realtime-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77 LABELS "cuda;slang;smoke;realtime;f8"
+            TIMEOUT 300)
+
+        add_executable(parallel-mater-smoke-grid-realtime-cuda-tests
+            smoke_grid_realtime_cuda_tests.cu)
+        add_dependencies(parallel-mater-smoke-grid-realtime-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(
+            parallel-mater-smoke-grid-realtime-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(
+            parallel-mater-smoke-grid-realtime-cuda-tests PRIVATE CUDA::cudart)
+        set_target_properties(
+            parallel-mater-smoke-grid-realtime-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-smoke-grid-realtime-cuda-tests
+            COMMAND parallel-mater-smoke-grid-realtime-cuda-tests)
+        set_tests_properties(
+            parallel-mater-smoke-grid-realtime-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77 LABELS "cuda;slang;smoke;realtime;f8"
+            TIMEOUT 300)
+
+        add_executable(parallel-mater-deformable-spatial-cuda-tests
+            deformable_spatial_cuda_tests.cu)
+        add_dependencies(parallel-mater-deformable-spatial-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(
+            parallel-mater-deformable-spatial-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(parallel-mater-deformable-spatial-cuda-tests
+            PRIVATE CUDA::cudart)
+        set_target_properties(
+            parallel-mater-deformable-spatial-cuda-tests PROPERTIES
+            CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME parallel-mater-deformable-spatial-cuda-tests
+            COMMAND parallel-mater-deformable-spatial-cuda-tests)
+        set_tests_properties(
+            parallel-mater-deformable-spatial-cuda-tests PROPERTIES
+            SKIP_RETURN_CODE 77
+            LABELS "cuda;slang;deformable;smoke;spatial;f8" TIMEOUT 300)
+    endif()
 
     if(TARGET parallel-mater-slang-geometry-constraints AND
        PARALLEL_MATER_SLANG_GEOMETRY_CONSTRAINTS_PTX)

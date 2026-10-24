@@ -1,7 +1,7 @@
 {
   "id": "F8-12",
   "title": "Stabilize liquid dynamics at one 60 Hz step",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F8-00",
     "F8-03",
@@ -20,7 +20,29 @@
     "Independent tests prove exactly one dt=1/60 advance, bounded algebraic iterations, no spatial rebuild in the solve, and adherence to the predeclared dispatch/work/memory budget.",
     "Publish new-profile quality/energy/performance evidence beside unchanged legacy-profile results; no post-result tolerance changes or per-device physics fork."
   ],
-  "evidence": [],
+  "evidence": [
+    "docs/roadmap/F8-12-LIQUID-60HZ.md",
+    "docs/roadmap/evidence/F8-12-liquid-60hz.json"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "9734e6c8-1ef9-45b5-a8ca-d17a9ab4e278",
+        "owner": "codex-f8-liquid-60hz",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-12/thomas-laptop",
+        "claimed_at": "2026-10-22T22:20:18Z",
+        "heartbeat_at": "2026-10-22T22:20:18Z",
+        "expires_at": "2026-10-23T22:20:18Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-22T22:42:28Z",
+      "reason": "Implemented and physically qualified fixed six-sweep liquid self-dynamics at one 60 Hz advance.",
+      "evidence": [
+        "docs/roadmap/F8-12-LIQUID-60HZ.md",
+        "docs/roadmap/evidence/F8-12-liquid-60hz.json"
+      ]
+    }
+  ]
 }

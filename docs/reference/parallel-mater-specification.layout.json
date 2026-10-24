@@ -519,9 +519,9 @@
     "example_record",
     "example_submit"
   ],
-  "pdf_sha256": "95055d58bd524c4a470594fb479db4534fd69e1b1ce5bdcbfff21311cc84da2f",
+  "pdf_sha256": "16f45a60619c0a6854cf375d9da230947f485d6dba8cd3f5f3cf10b5e82bdac0",
   "registry": {
     "path": "registry/pm.xml",
-    "sha256": "e3373207b92f7065fa2def13e53178aa56f4dc49e850bd86d5cc15cf71790d62"
+    "sha256": "a9d8f5ed8c0a1a075c3f0ac50dbe9914db9a3dcf1abae2524a4a5fd97fc1344d"
   }
 }

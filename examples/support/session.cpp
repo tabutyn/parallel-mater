@@ -43,7 +43,7 @@ GallerySession::GallerySession(GallerySessionConfig config) : config_(std::move(
         if (!profile) throw std::runtime_error("Gallery workload profile missing");
         limits = *profile;
     }
-    frame_policy_.apply_workload(&limits);
+    frame_policy_.apply_workload(&limits, config_.frame_profile);
     parameters_.bricks = config_.bricks.value_or(
         BrickSceneConfig{limits.brick_count, 1.0F, 1U});
     parameters_.dump_spheres = config_.dump_spheres != 0U
@@ -361,6 +361,11 @@ void GallerySession::frame_at(
     if (!active_) return;
     require_scene();
     frame_policy_.begin_frame(timestamp, plan.simulation_enabled);
+    if (!frame_policy_.interpolation_history_valid() &&
+        (!runtime_.render_frame.previous_snapshot_available ||
+         runtime_.render_frame.previous_revision !=
+             runtime_.render_frame.revision))
+        reset_render_scene_snapshots(runtime_.render_frame);
     timing.begin_frame();
     try {
         std::string error;
@@ -502,6 +507,8 @@ bool GallerySession::render_native(
     if (!make_gpu_render_request(
             runtime_.instance.render_buffers, runtime_.gpu_frame_generation,
             runtime_.camera.camera(), target, {readback},
+            frame_policy_.interpolation_alpha(),
+            frame_policy_.interpolation_history_valid(),
             timing.measuring(FramePhase::render) ? &timing : nullptr, overlay,
             request, error))
         return false;
@@ -583,14 +590,28 @@ GalleryPresentationState GallerySession::presentation() const {
         .controls = controls,
         .count_kind = selected.scene.count_kind,
         .workload_profile = limits.name,
+        .frame_profile = gallery_frame_profile_name(frame_policy_.profile()),
         .fluid_particle_limit = limits.fluid_particles,
         .coupled_body_limit = limits.coupled_bodies,
         .width = width,
         .height = height,
-        .target_updates_per_second = limits.target_fps,
+        .target_updates_per_second =
+            frame_policy_.profile() ==
+                    GalleryFrameProfile::realtime_single_step_v1
+                ? GalleryFramePolicy::default_target_fps : limits.target_fps,
         .particle_count = particle_count(),
         .moving_body_count = moving_bodies(),
         .host_work_frames_per_second = timing.fps(),
+        .simulation_to_wall_clock_rate =
+            frame_policy_.simulation_to_wall_clock_rate(),
+        .interpolation_alpha = frame_policy_.interpolation_alpha(),
+        .interpolation_history_valid =
+            frame_policy_.interpolation_history_valid(),
+        .presentation_latency_ticks =
+            frame_policy_.profile() ==
+                    GalleryFrameProfile::realtime_single_step_v1 &&
+                    frame_policy_.interpolation_history_valid()
+                ? 1U : 0U,
         .latest_timing = timing.latest(),
         .build_revision = PM_GALLERY_BUILD_REVISION,
     };

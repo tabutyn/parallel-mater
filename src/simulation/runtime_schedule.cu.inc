@@ -15,7 +15,13 @@ Status SimulationRuntime::step_async(StepOptions options, FrameToken &completion
         return failure(StatusCode::busy,
                        "completion token already represents a pending frame");
     }
-    if (!finite(options.timestep) || options.timestep <= 0.0F ||
+    const bool realtime = options.profile ==
+        PhysicsStepProfile::realtime_single_step_v1;
+    const bool realtime_step = simulation::rigid_realtime_step_request_valid(
+        options.timestep, options.substeps);
+    if ((options.profile != PhysicsStepProfile::legacy_default && !realtime) ||
+        (realtime && !realtime_step) ||
+        !finite(options.timestep) || options.timestep <= 0.0F ||
         options.substeps == 0U || options.substeps > 1'024U ||
         !finite(options.gravity) || options.rigid_contact_pass_limit > 64U ||
         options.rigid_contact_iterations == 0U ||
@@ -31,6 +37,9 @@ Status SimulationRuntime::step_async(StepOptions options, FrameToken &completion
         if (!finite(required) || required > 1'024.0F)
             return failure(StatusCode::invalid_argument,
                            "rope timestep limit requires more than 1024 substeps");
+        if (realtime && required > 1.0F)
+            return failure(StatusCode::invalid_argument,
+                "realtime profile forbids rope-driven hidden substeps");
         options.substeps = std::max(options.substeps,
                                    static_cast<std::uint32_t>(required));
     }

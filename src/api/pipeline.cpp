@@ -16,7 +16,7 @@ struct CouplingContract {
     PmInteractionFamily second;
     PmInteractionModeFlags mode_flags;
     bool smoke_profile;
-    RequiredInteraction interactions[3];
+    RequiredInteraction interactions[4];
     std::uint32_t interaction_count;
 };
 
@@ -73,6 +73,13 @@ constexpr CouplingContract coupling_contracts[] = {
      PM_INTERACTION_MODE_CONTACT_BIT | PM_INTERACTION_MODE_DRAG_BIT,
      true, {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_FIRST_TO_SECOND},
             {PM_INTERACTION_MODE_DRAG, PM_INTERACTION_DIRECTION_SECOND_TO_FIRST}}, 2U},
+    {PM_INTERACTION_FAMILY_SMOKE, PM_INTERACTION_FAMILY_SMOKE,
+     PM_INTERACTION_MODE_DRAG_BIT | PM_INTERACTION_MODE_PRESSURE_BIT |
+         PM_INTERACTION_MODE_VISCOSITY_BIT | PM_INTERACTION_MODE_THERMAL_BIT,
+     true, {{PM_INTERACTION_MODE_DRAG, PM_INTERACTION_DIRECTION_BIDIRECTIONAL},
+            {PM_INTERACTION_MODE_PRESSURE, PM_INTERACTION_DIRECTION_BIDIRECTIONAL},
+            {PM_INTERACTION_MODE_VISCOSITY, PM_INTERACTION_DIRECTION_BIDIRECTIONAL},
+            {PM_INTERACTION_MODE_THERMAL, PM_INTERACTION_DIRECTION_BIDIRECTIONAL}}, 4U},
 };
 
 constexpr PmInteractionModeFlags all_mode_flags =
@@ -117,36 +124,49 @@ bool zero_equal_material_parameters(
 }
 
 static_assert(sizeof(coupling_contracts) / sizeof(coupling_contracts[0]) ==
-              PM_COUPLING_SMOKE_SOFT_BODY + 1U);
+              PM_COUPLING_SMOKE_SMOKE + 1U);
 
 } // namespace
 
 PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noexcept {
     if (device == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    if (coupling.type < PM_COUPLING_LIQUID_RIGID || coupling.type > PM_COUPLING_SMOKE_SOFT_BODY)
+    if (coupling.type < PM_COUPLING_LIQUID_RIGID ||
+        coupling.type > PM_COUPLING_SMOKE_SMOKE)
         return PM_ERROR_INVALID_ARGUMENT;
     if (coupling.modeFlags == 0U || (coupling.modeFlags & ~all_mode_flags) != 0U)
         return PM_ERROR_INVALID_ARGUMENT;
     if (coupling.materialProfile < PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE ||
-        coupling.materialProfile > PM_INTERACTION_MATERIAL_THERMAL_PHASE)
+        coupling.materialProfile > PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID)
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (coupling.type == PM_COUPLING_SMOKE_SMOKE &&
+        coupling.first >= coupling.second)
         return PM_ERROR_INVALID_ARGUMENT;
 
     const auto &contract = coupling_contracts[static_cast<std::size_t>(coupling.type)];
+    const bool smoke_pair = coupling.type == PM_COUPLING_SMOKE_SMOKE;
     const bool immiscible =
         coupling.type == PM_COUPLING_LIQUID_LIQUID &&
         coupling.materialProfile ==
             PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE;
-    const PmInteractionModeFlags expected_modes =
-        immiscible
+    const PmInteractionModeFlags expected_modes = smoke_pair
+        ? coupling.materialProfile ==
+                  PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID
+            ? PM_INTERACTION_MODE_DRAG_BIT | PM_INTERACTION_MODE_THERMAL_BIT
+            : PM_INTERACTION_MODE_PRESSURE_BIT |
+                  PM_INTERACTION_MODE_VISCOSITY_BIT |
+                  PM_INTERACTION_MODE_THERMAL_BIT
+        : immiscible
             ? PM_INTERACTION_MODE_CONTACT_BIT |
                   PM_INTERACTION_MODE_PRESSURE_BIT |
                   PM_INTERACTION_MODE_INTERFACE_BIT
             : contract.mode_flags;
     const bool independently_selectable_fluid_cloth =
         coupling.type == PM_COUPLING_LIQUID_CLOTH;
-    if ((!independently_selectable_fluid_cloth &&
+    const bool independently_selectable =
+        independently_selectable_fluid_cloth || smoke_pair;
+    if ((!independently_selectable &&
          coupling.modeFlags != expected_modes) ||
-        (independently_selectable_fluid_cloth &&
+        (independently_selectable &&
          (coupling.modeFlags == 0U ||
           (coupling.modeFlags & ~expected_modes) != 0U)))
         return PM_ERROR_FEATURE_NOT_PRESENT;
@@ -155,6 +175,11 @@ PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noe
               coupling.materialProfile == PM_INTERACTION_MATERIAL_MISCIBLE ||
               coupling.materialProfile ==
                   PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE
+        : smoke_pair
+        ? coupling.materialProfile == PM_INTERACTION_MATERIAL_SMOKE_PARTICLE ||
+              coupling.materialProfile == PM_INTERACTION_MATERIAL_SMOKE_GRID ||
+              coupling.materialProfile ==
+                  PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID
         : contract.smoke_profile
         ? coupling.materialProfile == PM_INTERACTION_MATERIAL_SMOKE_PARTICLE ||
               coupling.materialProfile == PM_INTERACTION_MATERIAL_SMOKE_GRID
@@ -167,12 +192,12 @@ PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noe
             immiscible && index == 2U
             ? PM_INTERACTION_MODE_INTERFACE
             : contract.interactions[index].mode;
-        if (independently_selectable_fluid_cloth &&
+        if (independently_selectable &&
             (coupling.modeFlags & (1U << static_cast<unsigned>(mode))) == 0U)
             continue;
         const PmInteractionCapabilityKey key{
             contract.first, contract.second,
-            coupling.type == PM_COUPLING_LIQUID_LIQUID
+            coupling.type == PM_COUPLING_LIQUID_LIQUID || smoke_pair
                 ? PM_INTERACTION_SCOPE_SEPARATE_SYSTEM
                 : PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
             mode,

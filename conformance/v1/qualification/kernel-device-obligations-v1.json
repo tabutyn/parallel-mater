@@ -122,32 +122,44 @@
         "fluid_source_emit",
         "fluid_destroy_flags",
         "fluid_gather",
-        "fluid_copy_initial"
+        "fluid_copy_initial",
+        "fluid_emit_spatial_particles",
+        "fluid_emit_spatial_source_proposals",
+        "fluid_apply_spatial_source_admission"
       ],
       "domains": ["FLUID", "SPATIAL_INDEX"],
       "advertised_modes": [],
       "public_case_sets": ["fluid"],
-      "existing_execution_tests": ["parallel-mater-conformance --case fluid-lifecycle"],
+      "existing_execution_tests": ["parallel-mater-fluid-spatial-tests", "parallel-mater-fluid-spatial-cuda-tests", "parallel-mater-conformance --case fluid-lifecycle"],
       "implementation_owners": ["F8-09", "F8-12"]
     },
     {
       "id": "fluid-self-dynamics",
       "module": "fluid",
-      "entries": ["fluid_compute_forces", "fluid_integrate"],
+      "entries": [
+        "fluid_compute_forces",
+        "fluid_integrate",
+        "fluid_realtime_predict",
+        "fluid_realtime_density_lambda",
+        "fluid_realtime_position_delta",
+        "fluid_realtime_apply_position_delta",
+        "fluid_realtime_viscosity_delta",
+        "fluid_realtime_commit"
+      ],
       "domains": ["FLUID"],
       "advertised_modes": ["CONTACT", "PRESSURE", "VISCOSITY"],
       "public_case_sets": ["fluid"],
-      "existing_execution_tests": ["parallel-mater-<backend>-fluid-self-*-quality-tests"],
+      "existing_execution_tests": ["parallel-mater-fluid-realtime-tests", "parallel-mater-fluid-realtime-cuda-tests", "parallel-mater-<backend>-fluid-self-*-quality-tests"],
       "implementation_owners": ["F8-12"]
     },
     {
       "id": "fluid-pair-index",
       "module": "fluid",
-      "entries": ["fluid_emit_pair_cells", "fluid_count_pair_neighbors"],
+      "entries": ["fluid_emit_pair_cells", "fluid_count_pair_neighbors", "fluid_filter_spatial_candidates", "fluid_count_spatial_neighbors"],
       "domains": ["FLUID", "SPATIAL_INDEX"],
       "advertised_modes": ["CONTACT", "PRESSURE", "VISCOSITY"],
       "public_case_sets": [],
-      "existing_execution_tests": ["parallel-mater-<backend>-fluid-pair-graph-lifecycle-tests"],
+      "existing_execution_tests": ["parallel-mater-fluid-spatial-tests", "parallel-mater-fluid-spatial-cuda-tests", "parallel-mater-<backend>-fluid-pair-graph-lifecycle-tests"],
       "f8_public_cases": ["f8-fluid-pair-index"],
       "implementation_owners": ["F8-09", "F8-18"]
     },
@@ -220,6 +232,9 @@
       "entries": [
         "pm_compute_rigid_world_bounds",
         "pm_broad_phase_rigid_pairs",
+        "pm_emit_rigid_spatial_proxies",
+        "pm_filter_rigid_spatial_candidates",
+        "pm_gather_rigid_spatial_pairs",
         "pm_generate_rigid_leaf_pairs",
         "pm_evaluate_rigid_leaf_pairs",
         "pm_reduce_rigid_leaf_manifolds",
@@ -229,7 +244,7 @@
       "domains": ["RIGID_BODY", "SPATIAL_INDEX"],
       "advertised_modes": ["CONTACT"],
       "public_case_sets": ["rigid"],
-      "existing_execution_tests": ["parallel-mater-conformance --case rigid-direct", "parallel-mater-conformance --case passive-active"],
+      "existing_execution_tests": ["parallel-mater-rigid-spatial-tests", "parallel-mater-rigid-spatial-cuda-tests", "parallel-mater-conformance --case rigid-direct", "parallel-mater-conformance --case passive-active"],
       "implementation_owners": ["F8-08", "F8-11"]
     },
     {
@@ -261,22 +276,39 @@
         "pm_compact_scatter_indices",
         "pm_radix_histogram_u64",
         "pm_radix_prefix_u32",
-        "pm_radix_scatter_u64_u32"
+        "pm_radix_scatter_u64_u32",
+        "pm_spatial_reduce_bounds_blocks",
+        "pm_spatial_reduce_bounds_final",
+        "pm_spatial_emit_keys",
+        "pm_spatial_sort_small_u64_u32",
+        "pm_spatial_radix_histogram_u64",
+        "pm_spatial_radix_prefix_u32",
+        "pm_spatial_radix_scatter_u64_u32",
+        "pm_spatial_build_topology",
+        "pm_spatial_union_bounds",
+        "pm_spatial_refit_leaves",
+        "pm_spatial_initialize_epoch",
+        "pm_spatial_stage_leaves",
+        "pm_spatial_resolve_admission",
+        "pm_spatial_finalize_transfers",
+        "pm_spatial_publish_epoch",
+        "pm_spatial_query_aabbs",
+        "pm_spatial_validate_envelopes"
       ],
       "domains": ["SPATIAL_INDEX", "AUXILIARY"],
       "advertised_modes": [],
       "public_case_sets": ["all"],
-      "existing_execution_tests": ["parallel-mater-fluid-pair-neighbor-index-tests", "shader portability build"],
+      "existing_execution_tests": ["parallel-mater-spatial-build-primitives-tests", "parallel-mater-spatial-service-tests", "parallel-mater-spatial-build-cuda-tests", "parallel-mater-fluid-pair-neighbor-index-tests", "shader portability build"],
       "implementation_owners": ["F8-06", "F8-07"]
     },
     {
       "id": "cloth-core",
       "module": "cloth",
-      "entries": ["cloth_project_volume", "cloth_break_bonds", "cloth_limit_strain", "cloth_update_surface"],
+      "entries": ["cloth_project_volume", "cloth_realtime_predict", "cloth_realtime_project_links", "cloth_realtime_apply_position_delta", "cloth_realtime_project_volume", "cloth_realtime_project_contacts", "cloth_realtime_commit", "cloth_break_bonds", "cloth_limit_strain", "cloth_update_surface"],
       "domains": ["CLOTH"],
       "advertised_modes": [],
       "public_case_sets": ["cloth"],
-      "existing_execution_tests": ["parallel-mater-conformance --case cloth-core", "parallel-mater-conformance --case cloth-tear"],
+      "existing_execution_tests": ["parallel-mater-conformance --case cloth-core", "parallel-mater-conformance --case cloth-tear", "parallel-mater-cloth-realtime-cuda-tests"],
       "implementation_owners": ["F8-13"]
     },
     {
@@ -293,12 +325,18 @@
         "soft_body_apply_contact_friction",
         "soft_body_damp_springs",
         "soft_body_damp_springs_warp",
-        "soft_body_update_surface"
+        "soft_body_update_surface",
+        "soft_body_realtime_predict",
+        "soft_body_realtime_project_links",
+        "soft_body_realtime_apply_position_delta",
+        "soft_body_realtime_project_shape",
+        "soft_body_realtime_project_contacts",
+        "soft_body_realtime_commit"
       ],
       "domains": ["SOFT_BODY"],
       "advertised_modes": [],
       "public_case_sets": ["soft-body"],
-      "existing_execution_tests": ["parallel-mater-conformance --case soft-body-core"],
+      "existing_execution_tests": ["parallel-mater-conformance --case soft-body-core", "parallel-mater-slang-metal-kernel-tests"],
       "implementation_owners": ["F8-14"]
     },
     {
@@ -440,22 +478,36 @@
         "smoke_emit",
         "smoke_deformable_bounds",
         "smoke_rigid_contact",
-        "smoke_apply_rigid_impulses"
+        "smoke_apply_rigid_impulses",
+        "smoke_realtime_particle_emit",
+        "smoke_realtime_particle_predict",
+        "smoke_realtime_particle_density_pressure",
+        "smoke_realtime_particle_position_delta",
+        "smoke_realtime_particle_apply_position_delta",
+        "smoke_realtime_particle_commit"
       ],
       "domains": ["RIGID_BODY", "SMOKE", "SPATIAL_INDEX"],
       "advertised_modes": ["CONTACT", "DRAG", "PRESSURE", "VISCOSITY"],
       "public_case_sets": ["smoke"],
-      "existing_execution_tests": ["parallel-mater-conformance --case smoke-grid"],
+      "existing_execution_tests": ["parallel-mater-conformance --case smoke-grid", "parallel-mater-smoke-particle-realtime-cuda-tests"],
       "implementation_owners": ["F8-10", "F8-16", "F8-17"]
     },
     {
       "id": "rigid-soft-body-coupling",
       "module": "geometry_soft_body",
-      "entries": ["deformable_collide", "soft_body_surface_contacts", "soft_body_apply_surface_contacts"],
+      "entries": [
+        "deformable_collide",
+        "soft_body_surface_contacts",
+        "soft_body_apply_surface_contacts",
+        "pm_emit_deformable_spatial_primitives",
+        "pm_filter_deformable_spatial_candidates",
+        "pm_emit_smoke_spatial_queries",
+        "pm_filter_smoke_spatial_obstacles"
+      ],
       "domains": ["RIGID_BODY", "SOFT_BODY", "SPATIAL_INDEX"],
       "advertised_modes": ["CONTACT"],
       "public_case_sets": ["soft-body"],
-      "existing_execution_tests": ["parallel-mater-conformance --case soft-body-rigid"],
+      "existing_execution_tests": ["parallel-mater-conformance --case soft-body-rigid", "parallel-mater-deformable-spatial-cuda-tests"],
       "implementation_owners": ["F8-10", "F8-17"]
     },
     {
@@ -491,22 +543,60 @@
         "smoke_grid_soft_body_force",
         "smoke_grid_cloth_force",
         "smoke_grid_apply_cloth_force",
-        "smoke_grid_rigid_force"
+        "smoke_grid_rigid_force",
+        "smoke_realtime_grid_begin",
+        "smoke_realtime_grid_source",
+        "smoke_realtime_grid_advect_scalar",
+        "smoke_realtime_grid_advect_face",
+        "smoke_realtime_grid_face_forces",
+        "smoke_realtime_grid_boundaries",
+        "smoke_realtime_grid_divergence",
+        "smoke_realtime_grid_pressure_cycle",
+        "smoke_realtime_grid_project_face",
+        "smoke_realtime_grid_trace"
       ],
       "domains": ["SMOKE", "RIGID_BODY", "CLOTH", "SOFT_BODY"],
       "advertised_modes": ["CONTACT", "DRAG", "PRESSURE", "VISCOSITY"],
       "public_case_sets": ["smoke"],
-      "existing_execution_tests": ["parallel-mater-conformance --case smoke-grid"],
+      "existing_execution_tests": ["parallel-mater-conformance --case smoke-grid", "parallel-mater-smoke-grid-realtime-cuda-tests"],
       "implementation_owners": ["F8-16", "F8-17", "F8-19"]
+    },
+    {
+      "id": "rigid-realtime-coupling",
+      "module": "rigid_coupling",
+      "entries": [
+        "rigid_coupling_project",
+        "rigid_coupling_apply_endpoints",
+        "rigid_coupling_apply_bodies"
+      ],
+      "domains": ["RIGID_BODY", "CLOTH", "SOFT_BODY", "ROPE", "SMOKE", "SPATIAL_INDEX"],
+      "advertised_modes": ["ATTACHMENT", "CONTACT", "DRAG"],
+      "public_case_sets": ["rigid", "cloth", "soft-body", "rope", "smoke"],
+      "existing_execution_tests": ["parallel-mater-rigid-coupling-realtime-tests", "parallel-mater-rigid-coupling-realtime-cuda-tests"],
+      "implementation_owners": ["F8-17"]
+    },
+    {
+      "id": "liquid-realtime-coupling",
+      "module": "liquid_coupling",
+      "entries": [
+        "liquid_coupling_project",
+        "liquid_coupling_apply_particles",
+        "liquid_coupling_apply_partners"
+      ],
+      "domains": ["FLUID", "RIGID_BODY", "CLOTH", "SOFT_BODY", "ROPE", "SMOKE", "SPATIAL_INDEX"],
+      "advertised_modes": ["CONTACT", "CONTAINMENT", "DRAG", "PHASE", "PRESSURE", "THERMAL", "VISCOSITY"],
+      "public_case_sets": ["fluid", "rigid", "cloth", "soft-body", "rope", "smoke"],
+      "existing_execution_tests": ["parallel-mater-liquid-coupling-realtime-tests", "parallel-mater-liquid-coupling-realtime-cuda-tests"],
+      "implementation_owners": ["F8-18"]
     },
     {
       "id": "rope-core",
       "module": "rope",
-      "entries": ["rope_advance"],
+      "entries": ["rope_realtime_predict", "rope_realtime_project_constraints", "rope_realtime_apply_position_delta", "rope_realtime_project_contacts", "rope_realtime_commit", "rope_advance"],
       "domains": ["ROPE"],
       "advertised_modes": ["CONTACT"],
       "public_case_sets": ["rope"],
-      "existing_execution_tests": ["parallel-mater-conformance --case rope-core"],
+      "existing_execution_tests": ["parallel-mater-conformance --case rope-core", "parallel-mater-rope-realtime-cuda-tests"],
       "implementation_owners": ["F8-15"]
     },
     {
@@ -658,14 +748,9 @@
   ],
   "planned_shared_spatial_entrypoints": [
     {
-      "contract": "checked compaction, bounds reduction, key ordering, binary topology, and conservative union",
-      "owners": ["F8-06"],
-      "status": "planned-not-in-canonical-build-manifest"
-    },
-    {
       "contract": "stage_boundary, emit_envelopes, build_or_refit_once, resolve_admission, publish_epoch, and shared query helpers",
       "owners": ["F8-07"],
-      "status": "planned-not-in-canonical-build-manifest"
+      "status": "implemented-canonical-build-manifest"
     },
     {
       "contract": "port F8-05 independent model obligations into public entrypoint execution tests",

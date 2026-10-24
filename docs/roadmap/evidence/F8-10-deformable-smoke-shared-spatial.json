@@ -1,0 +1,137 @@
+{
+  "schema": "parallel-mater-f8-deformable-smoke-shared-spatial-evidence/v1",
+  "task": "F8-10",
+  "recorded_at": "2026-10-22",
+  "branch": "work/F8-10/thomas-laptop",
+  "base_commit": "fe862ad9d6705e5bc6ccf1bfaaebca351c462fbf",
+  "toolchain": {
+    "cmake": "3.25.1",
+    "slang": "2026.18",
+    "cuda_compiler": "13.1"
+  },
+  "cuda_device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "compute_capability": "8.6",
+    "driver_api": 13010,
+    "runtime": 13010,
+    "driver": "590.44.01"
+  },
+  "production_kernels": [
+    "pm_emit_deformable_spatial_primitives",
+    "pm_filter_deformable_spatial_candidates",
+    "pm_emit_smoke_spatial_queries",
+    "pm_filter_smoke_spatial_obstacles",
+    "pm_spatial_query_aabbs"
+  ],
+  "workload_budget": {
+    "workload": "desktop-full-v1/deformable-smoke",
+    "candidates_per_query": 64,
+    "spatial_updates_per_tick": 1,
+    "index_dispatches_in_algebraic_solve": 0,
+    "per_edge_rebuild_dispatches": 0,
+    "sparse": {
+      "primitives_live": 512,
+      "primitives_capacity": 8192,
+      "smoke_obstacle_queries": 2048,
+      "deformable_domains": 3,
+      "boundary_consumer_dispatches": 7,
+      "live_query_workgroups": 40,
+      "capacity_query_workgroups": 160,
+      "filtered_candidate_bytes": 2621440,
+      "conservative_repeated_bounds_bytes_avoided": 1048576
+    },
+    "full": {
+      "primitives_live": 8192,
+      "primitives_capacity": 8192,
+      "smoke_obstacle_queries": 0,
+      "deformable_domains": 3,
+      "boundary_consumer_dispatches": 5,
+      "live_query_workgroups": 128,
+      "capacity_query_workgroups": 128,
+      "filtered_candidate_bytes": 2097152,
+      "conservative_repeated_bounds_bytes_avoided": 786432
+    },
+    "capacity_policy": "checked fixed allocation; one flattened immutable epoch; reusable filtered candidates; all-or-none overflow; no hot-path growth, per-edge refit, pair-private tree, readback, retry or substep"
+  },
+  "correctness_cases": [
+    "cloth/rope/soft/static full generation-bearing identities",
+    "randomized deforming segment and triangle full-tick envelopes",
+    "thin segment/triangle crossing retained between endpoints",
+    "rope-neighbor and surface-adjacency self-contact exclusions",
+    "cross-owner and cross-family candidate reuse",
+    "stationary geometry through the same primitive emitter",
+    "owner generation, topology revision and primitive generation drift",
+    "smoke obstacle AABB emission without replacing grid stencils",
+    "all-or-none candidate overflow and stale identity rejection",
+    "one exact published epoch through four collision passes"
+  ],
+  "qualification": [
+    {
+      "command": "/tmp/parallel-mater-f8-08-host-build/tests/solver/parallel-mater-deformable-spatial-tests",
+      "result": "PASS",
+      "notes": "checked plan/budgets, randomized 4,096-state envelope oracle, thin contact, identity/exclusion/static cases and epoch guard"
+    },
+    {
+      "command": "/tmp/parallel-mater-f8-08-cuda-build/tests/solver/parallel-mater-deformable-spatial-cuda-tests",
+      "result": "PASS",
+      "notes": "physical RTX generated-Slang execution for cloth/rope/static emission, self/cross filtering, smoke queries, overflow and stale identity"
+    },
+    {
+      "command": "/tmp/parallel-mater-f8-08-cuda-build/tests/solver/parallel-mater-spatial-build-cuda-tests",
+      "result": "PASS",
+      "notes": "physical shared build/refit/admission/publication/query service including empty, 30,065-live and 128-live/1,048,576-capacity cases"
+    },
+    {
+      "command": "generated CPU, CUDA and Vulkan driver builds",
+      "result": "PASS",
+      "notes": "canonical manifests, guarded CPU ABI, CUDA adapters and Vulkan reflection bindings compile"
+    },
+    {
+      "command": "spirv-val --target-env spv1.6 generated/vulkan/geometry_soft_body.spv",
+      "result": "PASS",
+      "notes": "normalized geometry_soft_body module including all four new entries"
+    },
+    {
+      "command": "Slang four-entry Metal and per-entry HLSL SM 6.6 source compilation",
+      "result": "PASS",
+      "notes": "all new deformable/smoke spatial entries compile for both source targets"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-08-host-build -R spatial/lifecycle/solver selection --output-on-failure",
+      "result": "PASS",
+      "notes": "9/9 host lifecycle, spatial, narrow-phase and architecture tests"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-08-cpu-build -R legacy-liquid-selection --output-on-failure",
+      "result": "PASS",
+      "notes": "3/3 legacy CPU-liquid pair/interface regressions"
+    },
+    {
+      "command": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "414 tests"
+    },
+    {
+      "command": "python3 conformance/v1/realtime_oracle.py --check-contract",
+      "result": "PASS",
+      "notes": "243 named limits, 49 advertised capability cases, 14 fixed workloads and 5 runtime adapters"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "72 tests"
+    },
+    {
+      "command": "python3 -m unittest tests.roadmap.test_f8_01_kernel_device_inventory",
+      "result": "PASS",
+      "notes": "176-entry canonical device-obligation inventory"
+    }
+  ],
+  "limits": [
+    "F8-13 through F8-16 supply stable one-step deformable and smoke equations; F8-17/F8-18 integrate cross-system force exchange.",
+    "F8-20 activates the new schedule and GPU-resident indirect/live dispatch path; the legacy schedule remains unchanged here.",
+    "F8-21 freezes final candidate, byte, dispatch and timing budgets.",
+    "The public real-time profile remains unsupported and unadvertised after this task.",
+    "Local Linux qualification lacks physical D3D12 and Metal devices; those remain required platform and PR gates."
+  ]
+}

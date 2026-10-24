@@ -299,6 +299,11 @@ struct SimulationOptions {
     PhysicsDebugOptions physics_debug{};
 };
 
+enum class PhysicsStepProfile : std::uint32_t {
+    legacy_default = 0U,
+    realtime_single_step_v1 = 1U,
+};
+
 struct StepOptions {
     float timestep{1.0F / 60.0F};
     // Minimum count; live ropes may require smaller shared integration steps.
@@ -320,6 +325,10 @@ struct StepOptions {
     // Base AVBD coordinate budget for bodies without a higher local joint
     // requirement. The command API supplies this from its bound pipeline.
     std::uint32_t rigid_contact_iterations{10U};
+    // Immutable simulation profile. Domain kernels receive the version
+    // explicitly; a one-substep request never selects realtime equations by
+    // accident.
+    PhysicsStepProfile profile{PhysicsStepProfile::legacy_default};
 };
 
 // Smoke is a tracer gas, separate from liquid. It may use a projected air grid

@@ -1,7 +1,7 @@
 {
   "id": "F8-17",
   "title": "Integrate rigid two-way couplings into the single-step solve",
-  "status": "open",
+  "status": "done",
   "dependencies": [
     "F8-08",
     "F8-10",
@@ -25,7 +25,29 @@
     "Document splitting/accuracy losses within F8-00; prove per-operator dispatch budgets and no per-edge BVH rebuild.",
     "Do not enable previously unsupported coupling modes; keep old/new profile capability and qualification records separate."
   ],
-  "evidence": [],
+  "evidence": [
+    "docs/roadmap/F8-17-RIGID-COUPLINGS-60HZ.md",
+    "docs/roadmap/evidence/F8-17-rigid-couplings-60hz.json"
+  ],
   "lease": null,
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "d4eb28f1-3559-4399-b8b4-315efe5f739b",
+        "owner": "codex-rigid-coupling",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-17/thomas-laptop",
+        "claimed_at": "2026-10-24T15:15:30Z",
+        "heartbeat_at": "2026-10-24T15:15:30Z",
+        "expires_at": "2026-10-25T15:15:30Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-24T15:36:46Z",
+      "reason": "Added bounded same-epoch rigid-cloth, rigid-soft, rigid-rope and rigid-smoke exchanges with physical CUDA quality, lifecycle, ordering and work-budget evidence; legacy profile remains separate.",
+      "evidence": [
+        "docs/roadmap/F8-17-RIGID-COUPLINGS-60HZ.md",
+        "docs/roadmap/evidence/F8-17-rigid-couplings-60hz.json"
+      ]
+    }
+  ]
 }
