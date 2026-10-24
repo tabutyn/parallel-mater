@@ -1,7 +1,7 @@
 {
   "registry": {
     "path": "registry/pm.xml",
-    "sha256": "c203b18faa0a05f5bc4dc393dc22a23e6191bb3f62d230529b1edb76f3649b4c"
+    "sha256": "c14fef87bc0c2ac6124eb1d201ad0400f59d8ee50264f8724e80191c83afee6e"
   },
   "contract": "Parallel Mater command API 0.2",
   "implementation": "src/loader public entry points routed to installable drivers",
@@ -380,6 +380,14 @@
     },
     {
       "name": "pmCmdWriteCloths",
+      "section": "10.2",
+      "card": "cloth_resources",
+      "header": "parallel_mater.h",
+      "source": "generated/api/loader_forward.inc",
+      "status": "driver-routed"
+    },
+    {
+      "name": "pmCmdWriteCloths2",
       "section": "10.2",
       "card": "cloth_resources",
       "header": "parallel_mater.h",
@@ -1396,6 +1404,16 @@
       "card": "cloth_resources"
     },
     {
+      "name": "PmClothSelfContactState",
+      "section": "10.2",
+      "card": "cloth_resources"
+    },
+    {
+      "name": "PmClothStateInfo",
+      "section": "10.2",
+      "card": "cloth_resources"
+    },
+    {
       "name": "PmClothVertexState",
       "section": "10.2",
       "card": "cloth_resources"
@@ -1809,6 +1827,7 @@
     "PFN_pmCreatePhysicsPipeline",
     "PFN_pmDestroyPhysicsPipeline",
     "PFN_pmCmdWriteCloths",
+    "PFN_pmCmdWriteCloths2",
     "PFN_pmCmdCopyClothState",
     "PFN_pmCmdCopyClothSurface",
     "PFN_pmCmdWriteRopes",

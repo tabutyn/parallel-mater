@@ -83,6 +83,9 @@ constexpr CouplingContract coupling_contracts[] = {
     {PM_INTERACTION_FAMILY_SOFT_BODY, PM_INTERACTION_FAMILY_SOFT_BODY,
      PM_INTERACTION_MODE_CONTACT_BIT, false,
      {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL}}, 1U},
+    {PM_INTERACTION_FAMILY_CLOTH, PM_INTERACTION_FAMILY_CLOTH,
+     PM_INTERACTION_MODE_CONTACT_BIT, false,
+     {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL}}, 1U},
 };
 
 constexpr PmInteractionModeFlags all_mode_flags =
@@ -127,14 +130,14 @@ bool zero_equal_material_parameters(
 }
 
 static_assert(sizeof(coupling_contracts) / sizeof(coupling_contracts[0]) ==
-              PM_COUPLING_SOFT_BODY_SOFT_BODY + 1U);
+              PM_COUPLING_CLOTH_CLOTH + 1U);
 
 } // namespace
 
 PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noexcept {
     if (device == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     if (coupling.type < PM_COUPLING_LIQUID_RIGID ||
-        coupling.type > PM_COUPLING_SOFT_BODY_SOFT_BODY)
+        coupling.type > PM_COUPLING_CLOTH_CLOTH)
         return PM_ERROR_INVALID_ARGUMENT;
     if (coupling.modeFlags == 0U || (coupling.modeFlags & ~all_mode_flags) != 0U)
         return PM_ERROR_INVALID_ARGUMENT;
@@ -142,7 +145,8 @@ PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noe
         coupling.materialProfile > PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID)
         return PM_ERROR_INVALID_ARGUMENT;
     if ((coupling.type == PM_COUPLING_SMOKE_SMOKE ||
-         coupling.type == PM_COUPLING_SOFT_BODY_SOFT_BODY) &&
+         coupling.type == PM_COUPLING_SOFT_BODY_SOFT_BODY ||
+         coupling.type == PM_COUPLING_CLOTH_CLOTH) &&
         coupling.first >= coupling.second)
         return PM_ERROR_INVALID_ARGUMENT;
 
@@ -202,7 +206,8 @@ PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noe
         const PmInteractionCapabilityKey key{
             contract.first, contract.second,
             coupling.type == PM_COUPLING_LIQUID_LIQUID || smoke_pair ||
-                    coupling.type == PM_COUPLING_SOFT_BODY_SOFT_BODY
+                    coupling.type == PM_COUPLING_SOFT_BODY_SOFT_BODY ||
+                    coupling.type == PM_COUPLING_CLOTH_CLOTH
                 ? PM_INTERACTION_SCOPE_SEPARATE_SYSTEM
                 : PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
             mode,

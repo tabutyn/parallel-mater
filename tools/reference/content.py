@@ -652,7 +652,8 @@ SECTIONS += [
                 PM_COUPLING_SMOKE_ROPE = 11,
                 PM_COUPLING_SMOKE_SOFT_BODY = 12,
                 PM_COUPLING_SMOKE_SMOKE = 13,
-                PM_COUPLING_SOFT_BODY_SOFT_BODY = 14
+                PM_COUPLING_SOFT_BODY_SOFT_BODY = 14,
+                PM_COUPLING_CLOTH_CLOTH = 15
             } PmCouplingType;
             typedef struct PmMechanicalCouplingState {
                 float contactDistance;
@@ -859,6 +860,22 @@ SECTIONS += [
                 const uint32_t* pTriangleIndices;
                 const float* pInverseMasses;
             } PmClothInfo;
+            typedef struct PmClothStateInfo {
+                PmStructureType sType;
+                const void* pNext;
+                PmBool32 active;
+                uint32_t materialIndex;
+                uint32_t vertexCount;
+                const PmFloat3* pVertices;
+                uint32_t triangleIndexCount;
+                const uint32_t* pTriangleIndices;
+                const float* pInverseMasses;
+            } PmClothStateInfo;
+            typedef struct PmClothSelfContactState {
+                PmStructureType sType;
+                const void* pNext;
+                PmBool32 enabled;
+            } PmClothSelfContactState;
             typedef struct PmClothVertexState {
                 PmFloat3 position;
                 PmFloat3 velocity;
@@ -871,13 +888,16 @@ SECTIONS += [
             PmResult pmCmdWriteCloths(PmCommandBuffer commandBuffer,
                 PmSimulation simulation, uint32_t firstCloth,
                 uint32_t count, const PmClothInfo* pCloths);
+            PmResult pmCmdWriteCloths2(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t firstCloth,
+                uint32_t count, const PmClothStateInfo* pCloths);
             PmResult pmCmdCopyClothState(PmCommandBuffer commandBuffer,
                 PmSimulation simulation, uint32_t clothIndex,
                 const PmBufferRange* pDestination);
             PmResult pmCmdCopyClothSurface(PmCommandBuffer commandBuffer,
                 PmSimulation simulation, uint32_t clothIndex,
                 const PmBufferRange* pDestination);
-        """),
+        """, text="PmClothInfo is the API 0.2 descriptor. PmClothStateInfo is the ABI-compatible extensible write path and copies the same resource data. Its pNext is NULL unless intrinsic surface self-contact is requested by chaining exactly one PmClothSelfContactState. enabled is PM_FALSE or PM_TRUE; PM_FALSE preserves ordinary cloth behavior and PM_TRUE requests the exact (cloth, cloth, self, contact, bidirectional, endpoint-native) capability. Unknown or nested state is invalid. Enabled self-contact requires finite vertices and nonnegative inverse masses plus distinct, in-range, nondegenerate, nonduplicated triangles. Invalid topology returns INVALID_ARGUMENT before any write is recorded. A valid enabled request returns FEATURE_NOT_PRESENT until its operator and driver qualification tasks advertise the capability, without replacing live state.<br/><br/>A separate-system contact edge uses PM_COUPLING_CLOTH_CLOTH through PmCouplingStateInfo with first &lt; second, CONTACT and ENDPOINT_NATIVE. It consumes simulation coupling capacity and requests the exact separate-system capability. Duplicate or reversed endpoints are invalid; a well-formed edge remains FEATURE_NOT_PRESENT until advertised. Intrinsic self-contact consumes no graph edge, and neither request implies attachment, containment or one-sided collision."),
         c("rope_resources", "Rope resources", types="""
             typedef struct PmRopeAttachment {
                 uint32_t rigidBodyIndex;

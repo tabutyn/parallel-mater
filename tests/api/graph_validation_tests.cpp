@@ -180,6 +180,31 @@ int main() {
     reject_smoke(&invalid_soft_bundle, 1U,
                  PM_ERROR_FEATURE_NOT_PRESENT);
 
+    PmCouplingState cloth_pair{};
+    cloth_pair.type = PM_COUPLING_CLOTH_CLOTH;
+    cloth_pair.first = 0U;
+    cloth_pair.second = 1U;
+    cloth_pair.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT;
+    cloth_pair.materialProfile = PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+    reject_smoke(&cloth_pair, 1U, PM_ERROR_FEATURE_NOT_PRESENT);
+
+    auto reversed_cloth_pair = cloth_pair;
+    reversed_cloth_pair.first = 1U;
+    reversed_cloth_pair.second = 0U;
+    reject_smoke(&reversed_cloth_pair, 1U, PM_ERROR_INVALID_ARGUMENT);
+
+    auto self_cloth_pair = cloth_pair;
+    self_cloth_pair.second = 0U;
+    reject_smoke(&self_cloth_pair, 1U, PM_ERROR_INVALID_ARGUMENT);
+
+    const PmCouplingState duplicate_cloth_pairs[2]{cloth_pair, cloth_pair};
+    reject_smoke(duplicate_cloth_pairs, 2U, PM_ERROR_INVALID_ARGUMENT);
+
+    auto invalid_cloth_bundle = cloth_pair;
+    invalid_cloth_bundle.modeFlags |= PM_INTERACTION_MODE_ATTACHMENT_BIT;
+    reject_smoke(&invalid_cloth_bundle, 1U,
+                 PM_ERROR_FEATURE_NOT_PRESENT);
+
     PmCouplingStateInfo pair{};
     pair.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
     pair.type = PM_COUPLING_LIQUID_LIQUID;
@@ -218,6 +243,26 @@ int main() {
     reversed_soft_pair_info.first = 1U;
     reversed_soft_pair_info.second = 0U;
     reject_pair(reversed_soft_pair_info, PM_ERROR_INVALID_ARGUMENT);
+
+    auto cloth_pair_info = soft_pair_info;
+    cloth_pair_info.type = PM_COUPLING_CLOTH_CLOTH;
+    reject_pair(cloth_pair_info, PM_ERROR_FEATURE_NOT_PRESENT);
+
+    auto reversed_cloth_pair_info = cloth_pair_info;
+    reversed_cloth_pair_info.first = 1U;
+    reversed_cloth_pair_info.second = 0U;
+    reject_pair(reversed_cloth_pair_info, PM_ERROR_INVALID_ARGUMENT);
+
+    const PmCouplingStateInfo duplicate_cloth_pair_info[2]{
+        cloth_pair_info, cloth_pair_info};
+    context.begin();
+    PM_CHECK(pmCmdSetCouplings2(context.commands, simulation, 2U,
+                                duplicate_cloth_pair_info) ==
+             PM_ERROR_INVALID_ARGUMENT);
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, empty) == PM_SUCCESS);
+    PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
+             PM_SUCCESS);
+    PM_CHECK(context.submit() == PM_SUCCESS);
 
     const PmCouplingStateInfo duplicate_soft_pair_info[2]{
         soft_pair_info, soft_pair_info};

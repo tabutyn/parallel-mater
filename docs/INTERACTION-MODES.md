@@ -116,9 +116,10 @@ Cloth contact has two distinct future capability identities. Self-contact uses
 to one live cloth slot; it consumes no graph edge. Contact between two live
 cloth slots uses `(cloth, cloth, separate-system, contact, bidirectional,
 endpoint-native)` and a canonical graph edge with `first < second`. API 0.2
-advertises neither identity and has no cloth-cloth edge type. Current drivers
-must omit both records and reject any extension request with
-`PM_ERROR_FEATURE_NOT_PRESENT` without mutating the live graph. The
+exposes both exact identities, the typed self-contact control and the canonical
+cloth pair edge, but advertises neither capability. Current drivers omit both
+records and reject enabled controls and edge requests with
+`PM_ERROR_FEATURE_NOT_PRESENT` without mutating live state or the graph. The
 `same-domain` scope remains unsupported because the API has no aggregate cloth
 domain distinct from its separately owned slots.
 
@@ -205,13 +206,16 @@ must not drop a subset of contacts. Empty live cloths are no-ops. Removing an
 inter-system edge isolates the sheets on the next step, and endpoint
 replacement observes the normal generation and rollback rules.
 
-Before either capability is enabled, a versioned typed API extension must
-separately opt a cloth into intrinsic self-contact and represent a cloth-cloth
-graph edge. Implementation leaves add broad-phase/narrow-phase data, the
-shared Slang contact/friction operators and portable scheduling. A final
-public-API qualification leaf advertises each exact scope only on drivers that
-pass folded-self, two-sheet, high-speed, friction, momentum, topology-change,
-capacity and lifecycle cases.
+`PmClothStateInfo` chains `PmClothSelfContactState` to opt one cloth into
+intrinsic contact; `PM_COUPLING_CLOTH_CLOTH` represents a canonical
+`first < second` graph edge through `PmCouplingStateInfo`. Enabled self-contact
+validates finite vertices, nonnegative inverse masses and distinct, in-range,
+nondegenerate, nonduplicated triangles before feature availability. Invalid,
+duplicate or reversed requests cannot replace usable state. Separate leaves
+add bounded broad-phase/narrow-phase data, shared Slang contact/friction
+operators, portable scheduling and public-API qualification. Advertisement is
+per scope and driver after folded-self, two-sheet, high-speed, friction,
+momentum, topology-change, capacity and lifecycle cases pass.
 
 ## Soft-body surface-contact scopes
 
