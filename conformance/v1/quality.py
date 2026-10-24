@@ -1363,6 +1363,501 @@ def _evaluate_rope_self_contact(
     }
 
 
+def _evaluate_rope_self_contact_audit(
+        profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
+        driver: Any, failures: list[Failure]) -> dict[str, Any]:
+    tolerances = profile.get("tolerances")
+    if not isinstance(tolerances, dict):
+        failures.append(Failure("$.profile.tolerances", "expected an object",
+                                tolerances))
+        tolerances = {}
+    state_tolerance = float(tolerances.get("fixture_state_absolute", 0.0))
+
+    claim = profile.get("claim")
+    if not isinstance(claim, dict) or claim.get("behavior") != \
+            "sampled-nodes-only":
+        failures.append(Failure("$.profile.claim.behavior",
+                                "audit must identify the node-only claim",
+                                claim))
+    if result.get("claim") != "sampled-nodes-only":
+        failures.append(Failure("$.claim",
+                                "result must label the claim node-only",
+                                result.get("claim"), "sampled-nodes-only"))
+
+    definitions: dict[str, dict[str, Any]] = {}
+    raw_definitions = profile.get("fixtures")
+    if not isinstance(raw_definitions, list):
+        failures.append(Failure("$.profile.fixtures",
+                                "expected a fixture array", raw_definitions))
+        raw_definitions = []
+    for index, definition in enumerate(raw_definitions):
+        path = f"$.profile.fixtures[{index}]"
+        if not isinstance(definition, dict) or not isinstance(
+                definition.get("id"), str):
+            failures.append(Failure(path, "fixture needs a string id",
+                                    definition))
+            continue
+        if definition["id"] in definitions:
+            failures.append(Failure(path + ".id", "duplicate fixture id",
+                                    definition["id"]))
+            continue
+        definitions[definition["id"]] = definition
+
+    actual_by_id: dict[str, dict[str, Any]] = {}
+    raw_actual = result.get("fixtures")
+    if not isinstance(raw_actual, list):
+        failures.append(Failure("$.fixtures", "expected a fixture array",
+                                raw_actual))
+        raw_actual = []
+    for index, fixture in enumerate(raw_actual):
+        path = f"$.fixtures[{index}]"
+        if not isinstance(fixture, dict) or not isinstance(
+                fixture.get("id"), str):
+            failures.append(Failure(path, "fixture needs a string id", fixture))
+            continue
+        if fixture["id"] in actual_by_id:
+            failures.append(Failure(path + ".id", "duplicate fixture id",
+                                    fixture["id"]))
+            continue
+        actual_by_id[fixture["id"]] = fixture
+    for missing in sorted(set(definitions) - set(actual_by_id)):
+        failures.append(Failure("$.fixtures", "missing required fixture",
+                                missing))
+    for extra in sorted(set(actual_by_id) - set(definitions)):
+        failures.append(Failure("$.fixtures", "unexpected fixture", extra))
+
+    def vectors(value: Any, path: str) -> list[tuple[float, float, float]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a vector array", value))
+            return []
+        parsed: list[tuple[float, float, float]] = []
+        for index, item in enumerate(value):
+            vector = _vector(item, f"{path}[{index}]", failures)
+            if vector is not None:
+                parsed.append(vector)
+        return parsed
+
+    def nodes(value: Any, path: str, count: int) -> list[tuple[
+            tuple[float, float, float], tuple[float, float, float]]]:
+        if not isinstance(value, list):
+            failures.append(Failure(path, "expected a node array", value))
+            return []
+        if len(value) != count:
+            failures.append(Failure(path,
+                                    "sampled node count differs from profile",
+                                    len(value), count))
+        parsed = []
+        for index, node in enumerate(value):
+            node_path = f"{path}[{index}]"
+            if not isinstance(node, dict):
+                failures.append(Failure(node_path, "expected a node object",
+                                        node))
+                continue
+            if node.get("index") != index:
+                failures.append(Failure(node_path + ".index",
+                                        "node order/index changed",
+                                        node.get("index"), index))
+            position = _vector(node.get("position_m"),
+                               node_path + ".position_m", failures)
+            velocity = _vector(node.get("velocity_m_s"),
+                               node_path + ".velocity_m_s", failures)
+            if position is not None and velocity is not None:
+                parsed.append((position, velocity))
+        return parsed
+
+    def expected_centerline(definition: dict[str, Any],
+                            path: str) -> list[tuple[float, float, float]]:
+        explicit = definition.get("initial_centerline_m")
+        if explicit is not None:
+            return vectors(explicit, path + ".initial_centerline_m")
+        line = definition.get("initial_line")
+        if not isinstance(line, dict):
+            failures.append(Failure(path,
+                                    "fixture needs explicit or generated input",
+                                    definition))
+            return []
+        origin = _vector(line.get("origin_m"), path + ".initial_line.origin_m",
+                         failures)
+        increment = _vector(line.get("increment_m"),
+                            path + ".initial_line.increment_m", failures)
+        count = line.get("count")
+        if (origin is None or increment is None or not isinstance(count, int) or
+                isinstance(count, bool) or count < 0):
+            if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+                failures.append(Failure(path + ".initial_line.count",
+                                        "expected a nonnegative integer", count))
+            return []
+        return [tuple(origin[axis] + increment[axis] * index
+                      for axis in range(3))
+                for index in range(count)]  # type: ignore[misc]
+
+    def cross(left: tuple[float, float, float],
+              right: tuple[float, float, float]) -> tuple[float, float, float]:
+        return (left[1] * right[2] - left[2] * right[1],
+                left[2] * right[0] - left[0] * right[2],
+                left[0] * right[1] - left[1] * right[0])
+
+    observations: dict[str, Any] = {}
+    sample_count = 0
+    for identity, definition in definitions.items():
+        actual = actual_by_id.get(identity)
+        if actual is None:
+            continue
+        fixture_path = f"$.fixtures[{identity}]"
+        profile_path = f"$.profile.fixtures[{identity}]"
+        exact_fields = (
+            "id", "point_count", "sampled_node_count",
+            "declared_node_capacity", "step_count", "checkpoint_steps",
+            "contact_checkpoint_step", "substeps", "solver_iterations",
+            "self_collision", "topology_exclusion_index_distance",
+            "excluded_probe_pairs", "fixed_endpoint_indices", "oracle",
+        )
+        for field in exact_fields:
+            if actual.get(field) != definition.get(field):
+                failures.append(Failure(f"{fixture_path}.{field}",
+                                        "fixture setting does not match profile",
+                                        actual.get(field), definition.get(field)))
+
+        scalar_fields = (
+            "timestep_seconds", "node_spacing_m", "radius_m", "mass_kg",
+            "stretch_compliance_m_per_n", "velocity_damping_per_s",
+            "maximum_substep_timestep_seconds", "friction",
+            "maximum_speed_m_s",
+        )
+        for field in scalar_fields:
+            value = _scalar(actual.get(field), f"{fixture_path}.{field}",
+                            failures)
+            expected = _scalar(definition.get(field),
+                               f"{profile_path}.{field}", failures)
+            if (value is not None and expected is not None and
+                    abs(value - expected) > state_tolerance):
+                failures.append(Failure(f"{fixture_path}.{field}",
+                                        "fixture setting differs from profile",
+                                        value, expected))
+        gravity = _vector(actual.get("gravity_m_s2"),
+                          fixture_path + ".gravity_m_s2", failures)
+        expected_gravity = _vector(definition.get("gravity_m_s2"),
+                                   profile_path + ".gravity_m_s2", failures)
+        if (gravity is not None and expected_gravity is not None and
+                _norm(_subtract(gravity, expected_gravity)) > state_tolerance):
+            failures.append(Failure(fixture_path + ".gravity_m_s2",
+                                    "fixture setting differs from profile",
+                                    list(gravity), list(expected_gravity)))
+
+        expected_input = expected_centerline(definition, profile_path)
+        actual_input = vectors(actual.get("initial_centerline_m"),
+                               fixture_path + ".initial_centerline_m")
+        if len(actual_input) != len(expected_input):
+            failures.append(Failure(fixture_path + ".initial_centerline_m",
+                                    "centerline point count differs from profile",
+                                    len(actual_input), len(expected_input)))
+        else:
+            for index, (value, expected) in enumerate(zip(actual_input,
+                                                           expected_input)):
+                if _norm(_subtract(value, expected)) > state_tolerance:
+                    failures.append(Failure(
+                        f"{fixture_path}.initial_centerline_m[{index}]",
+                        "initial public input differs from profile",
+                        list(value), list(expected)))
+
+        count_value = definition.get("sampled_node_count")
+        count = count_value if isinstance(count_value, int) and not isinstance(
+            count_value, bool) and count_value >= 0 else 0
+        if count != count_value:
+            failures.append(Failure(profile_path + ".sampled_node_count",
+                                    "expected a nonnegative integer",
+                                    count_value))
+        initial = nodes(actual.get("initial_nodes"),
+                        fixture_path + ".initial_nodes", count)
+        if len(initial) == len(expected_input):
+            for index, ((position, velocity), expected) in enumerate(
+                    zip(initial, expected_input)):
+                if _norm(_subtract(position, expected)) > state_tolerance:
+                    failures.append(Failure(
+                        f"{fixture_path}.initial_nodes[{index}].position_m",
+                        "initial sampled public state differs from profile",
+                        list(position), list(expected)))
+                if _norm(velocity) > state_tolerance:
+                    failures.append(Failure(
+                        f"{fixture_path}.initial_nodes[{index}].velocity_m_s",
+                        "initial sampled velocity must be zero",
+                        list(velocity), 0.0))
+
+        expected_steps = definition.get("checkpoint_steps")
+        expected_step_set = set(expected_steps) if isinstance(
+            expected_steps, list) and all(isinstance(step, int) and not isinstance(
+                step, bool) for step in expected_steps) else set()
+        checkpoint_by_step: dict[int, list[tuple[
+                tuple[float, float, float], tuple[float, float, float]]]] = {}
+        raw_checkpoints = actual.get("checkpoints")
+        if not isinstance(raw_checkpoints, list):
+            failures.append(Failure(fixture_path + ".checkpoints",
+                                    "expected a checkpoint array",
+                                    raw_checkpoints))
+            raw_checkpoints = []
+        for index, checkpoint in enumerate(raw_checkpoints):
+            path = f"{fixture_path}.checkpoints[{index}]"
+            if not isinstance(checkpoint, dict):
+                failures.append(Failure(path, "expected an object", checkpoint))
+                continue
+            step = checkpoint.get("step")
+            if not isinstance(step, int) or isinstance(step, bool):
+                failures.append(Failure(path + ".step", "expected an integer",
+                                        step))
+                continue
+            if step in checkpoint_by_step:
+                failures.append(Failure(path + ".step",
+                                        "duplicate checkpoint step", step))
+                continue
+            checkpoint_by_step[step] = nodes(checkpoint.get("nodes"),
+                                             path + ".nodes", count)
+        for missing in sorted(expected_step_set - set(checkpoint_by_step)):
+            failures.append(Failure(fixture_path + ".checkpoints",
+                                    "missing required checkpoint", missing))
+        for extra in sorted(set(checkpoint_by_step) - expected_step_set):
+            failures.append(Failure(fixture_path + ".checkpoints",
+                                    "unexpected checkpoint", extra))
+        sample_count += len(checkpoint_by_step)
+
+        checks_value = definition.get("checks")
+        checks = set(checks_value) if isinstance(checks_value, list) and all(
+            isinstance(item, str) for item in checks_value) else set()
+        radius = _scalar(definition.get("radius_m"),
+                         profile_path + ".radius_m", failures)
+        exclusion = definition.get("topology_exclusion_index_distance")
+        contact_step = definition.get("contact_checkpoint_step")
+        contact_nodes = checkpoint_by_step.get(contact_step) if isinstance(
+            contact_step, int) and not isinstance(contact_step, bool) else None
+        fixture_observations: dict[str, Any] = {
+            "checkpoint_count": len(checkpoint_by_step),
+            "sampled_node_count": len(initial),
+        }
+
+        maximum_speed = maximum_position = 0.0
+        speed_limit = float(definition.get("maximum_speed_m_s", 0.0)) + float(
+            tolerances.get("maximum_speed_slack_m_s", 0.0))
+        position_limit = float(tolerances.get("maximum_position_magnitude_m", 0.0))
+        for step, checkpoint_nodes in checkpoint_by_step.items():
+            if not checkpoint_nodes:
+                continue
+            maximum_speed = max(maximum_speed,
+                                max(_norm(node[1]) for node in checkpoint_nodes))
+            maximum_position = max(maximum_position,
+                                   max(_norm(node[0]) for node in checkpoint_nodes))
+            if maximum_speed > speed_limit:
+                failures.append(Failure(
+                    f"{fixture_path}.checkpoints[{step}].nodes",
+                    "node speed exceeds authored maximum",
+                    maximum_speed, speed_limit))
+            if maximum_position > position_limit:
+                failures.append(Failure(
+                    f"{fixture_path}.checkpoints[{step}].nodes",
+                    "node position exceeds long-run bound",
+                    maximum_position, position_limit))
+
+        if "capacity" in checks:
+            capacity = definition.get("declared_node_capacity")
+            if capacity != count or len(initial) != count:
+                failures.append(Failure(fixture_path,
+                                        "exact-capacity rope is not fully populated",
+                                        {"capacity": capacity,
+                                         "nodes": len(initial)}, count))
+
+        if "long_run" in checks:
+            final_step = definition.get("step_count")
+            if final_step not in checkpoint_by_step:
+                failures.append(Failure(fixture_path + ".checkpoints",
+                                        "long-run final checkpoint is missing",
+                                        final_step))
+
+        overlapping_pairs = 0
+        minimum_initial = minimum_final = None
+        target_separation = None
+        if ("separation" in checks and radius is not None and radius > 0.0 and
+                isinstance(exclusion, int) and not isinstance(exclusion, bool) and
+                exclusion >= 0 and contact_nodes is not None and
+                len(initial) == len(contact_nodes)):
+            target_separation = 2.0 * radius
+            activity = float(tolerances.get(
+                "initial_overlap_activity_minimum_m", 0.0))
+            minimum_allowed = target_separation * float(tolerances.get(
+                "minimum_separation_fraction", 1.0))
+            for first in range(len(initial)):
+                for second in range(first + exclusion + 1, len(initial)):
+                    before = _norm(_subtract(initial[first][0],
+                                             initial[second][0]))
+                    after = _norm(_subtract(contact_nodes[first][0],
+                                            contact_nodes[second][0]))
+                    minimum_initial = before if minimum_initial is None else min(
+                        minimum_initial, before)
+                    minimum_final = after if minimum_final is None else min(
+                        minimum_final, after)
+                    if target_separation - before >= activity:
+                        overlapping_pairs += 1
+                        if after < minimum_allowed:
+                            failures.append(Failure(
+                                f"{fixture_path}.checkpoints[{contact_step}]"
+                                f".nodes[{first},{second}]",
+                                "nonadjacent sampled nodes remain inside the radius separation",
+                                after, minimum_allowed))
+            if overlapping_pairs == 0:
+                failures.append(Failure(fixture_path + ".initial_nodes",
+                                        "fixture has no active nonadjacent overlap",
+                                        minimum_initial,
+                                        target_separation - activity))
+
+        if ("topology_exclusion" in checks and radius is not None and
+                contact_nodes is not None and len(initial) == len(contact_nodes)):
+            target_separation = 2.0 * radius
+            excluded_limit = target_separation * float(tolerances.get(
+                "excluded_probe_maximum_fraction", 1.0))
+            probes = definition.get("excluded_probe_pairs")
+            if not isinstance(probes, list) or not probes:
+                failures.append(Failure(profile_path + ".excluded_probe_pairs",
+                                        "expected topology probe pairs", probes))
+            else:
+                for probe_index, probe in enumerate(probes):
+                    if (not isinstance(probe, list) or len(probe) != 2 or
+                            not all(isinstance(index, int) and not isinstance(
+                                index, bool) for index in probe)):
+                        failures.append(Failure(
+                            f"{profile_path}.excluded_probe_pairs[{probe_index}]",
+                            "expected two topology indices", probe))
+                        continue
+                    first, second = probe
+                    if (first < 0 or second >= len(initial) or first >= second or
+                            not isinstance(exclusion, int) or
+                            second - first > exclusion):
+                        failures.append(Failure(
+                            f"{profile_path}.excluded_probe_pairs[{probe_index}]",
+                            "excluded probe is not a valid topology neighbor",
+                            probe))
+                        continue
+                    before = _norm(_subtract(initial[first][0], initial[second][0]))
+                    after = _norm(_subtract(contact_nodes[first][0],
+                                            contact_nodes[second][0]))
+                    if before >= excluded_limit:
+                        failures.append(Failure(fixture_path + ".initial_nodes",
+                                                "topology probe is not initially inside the exclusion radius",
+                                                before, excluded_limit))
+                    if after >= excluded_limit:
+                        failures.append(Failure(
+                            f"{fixture_path}.checkpoints[{contact_step}].nodes",
+                            "topology-neighbor probe was separated as self contact",
+                            after, excluded_limit))
+
+        if "fixed_endpoints" in checks:
+            fixed = definition.get("fixed_endpoint_indices")
+            if not isinstance(fixed, list) or not fixed:
+                failures.append(Failure(profile_path + ".fixed_endpoint_indices",
+                                        "expected fixed endpoint indices", fixed))
+            else:
+                position_limit_fixed = float(tolerances.get(
+                    "fixed_endpoint_position_absolute_m", 0.0))
+                speed_limit_fixed = float(tolerances.get(
+                    "fixed_endpoint_speed_absolute_m_s", 0.0))
+                for step, checkpoint_nodes in checkpoint_by_step.items():
+                    for endpoint in fixed:
+                        if (not isinstance(endpoint, int) or isinstance(endpoint, bool)
+                                or endpoint < 0 or endpoint >= len(initial) or
+                                endpoint >= len(checkpoint_nodes)):
+                            failures.append(Failure(
+                                profile_path + ".fixed_endpoint_indices",
+                                "fixed endpoint index is invalid", endpoint))
+                            continue
+                        drift = _norm(_subtract(checkpoint_nodes[endpoint][0],
+                                               initial[endpoint][0]))
+                        speed = _norm(checkpoint_nodes[endpoint][1])
+                        if drift > position_limit_fixed:
+                            failures.append(Failure(
+                                f"{fixture_path}.checkpoints[{step}]"
+                                f".nodes[{endpoint}].position_m",
+                                "fixed endpoint moved", drift,
+                                position_limit_fixed))
+                        if speed > speed_limit_fixed:
+                            failures.append(Failure(
+                                f"{fixture_path}.checkpoints[{step}]"
+                                f".nodes[{endpoint}].velocity_m_s",
+                                "fixed endpoint has nonzero speed", speed,
+                                speed_limit_fixed))
+
+        linear_residual = angular_residual = impulse_activity = None
+        angular_impulse_activity = None
+        if (("linear_momentum" in checks or "angular_momentum" in checks) and
+                contact_nodes is not None and len(initial) == len(contact_nodes) and
+                initial):
+            mass = _scalar(definition.get("mass_kg"),
+                           profile_path + ".mass_kg", failures)
+            if mass is not None and mass > 0.0:
+                node_mass = mass / len(initial)
+                changes = [tuple(node_mass * (after[1][axis] - before[1][axis])
+                                 for axis in range(3))
+                           for before, after in zip(initial, contact_nodes)]
+                impulse_activity = sum(_norm(change) for change in changes)
+                linear_residual = _norm(_sum(changes))
+                linear_limit = max(float(tolerances.get(
+                    "linear_momentum_absolute_kg_m_s", 0.0)),
+                    float(tolerances.get(
+                        "linear_momentum_relative",
+                        tolerances.get("momentum_relative", 0.0))) *
+                    impulse_activity)
+                if ("linear_momentum" in checks and
+                        linear_residual > linear_limit):
+                    failures.append(Failure(
+                        f"{fixture_path}.checkpoints[{contact_step}].nodes",
+                        "net internal linear impulse exceeds profile",
+                        linear_residual, linear_limit))
+                initial_center = tuple(sum(node[0][axis] for node in initial) /
+                                       len(initial) for axis in range(3))
+                angular_changes = [cross(
+                    _subtract(after[0], initial_center), change)
+                    for after, change in zip(contact_nodes, changes)]
+                angular_residual = _norm(_sum(angular_changes))
+                angular_impulse_activity = sum(
+                    _norm(change) for change in angular_changes)
+                angular_limit = max(float(tolerances.get(
+                    "angular_momentum_absolute_kg_m2_s", 0.0)),
+                    float(tolerances.get(
+                        "angular_momentum_relative",
+                        tolerances.get("momentum_relative", 0.0))) *
+                    angular_impulse_activity)
+                if ("angular_momentum" in checks and
+                        angular_residual > angular_limit):
+                    failures.append(Failure(
+                        f"{fixture_path}.checkpoints[{contact_step}].nodes",
+                        "net internal angular impulse exceeds profile",
+                        angular_residual, angular_limit))
+
+        fixture_observations.update({
+            "target_separation_m": target_separation,
+            "minimum_eligible_initial_separation_m": minimum_initial,
+            "minimum_eligible_contact_separation_m": minimum_final,
+            "overlapping_eligible_pair_count": overlapping_pairs,
+            "maximum_node_speed_m_s": maximum_speed,
+            "maximum_position_magnitude_m": maximum_position,
+            "linear_impulse_activity_kg_m_s": impulse_activity,
+            "linear_momentum_residual_kg_m_s": linear_residual,
+            "angular_impulse_activity_kg_m2_s": angular_impulse_activity,
+            "angular_momentum_residual_kg_m2_s": angular_residual,
+        })
+        observations[identity] = fixture_observations
+
+    return {
+        "schema": REPORT_SCHEMA,
+        "scope": "analytic_invariants",
+        "profile_id": profile.get("id"),
+        "profile_sha256": expected_hash,
+        "driver": driver,
+        "claim": "sampled-nodes-only",
+        "passed": not failures,
+        "fixture_count": len(actual_by_id),
+        "sample_count": sample_count,
+        "failure_count": len(failures),
+        "observations": observations,
+        "failures": [asdict(failure) for failure in failures],
+    }
+
+
 def _evaluate_fluid_cloth_containment(
         profile: dict[str, Any], result: dict[str, Any], expected_hash: str,
         driver: Any, failures: list[Failure]) -> dict[str, Any]:
@@ -12738,6 +13233,9 @@ def evaluate(profile: dict[str, Any], result: dict[str, Any],
             mode=evaluation.removeprefix("fluid_self_"))
     if evaluation == "rope_self_contact":
         return _evaluate_rope_self_contact(
+            profile, result, expected_hash, driver, failures)
+    if evaluation == "rope_self_contact_audit":
+        return _evaluate_rope_self_contact_audit(
             profile, result, expected_hash, driver, failures)
     if evaluation == "fluid_cloth_containment":
         return _evaluate_fluid_cloth_containment(

@@ -55,6 +55,7 @@
     {"id": "quality:fluid-self-pressure-v1", "path": "conformance/v1/quality/fluid-self-pressure-v1.json", "sha256": "4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b"},
     {"id": "quality:fluid-self-viscosity-v1", "path": "conformance/v1/quality/fluid-self-viscosity-v1.json", "sha256": "9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c"},
     {"id": "quality:rope-self-contact-v1", "path": "conformance/v1/quality/rope-self-contact-v1.json", "sha256": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113"},
+    {"id": "quality:rope-self-contact-v2", "path": "conformance/v1/quality/rope-self-contact-v2.json", "sha256": "8860ec9a5ba0e79dc4b917eabaad88d99fb77b0d17b8575d650f43143d17b408"},
     {"id": "quality:rope-rigid-contact-v1", "path": "conformance/v1/quality/rope-rigid-contact-v1.json", "sha256": "2cd3e0ff2be4463e635bc855810b933d38c5e2b099fbb511df8360846202c9e3"},
     {"id": "quality:rope-rigid-attachment-v1", "path": "conformance/v1/quality/rope-rigid-attachment-v1.json", "sha256": "f11a7dd5b27e5da058a4384b2154b2db6a3ee1f8c3cc94d6333b9f8d8c5fb6d0"},
     {"id": "quality:fluid-cloth-containment-v1", "path": "conformance/v1/quality/fluid-cloth-containment-v1.json", "sha256": "477d6494144118c9c6b108807e81576965a16a34fda5dfe672ed783b5de95b33"},
@@ -174,7 +175,7 @@
       "trajectory_contract": "case:rope-core",
       "required": {
         "lifecycle_invariants": ["case:rope-core"],
-        "analytic_invariants": ["quality:rope-self-contact-v1"]
+        "analytic_invariants": ["quality:rope-self-contact-v2"]
       },
       "missing": {}
     },

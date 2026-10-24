@@ -331,6 +331,9 @@ not claim continuous segment collision, protection from two segments crossing
 between nodes, high-speed continuous detection or self-friction. The current
 capability record must be qualified against this exact sampled-node behavior or
 withdrawn; it cannot be cited as evidence for the stronger profile below.
+CUDA, D3D12 and Vulkan advertise this record after passing the expanded
+`rope-self-contact-v2` audit. Metal retains general rope support but does not
+advertise this record until equivalent current device evidence exists.
 
 Complete rope contact uses the future `rope-capsule` material profile. Each
 centreline edge from node `i` to `i + 1` is a swept capsule with the endpoint

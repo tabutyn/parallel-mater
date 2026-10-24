@@ -1512,6 +1512,8 @@ int conformance_command_main(int argc, char **argv) {
                 "rigid-attachment-v1";
             const bool rope_self_contact = arguments.quality_id ==
                 "rope-self-contact-v1";
+            const bool rope_self_contact_audit = arguments.quality_id ==
+                "rope-self-contact-v2";
             const bool fluid_cloth_containment = arguments.quality_id ==
                 "fluid-cloth-containment-v1";
             const bool fluid_soft_contact = arguments.quality_id ==
@@ -1575,6 +1577,7 @@ int conformance_command_main(int argc, char **argv) {
             const bool externally_heated_fluid = arguments.quality_id ==
                 "externally-heated-fluid-v1";
             if (!brick && !attachment && !rope_self_contact &&
+                !rope_self_contact_audit &&
                 !fluid_cloth_containment &&
                 !fluid_soft_contact &&
                 !fluid_rope_contact &&
@@ -1608,6 +1611,8 @@ int conformance_command_main(int argc, char **argv) {
                     result = conformance_rigid_attachment_quality(root);
                 } else if (rope_self_contact) {
                     result = conformance_rope_self_contact_quality(root);
+                } else if (rope_self_contact_audit) {
+                    result = conformance_rope_self_contact_audit_quality(root);
 #if defined(PM_CONFORMANCE_DEVICE_FIXTURES)
                 } else if (fluid_self) {
                     ExecutionStatus status{};
