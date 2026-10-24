@@ -168,7 +168,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-09](roadmap/tasks/P1-09.json) | Qualify and advertise miscible fluids | deferred | P1-08, F5-02, F5-03 | — |
 | [P1-10](roadmap/tasks/P1-10.json) | Reconstruct immiscible fluid interfaces | done | P1-05, P1-56 | — |
 | [P1-11](roadmap/tasks/P1-11.json) | Apply immiscible pressure and capillarity | done | P1-10 | — |
-| [P1-12](roadmap/tasks/P1-12.json) | Apply immiscible interfacial viscosity | leased | P1-11 | codex-immiscible-viscosity / thomas-laptop / 2026-10-19T23:40:06Z |
+| [P1-12](roadmap/tasks/P1-12.json) | Apply immiscible interfacial viscosity | leased | P1-11 | codex-macos-physics / Thomass-MacBook-Air / 2026-10-25T22:51:06Z |
 | [P1-13](roadmap/tasks/P1-13.json) | Schedule immiscible fluid pair graphs | deferred | P1-12 | — |
 | [P1-14](roadmap/tasks/P1-14.json) | Qualify and advertise immiscible fluids | deferred | P1-13, F5-02, F5-03 | — |
 | [P1-15](roadmap/tasks/P1-15.json) | Add fluid caloric material state | deferred | P1-04 | — |
