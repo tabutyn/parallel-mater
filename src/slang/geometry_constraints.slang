@@ -9,6 +9,9 @@
 #ifndef PM_TARGET_D3D12
 #define PM_TARGET_D3D12 0
 #endif
+#ifndef PM_AVBD_SMALL_MODULE
+#define PM_AVBD_SMALL_MODULE 0
+#endif
 
 #include "constraint_math.slang"
 
@@ -50,6 +53,184 @@ struct AvbdBody
     Vec3 previous_velocity;
     uint history_valid;
 };
+
+// The collision manifold carries feature-classification and persistence data
+// that the AVBD iteration never reads.  Keeping a full Contact local in the
+// solve kernel makes mobile compilers spill that unrelated state for every
+// body/contact visit.  Load only the iterative fields instead; writes are
+// committed field-by-field so the manifold's collision metadata is untouched.
+struct AvbdSolveContact
+{
+    Vec3 normal;
+    Vec3 point;
+    float accumulated_normal_impulse;
+    Vec3 accumulated_friction_impulse;
+    float initial_normal_speed;
+    float reported_normal_impulse;
+    Vec3 reported_friction_impulse;
+    AvbdDual dual[3];
+    Vec3 error;
+    Vec3 anchor_a;
+    Vec3 anchor_b;
+    uint cached;
+};
+
+#if PM_AVBD_SMALL_MODULE
+static const uint kAvbdSmallMaximumPairs = 28u;
+static const uint kAvbdSmallMaximumPoints = 8u;
+
+struct AvbdContactJacobianCache
+{
+    Vec3 axes[3];
+    Vec3 angular_a[3];
+    Vec3 angular_b[3];
+};
+
+groupshared AvbdContactJacobianCache rigidAvbdContactJacobians[
+    kAvbdSmallMaximumPairs * kAvbdSmallMaximumPoints];
+
+void rigid_avbd_cache_contact_jacobians(
+    PM_AVBD_MANIFOLD_BUFFER manifolds, PM_AVBD_BUFFER(uint) pairs,
+    PM_AVBD_BUFFER(uint) pair_count, uint count,
+    PM_AVBD_BUFFER(AvbdBody) bodies)
+{
+    uint lane = pmThreadIndex();
+    uint stride = pmGroupSize().x;
+    for (uint active = lane; active < pair_count[0]; active += stride)
+    {
+        uint a = pairs[active] / count;
+        uint b = pairs[active] % count;
+        uint pointCount = PM_AVBD_MANIFOLD_COUNT(manifolds, active);
+        for (uint point = 0u; point < pointCount; ++point)
+        {
+            Vec3 normal = PM_AVBD_MANIFOLD_CONTACT(
+                manifolds, active, point).normal;
+            Vec3 contactPoint = PM_AVBD_MANIFOLD_CONTACT(
+                manifolds, active, point).point;
+            Vec3 anchorA = PM_AVBD_MANIFOLD_CONTACT(
+                manifolds, active, point).avbd_anchor_a;
+            Vec3 anchorB = PM_AVBD_MANIFOLD_CONTACT(
+                manifolds, active, point).avbd_anchor_b;
+            Vec3 tangent0;
+            Vec3 tangent1;
+            rigid_avbd_basis(normal, tangent0, tangent1);
+            Vec3 axes[3] = {normal, tangent0, tangent1};
+            Vec3 armsA[3] = {subtract(contactPoint,
+                    bodies[a].target.position),
+                rotate(bodies[a].target.orientation, anchorA),
+                rotate(bodies[a].target.orientation, anchorA)};
+            Vec3 armsB[3] = {subtract(contactPoint,
+                    bodies[b].target.position),
+                rotate(bodies[b].target.orientation, anchorB),
+                rotate(bodies[b].target.orientation, anchorB)};
+            AvbdContactJacobianCache cached;
+            for (uint axis = 0u; axis < 3u; ++axis)
+            {
+                cached.axes[axis] = axes[axis];
+                cached.angular_a[axis] = multiply(
+                    cross(armsA[axis], axes[axis]), -1.0f);
+                cached.angular_b[axis] =
+                    cross(armsB[axis], axes[axis]);
+            }
+            rigidAvbdContactJacobians[
+                active * kAvbdSmallMaximumPoints + point] = cached;
+        }
+    }
+    pmGroupBarrier();
+}
+
+void rigid_avbd_cached_contact_errors(AvbdSolveContact contact,
+    uint active, uint point, uint a, uint b,
+    PM_AVBD_BUFFER(AvbdBody) bodies, out float error[3])
+{
+    AvbdContactJacobianCache cached = rigidAvbdContactJacobians[
+        active * kAvbdSmallMaximumPoints + point];
+    AvbdVector6 displacementA = bodies[a].displacement;
+    AvbdVector6 displacementB = bodies[b].displacement;
+    for (uint axis = 0u; axis < 3u; ++axis)
+    {
+        AvbdVector6 jacobianA = rigid_avbd_jacobian(
+            multiply(cached.axes[axis], -1.0f), cached.angular_a[axis]);
+        AvbdVector6 jacobianB = rigid_avbd_jacobian(
+            cached.axes[axis], cached.angular_b[axis]);
+        error[axis] = rigid_avbd_component(contact.error, axis) +
+            avbdDot6(jacobianA, displacementA) +
+            avbdDot6(jacobianB, displacementB);
+    }
+}
+
+AvbdVector6 rigid_avbd_cached_contact_row(
+    uint active, uint point, uint axis, bool first)
+{
+    AvbdContactJacobianCache cached = rigidAvbdContactJacobians[
+        active * kAvbdSmallMaximumPoints + point];
+    return first
+        ? rigid_avbd_jacobian(multiply(cached.axes[axis], -1.0f),
+            cached.angular_a[axis])
+        : rigid_avbd_jacobian(cached.axes[axis], cached.angular_b[axis]);
+}
+#endif
+
+AvbdSolveContact rigid_avbd_load_solve_contact(
+    PM_AVBD_MANIFOLD_BUFFER manifolds, uint active, uint point)
+{
+    AvbdSolveContact result;
+    result.normal = PM_AVBD_MANIFOLD_CONTACT(
+        manifolds, active, point).normal;
+    result.point = PM_AVBD_MANIFOLD_CONTACT(
+        manifolds, active, point).point;
+    result.accumulated_normal_impulse = PM_AVBD_MANIFOLD_CONTACT(
+        manifolds, active, point).accumulated_normal_impulse;
+    result.accumulated_friction_impulse = PM_AVBD_MANIFOLD_CONTACT(
+        manifolds, active, point).accumulated_friction_impulse;
+    result.initial_normal_speed = PM_AVBD_MANIFOLD_CONTACT(
+        manifolds, active, point).initial_normal_speed;
+    result.reported_normal_impulse = PM_AVBD_MANIFOLD_CONTACT(
+        manifolds, active, point).reported_normal_impulse;
+    result.reported_friction_impulse = PM_AVBD_MANIFOLD_CONTACT(
+        manifolds, active, point).reported_friction_impulse;
+    for (uint axis = 0u; axis < 3u; ++axis)
+    {
+        result.dual[axis].lambda = PM_AVBD_MANIFOLD_CONTACT(
+            manifolds, active, point).avbd_dual[axis].lambda;
+        result.dual[axis].penalty = PM_AVBD_MANIFOLD_CONTACT(
+            manifolds, active, point).avbd_dual[axis].penalty;
+    }
+    result.error = PM_AVBD_MANIFOLD_CONTACT(
+        manifolds, active, point).avbd_error;
+    result.anchor_a = PM_AVBD_MANIFOLD_CONTACT(
+        manifolds, active, point).avbd_anchor_a;
+    result.anchor_b = PM_AVBD_MANIFOLD_CONTACT(
+        manifolds, active, point).avbd_anchor_b;
+    result.cached = PM_AVBD_MANIFOLD_CONTACT(
+        manifolds, active, point).avbd_cached;
+    return result;
+}
+
+void rigid_avbd_store_solve_contact(
+    PM_AVBD_MANIFOLD_BUFFER manifolds, uint active, uint point,
+    AvbdSolveContact value)
+{
+    PM_AVBD_MANIFOLD_CONTACT(manifolds, active, point)
+        .accumulated_normal_impulse = value.accumulated_normal_impulse;
+    PM_AVBD_MANIFOLD_CONTACT(manifolds, active, point)
+        .accumulated_friction_impulse = value.accumulated_friction_impulse;
+    PM_AVBD_MANIFOLD_CONTACT(manifolds, active, point)
+        .reported_normal_impulse = value.reported_normal_impulse;
+    PM_AVBD_MANIFOLD_CONTACT(manifolds, active, point)
+        .reported_friction_impulse = value.reported_friction_impulse;
+    for (uint axis = 0u; axis < 3u; ++axis)
+    {
+        PM_AVBD_MANIFOLD_CONTACT(manifolds, active, point)
+            .avbd_dual[axis].lambda = value.dual[axis].lambda;
+        PM_AVBD_MANIFOLD_CONTACT(manifolds, active, point)
+            .avbd_dual[axis].penalty = value.dual[axis].penalty;
+    }
+    PM_AVBD_MANIFOLD_CONTACT(manifolds, active, point).avbd_anchor_a =
+        value.anchor_a;
+    PM_AVBD_MANIFOLD_CONTACT(manifolds, active, point).avbd_anchor_b =
+        value.anchor_b;
+}
 
 float rigid_avbd_component(Vec3 value, uint axis)
 {
@@ -268,6 +449,84 @@ AvbdContactForce rigid_avbd_contact_force(Contact contact, float error[3],
 {
     return avbdProjectContact(
         rigid_avbd_contact_trial(contact, error), friction);
+}
+
+void rigid_avbd_solve_contact_rows(AvbdSolveContact contact, uint a, uint b,
+    PM_AVBD_BUFFER(AvbdBody) bodies, out AvbdVector6 jacobianA[3],
+    out AvbdVector6 jacobianB[3], out float error[3])
+{
+    Vec3 tangent0;
+    Vec3 tangent1;
+    rigid_avbd_basis(contact.normal, tangent0, tangent1);
+    Vec3 axes[3] = {contact.normal, tangent0, tangent1};
+    Vec3 armA = subtract(contact.point, bodies[a].target.position);
+    Vec3 armB = subtract(contact.point, bodies[b].target.position);
+    for (uint axis = 0u; axis < 3u; ++axis)
+    {
+        Vec3 ra = axis == 0u ? armA : rotate(
+            bodies[a].target.orientation, contact.anchor_a);
+        Vec3 rb = axis == 0u ? armB : rotate(
+            bodies[b].target.orientation, contact.anchor_b);
+        jacobianA[axis] = rigid_avbd_jacobian(multiply(axes[axis], -1.0f),
+            multiply(cross(ra, axes[axis]), -1.0f));
+        jacobianB[axis] = rigid_avbd_jacobian(
+            axes[axis], cross(rb, axes[axis]));
+        error[axis] = rigid_avbd_component(contact.error, axis) +
+            avbdDot6(jacobianA[axis], bodies[a].displacement) +
+            avbdDot6(jacobianB[axis], bodies[b].displacement);
+    }
+}
+
+float rigid_avbd_solve_contact_normal_row(AvbdSolveContact contact,
+    uint a, uint b, PM_AVBD_BUFFER(AvbdBody) bodies,
+    out AvbdVector6 jacobianA, out AvbdVector6 jacobianB)
+{
+    Vec3 armA = subtract(contact.point, bodies[a].target.position);
+    Vec3 armB = subtract(contact.point, bodies[b].target.position);
+    jacobianA = rigid_avbd_jacobian(multiply(contact.normal, -1.0f),
+        multiply(cross(armA, contact.normal), -1.0f));
+    jacobianB = rigid_avbd_jacobian(
+        contact.normal, cross(armB, contact.normal));
+    return contact.error.x +
+        avbdDot6(jacobianA, bodies[a].displacement) +
+        avbdDot6(jacobianB, bodies[b].displacement);
+}
+
+void rigid_avbd_iterative_contact_rows(AvbdSolveContact contact,
+    uint a, uint b, PM_AVBD_BUFFER(AvbdBody) bodies,
+    out AvbdVector6 jacobianA[3],
+    out AvbdVector6 jacobianB[3], out float error[3])
+{
+    rigid_avbd_solve_contact_rows(
+        contact, a, b, bodies, jacobianA, jacobianB, error);
+}
+
+float rigid_avbd_iterative_contact_normal_row(AvbdSolveContact contact,
+    uint a, uint b, PM_AVBD_BUFFER(AvbdBody) bodies,
+    out AvbdVector6 jacobianA, out AvbdVector6 jacobianB)
+{
+    return rigid_avbd_solve_contact_normal_row(
+        contact, a, b, bodies, jacobianA, jacobianB);
+}
+
+AvbdContactForce rigid_avbd_solve_contact_trial(
+    AvbdSolveContact contact, float error[3])
+{
+    AvbdContactForce result;
+    result.normal = contact.dual[0].lambda +
+        contact.dual[0].penalty * error[0];
+    result.tangent0 = contact.dual[1].lambda +
+        contact.dual[1].penalty * error[1];
+    result.tangent1 = contact.dual[2].lambda +
+        contact.dual[2].penalty * error[2];
+    return result;
+}
+
+AvbdContactForce rigid_avbd_solve_contact_force(
+    AvbdSolveContact contact, float error[3], float friction)
+{
+    return avbdProjectContact(
+        rigid_avbd_solve_contact_trial(contact, error), friction);
 }
 
 AvbdRow rigid_avbd_row(RigidAvbdRow source)

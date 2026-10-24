@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "geometry_constraints_dispatch.hpp"
 
-#include "parallel_mater_geometry_constraints_schur_runtime.cu"
+#include "parallel_mater_geometry_constraints_small_runtime.cu"
 
 namespace parallel_mater::simulation {
 namespace {
@@ -15,7 +15,7 @@ template <typename T> const T *as(const void *value) noexcept {
 
 } // namespace
 
-PmResult solve_geometry_constraints_schur(
+PmResult solve_geometry_constraints_small(
     device::ExecutionQueue stream, const void *parameters,
     const RigidBodyState *previous, RigidBodyState *states,
     std::uint32_t body_count, void *manifolds,

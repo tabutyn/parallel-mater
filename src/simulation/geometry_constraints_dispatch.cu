@@ -143,8 +143,8 @@ PmResult solve_geometry_constraints(device::ExecutionQueue stream,
     GeometryConstraintBody *bodies, void *schedule, float timestep,
     std::uint32_t grid_blocks) noexcept {
 #if defined(PM_VULKAN_GENERATED_DISPATCH)
-    if (grid_blocks == 1U && body_count <= 8U)
-        return solve_geometry_constraints_schur(stream, parameters,
+    if (constraint_capacity == 0U && grid_blocks == 1U && body_count <= 8U)
+        return solve_geometry_constraints_small(stream, parameters,
             previous, states, body_count, manifolds, active_pairs,
             active_pair_count, constraints, constraint_capacity, bodies,
             schedule, timestep);

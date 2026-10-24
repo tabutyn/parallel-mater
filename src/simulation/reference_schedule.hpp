@@ -1541,10 +1541,20 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
         // each dense pair across blocks and reduce in the same candidate order.
         // One shared reduction manifold accompanies the per-thread scratch.
         constexpr std::uint32_t contact_evaluation_threads = 16U;
+        // Small legacy-profile worlds are latency-bound on mobile GPUs.  The
+        // existing one-group path reduces candidates in their original order
+        // and avoids both fifteen mostly empty blocks and a separate reduction
+        // dispatch without changing contact equations or capacity.
+        const bool reduce_leaf_contacts_in_group =
+            options.profile == PhysicsStepProfile::legacy_default &&
+            impl_->rigid_body_count <= k_small_rigid_leaf_body_capacity;
         const std::uint32_t blocks_per_pair =
-            impl_->rigid_leaf_manifolds != nullptr
+            impl_->rigid_leaf_manifolds != nullptr &&
+                    !reduce_leaf_contacts_in_group
                 ? k_rigid_leaf_blocks_per_pair
                 : 1U;
+        auto *leaf_manifolds = reduce_leaf_contacts_in_group
+            ? nullptr : impl_->rigid_leaf_manifolds;
         error = backend.finalize_rigid_contact_manifolds(
             contact_block_count, block_size, stream,
             impl_->parameters, impl_->states[impl_->current_state], impl_->states[output_state],
@@ -1567,19 +1577,19 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                       impl_->rigid_active_pair_count,
                       impl_->rigid_leaf_pairs, impl_->rigid_leaf_pair_counts,
                       impl_->rigid_leaf_pairs_per_slot,
-                      impl_->rigid_leaf_manifolds, blocks_per_pair,
+                      leaf_manifolds, blocks_per_pair,
                       substep_timestep, has_soft_body && has_rope_soft_body,
                       impl_->rigid_manifolds);
         if (error != backend.success_code()) return backend.failure(
             error, "rigid leaf contact evaluation failed");
-        if (impl_->rigid_leaf_manifolds != nullptr) {
+        if (leaf_manifolds != nullptr) {
             error = backend.reduce_rigid_leaf_manifolds(
                 contact_block_count, block_size, stream,
                 impl_->parameters, impl_->rigid_body_count,
                 impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
                 impl_->rigid_leaf_pair_counts,
                 impl_->rigid_leaf_pairs_per_slot,
-                impl_->rigid_leaf_manifolds,
+                leaf_manifolds,
                 has_soft_body && has_rope_soft_body,
                 impl_->rigid_manifolds);
             if (error != backend.success_code()) return backend.failure(

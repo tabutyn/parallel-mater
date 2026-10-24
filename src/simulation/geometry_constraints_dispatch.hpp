@@ -31,7 +31,7 @@ PmResult solve_geometry_constraints(device::ExecutionQueue stream,
     GeometryConstraintBody *bodies, void *schedule, float timestep,
     std::uint32_t grid_blocks) noexcept;
 
-PmResult solve_geometry_constraints_schur(
+PmResult solve_geometry_constraints_small(
     device::ExecutionQueue stream, const void *parameters,
     const RigidBodyState *previous, RigidBodyState *states,
     std::uint32_t body_count, void *manifolds,

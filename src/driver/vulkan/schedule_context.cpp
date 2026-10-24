@@ -527,17 +527,34 @@ struct ScheduleContext::Impl {
         completed = submitted;
         pending = false;
     }
-    void device_barrier() {
+    void compute_barrier() {
         VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-        barrier.srcAccessMask =
-            VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        barrier.dstAccessMask =
+            VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+        vkCmdPipelineBarrier(commands, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1,
+                             &barrier, 0, nullptr, 0, nullptr);
+    }
+    void prepare_transfer_barrier() {
+        VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        barrier.dstAccessMask =
+            VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+        vkCmdPipelineBarrier(commands, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 1, &barrier,
+                             0, nullptr, 0, nullptr);
+    }
+    void transfer_barrier() {
+        VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask =
             VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT |
             VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
         vkCmdPipelineBarrier(
-            commands,
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
+            commands, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
             0, 1, &barrier, 0, nullptr, 0, nullptr);
     }
     void begin_barrier() {
@@ -1081,7 +1098,7 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
         vkCmdDispatch(i.commands, grid.x, grid.y, grid.z);
         if (i.profile.segment_open)
             ++i.profile.dispatches;
-        i.device_barrier();
+        i.compute_barrier();
         // Diagnostic mode: isolate a failing dispatch without changing normal
         // asynchronous submission behavior.
         if (std::getenv("PM_VULKAN_SYNCHRONOUS_DISPATCH"))
@@ -1120,8 +1137,9 @@ cudaError_t ScheduleContext::copy(void *dst, const void *src, std::size_t size,
                                 std::uint64_t(static_cast<std::byte *>(dst) -
                                               static_cast<std::byte *>(d->host)),
                                 size};
+            i.prepare_transfer_barrier();
             vkCmdCopyBuffer(i.commands, s->buffer, d->buffer, 1, &region);
-            i.device_barrier();
+            i.transfer_barrier();
         } else {
             i.sync();
             std::memmove(dst, src, size);
@@ -1145,8 +1163,9 @@ cudaError_t ScheduleContext::clear(void *dst, int value, std::size_t size) noexc
         if (offset % 4 == 0 && size % 4 == 0) {
             i.begin();
             auto byte = std::uint32_t(value) & 255U;
+            i.prepare_transfer_barrier();
             vkCmdFillBuffer(i.commands, b->buffer, offset, size, byte * 0x01010101U);
-            i.device_barrier();
+            i.transfer_barrier();
         } else {
             i.sync();
             std::memset(dst, value, size);
