@@ -337,6 +337,42 @@ void fluid_immiscible_pair_pressure_capillarity(
         fluid_apply_immiscible_pair_pressure_capillarity_Thread, &args);
 }
 
+void fluid_immiscible_pair_viscosity(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue, const void *first_positions,
+    const void *first_velocities, const std::uint32_t *first_count,
+    std::uint32_t first_capacity, void *first_forces,
+    const void *first_interface_normals,
+    const std::uint32_t *first_interface_flags,
+    const void *second_positions, const void *second_velocities,
+    const std::uint32_t *second_count, std::uint32_t second_capacity,
+    void *second_forces, const void *second_interface_normals,
+    const std::uint32_t *second_interface_flags,
+    const std::uint64_t *keys, const std::uint32_t *identities,
+    std::uint32_t total_capacity,
+    const FluidDispatchConstants &first_constants,
+    const FluidDispatchConstants &second_constants) noexcept {
+    EntryPointParams_19 args{
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_velocities)),
+        const_cast<std::uint32_t *>(first_count), first_capacity,
+        as<Vec3_0>(first_forces),
+        const_cast<Vec3_0 *>(as<Vec3_0>(first_interface_normals)),
+        const_cast<std::uint32_t *>(first_interface_flags),
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_velocities)),
+        const_cast<std::uint32_t *>(second_count), second_capacity,
+        as<Vec3_0>(second_forces),
+        const_cast<Vec3_0 *>(as<Vec3_0>(second_interface_normals)),
+        const_cast<std::uint32_t *>(second_interface_flags),
+        reinterpret_cast<std::uint64_t *>(
+            const_cast<std::uint64_t *>(keys)),
+        const_cast<std::uint32_t *>(identities), total_capacity,
+        constants(first_constants), constants(second_constants)};
+    device::dispatch_cpu(grid, block,
+        fluid_apply_immiscible_pair_viscosity_Thread, &args);
+}
+
 void fluid_forces(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue,
     void *positions, void *velocities, void *accelerations, float *foam,
     std::uint32_t *count, const FluidDispatchConstants &values,
@@ -479,7 +515,7 @@ void emit_fluid_spatial_particles(
     void *query_bounds, std::uint32_t *query_masks,
     std::uint32_t *excluded_sort_keys, std::uint32_t *query_leaf_sources,
     std::uint32_t *status) noexcept {
-    EntryPointParams_19 args{
+    EntryPointParams_20 args{
         const_cast<Vec3_0 *>(as<Vec3_0>(previous_positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(predicted_positions)),
         const_cast<std::uint32_t *>(stable_ids),
@@ -511,7 +547,7 @@ void emit_fluid_spatial_source_proposals(
     void *bounds, std::uint8_t *build_flags, void *query_bounds,
     std::uint32_t *query_masks, std::uint32_t *excluded_sort_keys,
     std::uint32_t *query_leaf_sources, std::uint32_t *status) noexcept {
-    EntryPointParams_20 args{
+    EntryPointParams_21 args{
         const_cast<Vec3_0 *>(as<Vec3_0>(points)), amount, spacing,
         const_cast<std::uint32_t *>(count), particle_capacity,
         first_stable_id, owner_slot, owner_generation, material_revision,
@@ -537,7 +573,7 @@ void apply_fluid_spatial_source_admission(
     std::uint32_t particle_capacity, std::uint32_t *accepted,
     std::uint32_t *rejected, std::uint32_t *capacity_misses,
     std::uint32_t *status) noexcept {
-    EntryPointParams_21 args{
+    EntryPointParams_22 args{
         const_cast<Vec3_0 *>(as<Vec3_0>(points)), amount, vec3(velocity),
         initial_temperature, proposal_leaf_offset, leaf_capacity,
         proposal_query_offset, query_capacity,
@@ -564,7 +600,7 @@ void filter_fluid_spatial_candidates(
     const std::uint32_t *candidate_sources,
     std::uint32_t candidates_per_query, std::uint32_t *filtered_counts,
     std::uint32_t *filtered_sources, std::uint32_t *status) noexcept {
-    EntryPointParams_22 args{
+    EntryPointParams_23 args{
         const_cast<FluidSpatialLeafMetadata_0 *>(
             as<FluidSpatialLeafMetadata_0>(metadata)),
         const_cast<std::uint8_t *>(admission), leaf_capacity,
@@ -596,7 +632,7 @@ void count_fluid_spatial_neighbors(
     std::uint32_t maximum_neighbors, std::uint32_t *neighbor_counts,
     std::uint32_t *neighbor_overflow,
     std::uint32_t *maximum_neighbor_count, std::uint32_t *status) noexcept {
-    EntryPointParams_23 args{
+    EntryPointParams_24 args{
         const_cast<FluidSpatialLeafMetadata_0 *>(
             as<FluidSpatialLeafMetadata_0>(metadata)),
         const_cast<std::uint8_t *>(admission), leaf_capacity,

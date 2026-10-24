@@ -1,0 +1,60 @@
+{
+  "schema": "parallel-mater-roadmap-immiscible-viscosity/v1",
+  "task": "P1-12",
+  "result": "passed",
+  "source": {
+    "revision": "341c62047f04142a3c5e67bdc6cb2c0fb3b4a015",
+    "branch": "work/P1-12/Thomass-MacBook-Air",
+    "lease_token": "954c256a-8404-4301-8e15-76f23e37a8ed",
+    "machine": "Thomass-MacBook-Air"
+  },
+  "operator": {
+    "entry_point": "fluid_apply_immiscible_pair_viscosity",
+    "dynamic_viscosity": "Each endpoint dynamic viscosity is restDensity times kinematicViscosity. The interface coefficient is their harmonic combination and is zero when either endpoint is inviscid.",
+    "particle_volume": "Each endpoint uses explicit restParticleVolume when positive and cubic particle diameter otherwise. Pair volume is the harmonic combination.",
+    "traction": "Relative velocity is projected onto the retained interface tangent plane. The common pair force is harmonicDynamicViscosity times harmonicParticleVolume times max(1 - distance/maxSupport, 0) times tangentialRelativeVelocity.",
+    "balance": "The same common force is divided by endpoint particle mass with opposite signs. Enabled acceleration limits clamp the common force before either mass division.",
+    "interface_policy": "Traction requires two resolved, non-degenerate interface samples and a finite nonzero combined normal. Normal relative motion creates no viscous traction.",
+    "advertisement": "No interaction capability was added or enabled. Public graph scheduling remains P1-13 and qualification remains P1-14."
+  },
+  "physical_fixtures": {
+    "analytic_sweeps": "Three unequal density, explicit volume, particle-mass, support-radius and viscosity pairs match the closed-form harmonic tangential force and inverse-mass endpoint accelerations.",
+    "momentum": "Every active material sweep and the acceleration-limit case conserve mass-weighted linear force within 5e-5 of exchanged-force activity.",
+    "dissipation": "Instantaneous pair power is strictly negative for every active shear fixture.",
+    "normal_no_mixing": "Pure interface-normal relative motion produces exactly zero added acceleration at both endpoints.",
+    "zero_and_invalid_limits": "Either inviscid endpoint, a missing interface sample, or a degenerate interface sample produces exactly zero traction.",
+    "endpoint_reversal": "Swapping endpoint populations and materials while reversing oriented interface normals preserves each physical particle acceleration.",
+    "bounded_force": "Unequal endpoint masses respect both requested maximum pair accelerations while preserving common-force balance."
+  },
+  "validation": [
+    {
+      "command": "ctest --test-dir /private/tmp/parallel-mater-p112.lu3Axe/build-cpu -R 'parallel-mater-(fluid-pair-neighbor-index|fluid-interface-reconstruction|fluid-immiscible-pressure-capillarity|fluid-immiscible-viscosity|slang-architecture)' --output-on-failure",
+      "result": "5/5 passed; generated shared-Slang CPU execution covered the new analytic, conservation, dissipation, endpoint-order, zero-viscosity, interface-validity, normal-motion and acceleration-limit fixtures alongside P1-10/P1-11 regressions."
+    },
+    {
+      "command": "cmake --build /private/tmp/parallel-mater-p112.lu3Axe/build-metal --target parallel-mater-driver-slang-metal parallel-mater-slang-metal-kernel-tests -j6 && ctest --test-dir /private/tmp/parallel-mater-p112.lu3Axe/build-metal -R 'parallel-mater-slang-metal-kernel-tests$' -V",
+      "result": "Passed on physical Apple M4 outside the sandbox: the Metal driver linked and 227 native pipelines plus reflected argument layouts, GPU dispatch, atomics, resource lifetimes and solver regressions passed."
+    },
+    {
+      "command": "cmake --build /private/tmp/parallel-mater-p112.lu3Axe/build-metal --target parallel-mater-slang-kernel-mirrors -j6",
+      "result": "Passed; canonical shared Slang modules validated as CUDA and Vulkan SPIR-V and the native Metal libraries built, including fluid_apply_immiscible_pair_viscosity."
+    },
+    {
+      "command": "cmake --build /private/tmp/parallel-mater-p112.lu3Axe/build-sdk-ci -j6 && ctest --test-dir /private/tmp/parallel-mater-p112.lu3Axe/build-sdk-ci --output-on-failure -j6",
+      "result": "68/68 standard SDK CI tests passed."
+    },
+    {
+      "command": "python3 -m unittest tests.roadmap.test_f8_01_kernel_device_inventory tests.roadmap.test_f8_realtime_contract && python3 -m unittest tests.solver.test_dxil_bindings && python3 tools/reference/build.py --check-generated && python3 conformance/v1/evidence_index.py --check && python3 conformance/v1/update_manifest.py --check",
+      "result": "15/15 kernel-inventory/realtime contract checks and 8/8 DirectCompute binding tests passed; generated API, evidence index and conformance manifest remained current."
+    }
+  ],
+  "diagnostics": [
+    "A non-gating full test run with the experimental PARALLEL_MATER_SLANG_CPU_LIQUIDS option enabled reported 93 passed, 8 expected skips and one host resource-fixture failure because that private fixture also received the real liquid-kernel build definition. The focused liquid suite passed 5/5 and the supported sdk-ci configuration passed 68/68; this fixture configuration is outside P1-12 physics scope."
+  ],
+  "limitations": [
+    "The operator is not yet scheduled by a public immiscible interaction graph; ordering, interface-buffer lifecycle and transactional execution remain P1-13.",
+    "No production driver may advertise immiscible interfacial viscosity before P1-14 physical qualification.",
+    "Physical equation execution here used the generated serial Slang target. Apple GPU evidence validates native compilation, pipeline creation and argument layouts; direct public-graph execution awaits P1-13.",
+    "Surface-tension gradients, surfactants, Marangoni stress, wetting, triple-line behavior and phase transfer remain unsupported."
+  ]
+}

@@ -2565,3 +2565,137 @@ void fluid_apply_immiscible_pair_pressure_capillarity(
     else
         first_forces[local] = add(first_forces[local], acceleration);
 }
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void fluid_apply_immiscible_pair_viscosity(
+    uniform PMBuffer<Vec3> first_positions,
+    uniform PMBuffer<Vec3> first_velocities,
+    uniform PMBuffer<uint> first_count, uniform uint first_capacity,
+    uniform PMBuffer<Vec3> first_forces,
+    uniform PMBuffer<Vec3> first_interface_normals,
+    uniform PMBuffer<uint> first_interface_flags,
+    uniform PMBuffer<Vec3> second_positions,
+    uniform PMBuffer<Vec3> second_velocities,
+    uniform PMBuffer<uint> second_count, uniform uint second_capacity,
+    uniform PMBuffer<Vec3> second_forces,
+    uniform PMBuffer<Vec3> second_interface_normals,
+    uniform PMBuffer<uint> second_interface_flags,
+    uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> identities,
+    uniform uint total_capacity,
+    uniform FluidOptions first_options,
+    uniform FluidOptions second_options
+    PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint item = pmThreadIndex();
+    if (item >= total_capacity || item >= first_capacity + second_capacity)
+        return;
+    bool second = item >= first_capacity;
+    uint local = second ? item - first_capacity : item;
+    uint count = second ? *second_count : *first_count;
+    if (local >= count) return;
+
+    Vec3 position = second ? second_positions[local] : first_positions[local];
+    float pairSupport = max(
+        first_options.support_radius, second_options.support_radius);
+    float inverseSupport = 1.0f / pairSupport;
+    int cx = int(floor(position.x * inverseSupport));
+    int cy = int(floor(position.y * inverseSupport));
+    int cz = int(floor(position.z * inverseSupport));
+    float supportSquared = pairSupport * pairSupport;
+    float firstMass = fluid_particle_mass(first_options);
+    float secondMass = fluid_particle_mass(second_options);
+    float firstVolume = firstMass / first_options.rest_density;
+    float secondVolume = secondMass / second_options.rest_density;
+    float pairVolume = 2.0f * firstVolume * secondVolume /
+        max(firstVolume + secondVolume, 1.0e-20f);
+    float firstDynamicViscosity =
+        first_options.rest_density * first_options.viscosity;
+    float secondDynamicViscosity =
+        second_options.rest_density * second_options.viscosity;
+    float viscositySum = firstDynamicViscosity + secondDynamicViscosity;
+    float pairDynamicViscosity = viscositySum > 0.0f
+        ? 2.0f * firstDynamicViscosity * secondDynamicViscosity /
+            viscositySum
+        : 0.0f;
+    float forceLimit = 0.0f;
+    if (first_options.maximum_pair_acceleration > 0.0f)
+        forceLimit = firstMass * first_options.maximum_pair_acceleration;
+    if (second_options.maximum_pair_acceleration > 0.0f)
+    {
+        float secondLimit = secondMass *
+            second_options.maximum_pair_acceleration;
+        forceLimit = forceLimit > 0.0f
+            ? min(forceLimit, secondLimit) : secondLimit;
+    }
+    Vec3 acceleration = {};
+
+    for (int dz = -1; dz <= 1; ++dz)
+    {
+        for (int dy = -1; dy <= 1; ++dy)
+        {
+            for (int dx = -1; dx <= 1; ++dx)
+            {
+                if (cx + dx < -kFluidCellBias || cx + dx >= kFluidCellBias ||
+                    cy + dy < -kFluidCellBias || cy + dy >= kFluidCellBias ||
+                    cz + dz < -kFluidCellBias || cz + dz >= kFluidCellBias)
+                    continue;
+                uint64_t key = fluid_cell_key(cx + dx, cy + dy, cz + dz);
+                for (uint sorted = fluid_lower_bound(keys, total_capacity, key);
+                     sorted < total_capacity && keys[sorted] == key; ++sorted)
+                {
+                    uint otherIdentity = identities[sorted];
+                    bool otherSecond =
+                        (otherIdentity & kFluidSecondPopulation) != 0u;
+                    if (otherSecond == second) continue;
+                    uint other = otherIdentity & kFluidLocalIndexMask;
+                    uint firstIndex = second ? other : local;
+                    uint secondIndex = second ? local : other;
+                    float squared = length_squared(subtract(
+                        first_positions[firstIndex],
+                        second_positions[secondIndex]));
+                    if (squared >= supportSquared) continue;
+
+                    uint firstFlags = first_interface_flags[firstIndex];
+                    uint secondFlags = second_interface_flags[secondIndex];
+                    bool validInterface =
+                        (firstFlags & kFluidInterfaceSample) != 0u &&
+                        (secondFlags & kFluidInterfaceSample) != 0u &&
+                        (firstFlags & kFluidInterfaceDegenerate) == 0u &&
+                        (secondFlags & kFluidInterfaceDegenerate) == 0u;
+                    Vec3 normalSum = add(
+                        first_interface_normals[firstIndex],
+                        second_interface_normals[secondIndex]);
+                    float normalSquared = length_squared(normalSum);
+                    if (!validInterface || normalSquared <= 1.0e-12f)
+                        continue;
+
+                    Vec3 interfaceNormal = multiply(
+                        normalSum, 1.0f / sqrt(normalSquared));
+                    Vec3 relativeVelocity = subtract(
+                        second_velocities[secondIndex],
+                        first_velocities[firstIndex]);
+                    Vec3 tangentialVelocity = subtract(relativeVelocity,
+                        multiply(interfaceNormal,
+                            dot(relativeVelocity, interfaceNormal)));
+                    float distance = sqrt(max(squared, 0.0f));
+                    float weight = 1.0f - distance * inverseSupport;
+                    Vec3 commonForce = multiply(tangentialVelocity,
+                        pairDynamicViscosity * pairVolume * weight);
+                    if (forceLimit > 0.0f)
+                        commonForce = clamp_length(commonForce, forceLimit);
+                    acceleration = add(acceleration,
+                        multiply(commonForce,
+                            second ? -1.0f / secondMass :
+                                1.0f / firstMass));
+                }
+            }
+        }
+    }
+
+    if (second)
+        second_forces[local] = add(second_forces[local], acceleration);
+    else
+        first_forces[local] = add(first_forces[local], acceleration);
+}

@@ -364,6 +364,7 @@ migrated_launches = {
     "fluid_reconstruct_immiscible_interface_normals",
     "fluid_reconstruct_immiscible_interface_curvature",
     "fluid_apply_immiscible_pair_pressure_capillarity",
+    "fluid_apply_immiscible_pair_viscosity",
     "fluid_cloth_containment_forces", "cloth_apply_fluid_forces",
     "fluid_project_inside_cloth", "fluid_rope_contacts", "fluid_rope_apply",
     "fluid_smoke_drag", "fluid_smoke_grid_drag", "fluid_smoke_exchange",

@@ -290,6 +290,25 @@ if(PARALLEL_MATER_SLANG_CPU_LIQUIDS)
     set_tests_properties(
         parallel-mater-fluid-immiscible-pressure-capillarity-tests
         PROPERTIES LABELS "slang;fluid;coupling;immiscible")
+
+    add_executable(parallel-mater-fluid-immiscible-viscosity-tests
+        fluid_immiscible_viscosity_tests.cpp
+        ../../src/simulation/cpu_fluid_dispatch.cpp
+        ../../src/simulation/cpu_primitives.cpp)
+    add_dependencies(parallel-mater-fluid-immiscible-viscosity-tests
+        parallel-mater-driver-slang-cpu)
+    target_compile_features(
+        parallel-mater-fluid-immiscible-viscosity-tests PRIVATE cxx_std_20)
+    target_include_directories(
+        parallel-mater-fluid-immiscible-viscosity-tests PRIVATE
+        ../../src/device/cpu_compat ../../src ../../include
+        "${PARALLEL_MATER_SLANG_CPU_GENERATED_DIR}"
+        "${PARALLEL_MATER_SLANG_CPP_INCLUDE_DIR}")
+    add_test(NAME parallel-mater-fluid-immiscible-viscosity-tests
+        COMMAND parallel-mater-fluid-immiscible-viscosity-tests)
+    set_tests_properties(
+        parallel-mater-fluid-immiscible-viscosity-tests
+        PROPERTIES LABELS "slang;fluid;coupling;immiscible")
 endif()
 
 if(APPLE AND TARGET parallel-mater-slang-metal-kernels)
