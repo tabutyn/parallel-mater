@@ -1,7 +1,7 @@
 {
   "id": "P1-19",
   "title": "Expose cloth contact scopes and controls",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "P1-02"
   ],
@@ -17,15 +17,33 @@
     "Registry, generated API and specification distinguish intrinsic self contact from separate-system graph contact.",
     "Validation rejects invalid, duplicate, reversed and unsupported requests atomically."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "42721b17-a327-44ab-b67c-dd47835f7fb2",
-    "owner": "codex-macos-p119",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/P1-19/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-24T21:17:45Z",
-    "heartbeat_at": "2026-10-24T21:17:45Z",
-    "expires_at": "2026-10-25T21:17:45Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: ctest --test-dir /private/tmp/parallel-mater-p119-build --output-on-failure -j 6; 99/99 passed with 16 expected runtime/unadvertised skips; AppleClang 21/macOS ARM64.",
+    "PASS: cloth contact contract, graph-validation and capability tests; malformed surfaces and reversed, duplicate and unsupported requests preserved usable prior state.",
+    "PASS: exact CPython 3.13.15 reference check regenerated deterministic API, specification, PDF and ABI artifacts; 6 C11/C++17 ABI checks passed.",
+    "PASS: 25 CI-contract tests, 72 roadmap-state tests, conformance evidence-index and manifest checks; both cloth contact capabilities remain unadvertised."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "42721b17-a327-44ab-b67c-dd47835f7fb2",
+        "owner": "codex-macos-p119",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/P1-19/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-24T21:17:45Z",
+        "heartbeat_at": "2026-10-24T21:17:45Z",
+        "expires_at": "2026-10-25T21:17:45Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-24T21:29:26Z",
+      "reason": "Exposed versioned cloth self-contact and pair-edge contracts with strict surface and atomic graph validation while retaining unsupported capability advertisement.",
+      "evidence": [
+        "PASS: ctest --test-dir /private/tmp/parallel-mater-p119-build --output-on-failure -j 6; 99/99 passed with 16 expected runtime/unadvertised skips; AppleClang 21/macOS ARM64.",
+        "PASS: cloth contact contract, graph-validation and capability tests; malformed surfaces and reversed, duplicate and unsupported requests preserved usable prior state.",
+        "PASS: exact CPython 3.13.15 reference check regenerated deterministic API, specification, PDF and ABI artifacts; 6 C11/C++17 ABI checks passed.",
+        "PASS: 25 CI-contract tests, 72 roadmap-state tests, conformance evidence-index and manifest checks; both cloth contact capabilities remain unadvertised."
+      ]
+    }
+  ]
 }
