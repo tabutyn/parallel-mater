@@ -576,6 +576,20 @@
       "implementation_owners": ["F8-17"]
     },
     {
+      "id": "liquid-realtime-coupling",
+      "module": "liquid_coupling",
+      "entries": [
+        "liquid_coupling_project",
+        "liquid_coupling_apply_particles",
+        "liquid_coupling_apply_partners"
+      ],
+      "domains": ["FLUID", "RIGID_BODY", "CLOTH", "SOFT_BODY", "ROPE", "SMOKE", "SPATIAL_INDEX"],
+      "advertised_modes": ["CONTACT", "CONTAINMENT", "DRAG", "PHASE", "PRESSURE", "THERMAL", "VISCOSITY"],
+      "public_case_sets": ["fluid", "rigid", "cloth", "soft-body", "rope", "smoke"],
+      "existing_execution_tests": ["parallel-mater-liquid-coupling-realtime-tests", "parallel-mater-liquid-coupling-realtime-cuda-tests"],
+      "implementation_owners": ["F8-18"]
+    },
+    {
       "id": "rope-core",
       "module": "rope",
       "entries": ["rope_realtime_predict", "rope_realtime_project_constraints", "rope_realtime_apply_position_delta", "rope_realtime_project_contacts", "rope_realtime_commit", "rope_advance"],

@@ -1,0 +1,164 @@
+{
+  "schema": "parallel-mater-f8-liquid-couplings-60hz-evidence/v1",
+  "task": "F8-18",
+  "recorded_at": "2026-10-24",
+  "branch": "work/F8-18/thomas-laptop",
+  "base_commit": "bc667fa1b1d8a5f3bd5786d01ddec49a425431a0",
+  "profile": {
+    "name": "realtime-single-step",
+    "version": "1.0",
+    "timestep_seconds": 0.016666666666666666,
+    "coupling_sweeps_per_registered_edge": 4,
+    "time_advances": 0,
+    "spatial_updates_during_solve": 0,
+    "intra_tick_host_readbacks": 0
+  },
+  "scope": {
+    "supported": {
+      "liquid_equal_material": ["CONTACT", "PRESSURE", "VISCOSITY"],
+      "liquid_rigid": ["CONTACT", "CONTAINMENT"],
+      "liquid_cloth": ["CONTACT", "CONTAINMENT"],
+      "liquid_soft_body": ["CONTACT"],
+      "liquid_rope": ["CONTACT"],
+      "smoke_particle_to_liquid": ["DRAG", "THERMAL"],
+      "liquid_to_smoke_particle": ["PHASE"],
+      "smoke_grid_to_liquid": ["DRAG", "THERMAL"],
+      "liquid_to_smoke_grid": ["PHASE"]
+    },
+    "supported_family_mode_combinations": 15,
+    "explicitly_not_added": [
+      "miscible or immiscible-interface liquid profiles",
+      "liquid-rigid pressure, viscosity, thermal, phase, or drag",
+      "liquid-soft-body or liquid-rope containment",
+      "public realtime profile activation owned by F8-20"
+    ]
+  },
+  "toolchain": {
+    "cmake": "3.25.1",
+    "slang": "2026.18",
+    "cuda_compiler": "13.1"
+  },
+  "cuda_device": {
+    "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "compute_capability": "8.6",
+    "driver": "590.44.01"
+  },
+  "production_kernels": [
+    "liquid_coupling_project",
+    "liquid_coupling_apply_particles",
+    "liquid_coupling_apply_partners"
+  ],
+  "workload_budget": {
+    "workload": "desktop-full-v1/liquid coupling portion",
+    "registered_edges": 16,
+    "advertised_family_mode_combinations": 15,
+    "constraints": 16,
+    "liquid_particles": 4096,
+    "partner_endpoints": 4128,
+    "coupling_sweeps_per_edge": 4,
+    "edge_sweeps": 64,
+    "constraint_visits": 64,
+    "batched_dispatches": 12,
+    "batched_workgroups_128_threads": 264,
+    "solver_scratch_bytes": 33792,
+    "time_advances": 0,
+    "spatial_updates_during_solve": 0,
+    "intra_tick_host_readbacks": 0,
+    "policy": "one F8-10 epoch; canonical family/mode/edge ordering; no per-pair sort, private hierarchy, adaptive iteration, retry, hidden substep or second integration"
+  },
+  "physical_cuda_quality": {
+    "fixture": "generated production Slang, seven partner families and all 15 supported family/mode combinations in one ordered pass",
+    "coupling_sweeps": 4,
+    "maximum_penetration_m": 0.0,
+    "maximum_closing_speed_m_s": 0.00000475,
+    "tunnels": 0,
+    "linear_exchange_residual": 0.00000012,
+    "equal_material_split_combined_position_error_m": 0.0,
+    "pressure_separation_m": 0.004375,
+    "viscosity_final_relative_speed_m_s": 0.31640625,
+    "particle_drag_final_relative_speed_m_s": 0.31640625,
+    "grid_drag_final_relative_speed_m_s": 0.31640625,
+    "shared_heater_monotonic": true,
+    "shared_heater_below_hottest_endpoint": true,
+    "dynamic_mass_ratio": 100,
+    "stale_generation_ignored": true,
+    "rebound_generation_active": true,
+    "unequal_liquid_material_rejected": true,
+    "invalid_profile_atomic": true,
+    "phase_capacity_failure_retained": true,
+    "nonfinite_state_count": 0,
+    "equation_path_timing_ms": {
+      "edges": 16,
+      "constraints": 16,
+      "warmup_ticks": 120,
+      "samples": 600,
+      "p50": 0.122016,
+      "p95": 0.135136,
+      "p99": 0.140288,
+      "maximum": 0.141312
+    },
+    "timing_scope": "CUDA events around 12 coupling dispatches; not a complete desktop-full-v1 frame"
+  },
+  "boundary_contract": {
+    "authored_sources": 1,
+    "outflows": 1,
+    "phase_transfers": 1,
+    "visibility": "exactly next boundary",
+    "destination_overflow": "atomic failure retains all counts and pending stable IDs",
+    "recovery": "capacity increase admits the retained set once without duplicate IDs",
+    "endpoint_replacement": "generation mismatch rejects stale constraint records"
+  },
+  "qualification": [
+    {
+      "command": "/tmp/parallel-mater-f8-18-cuda-build/tests/solver/parallel-mater-liquid-coupling-realtime-cuda-tests",
+      "result": "PASS",
+      "notes": "physical RTX generated-Slang exchange, thin crossing, exact 100:1 mass ratio, complete supported matrix, material identity, lifecycle, capacity recovery, and 600-sample timing"
+    },
+    {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-18-host-build --output-on-failure -j8",
+      "result": "PASS",
+      "notes": "65/65 host tests including exact schedule, epoch, ordering, empty graph, boundary recovery, and per-operator budget checks"
+    },
+    {
+      "command": "parallel-mater-slang-kernel-mirrors and parallel-mater-slang-metal-kernels plus direct CPU C++ and D3D12 HLSL SM 6.6 compilation",
+      "result": "PASS",
+      "notes": "three common entries compile to CPU C++, CUDA, PTX, Vulkan SPIR-V, Metal and D3D12 HLSL; no backend-specific physics"
+    },
+    {
+      "command": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "414 tests"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS",
+      "notes": "72 tests; canonical inventory contains 221 shared entry points"
+    },
+    {
+      "command": "python3 conformance/v1/realtime_oracle.py --check-contract",
+      "result": "PASS",
+      "notes": "243 named limits, 49 advertised capability cases, 14 fixed workloads and five runtime adapters"
+    }
+  ],
+  "legacy_profile": {
+    "profile_marker": 0,
+    "legacy_source_kernels_changed": false,
+    "legacy_schedule_changed": false,
+    "legacy_tolerances_or_goldens_changed": false,
+    "legacy_capability_records_changed": false,
+    "new_entry_points_selected_implicitly": false,
+    "public_realtime_profile": "unsupported and unadvertised until F8-20"
+  },
+  "intentional_losses": [
+    "four fixed coupling sweeps replace adaptive convergence",
+    "point-contact linearization and operator splitting replace pair-specific substep timing",
+    "pressure, viscosity, drag and thermal exchange use bounded response per sweep",
+    "the strongest simultaneous thermal proposal wins rather than summing heater responses",
+    "batched deterministic reductions trade per-edge dispatch isolation for fixed launch count"
+  ],
+  "limits": [
+    "F8-20 must assemble these entries with domain predictors and commits before public profile support exists.",
+    "F8-21 owns integrated dispatch and frame timing; this record measures only the coupling equation path.",
+    "Physical D3D12, Vulkan, Metal and mobile execution remains required in platform qualification leaves; common source compilation passes locally."
+  ]
+}
