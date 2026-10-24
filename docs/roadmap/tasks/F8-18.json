@@ -1,7 +1,7 @@
 {
   "id": "F8-18",
   "title": "Integrate liquid cross-system couplings into the single-step solve",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-09",
     "F8-10",
@@ -26,15 +26,29 @@
     "Test sources/outflow, endpoint replacement, differing supported material parameters and bounded overflow/recovery; unsupported modes remain unsupported.",
     "Record bounded algebraic iterations, per-operator dispatch budgets and splitting/dissipation changes; no double integration or stale endpoint snapshot."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "190ac26c-4c60-4936-9772-8b2507f3341f",
-    "owner": "codex-liquid-coupling",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-18/thomas-laptop",
-    "claimed_at": "2026-10-24T18:27:53Z",
-    "heartbeat_at": "2026-10-24T18:27:53Z",
-    "expires_at": "2026-10-25T18:27:53Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/F8-18-LIQUID-COUPLINGS-60HZ.md",
+    "docs/roadmap/evidence/F8-18-liquid-couplings-60hz.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "190ac26c-4c60-4936-9772-8b2507f3341f",
+        "owner": "codex-liquid-coupling",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-18/thomas-laptop",
+        "claimed_at": "2026-10-24T18:27:53Z",
+        "heartbeat_at": "2026-10-24T18:27:53Z",
+        "expires_at": "2026-10-25T18:27:53Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-24T18:45:19Z",
+      "reason": "Implemented bounded unified liquid coupling solve with lifecycle validation, cross-backend shader coverage, and physical CUDA evidence.",
+      "evidence": [
+        "docs/roadmap/F8-18-LIQUID-COUPLINGS-60HZ.md",
+        "docs/roadmap/evidence/F8-18-liquid-couplings-60hz.json"
+      ]
+    }
+  ]
 }
