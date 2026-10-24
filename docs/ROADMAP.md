@@ -187,7 +187,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-28](roadmap/tasks/P1-28.json) | Solve contact between soft bodies | deferred | P1-26 | — |
 | [P1-29](roadmap/tasks/P1-29.json) | Schedule soft-body contact scopes | deferred | P1-27, P1-28 | — |
 | [P1-30](roadmap/tasks/P1-30.json) | Qualify and advertise soft-body contact | deferred | P1-29, F5-02, F5-03 | — |
-| [P1-31](roadmap/tasks/P1-31.json) | Audit sampled-node rope self-contact | ready | P1-02, F5-02 | — |
+| [P1-31](roadmap/tasks/P1-31.json) | Audit sampled-node rope self-contact | leased | P1-02, F5-02 | codex-rope-audit / windows-gtx1080 / 2026-10-25T18:35:29Z |
 | [P1-32](roadmap/tasks/P1-32.json) | Expose rope capsule pairs and attachments | waiting on lock | P1-02 | — |
 | [P1-33](roadmap/tasks/P1-33.json) | Build bounded rope segment contacts | deferred | P1-32 | — |
 | [P1-34](roadmap/tasks/P1-34.json) | Solve rope capsule self-contact | deferred | P1-33 | — |
