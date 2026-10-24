@@ -347,6 +347,7 @@ add_library(
     src/simulation/geometry_fluid_dispatch.cu
     src/simulation/geometry_smoke_dispatch.cu
     src/simulation/geometry_soft_body_dispatch.cu
+    src/simulation/rigid_coupling_dispatch.cu
     src/simulation/smoke_grid_dispatch.cu
     src/simulation/memory_arena.cpp
     src/simulation/primitives.cu
