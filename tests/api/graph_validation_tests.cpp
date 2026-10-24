@@ -205,6 +205,42 @@ int main() {
     reject_smoke(&invalid_cloth_bundle, 1U,
                  PM_ERROR_FEATURE_NOT_PRESENT);
 
+    PmCouplingState rope_pair{};
+    rope_pair.type = PM_COUPLING_ROPE_ROPE;
+    rope_pair.first = 0U;
+    rope_pair.second = 1U;
+    rope_pair.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT;
+    rope_pair.materialProfile = PM_INTERACTION_MATERIAL_ROPE_CAPSULE;
+    reject_smoke(&rope_pair, 1U, PM_ERROR_FEATURE_NOT_PRESENT);
+
+    auto reversed_rope_pair = rope_pair;
+    reversed_rope_pair.first = 1U;
+    reversed_rope_pair.second = 0U;
+    reject_smoke(&reversed_rope_pair, 1U, PM_ERROR_INVALID_ARGUMENT);
+
+    auto self_rope_pair = rope_pair;
+    self_rope_pair.second = 0U;
+    reject_smoke(&self_rope_pair, 1U, PM_ERROR_INVALID_ARGUMENT);
+
+    const PmCouplingState duplicate_rope_pairs[2]{rope_pair, rope_pair};
+    reject_smoke(duplicate_rope_pairs, 2U, PM_ERROR_INVALID_ARGUMENT);
+
+    auto invalid_rope_profile = rope_pair;
+    invalid_rope_profile.materialProfile =
+        PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+    reject_smoke(&invalid_rope_profile, 1U,
+                 PM_ERROR_FEATURE_NOT_PRESENT);
+
+    auto unsupported_rope_bundle = rope_pair;
+    unsupported_rope_bundle.modeFlags = PM_INTERACTION_MODE_DRAG_BIT;
+    reject_smoke(&unsupported_rope_bundle, 1U,
+                 PM_ERROR_FEATURE_NOT_PRESENT);
+
+    auto untyped_rope_attachment = rope_pair;
+    untyped_rope_attachment.modeFlags = PM_INTERACTION_MODE_ATTACHMENT_BIT;
+    reject_smoke(&untyped_rope_attachment, 1U,
+                 PM_ERROR_INVALID_ARGUMENT);
+
     PmCouplingStateInfo pair{};
     pair.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
     pair.type = PM_COUPLING_LIQUID_LIQUID;
@@ -274,6 +310,105 @@ int main() {
     PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
              PM_SUCCESS);
     PM_CHECK(context.submit() == PM_SUCCESS);
+
+    PmRopeAttachmentState rope_attachment{};
+    rope_attachment.sType = PM_STRUCTURE_TYPE_ROPE_ATTACHMENT_STATE;
+    rope_attachment.firstEndpoint = PM_ROPE_ENDPOINT_FIRST;
+    rope_attachment.secondEndpoint = PM_ROPE_ENDPOINT_LAST;
+    rope_attachment.compliance = 0.001F;
+    rope_attachment.damping = 0.1F;
+    rope_attachment.captureDistance = 0.25F;
+    rope_attachment.breakingImpulseThreshold = 2.0F;
+
+    PmCouplingStateInfo rope_pair_info{};
+    rope_pair_info.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+    rope_pair_info.pNext = &rope_attachment;
+    rope_pair_info.type = PM_COUPLING_ROPE_ROPE;
+    rope_pair_info.first = 0U;
+    rope_pair_info.second = 1U;
+    rope_pair_info.modeFlags = PM_INTERACTION_MODE_ATTACHMENT_BIT;
+    rope_pair_info.materialProfile = PM_INTERACTION_MATERIAL_ROPE_CAPSULE;
+    reject_pair(rope_pair_info, PM_ERROR_FEATURE_NOT_PRESENT);
+
+    rope_pair_info.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+        PM_INTERACTION_MODE_ATTACHMENT_BIT;
+    reject_pair(rope_pair_info, PM_ERROR_FEATURE_NOT_PRESENT);
+
+    auto missing_attachment_state = rope_pair_info;
+    missing_attachment_state.pNext = nullptr;
+    reject_pair(missing_attachment_state, PM_ERROR_INVALID_ARGUMENT);
+
+    auto contact_with_attachment_state = rope_pair_info;
+    contact_with_attachment_state.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT;
+    reject_pair(contact_with_attachment_state, PM_ERROR_INVALID_ARGUMENT);
+
+    auto reversed_rope_pair_info = rope_pair_info;
+    reversed_rope_pair_info.first = 1U;
+    reversed_rope_pair_info.second = 0U;
+    reject_pair(reversed_rope_pair_info, PM_ERROR_INVALID_ARGUMENT);
+
+    const PmCouplingStateInfo duplicate_rope_pair_info[2]{
+        rope_pair_info, rope_pair_info};
+    context.begin();
+    PM_CHECK(pmCmdSetCouplings2(context.commands, simulation, 2U,
+                                duplicate_rope_pair_info) ==
+             PM_ERROR_INVALID_ARGUMENT);
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, empty) == PM_SUCCESS);
+    PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
+             PM_SUCCESS);
+    PM_CHECK(context.submit() == PM_SUCCESS);
+
+    auto unknown_attachment_state = rope_attachment;
+    unknown_attachment_state.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
+    auto invalid_rope_pair_info = rope_pair_info;
+    invalid_rope_pair_info.pNext = &unknown_attachment_state;
+    reject_pair(invalid_rope_pair_info, PM_ERROR_INVALID_ARGUMENT);
+
+    auto nested_attachment_state = rope_attachment;
+    nested_attachment_state.pNext = &rope_attachment;
+    invalid_rope_pair_info.pNext = &nested_attachment_state;
+    reject_pair(invalid_rope_pair_info, PM_ERROR_INVALID_ARGUMENT);
+
+    auto invalid_attachment_state = rope_attachment;
+    invalid_attachment_state.firstEndpoint =
+        static_cast<PmRopeEndpoint>(2);
+    invalid_rope_pair_info.pNext = &invalid_attachment_state;
+    reject_pair(invalid_rope_pair_info, PM_ERROR_INVALID_ARGUMENT);
+
+    invalid_attachment_state = rope_attachment;
+    invalid_attachment_state.secondEndpoint =
+        static_cast<PmRopeEndpoint>(2);
+    reject_pair(invalid_rope_pair_info, PM_ERROR_INVALID_ARGUMENT);
+
+    invalid_attachment_state = rope_attachment;
+    invalid_attachment_state.compliance = -0.001F;
+    reject_pair(invalid_rope_pair_info, PM_ERROR_INVALID_ARGUMENT);
+
+    invalid_attachment_state = rope_attachment;
+    invalid_attachment_state.damping =
+        std::numeric_limits<float>::infinity();
+    reject_pair(invalid_rope_pair_info, PM_ERROR_INVALID_ARGUMENT);
+
+    invalid_attachment_state = rope_attachment;
+    invalid_attachment_state.captureDistance =
+        std::numeric_limits<float>::quiet_NaN();
+    reject_pair(invalid_rope_pair_info, PM_ERROR_INVALID_ARGUMENT);
+
+    invalid_attachment_state = rope_attachment;
+    invalid_attachment_state.breakingImpulseThreshold = -1.0F;
+    reject_pair(invalid_rope_pair_info, PM_ERROR_INVALID_ARGUMENT);
+
+    auto invalid_rope_pair_profile = rope_pair_info;
+    invalid_rope_pair_profile.materialProfile =
+        PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+    reject_pair(invalid_rope_pair_profile,
+                PM_ERROR_FEATURE_NOT_PRESENT);
+
+    auto unsupported_rope_pair_info = rope_pair_info;
+    unsupported_rope_pair_info.pNext = nullptr;
+    unsupported_rope_pair_info.modeFlags = PM_INTERACTION_MODE_DRAG_BIT;
+    reject_pair(unsupported_rope_pair_info,
+                PM_ERROR_FEATURE_NOT_PRESENT);
 
     // Different-material profiles require one exact typed endpoint-material
     // state. Every rejected replacement leaves the prior liquid/rigid graph.

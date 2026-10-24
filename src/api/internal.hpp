@@ -420,7 +420,9 @@ inline PmResult record_query(PmCommandBuffer buffer, PmQueryPool pool,
     const PmInteractionCapabilityKey &key,
     PmInteractionCapability &capability) noexcept;
 [[nodiscard]] PFN_pmVoidFunction lookup_proc(const char *name) noexcept;
-[[nodiscard]] PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noexcept;
+[[nodiscard]] PmResult validate_coupling(
+    PmDevice device, const PmCouplingState &coupling,
+    bool rope_attachment_state_validated = false) noexcept;
 [[nodiscard]] PmResult normalize_coupling_info(
     PmDevice device, const PmCouplingStateInfo &source,
     PmCouplingState &destination) noexcept;

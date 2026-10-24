@@ -1243,6 +1243,7 @@ void copy_particle_state(const std::vector<State> &states,
     case PM_INTERACTION_MATERIAL_THERMAL_PHASE: return "THERMAL_PHASE";
     case PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID:
         return "SMOKE_PARTICLE_GRID";
+    case PM_INTERACTION_MATERIAL_ROPE_CAPSULE: return "ROPE_CAPSULE";
     }
     throw std::runtime_error("driver returned an unknown interaction material profile");
 }

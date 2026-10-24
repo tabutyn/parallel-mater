@@ -1,4 +1,4 @@
-<!-- Generated from registry/pm.xml sha256:c14fef87bc0c2ac6124eb1d201ad0400f59d8ee50264f8724e80191c83afee6e -->
+<!-- Generated from registry/pm.xml sha256:d2eeafa838267aab72684355ac129e4776da422a3c8ab728115f155d16472f5f -->
 
 # Parallel Mater 0.2 — API Specification
 
@@ -1178,7 +1178,8 @@ typedef enum PmInteractionMaterialProfile {
     PM_INTERACTION_MATERIAL_MISCIBLE = 4,
     PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE = 5,
     PM_INTERACTION_MATERIAL_THERMAL_PHASE = 6,
-    PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID = 7
+    PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID = 7,
+    PM_INTERACTION_MATERIAL_ROPE_CAPSULE = 8
 } PmInteractionMaterialProfile;
 typedef enum PmCouplingType {
     PM_COUPLING_LIQUID_RIGID = 0,
@@ -1196,7 +1197,8 @@ typedef enum PmCouplingType {
     PM_COUPLING_SMOKE_SOFT_BODY = 12,
     PM_COUPLING_SMOKE_SMOKE = 13,
     PM_COUPLING_SOFT_BODY_SOFT_BODY = 14,
-    PM_COUPLING_CLOTH_CLOTH = 15
+    PM_COUPLING_CLOTH_CLOTH = 15,
+    PM_COUPLING_ROPE_ROPE = 16
 } PmCouplingType;
 typedef struct PmMechanicalCouplingState {
     float contactDistance;
@@ -1269,6 +1271,20 @@ typedef struct PmFluidInterfaceState {
     const void* pNext;
     float surfaceTension;
 } PmFluidInterfaceState;
+typedef enum PmRopeEndpoint {
+    PM_ROPE_ENDPOINT_FIRST = 0,
+    PM_ROPE_ENDPOINT_LAST = 1
+} PmRopeEndpoint;
+typedef struct PmRopeAttachmentState {
+    PmStructureType sType;
+    const void* pNext;
+    PmRopeEndpoint firstEndpoint;
+    PmRopeEndpoint secondEndpoint;
+    float compliance;
+    float damping;
+    float captureDistance;
+    float breakingImpulseThreshold;
+} PmRopeAttachmentState;
 ```
 
 ```c
@@ -1280,9 +1296,11 @@ PmResult pmCmdSetCouplings2(PmCommandBuffer commandBuffer,
     const PmCouplingStateInfo *pCouplings);
 ```
 
-first and second are stable domain slots; PM_INVALID_INDEX names all rigid bodies. SMOKE_SMOKE requires first < second: SMOKE_PARTICLE/GRID select PRESSURE|VISCOSITY|THERMAL; SMOKE_PARTICLE_GRID selects DRAG|THERMAL. Modes are independent and unadvertised. Other bundles are fixed; invalid bits are errors.
+first and second are stable domain slots; PM_INVALID_INDEX names all rigid bodies. SMOKE_SMOKE requires first < second: SMOKE_PARTICLE/GRID select PRESSURE|VISCOSITY|THERMAL; SMOKE_PARTICLE_GRID selects DRAG|THERMAL. ROPE_ROPE also requires first < second and the ROPE_CAPSULE profile; CONTACT and ATTACHMENT are independently selectable and remain unadvertised. Other bundles are fixed; invalid bits are errors.
 
 PmCouplingState is the API 0.2 descriptor. PmCouplingStateInfo is an ABI-compatible extensible path: sType identifies that exact structure and pNext is NULL except for separately permitted typed state. A LIQUID_LIQUID edge using MISCIBLE or IMMISCIBLE_INTERFACE must chain exactly one PmFluidPairMaterialState. Its material indices must equal first and second, so the edge consumes the two endpoint PmLiquidMaterialState records without copying, averaging or silently changing ownership. MISCIBLE requests contact, pressure and viscosity as one mechanical bundle. IMMISCIBLE_INTERFACE also chains exactly one PmFluidInterfaceState and requests contact, pressure and interface. surfaceTension is finite and nonnegative in N/m; zero disables capillary traction while retaining the material boundary. The interface normal points from the first fluid endpoint to the second, so positive curvature obeys pressure_first - pressure_second = surfaceTension * (1 / R1 + 1 / R2). Interfacial viscosity remains a separate capability. Both different-material profiles remain unsupported until their operator and qualification leaves complete. A well-formed request therefore returns FEATURE_NOT_PRESENT, while missing, mismatched, duplicate, unknown, profile-inapplicable or nonfinite typed state returns INVALID_ARGUMENT and cannot replace a live graph.
+
+A ROPE_ROPE edge requesting ATTACHMENT must use PmCouplingStateInfo and chain exactly one PmRopeAttachmentState. firstEndpoint and secondEndpoint select FIRST or LAST on their corresponding canonical rope slots. compliance in m/N, damping in N·s/m, captureDistance in m and breakingImpulseThreshold in N·s are finite and nonnegative. Zero compliance is rigid and zero breaking impulse is unbreakable. The typed state is invalid without ATTACHMENT, and ATTACHMENT without it is invalid. Contact-only rope-capsule edges have no typed state. Every well-formed rope-pair request returns FEATURE_NOT_PRESENT until later operator and qualification tasks advertise its exact mode; no rope-capsule capability is implied by the legacy node-only self-contact record.
 
 Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings and pmCmdSetCouplings2 copy a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. The complete replacement is validated before live edges are removed. If installation then fails, the previous usable graph is restored. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph.
 
@@ -2918,6 +2936,7 @@ typedef enum PmStructureType {
     PM_STRUCTURE_TYPE_SOFT_BODY_SELF_CONTACT_STATE = 21,
     PM_STRUCTURE_TYPE_CLOTH_STATE_INFO = 22,
     PM_STRUCTURE_TYPE_CLOTH_SELF_CONTACT_STATE = 23,
+    PM_STRUCTURE_TYPE_ROPE_ATTACHMENT_STATE = 24,
 } PmStructureType;
 ```
 
@@ -3166,7 +3185,9 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmRigidSolverState | [9.1](#spec-rigid_solver) |
 | PmRigidState | [7.3](#spec-rigid_state) |
 | PmRopeAttachment | [10.3](#spec-rope_resources) |
+| PmRopeAttachmentState | [9.3](#spec-coupling) |
 | PmRopeCapacity | [7.1](#spec-simulation_create) |
+| PmRopeEndpoint | [9.3](#spec-coupling) |
 | PmRopeInfo | [10.3](#spec-rope_resources) |
 | PmRopeMaterialState | [9.4](#spec-domain_materials) |
 | PmRopeNodeState | [10.3](#spec-rope_resources) |

@@ -1,7 +1,7 @@
 {
   "registry": {
     "path": "registry/pm.xml",
-    "sha256": "c14fef87bc0c2ac6124eb1d201ad0400f59d8ee50264f8724e80191c83afee6e"
+    "sha256": "d2eeafa838267aab72684355ac129e4776da422a3c8ab728115f155d16472f5f"
   },
   "contract": "Parallel Mater command API 0.2",
   "implementation": "src/loader public entry points routed to installable drivers",
@@ -1330,6 +1330,16 @@
     },
     {
       "name": "PmMechanicalCouplingState",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmRopeAttachmentState",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmRopeEndpoint",
       "section": "9.3",
       "card": "coupling"
     },
