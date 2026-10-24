@@ -86,6 +86,10 @@ constexpr CouplingContract coupling_contracts[] = {
     {PM_INTERACTION_FAMILY_CLOTH, PM_INTERACTION_FAMILY_CLOTH,
      PM_INTERACTION_MODE_CONTACT_BIT, false,
      {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL}}, 1U},
+    {PM_INTERACTION_FAMILY_ROPE, PM_INTERACTION_FAMILY_ROPE,
+     PM_INTERACTION_MODE_CONTACT_BIT | PM_INTERACTION_MODE_ATTACHMENT_BIT,
+     false, {{PM_INTERACTION_MODE_CONTACT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL},
+             {PM_INTERACTION_MODE_ATTACHMENT, PM_INTERACTION_DIRECTION_BIDIRECTIONAL}}, 2U},
 };
 
 constexpr PmInteractionModeFlags all_mode_flags =
@@ -130,33 +134,40 @@ bool zero_equal_material_parameters(
 }
 
 static_assert(sizeof(coupling_contracts) / sizeof(coupling_contracts[0]) ==
-              PM_COUPLING_CLOTH_CLOTH + 1U);
+              PM_COUPLING_ROPE_ROPE + 1U);
 
 } // namespace
 
-PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noexcept {
+PmResult validate_coupling(
+    PmDevice device, const PmCouplingState &coupling,
+    bool rope_attachment_state_validated) noexcept {
     if (device == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     if (coupling.type < PM_COUPLING_LIQUID_RIGID ||
-        coupling.type > PM_COUPLING_CLOTH_CLOTH)
+        coupling.type > PM_COUPLING_ROPE_ROPE)
         return PM_ERROR_INVALID_ARGUMENT;
     if (coupling.modeFlags == 0U || (coupling.modeFlags & ~all_mode_flags) != 0U)
         return PM_ERROR_INVALID_ARGUMENT;
     if (coupling.materialProfile < PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE ||
-        coupling.materialProfile > PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID)
+        coupling.materialProfile > PM_INTERACTION_MATERIAL_ROPE_CAPSULE)
         return PM_ERROR_INVALID_ARGUMENT;
     if ((coupling.type == PM_COUPLING_SMOKE_SMOKE ||
          coupling.type == PM_COUPLING_SOFT_BODY_SOFT_BODY ||
-         coupling.type == PM_COUPLING_CLOTH_CLOTH) &&
+         coupling.type == PM_COUPLING_CLOTH_CLOTH ||
+         coupling.type == PM_COUPLING_ROPE_ROPE) &&
         coupling.first >= coupling.second)
         return PM_ERROR_INVALID_ARGUMENT;
 
     const auto &contract = coupling_contracts[static_cast<std::size_t>(coupling.type)];
     const bool smoke_pair = coupling.type == PM_COUPLING_SMOKE_SMOKE;
+    const bool rope_pair = coupling.type == PM_COUPLING_ROPE_ROPE;
     const bool immiscible =
         coupling.type == PM_COUPLING_LIQUID_LIQUID &&
         coupling.materialProfile ==
             PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE;
-    const PmInteractionModeFlags expected_modes = smoke_pair
+    const PmInteractionModeFlags expected_modes = rope_pair
+        ? PM_INTERACTION_MODE_CONTACT_BIT |
+              PM_INTERACTION_MODE_ATTACHMENT_BIT
+        : smoke_pair
         ? coupling.materialProfile ==
                   PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID
             ? PM_INTERACTION_MODE_DRAG_BIT | PM_INTERACTION_MODE_THERMAL_BIT
@@ -171,18 +182,24 @@ PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noe
     const bool independently_selectable_fluid_cloth =
         coupling.type == PM_COUPLING_LIQUID_CLOTH;
     const bool independently_selectable =
-        independently_selectable_fluid_cloth || smoke_pair;
+        independently_selectable_fluid_cloth || smoke_pair || rope_pair;
     if ((!independently_selectable &&
          coupling.modeFlags != expected_modes) ||
         (independently_selectable &&
          (coupling.modeFlags == 0U ||
           (coupling.modeFlags & ~expected_modes) != 0U)))
         return PM_ERROR_FEATURE_NOT_PRESENT;
+    const bool requests_rope_attachment = rope_pair &&
+        (coupling.modeFlags & PM_INTERACTION_MODE_ATTACHMENT_BIT) != 0U;
+    if (requests_rope_attachment && !rope_attachment_state_validated)
+        return PM_ERROR_INVALID_ARGUMENT;
     const bool valid_profile = coupling.type == PM_COUPLING_LIQUID_LIQUID
         ? coupling.materialProfile == PM_INTERACTION_MATERIAL_EQUAL ||
               coupling.materialProfile == PM_INTERACTION_MATERIAL_MISCIBLE ||
               coupling.materialProfile ==
                   PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE
+        : rope_pair
+        ? coupling.materialProfile == PM_INTERACTION_MATERIAL_ROPE_CAPSULE
         : smoke_pair
         ? coupling.materialProfile == PM_INTERACTION_MATERIAL_SMOKE_PARTICLE ||
               coupling.materialProfile == PM_INTERACTION_MATERIAL_SMOKE_GRID ||
@@ -207,7 +224,7 @@ PmResult validate_coupling(PmDevice device, const PmCouplingState &coupling) noe
             contract.first, contract.second,
             coupling.type == PM_COUPLING_LIQUID_LIQUID || smoke_pair ||
                     coupling.type == PM_COUPLING_SOFT_BODY_SOFT_BODY ||
-                    coupling.type == PM_COUPLING_CLOTH_CLOTH
+                    coupling.type == PM_COUPLING_CLOTH_CLOTH || rope_pair
                 ? PM_INTERACTION_SCOPE_SEPARATE_SYSTEM
                 : PM_INTERACTION_SCOPE_DISTINCT_FAMILY,
             mode,
@@ -255,15 +272,16 @@ PmResult normalize_coupling_info(
     };
     const PmFluidPairMaterialState *fluid_pair_state = nullptr;
     const PmFluidInterfaceState *interface_state = nullptr;
+    const PmRopeAttachmentState *rope_attachment_state = nullptr;
     const void *extension = source.pNext;
     for (std::uint32_t extension_count = 0U;
          extension != nullptr && extension_count < 2U; ++extension_count) {
-        if (source.type != PM_COUPLING_LIQUID_LIQUID)
-            return PM_ERROR_INVALID_ARGUMENT;
         const auto *header = static_cast<const Header *>(extension);
         switch (header->sType) {
         case PM_STRUCTURE_TYPE_FLUID_PAIR_MATERIAL_STATE:
-            if (fluid_pair_state != nullptr) return PM_ERROR_INVALID_ARGUMENT;
+            if (source.type != PM_COUPLING_LIQUID_LIQUID ||
+                fluid_pair_state != nullptr)
+                return PM_ERROR_INVALID_ARGUMENT;
             fluid_pair_state =
                 static_cast<const PmFluidPairMaterialState *>(extension);
             if (fluid_pair_state->firstMaterialIndex != source.first ||
@@ -271,11 +289,38 @@ PmResult normalize_coupling_info(
                 return PM_ERROR_INVALID_ARGUMENT;
             break;
         case PM_STRUCTURE_TYPE_FLUID_INTERFACE_STATE:
-            if (interface_state != nullptr) return PM_ERROR_INVALID_ARGUMENT;
+            if (source.type != PM_COUPLING_LIQUID_LIQUID ||
+                interface_state != nullptr)
+                return PM_ERROR_INVALID_ARGUMENT;
             interface_state =
                 static_cast<const PmFluidInterfaceState *>(extension);
             if (!std::isfinite(interface_state->surfaceTension) ||
                 interface_state->surfaceTension < 0.0F)
+                return PM_ERROR_INVALID_ARGUMENT;
+            break;
+        case PM_STRUCTURE_TYPE_ROPE_ATTACHMENT_STATE:
+            if (source.type != PM_COUPLING_ROPE_ROPE ||
+                rope_attachment_state != nullptr)
+                return PM_ERROR_INVALID_ARGUMENT;
+            rope_attachment_state =
+                static_cast<const PmRopeAttachmentState *>(extension);
+            if ((rope_attachment_state->firstEndpoint !=
+                     PM_ROPE_ENDPOINT_FIRST &&
+                 rope_attachment_state->firstEndpoint !=
+                     PM_ROPE_ENDPOINT_LAST) ||
+                (rope_attachment_state->secondEndpoint !=
+                     PM_ROPE_ENDPOINT_FIRST &&
+                 rope_attachment_state->secondEndpoint !=
+                     PM_ROPE_ENDPOINT_LAST) ||
+                !std::isfinite(rope_attachment_state->compliance) ||
+                rope_attachment_state->compliance < 0.0F ||
+                !std::isfinite(rope_attachment_state->damping) ||
+                rope_attachment_state->damping < 0.0F ||
+                !std::isfinite(rope_attachment_state->captureDistance) ||
+                rope_attachment_state->captureDistance < 0.0F ||
+                !std::isfinite(
+                    rope_attachment_state->breakingImpulseThreshold) ||
+                rope_attachment_state->breakingImpulseThreshold < 0.0F)
                 return PM_ERROR_INVALID_ARGUMENT;
             break;
         default: return PM_ERROR_INVALID_ARGUMENT;
@@ -296,6 +341,11 @@ PmResult normalize_coupling_info(
     if ((immiscible && interface_state == nullptr) ||
         (!immiscible && interface_state != nullptr))
         return PM_ERROR_INVALID_ARGUMENT;
+    const bool requests_rope_attachment =
+        source.type == PM_COUPLING_ROPE_ROPE &&
+        (source.modeFlags & PM_INTERACTION_MODE_ATTACHMENT_BIT) != 0U;
+    if (requests_rope_attachment != (rope_attachment_state != nullptr))
+        return PM_ERROR_INVALID_ARGUMENT;
 
     destination = {};
     destination.type = source.type;
@@ -304,7 +354,8 @@ PmResult normalize_coupling_info(
     destination.modeFlags = source.modeFlags;
     destination.materialProfile = source.materialProfile;
     destination.parameters = source.parameters;
-    return validate_coupling(device, destination);
+    return validate_coupling(
+        device, destination, rope_attachment_state != nullptr);
 }
 } // namespace parallel_mater::api
 
@@ -406,7 +457,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreatePhysicsPipeline(
         }
     }
     for (const auto &coupling : created->couplings) {
-        const auto result = parallel_mater::api::validate_coupling(device, coupling);
+        const auto result = parallel_mater::api::validate_coupling(
+            device, coupling, coupling_state_info != nullptr);
         if (result != PM_SUCCESS) {
             parallel_mater::api::destroy_object(device, created);
             return result;

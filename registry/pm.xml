@@ -88,6 +88,7 @@ typedef struct PmQueryPool_T* PmQueryPool;
     <type name="PmSoftBodySelfContactState" value="21" />
     <type name="PmClothStateInfo" value="22" />
     <type name="PmClothSelfContactState" value="23" />
+    <type name="PmRopeAttachmentState" value="24" />
   </structure-types>
   <interaction-capabilities>
     <!-- This is the reference-driver inventory.  Public records are emitted
@@ -849,7 +850,8 @@ typedef enum PmInteractionMaterialProfile {
     PM_INTERACTION_MATERIAL_MISCIBLE = 4,
     PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE = 5,
     PM_INTERACTION_MATERIAL_THERMAL_PHASE = 6,
-    PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID = 7
+    PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID = 7,
+    PM_INTERACTION_MATERIAL_ROPE_CAPSULE = 8
 } PmInteractionMaterialProfile;
 typedef enum PmCouplingType {
     PM_COUPLING_LIQUID_RIGID = 0,
@@ -867,7 +869,8 @@ typedef enum PmCouplingType {
     PM_COUPLING_SMOKE_SOFT_BODY = 12,
     PM_COUPLING_SMOKE_SMOKE = 13,
     PM_COUPLING_SOFT_BODY_SOFT_BODY = 14,
-    PM_COUPLING_CLOTH_CLOTH = 15
+    PM_COUPLING_CLOTH_CLOTH = 15,
+    PM_COUPLING_ROPE_ROPE = 16
 } PmCouplingType;
 typedef struct PmMechanicalCouplingState {
     float contactDistance;
@@ -939,7 +942,21 @@ typedef struct PmFluidInterfaceState {
     PmStructureType sType;
     const void* pNext;
     float surfaceTension;
-} PmFluidInterfaceState;</types>
+} PmFluidInterfaceState;
+typedef enum PmRopeEndpoint {
+    PM_ROPE_ENDPOINT_FIRST = 0,
+    PM_ROPE_ENDPOINT_LAST = 1
+} PmRopeEndpoint;
+typedef struct PmRopeAttachmentState {
+    PmStructureType sType;
+    const void* pNext;
+    PmRopeEndpoint firstEndpoint;
+    PmRopeEndpoint secondEndpoint;
+    float compliance;
+    float damping;
+    float captureDistance;
+    float breakingImpulseThreshold;
+} PmRopeAttachmentState;</types>
       <commands>PmResult pmCmdSetCouplings(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t couplingCount,
     const PmCouplingState *pCouplings);

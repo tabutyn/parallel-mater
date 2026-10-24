@@ -73,6 +73,10 @@ int main() {
                 (record.key.scope == PM_INTERACTION_SCOPE_SELF ||
                  record.key.scope ==
                      PM_INTERACTION_SCOPE_SEPARATE_SYSTEM)));
+        CHECK(!(record.key.firstFamily == PM_INTERACTION_FAMILY_ROPE &&
+                record.key.secondFamily == PM_INTERACTION_FAMILY_ROPE &&
+                record.key.materialProfile ==
+                    PM_INTERACTION_MATERIAL_ROPE_CAPSULE));
         rigid_contact |=
             record.key.firstFamily == PM_INTERACTION_FAMILY_RIGID_BODY &&
             record.key.secondFamily == PM_INTERACTION_FAMILY_RIGID_BODY &&
@@ -166,6 +170,24 @@ int main() {
     for (const auto scope : {PM_INTERACTION_SCOPE_SELF,
                              PM_INTERACTION_SCOPE_SEPARATE_SYSTEM}) {
         unsupported.scope = scope;
+        CHECK(pmGetPhysicalDeviceInteractionCapability(
+                  physical, &unsupported, &queried) ==
+              PM_ERROR_FEATURE_NOT_PRESENT);
+    }
+
+    unsupported.firstFamily = PM_INTERACTION_FAMILY_ROPE;
+    unsupported.secondFamily = PM_INTERACTION_FAMILY_ROPE;
+    unsupported.direction = PM_INTERACTION_DIRECTION_BIDIRECTIONAL;
+    unsupported.materialProfile = PM_INTERACTION_MATERIAL_ROPE_CAPSULE;
+    unsupported.scope = PM_INTERACTION_SCOPE_SELF;
+    unsupported.mode = PM_INTERACTION_MODE_CONTACT;
+    CHECK(pmGetPhysicalDeviceInteractionCapability(
+              physical, &unsupported, &queried) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    unsupported.scope = PM_INTERACTION_SCOPE_SEPARATE_SYSTEM;
+    for (const auto mode : {PM_INTERACTION_MODE_CONTACT,
+                            PM_INTERACTION_MODE_ATTACHMENT}) {
+        unsupported.mode = mode;
         CHECK(pmGetPhysicalDeviceInteractionCapability(
                   physical, &unsupported, &queried) ==
               PM_ERROR_FEATURE_NOT_PRESENT);

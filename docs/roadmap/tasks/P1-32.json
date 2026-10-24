@@ -1,7 +1,7 @@
 {
   "id": "P1-32",
   "title": "Expose rope capsule pairs and attachments",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "P1-02"
   ],
@@ -17,15 +17,35 @@
     "Registry, generated API and specification separate node-only self contact, capsule self/pair contact and attachment.",
     "Validation rejects invalid selectors, parameters, duplicate/reversed edges and unsupported bundles atomically."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "67c126c7-c3e0-4603-8b32-93e14214ade9",
-    "owner": "codex-windows-rope-api",
-    "machine": "windows-gtx1080",
-    "branch": "work/P1-32/windows-gtx1080",
-    "claimed_at": "2026-10-24T22:40:39Z",
-    "heartbeat_at": "2026-10-24T22:40:39Z",
-    "expires_at": "2026-10-25T22:40:39Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: cmake --build build-windows-d3d12-preview --target parallel-mater-driver-slang-d3d12 --config Release --parallel 4; MSVC 19.44 on Windows GTX 1080.",
+    "PASS: parallel-mater-graph-validation-tests.exe with the slang-d3d12 manifest; invalid selectors and parameters, duplicate or reversed edges, and unsupported bundles preserve the active graph.",
+    "PASS: parallel-mater-interaction-capability-tests.exe with the slang-d3d12 manifest; rope-capsule contact and attachment remain unadvertised.",
+    "PASS: tools/reference/bootstrap.py --build and tools/reference/check.py --skip-vulkan-header; generated headers, specification, coverage, PDFs, ABI syntax and deterministic regeneration passed.",
+    "PASS: python3 -m unittest discover -s tests/roadmap -p test_*.py; 72 roadmap and lease tests passed."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "67c126c7-c3e0-4603-8b32-93e14214ade9",
+        "owner": "codex-windows-rope-api",
+        "machine": "windows-gtx1080",
+        "branch": "work/P1-32/windows-gtx1080",
+        "claimed_at": "2026-10-24T22:40:39Z",
+        "heartbeat_at": "2026-10-24T22:40:39Z",
+        "expires_at": "2026-10-25T22:40:39Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-24T23:07:01Z",
+      "reason": "Exposed the rope-capsule profile, canonical rope-pair edge and typed endpoint attachment validation without advertising capabilities.",
+      "evidence": [
+        "PASS: cmake --build build-windows-d3d12-preview --target parallel-mater-driver-slang-d3d12 --config Release --parallel 4; MSVC 19.44 on Windows GTX 1080.",
+        "PASS: parallel-mater-graph-validation-tests.exe with the slang-d3d12 manifest; invalid selectors and parameters, duplicate or reversed edges, and unsupported bundles preserve the active graph.",
+        "PASS: parallel-mater-interaction-capability-tests.exe with the slang-d3d12 manifest; rope-capsule contact and attachment remain unadvertised.",
+        "PASS: tools/reference/bootstrap.py --build and tools/reference/check.py --skip-vulkan-header; generated headers, specification, coverage, PDFs, ABI syntax and deterministic regeneration passed.",
+        "PASS: python3 -m unittest discover -s tests/roadmap -p test_*.py; 72 roadmap and lease tests passed."
+      ]
+    }
+  ]
 }

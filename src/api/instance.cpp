@@ -123,7 +123,7 @@ bool valid_interaction_key(const PmInteractionCapabilityKey &key) noexcept {
         key.direction < PM_INTERACTION_DIRECTION_BIDIRECTIONAL ||
         key.direction > PM_INTERACTION_DIRECTION_EXTERNAL_TO_SECOND ||
         key.materialProfile < PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE ||
-        key.materialProfile > PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID)
+        key.materialProfile > PM_INTERACTION_MATERIAL_ROPE_CAPSULE)
         return false;
     return key.scope == PM_INTERACTION_SCOPE_DISTINCT_FAMILY
         ? first < second : first == second;

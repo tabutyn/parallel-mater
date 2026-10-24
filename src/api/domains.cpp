@@ -1951,6 +1951,17 @@ PmResult validate_coupling_endpoints(
             return result;
         return PM_SUCCESS;
     }
+    case PM_COUPLING_ROPE_ROPE: {
+        if (source.first >= source.second) return PM_ERROR_INVALID_ARGUMENT;
+        RopeId first{};
+        RopeId second{};
+        if ((result = require_slot(simulation->ropes, source.first, first)) !=
+                PM_SUCCESS ||
+            (result = require_slot(simulation->ropes, source.second, second)) !=
+                PM_SUCCESS)
+            return result;
+        return PM_SUCCESS;
+    }
     }
     return PM_ERROR_INVALID_ARGUMENT;
 }
@@ -1961,7 +1972,11 @@ PmResult validate_coupling_graph(
     if (requested.size() > simulation->info.couplingCapacity)
         return PM_ERROR_CAPACITY_EXCEEDED;
     for (std::size_t index = 0U; index < requested.size(); ++index) {
-        const auto result = validate_coupling(simulation->device, requested[index]);
+        // Typed coupling extensions are validated before their normalized
+        // PmCouplingState enters the graph. Do not require transient pNext
+        // data again while validating that normalized snapshot.
+        const auto result = validate_coupling(
+            simulation->device, requested[index], true);
         if (result != PM_SUCCESS) return result;
         const auto endpoints = validate_coupling_endpoints(simulation, requested[index]);
         if (endpoints != PM_SUCCESS) return endpoints;
@@ -2218,6 +2233,10 @@ PmResult install_couplings(
         case PM_COUPLING_CLOTH_CLOTH:
             // P1-19 reserves the graph identity. Later leaves supply bounded
             // contacts, shared operators, scheduling and qualification.
+            return rollback(PM_ERROR_FEATURE_NOT_PRESENT);
+        case PM_COUPLING_ROPE_ROPE:
+            // P1-32 reserves capsule contact and typed endpoint attachment.
+            // Later leaves supply bounded operators and qualification.
             return rollback(PM_ERROR_FEATURE_NOT_PRESENT);
         }
         if (result != PM_SUCCESS) return rollback(result);
