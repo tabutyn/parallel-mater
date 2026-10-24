@@ -299,6 +299,16 @@ struct AvbdVector3
 bool avbdInverseSymmetric3(AvbdSymmetric3 value, out AvbdSymmetric3 inverse)
 {
     const float largest = 3.402823466e38f;
+    const float pivotFloor = 32.0f * 1.1920928955078125e-7f;
+    inverse = AvbdSymmetric3(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+    if (!(value.xx > 0.0f) || !(value.yy > 0.0f) ||
+        !(value.zz > 0.0f) || !(value.xx < largest) ||
+        !(value.yy < largest) || !(value.zz < largest))
+        return false;
+    float leadingMinor = value.xx * value.yy - value.yx * value.yx;
+    if (!(leadingMinor > pivotFloor * value.xx * value.yy) ||
+        !(leadingMinor < largest))
+        return false;
     inverse.xx = value.yy * value.zz - value.zy * value.zy;
     inverse.yx = value.zx * value.zy - value.yx * value.zz;
     inverse.yy = value.xx * value.zz - value.zx * value.zx;
@@ -307,7 +317,9 @@ bool avbdInverseSymmetric3(AvbdSymmetric3 value, out AvbdSymmetric3 inverse)
     inverse.zz = value.xx * value.yy - value.yx * value.yx;
     float determinant = value.xx * inverse.xx + value.yx * inverse.yx +
         value.zx * inverse.zx;
-    if (!(determinant > 0.0f) || !(determinant < largest)) return false;
+    if (!(determinant > pivotFloor * leadingMinor * value.zz) ||
+        !(determinant < largest))
+        return false;
     float reciprocal = 1.0f / determinant;
     inverse.xx *= reciprocal;
     inverse.yx *= reciprocal;
