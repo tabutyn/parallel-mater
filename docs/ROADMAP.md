@@ -175,7 +175,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-16](roadmap/tasks/P1-16.json) | Exchange conservative fluid heat | deferred | P1-05, P1-15 | — |
 | [P1-17](roadmap/tasks/P1-17.json) | Schedule fluid thermal pair graphs | deferred | P1-08, P1-13, P1-16, P1-57 | — |
 | [P1-18](roadmap/tasks/P1-18.json) | Qualify and advertise fluid heat exchange | deferred | P1-17, F5-02, F5-03 | — |
-| [P1-19](roadmap/tasks/P1-19.json) | Expose cloth contact scopes and controls | leased | P1-02 | codex-macos-p119 / Thomass-MacBook-Air / 2026-10-25T21:17:45Z |
+| [P1-19](roadmap/tasks/P1-19.json) | Expose cloth contact scopes and controls | done | P1-02 | — |
 | [P1-20](roadmap/tasks/P1-20.json) | Build bounded cloth contact generation | deferred | P1-19 | — |
 | [P1-21](roadmap/tasks/P1-21.json) | Solve cloth self-contact and friction | deferred | P1-20 | — |
 | [P1-22](roadmap/tasks/P1-22.json) | Solve contact between cloth systems | deferred | P1-20 | — |
@@ -188,7 +188,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-29](roadmap/tasks/P1-29.json) | Schedule soft-body contact scopes | deferred | P1-27, P1-28 | — |
 | [P1-30](roadmap/tasks/P1-30.json) | Qualify and advertise soft-body contact | deferred | P1-29, F5-02, F5-03 | — |
 | [P1-31](roadmap/tasks/P1-31.json) | Audit sampled-node rope self-contact | done | P1-02, F5-02 | — |
-| [P1-32](roadmap/tasks/P1-32.json) | Expose rope capsule pairs and attachments | waiting on lock | P1-02 | — |
+| [P1-32](roadmap/tasks/P1-32.json) | Expose rope capsule pairs and attachments | ready | P1-02 | — |
 | [P1-33](roadmap/tasks/P1-33.json) | Build bounded rope segment contacts | deferred | P1-32 | — |
 | [P1-34](roadmap/tasks/P1-34.json) | Solve rope capsule self-contact | deferred | P1-33 | — |
 | [P1-35](roadmap/tasks/P1-35.json) | Solve contact between rope systems | deferred | P1-33 | — |

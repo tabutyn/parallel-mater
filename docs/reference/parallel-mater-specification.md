@@ -1,4 +1,4 @@
-<!-- Generated from registry/pm.xml sha256:c203b18faa0a05f5bc4dc393dc22a23e6191bb3f62d230529b1edb76f3649b4c -->
+<!-- Generated from registry/pm.xml sha256:c14fef87bc0c2ac6124eb1d201ad0400f59d8ee50264f8724e80191c83afee6e -->
 
 # Parallel Mater 0.2 — API Specification
 
@@ -1195,7 +1195,8 @@ typedef enum PmCouplingType {
     PM_COUPLING_SMOKE_ROPE = 11,
     PM_COUPLING_SMOKE_SOFT_BODY = 12,
     PM_COUPLING_SMOKE_SMOKE = 13,
-    PM_COUPLING_SOFT_BODY_SOFT_BODY = 14
+    PM_COUPLING_SOFT_BODY_SOFT_BODY = 14,
+    PM_COUPLING_CLOTH_CLOTH = 15
 } PmCouplingType;
 typedef struct PmMechanicalCouplingState {
     float contactDistance;
@@ -1459,6 +1460,22 @@ typedef struct PmClothInfo {
     const uint32_t* pTriangleIndices;
     const float* pInverseMasses;
 } PmClothInfo;
+typedef struct PmClothStateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    PmBool32 active;
+    uint32_t materialIndex;
+    uint32_t vertexCount;
+    const PmFloat3* pVertices;
+    uint32_t triangleIndexCount;
+    const uint32_t* pTriangleIndices;
+    const float* pInverseMasses;
+} PmClothStateInfo;
+typedef struct PmClothSelfContactState {
+    PmStructureType sType;
+    const void* pNext;
+    PmBool32 enabled;
+} PmClothSelfContactState;
 typedef struct PmClothVertexState {
     PmFloat3 position;
     PmFloat3 velocity;
@@ -1473,6 +1490,9 @@ typedef struct PmClothVertexState {
 PmResult pmCmdWriteCloths(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t firstCloth,
     uint32_t count, const PmClothInfo* pCloths);
+PmResult pmCmdWriteCloths2(PmCommandBuffer commandBuffer,
+    PmSimulation simulation, uint32_t firstCloth,
+    uint32_t count, const PmClothStateInfo* pCloths);
 PmResult pmCmdCopyClothState(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t clothIndex,
     const PmBufferRange* pDestination);
@@ -1480,6 +1500,10 @@ PmResult pmCmdCopyClothSurface(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t clothIndex,
     const PmBufferRange* pDestination);
 ```
+
+PmClothInfo is the API 0.2 descriptor. PmClothStateInfo is the ABI-compatible extensible write path and copies the same resource data. Its pNext is NULL unless intrinsic surface self-contact is requested by chaining exactly one PmClothSelfContactState. enabled is PM_FALSE or PM_TRUE; PM_FALSE preserves ordinary cloth behavior and PM_TRUE requests the exact (cloth, cloth, self, contact, bidirectional, endpoint-native) capability. Unknown or nested state is invalid. Enabled self-contact requires finite vertices and nonnegative inverse masses plus distinct, in-range, nondegenerate, nonduplicated triangles. Invalid topology returns INVALID_ARGUMENT before any write is recorded. A valid enabled request returns FEATURE_NOT_PRESENT until its operator and driver qualification tasks advertise the capability, without replacing live state.
+
+A separate-system contact edge uses PM_COUPLING_CLOTH_CLOTH through PmCouplingStateInfo with first < second, CONTACT and ENDPOINT_NATIVE. It consumes simulation coupling capacity and requests the exact separate-system capability. Duplicate or reversed endpoints are invalid; a well-formed edge remains FEATURE_NOT_PRESENT until advertised. Intrinsic self-contact consumes no graph edge, and neither request implies attachment, containment or one-sided collision.
 
 <a id="spec-rope_resources"></a>
 
@@ -2892,6 +2916,8 @@ typedef enum PmStructureType {
     PM_STRUCTURE_TYPE_SIMULATION_PROFILE_CREATE_INFO = 19,
     PM_STRUCTURE_TYPE_SOFT_BODY_STATE_INFO = 20,
     PM_STRUCTURE_TYPE_SOFT_BODY_SELF_CONTACT_STATE = 21,
+    PM_STRUCTURE_TYPE_CLOTH_STATE_INFO = 22,
+    PM_STRUCTURE_TYPE_CLOTH_SELF_CONTACT_STATE = 23,
 } PmStructureType;
 ```
 
@@ -2927,6 +2953,8 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmClothCapacity | [7.1](#spec-simulation_create) |
 | PmClothInfo | [10.2](#spec-cloth_resources) |
 | PmClothMaterialState | [9.4](#spec-domain_materials) |
+| PmClothSelfContactState | [10.2](#spec-cloth_resources) |
+| PmClothStateInfo | [10.2](#spec-cloth_resources) |
 | PmClothVertexState | [10.2](#spec-cloth_resources) |
 | pmCmdApplyRigidInputs | [7.5](#spec-body_inputs) |
 | pmCmdBeginStatisticsQuery | [15.3](#spec-step_stats) |
@@ -2958,6 +2986,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmCmdSetRigidStates | [7.5](#spec-body_inputs) |
 | pmCmdStepSimulation | [11.5](#spec-step) |
 | pmCmdWriteCloths | [10.2](#spec-cloth_resources) |
+| pmCmdWriteCloths2 | [10.2](#spec-cloth_resources) |
 | pmCmdWritePaintFields | [10.7](#spec-paint_resources) |
 | pmCmdWritePaintRules | [10.7](#spec-paint_resources) |
 | pmCmdWriteParticleDestroyers | [10.6](#spec-emitters) |

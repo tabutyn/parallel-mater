@@ -4,6 +4,7 @@
 #include "../simulation/host_preparation.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <limits>
@@ -58,6 +59,61 @@ struct RecordedCloth {
     std::vector<std::uint32_t> indices;
     std::vector<float> inverse_masses;
 };
+
+[[nodiscard]] PmResult validate_cloth_contact_surface(
+    const PmClothStateInfo &source) noexcept {
+    if (source.active != PM_TRUE || source.vertexCount < 3U ||
+        source.triangleIndexCount < 3U ||
+        source.triangleIndexCount % 3U != 0U || source.pVertices == nullptr ||
+        source.pTriangleIndices == nullptr || source.pInverseMasses == nullptr)
+        return PM_ERROR_INVALID_ARGUMENT;
+
+    try {
+        for (std::uint32_t vertex = 0U; vertex < source.vertexCount; ++vertex) {
+            const auto &position = source.pVertices[vertex];
+            const float inverse_mass = source.pInverseMasses[vertex];
+            if (!std::isfinite(position.x) || !std::isfinite(position.y) ||
+                !std::isfinite(position.z) || !std::isfinite(inverse_mass) ||
+                inverse_mass < 0.0F)
+                return PM_ERROR_INVALID_ARGUMENT;
+        }
+
+        std::set<std::array<std::uint32_t, 3U>> triangles;
+        for (std::uint32_t corner = 0U;
+             corner < source.triangleIndexCount; corner += 3U) {
+            const std::uint32_t a = source.pTriangleIndices[corner];
+            const std::uint32_t b = source.pTriangleIndices[corner + 1U];
+            const std::uint32_t c = source.pTriangleIndices[corner + 2U];
+            if (a >= source.vertexCount || b >= source.vertexCount ||
+                c >= source.vertexCount || a == b || b == c || c == a)
+                return PM_ERROR_INVALID_ARGUMENT;
+
+            const auto &pa = source.pVertices[a];
+            const auto &pb = source.pVertices[b];
+            const auto &pc = source.pVertices[c];
+            const double abx = static_cast<double>(pb.x) - pa.x;
+            const double aby = static_cast<double>(pb.y) - pa.y;
+            const double abz = static_cast<double>(pb.z) - pa.z;
+            const double acx = static_cast<double>(pc.x) - pa.x;
+            const double acy = static_cast<double>(pc.y) - pa.y;
+            const double acz = static_cast<double>(pc.z) - pa.z;
+            const double nx = aby * acz - abz * acy;
+            const double ny = abz * acx - abx * acz;
+            const double nz = abx * acy - aby * acx;
+            const double area_squared = nx * nx + ny * ny + nz * nz;
+            if (!std::isfinite(area_squared) || area_squared <= 0.0)
+                return PM_ERROR_INVALID_ARGUMENT;
+
+            std::array<std::uint32_t, 3U> triangle{a, b, c};
+            std::sort(triangle.begin(), triangle.end());
+            if (!triangles.insert(triangle).second)
+                return PM_ERROR_INVALID_ARGUMENT;
+        }
+    } catch (const std::bad_alloc &) {
+        return PM_ERROR_OUT_OF_HOST_MEMORY;
+    }
+    return PM_SUCCESS;
+}
 
 struct RecordedRope {
     PmBool32 active{};
@@ -381,6 +437,91 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteCloths(
             simulation->couplings_initialized = false;
             return PM_SUCCESS;
         });
+}
+
+extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteCloths2(
+    PmCommandBuffer command_buffer, PmSimulation simulation,
+    std::uint32_t first, std::uint32_t count,
+    const PmClothStateInfo *cloths) {
+    const PmResult recording =
+        parallel_mater::api::require_recording(command_buffer);
+    if (recording != PM_SUCCESS) return recording;
+    if (simulation == nullptr ||
+        simulation->device != command_buffer->device ||
+        command_buffer->bound_pipeline == nullptr || count == 0U ||
+        cloths == nullptr || first > simulation->cloths.size() ||
+        count > simulation->cloths.size() - first)
+        return PM_ERROR_INVALID_ARGUMENT;
+
+    bool requests_self_contact = false;
+    std::vector<PmClothInfo> legacy;
+    try {
+        legacy.reserve(count);
+        for (std::uint32_t index = 0U; index < count; ++index) {
+            const auto &source = cloths[index];
+            if (source.sType != PM_STRUCTURE_TYPE_CLOTH_STATE_INFO ||
+                source.active > PM_TRUE)
+                return PM_ERROR_INVALID_ARGUMENT;
+            if (source.active == PM_TRUE) {
+                const auto capacity =
+                    simulation->cloth_capacities[first + index];
+                if (source.materialIndex >=
+                        command_buffer->bound_pipeline->cloths.size() ||
+                    source.vertexCount == 0U ||
+                    source.triangleIndexCount == 0U ||
+                    source.triangleIndexCount % 3U != 0U ||
+                    source.vertexCount > capacity.vertexCapacity ||
+                    source.triangleIndexCount >
+                        capacity.triangleIndexCapacity ||
+                    source.triangleIndexCount > capacity.bondCapacity ||
+                    source.pVertices == nullptr ||
+                    source.pTriangleIndices == nullptr ||
+                    source.pInverseMasses == nullptr)
+                    return PM_ERROR_INVALID_ARGUMENT;
+            }
+            if (source.pNext != nullptr) {
+                const auto *self_contact =
+                    static_cast<const PmClothSelfContactState *>(
+                        source.pNext);
+                if (self_contact->sType !=
+                        PM_STRUCTURE_TYPE_CLOTH_SELF_CONTACT_STATE ||
+                    self_contact->pNext != nullptr ||
+                    self_contact->enabled > PM_TRUE)
+                    return PM_ERROR_INVALID_ARGUMENT;
+                if (self_contact->enabled == PM_TRUE) {
+                    const PmResult topology =
+                        validate_cloth_contact_surface(source);
+                    if (topology != PM_SUCCESS) return topology;
+                    requests_self_contact = true;
+                }
+            }
+            legacy.push_back({
+                source.active,
+                source.materialIndex,
+                source.vertexCount,
+                source.pVertices,
+                source.triangleIndexCount,
+                source.pTriangleIndices,
+                source.pInverseMasses});
+        }
+    } catch (const std::bad_alloc &) {
+        return PM_ERROR_OUT_OF_HOST_MEMORY;
+    }
+
+    if (requests_self_contact) {
+        const PmInteractionCapabilityKey key{
+            PM_INTERACTION_FAMILY_CLOTH,
+            PM_INTERACTION_FAMILY_CLOTH,
+            PM_INTERACTION_SCOPE_SELF,
+            PM_INTERACTION_MODE_CONTACT,
+            PM_INTERACTION_DIRECTION_BIDIRECTIONAL,
+            PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE};
+        PmInteractionCapability capability{};
+        return parallel_mater::api::find_interaction_capability(
+            command_buffer->device->enabled, key, capability);
+    }
+    return pmCmdWriteCloths(command_buffer, simulation, first, count,
+                            legacy.data());
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdWriteRopes(
@@ -1799,6 +1940,17 @@ PmResult validate_coupling_endpoints(
             return result;
         return PM_SUCCESS;
     }
+    case PM_COUPLING_CLOTH_CLOTH: {
+        if (source.first >= source.second) return PM_ERROR_INVALID_ARGUMENT;
+        ClothId first{};
+        ClothId second{};
+        if ((result = require_slot(simulation->cloths, source.first, first)) !=
+                PM_SUCCESS ||
+            (result = require_slot(simulation->cloths, source.second, second)) !=
+                PM_SUCCESS)
+            return result;
+        return PM_SUCCESS;
+    }
     }
     return PM_ERROR_INVALID_ARGUMENT;
 }
@@ -2061,6 +2213,10 @@ PmResult install_couplings(
             return rollback(PM_ERROR_FEATURE_NOT_PRESENT);
         case PM_COUPLING_SOFT_BODY_SOFT_BODY:
             // P1-25 reserves the graph identity. Later leaves supply bounded
+            // contacts, shared operators, scheduling and qualification.
+            return rollback(PM_ERROR_FEATURE_NOT_PRESENT);
+        case PM_COUPLING_CLOTH_CLOTH:
+            // P1-19 reserves the graph identity. Later leaves supply bounded
             // contacts, shared operators, scheduling and qualification.
             return rollback(PM_ERROR_FEATURE_NOT_PRESENT);
         }

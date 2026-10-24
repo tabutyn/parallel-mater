@@ -304,6 +304,7 @@ PFN_pmVoidFunction lookup_proc(const char *value) noexcept {
     PM_LOOKUP(pmCmdSetCouplings);
     PM_LOOKUP(pmCmdSetCouplings2);
     PM_LOOKUP(pmCmdWriteCloths);
+    PM_LOOKUP(pmCmdWriteCloths2);
     PM_LOOKUP(pmCmdWriteRopes);
     PM_LOOKUP(pmCmdWriteSoftBodies);
     PM_LOOKUP(pmCmdWriteSoftBodies2);

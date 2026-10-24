@@ -117,7 +117,7 @@
     "fundamentals": 48,
     "base_types": 49,
     "structure_types": 49,
-    "symbol_index": 49
+    "symbol_index": 50
   },
   "numbers": {
     "overview": "1",
@@ -262,6 +262,8 @@
     "PmClothCapacity": "simulation_create",
     "PmClothInfo": "cloth_resources",
     "PmClothMaterialState": "domain_materials",
+    "PmClothSelfContactState": "cloth_resources",
+    "PmClothStateInfo": "cloth_resources",
     "PmClothVertexState": "cloth_resources",
     "pmCmdApplyRigidInputs": "body_inputs",
     "pmCmdBeginStatisticsQuery": "step_stats",
@@ -293,6 +295,7 @@
     "pmCmdSetRigidStates": "body_inputs",
     "pmCmdStepSimulation": "step",
     "pmCmdWriteCloths": "cloth_resources",
+    "pmCmdWriteCloths2": "cloth_resources",
     "pmCmdWritePaintFields": "paint_resources",
     "pmCmdWritePaintRules": "paint_resources",
     "pmCmdWriteParticleDestroyers": "emitters",
@@ -522,9 +525,9 @@
     "example_record",
     "example_submit"
   ],
-  "pdf_sha256": "374184c647b768491e04cd35ee6369c438e7ac7c243287626526c01e0e35523f",
+  "pdf_sha256": "af8ab48ac97af8392c0661aa4796b1fb103d8e27a767dac7de0dd267a1547273",
   "registry": {
     "path": "registry/pm.xml",
-    "sha256": "c203b18faa0a05f5bc4dc393dc22a23e6191bb3f62d230529b1edb76f3649b4c"
+    "sha256": "c14fef87bc0c2ac6124eb1d201ad0400f59d8ee50264f8724e80191c83afee6e"
   }
 }

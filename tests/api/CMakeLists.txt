@@ -6,7 +6,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     find_package(ParallelMater CONFIG REQUIRED)
 endif()
 find_package(Threads REQUIRED)
-foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction-graph-lifecycle graph-validation geometry-lifecycle paint-lifecycle endpoint-lifecycle fluid-pair-graph-lifecycle soft-body-contact-contract)
+foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction-graph-lifecycle graph-validation geometry-lifecycle paint-lifecycle endpoint-lifecycle fluid-pair-graph-lifecycle soft-body-contact-contract cloth-contact-contract)
     string(REPLACE "-" "_" source_name "${suite}")
     set(suite_source ${source_name}_tests.cpp)
     if(suite STREQUAL "resource-lifecycle")
@@ -55,7 +55,8 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction
         suite STREQUAL "endpoint-lifecycle" OR
         suite STREQUAL "fluid-pair-graph-lifecycle" OR
         suite STREQUAL "graph-validation" OR
-        suite STREQUAL "soft-body-contact-contract") AND
+        suite STREQUAL "soft-body-contact-contract" OR
+        suite STREQUAL "cloth-contact-contract") AND
        TARGET parallel-mater-test-driver-slang-cpu-resources)
         add_dependencies(parallel-mater-${suite}-tests
             parallel-mater-test-driver-slang-cpu-resources)
