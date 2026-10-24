@@ -220,8 +220,9 @@ uses `(soft body, soft body, self, contact, bidirectional, endpoint-native)`
 within one live soft-body slot. Contact between two separately owned soft-body
 slots uses `(soft body, soft body, separate-system, contact, bidirectional,
 endpoint-native)` and a canonical graph edge with `first < second`. API 0.2
-advertises neither identity and has no soft-body/soft-body edge. Drivers omit
-both records and reject extension requests with
+exposes both exact identities, the typed self-contact control and the canonical
+soft-body pair edge, but advertises neither capability. Drivers omit both
+records and reject enabled controls and edge requests with
 `PM_ERROR_FEATURE_NOT_PRESENT` without changing the live graph. There is no
 aggregate soft-body domain, so `same-domain` remains unsupported.
 
@@ -314,8 +315,11 @@ dropping is forbidden. Empty live bodies are no-ops. Graph removal isolates
 distinct bodies on the next step, while replacement/reset follow normal
 generation and rollback rules.
 
-A versioned typed extension must opt a body into self-contact and represent a
-soft-body/soft-body graph edge before support is enabled. Separate leaves add
+`PmSoftBodyStateInfo` chains `PmSoftBodySelfContactState` to opt one body into
+intrinsic contact; `PM_COUPLING_SOFT_BODY_SOFT_BODY` represents a canonical
+`first < second` graph edge through `PmCouplingStateInfo`. The control validates
+the closed bound-surface topology before feature availability, and invalid,
+duplicate or reversed requests cannot replace usable state. Separate leaves add
 bounded surface candidate generation, shared Slang self and inter-system
 operators, portable scheduling and public-API qualification. Advertisement is
 per scope and driver after closed-surface, folded-self, two-volume, high-speed,

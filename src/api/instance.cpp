@@ -182,9 +182,11 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     // Private host fixture: exercise resource lifetime without claiming
     // production Slang CPU simulation support for these domains.
     features.particleLiquids = PM_TRUE;
+    features.liquidRigidCoupling = PM_TRUE;
     features.liquidLiquidCoupling = PM_TRUE;
     features.particleEmitters = PM_TRUE;
     features.cloth = PM_TRUE;
+    features.softBodies = PM_TRUE;
     features.paint = PM_TRUE;
 #endif
 #if defined(PARALLEL_MATER_QUALIFIED_EQUAL_FLUID)
@@ -291,6 +293,7 @@ PFN_pmVoidFunction lookup_proc(const char *value) noexcept {
     PM_LOOKUP(pmCmdWriteCloths);
     PM_LOOKUP(pmCmdWriteRopes);
     PM_LOOKUP(pmCmdWriteSoftBodies);
+    PM_LOOKUP(pmCmdWriteSoftBodies2);
     PM_LOOKUP(pmCmdWriteSmoke);
     PM_LOOKUP(pmCmdWriteParticleEmitters);
     PM_LOOKUP(pmCmdWriteParticleDestroyers);

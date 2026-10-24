@@ -63,6 +63,11 @@ int main() {
         CHECK(!(record.key.firstFamily == PM_INTERACTION_FAMILY_SMOKE &&
                 record.key.secondFamily == PM_INTERACTION_FAMILY_SMOKE &&
                 record.key.scope == PM_INTERACTION_SCOPE_SEPARATE_SYSTEM));
+        CHECK(!(record.key.firstFamily == PM_INTERACTION_FAMILY_SOFT_BODY &&
+                record.key.secondFamily == PM_INTERACTION_FAMILY_SOFT_BODY &&
+                (record.key.scope == PM_INTERACTION_SCOPE_SELF ||
+                 record.key.scope ==
+                     PM_INTERACTION_SCOPE_SEPARATE_SYSTEM)));
         rigid_contact |=
             record.key.firstFamily == PM_INTERACTION_FAMILY_RIGID_BODY &&
             record.key.secondFamily == PM_INTERACTION_FAMILY_RIGID_BODY &&
@@ -133,6 +138,19 @@ int main() {
     for (const auto mode : {PM_INTERACTION_MODE_DRAG,
                             PM_INTERACTION_MODE_THERMAL}) {
         unsupported.mode = mode;
+        CHECK(pmGetPhysicalDeviceInteractionCapability(
+                  physical, &unsupported, &queried) ==
+              PM_ERROR_FEATURE_NOT_PRESENT);
+    }
+
+    unsupported.firstFamily = PM_INTERACTION_FAMILY_SOFT_BODY;
+    unsupported.secondFamily = PM_INTERACTION_FAMILY_SOFT_BODY;
+    unsupported.mode = PM_INTERACTION_MODE_CONTACT;
+    unsupported.direction = PM_INTERACTION_DIRECTION_BIDIRECTIONAL;
+    unsupported.materialProfile = PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+    for (const auto scope : {PM_INTERACTION_SCOPE_SELF,
+                             PM_INTERACTION_SCOPE_SEPARATE_SYSTEM}) {
+        unsupported.scope = scope;
         CHECK(pmGetPhysicalDeviceInteractionCapability(
                   physical, &unsupported, &queried) ==
               PM_ERROR_FEATURE_NOT_PRESENT);
