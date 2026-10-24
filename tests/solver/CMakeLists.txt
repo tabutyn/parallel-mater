@@ -126,6 +126,20 @@ add_test(NAME parallel-mater-liquid-coupling-realtime-tests
 set_tests_properties(parallel-mater-liquid-coupling-realtime-tests PROPERTIES
     LABELS "liquid;coupling;realtime;f8")
 
+add_executable(parallel-mater-deform-coupling-tests
+    deformable_smoke_coupling_realtime_tests.cpp)
+target_compile_features(
+    parallel-mater-deform-coupling-tests
+    PRIVATE cxx_std_20)
+target_include_directories(
+    parallel-mater-deform-coupling-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-deform-coupling-tests
+    COMMAND parallel-mater-deform-coupling-tests)
+set_tests_properties(
+    parallel-mater-deform-coupling-tests PROPERTIES
+    LABELS "deformable;smoke;coupling;realtime;f8")
+
 add_executable(parallel-mater-fluid-spatial-tests
     fluid_spatial_tests.cpp)
 target_compile_features(parallel-mater-fluid-spatial-tests PRIVATE cxx_std_20)
@@ -426,6 +440,31 @@ if("CUDA" IN_LIST contact_test_languages)
         set_tests_properties(
             parallel-mater-liquid-coupling-realtime-cuda-tests PROPERTIES
             SKIP_RETURN_CODE 77 LABELS "cuda;slang;liquid;coupling;realtime;f8"
+            TIMEOUT 300)
+
+        add_executable(
+            parallel-mater-deform-coupling-cuda-tests
+            deformable_smoke_coupling_realtime_cuda_tests.cu)
+        add_dependencies(
+            parallel-mater-deform-coupling-cuda-tests
+            parallel-mater-driver-slang-cuda)
+        target_include_directories(
+            parallel-mater-deform-coupling-cuda-tests PRIVATE
+            ../../src ../../include "${PARALLEL_MATER_SLANG_GENERATED_DIR}")
+        target_link_libraries(
+            parallel-mater-deform-coupling-cuda-tests PRIVATE
+            CUDA::cudart)
+        set_target_properties(
+            parallel-mater-deform-coupling-cuda-tests
+            PROPERTIES CUDA_STANDARD 20 CUDA_STANDARD_REQUIRED YES)
+        add_test(NAME
+            parallel-mater-deform-coupling-cuda-tests
+            COMMAND
+                parallel-mater-deform-coupling-cuda-tests)
+        set_tests_properties(
+            parallel-mater-deform-coupling-cuda-tests
+            PROPERTIES SKIP_RETURN_CODE 77
+            LABELS "cuda;slang;deformable;smoke;coupling;realtime;f8"
             TIMEOUT 300)
 
         add_executable(parallel-mater-fluid-spatial-cuda-tests

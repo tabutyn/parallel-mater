@@ -1,0 +1,158 @@
+{
+  "schema": "parallel-mater-f8-deformable-smoke-couplings-60hz-evidence/v1",
+  "task": "F8-19",
+  "recorded_at": "2026-10-24",
+  "branch": "work/F8-19/windows-gtx1080",
+  "base_commit": "dfcf4bfba3326dab53606c7f3fd42995f8463e92",
+  "lease_token": "1b504147-a9ae-43bf-92b8-a26a69967f67",
+  "profile": {
+    "name": "realtime-single-step",
+    "version": "1.0",
+    "timestep_seconds": 0.016666666666666666,
+    "time_advances": 0,
+    "coupling_sweeps": 4,
+    "maximum_total_correction_characteristic_length": 0.25,
+    "spatial_updates_during_solve": 0,
+    "intra_tick_host_readbacks": 0
+  },
+  "toolchain": {
+    "cmake": "4.4.2",
+    "slang": "2026.18",
+    "cuda_compiler": "12.9.86",
+    "msvc_generator": "Visual Studio 17 2022",
+    "windows": "10.0.26200.9711"
+  },
+  "cuda_device": {
+    "name": "NVIDIA GeForce GTX 1080",
+    "compute_capability": "6.1",
+    "driver": "582.66"
+  },
+  "production_kernels": [
+    "deformable_smoke_coupling_project",
+    "deformable_smoke_coupling_apply_first",
+    "deformable_smoke_coupling_apply_second"
+  ],
+  "registered_matrix": {
+    "semantic_family_pairs": 6,
+    "semantic_mode_combinations": 10,
+    "compiled_pair_variants": 9,
+    "registered_operators": 16,
+    "combinations": [
+      "cloth-soft-body/contact/bidirectional",
+      "cloth-rope/attachment/bidirectional",
+      "cloth-particle-smoke/contact/deformable-to-smoke",
+      "cloth-particle-smoke/drag/smoke-to-deformable",
+      "cloth-grid-smoke/contact/deformable-to-smoke",
+      "cloth-grid-smoke/drag/smoke-to-deformable",
+      "soft-body-rope/contact/bidirectional",
+      "soft-body-rope/attachment/bidirectional",
+      "soft-body-particle-smoke/contact/deformable-to-smoke",
+      "soft-body-particle-smoke/drag/smoke-to-deformable",
+      "soft-body-grid-smoke/contact/deformable-to-smoke",
+      "soft-body-grid-smoke/drag/smoke-to-deformable",
+      "rope-particle-smoke/contact/deformable-to-smoke",
+      "rope-particle-smoke/drag/smoke-to-deformable",
+      "rope-grid-smoke/contact/deformable-to-smoke",
+      "rope-grid-smoke/drag/smoke-to-deformable"
+    ],
+    "explicitly_unsupported": [
+      "cloth-rope/contact",
+      "deformable-smoke/pressure",
+      "deformable-smoke/viscosity",
+      "cloth/self-or-separate-system-contact",
+      "soft-body/self-or-separate-system-contact",
+      "rope/separate-system-contact-or-attachment",
+      "smoke/separate-system-exchange"
+    ]
+  },
+  "workload_budget": {
+    "workload": "desktop-full-v1 remaining deformable/smoke coupling portion",
+    "edges": 16,
+    "first_endpoints": 6144,
+    "second_endpoints": 6144,
+    "constraints": 16,
+    "coupling_sweeps_per_edge": 4,
+    "edge_sweeps": 64,
+    "constraint_visits": 64,
+    "batched_dispatches": 12,
+    "batched_workgroups": 388,
+    "solver_scratch_bytes": 49920,
+    "time_advances": 0,
+    "spatial_updates_during_solve": 0,
+    "intra_tick_host_readbacks": 0,
+    "policy": "four fixed algebraic sweeps over one generation-tagged F8-10 epoch; no convergence exit, per-edge rebuild, hidden substep, host retry or per-device fork"
+  },
+  "physical_cuda_quality": {
+    "fixture": "all sixteen compiled pair/mode variants active through generated production Slang",
+    "mass_ratio": 100,
+    "maximum_penetration_m": 0.0,
+    "maximum_closing_speed_m_s": 0.0,
+    "tunneling_count": 0,
+    "reciprocal_linear_residual": 0.00000010,
+    "maximum_attachment_separation_m": 0.00050000,
+    "maximum_drag_relative_speed_m_s": 0.31640625,
+    "smoke_contact_mutation": "smoke-only",
+    "smoke_drag_mutation": "deformable-only",
+    "stale_generation": "ignored without mutation",
+    "rebound_generation": "active",
+    "invalid_profile": "rejected atomically",
+    "correction_overflow": "reported without positional mutation",
+    "boundary_reset_retry": "PASS",
+    "equation_path_timing_ms": {
+      "warmup_ticks": 120,
+      "samples": 600,
+      "p50": 0.516256,
+      "p95": 1.239392,
+      "p99": 1.667232,
+      "maximum": 1.822400,
+      "scope": "CUDA events around twelve dispatches for sixteen constraints; not a full desktop-full-v1 frame-budget result"
+    }
+  },
+  "qualification": [
+    {
+      "command": "focused nvcc sm_61 build and f819.exe",
+      "result": "PASS",
+      "notes": "physical GTX 1080 generated-Slang matrix, direction, swept contact, 100:1 mass ratio, attachment, drag, lifecycle, profile atomicity and timing"
+    },
+    {
+      "command": "nvcc -c src/simulation/deformable_smoke_coupling_dispatch.cu",
+      "result": "PASS",
+      "notes": "production CUDA dispatch wrapper and generated entrypoint signatures compile"
+    },
+    {
+      "command": "cmake --build build-windows-d3d12-preview --target parallel-mater-driver-slang-d3d12 --config Release",
+      "result": "PASS",
+      "notes": "all three entries compile to DXIL and bind into the production D3D12 driver"
+    },
+    {
+      "command": "ctest -C Release -R parallel-mater-deform-coupling-tests --output-on-failure",
+      "result": "PASS",
+      "notes": "host matrix, validation, budget, shared epoch, topology and lifecycle contract"
+    },
+    {
+      "command": "python tests/solver/check_slang_architecture.py",
+      "result": "PASS",
+      "notes": "shared Slang architecture boundary"
+    },
+    {
+      "command": "python tests/roadmap/test_f8_01_kernel_device_inventory.py",
+      "result": "PASS",
+      "notes": "canonical inventory accounts for all 224 shared entrypoints"
+    }
+  ],
+  "legacy_profile": {
+    "legacy_pair_kernels": "unchanged",
+    "legacy_schedule_and_tolerances": "unchanged",
+    "goldens": "unchanged",
+    "capability_records": "unchanged",
+    "new_entry_points_selected_implicitly": false,
+    "public_realtime_profile": "unsupported and unadvertised until F8-20"
+  },
+  "limits": [
+    "The operator consumes F8-10 candidates and does not prove candidate generation independently.",
+    "Point-contact and response-based drag/attachment are version-1 approximations with four fixed sweeps.",
+    "The CUDA timing is equation-path evidence; F8-21 owns final integrated frame budgets.",
+    "Physical Vulkan, Metal and D3D12 qualification remains in the device leaves after F8-22 freezes the candidate.",
+    "A full CUDA adapter rebuild was storage-blocked at 0.47 GB free; focused production Slang and dispatch-wrapper builds passed, while the complete D3D12 production driver built successfully."
+  ]
+}

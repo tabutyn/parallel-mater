@@ -590,6 +590,20 @@
       "implementation_owners": ["F8-18"]
     },
     {
+      "id": "deformable-smoke-realtime-coupling",
+      "module": "deformable_smoke_coupling",
+      "entries": [
+        "deformable_smoke_coupling_project",
+        "deformable_smoke_coupling_apply_first",
+        "deformable_smoke_coupling_apply_second"
+      ],
+      "domains": ["CLOTH", "SOFT_BODY", "ROPE", "SMOKE", "SPATIAL_INDEX"],
+      "advertised_modes": ["ATTACHMENT", "CONTACT", "DRAG"],
+      "public_case_sets": ["cloth", "soft-body", "rope", "smoke"],
+      "existing_execution_tests": ["parallel-mater-deform-coupling-tests", "parallel-mater-deform-coupling-cuda-tests"],
+      "implementation_owners": ["F8-19"]
+    },
+    {
       "id": "rope-core",
       "module": "rope",
       "entries": ["rope_realtime_predict", "rope_realtime_project_constraints", "rope_realtime_apply_position_delta", "rope_realtime_project_contacts", "rope_realtime_commit", "rope_advance"],
