@@ -18,13 +18,29 @@
   ],
   "evidence": [],
   "lease": {
-    "token": "6ddd4c75-f52b-45eb-8a64-f816d54cef29",
-    "owner": "codex-immiscible-viscosity",
-    "machine": "thomas-laptop",
-    "branch": "work/P1-12/thomas-laptop",
-    "claimed_at": "2026-10-18T23:40:06Z",
-    "heartbeat_at": "2026-10-18T23:40:06Z",
-    "expires_at": "2026-10-19T23:40:06Z"
+    "token": "954c256a-8404-4301-8e15-76f23e37a8ed",
+    "owner": "codex-macos-physics",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/P1-12/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-24T22:51:06Z",
+    "heartbeat_at": "2026-10-24T22:51:06Z",
+    "expires_at": "2026-10-25T22:51:06Z"
   },
-  "history": []
+  "history": [
+    {
+      "lease": {
+        "token": "6ddd4c75-f52b-45eb-8a64-f816d54cef29",
+        "owner": "codex-immiscible-viscosity",
+        "machine": "thomas-laptop",
+        "branch": "work/P1-12/thomas-laptop",
+        "claimed_at": "2026-10-18T23:40:06Z",
+        "heartbeat_at": "2026-10-18T23:40:06Z",
+        "expires_at": "2026-10-19T23:40:06Z"
+      },
+      "outcome": "reclaimed",
+      "at": "2026-10-24T22:51:06Z",
+      "reason": "Prior thomas-laptop lease expired; inspected retained work/P1-12/thomas-laptop implementation and adopting its existing scope",
+      "evidence": []
+    }
+  ]
 }
