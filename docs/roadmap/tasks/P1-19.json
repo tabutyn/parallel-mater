@@ -1,7 +1,7 @@
 {
   "id": "P1-19",
   "title": "Expose cloth contact scopes and controls",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "P1-02"
   ],
@@ -18,6 +18,14 @@
     "Validation rejects invalid, duplicate, reversed and unsupported requests atomically."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "42721b17-a327-44ab-b67c-dd47835f7fb2",
+    "owner": "codex-macos-p119",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/P1-19/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-24T21:17:45Z",
+    "heartbeat_at": "2026-10-24T21:17:45Z",
+    "expires_at": "2026-10-25T21:17:45Z"
+  },
   "history": []
 }
