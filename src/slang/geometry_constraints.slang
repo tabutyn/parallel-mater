@@ -357,7 +357,8 @@ void rigid_avbd_visit_joint_row(inout RigidConstraintResource joint,
                     multiply(arm, rigid_avbd_component(axis, column))),
                     0.5f), multiply(rigid_avbd_basis_axis(column),
                         dot(axis, arm)));
-                block.h[3u + column][3u + column] +=
+                block.h[avbdBlockIndex(
+                    3u + column, 3u + column)] +=
                     abs(force) * sqrt(length_squared(value));
             }
         }
@@ -957,7 +958,7 @@ void prepare_avbd_kernel(
             max(parameters[bodyIndex].inverse_mass, 1.0e-12f);
         for (uint axis = 0u; axis < 3u; ++axis)
         {
-            body.inertia.h[axis][axis] = mass / (dt * dt);
+            body.inertia.h[avbdBlockIndex(axis, axis)] = mass / (dt * dt);
             Vec3 localAxis = inverse_rotate(states[bodyIndex].orientation,
                 rigid_avbd_basis_axis(axis));
             Vec3 column = rotate(states[bodyIndex].orientation, {
@@ -968,7 +969,8 @@ void prepare_avbd_kernel(
                 localAxis.z / max(
                     parameters[bodyIndex].inverse_inertia_local.z, 1.0e-12f)});
             for (uint row = axis; row < 3u; ++row)
-                body.inertia.h[3u + row][3u + axis] =
+                body.inertia.h[avbdBlockIndex(
+                    3u + row, 3u + axis)] =
                     rigid_avbd_component(column, row) / (dt * dt);
         }
         bodies[bodyIndex] = body;

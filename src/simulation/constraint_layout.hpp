@@ -8,6 +8,12 @@
 
 namespace parallel_mater::avbd {
 
+#if defined(__CUDACC__)
+#define PM_AVBD_LAYOUT_INLINE __host__ __device__ constexpr
+#else
+#define PM_AVBD_LAYOUT_INLINE constexpr
+#endif
+
 inline constexpr float alpha = 0.99F;
 inline constexpr float gamma = 0.999F;
 inline constexpr float minimum_penalty = 1.0F;
@@ -31,8 +37,40 @@ struct Vector6 {
     float v[6]{};
 };
 
+struct Symmetric6 {
+    float values[21]{};
+
+    PM_AVBD_LAYOUT_INLINE static unsigned index(
+        unsigned row, unsigned column) noexcept {
+        const unsigned high = row > column ? row : column;
+        const unsigned low = row > column ? column : row;
+        return high * (high + 1U) / 2U + low;
+    }
+    struct Row {
+        float *values;
+        unsigned row;
+        PM_AVBD_LAYOUT_INLINE float &operator[](unsigned column) const noexcept {
+            return values[index(row, column)];
+        }
+    };
+    struct ConstRow {
+        const float *values;
+        unsigned row;
+        PM_AVBD_LAYOUT_INLINE const float &operator[](
+            unsigned column) const noexcept {
+            return values[index(row, column)];
+        }
+    };
+    PM_AVBD_LAYOUT_INLINE Row operator[](unsigned row) noexcept {
+        return {values, row};
+    }
+    PM_AVBD_LAYOUT_INLINE ConstRow operator[](unsigned row) const noexcept {
+        return {values, row};
+    }
+};
+
 struct Block {
-    float h[6][6]{};
+    Symmetric6 h{};
     float g[6]{};
 };
 
@@ -49,3 +87,5 @@ struct Row {
 };
 
 } // namespace parallel_mater::avbd
+
+#undef PM_AVBD_LAYOUT_INLINE

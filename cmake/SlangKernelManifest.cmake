@@ -50,6 +50,13 @@ set(PARALLEL_MATER_SLANG_geometry_constraints_ENTRIES
 set(PARALLEL_MATER_SLANG_geometry_constraints_DEFINITIONS
     PM_GEOMETRY_CONSTRAINTS_ADAPTER=1)
 
+# Solve-only Vulkan specialization for small contact-only rigid workloads.
+# It stays outside the cross-backend module inventory.
+set(PARALLEL_MATER_SLANG_geometry_constraints_schur_ENTRIES
+    solve_avbd_kernel)
+set(PARALLEL_MATER_SLANG_geometry_constraints_schur_DEFINITIONS
+    PM_GEOMETRY_CONSTRAINTS_ADAPTER=1 PM_AVBD_SCHUR_MODULE=1)
+
 set(PARALLEL_MATER_SLANG_queries_ENTRIES
     export_fluid_particles export_cloth_vertices export_surface_positions
     export_rope_nodes export_soft_body_nodes export_smoke_particles

@@ -13,6 +13,15 @@ void rigid_avbd_barrier()
     else pmGridBarrier();
 }
 
+bool rigid_avbd_solve_block(AvbdBlock block, out AvbdVector6 delta)
+{
+#if PM_AVBD_SCHUR_MODULE
+    return avbdSolveSchur(block, delta);
+#else
+    return avbdSolve(block, delta);
+#endif
+}
+
 // The iterative hinge rows keep motion tangent to the anchor, while the finite
 // quaternion update follows the chord of that motion. Remove the
 // resulting positional residue once per substep so off-centre hinges do not
@@ -184,8 +193,8 @@ void rigid_avbd_solve_stage(
             AvbdVector6 displacement = bodies[bodyIndex].displacement;
             for (uint row = 0u; row < 6u; ++row)
                 for (uint column = 0u; column < 6u; ++column)
-                    block.g[row] += block.h[
-                        max(row, column)][min(row, column)] *
+                    block.g[row] +=
+                        block.h[avbdBlockIndex(row, column)] *
                         displacement.values[column];
             for (uint active = bodies[bodyIndex].contact_head;
                  active != kInvalidDense;)
@@ -268,7 +277,7 @@ void rigid_avbd_solve_stage(
                     : joints[jointIndex].avbd_next_b;
             }
             AvbdVector6 update = avbdZeroVector6();
-            if (avbdSolve(block, update))
+            if (rigid_avbd_solve_block(block, update))
             {
                 bool crossing = false;
                 for (uint active = bodies[bodyIndex].contact_head;
@@ -309,7 +318,7 @@ void rigid_avbd_solve_stage(
                 if (crossing)
                 {
                     AvbdVector6 safeguarded = avbdZeroVector6();
-                    if (avbdSolve(block, safeguarded))
+                    if (rigid_avbd_solve_block(block, safeguarded))
                         update = safeguarded;
                 }
                 if (phase == 0u)

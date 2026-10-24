@@ -29,6 +29,18 @@ def profile(schedule, submission, final, dispatches, gpu_ms, phases,
 
 
 class VulkanScheduleProfileTests(unittest.TestCase):
+    def test_parse_chunked_profile(self):
+        record = profile(4, 1, True, 2, 3.0, [])
+        payload = json.dumps(record, separators=(",", ":"))
+        split = len(payload) // 2
+        log = "\n".join((
+            "I ParallelMater: VulkanScheduleProfileChunk 9 1/2 " +
+            payload[:split],
+            "I ParallelMater: VulkanScheduleProfileChunk 9 2/2 " +
+            payload[split:],
+        ))
+        self.assertEqual(MODULE.parse_profiles(log), [record])
+
     def test_parse_and_aggregate_split_submission(self):
         phases = [{"name": "rigid_integration", "gpu_ms": 2.0,
                    "dispatches": 3, "declared_launches": 3,

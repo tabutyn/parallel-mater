@@ -5,6 +5,9 @@
 #ifndef PM_GEOMETRY_CONSTRAINTS_ADAPTER
 #define PM_GEOMETRY_CONSTRAINTS_ADAPTER 0
 #endif
+#ifndef PM_AVBD_SCHUR_MODULE
+#define PM_AVBD_SCHUR_MODULE 0
+#endif
 static const float kAvbdAlpha = 0.99f;
 static const float kAvbdGamma = 0.999f;
 static const float kAvbdMinimumPenalty = 1.0f;
@@ -124,20 +127,27 @@ float avbdDot6(AvbdVector6 a, AvbdVector6 b)
 
 struct AvbdBlock
 {
-    float h[6][6];
+    // Symmetric lower triangle: row * (row + 1) / 2 + column.
+    // The solver never consumes the redundant upper triangle; packing it
+    // reduces mobile shader private storage from 42 to 27 floats per block.
+    float h[21];
     float g[6];
 };
+
+uint avbdBlockIndex(uint row, uint column)
+{
+    uint high = max(row, column);
+    uint low = min(row, column);
+    return high * (high + 1u) / 2u + low;
+}
 
 AvbdBlock avbdZeroBlock()
 {
     AvbdBlock result;
     [ForceUnroll]
-    for (uint i = 0; i < 6; ++i)
-    {
-        result.g[i] = 0.0f;
-        [ForceUnroll]
-        for (uint j = 0; j < 6; ++j) result.h[i][j] = 0.0f;
-    }
+    for (uint i = 0; i < 6; ++i) result.g[i] = 0.0f;
+    [ForceUnroll]
+    for (uint i = 0; i < 21; ++i) result.h[i] = 0.0f;
     return result;
 }
 
@@ -150,7 +160,7 @@ void avbdAddRow(inout AvbdBlock block, AvbdVector6 jacobian,
         block.g[i] += jacobian.values[i] * rowForce;
         [loop]
         for (uint j = 0; j <= i; ++j)
-            block.h[i][j] += stiffness
+            block.h[avbdBlockIndex(i, j)] += stiffness
                 * jacobian.values[i] * jacobian.values[j];
     }
 }
@@ -165,11 +175,13 @@ bool avbdSolve(AvbdBlock input, out AvbdVector6 delta)
     [ForceUnroll]
     for (uint i = 0; i < 6; ++i)
     {
-        if (!(input.h[i][i] > 0.0f) || !(input.h[i][i] < largest)
-            || !(avbdAbs(input.g[i]) < largest)) return false;
+        if (!(input.h[avbdBlockIndex(i, i)] > 0.0f) ||
+            !(input.h[avbdBlockIndex(i, i)] < largest) ||
+            !(avbdAbs(input.g[i]) < largest)) return false;
         [loop]
         for (uint j = 0; j < i; ++j)
-            if (!(avbdAbs(input.h[i][j]) < largest)) return false;
+            if (!(avbdAbs(input.h[avbdBlockIndex(i, j)]) < largest))
+                return false;
     }
     [ForceUnroll]
     for (uint attempt = 0; attempt < 2; ++attempt)
@@ -181,7 +193,8 @@ bool avbdSolve(AvbdBlock input, out AvbdVector6 delta)
         [ForceUnroll]
         for (uint i = 0; i < 6; ++i)
         {
-            scale[i] = attempt != 0 ? rsqrt(block.h[i][i]) : 1.0f;
+            scale[i] = attempt != 0
+                ? rsqrt(block.h[avbdBlockIndex(i, i)]) : 1.0f;
             diagonalFactors[i] = 0.0f;
             forward[i] = 0.0f;
         }
@@ -195,11 +208,11 @@ bool avbdSolve(AvbdBlock input, out AvbdVector6 delta)
                 [loop]
                 for (uint j = 0; j < i; ++j)
                 {
-                    block.h[i][j] *= scale[i] * scale[j];
-                    if (!(avbdAbs(block.h[i][j])
+                    block.h[avbdBlockIndex(i, j)] *= scale[i] * scale[j];
+                    if (!(avbdAbs(block.h[avbdBlockIndex(i, j)])
                           <= 1.0f + roundoffTolerance)) return false;
                 }
-                block.h[i][i] = 1.0f;
+                block.h[avbdBlockIndex(i, i)] = 1.0f;
             }
         }
         bool retry = false;
@@ -209,21 +222,23 @@ bool avbdSolve(AvbdBlock input, out AvbdVector6 delta)
             [loop]
             for (uint j = 0; j < i; ++j)
             {
-                float sum = block.h[i][j];
+                float sum = block.h[avbdBlockIndex(i, j)];
                 [loop]
                 for (uint k = 0; k < j; ++k)
-                    sum -= block.h[i][k] * diagonalFactors[k]
-                         * block.h[j][k];
-                block.h[i][j] = sum / diagonalFactors[j];
+                    sum -= block.h[avbdBlockIndex(i, k)] * diagonalFactors[k]
+                         * block.h[avbdBlockIndex(j, k)];
+                block.h[avbdBlockIndex(i, j)] = sum / diagonalFactors[j];
             }
-            float diagonal = block.h[i][i];
+            float diagonal = block.h[avbdBlockIndex(i, i)];
             [loop]
             for (uint k = 0; k < i; ++k)
-                diagonal -= block.h[i][k] * block.h[i][k]
+                diagonal -= block.h[avbdBlockIndex(i, k)] *
+                            block.h[avbdBlockIndex(i, k)]
                           * diagonalFactors[k];
             if (attempt == 0)
             {
-                if (!(diagonal > pivotFloor * input.h[i][i])
+                if (!(diagonal > pivotFloor *
+                        input.h[avbdBlockIndex(i, i)])
                     || !(diagonal < largest))
                 {
                     retry = true;
@@ -240,7 +255,7 @@ bool avbdSolve(AvbdBlock input, out AvbdVector6 delta)
             forward[i] = -block.g[i];
             [loop]
             for (uint k = 0; k < i; ++k)
-                forward[i] -= block.h[i][k] * forward[k];
+                forward[i] -= block.h[avbdBlockIndex(i, k)] * forward[k];
         }
         if (retry) continue;
         [ForceUnroll]
@@ -249,7 +264,8 @@ bool avbdSolve(AvbdBlock input, out AvbdVector6 delta)
             delta.values[i] = forward[i] / diagonalFactors[i];
             [loop]
             for (uint k = uint(i) + 1; k < 6; ++k)
-                delta.values[i] -= block.h[k][i] * delta.values[k];
+                delta.values[i] -=
+                    block.h[avbdBlockIndex(k, uint(i))] * delta.values[k];
         }
         [ForceUnroll]
         for (uint i = 0; i < 6; ++i)
@@ -261,6 +277,141 @@ bool avbdSolve(AvbdBlock input, out AvbdVector6 delta)
     }
     return false;
 }
+
+#if PM_AVBD_SCHUR_MODULE
+struct AvbdSymmetric3
+{
+    float xx;
+    float yx;
+    float yy;
+    float zx;
+    float zy;
+    float zz;
+};
+
+struct AvbdVector3
+{
+    float x;
+    float y;
+    float z;
+};
+
+bool avbdInverseSymmetric3(AvbdSymmetric3 value, out AvbdSymmetric3 inverse)
+{
+    const float largest = 3.402823466e38f;
+    inverse.xx = value.yy * value.zz - value.zy * value.zy;
+    inverse.yx = value.zx * value.zy - value.yx * value.zz;
+    inverse.yy = value.xx * value.zz - value.zx * value.zx;
+    inverse.zx = value.yx * value.zy - value.zx * value.yy;
+    inverse.zy = value.yx * value.zx - value.xx * value.zy;
+    inverse.zz = value.xx * value.yy - value.yx * value.yx;
+    float determinant = value.xx * inverse.xx + value.yx * inverse.yx +
+        value.zx * inverse.zx;
+    if (!(determinant > 0.0f) || !(determinant < largest)) return false;
+    float reciprocal = 1.0f / determinant;
+    inverse.xx *= reciprocal;
+    inverse.yx *= reciprocal;
+    inverse.yy *= reciprocal;
+    inverse.zx *= reciprocal;
+    inverse.zy *= reciprocal;
+    inverse.zz *= reciprocal;
+    return avbdAbs(inverse.xx) < largest &&
+        avbdAbs(inverse.yx) < largest && avbdAbs(inverse.yy) < largest &&
+        avbdAbs(inverse.zx) < largest && avbdAbs(inverse.zy) < largest &&
+        avbdAbs(inverse.zz) < largest;
+}
+
+AvbdVector3 avbdMultiplySymmetric3(AvbdSymmetric3 value, AvbdVector3 vector)
+{
+    return AvbdVector3(
+        value.xx * vector.x + value.yx * vector.y + value.zx * vector.z,
+        value.yx * vector.x + value.yy * vector.y + value.zy * vector.z,
+        value.zx * vector.x + value.zy * vector.y + value.zz * vector.z);
+}
+
+float avbdDot3(AvbdVector3 a, AvbdVector3 b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+// Exact block elimination of the same symmetric 6x6 system. A scaled
+// backward-error check retains the established LDLT path for numerically
+// awkward matrices.
+bool avbdSolveSchur(AvbdBlock input, out AvbdVector6 delta)
+{
+    const float largest = 3.402823466e38f;
+    const float epsilon = 1.1920928955078125e-7f;
+    [loop]
+    for (uint i = 0u; i < 6u; ++i)
+        if (!(input.h[avbdBlockIndex(i, i)] > 0.0f) ||
+            !(input.h[avbdBlockIndex(i, i)] < largest) ||
+            !(avbdAbs(input.g[i]) < largest))
+            return avbdSolve(input, delta);
+    [loop]
+    for (uint i = 0u; i < 21u; ++i)
+        if (!(avbdAbs(input.h[i]) < largest))
+            return avbdSolve(input, delta);
+
+    AvbdSymmetric3 inverseA;
+    if (!avbdInverseSymmetric3(AvbdSymmetric3(
+            input.h[0], input.h[1], input.h[2],
+            input.h[3], input.h[4], input.h[5]), inverseA))
+        return avbdSolve(input, delta);
+    AvbdVector3 b0 = AvbdVector3(input.h[6], input.h[7], input.h[8]);
+    AvbdVector3 b1 = AvbdVector3(input.h[10], input.h[11], input.h[12]);
+    AvbdVector3 b2 = AvbdVector3(input.h[15], input.h[16], input.h[17]);
+    AvbdVector3 q0 = avbdMultiplySymmetric3(inverseA, b0);
+    AvbdVector3 q1 = avbdMultiplySymmetric3(inverseA, b1);
+    AvbdVector3 q2 = avbdMultiplySymmetric3(inverseA, b2);
+    AvbdSymmetric3 inverseS;
+    if (!avbdInverseSymmetric3(AvbdSymmetric3(
+            input.h[9] - avbdDot3(b0, q0),
+            input.h[13] - avbdDot3(b1, q0),
+            input.h[14] - avbdDot3(b1, q1),
+            input.h[18] - avbdDot3(b2, q0),
+            input.h[19] - avbdDot3(b2, q1),
+            input.h[20] - avbdDot3(b2, q2)), inverseS))
+        return avbdSolve(input, delta);
+
+    AvbdVector3 upper = avbdMultiplySymmetric3(inverseA,
+        AvbdVector3(-input.g[0], -input.g[1], -input.g[2]));
+    AvbdVector3 lower = avbdMultiplySymmetric3(inverseS, AvbdVector3(
+        -input.g[3] - avbdDot3(b0, upper),
+        -input.g[4] - avbdDot3(b1, upper),
+        -input.g[5] - avbdDot3(b2, upper)));
+    upper.x -= q0.x * lower.x + q1.x * lower.y + q2.x * lower.z;
+    upper.y -= q0.y * lower.x + q1.y * lower.y + q2.y * lower.z;
+    upper.z -= q0.z * lower.x + q1.z * lower.y + q2.z * lower.z;
+    delta.values[0] = upper.x;
+    delta.values[1] = upper.y;
+    delta.values[2] = upper.z;
+    delta.values[3] = lower.x;
+    delta.values[4] = lower.y;
+    delta.values[5] = lower.z;
+
+    float maximumResidual = 0.0f;
+    float maximumScale = 1.0f;
+    [loop]
+    for (uint row = 0u; row < 6u; ++row)
+    {
+        float residual = input.g[row];
+        float scale = avbdAbs(input.g[row]);
+        [loop]
+        for (uint column = 0u; column < 6u; ++column)
+        {
+            float term = input.h[avbdBlockIndex(row, column)] *
+                delta.values[column];
+            residual += term;
+            scale += avbdAbs(term);
+        }
+        maximumResidual = avbdMax(maximumResidual, avbdAbs(residual));
+        maximumScale = avbdMax(maximumScale, scale);
+    }
+    if (!(maximumResidual <= 256.0f * epsilon * maximumScale))
+        return avbdSolve(input, delta);
+    return true;
+}
+#endif
 
 struct AvbdRow
 {
@@ -375,9 +526,10 @@ void avbdConformanceMain(uint3 threadId : SV_DispatchThreadID)
         for (uint i = 0; i < 6; ++i)
         {
             block.g[i] = input.values[36 + i];
-            [ForceUnroll]
-            for (uint j = 0; j < 6; ++j)
-                block.h[i][j] = input.values[i * 6 + j];
+            [loop]
+            for (uint j = 0; j <= i; ++j)
+                block.h[avbdBlockIndex(i, j)] =
+                    input.values[i * 6 + j];
         }
         AvbdVector6 delta;
         output.solved = avbdSolve(block, delta) ? 1 : 0;
@@ -434,7 +586,8 @@ void avbdConformanceMain(uint3 threadId : SV_DispatchThreadID)
         float dt = input.values[34];
         AvbdBlock block = avbdZeroBlock();
         [ForceUnroll]
-        for (uint i = 0; i < 6; ++i) block.h[i][i] = input.values[35 + i];
+        for (uint i = 0; i < 6; ++i)
+            block.h[avbdBlockIndex(i, i)] = input.values[35 + i];
         avbdAccumulate(block, row, input.values[41] != 0.0f, a, b, dt);
         AvbdRow advanced = avbdAdvance(row, a, b);
         output.values[0] = avbdRowError(row, a, b);
@@ -448,7 +601,7 @@ void avbdConformanceMain(uint3 threadId : SV_DispatchThreadID)
         for (uint i = 0; i < 6; ++i)
         {
             gradientSum += block.g[i];
-            diagonalSum += block.h[i][i];
+            diagonalSum += block.h[avbdBlockIndex(i, i)];
         }
         output.values[5] = gradientSum;
         output.values[6] = diagonalSum;
