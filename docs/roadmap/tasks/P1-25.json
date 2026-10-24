@@ -1,7 +1,7 @@
 {
   "id": "P1-25",
   "title": "Expose soft-body contact scopes",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "P1-02"
   ],
@@ -17,15 +17,33 @@
     "Registry, generated API and specification distinguish intrinsic self contact from separate-system surface contact.",
     "Validation rejects invalid topology, duplicate/reversed edges and unsupported requests atomically."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "fea27cc4-6dde-49f2-920a-df7e6cb3ecbc",
-    "owner": "codex-macos-p125",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/P1-25/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-24T18:32:33Z",
-    "heartbeat_at": "2026-10-24T18:32:33Z",
-    "expires_at": "2026-10-25T18:32:33Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: tracked API and graph tests via ctest --test-dir /private/tmp/parallel-mater-p125-build --output-on-failure -j 4; 93/93 passed with 14 expected unadvertised CPU-domain skips; AppleClang 21/macOS ARM64.",
+    "PASS: tracked soft-body contact contract and graph-validation tests against Apple M4 Metal; invalid topology and reversed, duplicate, and unsupported requests preserved usable prior state.",
+    "PASS: exact CPython 3.13.15 reference check generated deterministic tracked API, specification, PDF, and ABI artifacts; 6 C11/C++17 ABI checks passed.",
+    "PASS: conformance evidence-index, manifest-sync, and qualification unit suites; 42 tests passed and both new soft-body contact capabilities remain unadvertised."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "fea27cc4-6dde-49f2-920a-df7e6cb3ecbc",
+        "owner": "codex-macos-p125",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/P1-25/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-24T18:32:33Z",
+        "heartbeat_at": "2026-10-24T18:32:33Z",
+        "expires_at": "2026-10-25T18:32:33Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-24T18:51:32Z",
+      "reason": "Exposed versioned soft-body self-contact and pair-edge contracts with closed-surface and atomic graph validation while retaining unsupported capability advertisement.",
+      "evidence": [
+        "PASS: tracked API and graph tests via ctest --test-dir /private/tmp/parallel-mater-p125-build --output-on-failure -j 4; 93/93 passed with 14 expected unadvertised CPU-domain skips; AppleClang 21/macOS ARM64.",
+        "PASS: tracked soft-body contact contract and graph-validation tests against Apple M4 Metal; invalid topology and reversed, duplicate, and unsupported requests preserved usable prior state.",
+        "PASS: exact CPython 3.13.15 reference check generated deterministic tracked API, specification, PDF, and ABI artifacts; 6 C11/C++17 ABI checks passed.",
+        "PASS: conformance evidence-index, manifest-sync, and qualification unit suites; 42 tests passed and both new soft-body contact capabilities remain unadvertised."
+      ]
+    }
+  ]
 }

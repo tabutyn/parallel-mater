@@ -651,7 +651,8 @@ SECTIONS += [
                 PM_COUPLING_SMOKE_CLOTH = 10,
                 PM_COUPLING_SMOKE_ROPE = 11,
                 PM_COUPLING_SMOKE_SOFT_BODY = 12,
-                PM_COUPLING_SMOKE_SMOKE = 13
+                PM_COUPLING_SMOKE_SMOKE = 13,
+                PM_COUPLING_SOFT_BODY_SOFT_BODY = 14
             } PmCouplingType;
             typedef struct PmMechanicalCouplingState {
                 float contactDistance;
@@ -922,6 +923,27 @@ SECTIONS += [
                 const uint32_t* pSurfaceTriangleIndices;
                 const PmSoftBodySurfaceBinding* pSurfaceBindings;
             } PmSoftBodyInfo;
+            typedef struct PmSoftBodyStateInfo {
+                PmStructureType sType;
+                const void* pNext;
+                PmBool32 active;
+                uint32_t materialIndex;
+                uint32_t nodeCount;
+                const PmFloat3* pNodes;
+                uint32_t bondCount;
+                const PmSoftBodyBond* pBonds;
+                const float* pInverseMasses;
+                uint32_t surfaceVertexCount;
+                const PmFloat3* pSurfaceVertices;
+                uint32_t surfaceTriangleIndexCount;
+                const uint32_t* pSurfaceTriangleIndices;
+                const PmSoftBodySurfaceBinding* pSurfaceBindings;
+            } PmSoftBodyStateInfo;
+            typedef struct PmSoftBodySelfContactState {
+                PmStructureType sType;
+                const void* pNext;
+                PmBool32 enabled;
+            } PmSoftBodySelfContactState;
             typedef struct PmSoftBodyNodeState {
                 PmFloat3 position;
                 PmFloat3 velocity;
@@ -934,13 +956,16 @@ SECTIONS += [
             PmResult pmCmdWriteSoftBodies(PmCommandBuffer commandBuffer,
                 PmSimulation simulation, uint32_t firstSoftBody,
                 uint32_t count, const PmSoftBodyInfo* pSoftBodies);
+            PmResult pmCmdWriteSoftBodies2(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t firstSoftBody,
+                uint32_t count, const PmSoftBodyStateInfo* pSoftBodies);
             PmResult pmCmdCopySoftBodyState(PmCommandBuffer commandBuffer,
                 PmSimulation simulation, uint32_t softBodyIndex,
                 const PmBufferRange* pDestination);
             PmResult pmCmdCopySoftBodySurface(PmCommandBuffer commandBuffer,
                 PmSimulation simulation, uint32_t softBodyIndex,
                 const PmBufferRange* pDestination);
-        """),
+        """, text="PmSoftBodyInfo is the API 0.2 descriptor. PmSoftBodyStateInfo is the ABI-compatible extensible write path and copies the same resource data. Its pNext is NULL unless intrinsic surface self-contact is requested by chaining exactly one PmSoftBodySelfContactState. enabled is PM_FALSE or PM_TRUE; PM_FALSE preserves ordinary soft-body behavior and PM_TRUE requests the exact (soft body, soft body, self, contact, bidirectional, endpoint-native) capability. Unknown or nested state is invalid. The self-contact request requires a finite, consistently wound, closed two-manifold surface with distinct, nondegenerate triangle vertices and valid normalized bindings. Invalid topology returns INVALID_ARGUMENT before any write is recorded. A valid enabled request returns FEATURE_NOT_PRESENT until its operator and driver qualification tasks advertise the capability, without replacing live state.<br/><br/>A separate-system surface-contact edge uses PM_COUPLING_SOFT_BODY_SOFT_BODY through PmCouplingStateInfo with first &lt; second, CONTACT and ENDPOINT_NATIVE. It consumes simulation coupling capacity and requests the exact separate-system capability. Duplicate or reversed endpoints are invalid; a well-formed edge remains FEATURE_NOT_PRESENT until advertised. Intrinsic self-contact consumes no graph edge, and neither request implies attachment, containment or volume inversion prevention."),
         c("smoke_resources", "Smoke resources", types="""
             typedef struct PmSmokeInfo {
                 PmBool32 active;

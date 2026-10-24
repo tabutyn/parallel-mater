@@ -24,6 +24,7 @@ class Device:
         self.serial = serial
         self.output = output
         self.timeout = timeout
+        self.system_dialog_recoveries = []
 
     def run(self, *command, binary=False):
         result = subprocess.run(
@@ -54,27 +55,44 @@ class Device:
             if (node.get("package") == "android" and
                 node.get("text") in RECOVERABLE_SYSTEM_DIALOGS)
         ]
-        wait_buttons = [
+        close_buttons = [
             node for node in tree.iter()
-            if node.get("package") == "android" and self.matches(node, "Wait")
+            if (node.get("package") == "android" and
+                node.get("resource-id") == "android:id/aerr_close" and
+                self.matches(node, "Close app"))
         ]
-        if not titles or not wait_buttons:
+        if not titles or not close_buttons:
             return False
         title = titles[0].get("text")
-        self.tap_node(wait_buttons[0], title)
-        print(f"Dismissed transient Android system dialog: {title}", flush=True)
+        if self.system_dialog_recoveries:
+            raise RuntimeError(f"Android launcher ANR recurred after recovery: {title}")
+        # Waiting reschedules the same launcher ANR dialog, which can consume
+        # a Gallery tap between hierarchy capture and input injection. Close
+        # only this recognized system launcher dialog, once per test run.
+        ET.ElementTree(tree).write(
+            self.output / "recovered-launcher-anr.xml", encoding="utf-8",
+            xml_declaration=True)
+        self.tap_node(close_buttons[0], title)
+        self.system_dialog_recoveries.append(title)
+        print(f"Closed unresponsive Android launcher: {title}", flush=True)
         return True
 
     def wait_node(self, value, present=True):
         deadline = time.monotonic() + self.timeout
         last = None
+        failure = None
         while time.monotonic() < deadline:
             try:
                 last = self.hierarchy()
             except (subprocess.CalledProcessError, ET.ParseError):
                 time.sleep(1)
                 continue
-            if self.dismiss_recoverable_system_dialog(last):
+            try:
+                recovered = self.dismiss_recoverable_system_dialog(last)
+            except RuntimeError as error:
+                failure = error
+                break
+            if recovered:
                 time.sleep(1)
                 continue
             matches = [node for node in last.iter() if self.matches(node, value)]
@@ -94,6 +112,8 @@ class Device:
         except subprocess.CalledProcessError:
             pass
         state = "appear" if present else "disappear"
+        if failure is not None:
+            raise failure
         raise RuntimeError(f"Timed out waiting for {value!r} to {state}")
 
     def tap(self, value):
@@ -332,6 +352,7 @@ def main():
             "runner_sha256": runner_sha256,
         },
         "result": "pass",
+        "system_dialog_recoveries": device.system_dialog_recoveries,
         "accessibility": {
             "clickable_controls_named": True,
             "checked_internal_terms": list(INTERNAL_TERMS),

@@ -1,4 +1,4 @@
-<!-- Generated from registry/pm.xml sha256:a9d8f5ed8c0a1a075c3f0ac50dbe9914db9a3dcf1abae2524a4a5fd97fc1344d -->
+<!-- Generated from registry/pm.xml sha256:c203b18faa0a05f5bc4dc393dc22a23e6191bb3f62d230529b1edb76f3649b4c -->
 
 # Parallel Mater 0.2 — API Specification
 
@@ -1194,7 +1194,8 @@ typedef enum PmCouplingType {
     PM_COUPLING_SMOKE_CLOTH = 10,
     PM_COUPLING_SMOKE_ROPE = 11,
     PM_COUPLING_SMOKE_SOFT_BODY = 12,
-    PM_COUPLING_SMOKE_SMOKE = 13
+    PM_COUPLING_SMOKE_SMOKE = 13,
+    PM_COUPLING_SOFT_BODY_SOFT_BODY = 14
 } PmCouplingType;
 typedef struct PmMechanicalCouplingState {
     float contactDistance;
@@ -1536,6 +1537,27 @@ typedef struct PmSoftBodyInfo {
     const uint32_t* pSurfaceTriangleIndices;
     const PmSoftBodySurfaceBinding* pSurfaceBindings;
 } PmSoftBodyInfo;
+typedef struct PmSoftBodyStateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    PmBool32 active;
+    uint32_t materialIndex;
+    uint32_t nodeCount;
+    const PmFloat3* pNodes;
+    uint32_t bondCount;
+    const PmSoftBodyBond* pBonds;
+    const float* pInverseMasses;
+    uint32_t surfaceVertexCount;
+    const PmFloat3* pSurfaceVertices;
+    uint32_t surfaceTriangleIndexCount;
+    const uint32_t* pSurfaceTriangleIndices;
+    const PmSoftBodySurfaceBinding* pSurfaceBindings;
+} PmSoftBodyStateInfo;
+typedef struct PmSoftBodySelfContactState {
+    PmStructureType sType;
+    const void* pNext;
+    PmBool32 enabled;
+} PmSoftBodySelfContactState;
 typedef struct PmSoftBodyNodeState {
     PmFloat3 position;
     PmFloat3 velocity;
@@ -1550,6 +1572,9 @@ typedef struct PmSoftBodyNodeState {
 PmResult pmCmdWriteSoftBodies(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t firstSoftBody,
     uint32_t count, const PmSoftBodyInfo* pSoftBodies);
+PmResult pmCmdWriteSoftBodies2(PmCommandBuffer commandBuffer,
+    PmSimulation simulation, uint32_t firstSoftBody,
+    uint32_t count, const PmSoftBodyStateInfo* pSoftBodies);
 PmResult pmCmdCopySoftBodyState(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t softBodyIndex,
     const PmBufferRange* pDestination);
@@ -1557,6 +1582,10 @@ PmResult pmCmdCopySoftBodySurface(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t softBodyIndex,
     const PmBufferRange* pDestination);
 ```
+
+PmSoftBodyInfo is the API 0.2 descriptor. PmSoftBodyStateInfo is the ABI-compatible extensible write path and copies the same resource data. Its pNext is NULL unless intrinsic surface self-contact is requested by chaining exactly one PmSoftBodySelfContactState. enabled is PM_FALSE or PM_TRUE; PM_FALSE preserves ordinary soft-body behavior and PM_TRUE requests the exact (soft body, soft body, self, contact, bidirectional, endpoint-native) capability. Unknown or nested state is invalid. The self-contact request requires a finite, consistently wound, closed two-manifold surface with distinct, nondegenerate triangle vertices and valid normalized bindings. Invalid topology returns INVALID_ARGUMENT before any write is recorded. A valid enabled request returns FEATURE_NOT_PRESENT until its operator and driver qualification tasks advertise the capability, without replacing live state.
+
+A separate-system surface-contact edge uses PM_COUPLING_SOFT_BODY_SOFT_BODY through PmCouplingStateInfo with first < second, CONTACT and ENDPOINT_NATIVE. It consumes simulation coupling capacity and requests the exact separate-system capability. Duplicate or reversed endpoints are invalid; a well-formed edge remains FEATURE_NOT_PRESENT until advertised. Intrinsic self-contact consumes no graph edge, and neither request implies attachment, containment or volume inversion prevention.
 
 <a id="spec-smoke_resources"></a>
 
@@ -2861,6 +2890,8 @@ typedef enum PmStructureType {
     PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_COUPLING_STATE_INFO = 17,
     PM_STRUCTURE_TYPE_FLUID_INTERFACE_STATE = 18,
     PM_STRUCTURE_TYPE_SIMULATION_PROFILE_CREATE_INFO = 19,
+    PM_STRUCTURE_TYPE_SOFT_BODY_STATE_INFO = 20,
+    PM_STRUCTURE_TYPE_SOFT_BODY_SELF_CONTACT_STATE = 21,
 } PmStructureType;
 ```
 
@@ -2936,6 +2967,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmCmdWriteRopes | [10.3](#spec-rope_resources) |
 | pmCmdWriteSmoke | [10.5](#spec-smoke_resources) |
 | pmCmdWriteSoftBodies | [10.4](#spec-soft_body_resources) |
+| pmCmdWriteSoftBodies2 | [10.4](#spec-soft_body_resources) |
 | pmCmdWriteTimestamp | [15.2](#spec-timestamps) |
 | PmCommandBuffer | [18.1](#spec-base_types) |
 | PmCommandBufferBeginInfo | [11.2](#spec-command_buffers) |
@@ -3127,6 +3159,8 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmSoftBodyInfo | [10.4](#spec-soft_body_resources) |
 | PmSoftBodyMaterialState | [9.4](#spec-domain_materials) |
 | PmSoftBodyNodeState | [10.4](#spec-soft_body_resources) |
+| PmSoftBodySelfContactState | [10.4](#spec-soft_body_resources) |
+| PmSoftBodyStateInfo | [10.4](#spec-soft_body_resources) |
 | PmSoftBodySurfaceBinding | [10.1](#spec-domain_records) |
 | PmStageFlags | [18.1](#spec-base_types) |
 | PmStepInfo | [11.5](#spec-step) |

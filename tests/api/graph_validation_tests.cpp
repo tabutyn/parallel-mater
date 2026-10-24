@@ -155,6 +155,31 @@ int main() {
     reject_smoke(&unsupported_smoke_bundle, 1U,
                  PM_ERROR_FEATURE_NOT_PRESENT);
 
+    PmCouplingState soft_pair{};
+    soft_pair.type = PM_COUPLING_SOFT_BODY_SOFT_BODY;
+    soft_pair.first = 0U;
+    soft_pair.second = 1U;
+    soft_pair.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT;
+    soft_pair.materialProfile = PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+    reject_smoke(&soft_pair, 1U, PM_ERROR_FEATURE_NOT_PRESENT);
+
+    auto reversed_soft_pair = soft_pair;
+    reversed_soft_pair.first = 1U;
+    reversed_soft_pair.second = 0U;
+    reject_smoke(&reversed_soft_pair, 1U, PM_ERROR_INVALID_ARGUMENT);
+
+    auto self_soft_pair = soft_pair;
+    self_soft_pair.second = 0U;
+    reject_smoke(&self_soft_pair, 1U, PM_ERROR_INVALID_ARGUMENT);
+
+    const PmCouplingState duplicate_soft_pairs[2]{soft_pair, soft_pair};
+    reject_smoke(duplicate_soft_pairs, 2U, PM_ERROR_INVALID_ARGUMENT);
+
+    auto invalid_soft_bundle = soft_pair;
+    invalid_soft_bundle.modeFlags |= PM_INTERACTION_MODE_ATTACHMENT_BIT;
+    reject_smoke(&invalid_soft_bundle, 1U,
+                 PM_ERROR_FEATURE_NOT_PRESENT);
+
     PmCouplingStateInfo pair{};
     pair.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
     pair.type = PM_COUPLING_LIQUID_LIQUID;
@@ -178,6 +203,32 @@ int main() {
                  PM_SUCCESS);
         PM_CHECK(context.submit() == PM_SUCCESS);
     };
+
+    PmCouplingStateInfo soft_pair_info{};
+    soft_pair_info.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+    soft_pair_info.type = PM_COUPLING_SOFT_BODY_SOFT_BODY;
+    soft_pair_info.first = 0U;
+    soft_pair_info.second = 1U;
+    soft_pair_info.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT;
+    soft_pair_info.materialProfile =
+        PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+    reject_pair(soft_pair_info, PM_ERROR_FEATURE_NOT_PRESENT);
+
+    auto reversed_soft_pair_info = soft_pair_info;
+    reversed_soft_pair_info.first = 1U;
+    reversed_soft_pair_info.second = 0U;
+    reject_pair(reversed_soft_pair_info, PM_ERROR_INVALID_ARGUMENT);
+
+    const PmCouplingStateInfo duplicate_soft_pair_info[2]{
+        soft_pair_info, soft_pair_info};
+    context.begin();
+    PM_CHECK(pmCmdSetCouplings2(context.commands, simulation, 2U,
+                                duplicate_soft_pair_info) ==
+             PM_ERROR_INVALID_ARGUMENT);
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, empty) == PM_SUCCESS);
+    PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
+             PM_SUCCESS);
+    PM_CHECK(context.submit() == PM_SUCCESS);
 
     // Different-material profiles require one exact typed endpoint-material
     // state. Every rejected replacement leaves the prior liquid/rigid graph.

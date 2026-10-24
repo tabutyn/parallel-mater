@@ -84,6 +84,8 @@ typedef struct PmQueryPool_T* PmQueryPool;
     <type name="PmPhysicsPipelineCouplingStateInfo" value="17" />
     <type name="PmFluidInterfaceState" value="18" />
     <type name="PmSimulationProfileCreateInfo" value="19" />
+    <type name="PmSoftBodyStateInfo" value="20" />
+    <type name="PmSoftBodySelfContactState" value="21" />
   </structure-types>
   <interaction-capabilities>
     <!-- This is the reference-driver inventory.  Public records are emitted
@@ -861,7 +863,8 @@ typedef enum PmCouplingType {
     PM_COUPLING_SMOKE_CLOTH = 10,
     PM_COUPLING_SMOKE_ROPE = 11,
     PM_COUPLING_SMOKE_SOFT_BODY = 12,
-    PM_COUPLING_SMOKE_SMOKE = 13
+    PM_COUPLING_SMOKE_SMOKE = 13,
+    PM_COUPLING_SOFT_BODY_SOFT_BODY = 14
 } PmCouplingType;
 typedef struct PmMechanicalCouplingState {
     float contactDistance;
@@ -1131,6 +1134,27 @@ PmResult pmCmdCopyRopeState(PmCommandBuffer commandBuffer,
     const uint32_t* pSurfaceTriangleIndices;
     const PmSoftBodySurfaceBinding* pSurfaceBindings;
 } PmSoftBodyInfo;
+typedef struct PmSoftBodyStateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    PmBool32 active;
+    uint32_t materialIndex;
+    uint32_t nodeCount;
+    const PmFloat3* pNodes;
+    uint32_t bondCount;
+    const PmSoftBodyBond* pBonds;
+    const float* pInverseMasses;
+    uint32_t surfaceVertexCount;
+    const PmFloat3* pSurfaceVertices;
+    uint32_t surfaceTriangleIndexCount;
+    const uint32_t* pSurfaceTriangleIndices;
+    const PmSoftBodySurfaceBinding* pSurfaceBindings;
+} PmSoftBodyStateInfo;
+typedef struct PmSoftBodySelfContactState {
+    PmStructureType sType;
+    const void* pNext;
+    PmBool32 enabled;
+} PmSoftBodySelfContactState;
 typedef struct PmSoftBodyNodeState {
     PmFloat3 position;
     PmFloat3 velocity;
@@ -1142,6 +1166,9 @@ typedef struct PmSoftBodyNodeState {
       <commands>PmResult pmCmdWriteSoftBodies(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t firstSoftBody,
     uint32_t count, const PmSoftBodyInfo* pSoftBodies);
+PmResult pmCmdWriteSoftBodies2(PmCommandBuffer commandBuffer,
+    PmSimulation simulation, uint32_t firstSoftBody,
+    uint32_t count, const PmSoftBodyStateInfo* pSoftBodies);
 PmResult pmCmdCopySoftBodyState(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t softBodyIndex,
     const PmBufferRange* pDestination);

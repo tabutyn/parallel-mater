@@ -2,6 +2,7 @@
   "schema": "parallel-mater-conformance-obligations/v1",
   "id": "capability-obligations-v1",
   "compatible_obligations_sha256": [
+    "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
     "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
     "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5"
   ],
@@ -29,7 +30,7 @@
     ]
   },
   "contracts": [
-    {"id": "registry:interaction-capabilities", "path": "registry/pm.xml", "sha256": "a9d8f5ed8c0a1a075c3f0ac50dbe9914db9a3dcf1abae2524a4a5fd97fc1344d", "compatible_sha256": ["e3373207b92f7065fa2def13e53178aa56f4dc49e850bd86d5cc15cf71790d62", "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af"]},
+    {"id": "registry:interaction-capabilities", "path": "registry/pm.xml", "sha256": "c203b18faa0a05f5bc4dc393dc22a23e6191bb3f62d230529b1edb76f3649b4c", "compatible_sha256": ["a9d8f5ed8c0a1a075c3f0ac50dbe9914db9a3dcf1abae2524a4a5fd97fc1344d", "e3373207b92f7065fa2def13e53178aa56f4dc49e850bd86d5cc15cf71790d62", "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af"]},
     {"id": "case:fluid-lifecycle", "path": "conformance/v1/cases/fluid-lifecycle.json", "sha256": "43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b"},
     {"id": "case:rope-core", "path": "conformance/v1/cases/rope-core.json", "sha256": "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41"},
     {"id": "case:smoke-grid", "path": "conformance/v1/cases/smoke-grid.json", "sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3"},
