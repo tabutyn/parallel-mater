@@ -40,7 +40,7 @@ promoting those results to capability certification.
 | Distinct fluid–fluid systems | F2-05–F2-10 specify, schedule and qualify equal-material contact/pressure/viscosity with bounded pair storage, combined-population tolerances, balanced momentum, stable-ID ownership and lifecycle recovery. Linux RTX 3050 Ti CUDA qualifies all three records. Current Windows GTX 1080 CUDA independently passes the same 18/18 physical samples and fluid-pair graph lifecycle console test. | Windows CUDA lacks the exact F5-03 checkpoint artifact, so its three records remain unqualified; D3D12 and Metal do not advertise these records, and their tests skip without fallback. Different-material modes remain P1-04–P1-18, and phase transfer remains undefined. |
 | Cloth self and cloth–cloth systems | F2-12 specifies separate intrinsic self-contact and graph-owned inter-system contact identities, swept double-sided vertex-triangle/edge-edge behavior, topology exclusions, thickness, friction, conservation, tunnelling and overflow criteria. | API 0.2 exposes neither capability; typed controls, bounded contact generation, self/inter operators, scheduling and per-driver qualification remain P1-19–P1-24. |
 | Soft-body self and soft-body systems | F2-13 specifies separate intrinsic and graph-owned surface-contact identities, bound closed-surface sampling, swept primitive contact, topology exclusions, node-radius separation, friction, conservation and bounded failure behavior. | API 0.2 exposes neither capability; typed controls, bounded surface contacts, self/inter operators, scheduling and per-driver qualification remain P1-25–P1-30. Open/non-manifold skins, volume inversion and merging remain unsupported. |
-| Rope self and rope–rope systems | F2-14 narrows the API 0.2 self-contact record to sampled-node exclusion and specifies a separate future `rope-capsule` profile for continuous self/inter segment contact plus an independent endpoint attachment mode. F5-28 binds the exact sampled-node gate; P1-59 now advertises the existing rope record on D3D12 and passes `rope-self-contact-v1`, rope coupling quality/lifecycle profiles and all four 300-frame rope Gallery scenes. | P1-59 retains pinned `rope-core` and `rope-fluid` reference failures, so D3D12 rope is implemented but not blanket-qualified. Capsule contact, pair edges and rope-rope attachment remain unsupported pending P1-32–P1-38; knots, splices, sliding and interior attachments are outside this profile. |
+| Rope self and rope–rope systems | F2-14 narrows the API 0.2 self-contact record to sampled-node exclusion and specifies a separate future `rope-capsule` profile for continuous self/inter segment contact plus an independent endpoint attachment mode. P1-31 expands the exact node-only gate to cover separation, topology exclusions, fixed endpoints, momentum, capacity and long-run behavior. Current GTX 1080 CUDA, D3D12 and Vulkan pass all nine checkpoints. | Metal retains general rope support but no longer advertises this exact record without current P1-31 evidence. P1-59's pinned `rope-core` and `rope-fluid` reference failures still prevent blanket D3D12 qualification. Capsule contact, pair edges and rope-rope attachment remain unsupported pending P1-32–P1-38; knots, splices, sliding and interior attachments are outside this profile. |
 | Smoke self and smoke–smoke systems | F2-15 specifies particle-particle, grid-grid and particle-grid profiles with separate mechanical, thermal and projection behavior; bounded overlap/neighborhood construction; fixed-point and conservation criteria; and graph lifecycle rules. F5-29 binds the exact particle/grid self-pressure records. P1-59 now advertises existing particle/grid smoke records on D3D12 and passes self-pressure, self-viscosity, cross-domain quality/lifecycle and all five 300-frame smoke Gallery scenes. | The P1-59 D3D12 smoke executions and analytic gates do not override the retained pinned-reference failures elsewhere in the 46-record driver. Broader same-family smoke-system work remains P1-39–P1-55. Combustion, chemistry, phase transfer and topology-changing guarantees remain unsupported. |
 | Common resources and engine ownership (F4, P1-59) | F4-01–F4-08 define device/allocation identities, typed access ranges, reflection-derived bindings, exact RAW/WAR/WAW ordering, common completion ownership, confidence-aware memory admission, borrowed native objects and prior/next queue handoff. P1-59 routes all existing common rope, soft-body, smoke, paint and coupling schedules through reflection-generated DXIL and the thin native D3D12 command/resource adapter; the 20-source architecture inventory rejects restored dispatch stubs. | No driver yet claims qualified imported-device/timeline interoperability. P2-01 owns the first native handoff fixture and P2-02–P2-04 own engine plugins. Adapter execution does not establish physical quality, performance or native engine adoption; those claims remain tied to their independent evidence gates. |
 
@@ -681,6 +681,34 @@ this analytic fixture cannot substitute for capacity, replacement or rollback
 evidence. Nodes separated by two topology indices or less remain excluded, and
 no continuous segment, knot, splice or inter-rope contact behavior is claimed.
 Historical and unrecaptured drivers remain unqualified.
+
+### P1-31 sampled-node rope self-contact audit
+
+Source `d452150986cae9640b0546098f1b60f606044618` adds the versioned
+`rope-self-contact-v2` profile while preserving the earlier v1 evidence. Three
+public-API fixtures cover a free folded rope for nonadjacent separation,
+topology exclusions, linear/angular momentum and 240-step stability; a folded
+rope with both endpoints fixed for 60 steps; and an exact-capacity 256-node
+rope. The result and evaluator explicitly label the claim
+`sampled-nodes-only`.
+
+Physical GTX 1080 CUDA, D3D12 and Vulkan runs each pass all nine checkpoints.
+The active nonadjacent pair moves from `0.019999999552965164 m` to
+`0.11999999507617162 m` against the `0.114 m` retained minimum. The free-rope
+linear and angular momentum residuals are `7.932681833307467e-08 kg m/s` and
+`0.0001987296751571289 kg m^2/s`; fixed endpoint drift remains below
+`3.8e-07 m`; and the 256-node exact-capacity fixture completes without topology
+loss. The [versioned P1-31 evidence](roadmap/evidence/P1-31-rope-self-contact-audit.json)
+pins the source, profile, binaries, raw public outputs and reports.
+
+The obligation matrix now binds this exact API 0.2 record to v2. CUDA, D3D12
+and Vulkan retain the advertisement after passing. Metal retains general rope
+support but withdraws only
+`ROPE/ROPE/SELF/CONTACT/BIDIRECTIONAL/ENDPOINT_NATIVE` until equivalent current
+device evidence exists. This audit does not imply continuous segment or capsule
+collision, segment-crossing prevention, high-speed continuous detection,
+self-friction, rope-pair contact or rope-rope attachment; lifecycle and
+reference-regression obligations also remain independent.
 
 ### F5-29 smoke self-pressure quality
 

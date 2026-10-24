@@ -90,6 +90,7 @@
     "conformance/v1/quality/rope-rigid-contact-v1.json": "2cd3e0ff2be4463e635bc855810b933d38c5e2b099fbb511df8360846202c9e3",
     "conformance/v1/quality/rope-rigid-attachment-v1.json": "f11a7dd5b27e5da058a4384b2154b2db6a3ee1f8c3cc94d6333b9f8d8c5fb6d0",
     "conformance/v1/quality/rope-self-contact-v1.json": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113",
+    "conformance/v1/quality/rope-self-contact-v2.json": "8860ec9a5ba0e79dc4b917eabaad88d99fb77b0d17b8575d650f43143d17b408",
     "conformance/v1/quality/rope-smoke-contact-v1.json": "821c94ef42abeb047390383ef6fd0f28476aa5880414235defb8348532bbbc7a",
     "conformance/v1/quality/smoke-rigid-contact-v1.json": "138454122bed21dccb6c30f5e7e132ba9a1131856d88396cd8171570a4337029",
     "conformance/v1/quality/soft-rigid-contact-v1.json": "2cc79bdc7ce270490c00e92dd3e00911bf10c624ed49f5c36b99d8143a96fad6",
@@ -105,11 +106,11 @@
     "conformance/v1/quality/smoke-self-viscosity-v1.json": "f8169fe25394d31597f546537376f41e546d8df27844ce1b85ac4b2129271bff"
   },
   "qualification_profile_sha256": {
-    "conformance/v1/qualification/capability-obligations-v1.json": "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99"
+    "conformance/v1/qualification/capability-obligations-v1.json": "10a0dcfe8992997855d3d12a708b5273c752b8e136aca37a502f4f455855b473"
   },
   "evidence_index_sha256": {
-    "conformance/v1/evidence/evidence-sources-v1.json": "528a887f43963291d2f3c80c349b8373ff678f67e0eeecec975100548aa061f8",
-    "conformance/v1/evidence/index-v1.json": "b62f79d4d03290264e68c01fe19dfd1a551e490c43cd31d18590176ee42812a0"
+    "conformance/v1/evidence/evidence-sources-v1.json": "942c6193473d1400041302231f5080ef83a51a5193a4f48b663ab422a10cedba",
+    "conformance/v1/evidence/index-v1.json": "81e18cca374acc25767f9049e1aea0f69e4fab09a8424b1e7a93c8ed0da10c6a"
   },
   "quality_result_schema": "parallel-mater-conformance-quality-result/v1",
   "result_schema": "parallel-mater-conformance-result/v1",
