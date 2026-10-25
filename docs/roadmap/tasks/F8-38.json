@@ -1,0 +1,24 @@
+{
+  "id": "F8-38",
+  "title": "Refreeze realtime candidate after telemetry repair",
+  "status": "open",
+  "dependencies": [
+    "F8-37"
+  ],
+  "locks": [
+    "f8-candidate-freeze"
+  ],
+  "requires": [
+    "Clean cross-platform build environment and the merged F8-37 native runtime repair"
+  ],
+  "scope": "Freeze one immutable replacement candidate from the merged F8-37 repair. Preserve realtime-single-step-v1-dea47c1 and realtime-single-step-v1-fd78fa8 as rejected history, never union their evidence with the new candidate, and prepare exact qualification routing in a planning PR before this task is claimed.",
+  "acceptance": [
+    "Publish a new immutable candidate identity with exact source, protected runtime/kernel/profile/oracle hashes, native binary hashes and complete canonical kernel-group and runtime-variant coverage.",
+    "Cross-platform build/reflection/install gates pass and the installed Slang CPU production driver executes the exact formerly failing eight-body/eight-constraint public workload without a telemetry capacity overflow.",
+    "Mark candidate v2 rejected in a separate durable record, invalidate every affected physical row, and require F8-23--30 to report only the single newly frozen candidate.",
+    "Candidate validation fails on any protected runtime, adapter binding, dispatch, schedule, telemetry, profile or public-oracle drift; F8-99 depends on both repair and refreeze leaves."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

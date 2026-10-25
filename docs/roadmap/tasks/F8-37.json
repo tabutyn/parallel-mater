@@ -1,0 +1,24 @@
+{
+  "id": "F8-37",
+  "title": "Repair native realtime telemetry envelope",
+  "status": "open",
+  "dependencies": [
+    "F8-36"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule"
+  ],
+  "requires": [
+    "Slang CPU production driver and the exact F8-23 cpu-reference-v1 workload"
+  ],
+  "scope": "Repair the protected native realtime telemetry or schedule envelope exposed by the F8-23 replacement-candidate CPU failure. Derive bounds from the actual fixed dispatch plan, preserve the frozen workload and physics contract, and do not claim physical qualification or mutate the rejected candidate manifest.",
+  "acceptance": [
+    "Reproduce the tracked realtime-single-step-v1-fd78fa8 first-tick failure with eight live/capacity rigid bodies, eight live/capacity constraints and contact capacity 2,048 before changing the implementation.",
+    "Use the same fixed native dispatch plan to derive exact worst-case dispatch and workgroup limits; do not hide work, lower counts, reduce eight solver sweeps or replace the required workload.",
+    "The installed public API completes the exact workload without capacity overflow while reporting eight numerical iterations, one spatial build/publication and one 1/60 time advance per tick; exact-boundary and one-over-limit regressions preserve atomic failure behavior.",
+    "Native CPU, telemetry, public-profile, candidate-drift and available cross-platform compile/regression gates pass; retain reviewable failure and repaired observations without treating them as F8-23 qualification evidence."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
