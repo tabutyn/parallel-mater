@@ -54,35 +54,114 @@ template <typename State>
 simulation::RealtimeTelemetryLimits native_realtime_limits(
     const State &state) noexcept {
     simulation::RealtimeTelemetryLimits limits{};
-    const auto spatial = simulation::spatial_build_dispatch_budget(
-        state.options.realtime_spatial_leaf_capacity,
-        state.options.realtime_spatial_leaf_capacity);
-    const std::uint64_t rigid = state.options.rigid_body_capacity;
-    const std::uint64_t candidates = rigid *
-        state.options.realtime_spatial_candidates_per_query;
-    const std::uint64_t staged_dispatches = rigid == 0U ? 0U :
-        std::uint64_t{simulation::rigid_realtime_sweeps} * (rigid + 1U) + 6U;
-    const std::uint64_t staged_workgroups = staged_dispatches *
-        std::max<std::uint64_t>(1U, (rigid + 31U) / 32U);
-    const auto barrier_limit = static_cast<std::uint32_t>(
-        std::min<std::uint64_t>(std::numeric_limits<std::uint32_t>::max(),
-            128U + spatial.total_dispatches + staged_dispatches));
-    simulation::RealtimeWorkCounters maximum{
-        .dispatches = 128U + spatial.total_dispatches + staged_dispatches,
-        .workgroups = 512U + spatial.total_workgroups + candidates +
-            staged_workgroups,
-        .bytes_moved = std::uint64_t{8U} * 1024U * 1024U * 1024U,
-        .index_builds = 1U,
-        .index_refits = 0U,
-        .index_publications = 1U,
-        .numerical_iterations = simulation::rigid_realtime_sweeps,
-        .barriers = barrier_limit,
-        .submissions = 1U,
-        .readbacks = 0U,
-        .host_waits = 0U,
+    auto &boundary = limits.phase_maximum[simulation::realtime_index(
+        simulation::RealtimeTelemetryPhase::boundary)];
+    auto &predict = limits.phase_maximum[simulation::realtime_index(
+        simulation::RealtimeTelemetryPhase::predict)];
+    auto &index = limits.phase_maximum[simulation::realtime_index(
+        simulation::RealtimeTelemetryPhase::index)];
+    auto &candidates = limits.phase_maximum[simulation::realtime_index(
+        simulation::RealtimeTelemetryPhase::candidates)];
+    auto &domain = limits.phase_maximum[simulation::realtime_index(
+        simulation::RealtimeTelemetryPhase::domain)];
+    auto &commit = limits.phase_maximum[simulation::realtime_index(
+        simulation::RealtimeTelemetryPhase::commit)];
+    const auto dispatch = [](simulation::RealtimeWorkCounters &work,
+                             std::uint64_t count,
+                             std::uint64_t workgroups) noexcept {
+        work.dispatches += count;
+        work.workgroups += workgroups;
+        work.barriers += static_cast<std::uint32_t>(count);
     };
-    limits.phase_maximum.fill(maximum);
-    limits.total_maximum = maximum;
+    const std::uint32_t rigid = state.rigid_body_count;
+    commit.submissions = 1U;
+    index.index_publications = 1U;
+    if (rigid == 0U) {
+#if !defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
+        dispatch(boundary, 1U, 1U);
+        index.bytes_moved = sizeof(std::uint32_t);
+        ++index.barriers;
+        dispatch(index, 1U, 1U);
+#endif
+        commit.bytes_moved = sizeof(std::uint32_t);
+        ++commit.barriers;
+    } else {
+        const std::uint64_t body_groups = (rigid + 127U) / 128U;
+        boundary.bytes_moved = sizeof(std::uint32_t) +
+            std::uint64_t{rigid} * sizeof(RigidBodyState);
+        boundary.barriers = 2U;
+#if !defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
+        dispatch(boundary, 1U, 1U);
+#endif
+        dispatch(predict, 1U, body_groups);
+        dispatch(index, 1U, body_groups);
+        index.index_builds = 1U;
+#if !defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
+        const auto spatial = simulation::spatial_build_dispatch_budget(
+            state.realtime_spatial_plan.leaf_capacity, rigid);
+        dispatch(index, 1U + spatial.total_dispatches,
+            state.realtime_spatial_plan.build.block_capacity +
+                spatial.total_workgroups);
+        if (state.realtime_spatial_plan.build.arrivals.size != 0U) {
+            index.bytes_moved +=
+                state.realtime_spatial_plan.build.arrivals.size;
+            ++index.barriers;
+        }
+        dispatch(index, 1U, 1U);
+        dispatch(candidates, 1U, (rigid + 63U) / 64U);
+#endif
+        if (state.rigid_constraint_count != 0U)
+            dispatch(candidates, 1U, 1U);
+        const auto candidate_groups =
+            (std::uint64_t{state.realtime_rigid_spatial_plan
+                               .candidate_slot_capacity} + 127U) / 128U;
+        dispatch(candidates, 1U, candidate_groups);
+        dispatch(candidates, 3U,
+            2ULL * state.realtime_rigid_spatial_plan.compaction_blocks + 1U);
+        dispatch(candidates, 1U, candidate_groups);
+
+        const auto contact_groups = std::min<std::uint64_t>(
+            128U, std::uint64_t{rigid} * rigid);
+        const bool reduces_leaf_manifolds =
+            state.rigid_leaf_manifolds != nullptr;
+        const std::uint32_t leaf_blocks = reduces_leaf_manifolds
+            ? k_rigid_leaf_blocks_per_pair : 1U;
+        const std::uint32_t avbd_grid = std::min(
+            state.rigid_contact_grid_limit,
+            std::max(1U, (rigid + 31U) / 32U));
+        const std::uint32_t constraint_capacity =
+            state.rigid_constraint_count != 0U
+                ? state.options.rigid_constraint_capacity : 0U;
+        dispatch(domain, 1U, contact_groups); // generate leaf pairs
+        dispatch(domain, 1U, contact_groups); // finalize leaf contacts
+        dispatch(domain, 1U, contact_groups * leaf_blocks);
+        if (reduces_leaf_manifolds)
+            dispatch(domain, 1U, contact_groups);
+        dispatch(domain, 1U, contact_groups); // finalize body contacts
+        dispatch(domain, 1U, 1U); // prepare public contact events
+        dispatch(domain, 1U, contact_groups); // load contact cache
+        dispatch(domain, 1U,
+            NativeScheduleBackend::realtime_geometry_prepare_workgroups(
+                avbd_grid));
+        dispatch(domain,
+            NativeScheduleBackend::realtime_geometry_solve_dispatches(rigid),
+            NativeScheduleBackend::realtime_geometry_solve_workgroups(
+                rigid, avbd_grid));
+        if (!NativeScheduleBackend::geometry_constraints_inline_speed_clamp(
+                rigid, constraint_capacity, avbd_grid))
+            dispatch(domain, 1U, body_groups);
+        dispatch(domain, 1U, contact_groups); // save contact cache
+        domain.numerical_iterations = simulation::rigid_realtime_sweeps;
+        if (state.rigid_contact_revision != state.revision) {
+            domain.bytes_moved = std::uint64_t{rigid} * rigid *
+                sizeof(*state.rigid_contact_cache_slots);
+            ++domain.barriers;
+        }
+        dispatch(commit, 1U, body_groups);
+    }
+    for (const auto &phase : limits.phase_maximum)
+        (void)simulation::realtime_telemetry_detail::add(
+            limits.total_maximum, phase);
 #if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
     if (const char *field = std::getenv("PM_TEST_REALTIME_ZERO_LIMIT")) {
 #define PM_ZERO_LIMIT(name) if (std::strcmp(field, #name) == 0) \
@@ -103,6 +182,14 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
     if (std::getenv("PM_TEST_REALTIME_ZERO_COMMIT_SUBMISSIONS") != nullptr)
         limits.phase_maximum[simulation::realtime_index(
             simulation::RealtimeTelemetryPhase::commit)].submissions = 0U;
+    if (const char *field = std::getenv(
+            "PM_TEST_REALTIME_LIMIT_MINUS_ONE")) {
+#define PM_DECREMENT_LIMIT(name) if (std::strcmp(field, #name) == 0 && \
+        limits.total_maximum.name != 0U) --limits.total_maximum.name
+        PM_DECREMENT_LIMIT(dispatches);
+        else PM_DECREMENT_LIMIT(workgroups);
+#undef PM_DECREMENT_LIMIT
+    }
 #endif
     return limits;
 }

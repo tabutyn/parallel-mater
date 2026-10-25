@@ -1,0 +1,114 @@
+{
+  "schema": "parallel-mater-f8-37-native-realtime-envelope/v1",
+  "task": "F8-37",
+  "status": "passed",
+  "qualification_claim": false,
+  "replacement_candidate": {
+    "status": "not-frozen",
+    "owner_task": "F8-38",
+    "evidence_union_allowed": false
+  },
+  "source": {
+    "implementation_revision": "34b84fe0a35cd3532eb564094c052c23966cf1d8",
+    "runtime_variant": "cpu-runtime",
+    "production_driver_sha256": "07435a004f0431da8a324bc1b980bc1a6f44ce0349544149d17df32ab6e054b7",
+    "qualification_harness_sha256": "9d5f85c84c206f730e1053bbc230e73a36e227ff553288d165bea75e2e4e577b"
+  },
+  "reproduction": {
+    "candidate": "realtime-single-step-v1-fd78fa8",
+    "candidate_manifest_sha256": "f4f1c7807dd50b07857c568b9df3e8e2ccd6fd3870907238dc9dcfab45b493af",
+    "result": "PM_ERROR_CAPACITY_EXCEEDED on tick 1",
+    "partial_work": {
+      "dispatches": 20,
+      "workgroups": 1421,
+      "numerical_iterations": 1,
+      "spatial_index_builds": 1,
+      "spatial_index_publications": 1
+    },
+    "tracked_capture": "docs/roadmap/evidence/F8-23-CANDIDATE-V2-CPU-FAILURE.json"
+  },
+  "repair": {
+    "method": "Derive phase and total telemetry maxima from the live native spatial plan, candidate compaction plan, contact plan, adapter-specific geometry dispatch helpers, and commit path.",
+    "workload_reduced": false,
+    "solver_sweeps_reduced": false,
+    "arbitrary_headroom_added": false,
+    "realtime_query_step_count": "query-local one-step count; legacy cumulative statistics unchanged"
+  },
+  "workload": {
+    "tier": "cpu-reference-v1",
+    "id": "rigid-brick-oracle",
+    "rigid_bodies_live": 8,
+    "rigid_bodies_capacity": 8,
+    "constraints_live": 8,
+    "constraints_capacity": 8,
+    "contact_capacity": 2048,
+    "warmup_ticks": 600,
+    "measured_ticks": 7200
+  },
+  "result": {
+    "successful_ticks": 7800,
+    "verified_ticks": 7800,
+    "work_mismatches": 0,
+    "failed_ticks": 0,
+    "all_public_states_finite": true,
+    "fixed_work": {
+      "dispatches": 20,
+      "workgroups": 1421,
+      "queue_submissions": 1,
+      "intra_tick_host_readbacks": 0,
+      "spatial_index_updates": 1,
+      "spatial_index_publications": 1,
+      "time_advances": 1,
+      "rigid_contact_and_joint_sweeps": 8,
+      "phase_dispatches": {
+        "boundary": 0,
+        "predict": 1,
+        "index": 1,
+        "candidates": 6,
+        "domain": 11,
+        "coupling": 0,
+        "commit": 1
+      }
+    },
+    "cold_start_ms": {
+      "ticks": 120,
+      "p50": 0.517311,
+      "p95": 0.525783,
+      "p99": 0.532799,
+      "maximum": 0.533403
+    },
+    "sustained_ms": {
+      "p50": 0.592519,
+      "p95": 0.742169,
+      "p99": 0.843847,
+      "maximum": 1.341729,
+      "wall_seconds": 4.255081745,
+      "simulated_to_wall_time_ratio": 28.201573363662842
+    }
+  },
+  "boundary_regression": {
+    "exact_default_limit": "passed with 1421 workgroups",
+    "total_workgroups_minus_one": "PM_ERROR_CAPACITY_EXCEEDED before commit",
+    "state_and_pending_input_preserved": true
+  },
+  "installed_sdk": {
+    "checks_passed": 14,
+    "checks_total": 14,
+    "source_revision": "34b84fe0a35cd3532eb564094c052c23966cf1d8",
+    "plain_observation_sha256": "55b4e6c457e9ff2d89ded37494c5ec0f466fe6a892ce7e41eaca002d78fe80e8",
+    "validation_observation_sha256": "0fb6a4ee7c51ac727fed739c41d1ea0f8d77e95766fb71ec9f394aaca70ddc3e"
+  },
+  "tests": [
+    "PASS: ctest --test-dir build-f8-23-cpu --output-on-failure -j 4 (101/101; 15 unavailable fixture tests skipped)",
+    "PASS: python3 tools/check_sdk_install.py --build-dir build-f8-23-cpu --output /tmp/f8-37-final-sdk --require-realtime-driver (14/14)",
+    "PASS: installed public CPU harness (7800/7800 exact-workload ticks; 0 work mismatches)",
+    "PASS: cmake --build build-f8-22-cuda --target parallel-mater-driver-slang-cuda --parallel 4",
+    "PASS: python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py' (418/418)",
+    "PASS: python3 -m unittest discover -s tests/roadmap -p 'test_*.py' (81/81)"
+  ],
+  "limitations": [
+    "This evidence proves the repaired implementation and installed Slang CPU path; it is not candidate or F8-23 physical qualification evidence.",
+    "F8-38 must freeze one new immutable candidate and reroute every F8-23--30 row before qualification resumes.",
+    "GPU and frame timing are unavailable/not applicable on the headless CPU reference target."
+  ]
+}

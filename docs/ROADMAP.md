@@ -155,8 +155,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-34](roadmap/tasks/F8-34.json) | Bind fixed realtime phases and telemetry to native adapters | done | F8-33 | — |
 | [F8-35](roadmap/tasks/F8-35.json) | Expose executable realtime profile through installed API | done | F8-34 | — |
 | [F8-36](roadmap/tasks/F8-36.json) | Freeze replacement executable realtime candidate | done | F8-35 | — |
-| [F8-37](roadmap/tasks/F8-37.json) | Repair native realtime telemetry envelope | leased | F8-36 | codex-realtime-repair / thomas-laptop / 2026-10-26T13:49:48Z |
-| [F8-38](roadmap/tasks/F8-38.json) | Refreeze realtime candidate after telemetry repair | waiting on dependencies | F8-37 | — |
+| [F8-37](roadmap/tasks/F8-37.json) | Repair native realtime telemetry envelope | done | F8-36 | — |
+| [F8-38](roadmap/tasks/F8-38.json) | Refreeze realtime candidate after telemetry repair | ready | F8-37 | — |
 | [F8-99](roadmap/tasks/F8-99.json) | Review F8 single-step quality, performance and device exit evidence | waiting on dependencies | F8-00, F8-01, F8-02, F8-03, F8-04, F8-05, F8-06, F8-07, F8-08, F8-09, F8-10, F8-11, F8-12, F8-13, F8-14, F8-15, F8-16, F8-17, F8-18, F8-19, F8-20, F8-21, F8-22, F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30, F8-31, F8-32, F8-33, F8-34, F8-35, F8-36, F8-37, F8-38 | — |
 
 ### P1. Deferred domain and interaction coverage

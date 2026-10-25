@@ -1,7 +1,7 @@
 {
   "id": "F8-37",
   "title": "Repair native realtime telemetry envelope",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-36"
   ],
@@ -18,15 +18,33 @@
     "The installed public API completes the exact workload without capacity overflow while reporting eight numerical iterations, one spatial build/publication and one 1/60 time advance per tick; exact-boundary and one-over-limit regressions preserve atomic failure behavior.",
     "Native CPU, telemetry, public-profile, candidate-drift and available cross-platform compile/regression gates pass; retain reviewable failure and repaired observations without treating them as F8-23 qualification evidence."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "9e3c06d0-5115-4b76-80c9-e0a04776cf3f",
-    "owner": "codex-realtime-repair",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-37/thomas-laptop",
-    "claimed_at": "2026-10-25T13:49:48Z",
-    "heartbeat_at": "2026-10-25T13:49:48Z",
-    "expires_at": "2026-10-26T13:49:48Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/roadmap/evidence/F8-37-native-realtime-envelope.json; candidate-v2 failure reproduced, repaired implementation 34b84fe0a35cd3532eb564094c052c23966cf1d8 completed 7800/7800 exact cpu-reference-v1 ticks with 0 work mismatches",
+    "PASS: python3 tools/check_sdk_install.py --build-dir build-f8-23-cpu --output /tmp/f8-37-final-sdk --require-realtime-driver; 14/14; production driver SHA-256 07435a004f0431da8a324bc1b980bc1a6f44ce0349544149d17df32ab6e054b7",
+    "PASS: ctest --test-dir build-f8-23-cpu --output-on-failure -j 4 (101/101); exact 1421-workgroup boundary succeeds and minus-one limit fails before commit; CUDA production driver compiles",
+    "PASS: realtime oracle unittest discovery 418/418; roadmap unittest discovery 81/81; rejected candidate drift bounded to runtime and adapter-binding closures pending F8-38 refreeze"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "9e3c06d0-5115-4b76-80c9-e0a04776cf3f",
+        "owner": "codex-realtime-repair",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-37/thomas-laptop",
+        "claimed_at": "2026-10-25T13:49:48Z",
+        "heartbeat_at": "2026-10-25T13:49:48Z",
+        "expires_at": "2026-10-26T13:49:48Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-25T14:07:05Z",
+      "reason": "Derived native telemetry limits from the exact adapter dispatch plan, restored query-local public statistics, and proved fixed-work atomic execution without weakening the workload",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/F8-37-native-realtime-envelope.json; candidate-v2 failure reproduced, repaired implementation 34b84fe0a35cd3532eb564094c052c23966cf1d8 completed 7800/7800 exact cpu-reference-v1 ticks with 0 work mismatches",
+        "PASS: python3 tools/check_sdk_install.py --build-dir build-f8-23-cpu --output /tmp/f8-37-final-sdk --require-realtime-driver; 14/14; production driver SHA-256 07435a004f0431da8a324bc1b980bc1a6f44ce0349544149d17df32ab6e054b7",
+        "PASS: ctest --test-dir build-f8-23-cpu --output-on-failure -j 4 (101/101); exact 1421-workgroup boundary succeeds and minus-one limit fails before commit; CUDA production driver compiles",
+        "PASS: realtime oracle unittest discovery 418/418; roadmap unittest discovery 81/81; rejected candidate drift bounded to runtime and adapter-binding closures pending F8-38 refreeze"
+      ]
+    }
+  ]
 }

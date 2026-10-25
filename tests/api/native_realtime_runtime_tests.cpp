@@ -16,6 +16,8 @@
 } } while (false)
 
 int main() {
+    constexpr std::uint32_t body_count = 8U;
+    constexpr std::uint32_t constraint_count = 8U;
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instance_info.apiVersion = PM_API_VERSION_0_2;
@@ -34,6 +36,8 @@ int main() {
     device_info.queueCreateInfoCount = 1U;
     device_info.pQueueInfos = &queue_info;
     device_info.enabledFeatures.rigidBodies = PM_TRUE;
+    device_info.enabledFeatures.rigidConstraints = PM_TRUE;
+    device_info.enabledFeatures.statisticsQueries = PM_TRUE;
     device_info.enabledExtensionCount = 1U;
     device_info.ppEnabledExtensionNames = &extension;
     PmDevice device{};
@@ -69,7 +73,8 @@ int main() {
 
     void *source_map{}, *output_map{};
     const auto source = buffer(512U, &source_map);
-    const auto output = buffer(512U, &output_map);
+    const auto output = buffer(
+        body_count * sizeof(PmRigidState), &output_map);
     const float vertices[8][3] = {
         {-0.5F,-0.5F,-0.5F},{0.5F,-0.5F,-0.5F},
         {0.5F,0.5F,-0.5F},{-0.5F,0.5F,-0.5F},
@@ -101,8 +106,9 @@ int main() {
     PmSimulationCreateInfo simulation_info{};
     simulation_info.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
     simulation_info.pNext = &profile;
-    simulation_info.rigidBodyCapacity = 1U;
-    simulation_info.contactCapacity = 8U;
+    simulation_info.rigidBodyCapacity = body_count;
+    simulation_info.constraintCapacity = constraint_count;
+    simulation_info.contactCapacity = 2048U;
     PmSimulation simulation{};
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
           PM_SUCCESS);
@@ -113,11 +119,21 @@ int main() {
         allocate(requirements.scratch.size), 0U};
     CHECK(pmBindSimulationMemory(device, simulation, &binding) == PM_SUCCESS);
 
+    PmRigidSolverState rigid_solver{};
+    rigid_solver.rigidIterations = 8U;
+    rigid_solver.enableSleeping = PM_FALSE;
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
+    pipeline_info.pRigidState = &rigid_solver;
     PmPhysicsPipeline pipeline{};
     CHECK(pmCreatePhysicsPipeline(device, &pipeline_info, &pipeline) ==
           PM_SUCCESS);
+    PmQueryPoolCreateInfo query_info{};
+    query_info.sType = PM_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+    query_info.queryType = PM_QUERY_REALTIME_STEP_STATISTICS;
+    query_info.queryCount = 1U;
+    PmQueryPool query{};
+    CHECK(pmCreateQueryPool(device, &query_info, &query) == PM_SUCCESS);
     PmCommandPoolCreateInfo pool_info{};
     pool_info.sType = PM_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     pool_info.flags = PM_COMMAND_POOL_RESET_BUFFER_BIT;
@@ -152,21 +168,46 @@ int main() {
     CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
     execute(PM_SUCCESS);
 
-    PmRigidBodyInfo body{};
-    body.active = PM_TRUE;
-    body.geometry = geometry;
-    body.motionType = PM_MOTION_DYNAMIC;
-    body.mass = 1.0F;
-    body.inertiaDiagonal[0] = body.inertiaDiagonal[1] =
-        body.inertiaDiagonal[2] = 1.0F / 6.0F;
-    body.state.position[1] = 2.0F;
-    body.state.orientation[3] = 1.0F;
-    body.maximumLinearSpeed = body.maximumAngularSpeed = 100.0F;
-    body.collisionMargin = 0.005F;
+    std::array<PmRigidBodyInfo, body_count> bodies{};
+    std::array<PmRigidConstraintInfo, constraint_count> constraints{};
+    for (std::uint32_t index = 0U; index < body_count; ++index) {
+        auto &body = bodies[index];
+        body.active = PM_TRUE;
+        body.geometry = geometry;
+        body.motionType = PM_MOTION_DYNAMIC;
+        body.mass = 1.0F;
+        body.inertiaDiagonal[0] = body.inertiaDiagonal[1] =
+            body.inertiaDiagonal[2] = 1.0F / 6.0F;
+        body.state.position[0] = static_cast<float>(index % 4U) * 2.0F;
+        body.state.position[1] =
+            2.0F + static_cast<float>(index / 4U) * 2.0F;
+        body.state.orientation[3] = 1.0F;
+        body.maximumLinearSpeed = body.maximumAngularSpeed = 100.0F;
+        body.collisionMargin = 0.005F;
+        auto &joint = constraints[index];
+        joint.active = PM_TRUE;
+        joint.type = PM_CONSTRAINT_POINT;
+        joint.bodyA = index;
+        joint.bodyB = (index + 1U) % body_count;
+        const float next_x = static_cast<float>(joint.bodyB % 4U) * 2.0F;
+        const float next_y =
+            2.0F + static_cast<float>(joint.bodyB / 4U) * 2.0F;
+        joint.frameA.position[0] =
+            (next_x - body.state.position[0]) * 0.5F;
+        joint.frameA.position[1] =
+            (next_y - body.state.position[1]) * 0.5F;
+        joint.frameB.position[0] = -joint.frameA.position[0];
+        joint.frameB.position[1] = -joint.frameA.position[1];
+        joint.frameA.orientation[3] = 1.0F;
+        joint.frameB.orientation[3] = 1.0F;
+        joint.solverIterations = 8U;
+    }
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
     CHECK(pmCmdBuildGeometry(commands, geometry) == PM_SUCCESS);
     CHECK(pmCmdWriteRigidBodies(
-        commands, simulation, 0U, 1U, &body) == PM_SUCCESS);
+        commands, simulation, 0U, body_count, bodies.data()) == PM_SUCCESS);
+    CHECK(pmCmdWriteRigidConstraints(commands, simulation, 0U,
+        constraint_count, constraints.data()) == PM_SUCCESS);
     execute(PM_SUCCESS);
 
     PmStepInfo invalid_step{1.0F / 60.0F, 2U,
@@ -178,15 +219,54 @@ int main() {
     CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
     CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
 
-    PmBufferRange output_range{output, 0U, sizeof(PmRigidState)};
+    PmBufferRange output_range{
+        output, 0U, body_count * sizeof(PmRigidState)};
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
+    CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
     CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
     CHECK(pmCmdCopyRigidStates(
-        commands, simulation, 0U, 1U, &output_range) == PM_SUCCESS);
+        commands, simulation, 0U, body_count, &output_range) == PM_SUCCESS);
+    CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
     execute(PM_SUCCESS);
+    PmRealtimeStepStatistics statistics{};
+    CHECK(pmGetQueryPoolResults(device, query, 0U, 1U,
+        sizeof statistics, &statistics, sizeof statistics,
+        PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+    CHECK(statistics.step.executionResult == PM_SUCCESS);
+    CHECK(statistics.step.stepCount == 1U);
+    CHECK(statistics.step.substepsExecuted == 1U);
+    CHECK(statistics.schemaVersion == 1U);
+    CHECK(statistics.profileVersion == 1U);
+    CHECK(statistics.budgetVersion == 1U);
+    CHECK(statistics.phaseCount == PM_REALTIME_WORK_PHASE_COUNT);
+    CHECK(statistics.tick == 2U);
+    CHECK(statistics.total.dispatches == 20U);
+    CHECK(statistics.total.workgroups == 1421U);
+    CHECK(statistics.total.numericalIterations == 8U);
+    CHECK(statistics.total.spatialIndexBuilds == 1U);
+    CHECK(statistics.total.spatialIndexPublications == 1U);
+    CHECK(statistics.total.queueSubmissions == 1U);
+    CHECK(statistics.total.intraTickHostReadbacks == 0U);
+    CHECK(statistics.timeAdvances == 1U);
+    CHECK(statistics.domainIterations[0] == 8U);
+    CHECK(statistics.couplingEdgeCount == 0U);
+    CHECK(statistics.couplingSweeps == 0U);
+    std::uint64_t phase_dispatches{};
+    for (std::uint32_t index = 0U;
+         index < PM_REALTIME_WORK_PHASE_COUNT; ++index)
+        phase_dispatches += statistics.phases[index].dispatches;
+    CHECK(phase_dispatches == statistics.total.dispatches);
     const auto first = *static_cast<const PmRigidState *>(output_map);
     CHECK(first.position[1] < 2.0F);
+
+    CHECK(setenv("PM_TEST_REALTIME_LIMIT_MINUS_ONE", "workgroups", 1) == 0);
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+    CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
+    execute(PM_ERROR_CAPACITY_EXCEEDED);
+    CHECK(unsetenv("PM_TEST_REALTIME_LIMIT_MINUS_ONE") == 0);
 
     constexpr std::array fields{
         "dispatches", "workgroups", "bytes_moved", "index_builds",
@@ -223,22 +303,29 @@ int main() {
     CHECK(unsetenv("PM_TEST_REALTIME_ZERO_COMMIT_SUBMISSIONS") == 0);
 
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdCopyRigidStates(
+        commands, simulation, 0U, body_count, &output_range) == PM_SUCCESS);
+    execute(PM_SUCCESS);
+    CHECK(std::memcmp(output_map, &first, sizeof first) == 0);
+
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
     CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
     CHECK(pmCmdCopyRigidStates(
-        commands, simulation, 0U, 1U, &output_range) == PM_SUCCESS);
+        commands, simulation, 0U, body_count, &output_range) == PM_SUCCESS);
     execute(PM_SUCCESS);
     const auto second = *static_cast<const PmRigidState *>(output_map);
     CHECK(second.position[1] < first.position[1]);
-    const float gravity_step = -9.81F / 60.0F;
-    const float expected_velocity =
-        (gravity_step * 0.95F + gravity_step) * 0.95F;
-    CHECK(std::fabs(second.linearVelocity[1] - expected_velocity) < 0.001F);
-    CHECK(second.linearVelocity[0] > 0.9F);
+    float total_x_velocity{};
+    const auto *states = static_cast<const PmRigidState *>(output_map);
+    for (std::uint32_t index = 0U; index < body_count; ++index)
+        total_x_velocity += states[index].linearVelocity[0];
+    CHECK(total_x_velocity > 0.5F);
 
     pmDestroyFence(device, fence);
     pmFreeCommandBuffers(device, pool, 1U, &commands);
     pmDestroyCommandPool(device, pool);
+    pmDestroyQueryPool(device, query);
     pmDestroyPhysicsPipeline(device, pipeline);
     pmDestroySimulation(device, simulation);
     pmDestroyGeometry(device, geometry);
