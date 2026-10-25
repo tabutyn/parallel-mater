@@ -525,10 +525,12 @@ Status visit_rope_storage(State &state, std::size_t nodes, std::size_t rigid,
 template<class State, class Visitor>
 Status visit_soft_body_storage(State &state, std::size_t neighbors,
     std::size_t warp_neighbors, std::size_t surface_influences, Visitor &visit) noexcept {
-#define PM_STORAGE(member, count) do { \
-    const auto result = visit(state.member, count, MemoryClass::persistent); \
+#define PM_STORAGE_KIND(member, count, kind) do { \
+    const auto result = visit(state.member, count, MemoryClass::kind); \
     if (!result) return result; \
 } while (false)
+#define PM_STORAGE(member, count) PM_STORAGE_KIND(member, count, persistent)
+#define PM_SCRATCH(member, count) PM_STORAGE_KIND(member, count, scratch)
     PM_STORAGE(positions, state.node_count);
     PM_STORAGE(rest_positions, state.node_count);
     PM_STORAGE(scratch, state.node_count);
@@ -566,7 +568,22 @@ Status visit_soft_body_storage(State &state, std::size_t neighbors,
     PM_STORAGE(dynamic_contact_flag, 1U);
     PM_STORAGE(contact_count, 1U);
     PM_STORAGE(count, 1U);
+    PM_STORAGE(realtime_positions, state.node_count);
+    PM_STORAGE(realtime_velocities, state.node_count);
+    PM_STORAGE(realtime_surface_positions, state.surface_vertex_count);
+    PM_STORAGE(realtime_neighbors, neighbors);
+    PM_STORAGE(realtime_characteristic_lengths, state.node_count);
+    PM_STORAGE(realtime_surface_triangle_generations,
+               state.surface_index_count / 3U);
+    PM_SCRATCH(realtime_correction_used, state.node_count);
+    PM_SCRATCH(realtime_contact_normals, state.node_count);
+    PM_SCRATCH(realtime_contact_offsets, state.node_count);
+    PM_SCRATCH(realtime_contact_active, state.node_count);
+    PM_SCRATCH(realtime_shape_orientation, 1U);
+    PM_SCRATCH(realtime_time_advances, 1U);
+#undef PM_SCRATCH
 #undef PM_STORAGE
+#undef PM_STORAGE_KIND
     return {};
 }
 

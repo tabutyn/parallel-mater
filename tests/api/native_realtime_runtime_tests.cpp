@@ -72,12 +72,14 @@ int main(int argc, char **argv) {
         return result;
     };
 
-    void *source_map{}, *output_map{}, *fluid_output_map{}, *cloth_output_map{};
+    void *source_map{}, *output_map{}, *fluid_output_map{}, *cloth_output_map{},
+        *soft_output_map{};
     const auto source = buffer(512U, &source_map);
     const auto output = buffer(
         body_count * sizeof(PmRigidState), &output_map);
     const auto fluid_output = buffer(1024U, &fluid_output_map);
     const auto cloth_output = buffer(1024U, &cloth_output_map);
+    const auto soft_output = buffer(1024U, &soft_output_map);
     const float vertices[8][3] = {
         {-0.5F,-0.5F,-0.5F},{0.5F,-0.5F,-0.5F},
         {0.5F,0.5F,-0.5F},{-0.5F,0.5F,-0.5F},
@@ -126,7 +128,7 @@ int main(int argc, char **argv) {
         PmFluidCapacity{4U, 4U}, PmFluidCapacity{7U, 7U}};
     const PmClothCapacity cloth_capacity{3U, 3U, 3U};
     const PmRopeCapacity rope_capacity{2U};
-    const PmSoftBodyCapacity soft_capacity{1U, 1U, 3U, 3U};
+    const PmSoftBodyCapacity soft_capacity{8U, 16U, 8U, 18U};
     const PmSmokeCapacity smoke_capacity{4U, 8U};
     PmSimulationCreateInfo mixed_info = simulation_info;
     mixed_info.rigidBodyCapacity = 1U;
@@ -176,6 +178,16 @@ int main(int argc, char **argv) {
     cloth_material.contactFriction = 0.2F;
     cloth_material.solverIterations = 8U;
     cloth_material.fracturePersistenceSubsteps = 1U;
+    PmSoftBodyMaterialState soft_material{};
+    soft_material.nodeMass = 1.0F;
+    soft_material.nodeRadius = 0.01F;
+    soft_material.velocityDamping = 0.2F;
+    soft_material.contactFriction = 0.2F;
+    soft_material.shapeMatchingStiffness = 0.5F;
+    soft_material.maximumProjectionFraction = 0.2F;
+    soft_material.constraintVelocityResponse = 1.0F;
+    soft_material.maximumSpeed = 2.9F;
+    soft_material.solverIterations = 8U;
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
     pipeline_info.pRigidState = &rigid_solver;
@@ -184,6 +196,8 @@ int main(int argc, char **argv) {
     pipeline_info.pFluidMaterials = liquid_materials.data();
     pipeline_info.clothMaterialCount = mixed_info.clothCount;
     pipeline_info.pClothMaterials = &cloth_material;
+    pipeline_info.softBodyMaterialCount = mixed_info.softBodyCount;
+    pipeline_info.pSoftBodyMaterials = &soft_material;
     PmPhysicsPipeline pipeline{};
     CHECK(pmCreatePhysicsPipeline(device, &pipeline_info, &pipeline) ==
           PM_SUCCESS);
@@ -518,6 +532,159 @@ int main(int argc, char **argv) {
             static_cast<const PmDomainOutputHeader *>(cloth_output_map);
         CHECK(cloth_header->activeCount == 3U);
     }
+    if (mixed_info.softBodyCount != 0U) {
+        const PmFloat3 nodes[5]{
+            {0.0F, 1.2F, 0.0F}, {-0.05F, 1.0F, 0.0F},
+            {0.05F, 1.0F, 0.0F}, {0.0F, 1.1F, 0.05F},
+            {0.0F, 1.1F, -0.05F}};
+        const float inverse_masses[5]{0.0F, 1.0F, 1.0F, 1.0F, 1.0F};
+        std::array<PmSoftBodyBond, 10> bonds{};
+        std::uint32_t bond_count{};
+        for (std::uint32_t first = 0U; first < 5U; ++first)
+            for (std::uint32_t second = first + 1U; second < 5U; ++second) {
+                const float x = nodes[first].x - nodes[second].x;
+                const float y = nodes[first].y - nodes[second].y;
+                const float z = nodes[first].z - nodes[second].z;
+                bonds[bond_count++] = {
+                    first, second, std::sqrt(x * x + y * y + z * z)};
+            }
+        const PmFloat3 surface_vertices[4]{
+            nodes[1], nodes[2], nodes[3], nodes[4]};
+        const std::uint32_t surface_indices[12]{
+            0U, 2U, 1U, 0U, 1U, 3U,
+            0U, 3U, 2U, 1U, 2U, 3U};
+        std::array<PmSoftBodySurfaceBinding, 4> bindings{};
+        for (std::uint32_t vertex = 0U; vertex < bindings.size(); ++vertex) {
+            bindings[vertex].nodes[0] = vertex + 1U;
+            bindings[vertex].weights[0] = 1.0F;
+        }
+        const PmSoftBodyInfo body{PM_TRUE, 0U, 5U, nodes,
+            static_cast<std::uint32_t>(bonds.size()), bonds.data(),
+            inverse_masses, 4U, surface_vertices, 12U, surface_indices,
+            bindings.data()};
+        const PmBufferRange soft_range{soft_output, 0U, 1024U};
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteSoftBodies(
+            commands, mixed_simulation, 0U, 1U, &body) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
+        CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopySoftBodyState(
+            commands, mixed_simulation, 0U, &soft_range) == PM_SUCCESS);
+        CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        PmRealtimeStepStatistics soft_statistics{};
+        CHECK(pmGetQueryPoolResults(
+            device, query, 0U, 1U, sizeof soft_statistics,
+            &soft_statistics, sizeof soft_statistics,
+            PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+        CHECK(soft_statistics.timeAdvances == 1U);
+        CHECK(soft_statistics.domainIterations[3] == 8U);
+        CHECK(soft_statistics.total.spatialIndexBuilds == 1U);
+        CHECK(soft_statistics.total.spatialIndexPublications == 1U);
+        CHECK(soft_statistics.total.intraTickHostReadbacks == 0U);
+        const auto *soft_header =
+            static_cast<const PmDomainOutputHeader *>(soft_output_map);
+        const auto *soft_nodes =
+            reinterpret_cast<const PmSoftBodyNodeState *>(soft_header + 1U);
+        CHECK(soft_header->activeCount == 5U);
+        CHECK(soft_nodes[0].position.x == nodes[0].x);
+        CHECK(soft_nodes[0].position.y == nodes[0].y);
+        CHECK(soft_nodes[0].position.z == nodes[0].z);
+        CHECK(soft_nodes[0].velocity.x == 0.0F);
+        CHECK(soft_nodes[0].velocity.y == 0.0F);
+        CHECK(soft_nodes[0].velocity.z == 0.0F);
+        for (std::uint32_t node = 1U; node < 5U; ++node) {
+            CHECK(std::isfinite(soft_nodes[node].position.y));
+            CHECK(std::isfinite(soft_nodes[node].velocity.y));
+        }
+        for (const auto &bond : bonds) {
+            const auto &first = soft_nodes[bond.first].position;
+            const auto &second = soft_nodes[bond.second].position;
+            const float x = first.x - second.x;
+            const float y = first.y - second.y;
+            const float z = first.z - second.z;
+            CHECK(std::abs(std::sqrt(x * x + y * y + z * z) -
+                           bond.restLength) < 0.03F);
+        }
+
+        if (!production) {
+            std::array<std::byte, 1024U> soft_before_failure{};
+            std::memcpy(soft_before_failure.data(), soft_output_map,
+                        soft_before_failure.size());
+            CHECK(setenv(
+                "PM_TEST_REALTIME_LIMIT_MINUS_ONE", "workgroups", 1) == 0);
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+            CHECK(pmCmdStepSimulation(
+                commands, mixed_simulation, &step) == PM_SUCCESS);
+            execute(PM_ERROR_CAPACITY_EXCEEDED);
+            CHECK(unsetenv("PM_TEST_REALTIME_LIMIT_MINUS_ONE") == 0);
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdCopySoftBodyState(
+                commands, mixed_simulation, 0U, &soft_range) == PM_SUCCESS);
+            execute(PM_SUCCESS);
+            CHECK(std::memcmp(soft_before_failure.data(), soft_output_map,
+                              soft_before_failure.size()) == 0);
+        }
+
+        std::array<PmFloat3, 5> replacement_nodes{};
+        std::array<PmFloat3, 4> replacement_surface{};
+        for (std::uint32_t node = 0U; node < replacement_nodes.size(); ++node) {
+            replacement_nodes[node] = nodes[node];
+            replacement_nodes[node].x += 0.2F;
+        }
+        for (std::uint32_t vertex = 0U;
+             vertex < replacement_surface.size(); ++vertex) {
+            replacement_surface[vertex] = surface_vertices[vertex];
+            replacement_surface[vertex].x += 0.2F;
+        }
+        const PmSoftBodyInfo replacement{PM_TRUE, 0U, 5U,
+            replacement_nodes.data(), static_cast<std::uint32_t>(bonds.size()),
+            bonds.data(), inverse_masses, 4U, replacement_surface.data(),
+            12U, surface_indices, bindings.data()};
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteSoftBodies(
+            commands, mixed_simulation, 0U, 1U, &replacement) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopySoftBodyState(
+            commands, mixed_simulation, 0U, &soft_range) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        soft_header =
+            static_cast<const PmDomainOutputHeader *>(soft_output_map);
+        soft_nodes = reinterpret_cast<const PmSoftBodyNodeState *>(
+            soft_header + 1U);
+        CHECK(soft_header->activeCount == 5U);
+        CHECK(soft_nodes[0].position.x == replacement_nodes[0].x);
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteSoftBodies(
+            commands, mixed_simulation, 0U, 1U, &body) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopySoftBodyState(
+            commands, mixed_simulation, 0U, &soft_range) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        soft_header =
+            static_cast<const PmDomainOutputHeader *>(soft_output_map);
+        CHECK(soft_header->activeCount == 5U);
+    }
     pmDestroySimulation(device, mixed_simulation);
 
     std::array<PmRigidBodyInfo, body_count> bodies{};
@@ -689,6 +856,7 @@ int main(int argc, char **argv) {
     pmDestroyBuffer(device, output);
     pmDestroyBuffer(device, fluid_output);
     pmDestroyBuffer(device, cloth_output);
+    pmDestroyBuffer(device, soft_output);
     pmDestroyBuffer(device, source);
     for (auto allocation : memory) pmFreeMemory(device, allocation);
     pmDestroyDevice(device);

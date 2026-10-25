@@ -1088,6 +1088,7 @@ Status SimulationRuntime::add_soft_body(SoftBodyOptions options, SoftBodyId &out
     std::vector<DeformableNeighbor> neighbors;
     std::vector<SoftBodyNeighbor> warp_neighbors;
     std::vector<float> minimum_rest_lengths;
+    std::vector<float> realtime_characteristic_lengths;
     float minimum_bond_length = FLT_MAX;
     try {
         adjacency.resize(node_count);
@@ -1129,6 +1130,13 @@ Status SimulationRuntime::add_soft_body(SoftBodyOptions options, SoftBodyId &out
                         [](const auto &list) { return list.empty(); }))
             return failure(StatusCode::invalid_argument,
                            "every soft-body node needs at least one bond");
+        realtime_characteristic_lengths.reserve(node_count);
+        for (const auto &list : adjacency) {
+            float shortest = FLT_MAX;
+            for (const DeformableNeighbor neighbor : list)
+                shortest = std::min(shortest, neighbor.rest_length);
+            realtime_characteristic_lengths.push_back(shortest);
+        }
         std::size_t maximum_degree=0U;
         for(const auto &list:adjacency)
             maximum_degree=std::max(maximum_degree,list.size());
@@ -1141,13 +1149,7 @@ Status SimulationRuntime::add_soft_body(SoftBodyOptions options, SoftBodyId &out
             warp_neighbors.reserve(neighbors.size());
             for(const DeformableNeighbor neighbor:neighbors)
                 warp_neighbors.push_back({neighbor.index,neighbor.rest_length});
-            minimum_rest_lengths.reserve(node_count);
-            for(const auto &list:adjacency) {
-                float shortest=FLT_MAX;
-                for(const DeformableNeighbor neighbor:list)
-                    shortest=std::min(shortest,neighbor.rest_length);
-                minimum_rest_lengths.push_back(shortest);
-            }
+            minimum_rest_lengths = realtime_characteristic_lengths;
         }
     } catch (...) {
         return failure(StatusCode::out_of_memory,
@@ -1197,6 +1199,69 @@ Status SimulationRuntime::add_soft_body(SoftBodyOptions options, SoftBodyId &out
             {row0.y, row1.y, row2.y}, inverse_determinant);
         shape_inverse_rest.columns[2] = multiply(
             {row0.z, row1.z, row2.z}, inverse_determinant);
+    }
+
+    if (impl_->options.realtime_spatial_enabled) {
+        float minimum_mass = std::numeric_limits<float>::infinity();
+        float maximum_mass = 0.0F;
+        for (std::uint32_t node = 0U; node < node_count; ++node) {
+            const float inverse_mass = options.inverse_masses.size != 0U
+                ? options.inverse_masses.data[node]
+                : 1.0F / options.node_mass;
+            if (inverse_mass > 0.0F) {
+                const float mass = 1.0F / inverse_mass;
+                minimum_mass = std::min(minimum_mass, mass);
+                maximum_mass = std::max(maximum_mass, mass);
+            }
+        }
+        const float mass_ratio = maximum_mass / minimum_mass;
+        for (std::uint32_t node = 0U; node < node_count; ++node) {
+            const float inverse_mass = options.inverse_masses.size != 0U
+                ? options.inverse_masses.data[node]
+                : 1.0F / options.node_mass;
+            const float characteristic =
+                realtime_characteristic_lengths[node];
+            const Vec3 position = options.nodes.data[node];
+            simulation::SoftBodyRealtimeInput input{};
+            input.world_coordinate = std::max({std::abs(position.x),
+                std::abs(position.y), std::abs(position.z)});
+            input.characteristic_length = characteristic;
+            input.mass = inverse_mass > 0.0F
+                ? 1.0F / inverse_mass : 0.001F;
+            input.interacting_mass_ratio = mass_ratio;
+            input.linear_speed = options.maximum_speed;
+            input.solver_correction = 0.20F * characteristic;
+            input.effective_inverse_mass = std::max(inverse_mass, 1.0F);
+            input.node_radius = options.node_radius;
+            input.velocity_damping = options.velocity_damping;
+            input.spring_damping = options.spring_damping;
+            input.contact_friction = options.contact_friction;
+            input.shape_matching_stiffness =
+                options.shape_matching_stiffness;
+            if (simulation::validate_soft_body_realtime_input(input) !=
+                PM_SUCCESS)
+                return failure(StatusCode::invalid_argument,
+                    "soft body is outside the realtime-single-step envelope");
+        }
+        for (std::uint32_t node = 0U; node < node_count; ++node)
+            for (const DeformableNeighbor neighbor : adjacency[node]) {
+                const float first = options.inverse_masses.size != 0U
+                    ? options.inverse_masses.data[node]
+                    : 1.0F / options.node_mass;
+                const float second = options.inverse_masses.size != 0U
+                    ? options.inverse_masses.data[neighbor.index]
+                    : 1.0F / options.node_mass;
+                const float effective = first + second;
+                if (options.stretch_compliance == 0.0F || effective == 0.0F)
+                    continue;
+                const float response =
+                    simulation::soft_body_realtime_compliance_response(
+                        options.stretch_compliance, effective);
+                if (!std::isfinite(response) || response < 0.05F ||
+                    response > 0.995F)
+                    return failure(StatusCode::invalid_argument,
+                        "soft-body compliance is outside the realtime-single-step envelope");
+            }
     }
 
     std::vector<std::uint32_t> surface_offsets;
@@ -1275,6 +1340,13 @@ Status SimulationRuntime::add_soft_body(SoftBodyOptions options, SoftBodyId &out
     body->shape_rest_center = shape_rest_center;
     body->shape_inverse_rest = shape_inverse_rest;
     body->solver_iterations = options.solver_iterations;
+    if (impl_->options.realtime_spatial_enabled) {
+        body->realtime_characteristic_length = *std::min_element(
+            realtime_characteristic_lengths.begin(),
+            realtime_characteristic_lengths.end());
+        body->realtime_maximum_speed = options.maximum_speed;
+        body->realtime_topology_revision = body->generation;
+    }
     StorageAllocator allocator;
     status = simulation::visit_soft_body_storage(*body, neighbors.size(),
         warp_neighbors.size(), surface_influences.size(), allocator);
@@ -1286,6 +1358,14 @@ Status SimulationRuntime::add_soft_body(SoftBodyOptions options, SoftBodyId &out
         body->previous[node] = options.nodes.data[node];
         body->velocities[node] = {};
         body->velocity_scratch[node] = {};
+        body->realtime_positions[node] = options.nodes.data[node];
+        body->realtime_velocities[node] = {};
+        body->realtime_characteristic_lengths[node] =
+            realtime_characteristic_lengths[node];
+        body->realtime_correction_used[node] = 0.0F;
+        body->realtime_contact_normals[node] = {};
+        body->realtime_contact_offsets[node] = 0.0F;
+        body->realtime_contact_active[node] = 0U;
         body->inverse_masses[node] = options.inverse_masses.size != 0U
             ? options.inverse_masses.data[node] : 1.0F / options.node_mass;
         body->rigid_contact_forces[node] = {};
@@ -1302,6 +1382,10 @@ Status SimulationRuntime::add_soft_body(SoftBodyOptions options, SoftBodyId &out
     std::fill_n(body->bond_active, body->bond_count, std::uint8_t{1U});
     std::copy(offsets.begin(), offsets.end(), body->offsets);
     std::copy(neighbors.begin(), neighbors.end(), body->neighbors);
+    for (std::uint32_t neighbor = 0U;
+         neighbor < body->neighbor_count; ++neighbor)
+        body->realtime_neighbors[neighbor] = {
+            neighbors[neighbor].index, neighbors[neighbor].rest_length};
     if(!warp_neighbors.empty())
         std::copy(warp_neighbors.begin(),warp_neighbors.end(),body->warp_neighbors);
     if(!minimum_rest_lengths.empty())
@@ -1311,6 +1395,8 @@ Status SimulationRuntime::add_soft_body(SoftBodyOptions options, SoftBodyId &out
                 body->surface_rest_positions);
     std::copy_n(options.surface_vertices.data, body->surface_vertex_count,
                 body->surface_positions);
+    std::copy_n(options.surface_vertices.data, body->surface_vertex_count,
+                body->realtime_surface_positions);
     std::copy_n(options.surface_triangle_indices.data,
                 body->surface_index_count, body->surface_indices);
     std::copy_n(options.surface_bindings.data, body->surface_vertex_count,
@@ -1322,6 +1408,10 @@ Status SimulationRuntime::add_soft_body(SoftBodyOptions options, SoftBodyId &out
     *body->predicted_momentum = {};
     *body->shape_orientation = {0.0F, 0.0F, 0.0F, 1.0F};
     *body->dynamic_contact_flag = 0U;
+    std::fill_n(body->realtime_surface_triangle_generations,
+        body->surface_index_count / 3U, 1U);
+    *body->realtime_shape_orientation = {};
+    *body->realtime_time_advances = 0U;
     body->alive = true;
     output = {slot, body->generation};
     impl_->soft_bodies[slot] = std::move(body);

@@ -7,6 +7,65 @@
 
 namespace parallel_mater::simulation {
 
+void predict_soft_body_realtime(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions, void *velocities,
+    void *previous_positions, float *correction_used,
+    const float *inverse_masses, const float *characteristic_lengths,
+    std::uint32_t count, std::uint32_t capacity, const float gravity[3],
+    float velocity_damping, float maximum_speed, float timestep,
+    std::uint32_t profile_version, std::uint32_t *time_advances,
+    std::uint32_t *status) noexcept;
+
+void project_soft_body_realtime_links(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *positions,
+    void *position_deltas, float *correction_used,
+    const float *inverse_masses, const float *characteristic_lengths,
+    const std::uint32_t *offsets, const void *neighbors,
+    std::uint32_t count, std::uint32_t capacity, float compliance,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept;
+
+void apply_soft_body_realtime_position_delta(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions,
+    const void *position_deltas, float *correction_used,
+    const float *inverse_masses, const float *characteristic_lengths,
+    std::uint32_t count, std::uint32_t capacity, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept;
+
+void project_soft_body_realtime_shape(
+    device::ExecutionQueue stream, void *positions, void *corrections,
+    const void *rest_positions, const float *inverse_masses,
+    const float *characteristic_lengths, float *correction_used,
+    std::uint32_t count, std::uint32_t capacity, float movable_mass,
+    const float rest_center[3], const void *inverse_rest,
+    void *stored_orientation, float stiffness, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept;
+
+void project_soft_body_realtime_contacts(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions,
+    const void *previous_positions, const float *inverse_masses,
+    const float *characteristic_lengths, float *correction_used,
+    const void *contact_normals, const float *contact_offsets,
+    const std::uint8_t *contact_active, std::uint32_t count,
+    std::uint32_t capacity, float node_radius, float friction,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept;
+
+void commit_soft_body_realtime(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *positions,
+    const void *previous_positions, void *velocities,
+    const float *inverse_masses, const float *characteristic_lengths,
+    const void *contact_normals, const float *contact_offsets,
+    const std::uint8_t *contact_active, std::uint32_t count,
+    std::uint32_t capacity, float node_radius, float friction,
+    float maximum_speed, float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept;
+
 void predict_deformable(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *previous, void *velocities, const float *inverse_masses,
