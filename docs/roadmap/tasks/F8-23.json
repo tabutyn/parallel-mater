@@ -1,7 +1,7 @@
 {
   "id": "F8-23",
   "title": "Qualify independent CPU and public-contract cases",
-  "status": "leased",
+  "status": "open",
   "dependencies": [
     "F8-22",
     "F8-36"
@@ -20,15 +20,7 @@
     "Attach reviewable artifacts identifying exact candidate, binary/deployment, device/OS/GPU/driver/toolchain and manifest hashes; preserve failures and create separate fix/requalification leaves instead of declaring partial success."
   ],
   "evidence": [],
-  "lease": {
-    "token": "efe43700-3510-47f4-939f-0c33a52a5528",
-    "owner": "codex-cpu-qualification",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-23/thomas-laptop-v2",
-    "claimed_at": "2026-10-25T13:27:54Z",
-    "heartbeat_at": "2026-10-25T13:27:54Z",
-    "expires_at": "2026-10-26T13:27:54Z"
-  },
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -43,6 +35,21 @@
       "outcome": "released",
       "at": "2026-10-25T09:47:55Z",
       "reason": "Frozen candidate CPU build proves the production driver enumerates zero realtime profiles and rejects realtime simulation creation; runtime still invokes the legacy reference scheduler, so required public execution and one-tick accounting cannot qualify. Retain work/F8-23/thomas-laptop and add a bounded integration/refreeze task before requalification.",
+      "evidence": []
+    },
+    {
+      "lease": {
+        "token": "efe43700-3510-47f4-939f-0c33a52a5528",
+        "owner": "codex-cpu-qualification",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-23/thomas-laptop-v2",
+        "claimed_at": "2026-10-25T13:27:54Z",
+        "heartbeat_at": "2026-10-25T13:27:54Z",
+        "expires_at": "2026-10-26T13:27:54Z"
+      },
+      "outcome": "released",
+      "at": "2026-10-25T13:44:18Z",
+      "reason": "Replacement candidate v2 exact CPU tier fails its first public profile tick with PM_ERROR_CAPACITY_EXCEEDED after 1,421 workgroups and one of eight required iterations; preserve harness/evidence at work/F8-23/thomas-laptop-v2 commit 1c8a551 and add a bounded protected repair/refreeze leaf before requalification.",
       "evidence": []
     }
   ]
