@@ -1,0 +1,88 @@
+{
+  "schema": "parallel-mater-f8-cloth-production-ticks-evidence/v1",
+  "task": "F8-41",
+  "status": "passed",
+  "recorded_at": "2026-10-25",
+  "branch": "work/F8-41/thomas-laptop-pixel7",
+  "lease_token": "b26aa63c-f2ab-4d4e-834c-b9aebe7b3437",
+  "base_revision": "65ed70c1fa45a9c7057044f89fea24bb792c4e16",
+  "implementation_revision": "75a359b1aa5ff9d33790d20acb9352906befb7ab",
+  "implementation": {
+    "public_path": "Live cloth resources execute the production realtime-single-step schedule instead of the former blanket PM_ERROR_FEATURE_NOT_PRESENT rejection.",
+    "fixed_tick": "One 1/60 predictor, one common spatial build/query/publication, eight link/apply/volume sweeps, contacts after sweeps 2/4/6/8, one velocity commit and one surface update.",
+    "common_epoch": "F8-10 swept triangle primitives occupy reserved ranges of the same published spatial epoch used by rigid and liquid resources; the cloth solve performs no rebuild, refit, sort or query.",
+    "collision_consumer": "The four frozen F8-13 contact projections consume a cleared canonical per-vertex view. Rigid/cloth contact generation and reciprocal exchange remain F8-45.",
+    "atomic_state": "Positions, velocities and applicable surface state publish only after successful commit. Exact-limit failure leaves public bytes unchanged; replacement and reset renew generation/revision identity.",
+    "adapters": "CPU, CUDA, Vulkan and Metal dispatch bindings call the common F8-10/F8-13 Slang entries; no adapter contains private cloth equations."
+  },
+  "public_cases": [
+    "cold cloth-only tick with two exact pins and one dynamic vertex",
+    "one time advance, eight cloth iterations, one index build, one publication and zero intra-tick host readbacks",
+    "one-below workgroup-limit failure with byte-for-byte rollback and capacity reuse",
+    "whole-cloth topology replacement at a tick boundary",
+    "a dynamic cloth and installed static rigid cube coexist in one production tick without a blanket domain rejection",
+    "simulation reset followed by slot rewrite and a successful cold tick"
+  ],
+  "qualification": {
+    "host_suite": {
+      "command": "cmake --build build-f8-23-cpu -j2 && ctest --test-dir build-f8-23-cpu --output-on-failure -j2",
+      "result": "PASS: 102/102 discovered; 87 executed passed and 15 unadvertised CPU-domain tests explicitly skipped"
+    },
+    "public_cpu_runtime": {
+      "command": "PM_DRIVER_FILES=build-f8-23-cpu/Release/manifests/test-slang-cpu-resources.json PM_LAYER_FILES=build-f8-23-cpu/Release/manifests/validation.json ./build-f8-23-cpu/parallel-mater-native-realtime-runtime-tests",
+      "result": "PASS: cloth-only, exact telemetry, rollback, replacement, rigid-resource coexistence and reset/reuse"
+    },
+    "public_cuda_runtime": {
+      "command": "PM_DRIVER_FILES=build-f8-22-cuda/Release/manifests/slang-cuda.json PM_LAYER_FILES=build-f8-22-cuda/Release/manifests/validation.json ./build-f8-23-cpu/parallel-mater-native-realtime-runtime-tests --production",
+      "result": "PASS on physical NVIDIA GeForce RTX 3050 Ti Laptop GPU through the production CUDA driver"
+    },
+    "physical_cuda_oracle": {
+      "command": "./build-f8-22-cuda/tests/solver/parallel-mater-cloth-realtime-cuda-tests",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU, compute 8.6",
+      "result": "PASS: stretch error 0, pin drift 0, topology reset, final relative volume error 0.00115461, 3600-tick stretch RMS 0.02632561, maximum stretch 0.07260660, bend RMS 0 degrees, tunneling 0, final kinetic energy 0"
+    },
+    "cuda_adapter": {
+      "command": "cmake --build build-f8-22-cuda -j2 --target parallel-mater-driver-slang-cuda parallel-mater-cloth-realtime-cuda-tests",
+      "result": "PASS"
+    },
+    "metal_adapter": {
+      "command": "clang++ -std=c++20 -fsyntax-only -DPARALLEL_MATER_DRIVER_IMPLEMENTATION=1 -DPARALLEL_MATER_METAL_DRIVER=1 -Isrc/device/metal_compat -Isrc -Iinclude -Ibuild-f8-23-cpu/generated/api src/simulation/metal_cloth_dispatch.cpp src/simulation/metal_geometry_soft_body_dispatch.cpp",
+      "result": "PASS"
+    }
+  },
+  "physical_vulkan_adapter": {
+    "harness": "python3 scripts/Test-AndroidVulkan.py --serial 2B241FDH20060P --adb /usr/bin/adb --build-directory examples/android/app/.cxx/Debug/k2p6f5mu/arm64-v8a --output /tmp/F8-41-android-native-75a359b --timeout 180 --conformance-timeout 420 --native-only",
+    "device": {
+      "manufacturer": "Google",
+      "model": "Pixel 7",
+      "product": "panther",
+      "android_version": "17",
+      "api_level": "37",
+      "security_patch": "2026-10-05"
+    },
+    "adapter": "production Slang Vulkan",
+    "toolchain": {
+      "android_ndk": "29.0.14206865",
+      "slang": "2026.18"
+    },
+    "source_commit": "75a359b1aa5ff9d33790d20acb9352906befb7ab",
+    "apk_sha256": "3e5770ea0e2024859c7339b565a3a0d1f477f16f7658ff7256a29e72dcd56178",
+    "driver_sha256": "b956a061de9a073abbb25867a48601d21de707b137f537366b41f1f0c3baa219",
+    "capture_sha256": "2363e6bb8e243cc9a1e84cadf0b168f2c2bb7191da94870ece097f8e40256b68",
+    "results_sha256": "56a60519e28783f2a030d3384922abf92d994cf059c661e22298c94925caacba",
+    "realtime_log_sha256": "e8bb1f8017ee63c5cfe5c7de06ef6590455c38124f6ee3765cee390874677aef",
+    "native_runs": [
+      "PASS: pm-android-command-tests",
+      "PASS: pm-android-async-tests",
+      "PASS: pm-android-liquid-tests",
+      "PASS: pm-android-realtime-runtime-tests --production"
+    ],
+    "trace": "Observed production Vulkan pipelines for cloth predict, F8-10 deformable spatial emit, link/apply/volume/contact solve, commit, surface update and public export.",
+    "validation_errors": 0
+  },
+  "limits": [
+    "F8-41 does not bind rigid/cloth contact generation or bidirectional response; F8-45 owns that existing interaction.",
+    "Fracture is rejected in realtime-single-step until F8-48 binds topology mutation to the common staged boundary.",
+    "Physical D3D12 and Metal execution are unavailable on this Linux/Android machine; common Slang compilation, CUDA/Vulkan execution and local Metal binding syntax passed."
+  ]
+}

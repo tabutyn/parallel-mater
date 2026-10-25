@@ -72,11 +72,12 @@ int main(int argc, char **argv) {
         return result;
     };
 
-    void *source_map{}, *output_map{}, *fluid_output_map{};
+    void *source_map{}, *output_map{}, *fluid_output_map{}, *cloth_output_map{};
     const auto source = buffer(512U, &source_map);
     const auto output = buffer(
         body_count * sizeof(PmRigidState), &output_map);
     const auto fluid_output = buffer(1024U, &fluid_output_map);
+    const auto cloth_output = buffer(1024U, &cloth_output_map);
     const float vertices[8][3] = {
         {-0.5F,-0.5F,-0.5F},{0.5F,-0.5F,-0.5F},
         {0.5F,0.5F,-0.5F},{-0.5F,0.5F,-0.5F},
@@ -123,7 +124,7 @@ int main(int argc, char **argv) {
 
     const std::array fluid_capacities{
         PmFluidCapacity{4U, 4U}, PmFluidCapacity{7U, 7U}};
-    const PmClothCapacity cloth_capacity{3U, 3U, 1U};
+    const PmClothCapacity cloth_capacity{3U, 3U, 3U};
     const PmRopeCapacity rope_capacity{2U};
     const PmSoftBodyCapacity soft_capacity{1U, 1U, 3U, 3U};
     const PmSmokeCapacity smoke_capacity{4U, 8U};
@@ -168,12 +169,21 @@ int main(int argc, char **argv) {
     liquid_material.maximumSpeed = 2.9F;
     liquid_material.densityIterations = 6U;
     const std::array liquid_materials{liquid_material, liquid_material};
+    PmClothMaterialState cloth_material{};
+    cloth_material.vertexMass = 1.0F;
+    cloth_material.thickness = 0.01F;
+    cloth_material.velocityDamping = 0.2F;
+    cloth_material.contactFriction = 0.2F;
+    cloth_material.solverIterations = 8U;
+    cloth_material.fracturePersistenceSubsteps = 1U;
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
     pipeline_info.pRigidState = &rigid_solver;
     pipeline_info.fluidMaterialCount =
         static_cast<std::uint32_t>(liquid_materials.size());
     pipeline_info.pFluidMaterials = liquid_materials.data();
+    pipeline_info.clothMaterialCount = mixed_info.clothCount;
+    pipeline_info.pClothMaterials = &cloth_material;
     PmPhysicsPipeline pipeline{};
     CHECK(pmCreatePhysicsPipeline(device, &pipeline_info, &pipeline) ==
           PM_SUCCESS);
@@ -213,6 +223,9 @@ int main(int argc, char **argv) {
         CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
         CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
     };
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdBuildGeometry(commands, geometry) == PM_SUCCESS);
+    execute(PM_SUCCESS);
     PmStepInfo step{1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F}, 0U};
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
@@ -366,6 +379,145 @@ int main(int argc, char **argv) {
         execute(PM_SUCCESS);
 
     }
+    if (mixed_info.clothCount != 0U) {
+        const std::uint32_t cloth_indices[3]{0U, 1U, 2U};
+        const float pinned_masses[3]{0.0F, 0.0F, 1.0F};
+        const PmFloat3 hanging_vertices[3]{
+            {-0.1F, 1.0F, 0.0F}, {0.1F, 1.0F, 0.0F},
+            {0.0F, 0.9F, 0.1F}};
+        const PmClothInfo hanging_cloth{
+            PM_TRUE, 0U, 3U, hanging_vertices, 3U, cloth_indices,
+            pinned_masses};
+        const PmBufferRange cloth_range{cloth_output, 0U, 1024U};
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteCloths(
+            commands, mixed_simulation, 0U, 1U, &hanging_cloth) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
+        CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopyClothState(
+            commands, mixed_simulation, 0U, &cloth_range) == PM_SUCCESS);
+        CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        PmRealtimeStepStatistics cloth_statistics{};
+        CHECK(pmGetQueryPoolResults(
+            device, query, 0U, 1U, sizeof cloth_statistics,
+            &cloth_statistics, sizeof cloth_statistics,
+            PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+        CHECK(cloth_statistics.timeAdvances == 1U);
+        CHECK(cloth_statistics.domainIterations[2] == 8U);
+        CHECK(cloth_statistics.total.spatialIndexBuilds == 1U);
+        CHECK(cloth_statistics.total.spatialIndexPublications == 1U);
+        CHECK(cloth_statistics.total.intraTickHostReadbacks == 0U);
+        const auto *cloth_header =
+            static_cast<const PmDomainOutputHeader *>(cloth_output_map);
+        const auto *cloth_vertices =
+            reinterpret_cast<const PmClothVertexState *>(cloth_header + 1U);
+        CHECK(cloth_header->activeCount == 3U);
+        for (std::uint32_t vertex = 0U; vertex < 2U; ++vertex) {
+            CHECK(cloth_vertices[vertex].position.x ==
+                  hanging_vertices[vertex].x);
+            CHECK(cloth_vertices[vertex].position.y ==
+                  hanging_vertices[vertex].y);
+            CHECK(cloth_vertices[vertex].position.z ==
+                  hanging_vertices[vertex].z);
+            CHECK(cloth_vertices[vertex].velocity.x == 0.0F);
+            CHECK(cloth_vertices[vertex].velocity.y == 0.0F);
+            CHECK(cloth_vertices[vertex].velocity.z == 0.0F);
+        }
+        CHECK(std::isfinite(cloth_vertices[2].position.y));
+        CHECK(std::isfinite(cloth_vertices[2].velocity.y));
+
+        if (!production) {
+            std::array<std::byte, 1024U> cloth_before_failure{};
+            std::memcpy(cloth_before_failure.data(), cloth_output_map,
+                        cloth_before_failure.size());
+            CHECK(setenv(
+                "PM_TEST_REALTIME_LIMIT_MINUS_ONE", "workgroups", 1) == 0);
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+            CHECK(pmCmdStepSimulation(
+                commands, mixed_simulation, &step) == PM_SUCCESS);
+            execute(PM_ERROR_CAPACITY_EXCEEDED);
+            CHECK(unsetenv("PM_TEST_REALTIME_LIMIT_MINUS_ONE") == 0);
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdCopyClothState(
+                commands, mixed_simulation, 0U, &cloth_range) == PM_SUCCESS);
+            execute(PM_SUCCESS);
+            CHECK(std::memcmp(cloth_before_failure.data(), cloth_output_map,
+                              cloth_before_failure.size()) == 0);
+        }
+
+        PmRigidBodyInfo floor{};
+        floor.active = PM_TRUE;
+        floor.geometry = geometry;
+        floor.motionType = PM_MOTION_STATIC;
+        floor.mass = 1.0F;
+        floor.inertiaDiagonal[0] = floor.inertiaDiagonal[1] =
+            floor.inertiaDiagonal[2] = 1.0F / 6.0F;
+        floor.state.orientation[3] = 1.0F;
+        floor.maximumLinearSpeed = floor.maximumAngularSpeed = 100.0F;
+        floor.collisionMargin = 0.005F;
+        const PmFloat3 contact_vertices[3]{
+            {-0.1F, 0.505F, 0.0F}, {0.1F, 0.505F, 0.0F},
+            {0.0F, 0.505F, 0.1F}};
+        const float dynamic_masses[3]{1.0F, 1.0F, 1.0F};
+        const PmClothInfo contact_cloth{
+            PM_TRUE, 0U, 3U, contact_vertices, 3U, cloth_indices,
+            dynamic_masses};
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteRigidBodies(
+            commands, mixed_simulation, 0U, 1U, &floor) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteCloths(
+            commands, mixed_simulation, 0U, 1U, &contact_cloth) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopyClothState(
+            commands, mixed_simulation, 0U, &cloth_range) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        cloth_header =
+            static_cast<const PmDomainOutputHeader *>(cloth_output_map);
+        cloth_vertices = reinterpret_cast<const PmClothVertexState *>(
+            cloth_header + 1U);
+        CHECK(cloth_header->activeCount == 3U);
+        for (std::uint32_t vertex = 0U; vertex < 3U; ++vertex) {
+            CHECK(std::isfinite(cloth_vertices[vertex].position.y));
+            CHECK(std::isfinite(cloth_vertices[vertex].velocity.y));
+        }
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteCloths(
+            commands, mixed_simulation, 0U, 1U, &hanging_cloth) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopyClothState(
+            commands, mixed_simulation, 0U, &cloth_range) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        cloth_header =
+            static_cast<const PmDomainOutputHeader *>(cloth_output_map);
+        CHECK(cloth_header->activeCount == 3U);
+    }
     pmDestroySimulation(device, mixed_simulation);
 
     std::array<PmRigidBodyInfo, body_count> bodies{};
@@ -403,7 +555,6 @@ int main(int argc, char **argv) {
         joint.solverIterations = 8U;
     }
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
-    CHECK(pmCmdBuildGeometry(commands, geometry) == PM_SUCCESS);
     CHECK(pmCmdWriteRigidBodies(
         commands, simulation, 0U, body_count, bodies.data()) == PM_SUCCESS);
     CHECK(pmCmdWriteRigidConstraints(commands, simulation, 0U,
@@ -537,6 +688,7 @@ int main(int argc, char **argv) {
     pmDestroyGeometry(device, geometry);
     pmDestroyBuffer(device, output);
     pmDestroyBuffer(device, fluid_output);
+    pmDestroyBuffer(device, cloth_output);
     pmDestroyBuffer(device, source);
     for (auto allocation : memory) pmFreeMemory(device, allocation);
     pmDestroyDevice(device);

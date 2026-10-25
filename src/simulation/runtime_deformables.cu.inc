@@ -624,6 +624,7 @@ Status SimulationRuntime::add_cloth(ClothOptions options, ClothId &output,
     std::vector<std::uint32_t> triangle_bonds;
     std::vector<std::uint32_t> volume_corner_offsets;
     std::vector<std::uint32_t> volume_corner_indices;
+    std::vector<float> realtime_characteristic_lengths;
     float initial_signed_volume = 0.0F;
     try {
         adjacency.resize(count);
@@ -720,6 +721,13 @@ Status SimulationRuntime::add_cloth(ClothOptions options, ClothId &output,
             neighbors.insert(neighbors.end(), list.begin(), list.end());
             offsets.push_back(static_cast<std::uint32_t>(neighbors.size()));
         }
+        realtime_characteristic_lengths.resize(count);
+        for (std::uint32_t vertex = 0U; vertex < count; ++vertex) {
+            float shortest = std::numeric_limits<float>::infinity();
+            for (const auto &neighbor : adjacency[vertex])
+                shortest = std::min(shortest, neighbor.rest_length);
+            realtime_characteristic_lengths[vertex] = shortest;
+        }
     } catch (...) {
         return failure(StatusCode::out_of_memory, "failed to build cloth links");
     }
@@ -753,6 +761,63 @@ Status SimulationRuntime::add_cloth(ClothOptions options, ClothId &output,
         ? options.target_volume : fabsf(initial_signed_volume);
     cloth->volume_compliance = options.volume_compliance;
     cloth->orientation = initial_signed_volume < 0.0F ? -1.0F : 1.0F;
+    if (impl_->options.realtime_spatial_enabled) {
+        if (fracture_enabled)
+            return failure(StatusCode::not_supported,
+                "realtime cloth fracture awaits topology lifecycle binding");
+        float shortest = std::numeric_limits<float>::infinity();
+        for (std::uint32_t vertex = 0U; vertex < count; ++vertex) {
+            const float characteristic = realtime_characteristic_lengths[vertex];
+            shortest = std::min(shortest, characteristic);
+            const float inverse_mass = options.inverse_masses.size != 0U
+                ? options.inverse_masses.data[vertex]
+                : 1.0F / options.vertex_mass;
+            const float mass = inverse_mass > 0.0F
+                ? 1.0F / inverse_mass : 0.001F;
+            const float world = std::max({
+                std::abs(options.vertices.data[vertex].x),
+                std::abs(options.vertices.data[vertex].y),
+                std::abs(options.vertices.data[vertex].z)});
+            simulation::ClothRealtimeInput input{};
+            input.world_coordinate = world;
+            input.characteristic_length = characteristic;
+            input.mass = mass;
+            input.linear_speed = std::min(20.0F, std::nextafter(
+                0.5F * characteristic /
+                    simulation::cloth_realtime_timestep,
+                0.0F));
+            input.thickness = options.thickness;
+            input.velocity_damping = options.velocity_damping;
+            input.contact_friction = options.contact_friction;
+            input.effective_inverse_mass = std::max(inverse_mass, 1.0F);
+            if (simulation::validate_cloth_realtime_input(input) != PM_SUCCESS)
+                return failure(StatusCode::invalid_argument,
+                    "cloth is outside the realtime-single-step envelope");
+        }
+        for (std::uint32_t vertex = 0U; vertex < count; ++vertex)
+            for (const auto &neighbor : adjacency[vertex]) {
+                const float first = options.inverse_masses.size != 0U
+                    ? options.inverse_masses.data[vertex]
+                    : 1.0F / options.vertex_mass;
+                const float second = options.inverse_masses.size != 0U
+                    ? options.inverse_masses.data[neighbor.index]
+                    : 1.0F / options.vertex_mass;
+                const float effective = first + second;
+                if (neighbor.compliance == 0.0F || effective == 0.0F)
+                    continue;
+                const float response =
+                    simulation::cloth_realtime_compliance_response(
+                        neighbor.compliance, effective);
+                if (!std::isfinite(response) || response < 0.05F ||
+                    response > 0.995F)
+                    return failure(StatusCode::invalid_argument,
+                        "cloth compliance is outside the realtime-single-step envelope");
+            }
+        cloth->realtime_characteristic_length = shortest;
+        cloth->realtime_maximum_speed = std::min(20.0F, std::nextafter(
+            0.5F * shortest / simulation::cloth_realtime_timestep, 0.0F));
+        cloth->realtime_topology_revision = cloth->generation;
+    }
     StorageAllocator allocator;
     status = simulation::visit_cloth_storage(*cloth, impl_->options.rigid_body_capacity,
         fracture_enabled, options.preserve_volume,
@@ -770,6 +835,14 @@ Status SimulationRuntime::add_cloth(ClothOptions options, ClothId &output,
         cloth->scratch[index] = options.vertices.data[index];
         cloth->previous[index] = options.vertices.data[index];
         cloth->velocities[index] = {};
+        cloth->realtime_positions[index] = options.vertices.data[index];
+        cloth->realtime_velocities[index] = {};
+        cloth->realtime_characteristic_lengths[index] =
+            realtime_characteristic_lengths[index];
+        cloth->realtime_correction_used[index] = 0.0F;
+        cloth->realtime_contact_normals[index] = {};
+        cloth->realtime_contact_offsets[index] = 0.0F;
+        cloth->realtime_contact_active[index] = 0U;
         cloth->rigid_contact_forces[index] = {};
         cloth->soft_body_forces[index] = {};
         if (cloth->rope_forces != nullptr) cloth->rope_forces[index] = {};
@@ -779,6 +852,9 @@ Status SimulationRuntime::add_cloth(ClothOptions options, ClothId &output,
             ? options.inverse_masses.data[index] : 1.0F / options.vertex_mass;
     }
     std::copy_n(options.triangle_indices.data, cloth->index_count, cloth->indices);
+    std::fill_n(cloth->realtime_triangle_generations,
+        cloth->index_count / 3U, 1U);
+    *cloth->realtime_time_advances = 0U;
     if (fracture_enabled) {
         std::copy_n(options.triangle_indices.data, cloth->index_count, cloth->source_indices);
         for (std::uint32_t i = 0; i < count; ++i) cloth->vertex_sources[i] = i;
