@@ -93,6 +93,9 @@ if(PM_ENABLE_REALTIME_PROFILE_TESTS)
     add_executable(realtime-profile-consumer realtime_profile.c)
     target_compile_features(realtime-profile-consumer PRIVATE c_std_11)
     target_link_libraries(realtime-profile-consumer PRIVATE ParallelMater::api)
+    add_executable(realtime-capacity-consumer realtime_capacity.cpp)
+    target_compile_features(realtime-capacity-consumer PRIVATE cxx_std_20)
+    target_link_libraries(realtime-capacity-consumer PRIVATE ParallelMater::api)
 endif()
 add_executable(legacy-0-2-consumer legacy_0_2_client.c)
 target_compile_features(legacy-0-2-consumer PRIVATE c_std_11)
@@ -113,6 +116,14 @@ if(PM_ENABLE_REALTIME_PROFILE_TESTS)
         set_tests_properties(realtime-profile-${mode} PROPERTIES ENVIRONMENT
             "PM_DRIVER_FILES=${PM_REALTIME_DRIVER_MANIFEST}")
     endforeach()
+    add_test(NAME realtime-capacity
+        COMMAND realtime-capacity-consumer
+            "${PM_REALTIME_OBSERVATION_DIR}/capacity.json"
+            "${PM_REALTIME_CANDIDATE_ID}"
+            "${PM_REALTIME_CANDIDATE_SHA256}"
+            "${PM_REALTIME_CANDIDATE_REVISION}")
+    set_tests_properties(realtime-capacity PROPERTIES ENVIRONMENT
+        "PM_DRIVER_FILES=${PM_REALTIME_DRIVER_MANIFEST}")
 endif()
 add_test(NAME legacy-0-2-consumer COMMAND legacy-0-2-consumer)
 set_tests_properties(legacy-0-2-consumer PROPERTIES ENVIRONMENT

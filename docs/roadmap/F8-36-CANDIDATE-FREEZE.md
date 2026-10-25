@@ -1,13 +1,18 @@
 # F8-36 executable realtime candidate freeze
 
+Historical status: F8-23 rejected this candidate after the exact CPU row
+overflowed its telemetry envelope. The immutable manifest remains as evidence;
+the rejection record and active repaired replacement are documented in
+[F8-38](F8-38-CANDIDATE-FREEZE.md).
+
 F8-36 freezes replacement candidate `realtime-single-step-v1-fd78fa8` at
 source revision `fd78fa83048a57ba5ad2e62827daf76cb94d62c1` and tree
 `f4b06abaf775c2016b6938bac3a9d8cbb0f2c4ba`. The F8-35 merge commit has the
 same tree. The machine-readable manifest is
 [`realtime-candidate-v2.json`](../../conformance/v1/qualification/realtime-candidate-v2.json),
 SHA-256 `f4f1c7807dd50b07857c568b9df3e8e2ccd6fd3870907238dc9dcfab45b493af`.
-It is frozen but not physically qualified; all eight device rows remain pending
-F8-23 through F8-30.
+It was frozen but never physically qualified; all eight device rows were
+invalidated and rerouted to the F8-38 replacement.
 
 ## Protected closure
 
@@ -70,10 +75,7 @@ records the production public-profile and schedule failures, marks all eight
 physical rows invalid, forbids evidence union, and routes them to this
 replacement. The original manifest and F8-23 rejection report remain history.
 
-F8-23 through F8-30 depend on F8-36 and name only
-`realtime-single-step-v1-fd78fa8`. Every report must bind this candidate ID,
-source revision, candidate manifest hash, native/deployment hash and protected
-closure hashes. A protected change requires a new repair/refreeze leaf and
-requalification of every affected row. F8-99 already depends on F8-33 through
-F8-36 and all eight qualification tasks; discovered leaves must be added before
-exit.
+F8-23 through F8-30 retain F8-36 as history but also depend on F8-38 and accept
+only `realtime-single-step-v1-3671f18`. Evidence from this rejected candidate
+cannot be unioned with the replacement. F8-99 depends on both repair/refreeze
+leaves and all eight qualification tasks.
