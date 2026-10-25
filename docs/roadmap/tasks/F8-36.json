@@ -1,7 +1,7 @@
 {
   "id": "F8-36",
   "title": "Freeze replacement executable realtime candidate",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-35"
   ],
@@ -18,15 +18,33 @@
     "Mark candidate v1 rejected in a separate durable record, invalidate every affected physical row, and require F8-23--30 to report only the single replacement candidate.",
     "Candidate validation fails on any protected runtime, adapter binding, dispatch, schedule, telemetry, profile or public-oracle drift; F8-99 depends on every repair/refreeze leaf."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "22291bdd-9a6a-45a8-9059-b481d3399c2a",
-    "owner": "codex-android-overnight",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-36/thomas-laptop",
-    "claimed_at": "2026-10-25T12:47:23Z",
-    "heartbeat_at": "2026-10-25T12:47:23Z",
-    "expires_at": "2026-10-26T12:47:23Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: python3 tools/check_realtime_candidate.py; realtime-single-step-v1-fd78fa8; manifest SHA-256 f4f1c7807dd50b07857c568b9df3e8e2ccd6fd3870907238dc9dcfab45b493af; eight protected closure categories and drift negatives",
+    "PASS: python3 tools/check_sdk_install.py --build-dir build-sdk-cpu --output /tmp/f8-36-sdk-evidence-2 --require-realtime-driver; 14/14 installed public-profile checks; production CPU driver SHA-256 4a457b2288c3fe4474a73acc0f602b0eda7bb7153dbcdee3c7f66e9646622a47; docs/roadmap/evidence/F8-36-INSTALLED-CPU.json",
+    "PASS: GitHub Actions run 40192899733; Linux/Windows/macOS SDK and shader/reflection gates plus Android Vulkan and iPadOS Metal builds; artifact IDs and SHA-256 digests frozen in candidate manifest",
+    "PASS: ctest --test-dir build-sdk-cpu --output-on-failure (101/101); roadmap unittest discovery (81/81); realtime oracle unittest discovery (418/418)"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "22291bdd-9a6a-45a8-9059-b481d3399c2a",
+        "owner": "codex-android-overnight",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-36/thomas-laptop",
+        "claimed_at": "2026-10-25T12:47:23Z",
+        "heartbeat_at": "2026-10-25T12:47:23Z",
+        "expires_at": "2026-10-26T12:47:23Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-25T13:03:51Z",
+      "reason": "Froze executable replacement candidate, rejected v1 without evidence union, protected all required closures, and routed every physical row to one exact identity",
+      "evidence": [
+        "PASS: python3 tools/check_realtime_candidate.py; realtime-single-step-v1-fd78fa8; manifest SHA-256 f4f1c7807dd50b07857c568b9df3e8e2ccd6fd3870907238dc9dcfab45b493af; eight protected closure categories and drift negatives",
+        "PASS: python3 tools/check_sdk_install.py --build-dir build-sdk-cpu --output /tmp/f8-36-sdk-evidence-2 --require-realtime-driver; 14/14 installed public-profile checks; production CPU driver SHA-256 4a457b2288c3fe4474a73acc0f602b0eda7bb7153dbcdee3c7f66e9646622a47; docs/roadmap/evidence/F8-36-INSTALLED-CPU.json",
+        "PASS: GitHub Actions run 40192899733; Linux/Windows/macOS SDK and shader/reflection gates plus Android Vulkan and iPadOS Metal builds; artifact IDs and SHA-256 digests frozen in candidate manifest",
+        "PASS: ctest --test-dir build-sdk-cpu --output-on-failure (101/101); roadmap unittest discovery (81/81); realtime oracle unittest discovery (418/418)"
+      ]
+    }
+  ]
 }

@@ -1,10 +1,15 @@
 # F8-22 realtime candidate freeze
 
+Historical status: this candidate was rejected during F8-23 because it was not
+executable through the production public API. Its manifest remains immutable;
+the durable rejection record and active replacement are documented in
+[F8-36](F8-36-CANDIDATE-FREEZE.md).
+
 F8-22 freezes candidate `realtime-single-step-v1-dea47c1` at source revision
 `dea47c178c3f1308abb54d46942f965b25e87eb6`. Its machine-readable identity is
 [`realtime-candidate-v1.json`](../../conformance/v1/qualification/realtime-candidate-v1.json).
-The candidate is frozen but not qualified: every physical row remains pending
-F8-23 through F8-30.
+The candidate was frozen but never qualified. Its original physical rows are
+invalidated and F8-23 through F8-30 may report only the F8-36 replacement.
 
 ## Frozen closure
 

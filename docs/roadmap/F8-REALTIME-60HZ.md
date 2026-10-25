@@ -165,8 +165,9 @@ from the build manifest must map to executed tests on each applicable target,
 including spatial primitives, paint/auxiliary kernels and every advertised mode.
 An explicitly unsupported mode is not qualified; compile-only is not execution.
 
-F8-22 freezes one source revision, profile version, kernel-manifest hash, workloads
-and tolerance/budget manifest. Qualification leaves are test/report work, not
+F8-22 froze the original source revision, which F8-23 rejected as non-executable.
+F8-36 freezes replacement `realtime-single-step-v1-fd78fa8`; only this exact
+candidate can receive F8-23--30 evidence. Qualification leaves are test/report work, not
 permission for private platform physics. A failure gets a separately leased fix.
 Any later physics/kernel/schedule/profile change invalidates affected candidate
 rows. Freeze a new candidate and rerun affected rows (new follow-up cards if an

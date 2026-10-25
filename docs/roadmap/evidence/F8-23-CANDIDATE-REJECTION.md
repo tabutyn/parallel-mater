@@ -2,6 +2,10 @@
 
 Status: `realtime-single-step-v1-dea47c1` is not executable through the
 production public API and cannot receive physical qualification evidence.
+The machine-readable rejection is
+[`realtime-candidate-v1-rejection.json`](../../../conformance/v1/qualification/realtime-candidate-v1-rejection.json);
+it preserves the old manifest hash, invalidates all eight physical rows and
+forbids union with replacement evidence.
 
 F8-23 built the frozen source closure on the registered Linux CPU host before
 collecting any quality or timing samples. The clean `sdk-cpu` build completed
@@ -46,5 +50,5 @@ The first CTest selects the production Slang CPU manifest and confirms zero
 profiles. The second selects the mock driver and is contract-only. This failure
 is preserved instead of being relabeled as unsupported success. F8-33--36 own
 production spatial integration, native schedule/telemetry binding, truthful
-public exposure and a replacement freeze. F8-23--30 must qualify only that one
-replacement candidate.
+public exposure and a replacement freeze. F8-23--30 must qualify only
+`realtime-single-step-v1-fd78fa8` from F8-36.
