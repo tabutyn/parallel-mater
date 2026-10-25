@@ -1,7 +1,7 @@
 {
   "id": "F8-38",
   "title": "Refreeze realtime candidate after telemetry repair",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-37"
   ],
@@ -18,15 +18,33 @@
     "Mark candidate v2 rejected in a separate durable record, invalidate every affected physical row, and require F8-23--30 to report only the single newly frozen candidate.",
     "Candidate validation fails on any protected runtime, adapter binding, dispatch, schedule, telemetry, profile or public-oracle drift; F8-99 depends on both repair and refreeze leaves."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "c0f83a75-1735-4412-915d-ad3a4f354939",
-    "owner": "codex-realtime-refreeze",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-38/thomas-laptop",
-    "claimed_at": "2026-10-25T14:27:03Z",
-    "heartbeat_at": "2026-10-25T14:27:03Z",
-    "expires_at": "2026-10-26T14:27:03Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: python3 tools/check_realtime_candidate.py; realtime-single-step-v1-3671f18; manifest SHA-256 d6d84f85a87af71fcdb0ee5c335f6c3979a741a151b3fbb4151096dd588d4a04; eight protected closures plus source/closure drift negatives",
+    "PASS: python3 tools/check_sdk_install.py --build-dir build-f8-23-cpu --output /tmp/f8-38-sdk-final.MFTXtO/evidence --require-realtime-driver; 14/14 stages and 22/22 external consumer tests; exact 8-body/8-constraint/contact-2048 tick completed with 20 dispatches, 1,421 workgroups and 8 sweeps; docs/roadmap/evidence/F8-38-INSTALLED-CPU.json",
+    "PASS: GitHub Actions run 40200762911; Linux/Windows/macOS SDK and shader/reflection, Android Vulkan, iPadOS Metal, mobile UI, loader and timing jobs; eight artifact IDs and SHA-256 digests frozen in candidate manifest",
+    "PASS: ctest --test-dir build-f8-23-cpu --output-on-failure -j4 (101/101; 15 unavailable fixture skips); realtime oracle unittest discovery (418/418); roadmap unittest discovery (82/82); rebuilt CPU, CUDA and Vulkan drivers"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "c0f83a75-1735-4412-915d-ad3a4f354939",
+        "owner": "codex-realtime-refreeze",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-38/thomas-laptop",
+        "claimed_at": "2026-10-25T14:27:03Z",
+        "heartbeat_at": "2026-10-25T14:27:03Z",
+        "expires_at": "2026-10-26T14:27:03Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-25T14:41:51Z",
+      "reason": "Froze repaired candidate v3, durably rejected v2 without evidence union, added the exact installed overflow regression, and routed every physical row to one identity",
+      "evidence": [
+        "PASS: python3 tools/check_realtime_candidate.py; realtime-single-step-v1-3671f18; manifest SHA-256 d6d84f85a87af71fcdb0ee5c335f6c3979a741a151b3fbb4151096dd588d4a04; eight protected closures plus source/closure drift negatives",
+        "PASS: python3 tools/check_sdk_install.py --build-dir build-f8-23-cpu --output /tmp/f8-38-sdk-final.MFTXtO/evidence --require-realtime-driver; 14/14 stages and 22/22 external consumer tests; exact 8-body/8-constraint/contact-2048 tick completed with 20 dispatches, 1,421 workgroups and 8 sweeps; docs/roadmap/evidence/F8-38-INSTALLED-CPU.json",
+        "PASS: GitHub Actions run 40200762911; Linux/Windows/macOS SDK and shader/reflection, Android Vulkan, iPadOS Metal, mobile UI, loader and timing jobs; eight artifact IDs and SHA-256 digests frozen in candidate manifest",
+        "PASS: ctest --test-dir build-f8-23-cpu --output-on-failure -j4 (101/101; 15 unavailable fixture skips); realtime oracle unittest discovery (418/418); roadmap unittest discovery (82/82); rebuilt CPU, CUDA and Vulkan drivers"
+      ]
+    }
+  ]
 }
