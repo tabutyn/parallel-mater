@@ -1,7 +1,7 @@
 {
   "id": "F8-39",
   "title": "Prepare common storage and atomic staging for all domains",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-38"
   ],
@@ -18,15 +18,29 @@
     "Define concrete phase binding points and resource ownership for F8-40--49, with one shared spatial publication and no intra-tick host readback or global GPU wait.",
     "Execute the production resource/lifecycle path on one applicable physical adapter and the available reference runtime; retain build/reflection coverage and explicit unavailable-device results."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "8447eb6d-0207-4f31-9aca-08beed4bb6f6",
-    "owner": "codex-android-overnight",
-    "machine": "thomas-laptop-pixel7",
-    "branch": "work/F8-39/thomas-laptop-pixel7",
-    "claimed_at": "2026-10-25T15:45:09Z",
-    "heartbeat_at": "2026-10-25T15:45:09Z",
-    "expires_at": "2026-10-26T15:45:09Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/F8-39-COMMON-STAGING.md",
+    "docs/roadmap/evidence/F8-39-common-staging.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "8447eb6d-0207-4f31-9aca-08beed4bb6f6",
+        "owner": "codex-android-overnight",
+        "machine": "thomas-laptop-pixel7",
+        "branch": "work/F8-39/thomas-laptop-pixel7",
+        "claimed_at": "2026-10-25T15:45:09Z",
+        "heartbeat_at": "2026-10-25T15:45:09Z",
+        "expires_at": "2026-10-26T15:45:09Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-25T16:35:03Z",
+      "reason": "Common fixed-capacity staging now admits every domain family atomically; reference and Pixel 7 Vulkan lifecycle paths pass with explicit unavailable adapter results.",
+      "evidence": [
+        "docs/roadmap/F8-39-COMMON-STAGING.md",
+        "docs/roadmap/evidence/F8-39-common-staging.json"
+      ]
+    }
+  ]
 }

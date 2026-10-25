@@ -38,7 +38,10 @@ if(PARALLEL_MATER_ANDROID_QUALIFICATION)
     add_executable(pm-android-command-tests ${PROJECT_SOURCE_DIR}/tests/api/native_command_api_tests.cpp)
     target_compile_definitions(pm-android-command-tests PRIVATE PM_TEST_NATIVE_BACKEND=PM_NATIVE_BACKEND_VULKAN)
     add_executable(pm-android-async-tests ${PROJECT_SOURCE_DIR}/tests/api/async_submission_tests.cpp)
-    foreach(target pm-android-command-tests pm-android-async-tests)
+    add_executable(pm-android-realtime-runtime-tests
+        ${PROJECT_SOURCE_DIR}/tests/api/native_realtime_runtime_tests.cpp)
+    foreach(target pm-android-command-tests pm-android-async-tests
+                   pm-android-realtime-runtime-tests)
         target_compile_features(${target} PRIVATE cxx_std_20)
         target_link_libraries(${target} PRIVATE ParallelMater::parallel_mater)
     endforeach()

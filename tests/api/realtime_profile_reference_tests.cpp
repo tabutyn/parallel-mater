@@ -54,6 +54,8 @@ int main() {
     CHECK(pmEnumeratePhysicalDevices(instance, &count, physicals.data()) ==
           PM_SUCCESS);
     const PmPhysicalDevice physical = physicals.front();
+    PmPhysicalDeviceFeatures features{};
+    pmGetPhysicalDeviceFeatures(physical, &features);
 
     count = 0U;
     CHECK(pmEnumerateExecutionProfiles(
@@ -118,31 +120,61 @@ int main() {
     simulation_info.fluidCount = 1U;
     simulation_info.pFluidCapacities = &fluid;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
+          (features.particleLiquids
+               ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT));
+    if (simulation != nullptr) pmDestroySimulation(device, simulation);
+    simulation = nullptr;
     simulation_info.fluidCount = 0U;
     const PmClothCapacity cloth{1U, 3U, 1U};
     simulation_info.clothCount = 1U;
     simulation_info.pClothCapacities = &cloth;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
+          (features.cloth ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT));
+    if (simulation != nullptr) pmDestroySimulation(device, simulation);
+    simulation = nullptr;
     simulation_info.clothCount = 0U;
     const PmRopeCapacity rope{2U};
     simulation_info.ropeCount = 1U;
     simulation_info.pRopeCapacities = &rope;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
+          (features.rope ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT));
+    if (simulation != nullptr) pmDestroySimulation(device, simulation);
+    simulation = nullptr;
     simulation_info.ropeCount = 0U;
     const PmSoftBodyCapacity soft{1U, 1U, 1U, 3U};
     simulation_info.softBodyCount = 1U;
     simulation_info.pSoftBodyCapacities = &soft;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
+          (features.softBodies ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT));
+    if (simulation != nullptr) pmDestroySimulation(device, simulation);
+    simulation = nullptr;
     simulation_info.softBodyCount = 0U;
     const PmSmokeCapacity smoke{1U, 1U};
     simulation_info.smokeCount = 1U;
     simulation_info.pSmokeCapacities = &smoke;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
+          (features.smoke ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT));
+    if (simulation != nullptr) pmDestroySimulation(device, simulation);
+    simulation = nullptr;
+    simulation_info.smokeCount = 0U;
+
+    simulation_info.fluidCount = features.particleLiquids;
+    simulation_info.clothCount = features.cloth;
+    simulation_info.ropeCount = features.rope;
+    simulation_info.softBodyCount = features.softBodies;
+    simulation_info.smokeCount = features.smoke;
+    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
+          PM_SUCCESS);
+    PmSimulationMemoryRequirements requirements{};
+    pmGetSimulationMemoryRequirements(device, simulation, &requirements);
+    CHECK(requirements.persistent.size != 0U);
+    CHECK(requirements.scratch.size != 0U);
+    pmDestroySimulation(device, simulation);
+    simulation = nullptr;
+    simulation_info.fluidCount = 0U;
+    simulation_info.clothCount = 0U;
+    simulation_info.ropeCount = 0U;
+    simulation_info.softBodyCount = 0U;
     simulation_info.smokeCount = 0U;
     simulation_info.emitterCapacity = 1U;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==

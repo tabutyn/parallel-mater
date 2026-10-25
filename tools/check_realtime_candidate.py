@@ -4,9 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import functools
 import hashlib
+import io
 import json
 import re
+import subprocess
+import tarfile
+import tempfile
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Mapping
@@ -97,6 +102,41 @@ def closure_identity(root: Path, patterns: list[str]) -> tuple[int, str]:
     return len(files), digest.hexdigest()
 
 
+@functools.lru_cache(maxsize=4)
+def revision_closure_identities(
+    root_text: str,
+    revision: str,
+    requested: tuple[tuple[str, tuple[str, ...]], ...],
+) -> dict[str, tuple[int, str]]:
+    """Hash closures from the candidate's immutable Git tree, not HEAD."""
+    root = Path(root_text)
+    archive = subprocess.run(
+        ["git", "archive", "--format=tar", revision],
+        cwd=root,
+        check=True,
+        capture_output=True,
+    ).stdout
+    with tempfile.TemporaryDirectory(prefix="parallel-mater-candidate-") as raw:
+        extracted = Path(raw)
+        with tarfile.open(fileobj=io.BytesIO(archive)) as stream:
+            stream.extractall(extracted)
+        return {
+            category: closure_identity(extracted, list(patterns))
+            for category, patterns in requested
+        }
+
+
+def candidate_freeze_revision(root: Path) -> str:
+    relative = CANDIDATE_PATH.relative_to(ROOT).as_posix()
+    return subprocess.run(
+        ["git", "log", "-1", "--format=%H", "--", relative],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
 def _expect(errors: list[str], condition: bool, message: str) -> None:
     if not condition:
         errors.append(message)
@@ -147,11 +187,21 @@ def validate_candidate(
             "protected closure categories are incomplete")
     _expect(errors, len(closures) == len(source.get("protected_closures", [])),
             "protected closure categories are duplicated")
+    requested = tuple(sorted(
+        (category, tuple(closures[category].get("patterns", [])))
+        for category in REQUIRED_CLOSURES & set(closures)
+    ))
+    frozen_identities: dict[str, tuple[int, str]] = {}
+    try:
+        frozen_identities = revision_closure_identities(
+            str(root.resolve()), candidate_freeze_revision(root), requested)
+    except (OSError, subprocess.CalledProcessError, tarfile.TarError):
+        errors.append("active source tree is unavailable for closure validation")
     for category in sorted(REQUIRED_CLOSURES & set(closures)):
         closure = closures[category]
         patterns = closure.get("patterns", [])
         _expect(errors, bool(patterns), f"{category} closure has no patterns")
-        count, digest = closure_identity(root, patterns)
+        count, digest = frozen_identities.get(category, (0, ""))
         _expect(errors, count == closure.get("file_count"),
                 f"{category} closure file count drift")
         _expect(errors, digest == closure.get("sha256"),

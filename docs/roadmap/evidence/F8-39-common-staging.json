@@ -1,0 +1,99 @@
+{
+  "schema": "parallel-mater-f8-common-staging-evidence/v1",
+  "task": "F8-39",
+  "status": "passed",
+  "recorded_at": "2026-10-25",
+  "branch": "work/F8-39/thomas-laptop-pixel7",
+  "base_revision": "269a420a1bd895bb515603abb4b39ea7f4036829",
+  "implementation_revision": "444451b779ed342a36e9ba11932b7e851bdaa348",
+  "implementation": {
+    "resource_registry": "Allocation-free fixed-capacity registrations cover rigid, liquid, cloth, soft-body, rope, particle-smoke and grid-smoke families, including shared smoke-slot admission.",
+    "atomic_boundary": "Allocation, overflow, unsupported execution and pre-commit failures abort spatial, snapshot and resource staging together without publishing state, consuming capacities or advancing the clock.",
+    "generation_ownership": "Registrations identify owner slots and generations; reset and replacement invalidate staged ownership before capacity reuse.",
+    "spatial_ownership": "Every family stages against one common spatial allocation and exactly one publication token. The fixed schedule performs no intra-tick host readback or global device wait.",
+    "binding_contract": "docs/roadmap/F8-39-COMMON-STAGING.md assigns concrete boundary, predict, spatial, domain, coupling, lifecycle, output and commit ownership to F8-40 through F8-49.",
+    "unsupported_execution": "Only rigid operators are executable at F8-39. Live liquid, cloth, soft-body, rope, particle-smoke and grid-smoke resources are admitted, then return PM_ERROR_FEATURE_NOT_PRESENT before device work until F8-40 through F8-44 bind their operators."
+  },
+  "coverage": {
+    "resource_cases": [
+      "empty, sparse and mixed registrations",
+      "rigid, liquid, cloth, soft-body, rope, particle-smoke and grid-smoke",
+      "slot, element and shared-smoke overflow",
+      "unsupported binding rejection before execution",
+      "abort and retry with capacity reuse",
+      "reset, replacement and staged-generation invalidation"
+    ],
+    "reference_runtime": {
+      "driver": "Slang CPU resource test driver",
+      "native_default": "PASS: native CPU realtime schedule is fixed and atomic",
+      "native_production": "PASS: production realtime resources are fixed and atomic",
+      "resource_registry": "PASS: realtime resources stage every domain atomically"
+    },
+    "host_suite": {
+      "command": "ctest --test-dir build-sdk-cpu --output-on-failure -j4",
+      "result": "PASS 102/102 discovered tests; 87 executed pass and 15 explicit unsupported CPU-domain skips"
+    },
+    "roadmap_suite": {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS 87/87"
+    },
+    "candidate_guard": {
+      "command": "python3 tools/check_realtime_candidate.py",
+      "result": "PASS: realtime-single-step-v1-3671f18 protected closure and routing are exact"
+    }
+  },
+  "physical_adapter": {
+    "harness": "scripts/Test-AndroidVulkan.py --native-only",
+    "device": {
+      "manufacturer": "Google",
+      "model": "Pixel 7",
+      "product": "panther",
+      "android_version": "17",
+      "api_level": "37",
+      "security_patch": "2026-10-05"
+    },
+    "adapter": "production Slang Vulkan",
+    "toolchain": {
+      "android_ndk": "29.0.14206865",
+      "slang": "2026.18"
+    },
+    "source_commit": "444451b779ed342a36e9ba11932b7e851bdaa348",
+    "apk_sha256": "dfc024f27e6a8c8e0a192d8ddb998fa11ffe8759d8cf19162b20460eb19ff10f",
+    "driver_sha256": "b8cb251a40eae641de54412c930bf7f22f6dfe4edb17fb743c8ac7a161f90f53",
+    "capture_sha256": "e8d53a07b1b8f40a2ecbb0f5659a3e8e96e2b9d42a553c38b94355abb7462227",
+    "results_sha256": "56a60519e28783f2a030d3384922abf92d994cf059c661e22298c94925caacba",
+    "runtime_log_sha256": "07cef4615cb21670330666effd17c530f2fc5fef41225a4ab7eca782b1eaff26",
+    "native_runs": [
+      "PASS: pm-android-command-tests",
+      "PASS: pm-android-async-tests",
+      "PASS: pm-android-liquid-tests",
+      "PASS: pm-android-realtime-runtime-tests --production"
+    ],
+    "validation_errors": 0
+  },
+  "cross_platform": [
+    {
+      "target": "Slang CUDA production driver",
+      "command": "cmake --build build-f8-22-cuda --target parallel-mater-driver-slang-cuda -j2",
+      "result": "PASS exact implementation revision; no CUDA physical device is present on this machine"
+    },
+    {
+      "target": "Slang Vulkan production driver",
+      "command": "cmake --build build-p3-02-vulkan --target parallel-mater-driver-slang-vulkan -j2",
+      "result": "PASS exact implementation revision; physical Vulkan execution passed on Pixel 7"
+    },
+    {
+      "target": "generated API and reflected ABI",
+      "result": "PASS in the 102-test host suite"
+    },
+    {
+      "target": "D3D12 and Metal production adapters",
+      "result": "UNAVAILABLE: Windows and macOS toolchains/devices are not present on this Linux/Android machine; shared source and reflected ABI coverage passed"
+    }
+  ],
+  "limitations": [
+    "This is resource allocation, admission, ownership and lifecycle evidence; it does not claim non-rigid operator execution, quality, performance or final F8 qualification.",
+    "Liquid, cloth, soft-body, rope and smoke execution remains explicitly unavailable until F8-40 through F8-44.",
+    "Coupling, lifecycle mutation and output publication operators remain owned by F8-45 through F8-49."
+  ]
+}

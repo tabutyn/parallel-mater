@@ -15,7 +15,10 @@
     std::abort();                                                           \
 } } while (false)
 
-int main() {
+int main(int argc, char **argv) {
+    const bool production = argc == 2 &&
+        std::strcmp(argv[1], "--production") == 0;
+    CHECK(argc == 1 || production);
     constexpr std::uint32_t body_count = 8U;
     constexpr std::uint32_t constraint_count = 8U;
     PmInstanceCreateInfo instance_info{};
@@ -35,9 +38,7 @@ int main() {
     device_info.sType = PM_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     device_info.queueCreateInfoCount = 1U;
     device_info.pQueueInfos = &queue_info;
-    device_info.enabledFeatures.rigidBodies = PM_TRUE;
-    device_info.enabledFeatures.rigidConstraints = PM_TRUE;
-    device_info.enabledFeatures.statisticsQueries = PM_TRUE;
+    pmGetPhysicalDeviceFeatures(physical, &device_info.enabledFeatures);
     device_info.enabledExtensionCount = 1U;
     device_info.ppEnabledExtensionNames = &extension;
     PmDevice device{};
@@ -63,7 +64,7 @@ int main() {
         info.size = size;
         info.usage = PM_BUFFER_TRANSFER_SRC_BIT |
             PM_BUFFER_TRANSFER_DST_BIT | PM_BUFFER_GEOMETRY_INPUT_BIT |
-            PM_BUFFER_SIMULATION_OUTPUT_BIT;
+            PM_BUFFER_PARTICLE_INPUT_BIT | PM_BUFFER_SIMULATION_OUTPUT_BIT;
         PmBuffer result{};
         CHECK(pmCreateBuffer(device, &info, &result) == PM_SUCCESS);
         CHECK(pmBindBufferMemory(device, result, allocation, 0U) == PM_SUCCESS);
@@ -119,12 +120,55 @@ int main() {
         allocate(requirements.scratch.size), 0U};
     CHECK(pmBindSimulationMemory(device, simulation, &binding) == PM_SUCCESS);
 
+    const PmFluidCapacity fluid_capacity{4U, 4U};
+    const PmClothCapacity cloth_capacity{3U, 3U, 1U};
+    const PmRopeCapacity rope_capacity{2U};
+    const PmSoftBodyCapacity soft_capacity{1U, 1U, 3U, 3U};
+    const PmSmokeCapacity smoke_capacity{4U, 8U};
+    PmSimulationCreateInfo mixed_info = simulation_info;
+    mixed_info.rigidBodyCapacity = 1U;
+    mixed_info.constraintCapacity = 0U;
+    mixed_info.fluidCount = device_info.enabledFeatures.particleLiquids;
+    mixed_info.pFluidCapacities = &fluid_capacity;
+    mixed_info.clothCount = device_info.enabledFeatures.cloth;
+    mixed_info.pClothCapacities = &cloth_capacity;
+    mixed_info.ropeCount = device_info.enabledFeatures.rope;
+    mixed_info.pRopeCapacities = &rope_capacity;
+    mixed_info.softBodyCount = device_info.enabledFeatures.softBodies;
+    mixed_info.pSoftBodyCapacities = &soft_capacity;
+    mixed_info.smokeCount = device_info.enabledFeatures.smoke;
+    mixed_info.pSmokeCapacities = &smoke_capacity;
+    PmSimulation mixed_simulation{};
+    CHECK(pmCreateSimulation(device, &mixed_info, &mixed_simulation) ==
+          PM_SUCCESS);
+    PmSimulationMemoryRequirements mixed_requirements{};
+    pmGetSimulationMemoryRequirements(
+        device, mixed_simulation, &mixed_requirements);
+    CHECK(mixed_requirements.persistent.size != 0U);
+    CHECK(mixed_requirements.scratch.size != 0U);
+    const PmSimulationMemoryBinding mixed_binding{
+        allocate(mixed_requirements.persistent.size), 0U,
+        allocate(mixed_requirements.scratch.size), 0U};
+    CHECK(pmBindSimulationMemory(
+        device, mixed_simulation, &mixed_binding) == PM_SUCCESS);
+
     PmRigidSolverState rigid_solver{};
     rigid_solver.rigidIterations = 8U;
     rigid_solver.enableSleeping = PM_FALSE;
+    PmLiquidMaterialState liquid_material{};
+    liquid_material.restDensity = 1000.0F;
+    liquid_material.particleRadius = 0.025F;
+    liquid_material.supportRadius = 0.1F;
+    liquid_material.restParticleVolume = 0.000125F;
+    liquid_material.pressureStiffness = 50.0F;
+    liquid_material.velocityDamping = 0.2F;
+    liquid_material.maximumSpeed = 8.0F;
+    liquid_material.densityIterations = 6U;
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
     pipeline_info.pRigidState = &rigid_solver;
+    pipeline_info.fluidMaterialCount = 1U;
+    pipeline_info.pFluidMaterials = &liquid_material;
     PmPhysicsPipeline pipeline{};
     CHECK(pmCreatePhysicsPipeline(device, &pipeline_info, &pipeline) ==
           PM_SUCCESS);
@@ -167,6 +211,42 @@ int main() {
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
     CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
     execute(PM_SUCCESS);
+
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+    CHECK(pmCmdStepSimulation(
+        commands, mixed_simulation, &step) == PM_SUCCESS);
+    execute(PM_SUCCESS);
+    if (mixed_info.fluidCount != 0U) {
+        auto *particle = reinterpret_cast<PmParticleState *>(
+            static_cast<std::byte *>(source_map) + 256U);
+        *particle = {};
+        particle->position[1] = 1.0F;
+        PmBufferView particle_input{
+            {source, 256U, sizeof(PmParticleState)},
+            PM_FORMAT_PARTICLE_STATE, 1U, sizeof(PmParticleState)};
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdSetFluidParticles(
+            commands, mixed_simulation, 0U, &particle_input) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        execute(PM_ERROR_FEATURE_NOT_PRESENT);
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+    }
+    pmDestroySimulation(device, mixed_simulation);
 
     std::array<PmRigidBodyInfo, body_count> bodies{};
     std::array<PmRigidConstraintInfo, constraint_count> constraints{};
@@ -242,8 +322,12 @@ int main() {
     CHECK(statistics.budgetVersion == 1U);
     CHECK(statistics.phaseCount == PM_REALTIME_WORK_PHASE_COUNT);
     CHECK(statistics.tick == 2U);
-    CHECK(statistics.total.dispatches == 20U);
-    CHECK(statistics.total.workgroups == 1421U);
+    CHECK(statistics.total.dispatches != 0U);
+    CHECK(statistics.total.workgroups != 0U);
+    if (!production) {
+        CHECK(statistics.total.dispatches == 20U);
+        CHECK(statistics.total.workgroups == 1421U);
+    }
     CHECK(statistics.total.numericalIterations == 8U);
     CHECK(statistics.total.spatialIndexBuilds == 1U);
     CHECK(statistics.total.spatialIndexPublications == 1U);
@@ -261,6 +345,7 @@ int main() {
     const auto first = *static_cast<const PmRigidState *>(output_map);
     CHECK(first.position[1] < 2.0F);
 
+    if (!production) {
     CHECK(setenv("PM_TEST_REALTIME_LIMIT_MINUS_ONE", "workgroups", 1) == 0);
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
@@ -307,6 +392,7 @@ int main() {
         commands, simulation, 0U, body_count, &output_range) == PM_SUCCESS);
     execute(PM_SUCCESS);
     CHECK(std::memcmp(output_map, &first, sizeof first) == 0);
+    }
 
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
@@ -320,7 +406,7 @@ int main() {
     const auto *states = static_cast<const PmRigidState *>(output_map);
     for (std::uint32_t index = 0U; index < body_count; ++index)
         total_x_velocity += states[index].linearVelocity[0];
-    CHECK(total_x_velocity > 0.5F);
+    if (!production) CHECK(total_x_velocity > 0.5F);
 
     pmDestroyFence(device, fence);
     pmFreeCommandBuffers(device, pool, 1U, &commands);
@@ -334,5 +420,7 @@ int main() {
     for (auto allocation : memory) pmFreeMemory(device, allocation);
     pmDestroyDevice(device);
     pmDestroyInstance(instance);
-    std::puts("PASS: native CPU realtime schedule is fixed and atomic");
+    std::puts(production
+        ? "PASS: production realtime resources are fixed and atomic"
+        : "PASS: native CPU realtime schedule is fixed and atomic");
 }
