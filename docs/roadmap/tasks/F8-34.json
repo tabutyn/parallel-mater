@@ -1,7 +1,7 @@
 {
   "id": "F8-34",
   "title": "Bind fixed realtime phases and telemetry to native adapters",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-33"
   ],
@@ -19,6 +19,14 @@
     "Negative injection exceeds each fixed work/synchronization limit and fails before commit; native CPU runtime tests and all available adapter compile/regression gates pass with legacy behavior unchanged."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "142d9163-e068-4af4-8620-e863bf387ac1",
+    "owner": "codex-native-schedule",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-34/thomas-laptop",
+    "claimed_at": "2026-10-25T10:25:28Z",
+    "heartbeat_at": "2026-10-25T10:25:28Z",
+    "expires_at": "2026-10-26T10:25:28Z"
+  },
   "history": []
 }
