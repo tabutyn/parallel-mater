@@ -13,6 +13,159 @@ void rigid_avbd_barrier()
     else pmGridBarrier();
 }
 
+bool rigid_avbd_solve_block(AvbdBlock block, out AvbdVector6 delta)
+{
+    return avbdSolve(block, delta);
+}
+
+#if PM_AVBD_SMALL_MODULE
+static const uint kAvbdSmallBodies = 8u;
+static const uint kAvbdSmallBodyLanes = 4u;
+groupshared AvbdBlock rigidAvbdBodyPartials[
+    kAvbdSmallBodies * kAvbdSmallBodyLanes];
+
+void rigid_avbd_add_block(inout AvbdBlock target, AvbdBlock source)
+{
+    for (uint element = 0u; element < 21u; ++element)
+        target.h[element] += source.h[element];
+    for (uint axis = 0u; axis < 6u; ++axis)
+        target.g[axis] += source.g[axis];
+}
+
+void rigid_avbd_solve_color_cooperative(
+    PM_AVBD_BUFFER(BodyParameters) parameters,
+    PM_AVBD_BUFFER(AvbdBody) bodies, uint count,
+    PM_AVBD_MANIFOLD_BUFFER manifolds, PM_AVBD_BUFFER(uint) pairs,
+    uint color)
+{
+    uint lane = pmThreadIndex();
+    uint bodyIndex = lane / kAvbdSmallBodyLanes;
+    uint bodyLane = lane % kAvbdSmallBodyLanes;
+    bool activeBody = bodyIndex < count && bodies[bodyIndex].color == color;
+    AvbdBlock partial = avbdZeroBlock();
+    if (activeBody && bodyLane == 0u)
+    {
+        partial = bodies[bodyIndex].inertia;
+        AvbdVector6 displacement = bodies[bodyIndex].displacement;
+        for (uint row = 0u; row < 6u; ++row)
+            for (uint column = 0u; column < 6u; ++column)
+                partial.g[row] +=
+                    partial.h[avbdBlockIndex(row, column)] *
+                    displacement.values[column];
+    }
+    if (activeBody)
+    {
+        for (uint active = bodies[bodyIndex].contact_head;
+             active != kInvalidDense;)
+        {
+            AvbdPairCache pair = rigidAvbdPairs[active];
+            uint a = pair.a;
+            uint b = pair.b;
+            bool first = bodyIndex == a;
+            float friction = pair.friction;
+            uint pointCount = PM_AVBD_MANIFOLD_COUNT(manifolds, active);
+            for (uint point = bodyLane; point < pointCount;
+                 point += kAvbdSmallBodyLanes)
+            {
+                AvbdSmallSolveContact contact =
+                    rigid_avbd_load_small_solve_contact(
+                        manifolds, active, point);
+                float error[3];
+                rigid_avbd_cached_contact_errors(contact.error, active, point,
+                    a, b, bodies, error);
+                AvbdContactForce trial;
+                trial.normal = contact.dual[0].lambda +
+                    contact.dual[0].penalty * error[0];
+                trial.tangent0 = contact.dual[1].lambda +
+                    contact.dual[1].penalty * error[1];
+                trial.tangent1 = contact.dual[2].lambda +
+                    contact.dual[2].penalty * error[2];
+                AvbdContactForce force =
+                    avbdProjectContact(trial, friction);
+                AvbdContactForce scales =
+                    avbdContactStiffnessScales(trial, friction);
+                float stiffness[3] = {scales.normal,
+                    scales.tangent0, scales.tangent1};
+                float forces[3] = {
+                    force.normal, force.tangent0, force.tangent1};
+                for (uint axis = 0u; axis < 3u; ++axis)
+                {
+                    AvbdVector6 row = rigid_avbd_cached_contact_row(
+                        active, point, axis, first);
+                    avbdAddRow(partial, row,
+                        contact.dual[axis].penalty * stiffness[axis],
+                        forces[axis]);
+                }
+            }
+            active = first
+                ? PM_AVBD_MANIFOLD_NEXT_A(manifolds, active)
+                : PM_AVBD_MANIFOLD_NEXT_B(manifolds, active);
+        }
+    }
+    rigidAvbdBodyPartials[lane] = partial;
+    pmGroupBarrier();
+    if (activeBody && bodyLane == 0u)
+    {
+        AvbdBlock block = rigidAvbdBodyPartials[lane];
+        for (uint source = 1u; source < kAvbdSmallBodyLanes; ++source)
+            rigid_avbd_add_block(block,
+                rigidAvbdBodyPartials[lane + source]);
+        AvbdVector6 update = avbdZeroVector6();
+        if (rigid_avbd_solve_block(block, update))
+        {
+            bool crossing = false;
+            for (uint active = bodies[bodyIndex].contact_head;
+                 active != kInvalidDense;)
+            {
+                AvbdPairCache pair = rigidAvbdPairs[active];
+                uint a = pair.a;
+                uint b = pair.b;
+                bool first = bodyIndex == a;
+                uint pointCount = PM_AVBD_MANIFOLD_COUNT(
+                    manifolds, active);
+                for (uint point = 0u; point < pointCount; ++point)
+                {
+                    AvbdSmallSolveContact contact =
+                        rigid_avbd_load_small_solve_contact(
+                            manifolds, active, point);
+                    float error[3];
+                    rigid_avbd_cached_contact_errors(contact.error,
+                        active, point,
+                        a, b, bodies, error);
+                    float trial = contact.dual[0].lambda +
+                        contact.dual[0].penalty * error[0];
+                    AvbdVector6 normalRow =
+                        rigid_avbd_cached_contact_row(
+                            active, point, 0u, first);
+                    if (trial <= 0.0f && trial +
+                        contact.dual[0].penalty *
+                            avbdDot6(normalRow, update) >
+                        contact.dual[0].penalty * 1.0e-6f)
+                    {
+                        avbdAddRow(block, normalRow,
+                            contact.dual[0].penalty, trial);
+                        crossing = true;
+                    }
+                }
+                active = first
+                    ? PM_AVBD_MANIFOLD_NEXT_A(manifolds, active)
+                    : PM_AVBD_MANIFOLD_NEXT_B(manifolds, active);
+            }
+            if (crossing)
+            {
+                AvbdVector6 safeguarded = avbdZeroVector6();
+                if (rigid_avbd_solve_block(block, safeguarded))
+                    update = safeguarded;
+            }
+            AvbdBody body = bodies[bodyIndex];
+            rigid_avbd_apply_pose_update(body, update);
+            bodies[bodyIndex] = body;
+        }
+    }
+    pmGroupBarrier();
+}
+#endif
+
 // The iterative hinge rows keep motion tangent to the anchor, while the finite
 // quaternion update follows the chord of that motion. Remove the
 // resulting positional residue once per substep so off-centre hinges do not
@@ -186,8 +339,8 @@ void rigid_avbd_solve_stage(
             AvbdVector6 displacement = bodies[bodyIndex].displacement;
             for (uint row = 0u; row < 6u; ++row)
                 for (uint column = 0u; column < 6u; ++column)
-                    block.g[row] += block.h[
-                        max(row, column)][min(row, column)] *
+                    block.g[row] +=
+                        block.h[avbdBlockIndex(row, column)] *
                         displacement.values[column];
             for (uint active = bodies[bodyIndex].contact_head;
                  active != kInvalidDense;)
@@ -201,15 +354,16 @@ void rigid_avbd_solve_stage(
                      point < PM_AVBD_MANIFOLD_COUNT(
                         manifolds, active); ++point)
                 {
-                    Contact contact = PM_AVBD_MANIFOLD_CONTACT(
-                        manifolds, active, point);
+                    AvbdSolveContact contact =
+                        rigid_avbd_load_solve_contact(
+                            manifolds, active, point);
                     AvbdVector6 jacobianA[3];
                     AvbdVector6 jacobianB[3];
                     float error[3];
-                    rigid_avbd_contact_rows(contact, a, b, bodies,
+                    rigid_avbd_iterative_contact_rows(contact, a, b, bodies,
                         jacobianA, jacobianB, error);
                     AvbdContactForce trial =
-                        rigid_avbd_contact_trial(contact, error);
+                        rigid_avbd_solve_contact_trial(contact, error);
                     AvbdContactForce force =
                         avbdProjectContact(trial, friction);
                     AvbdContactForce scales =
@@ -231,10 +385,13 @@ void rigid_avbd_solve_stage(
                             ? dot(contact.accumulated_friction_impulse,
                                 tangent1) / dt : 0.0f)};
                     for (uint axis = 0u; axis < 3u; ++axis)
-                        avbdAddRow(block, first ? jacobianA[axis]
-                            : jacobianB[axis],
-                            contact.avbd_dual[axis].penalty *
+                    {
+                        AvbdVector6 row = first ? jacobianA[axis]
+                            : jacobianB[axis];
+                        avbdAddRow(block, row,
+                            contact.dual[axis].penalty *
                                 stiffness[axis], forces[axis]);
+                    }
                 }
                 active = first
                     ? PM_AVBD_MANIFOLD_NEXT_A(manifolds, active)
@@ -270,7 +427,7 @@ void rigid_avbd_solve_stage(
                     : joints[jointIndex].avbd_next_b;
             }
             AvbdVector6 update = avbdZeroVector6();
-            if (avbdSolve(block, update))
+            if (rigid_avbd_solve_block(block, update))
             {
                 bool crossing = false;
                 for (uint active = bodies[bodyIndex].contact_head;
@@ -283,24 +440,25 @@ void rigid_avbd_solve_stage(
                          point < PM_AVBD_MANIFOLD_COUNT(
                             manifolds, active); ++point)
                     {
-                        Contact contact = PM_AVBD_MANIFOLD_CONTACT(
-                            manifolds, active, point);
+                        AvbdSolveContact contact =
+                            rigid_avbd_load_solve_contact(
+                                manifolds, active, point);
                         AvbdVector6 jacobianA;
                         AvbdVector6 jacobianB;
-                        float error = rigid_avbd_contact_normal_row(
+                        float error = rigid_avbd_iterative_contact_normal_row(
                             contact, a, b, bodies,
                             jacobianA, jacobianB);
-                        float trial = contact.avbd_dual[0].lambda +
-                            contact.avbd_dual[0].penalty * error;
                         AvbdVector6 normalRow = first
                             ? jacobianA : jacobianB;
+                        float trial = contact.dual[0].lambda +
+                            contact.dual[0].penalty * error;
                         if (trial <= 0.0f && trial +
-                            contact.avbd_dual[0].penalty *
+                            contact.dual[0].penalty *
                                 avbdDot6(normalRow, update) >
-                            contact.avbd_dual[0].penalty * 1.0e-6f)
+                            contact.dual[0].penalty * 1.0e-6f)
                         {
                             avbdAddRow(block, normalRow,
-                                contact.avbd_dual[0].penalty, trial);
+                                contact.dual[0].penalty, trial);
                             crossing = true;
                         }
                     }
@@ -311,7 +469,7 @@ void rigid_avbd_solve_stage(
                 if (crossing)
                 {
                     AvbdVector6 safeguarded = avbdZeroVector6();
-                    if (avbdSolve(block, safeguarded))
+                    if (rigid_avbd_solve_block(block, safeguarded))
                         update = safeguarded;
                 }
                 if (phase == 0u)
@@ -342,32 +500,34 @@ void rigid_avbd_solve_stage(
                 parameters[a].friction * parameters[b].friction);
             float beta = rigid_avbd_pair_stiffness(
                 parameters[a], parameters[b], dt) * 100.0f;
-            ContactManifold manifold = manifolds[active];
-            for (uint point = 0u; point < manifold.count; ++point)
+            for (uint point = 0u;
+                 point < PM_AVBD_MANIFOLD_COUNT(manifolds, active); ++point)
             {
-                Contact contact = manifold.contacts[point];
+                AvbdSolveContact contact =
+                    rigid_avbd_load_solve_contact(
+                        manifolds, active, point);
                 AvbdVector6 jacobianA[3];
                 AvbdVector6 jacobianB[3];
                 float error[3];
-                rigid_avbd_contact_rows(contact, a, b, bodies,
+                rigid_avbd_iterative_contact_rows(contact, a, b, bodies,
                     jacobianA, jacobianB, error);
-                AvbdContactForce force = rigid_avbd_contact_force(
+                AvbdContactForce force = rigid_avbd_solve_contact_force(
                     contact, error, friction);
-                float tangentX = contact.avbd_dual[1].lambda +
-                    contact.avbd_dual[1].penalty * error[1];
-                float tangentY = contact.avbd_dual[2].lambda +
-                    contact.avbd_dual[2].penalty * error[2];
+                float tangentX = contact.dual[1].lambda +
+                    contact.dual[1].penalty * error[1];
+                float tangentY = contact.dual[2].lambda +
+                    contact.dual[2].penalty * error[2];
                 float frictionBound = friction * force.normal;
                 bool stick = tangentX * tangentX + tangentY * tangentY <=
                     frictionBound * frictionBound;
-                contact.avbd_dual[0].lambda = force.normal;
-                contact.avbd_dual[1].lambda = force.tangent0;
-                contact.avbd_dual[2].lambda = force.tangent1;
+                contact.dual[0].lambda = force.normal;
+                contact.dual[1].lambda = force.tangent0;
+                contact.dual[2].lambda = force.tangent1;
                 for (uint axis = 0u; axis < 3u; ++axis)
                     if (axis == 0u ? force.normal > 0.0f : stick)
-                        contact.avbd_dual[axis].penalty = min(
+                        contact.dual[axis].penalty = min(
                             kAvbdMaximumPenalty,
-                            contact.avbd_dual[axis].penalty +
+                            contact.dual[axis].penalty +
                                 beta * abs(error[axis]));
                 if (iteration + 1u == schedule[0].budget)
                 {
@@ -390,17 +550,17 @@ void rigid_avbd_solve_stage(
                             ? bodies[a].target : rigid_avbd_pose(bodies[a]);
                         RigidBodyState poseB = phase != 0u
                             ? bodies[b].target : rigid_avbd_pose(bodies[b]);
-                        contact.avbd_anchor_a = inverse_rotate(
+                        contact.anchor_a = inverse_rotate(
                             poseA.orientation,
                             subtract(contact.point, poseA.position));
-                        contact.avbd_anchor_b = inverse_rotate(
+                        contact.anchor_b = inverse_rotate(
                             poseB.orientation,
                             subtract(contact.point, poseB.position));
                     }
                 }
-                manifold.contacts[point] = contact;
+                rigid_avbd_store_solve_contact(
+                    manifolds, active, point, contact);
             }
-            manifolds[active] = manifold;
         }
         for (uint jointIndex = lane; jointIndex < joint_capacity;
              jointIndex += stride)
@@ -623,6 +783,10 @@ void solve_avbd_kernel(
     PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
+#if PM_AVBD_SMALL_MODULE
+    rigid_avbd_cache_contact_jacobians(
+        parameters, manifolds, pairs, pair_count, count, bodies);
+#endif
     uint phaseCount = schedule[0].offsets[0] ==
         kRigidRealtimeProfileVersion ? 1u : 2u;
     for (uint phase = 0u; phase < phaseCount; ++phase)
@@ -644,11 +808,25 @@ void solve_avbd_kernel(
         {
             for (uint color = 0u; color < schedule[0].remaining; ++color)
             {
+#if PM_AVBD_SMALL_MODULE
+                if (phase == 0u)
+                    rigid_avbd_solve_color_cooperative(parameters, bodies,
+                        count, manifolds, pairs, color);
+                else
+                {
+                    rigid_avbd_solve_stage(parameters, previous, states,
+                        count, manifolds, pairs, pair_count, joints,
+                        joint_capacity, bodies, schedule, dt,
+                        kAvbdStage_solve_color, phase, iteration, color);
+                    rigid_avbd_barrier();
+                }
+#else
                 rigid_avbd_solve_stage(parameters, previous, states, count,
                     manifolds, pairs, pair_count, joints, joint_capacity,
                     bodies, schedule, dt,
                     kAvbdStage_solve_color, phase, iteration, color);
                 rigid_avbd_barrier();
+#endif
             }
             rigid_avbd_solve_stage(parameters, previous, states, count,
                 manifolds, pairs, pair_count, joints, joint_capacity,
@@ -666,4 +844,21 @@ void solve_avbd_kernel(
             rigid_avbd_barrier();
         }
     }
+#if PM_AVBD_SMALL_MODULE
+    // The small Vulkan adapter owns the complete solve in this dispatch, so
+    // fold the otherwise separate post-solve speed-limit launch into its tail.
+    // This is the same clamp applied by pm_clamp_rigid_speeds.
+    uint lane = pmThreadIndex();
+    uint stride = pmGroupSize().x;
+    for (uint bodyIndex = lane; bodyIndex < count; bodyIndex += stride)
+    {
+        if (parameters[bodyIndex].motion != MotionType.dynamic) continue;
+        RigidBodyState state = states[bodyIndex];
+        state.linear_velocity = clamp_length(state.linear_velocity,
+            parameters[bodyIndex].maximum_linear_speed);
+        state.angular_velocity = clamp_length(state.angular_velocity,
+            parameters[bodyIndex].maximum_angular_speed);
+        states[bodyIndex] = state;
+    }
+#endif
 }

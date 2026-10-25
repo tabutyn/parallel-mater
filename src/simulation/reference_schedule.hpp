@@ -153,14 +153,24 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
         }
     }
 
-    const auto record_timing_stage = [&](TimingStage stage,
-                                         std::uint32_t launches = 0U) noexcept -> Status {
+    const auto record_profile_stage = [&](const char *name,
+                                          std::uint32_t launches) noexcept -> Status {
         if (profile_schedule) {
             const auto profile_error = backend.record_schedule_profile_stage(
-                timing_stage_name(stage), launches);
+                name, launches);
             if (profile_error != backend.success_code())
                 return backend.failure(profile_error,
                                        "failed to record schedule profile stage");
+        }
+        return Status{};
+    };
+    const auto record_timing_stage = [&](TimingStage stage,
+                                         std::uint32_t launches = 0U,
+                                         bool profile = true) noexcept -> Status {
+        if (profile) {
+            const auto profile_status = record_profile_stage(
+                timing_stage_name(stage), launches);
+            if (!profile_status) return profile_status;
         }
         if (!options.collect_kernel_timings) {
             return Status{};
@@ -1531,10 +1541,20 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
         // each dense pair across blocks and reduce in the same candidate order.
         // One shared reduction manifold accompanies the per-thread scratch.
         constexpr std::uint32_t contact_evaluation_threads = 16U;
+        // Small legacy-profile worlds are latency-bound on mobile GPUs.  The
+        // existing one-group path reduces candidates in their original order
+        // and avoids both fifteen mostly empty blocks and a separate reduction
+        // dispatch without changing contact equations or capacity.
+        const bool reduce_leaf_contacts_in_group =
+            options.profile == PhysicsStepProfile::legacy_default &&
+            impl_->rigid_body_count <= k_small_rigid_leaf_body_capacity;
         const std::uint32_t blocks_per_pair =
-            impl_->rigid_leaf_manifolds != nullptr
+            impl_->rigid_leaf_manifolds != nullptr &&
+                    !reduce_leaf_contacts_in_group
                 ? k_rigid_leaf_blocks_per_pair
                 : 1U;
+        auto *leaf_manifolds = reduce_leaf_contacts_in_group
+            ? nullptr : impl_->rigid_leaf_manifolds;
         error = backend.finalize_rigid_contact_manifolds(
             contact_block_count, block_size, stream,
             impl_->parameters, impl_->states[impl_->current_state], impl_->states[output_state],
@@ -1557,19 +1577,19 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                       impl_->rigid_active_pair_count,
                       impl_->rigid_leaf_pairs, impl_->rigid_leaf_pair_counts,
                       impl_->rigid_leaf_pairs_per_slot,
-                      impl_->rigid_leaf_manifolds, blocks_per_pair,
+                      leaf_manifolds, blocks_per_pair,
                       substep_timestep, has_soft_body && has_rope_soft_body,
                       impl_->rigid_manifolds);
         if (error != backend.success_code()) return backend.failure(
             error, "rigid leaf contact evaluation failed");
-        if (impl_->rigid_leaf_manifolds != nullptr) {
+        if (leaf_manifolds != nullptr) {
             error = backend.reduce_rigid_leaf_manifolds(
                 contact_block_count, block_size, stream,
                 impl_->parameters, impl_->rigid_body_count,
                 impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
                 impl_->rigid_leaf_pair_counts,
                 impl_->rigid_leaf_pairs_per_slot,
-                impl_->rigid_leaf_manifolds,
+                leaf_manifolds,
                 has_soft_body && has_rope_soft_body,
                 impl_->rigid_manifolds);
             if (error != backend.success_code()) return backend.failure(
@@ -1616,6 +1636,8 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
         if (error != backend.success_code())
             return backend.failure(error,
                 "rigid contact event preparation launch failed");
+        status = record_profile_stage("rigid_contact_events", 1U);
+        if (!status) return status;
         error = backend.load_rigid_contact_cache(
             contact_block_count, block_size, stream,
             impl_->rigid_manifolds, impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
@@ -1624,33 +1646,47 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
             impl_->rigid_leaf_pair_slot_capacity, impl_->rigid_contact_epoch, substep_timestep);
         if (error != backend.success_code())
             return backend.failure(error, "rigid contact cache load launch failed");
+        status = record_profile_stage("rigid_contact_cache_load", 1U);
+        if (!status) return status;
         const unsigned avbd_grid = std::min(impl_->rigid_contact_grid_limit,
             std::max(1U, (impl_->rigid_body_count + 31U) / 32U));
+        const auto rigid_constraint_capacity = impl_->rigid_constraint_count
+            ? impl_->options.rigid_constraint_capacity : 0U;
         error = backend.prepare_geometry_constraints(stream,
             impl_->parameters, impl_->states[impl_->current_state], impl_->states[output_state],
             impl_->rigid_body_count, impl_->rigid_manifolds, impl_->rigid_active_pairs,
             impl_->rigid_active_pair_count, impl_->rigid_constraints,
-            impl_->rigid_constraint_count ? impl_->options.rigid_constraint_capacity : 0U,
+            rigid_constraint_capacity,
             impl_->ids, impl_->avbd_bodies, impl_->rigid_contact_schedule,
             substep_timestep, options.gravity, options.rigid_contact_iterations,
             options.rigid_contact_pass_limit,
             static_cast<std::uint32_t>(options.profile), avbd_grid);
         if (error != backend.success_code())
             return backend.failure(error, "launch AVBD graph preparation");
+        status = record_profile_stage("rigid_contact_graph", 1U);
+        if (!status) return status;
         error = backend.solve_geometry_constraints(stream,
             impl_->parameters, impl_->states[impl_->current_state], impl_->states[output_state],
             impl_->rigid_body_count, impl_->rigid_manifolds, impl_->rigid_active_pairs,
             impl_->rigid_active_pair_count, impl_->rigid_constraints,
-            impl_->rigid_constraint_count ? impl_->options.rigid_constraint_capacity : 0U,
+            rigid_constraint_capacity,
             impl_->avbd_bodies, impl_->rigid_contact_schedule, substep_timestep,
             avbd_grid);
         if (error != backend.success_code()) return backend.failure(error, "launch AVBD vertex solve");
-        error = backend.clamp_rigid_speeds(
-            block_count, block_size, stream,
-            impl_->parameters, impl_->states[output_state],
-            impl_->rigid_body_count);
-        if (error != backend.success_code())
-            return backend.failure(error, "rigid speed clamp launch failed");
+        status = record_profile_stage("rigid_constraint_solve", 1U);
+        if (!status) return status;
+        if (!backend.geometry_constraints_inline_speed_clamp(
+                impl_->rigid_body_count, rigid_constraint_capacity,
+                avbd_grid)) {
+            error = backend.clamp_rigid_speeds(
+                block_count, block_size, stream,
+                impl_->parameters, impl_->states[output_state],
+                impl_->rigid_body_count);
+            if (error != backend.success_code())
+                return backend.failure(error, "rigid speed clamp launch failed");
+            status = record_profile_stage("rigid_speed_clamp", 1U);
+            if (!status) return status;
+        }
         error = backend.save_rigid_contact_cache(
             contact_block_count, block_size, stream,
             impl_->rigid_manifolds, impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
@@ -1664,6 +1700,8 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
             return backend.failure(error,
                                 "rigid contact solve kernel launch failed");
         }
+        status = record_profile_stage("rigid_contact_cache_save", 1U);
+        if (!status) return status;
         if (!collect_rigid_contacts) {
             error = backend.clear(impl_->rigid_contact_count, 0,
                                     sizeof(*impl_->rigid_contact_count), stream);
@@ -1671,7 +1709,7 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
                 return backend.failure(error,
                     "rigid contact event clear failed");
         }
-        status = record_timing_stage(TimingStage::rigid_contact_solve);
+        status = record_timing_stage(TimingStage::rigid_contact_solve, 0U, false);
         if (!status) {
             backend.wait(stream);
             return status;

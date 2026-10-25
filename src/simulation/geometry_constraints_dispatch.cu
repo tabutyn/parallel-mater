@@ -142,6 +142,17 @@ PmResult solve_geometry_constraints(device::ExecutionQueue stream,
     void *constraints, std::uint32_t constraint_capacity,
     GeometryConstraintBody *bodies, void *schedule, float timestep,
     std::uint32_t grid_blocks) noexcept {
+#if defined(PM_VULKAN_GENERATED_DISPATCH)
+    // Keep the established per-body accumulation order for four-body legacy
+    // cross-domain worlds; their sparse mobile fluid sampling is sensitive to
+    // the cooperative row-reduction order.
+    if (constraint_capacity == 0U && grid_blocks == 1U && body_count <= 8U &&
+        body_count != 4U)
+        return solve_geometry_constraints_small(stream, parameters,
+            previous, states, body_count, manifolds, active_pairs,
+            active_pair_count, constraints, constraint_capacity, bodies,
+            schedule, timestep);
+#endif
     auto *shader_parameters =
         const_cast<BodyParameters_0 *>(as<BodyParameters_0>(parameters));
     auto *shader_previous = const_cast<RigidBodyState_0 *>(

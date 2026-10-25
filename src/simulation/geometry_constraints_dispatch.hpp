@@ -31,4 +31,12 @@ PmResult solve_geometry_constraints(device::ExecutionQueue stream,
     GeometryConstraintBody *bodies, void *schedule, float timestep,
     std::uint32_t grid_blocks) noexcept;
 
+PmResult solve_geometry_constraints_small(
+    device::ExecutionQueue stream, const void *parameters,
+    const RigidBodyState *previous, RigidBodyState *states,
+    std::uint32_t body_count, void *manifolds,
+    std::uint32_t *active_pairs, std::uint32_t *active_pair_count,
+    void *constraints, std::uint32_t constraint_capacity,
+    GeometryConstraintBody *bodies, void *schedule, float timestep) noexcept;
+
 } // namespace parallel_mater::simulation

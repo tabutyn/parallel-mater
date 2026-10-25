@@ -646,14 +646,23 @@ void GallerySession::validate_snapshot() const {
         vector(particle.position); vector(particle.velocity); vector(particle.vorticity);
         finite(particle.age); finite(particle.numberDensity); finite(particle.pressure);
     }
-    if ((is_fluid_context(entry(selected_).context) &&
-         output.fluid_particles.empty()) ||
-        (runtime_.scene.has_smoke && output.smoke_particles.empty()) ||
-        output.rigid_states.size() != runtime_.scene.rigid_bodies.size() ||
-        output.cloth_vertices.size() != runtime_.scene.cloths.size() ||
-        output.soft_body_nodes.size() != runtime_.scene.soft_bodies.size() ||
-        output.rope_nodes.size() != runtime_.scene.ropes.size())
-        throw std::runtime_error("Missing domain output");
+    const auto context = entry(selected_).context;
+    const bool completed_smoke_water_phase_change =
+        context == GalleryContext::smoke_water &&
+        !output.smoke_particles.empty();
+    if (is_fluid_context(context) && output.fluid_particles.empty() &&
+        !completed_smoke_water_phase_change)
+        throw std::runtime_error("Missing fluid domain output");
+    if (runtime_.scene.has_smoke && output.smoke_particles.empty())
+        throw std::runtime_error("Missing smoke domain output");
+    if (output.rigid_states.size() != runtime_.scene.rigid_bodies.size())
+        throw std::runtime_error("Missing rigid domain output");
+    if (output.cloth_vertices.size() != runtime_.scene.cloths.size())
+        throw std::runtime_error("Missing cloth domain output");
+    if (output.soft_body_nodes.size() != runtime_.scene.soft_bodies.size())
+        throw std::runtime_error("Missing soft-body domain output");
+    if (output.rope_nodes.size() != runtime_.scene.ropes.size())
+        throw std::runtime_error("Missing rope domain output");
     if (pixels.size() != std::size_t(width) * height || pixels.empty())
         throw std::runtime_error("Invalid rendered image size");
     if (std::all_of(pixels.begin(), pixels.end(), [&](auto pixel) { return pixel == pixels.front(); }))

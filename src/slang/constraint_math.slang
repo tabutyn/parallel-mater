@@ -124,20 +124,27 @@ float avbdDot6(AvbdVector6 a, AvbdVector6 b)
 
 struct AvbdBlock
 {
-    float h[6][6];
+    // Symmetric lower triangle: row * (row + 1) / 2 + column.
+    // The solver never consumes the redundant upper triangle; packing it
+    // reduces mobile shader private storage from 42 to 27 floats per block.
+    float h[21];
     float g[6];
 };
+
+uint avbdBlockIndex(uint row, uint column)
+{
+    uint high = max(row, column);
+    uint low = min(row, column);
+    return high * (high + 1u) / 2u + low;
+}
 
 AvbdBlock avbdZeroBlock()
 {
     AvbdBlock result;
     [ForceUnroll]
-    for (uint i = 0; i < 6; ++i)
-    {
-        result.g[i] = 0.0f;
-        [ForceUnroll]
-        for (uint j = 0; j < 6; ++j) result.h[i][j] = 0.0f;
-    }
+    for (uint i = 0; i < 6; ++i) result.g[i] = 0.0f;
+    [ForceUnroll]
+    for (uint i = 0; i < 21; ++i) result.h[i] = 0.0f;
     return result;
 }
 
@@ -150,7 +157,7 @@ void avbdAddRow(inout AvbdBlock block, AvbdVector6 jacobian,
         block.g[i] += jacobian.values[i] * rowForce;
         [loop]
         for (uint j = 0; j <= i; ++j)
-            block.h[i][j] += stiffness
+            block.h[avbdBlockIndex(i, j)] += stiffness
                 * jacobian.values[i] * jacobian.values[j];
     }
 }
@@ -165,11 +172,13 @@ bool avbdSolve(AvbdBlock input, out AvbdVector6 delta)
     [ForceUnroll]
     for (uint i = 0; i < 6; ++i)
     {
-        if (!(input.h[i][i] > 0.0f) || !(input.h[i][i] < largest)
-            || !(avbdAbs(input.g[i]) < largest)) return false;
+        if (!(input.h[avbdBlockIndex(i, i)] > 0.0f) ||
+            !(input.h[avbdBlockIndex(i, i)] < largest) ||
+            !(avbdAbs(input.g[i]) < largest)) return false;
         [loop]
         for (uint j = 0; j < i; ++j)
-            if (!(avbdAbs(input.h[i][j]) < largest)) return false;
+            if (!(avbdAbs(input.h[avbdBlockIndex(i, j)]) < largest))
+                return false;
     }
     [ForceUnroll]
     for (uint attempt = 0; attempt < 2; ++attempt)
@@ -181,7 +190,8 @@ bool avbdSolve(AvbdBlock input, out AvbdVector6 delta)
         [ForceUnroll]
         for (uint i = 0; i < 6; ++i)
         {
-            scale[i] = attempt != 0 ? rsqrt(block.h[i][i]) : 1.0f;
+            scale[i] = attempt != 0
+                ? rsqrt(block.h[avbdBlockIndex(i, i)]) : 1.0f;
             diagonalFactors[i] = 0.0f;
             forward[i] = 0.0f;
         }
@@ -195,11 +205,11 @@ bool avbdSolve(AvbdBlock input, out AvbdVector6 delta)
                 [loop]
                 for (uint j = 0; j < i; ++j)
                 {
-                    block.h[i][j] *= scale[i] * scale[j];
-                    if (!(avbdAbs(block.h[i][j])
+                    block.h[avbdBlockIndex(i, j)] *= scale[i] * scale[j];
+                    if (!(avbdAbs(block.h[avbdBlockIndex(i, j)])
                           <= 1.0f + roundoffTolerance)) return false;
                 }
-                block.h[i][i] = 1.0f;
+                block.h[avbdBlockIndex(i, i)] = 1.0f;
             }
         }
         bool retry = false;
@@ -209,21 +219,23 @@ bool avbdSolve(AvbdBlock input, out AvbdVector6 delta)
             [loop]
             for (uint j = 0; j < i; ++j)
             {
-                float sum = block.h[i][j];
+                float sum = block.h[avbdBlockIndex(i, j)];
                 [loop]
                 for (uint k = 0; k < j; ++k)
-                    sum -= block.h[i][k] * diagonalFactors[k]
-                         * block.h[j][k];
-                block.h[i][j] = sum / diagonalFactors[j];
+                    sum -= block.h[avbdBlockIndex(i, k)] * diagonalFactors[k]
+                         * block.h[avbdBlockIndex(j, k)];
+                block.h[avbdBlockIndex(i, j)] = sum / diagonalFactors[j];
             }
-            float diagonal = block.h[i][i];
+            float diagonal = block.h[avbdBlockIndex(i, i)];
             [loop]
             for (uint k = 0; k < i; ++k)
-                diagonal -= block.h[i][k] * block.h[i][k]
+                diagonal -= block.h[avbdBlockIndex(i, k)] *
+                            block.h[avbdBlockIndex(i, k)]
                           * diagonalFactors[k];
             if (attempt == 0)
             {
-                if (!(diagonal > pivotFloor * input.h[i][i])
+                if (!(diagonal > pivotFloor *
+                        input.h[avbdBlockIndex(i, i)])
                     || !(diagonal < largest))
                 {
                     retry = true;
@@ -240,7 +252,7 @@ bool avbdSolve(AvbdBlock input, out AvbdVector6 delta)
             forward[i] = -block.g[i];
             [loop]
             for (uint k = 0; k < i; ++k)
-                forward[i] -= block.h[i][k] * forward[k];
+                forward[i] -= block.h[avbdBlockIndex(i, k)] * forward[k];
         }
         if (retry) continue;
         [ForceUnroll]
@@ -249,7 +261,8 @@ bool avbdSolve(AvbdBlock input, out AvbdVector6 delta)
             delta.values[i] = forward[i] / diagonalFactors[i];
             [loop]
             for (uint k = uint(i) + 1; k < 6; ++k)
-                delta.values[i] -= block.h[k][i] * delta.values[k];
+                delta.values[i] -=
+                    block.h[avbdBlockIndex(k, uint(i))] * delta.values[k];
         }
         [ForceUnroll]
         for (uint i = 0; i < 6; ++i)
@@ -375,9 +388,10 @@ void avbdConformanceMain(uint3 threadId : SV_DispatchThreadID)
         for (uint i = 0; i < 6; ++i)
         {
             block.g[i] = input.values[36 + i];
-            [ForceUnroll]
-            for (uint j = 0; j < 6; ++j)
-                block.h[i][j] = input.values[i * 6 + j];
+            [loop]
+            for (uint j = 0; j <= i; ++j)
+                block.h[avbdBlockIndex(i, j)] =
+                    input.values[i * 6 + j];
         }
         AvbdVector6 delta;
         output.solved = avbdSolve(block, delta) ? 1 : 0;
@@ -434,7 +448,8 @@ void avbdConformanceMain(uint3 threadId : SV_DispatchThreadID)
         float dt = input.values[34];
         AvbdBlock block = avbdZeroBlock();
         [ForceUnroll]
-        for (uint i = 0; i < 6; ++i) block.h[i][i] = input.values[35 + i];
+        for (uint i = 0; i < 6; ++i)
+            block.h[avbdBlockIndex(i, i)] = input.values[35 + i];
         avbdAccumulate(block, row, input.values[41] != 0.0f, a, b, dt);
         AvbdRow advanced = avbdAdvance(row, a, b);
         output.values[0] = avbdRowError(row, a, b);
@@ -448,7 +463,7 @@ void avbdConformanceMain(uint3 threadId : SV_DispatchThreadID)
         for (uint i = 0; i < 6; ++i)
         {
             gradientSum += block.g[i];
-            diagonalSum += block.h[i][i];
+            diagonalSum += block.h[avbdBlockIndex(i, i)];
         }
         output.values[5] = gradientSum;
         output.values[6] = diagonalSum;

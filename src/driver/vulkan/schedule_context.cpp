@@ -200,6 +200,7 @@ struct ScheduleContext::Impl {
     };
     struct Pipeline {
         VkPipeline pipeline{};
+        bool cross_domain_barrier{};
     };
     struct ProfilePhase {
         std::string name;
@@ -527,15 +528,78 @@ struct ScheduleContext::Impl {
         completed = submitted;
         pending = false;
     }
-    void barrier() {
+    void compute_barrier() {
         VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-        barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_HOST_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT |
-                                VK_ACCESS_HOST_READ_BIT;
+        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        barrier.dstAccessMask =
+            VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT |
+            VK_ACCESS_SHADER_WRITE_BIT;
+        vkCmdPipelineBarrier(commands, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1,
+                             &barrier, 0, nullptr, 0, nullptr);
+    }
+    void cross_domain_barrier() {
+        VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
+        barrier.dstAccessMask =
+            VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
         vkCmdPipelineBarrier(
-            commands, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT | VK_PIPELINE_STAGE_HOST_BIT,
-            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT | VK_PIPELINE_STAGE_HOST_BIT, 0, 1,
-            &barrier, 0, nullptr, 0, nullptr);
+            commands,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0, 1, &barrier, 0, nullptr, 0, nullptr);
+    }
+    void prepare_transfer_barrier() {
+        VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        barrier.dstAccessMask =
+            VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+        vkCmdPipelineBarrier(commands, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 1, &barrier,
+                             0, nullptr, 0, nullptr);
+    }
+    void transfer_barrier() {
+        VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask =
+            VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT |
+            VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT |
+            VK_ACCESS_TRANSFER_WRITE_BIT;
+        vkCmdPipelineBarrier(
+            commands, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0, 1, &barrier, 0, nullptr, 0, nullptr);
+    }
+    void begin_barrier() {
+        VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        barrier.srcAccessMask =
+            VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_HOST_WRITE_BIT;
+        barrier.dstAccessMask =
+            VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT |
+            VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT |
+            VK_ACCESS_TRANSFER_WRITE_BIT;
+        vkCmdPipelineBarrier(
+            commands,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
+                VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_HOST_BIT,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0, 1, &barrier, 0, nullptr, 0, nullptr);
+    }
+    void end_barrier() {
+        VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        barrier.srcAccessMask =
+            VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT |
+                                VK_ACCESS_MEMORY_WRITE_BIT |
+                                VK_ACCESS_HOST_READ_BIT;
+        // Once per submission, publish compute output to host reads and to the
+        // Gallery's later graphics submission on the same native queue.
+        vkCmdPipelineBarrier(
+            commands,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_ALL_COMMANDS_BIT | VK_PIPELINE_STAGE_HOST_BIT,
+            0, 1, &barrier, 0, nullptr, 0, nullptr);
     }
     void start_profile_segment() {
         if (!profile.enabled || !profile.schedule_active || profile.segment_open)
@@ -591,14 +655,14 @@ struct ScheduleContext::Impl {
         info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         check(vkBeginCommandBuffer(commands, &info), "begin commands");
         open = true;
-        barrier();
+        begin_barrier();
         start_profile_segment();
     }
     void submit() {
         if (!open)
             return;
         close_profile_segment("submission_tail");
-        barrier();
+        end_barrier();
         check(vkEndCommandBuffer(commands), "end commands");
         check(vkResetFences(device, 1, &fence), "reset fence");
         if (profile.segment_open) {
@@ -1015,7 +1079,8 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
             vkDestroyShaderModule(i.device, handle, nullptr);
             check(result, "create compute pipeline");
             try {
-                p = i.pipelines.emplace(key, Impl::Pipeline{pipeline}).first;
+                p = i.pipelines.emplace(key, Impl::Pipeline{
+                    pipeline, module == "fluid_smoke"}).first;
             } catch (...) {
                 vkDestroyPipeline(i.device, pipeline, nullptr);
                 throw;
@@ -1051,7 +1116,13 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
         vkCmdDispatch(i.commands, grid.x, grid.y, grid.z);
         if (i.profile.segment_open)
             ++i.profile.dispatches;
-        i.barrier();
+        // The coupled module dereferences both domains through physical buffer
+        // addresses. Mali requires general memory visibility across that
+        // boundary; other modules retain the cheaper typed dependency.
+        if (p->second.cross_domain_barrier)
+            i.cross_domain_barrier();
+        else
+            i.compute_barrier();
         // Diagnostic mode: isolate a failing dispatch without changing normal
         // asynchronous submission behavior.
         if (std::getenv("PM_VULKAN_SYNCHRONOUS_DISPATCH"))
@@ -1090,8 +1161,9 @@ cudaError_t ScheduleContext::copy(void *dst, const void *src, std::size_t size,
                                 std::uint64_t(static_cast<std::byte *>(dst) -
                                               static_cast<std::byte *>(d->host)),
                                 size};
+            i.prepare_transfer_barrier();
             vkCmdCopyBuffer(i.commands, s->buffer, d->buffer, 1, &region);
-            i.barrier();
+            i.transfer_barrier();
         } else {
             i.sync();
             std::memmove(dst, src, size);
@@ -1115,8 +1187,9 @@ cudaError_t ScheduleContext::clear(void *dst, int value, std::size_t size) noexc
         if (offset % 4 == 0 && size % 4 == 0) {
             i.begin();
             auto byte = std::uint32_t(value) & 255U;
+            i.prepare_transfer_barrier();
             vkCmdFillBuffer(i.commands, b->buffer, offset, size, byte * 0x01010101U);
-            i.barrier();
+            i.transfer_barrier();
         } else {
             i.sync();
             std::memset(dst, value, size);
