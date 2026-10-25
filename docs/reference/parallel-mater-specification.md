@@ -1,4 +1,4 @@
-<!-- Generated from registry/pm.xml sha256:d2eeafa838267aab72684355ac129e4776da422a3c8ab728115f155d16472f5f -->
+<!-- Generated from registry/pm.xml sha256:2e221632660dced87fa1069fdff5fedb8f78e09a18f2ae3488e413ba7b15285f -->
 
 # Parallel Mater 0.2 — API Specification
 
@@ -2462,7 +2462,8 @@ Measure GPU execution separately from host overhead
 ```c
 typedef enum PmQueryType {
     PM_QUERY_TIMESTAMP = 0,
-    PM_QUERY_STEP_STATISTICS = 1
+    PM_QUERY_STEP_STATISTICS = 1,
+    PM_QUERY_REALTIME_STEP_STATISTICS = 2
 } PmQueryType;
 typedef struct PmQueryPoolCreateInfo {
     PmStructureType sType;
@@ -2484,7 +2485,7 @@ PmResult pmCmdResetQueryPool(
     uint32_t count);
 ```
 
-Query pools own implementation-managed result storage, accounted as library bytes. Reset slots before first use and after consuming prior results. Do not reset results still in flight. timestampQueries/statisticsQueries must be enabled for the selected type. queryCount is positive and bounded by maxQueriesPerPool.
+Query pools own implementation-managed result storage, accounted as library bytes. Reset slots before first use and after consuming prior results. Do not reset results still in flight. timestampQueries/statisticsQueries must be enabled for the selected type. PM_QUERY_REALTIME_STEP_STATISTICS additionally requires PM_EXT_simulation_profile on the device and reports one realtime-single-step profile tick. queryCount is positive and bounded by maxQueriesPerPool.
 
 <a id="spec-timestamps"></a>
 
@@ -2518,6 +2519,47 @@ typedef struct PmStepStatistics {
     int32_t executionResult;
     uint32_t earlyExitCount;
 } PmStepStatistics;
+
+enum {
+    PM_REALTIME_WORK_PHASE_COUNT = 7,
+    PM_REALTIME_DOMAIN_COUNT = 6
+};
+typedef enum PmRealtimeWorkPhase {
+    PM_REALTIME_WORK_PHASE_BOUNDARY = 0,
+    PM_REALTIME_WORK_PHASE_PREDICT = 1,
+    PM_REALTIME_WORK_PHASE_INDEX = 2,
+    PM_REALTIME_WORK_PHASE_CANDIDATES = 3,
+    PM_REALTIME_WORK_PHASE_DOMAIN = 4,
+    PM_REALTIME_WORK_PHASE_COUPLING = 5,
+    PM_REALTIME_WORK_PHASE_COMMIT = 6
+} PmRealtimeWorkPhase;
+typedef struct PmRealtimeWorkStatistics {
+    uint64_t dispatches;
+    uint64_t workgroups;
+    uint64_t bytesMoved;
+    uint64_t spatialIndexBuilds;
+    uint64_t spatialIndexRefits;
+    uint64_t spatialIndexPublications;
+    uint64_t numericalIterations;
+    uint64_t barriers;
+    uint64_t queueSubmissions;
+    uint64_t intraTickHostReadbacks;
+    uint64_t intraTickHostWaits;
+} PmRealtimeWorkStatistics;
+typedef struct PmRealtimeStepStatistics {
+    PmStepStatistics step;
+    uint32_t schemaVersion;
+    uint32_t profileVersion;
+    uint32_t budgetVersion;
+    uint32_t phaseCount;
+    uint64_t tick;
+    PmRealtimeWorkStatistics total;
+    PmRealtimeWorkStatistics phases[PM_REALTIME_WORK_PHASE_COUNT];
+    uint64_t timeAdvances;
+    uint64_t domainIterations[PM_REALTIME_DOMAIN_COUNT];
+    uint64_t couplingEdgeCount;
+    uint64_t couplingSweeps;
+} PmRealtimeStepStatistics;
 ```
 
 ```c
@@ -2532,7 +2574,7 @@ PmResult pmGetSimulationStatus(
     PmResult* pExecutionResult);
 ```
 
-Queries accumulate across enclosed steps: work counters sum, peak fields and high-water bytes take maxima. executionResult is the first failing PmResult, or SUCCESS. Do not nest statistics queries; Begin and End must be in one buffer. After observing completion, GetSimulationStatus exposes the last step status even when statistics are disabled. It returns NOT_READY while simulation work is pending. Overflow invalidates that step's output and requires reinitialization. When an enclosed step completes with CAPACITY_EXCEEDED, its completed statistics result remains readable and returns SUCCESS; executionResult contains CAPACITY_EXCEEDED and overflowCount contains the generated overflow count. Other failed query submissions return their completion error.
+PM_QUERY_STEP_STATISTICS queries accumulate across enclosed steps: work counters sum, peak fields and high-water bytes take maxima. executionResult is the first failing PmResult, or SUCCESS. PM_QUERY_REALTIME_STEP_STATISTICS must enclose exactly one realtime-single-step profile step and returns schema/profile/budget version 1, the seven ordered boundary-through-commit phase records, total work, one time advance, six domain iteration totals, and coupling work. Its public counters are the qualification observation surface; no driver-private state is required. Do not nest statistics queries; Begin and End must be in one buffer. After observing completion, GetSimulationStatus exposes the last step status even when statistics are disabled. It returns NOT_READY while simulation work is pending. Overflow invalidates that step's output and requires reinitialization. When an enclosed step completes with CAPACITY_EXCEEDED, its completed statistics result remains readable and returns SUCCESS; executionResult contains CAPACITY_EXCEEDED and overflowCount contains the generated overflow count. Other failed query submissions return their completion error.
 
 <a id="spec-query_results"></a>
 
@@ -2553,7 +2595,7 @@ PmResult pmGetQueryPoolResults(PmDevice device,
     PmFlags flags);
 ```
 
-A timestamp result is uint64_t; statistics use PmStepStatistics (88 bytes). WITH_AVAILABILITY appends uint64_t, zero/unavailable or one/available, after each result. stride is an eight-byte multiple large enough for a record; pData is eight-byte aligned; dataSize covers all records. Without WAIT, unavailable result bytes remain untouched and NOT_READY is returned; availability fields are still written. WAIT has no timeout: use a fence or semaphore wait first for bounded waiting.
+A timestamp result is uint64_t. PM_QUERY_STEP_STATISTICS uses PmStepStatistics (88 bytes); PM_QUERY_REALTIME_STEP_STATISTICS uses PmRealtimeStepStatistics (888 bytes). WITH_AVAILABILITY appends uint64_t, zero/unavailable or one/available, after each result. stride is an eight-byte multiple large enough for a record; pData is eight-byte aligned; dataSize covers all records. Without WAIT, unavailable result bytes remain untouched and NOT_READY is returned; availability fields are still written. WAIT has no timeout: use a fence or semaphore wait first for bounded waiting.
 
 <a id="spec-memory_budget"></a>
 
@@ -3175,6 +3217,9 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmQueueFamilyProperties | [4.3](#spec-queues) |
 | pmQueueSubmit | [13.4](#spec-submission) |
 | pmQueueWaitIdle | [13.4](#spec-submission) |
+| PmRealtimeStepStatistics | [15.3](#spec-step_stats) |
+| PmRealtimeWorkPhase | [15.3](#spec-step_stats) |
+| PmRealtimeWorkStatistics | [15.3](#spec-step_stats) |
 | pmResetCommandBuffer | [11.2](#spec-command_buffers) |
 | pmResetCommandPool | [11.1](#spec-command_pool) |
 | pmResetFences | [13.5](#spec-fences) |

@@ -217,6 +217,7 @@ struct PmCommandBuffer_T {
     bool statistics_open{};
     PmQueryPool statistics_pool{};
     std::uint32_t statistics_query{};
+    std::uint32_t statistics_step_count{};
     PmSimulation statistics_simulation{};
     std::shared_ptr<bool> statistics_execution;
     std::shared_ptr<parallel_mater::device::SubmissionCompletion> completion;
@@ -260,6 +261,7 @@ struct PmQueryPool_T {
     PmDevice_T *device{};
     PmQueryType type{};
     std::vector<PmQuerySlot> slots;
+    std::vector<PmRealtimeStepStatistics> realtime_statistics;
 };
 
 namespace parallel_mater::api {

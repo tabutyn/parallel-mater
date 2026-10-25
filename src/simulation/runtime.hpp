@@ -14,7 +14,12 @@
 #include <vector>
 
 namespace parallel_mater {
-namespace simulation { struct StorageRequirements; struct CouplingStorageLimits; }
+namespace simulation {
+struct StorageRequirements;
+struct CouplingStorageLimits;
+struct RealtimeScheduleLedger;
+struct RealtimeTickTelemetry;
+}
 
 template <typename T> struct DeviceSpan {
     T *data{};
@@ -430,6 +435,10 @@ class SimulationRuntime {
         SimulationStepTimings &output) const noexcept;
     [[nodiscard]] Status collect_statistics(SimulationStatistics &output,
                                             device::ExecutionQueue queue = {}) const noexcept;
+    [[nodiscard]] Status collect_realtime_statistics(
+        simulation::RealtimeTickTelemetry &telemetry,
+        simulation::RealtimeScheduleLedger &ledger,
+        device::ExecutionQueue queue = {}) const noexcept;
     [[nodiscard]] int device_ordinal() const noexcept;
 
   private:

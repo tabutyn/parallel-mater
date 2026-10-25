@@ -1,7 +1,34 @@
 // SPDX-License-Identifier: MIT
 #include "internal.hpp"
+#include "../simulation/realtime_schedule.hpp"
+#include "../simulation/realtime_telemetry.hpp"
 
 #include <cstring>
+
+namespace {
+
+[[nodiscard]] bool statistics_query(PmQueryType type) noexcept {
+    return type == PM_QUERY_STEP_STATISTICS ||
+        type == PM_QUERY_REALTIME_STEP_STATISTICS;
+}
+
+void copy_realtime_work(
+    const parallel_mater::simulation::RealtimeWorkCounters &source,
+    PmRealtimeWorkStatistics &destination) noexcept {
+    destination.dispatches = source.dispatches;
+    destination.workgroups = source.workgroups;
+    destination.bytesMoved = source.bytes_moved;
+    destination.spatialIndexBuilds = source.index_builds;
+    destination.spatialIndexRefits = source.index_refits;
+    destination.spatialIndexPublications = source.index_publications;
+    destination.numericalIterations = source.numerical_iterations;
+    destination.barriers = source.barriers;
+    destination.queueSubmissions = source.submissions;
+    destination.intraTickHostReadbacks = source.readbacks;
+    destination.intraTickHostWaits = source.host_waits;
+}
+
+} // namespace
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateQueryPool(
     PmDevice device, const PmQueryPoolCreateInfo *info, PmQueryPool *pool) {
@@ -10,14 +37,22 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateQueryPool(
     if (device == nullptr || info == nullptr ||
         !parallel_mater::api::valid_structure(
             info->sType, PM_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, info->pNext) ||
-        info->queryCount == 0U || info->queryCount > 65536U)
+        info->queryCount == 0U || info->queryCount > 65536U ||
+        (info->queryType != PM_QUERY_TIMESTAMP &&
+         info->queryType != PM_QUERY_STEP_STATISTICS &&
+         info->queryType != PM_QUERY_REALTIME_STEP_STATISTICS))
         return PM_ERROR_INVALID_ARGUMENT;
+    if (info->queryType == PM_QUERY_REALTIME_STEP_STATISTICS &&
+        !device->simulation_profile_extension)
+        return PM_ERROR_EXTENSION_NOT_PRESENT;
     auto *created = parallel_mater::api::make_object<PmQueryPool_T>(device);
     if (created == nullptr) return PM_ERROR_OUT_OF_HOST_MEMORY;
     created->device = device;
     created->type = info->queryType;
     try {
         created->slots.resize(info->queryCount);
+        if (info->queryType == PM_QUERY_REALTIME_STEP_STATISTICS)
+            created->realtime_statistics.resize(info->queryCount);
     } catch (const std::bad_alloc &) {
         parallel_mater::api::destroy_object(device, created);
         return PM_ERROR_OUT_OF_HOST_MEMORY;
@@ -33,9 +68,6 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateQueryPool(
                 return result;
             }
         }
-    } else if (info->queryType != PM_QUERY_STEP_STATISTICS) {
-        parallel_mater::api::destroy_object(device, created);
-        return PM_ERROR_INVALID_ARGUMENT;
     }
     *pool = created;
     return PM_SUCCESS;
@@ -65,6 +97,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdResetQueryPool(
             for (std::uint32_t index = first; index < first + count; ++index) {
                 pool->slots[index].available = false;
                 pool->slots[index].statistics = {};
+                if (pool->type == PM_QUERY_REALTIME_STEP_STATISTICS)
+                    pool->realtime_statistics[index] = {};
             }
             return PM_SUCCESS;
         });
@@ -95,12 +129,13 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdBeginStatisticsQuery(
     const PmResult state = parallel_mater::api::require_recording(command_buffer);
     if (state != PM_SUCCESS) return state;
     if (pool == nullptr || pool->device != command_buffer->device ||
-        pool->type != PM_QUERY_STEP_STATISTICS || query >= pool->slots.size() ||
+        !statistics_query(pool->type) || query >= pool->slots.size() ||
         command_buffer->statistics_open)
         return PM_ERROR_INVALID_ARGUMENT;
     command_buffer->statistics_open = true;
     command_buffer->statistics_pool = pool;
     command_buffer->statistics_query = query;
+    command_buffer->statistics_step_count = 0U;
     command_buffer->statistics_simulation = nullptr;
     try {
         command_buffer->statistics_execution = std::make_shared<bool>(false);
@@ -116,6 +151,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdBeginStatisticsQuery(
                             parallel_mater::device::Services &) noexcept {
             std::lock_guard lock(pool->mutex);
             pool->slots[query].statistics = {};
+            if (pool->type == PM_QUERY_REALTIME_STEP_STATISTICS)
+                pool->realtime_statistics[query] = {};
             pool->slots[query].available = false;
             *execution = true;
             return PM_SUCCESS;
@@ -127,16 +164,19 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdEndStatisticsQuery(
     const PmResult state = parallel_mater::api::require_recording(command_buffer);
     if (state != PM_SUCCESS) return state;
     if (pool == nullptr || pool->device != command_buffer->device ||
-        pool->type != PM_QUERY_STEP_STATISTICS || query >= pool->slots.size() ||
+        !statistics_query(pool->type) || query >= pool->slots.size() ||
         !command_buffer->statistics_open ||
         command_buffer->statistics_pool != pool ||
         command_buffer->statistics_query != query ||
-        command_buffer->statistics_simulation == nullptr)
+        command_buffer->statistics_simulation == nullptr ||
+        (pool->type == PM_QUERY_REALTIME_STEP_STATISTICS &&
+         command_buffer->statistics_step_count != 1U))
         return PM_ERROR_INVALID_ARGUMENT;
     const PmSimulation simulation = command_buffer->statistics_simulation;
     const auto execution = command_buffer->statistics_execution;
     command_buffer->statistics_open = false;
     command_buffer->statistics_pool = nullptr;
+    command_buffer->statistics_step_count = 0U;
     command_buffer->statistics_simulation = nullptr;
     command_buffer->statistics_execution.reset();
     return parallel_mater::api::record_query(
@@ -149,7 +189,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdEndStatisticsQuery(
             const PmResult result = parallel_mater::api::from_status(
                 simulation->runtime->collect_statistics(source, queue));
             if (result != PM_SUCCESS) return result;
-            PmStepStatistics &statistics = pool->slots[query].statistics;
+            PmStepStatistics &statistics =
+                pool->type == PM_QUERY_REALTIME_STEP_STATISTICS
+                ? pool->realtime_statistics[query].step
+                : pool->slots[query].statistics;
             statistics.stepCount = simulation->submitted_steps;
             statistics.substepsExecuted = simulation->last_substeps;
             statistics.poseIterations = source.rigid_contact_pose_passes;
@@ -167,6 +210,37 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdEndStatisticsQuery(
             statistics.executionResult = simulation->execution_result;
             statistics.earlyExitCount =
                 source.rigid_contact_early_exit_count;
+            if (pool->type == PM_QUERY_REALTIME_STEP_STATISTICS) {
+                parallel_mater::simulation::RealtimeTickTelemetry telemetry{};
+                parallel_mater::simulation::RealtimeScheduleLedger ledger{};
+                const PmResult realtime_result = parallel_mater::api::from_status(
+                    simulation->runtime->collect_realtime_statistics(
+                        telemetry, ledger, queue));
+                if (realtime_result != PM_SUCCESS) return realtime_result;
+                PmRealtimeStepStatistics &realtime =
+                    pool->realtime_statistics[query];
+                realtime.schemaVersion = telemetry.schema_version;
+                realtime.profileVersion = telemetry.profile_version;
+                realtime.budgetVersion = telemetry.budget_version;
+                realtime.phaseCount = PM_REALTIME_WORK_PHASE_COUNT;
+                realtime.tick = telemetry.tick;
+                copy_realtime_work(telemetry.total, realtime.total);
+                for (std::size_t index = 0U;
+                     index < telemetry.phases.size(); ++index)
+                    copy_realtime_work(
+                        telemetry.phases[index].work,
+                        realtime.phases[index]);
+                realtime.timeAdvances = ledger.time_advances;
+                for (std::size_t index = 0U;
+                     index < ledger.domain_iterations.size(); ++index)
+                    realtime.domainIterations[index] =
+                        ledger.domain_iterations[index];
+                for (const auto sweeps : ledger.coupling_sweeps)
+                    realtime.couplingSweeps += sweeps;
+                // Realtime simulations currently reject graph-coupling
+                // capacity, so a successful public record has zero edges.
+                realtime.couplingEdgeCount = 0U;
+            }
             pool->slots[query].available = true;
             return PM_SUCCESS;
         }, true);
@@ -181,7 +255,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetQueryPoolResults(
         count > pool->slots.size() - first)
         return PM_ERROR_INVALID_ARGUMENT;
     const std::size_t value_size = pool->type == PM_QUERY_TIMESTAMP
-        ? sizeof(std::uint64_t) : sizeof(PmStepStatistics);
+        ? sizeof(std::uint64_t)
+        : pool->type == PM_QUERY_REALTIME_STEP_STATISTICS
+            ? sizeof(PmRealtimeStepStatistics) : sizeof(PmStepStatistics);
     const std::size_t record_size = value_size +
         ((flags & PM_QUERY_RESULT_WITH_AVAILABILITY_BIT) != 0U
              ? sizeof(std::uint64_t) : 0U);
@@ -215,8 +291,11 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetQueryPoolResults(
         const auto result = completion ? completion->status() : PM_SUCCESS;
         const bool failed_statistics_available =
             result == PM_ERROR_CAPACITY_EXCEEDED &&
-            pool->type == PM_QUERY_STEP_STATISTICS && slot.available &&
-            slot.statistics.executionResult == PM_ERROR_CAPACITY_EXCEEDED;
+            statistics_query(pool->type) && slot.available &&
+            (pool->type == PM_QUERY_REALTIME_STEP_STATISTICS
+                 ? pool->realtime_statistics[first + offset].step.executionResult
+                 : slot.statistics.executionResult) ==
+                PM_ERROR_CAPACITY_EXCEEDED;
         if (result < PM_SUCCESS && !failed_statistics_available) return result;
         bool available = (result == PM_SUCCESS || failed_statistics_available) &&
             slot.available;
@@ -242,6 +321,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmGetQueryPoolResults(
                 const std::uint64_t nanoseconds = static_cast<std::uint64_t>(
                     milliseconds * 1'000'000.0F);
                 std::memcpy(destination, &nanoseconds, sizeof nanoseconds);
+            } else if (pool->type == PM_QUERY_REALTIME_STEP_STATISTICS) {
+                std::memcpy(destination,
+                            &pool->realtime_statistics[first + offset],
+                            sizeof(PmRealtimeStepStatistics));
             } else {
                 std::memcpy(destination, &slot.statistics, sizeof slot.statistics);
             }

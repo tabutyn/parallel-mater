@@ -539,6 +539,25 @@ Status SimulationRuntime::collect_statistics(SimulationStatistics &output,
     return success();
 }
 
+Status SimulationRuntime::collect_realtime_statistics(
+    simulation::RealtimeTickTelemetry &telemetry,
+    simulation::RealtimeScheduleLedger &ledger,
+    device::ExecutionQueue queue) const noexcept {
+    (void)queue;
+    if (!impl_)
+        return failure(StatusCode::invalid_argument,
+                       "simulation is not initialized");
+    Status device_status = impl_->require_current_device();
+    if (!device_status) return device_status;
+    if (impl_->frame && !impl_->frame->acknowledged) {
+        Status status = wait_for_completion(impl_->frame);
+        if (!status) return status;
+    }
+    telemetry = impl_->realtime_telemetry;
+    ledger = impl_->realtime_ledger;
+    return success();
+}
+
 int SimulationRuntime::device_ordinal() const noexcept {
     return impl_ && impl_->execution.services
         ? impl_->execution.services->ordinal() : -1;

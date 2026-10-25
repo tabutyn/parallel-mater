@@ -55,10 +55,17 @@ int main() {
           PM_SUCCESS);
     const PmPhysicalDevice physical = physicals.front();
 
-    count = 99U;
+    count = 0U;
     CHECK(pmEnumerateExecutionProfiles(
               physical, &count, nullptr) == PM_SUCCESS);
-    CHECK(count == 0U);
+    CHECK(count == 1U);
+    PmExecutionProfileProperties property{};
+    CHECK(pmEnumerateExecutionProfiles(
+        physical, &count, &property) == PM_SUCCESS);
+    CHECK(count == 1U);
+    CHECK(std::strcmp(property.profileName,
+                      PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP) == 0);
+    CHECK(property.versionMajor == 1U && property.versionMinor == 0U);
 
     PmSimulationProfileCreateInfo profile{};
     profile.sType = PM_STRUCTURE_TYPE_SIMULATION_PROFILE_CREATE_INFO;
@@ -99,7 +106,66 @@ int main() {
     }
     simulation_info.pNext = &profile;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
+          PM_SUCCESS);
+    pmDestroySimulation(device, simulation);
+    simulation = nullptr;
+    simulation_info.couplingCapacity = 1U;
+    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
           PM_ERROR_FEATURE_NOT_PRESENT);
+    CHECK(simulation == nullptr);
+    simulation_info.couplingCapacity = 0U;
+    const PmFluidCapacity fluid{1U, 1U};
+    simulation_info.fluidCount = 1U;
+    simulation_info.pFluidCapacities = &fluid;
+    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    simulation_info.fluidCount = 0U;
+    const PmClothCapacity cloth{1U, 3U, 1U};
+    simulation_info.clothCount = 1U;
+    simulation_info.pClothCapacities = &cloth;
+    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    simulation_info.clothCount = 0U;
+    const PmRopeCapacity rope{2U};
+    simulation_info.ropeCount = 1U;
+    simulation_info.pRopeCapacities = &rope;
+    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    simulation_info.ropeCount = 0U;
+    const PmSoftBodyCapacity soft{1U, 1U, 1U, 3U};
+    simulation_info.softBodyCount = 1U;
+    simulation_info.pSoftBodyCapacities = &soft;
+    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    simulation_info.softBodyCount = 0U;
+    const PmSmokeCapacity smoke{1U, 1U};
+    simulation_info.smokeCount = 1U;
+    simulation_info.pSmokeCapacities = &smoke;
+    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    simulation_info.smokeCount = 0U;
+    simulation_info.emitterCapacity = 1U;
+    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    simulation_info.emitterCapacity = 0U;
+    simulation_info.destroyerCapacity = 1U;
+    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    simulation_info.destroyerCapacity = 0U;
+    const PmPaintFieldCapacity paint{1U, 1U, 1U};
+    simulation_info.paintFieldCount = 1U;
+    simulation_info.pPaintFieldCapacities = &paint;
+    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    simulation_info.paintFieldCount = 0U;
+    simulation_info.paintRuleCapacity = 1U;
+    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    simulation_info.paintRuleCapacity = 0U;
+    simulation_info.debugFrameCapacity = 1U;
+    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
+          PM_ERROR_FEATURE_NOT_PRESENT);
+    simulation_info.debugFrameCapacity = 0U;
     profile.versionMinor = 1U;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
           PM_ERROR_INCOMPATIBLE_VERSION);
@@ -109,6 +175,6 @@ int main() {
           PM_ERROR_FEATURE_NOT_PRESENT);
     pmDestroyDevice(device);
     pmDestroyInstance(instance);
-    std::puts("PASS: reference driver advertises no unfinished realtime solver");
+    std::puts("PASS: reference driver exposes executable realtime profile");
     return 0;
 }

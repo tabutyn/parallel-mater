@@ -49,6 +49,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmResetCommandPool(
         buffer->bound_pipeline = nullptr;
         buffer->statistics_open = false;
         buffer->statistics_pool = nullptr;
+        buffer->statistics_step_count = 0U;
         buffer->statistics_simulation = nullptr;
         buffer->statistics_execution.reset();
         buffer->state = PmCommandState::initial;
@@ -120,6 +121,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmBeginCommandBuffer(
     buffer->bound_pipeline = nullptr;
     buffer->statistics_open = false;
     buffer->statistics_pool = nullptr;
+    buffer->statistics_step_count = 0U;
     buffer->statistics_simulation = nullptr;
     buffer->statistics_execution.reset();
     buffer->usage = info->flags;
@@ -151,6 +153,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmResetCommandBuffer(
     buffer->bound_pipeline = nullptr;
     buffer->statistics_open = false;
     buffer->statistics_pool = nullptr;
+    buffer->statistics_step_count = 0U;
     buffer->statistics_simulation = nullptr;
     buffer->statistics_execution.reset();
     buffer->state = PmCommandState::initial;

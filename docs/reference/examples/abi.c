@@ -20,6 +20,15 @@ CHECK(offsetof(PmParticleState, temperatureCelsius) == 24);
 CHECK(sizeof(PmStepStatistics) == 88);
 CHECK(offsetof(PmStepStatistics, executionResult) == 80);
 CHECK(offsetof(PmStepStatistics, earlyExitCount) == 84);
+CHECK(sizeof(PmRealtimeWorkStatistics) == 88);
+CHECK(sizeof(PmRealtimeStepStatistics) == 888);
+CHECK(offsetof(PmRealtimeStepStatistics, step) == 0);
+CHECK(offsetof(PmRealtimeStepStatistics, total) == 112);
+CHECK(offsetof(PmRealtimeStepStatistics, phases) == 200);
+CHECK(offsetof(PmRealtimeStepStatistics, timeAdvances) == 816);
+CHECK(offsetof(PmRealtimeStepStatistics, domainIterations) == 824);
+CHECK(offsetof(PmRealtimeStepStatistics, couplingEdgeCount) == 872);
+CHECK(offsetof(PmRealtimeStepStatistics, couplingSweeps) == 880);
 
 /* Function pointer assignment checks the complete submission signature. */
 PmResult (PMAPI_CALL *const checked_submit)(

@@ -1,6 +1,6 @@
 {
   "version": "0.2",
-  "page_count": 55,
+  "page_count": 56,
   "page_map": {
     "overview": 2,
     "intent": 2,
@@ -98,26 +98,26 @@
     "queries": 42,
     "query_pool": 43,
     "timestamps": 43,
-    "step_stats": 43,
-    "query_results": 44,
-    "memory_budget": 44,
-    "capabilities": 45,
-    "interaction_capabilities": 45,
-    "limits": 46,
-    "formats": 46,
-    "format_layouts": 46,
-    "feature_matrix": 47,
-    "threading": 47,
-    "not_capabilities": 47,
-    "example": 47,
-    "example_record": 47,
-    "example_submit": 48,
-    "example_prepare": 49,
-    "example_after": 49,
-    "fundamentals": 49,
-    "base_types": 50,
-    "structure_types": 50,
-    "symbol_index": 51
+    "step_stats": 44,
+    "query_results": 45,
+    "memory_budget": 45,
+    "capabilities": 46,
+    "interaction_capabilities": 46,
+    "limits": 47,
+    "formats": 47,
+    "format_layouts": 47,
+    "feature_matrix": 48,
+    "threading": 48,
+    "not_capabilities": 48,
+    "example": 48,
+    "example_record": 48,
+    "example_submit": 49,
+    "example_prepare": 50,
+    "example_after": 50,
+    "fundamentals": 50,
+    "base_types": 51,
+    "structure_types": 51,
+    "symbol_index": 52
   },
   "numbers": {
     "overview": "1",
@@ -465,6 +465,9 @@
     "PmQueueFamilyProperties": "queues",
     "pmQueueSubmit": "submission",
     "pmQueueWaitIdle": "submission",
+    "PmRealtimeStepStatistics": "step_stats",
+    "PmRealtimeWorkPhase": "step_stats",
+    "PmRealtimeWorkStatistics": "step_stats",
     "pmResetCommandBuffer": "command_buffers",
     "pmResetCommandPool": "command_pool",
     "pmResetFences": "fences",
@@ -527,9 +530,9 @@
     "example_record",
     "example_submit"
   ],
-  "pdf_sha256": "70485f51418ead48ed0a79b7d6c49d7b57d7cc31d994c9f90628248e454a3cf0",
+  "pdf_sha256": "a7675c397e91df7fe8224a9b1cffd6d0f687a68851381ecff0ad445ef5ad5842",
   "registry": {
     "path": "registry/pm.xml",
-    "sha256": "d2eeafa838267aab72684355ac129e4776da422a3c8ab728115f155d16472f5f"
+    "sha256": "2e221632660dced87fa1069fdff5fedb8f78e09a18f2ae3488e413ba7b15285f"
   }
 }

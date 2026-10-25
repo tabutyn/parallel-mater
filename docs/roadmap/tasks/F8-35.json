@@ -1,7 +1,7 @@
 {
   "id": "F8-35",
   "title": "Expose executable realtime profile through installed API",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-34"
   ],
@@ -18,15 +18,27 @@
     "The public observation record identifies installed API use, exact profile/candidate inputs and complete step/work counters required by realtime_oracle.py; private state and mock-driver execution cannot satisfy native evidence.",
     "Loader, validation, ABI, installed-SDK and legacy omission regressions pass; unsupported domains and adapters remain explicit rather than inheriting profile support."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "c51e6092-c291-4e33-8e77-f4503abdaf11",
-    "owner": "codex-android-overnight",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-35/thomas-laptop",
-    "claimed_at": "2026-10-25T11:37:40Z",
-    "heartbeat_at": "2026-10-25T11:37:40Z",
-    "expires_at": "2026-10-26T11:37:40Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F8-35-installed-realtime-profile.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "c51e6092-c291-4e33-8e77-f4503abdaf11",
+        "owner": "codex-android-overnight",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-35/thomas-laptop",
+        "claimed_at": "2026-10-25T11:37:40Z",
+        "heartbeat_at": "2026-10-25T11:37:40Z",
+        "expires_at": "2026-10-26T11:37:40Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-25T12:08:13Z",
+      "reason": "Production adapters expose the immutable realtime profile; relocated installed C consumers produce oracle-validated public observations with validation off and on.",
+      "evidence": [
+        "docs/roadmap/evidence/F8-35-installed-realtime-profile.json"
+      ]
+    }
+  ]
 }
