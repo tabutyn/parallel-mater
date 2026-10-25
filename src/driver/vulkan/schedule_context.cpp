@@ -202,21 +202,31 @@ struct ScheduleContext::Impl {
         VkPipeline pipeline{};
         bool cross_domain_barrier{};
     };
+    struct ProfileCounters {
+        std::uint64_t dispatches{};
+        std::uint64_t workgroups{};
+        std::uint64_t barriers{};
+        std::uint64_t transfer_commands{};
+        std::uint64_t readbacks{};
+        std::uint64_t bytes_moved{};
+    };
     struct ProfilePhase {
         std::string name;
         std::uint32_t begin_query{};
         std::uint32_t end_query{};
-        std::uint32_t dispatches{};
+        ProfileCounters counters{};
         std::uint32_t declared_launches{};
     };
     struct ProfileSubmission {
         std::uint64_t schedule{};
         std::uint32_t submission{};
         std::uint32_t query_count{};
-        std::uint32_t dispatches{};
+        ProfileCounters counters{};
         bool overflow{};
         bool final{};
         double record_ms{};
+        double submit_ms{};
+        double wait_ms{};
         std::chrono::steady_clock::time_point submitted_at{};
         std::vector<ProfilePhase> phases;
     };
@@ -230,8 +240,8 @@ struct ScheduleContext::Impl {
         std::uint64_t schedule{};
         std::uint32_t submission{};
         std::uint32_t query_count{};
-        std::uint32_t dispatches{};
-        std::uint32_t last_boundary_dispatches{};
+        ProfileCounters counters{};
+        ProfileCounters last_boundary{};
         std::chrono::steady_clock::time_point record_started{};
         std::vector<ProfilePhase> phases;
     };
@@ -459,7 +469,7 @@ struct ScheduleContext::Impl {
                   "read schedule profile timestamps");
             struct Aggregate {
                 double gpu_ms{};
-                std::uint32_t dispatches{};
+                ProfileCounters counters{};
                 std::uint32_t declared_launches{};
                 std::uint32_t occurrences{};
             };
@@ -478,7 +488,13 @@ struct ScheduleContext::Impl {
                     double(adapter.properties.limits.timestampPeriod) * 1.0e-6;
                 auto &aggregate = phases[phase.name];
                 aggregate.gpu_ms += milliseconds;
-                aggregate.dispatches += phase.dispatches;
+                aggregate.counters.dispatches += phase.counters.dispatches;
+                aggregate.counters.workgroups += phase.counters.workgroups;
+                aggregate.counters.barriers += phase.counters.barriers;
+                aggregate.counters.transfer_commands +=
+                    phase.counters.transfer_commands;
+                aggregate.counters.readbacks += phase.counters.readbacks;
+                aggregate.counters.bytes_moved += phase.counters.bytes_moved;
                 aggregate.declared_launches += phase.declared_launches;
                 ++aggregate.occurrences;
                 total_gpu_ms += milliseconds;
@@ -489,16 +505,30 @@ struct ScheduleContext::Impl {
             std::ostringstream json;
             json.imbue(std::locale::classic());
             json << std::fixed << std::setprecision(6)
-                 << "{\"schema\":\"parallel-mater-vulkan-schedule-profile/v1\""
+                 << "{\"schema\":\"parallel-mater-vulkan-schedule-profile/v2\""
                  << ",\"schedule\":" << pending.schedule
                  << ",\"submission\":" << pending.submission
                  << ",\"final\":" << (pending.final ? "true" : "false")
-                 << ",\"dispatches\":" << pending.dispatches
+                 << ",\"dispatches\":" << pending.counters.dispatches
+                 << ",\"workgroups\":" << pending.counters.workgroups
+                 << ",\"barriers\":" << pending.counters.barriers
+                 << ",\"transfer_commands\":"
+                 << pending.counters.transfer_commands
+                 << ",\"readbacks\":" << pending.counters.readbacks
+                 << ",\"bytes_moved\":" << pending.counters.bytes_moved
                  << ",\"gpu_ms\":" << total_gpu_ms
+                 << ",\"gpu_timing_status\":\"supported\""
                  << ",\"record_ms\":" << pending.record_ms
+                 << ",\"submit_ms\":" << pending.submit_ms
+                 << ",\"wait_ms\":" << pending.wait_ms
                  << ",\"submit_to_fence_ms\":" << submit_to_fence_ms
                  << ",\"timestamp_overflow\":"
                  << (pending.overflow ? "true" : "false")
+                 << ",\"instrumentation\":{\"query_resets\":1"
+                 << ",\"timestamp_queries\":" << pending.query_count
+                 << ",\"asynchronous_result_reads\":1"
+                 << ",\"forced_waits\":0,\"result_bytes\":"
+                 << pending.query_count * sizeof(std::uint64_t) << '}'
                  << ",\"phases\":[";
             bool first = true;
             for (const auto &[name, aggregate] : phases) {
@@ -507,7 +537,16 @@ struct ScheduleContext::Impl {
                 first = false;
                 json << "{\"name\":\"" << name
                      << "\",\"gpu_ms\":" << aggregate.gpu_ms
-                     << ",\"dispatches\":" << aggregate.dispatches
+                     << ",\"dispatches\":"
+                     << aggregate.counters.dispatches
+                     << ",\"workgroups\":"
+                     << aggregate.counters.workgroups
+                     << ",\"barriers\":" << aggregate.counters.barriers
+                     << ",\"transfer_commands\":"
+                     << aggregate.counters.transfer_commands
+                     << ",\"readbacks\":" << aggregate.counters.readbacks
+                     << ",\"bytes_moved\":"
+                     << aggregate.counters.bytes_moved
                      << ",\"declared_launches\":"
                      << aggregate.declared_launches
                      << ",\"occurrences\":" << aggregate.occurrences << '}';
@@ -523,10 +562,36 @@ struct ScheduleContext::Impl {
     void wait_pending() {
         if (!pending)
             return;
+        const auto wait_started = std::chrono::steady_clock::now();
         check(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX), "wait fence");
+        if (pending_profile)
+            pending_profile->wait_ms =
+                std::chrono::duration<double, std::milli>(
+                    std::chrono::steady_clock::now() - wait_started).count();
         emit_pending_profile();
         completed = submitted;
         pending = false;
+    }
+    void profile_barrier() noexcept {
+        if (profile.segment_open) ++profile.counters.barriers;
+    }
+    void profile_transfer(std::size_t bytes, bool readback) noexcept {
+        if (!profile.segment_open) return;
+        ++profile.counters.transfer_commands;
+        profile.counters.bytes_moved += bytes;
+        if (readback) ++profile.counters.readbacks;
+    }
+    [[nodiscard]] static ProfileCounters profile_delta(
+        const ProfileCounters &current,
+        const ProfileCounters &previous) noexcept {
+        return {
+            current.dispatches - previous.dispatches,
+            current.workgroups - previous.workgroups,
+            current.barriers - previous.barriers,
+            current.transfer_commands - previous.transfer_commands,
+            current.readbacks - previous.readbacks,
+            current.bytes_moved - previous.bytes_moved,
+        };
     }
     void compute_barrier() {
         VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
@@ -537,6 +602,7 @@ struct ScheduleContext::Impl {
         vkCmdPipelineBarrier(commands, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                              VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1,
                              &barrier, 0, nullptr, 0, nullptr);
+        profile_barrier();
     }
     void cross_domain_barrier() {
         VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
@@ -548,6 +614,7 @@ struct ScheduleContext::Impl {
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
             0, 1, &barrier, 0, nullptr, 0, nullptr);
+        profile_barrier();
     }
     void prepare_transfer_barrier() {
         VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
@@ -557,6 +624,7 @@ struct ScheduleContext::Impl {
         vkCmdPipelineBarrier(commands, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                              VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 1, &barrier,
                              0, nullptr, 0, nullptr);
+        profile_barrier();
     }
     void transfer_barrier() {
         VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
@@ -570,6 +638,7 @@ struct ScheduleContext::Impl {
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
                 VK_PIPELINE_STAGE_TRANSFER_BIT,
             0, 1, &barrier, 0, nullptr, 0, nullptr);
+        profile_barrier();
     }
     void begin_barrier() {
         VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
@@ -585,6 +654,7 @@ struct ScheduleContext::Impl {
                 VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_HOST_BIT,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
             0, 1, &barrier, 0, nullptr, 0, nullptr);
+        profile_barrier();
     }
     void end_barrier() {
         VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
@@ -600,6 +670,7 @@ struct ScheduleContext::Impl {
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
             VK_PIPELINE_STAGE_ALL_COMMANDS_BIT | VK_PIPELINE_STAGE_HOST_BIT,
             0, 1, &barrier, 0, nullptr, 0, nullptr);
+        profile_barrier();
     }
     void start_profile_segment() {
         if (!profile.enabled || !profile.schedule_active || profile.segment_open)
@@ -612,8 +683,8 @@ struct ScheduleContext::Impl {
         profile.overflow = false;
         profile.final = false;
         profile.query_count = 1U;
-        profile.dispatches = 0U;
-        profile.last_boundary_dispatches = 0U;
+        profile.counters = {};
+        profile.last_boundary = {};
         profile.phases.clear();
         profile.record_started = std::chrono::steady_clock::now();
     }
@@ -629,8 +700,8 @@ struct ScheduleContext::Impl {
                             profile_queries, end_query);
         profile.phases.push_back({
             std::string(name), end_query - 1U, end_query,
-            profile.dispatches - profile.last_boundary_dispatches, launches});
-        profile.last_boundary_dispatches = profile.dispatches;
+            profile_delta(profile.counters, profile.last_boundary), launches});
+        profile.last_boundary = profile.counters;
         profile.segment_closed = false;
     }
     void close_profile_segment(std::string_view name) {
@@ -655,14 +726,14 @@ struct ScheduleContext::Impl {
         info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
         check(vkBeginCommandBuffer(commands, &info), "begin commands");
         open = true;
-        begin_barrier();
         start_profile_segment();
+        begin_barrier();
     }
     void submit() {
         if (!open)
             return;
-        close_profile_segment("submission_tail");
         end_barrier();
+        close_profile_segment("submission_tail");
         check(vkEndCommandBuffer(commands), "end commands");
         check(vkResetFences(device, 1, &fence), "reset fence");
         if (profile.segment_open) {
@@ -670,7 +741,7 @@ struct ScheduleContext::Impl {
             snapshot.schedule = profile.schedule;
             snapshot.submission = ++profile.submission;
             snapshot.query_count = profile.query_count;
-            snapshot.dispatches = profile.dispatches;
+            snapshot.counters = profile.counters;
             snapshot.overflow = profile.overflow;
             snapshot.final = profile.final;
             snapshot.record_ms = std::chrono::duration<double, std::milli>(
@@ -682,9 +753,14 @@ struct ScheduleContext::Impl {
         VkSubmitInfo info{VK_STRUCTURE_TYPE_SUBMIT_INFO};
         info.commandBufferCount = 1;
         info.pCommandBuffers = &commands;
+        const auto submit_started = std::chrono::steady_clock::now();
         check(vkQueueSubmit(queue, 1, &info, fence), "submit");
-        if (pending_profile)
+        if (pending_profile) {
+            pending_profile->submit_ms =
+                std::chrono::duration<double, std::milli>(
+                    std::chrono::steady_clock::now() - submit_started).count();
             pending_profile->submitted_at = std::chrono::steady_clock::now();
+        }
         open = false;
         pending = true;
         ++submitted;
@@ -1114,8 +1190,11 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
                                VK_SHADER_STAGE_COMPUTE_BIT, 0,
                                std::uint32_t(constants.size()), constants.data());
         vkCmdDispatch(i.commands, grid.x, grid.y, grid.z);
-        if (i.profile.segment_open)
-            ++i.profile.dispatches;
+        if (i.profile.segment_open) {
+            ++i.profile.counters.dispatches;
+            i.profile.counters.workgroups +=
+                std::uint64_t{grid.x} * grid.y * grid.z;
+        }
         // The coupled module dereferences both domains through physical buffer
         // addresses. Mali requires general memory visibility across that
         // boundary; other modules retain the cheaper typed dependency.
@@ -1163,8 +1242,12 @@ cudaError_t ScheduleContext::copy(void *dst, const void *src, std::size_t size,
                                 size};
             i.prepare_transfer_barrier();
             vkCmdCopyBuffer(i.commands, s->buffer, d->buffer, 1, &region);
+            i.profile_transfer(size, false);
             i.transfer_barrier();
         } else {
+            const bool readback = kind == cudaMemcpyDeviceToHost ||
+                (kind == cudaMemcpyDefault && s != nullptr && d == nullptr);
+            i.profile_transfer(size, readback);
             i.sync();
             std::memmove(dst, src, size);
         }
@@ -1189,8 +1272,10 @@ cudaError_t ScheduleContext::clear(void *dst, int value, std::size_t size) noexc
             auto byte = std::uint32_t(value) & 255U;
             i.prepare_transfer_barrier();
             vkCmdFillBuffer(i.commands, b->buffer, offset, size, byte * 0x01010101U);
+            i.profile_transfer(size, false);
             i.transfer_barrier();
         } else {
+            i.profile_transfer(size, false);
             i.sync();
             std::memset(dst, value, size);
         }
@@ -1298,11 +1383,17 @@ cudaError_t ScheduleContext::begin_schedule_profile() noexcept {
         i.profile.schedule_active = false;
         i.profile.segment_open = false;
         i.profile.segment_closed = false;
+        const bool opened_command_buffer = !i.open;
         i.begin();
         i.profile.schedule_active = true;
         ++i.profile.schedule;
         i.profile.submission = 0U;
         i.start_profile_segment();
+        // begin() emitted one producer/consumer barrier just before profiling
+        // was activated for this first segment. Account for that real command
+        // without emitting a second barrier solely for instrumentation.
+        if (opened_command_buffer && i.profile.segment_open)
+            ++i.profile.counters.barriers;
         return cudaSuccess;
     } catch (...) {
         return impl_->last_error = cudaErrorLaunchFailure;
