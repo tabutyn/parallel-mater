@@ -1,0 +1,97 @@
+{
+  "schema": "parallel-mater-f8-liquid-couplings-production-ticks-evidence/v1",
+  "task": "F8-46",
+  "status": "passed-with-recorded-hardware-limit",
+  "recorded_at": "2026-10-25",
+  "branch": "work/F8-46/thomas-laptop-pixel7",
+  "lease_token": "90dbfeb4-e900-43c6-8901-e51f113b7b49",
+  "base_revision": "7558418173ac543c553178ec09805b7ed9358be1",
+  "implementation_revision": "877c1ee7720084e1a6653a6b9a03807bdbd31a4f",
+  "implemented_modes": [
+    "equal-material liquid-liquid contact",
+    "equal-material liquid-liquid pressure",
+    "equal-material liquid-liquid viscosity",
+    "liquid-rigid contact",
+    "liquid-rigid containment",
+    "liquid-cloth contact",
+    "liquid-cloth containment",
+    "liquid-soft-body contact",
+    "liquid-rope contact",
+    "particle-smoke to liquid drag",
+    "particle-smoke to liquid thermal exchange",
+    "grid-smoke to liquid drag",
+    "grid-smoke to liquid thermal exchange"
+  ],
+  "implementation": {
+    "public_graph": "PmCouplingStateInfo graph state supplies liquid pairs and liquid/deformable/smoke edges; the established liquid-rigid core edge covers every live liquid and rigid set.",
+    "fixed_tick": "The liquid family executes four canonical sweeps after all domain solves and before one atomic endpoint commit.",
+    "common_epoch": "Registrations pin endpoint generations, graph revision and the one F8-10 spatial build/query/publication. Equal-material pair keys are emitted and sorted once on sweep zero, then reused without another spatial publication.",
+    "operators": "Production pair pressure/contact, viscosity, rigid geometry, cloth contact/containment, rope contact, soft-body contact, particle/grid smoke drag and thermal exchange dispatches execute directly on staged realtime buffers.",
+    "phase_boundary": "Thermal exchange executes with boiling disabled; phase-transfer storage mutation remains explicitly deferred to F8-48.",
+    "atomic_state": "Capacity, profile and generation validation precede mutation; telemetry overflow aborts every domain/coupling contract and publishes no endpoint output.",
+    "unsupported": "Miscible and immiscible-interface liquid pairs return PM_ERROR_FEATURE_NOT_PRESENT instead of falling into equal-material equations."
+  },
+  "public_cases": [
+    "two live liquid populations plus rigid, cloth, soft body, rope and particle smoke execute in one public graph",
+    "13 liquid registrations plus three rigid and four deformable registrations report 20 edges and 12 family sweeps",
+    "one time advance, one spatial build, one spatial publication and zero intra-tick host readbacks",
+    "finite public output is copied from liquid, cloth, soft-body, rope and smoke endpoints",
+    "one-below workgroup capacity failure preserves all five public outputs byte-for-byte",
+    "public graph removal succeeds after the mixed tick"
+  ],
+  "qualification": {
+    "host_suite": {
+      "command": "cmake --build build-sdk-cpu -j2 && ctest --test-dir build-sdk-cpu --output-on-failure -j2",
+      "result": "PASS: 102/102 discovered; 87 executed passed and 15 unadvertised CPU-domain tests explicitly skipped"
+    },
+    "production_cpu_public_fixture": {
+      "command": "PM_DRIVER_FILES=build-sdk-cpu/Release/manifests/slang-cpu.json build-sdk-cpu/parallel-mater-native-realtime-runtime-tests --production",
+      "result": "PASS: production realtime resources are fixed and atomic"
+    },
+    "protected_closure": {
+      "command": "python3 tools/check_realtime_candidate.py",
+      "result": "PASS: realtime-single-step-v1-3671f18 protected closure and routing are exact"
+    },
+    "cross_adapter_builds": {
+      "commands": [
+        "cmake --build build-f8-22-cuda -j2 --target parallel-mater-driver-slang-cuda parallel-mater-liquid-coupling-realtime-cuda-tests",
+        "cmake --build build-p3-02-vulkan -j2 --target parallel-mater-driver-slang-vulkan",
+        "ANDROID_HOME=/home/thomas/Android/Sdk ANDROID_SDK_ROOT=/home/thomas/Android/Sdk SLANGC=build-f8-22-cuda/_deps/parallel_mater_slang-src/bin/slangc ./scripts/Build-AndroidGallery.sh -PphysicsBackend=vulkan -Pqualification=true"
+      ],
+      "result": "PASS: CUDA, desktop Vulkan and Android arm64-v8a Vulkan builds completed"
+    },
+    "contracts": {
+      "command": "python3 tools/roadmap.py check",
+      "result": "PASS: 272 task cards, dependencies, locks, history and generated roadmap"
+    },
+    "inherited_physical_liquid_coupling_quality": {
+      "source": "docs/roadmap/evidence/F8-18-liquid-couplings-60hz.json",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU, compute 8.6",
+      "result": "PASS: all 15 supported family/mode combinations, four sweeps, zero tunnels, 0.00000012 reciprocal residual, dissipative viscosity/drag, monotonic thermal exchange, generation and atomic capacity checks"
+    },
+    "inherited_specialized_operator_quality": {
+      "sources": [
+        "docs/roadmap/evidence/F5-31-fluid-cloth-contact.json",
+        "docs/roadmap/evidence/F5-32-fluid-cloth-containment.json",
+        "docs/roadmap/evidence/F5-33-fluid-soft-contact.json",
+        "docs/roadmap/evidence/F5-34-fluid-rope-contact.json",
+        "docs/roadmap/evidence/F5-35-smoke-fluid-drag.json",
+        "docs/roadmap/evidence/F5-36-externally-heated-fluid.json",
+        "docs/roadmap/evidence/F5-38-fluid-rigid-contact.json",
+        "docs/roadmap/evidence/F5-39-rigid-fluid-containment.json"
+      ],
+      "result": "PASS: retained production operator quality and device provenance"
+    }
+  },
+  "android_cross_build": {
+    "apk_sha256": "c8002aae855ce113d3bc9280d9e3a8d0d81f6d31e080a1f645fd27141dd7b7e9",
+    "driver_sha256": "b52517872d2b02b48aeef028f19c3714f1110bb63ea8677d14906fe134ffc4f3",
+    "device_execution": "Not run: adb devices reported no attached Pixel 7."
+  },
+  "limits": [
+    "Fresh public-runtime physical execution was unavailable: this host exposes no NVIDIA device nodes and adb reported no attached Pixel 7.",
+    "Physical D3D12 and Metal execution were unavailable on this Linux host; shared Slang closure and common runtime compilation remain covered by existing platform gates.",
+    "Phase-transfer storage mutation is not claimed and remains F8-48 scope.",
+    "Final current-candidate hardware qualification remains routed through F8-52 and the platform qualification leaves; historical physical evidence is not unioned into that future candidate."
+  ]
+}
