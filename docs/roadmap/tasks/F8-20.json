@@ -1,7 +1,7 @@
 {
   "id": "F8-20",
   "title": "Assemble the one-tick backend-neutral schedule",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-04",
     "F8-17",
@@ -22,15 +22,29 @@
     "Enforce per-domain iteration and dispatch/work budgets, GPU-resident active counts and allocation-free steady state; expose input/render snapshot ownership safely.",
     "Run all new-profile independent integration cases at dt=1/60; report simulation rate without using slow-motion to pass a frame-time gate."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "4f99d1b4-3d34-4a61-a7a3-3d821c783809",
-    "owner": "codex-android-vulkan",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-20/thomas-laptop",
-    "claimed_at": "2026-10-25T07:25:38Z",
-    "heartbeat_at": "2026-10-25T07:25:38Z",
-    "expires_at": "2026-10-26T07:25:38Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/F8-20-REALTIME-SCHEDULE.md",
+    "docs/roadmap/evidence/F8-20-realtime-schedule.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "4f99d1b4-3d34-4a61-a7a3-3d821c783809",
+        "owner": "codex-android-vulkan",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-20/thomas-laptop",
+        "claimed_at": "2026-10-25T07:25:38Z",
+        "heartbeat_at": "2026-10-25T07:25:38Z",
+        "expires_at": "2026-10-26T07:25:38Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-25T08:03:07Z",
+      "reason": "Added allocation-free backend-neutral tick assembly with exact clock, spatial, domain, coupling, commit and snapshot ownership; host and Pixel 7 integration cases plus provenance-bound Vulkan regression passed.",
+      "evidence": [
+        "docs/roadmap/F8-20-REALTIME-SCHEDULE.md",
+        "docs/roadmap/evidence/F8-20-realtime-schedule.json"
+      ]
+    }
+  ]
 }
