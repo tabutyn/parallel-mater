@@ -93,6 +93,14 @@ if(PM_ENABLE_REALTIME_PROFILE_TESTS)
     add_executable(realtime-profile-consumer realtime_profile.c)
     target_compile_features(realtime-profile-consumer PRIVATE c_std_11)
     target_link_libraries(realtime-profile-consumer PRIVATE ParallelMater::api)
+    # Built from installed public headers and libraries only. F8-23 invokes
+    # this executable explicitly for the long physical CPU qualification run;
+    # keeping it out of CTest avoids turning every packaging check into a
+    # 7,800-tick performance capture.
+    add_executable(realtime-cpu-qualification
+        realtime_cpu_qualification.cpp)
+    target_compile_features(realtime-cpu-qualification PRIVATE cxx_std_20)
+    target_link_libraries(realtime-cpu-qualification PRIVATE ParallelMater::api)
 endif()
 add_executable(legacy-0-2-consumer legacy_0_2_client.c)
 target_compile_features(legacy-0-2-consumer PRIVATE c_std_11)
