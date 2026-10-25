@@ -1,0 +1,303 @@
+{
+  "schema": "parallel-mater-realtime-candidate/v1",
+  "id": "realtime-single-step-v1-dea47c1",
+  "task": "F8-22",
+  "frozen_at": "2026-10-25",
+  "status": "frozen-awaiting-physical-qualification",
+  "lease_token": "bebd9499-0f11-4ecb-a1d1-0644c6bad57b",
+  "source": {
+    "revision": "dea47c178c3f1308abb54d46942f965b25e87eb6",
+    "tree": "925ee442f1e2243ad6466ae414365cbf927d8434",
+    "definition": "The candidate is the protected runtime, kernel, schedule, telemetry, profile and oracle closure at this revision. F8-22 adds only its manifest, validation, documentation and roadmap completion metadata.",
+    "protected_files": [
+      {
+        "path": "cmake/SlangKernelManifest.cmake",
+        "sha256": "aec26cf1145bd404cf932dddf2f25bffc6e3d661695990b4fdad668dd07e381a"
+      },
+      {
+        "path": "conformance/v1/qualification/kernel-device-obligations-v1.json",
+        "sha256": "3a5bb0649ef580479701d91d1458421dad99f3f8ceffc974baf3e88a3c086b4c"
+      },
+      {
+        "path": "conformance/v1/qualification/realtime-profile-v1.json",
+        "sha256": "0cca981dd77d5e18b6d7a4846c8a00c586bb0a7a6c6df707b4020d39c2e7fd17"
+      },
+      {
+        "path": "conformance/v1/qualification/capability-obligations-v1.json",
+        "sha256": "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2"
+      },
+      {
+        "path": "conformance/v1/realtime/oracle-suite-v1.json",
+        "sha256": "abe31e03749761491035e8210651ea25b16ab89572d25677c96bd52a1225c08e"
+      },
+      {
+        "path": "src/simulation/realtime_schedule.hpp",
+        "sha256": "e85a785a4020fc3df77a1c99e00d35090f75447b09dba127d1475de10e2a5998"
+      },
+      {
+        "path": "src/simulation/realtime_telemetry.hpp",
+        "sha256": "ac8b98b448e17f14115325f74f955b7da83fcf7814296679c09d829c47e0bb65"
+      }
+    ],
+    "slang_source_closure": {
+      "glob": "src/slang/**/*.slang",
+      "file_count": 38,
+      "sha256": "e982dcc7be0fa5a2025adaef181fafe1e84025dbc002e51fa55bb21a181c8a23",
+      "hash_method": "SHA-256 over sorted repository-relative path + NUL + file bytes + NUL"
+    }
+  },
+  "profile": {
+    "id": "realtime-single-step-v1",
+    "semantic_name": "realtime-single-step",
+    "version": {
+      "major": 1,
+      "minor": 0
+    },
+    "timestep": "1/60",
+    "workload_tolerance_budget_manifest": "conformance/v1/qualification/realtime-profile-v1.json",
+    "telemetry_schema_version": 1,
+    "schedule_profile_version": 1,
+    "schedule_budget_version": 1
+  },
+  "kernel_coverage": {
+    "canonical_module_count": 26,
+    "canonical_entry_count": 225,
+    "kernel_group_count": 32,
+    "group_coverage": "complete",
+    "coverage_gaps": [],
+    "auxiliary_runtime_case": "f8-paint-contact-stamping",
+    "rule": "Every canonical entry belongs to exactly one kernel group. Every group names an existing execution test and a public legacy or F8 trajectory case. Runtime variants also name an F8 public execution case."
+  },
+  "runtime_variants": [
+    {
+      "id": "cuda-runtime",
+      "f8_execution_test": "f8-kernel-entrypoint-execution/cuda",
+      "applicable_targets": [
+        "linux-rtx3050ti-slang-cuda",
+        "windows-gtx1080-slang-cuda"
+      ],
+      "qualification_owners": ["F8-24", "F8-26"],
+      "status": "awaiting-physical-qualification"
+    },
+    {
+      "id": "vulkan-runtime",
+      "f8_execution_test": "f8-kernel-entrypoint-execution/vulkan",
+      "applicable_targets": [
+        "android-pixel7-slang-vulkan",
+        "linux-rtx3050ti-slang-vulkan"
+      ],
+      "qualification_owners": ["F8-25", "F8-30"],
+      "status": "awaiting-physical-qualification"
+    },
+    {
+      "id": "d3d12-runtime",
+      "f8_execution_test": "f8-kernel-entrypoint-execution/d3d12",
+      "applicable_targets": ["windows-gtx1080-slang-d3d12"],
+      "qualification_owners": ["F8-27"],
+      "status": "awaiting-physical-qualification"
+    },
+    {
+      "id": "metal-runtime",
+      "f8_execution_test": "f8-kernel-entrypoint-execution/metal",
+      "applicable_targets": [
+        "ipados-m1-slang-metal",
+        "macos-m4-slang-metal"
+      ],
+      "qualification_owners": ["F8-28", "F8-29"],
+      "status": "awaiting-physical-qualification"
+    },
+    {
+      "id": "cpu-runtime",
+      "f8_execution_test": "f8-kernel-entrypoint-execution/cpu",
+      "applicable_targets": ["linux-thomas-laptop-slang-cpu"],
+      "qualification_owners": ["F8-23"],
+      "status": "awaiting-physical-qualification"
+    }
+  ],
+  "compile_only_variants": [
+    {
+      "id": "cuda-source-mirror",
+      "qualification_allowed": false
+    },
+    {
+      "id": "ptx-mirror",
+      "qualification_allowed": false
+    },
+    {
+      "id": "spirv-mirror",
+      "qualification_allowed": false
+    }
+  ],
+  "compile_evidence": {
+    "qualification_claim": false,
+    "rule": "Compilation, reflection, packaging and hosted tests prove build coverage only. They do not qualify any physical device row.",
+    "native_cuda_local": {
+      "candidate_revision": "dea47c178c3f1308abb54d46942f965b25e87eb6",
+      "result": "PASS 615/615 build edges",
+      "command": "/home/thomas/Android/Sdk/cmake/4.1.2/bin/cmake --build build-f8-22-cuda --parallel 4",
+      "targets": [
+        "225-entry Slang CUDA production source set",
+        "parallel_mater_driver_slang_cuda",
+        "CUDA runtime tests",
+        "CUDA/PTX/SPIR-V mirrors",
+        "reflection"
+      ],
+      "toolchain": {
+        "host": "Debian GNU/Linux 12 x86_64",
+        "cmake": "4.1.2",
+        "gcc": "12.2.0",
+        "cuda": "13.1.80",
+        "slang": "2026.18"
+      },
+      "driver_sha256": "c92c7b0cff56d975a7cb885c045529262c0d3873c043109ff02644df7766c8b1",
+      "generated_file_count": 568,
+      "reflection_file_count": 231,
+      "generated_tree_sha256": "1e2ba629d50771066721976f04c96bdc8ed4433e926866678b0d44f14dbbee3a",
+      "runtime_execution": "not-run-driver-unavailable"
+    },
+    "github_actions": {
+      "workflow": "CI",
+      "run_id": 40177972578,
+      "run_url": "https://github.com/tabutyn/parallel-mater/actions/runs/40177972578",
+      "result": "success",
+      "head_revision": "a01c9eec6c579ce3fa307fc1120e192e23755d09",
+      "checkout_merge_revision": "2e4d8ee35a416740da484c49df8cb2cfab89fefa",
+      "closure_identity": "The protected kernel/profile/oracle/schedule closure hashes equal the frozen candidate. Later commits through dea47c1 changed merge and roadmap lease metadata only.",
+      "artifacts": [
+        {
+          "name": "shader-portability-ubuntu-latest",
+          "id": 12593277060,
+          "toolchain": "ubuntu-latest x86_64; Slang 2026.18; CMake Release; CPU runtime plus CUDA/PTX/SPIR-V mirrors and reflection",
+          "file_count": 283,
+          "extracted_tree_sha256": "5c946063903fb9f727e6b0d88c43030959175b8d44c6d8416819ba9296828f3b"
+        },
+        {
+          "name": "shader-portability-windows-latest",
+          "id": 12594070249,
+          "toolchain": "Windows Server 2025 x64; MSVC x64; Slang 2026.18; CMake Release; native D3D12 bindings/DXIL plus mirrors and reflection",
+          "file_count": 510,
+          "extracted_tree_sha256": "18d710ac27c905fe1ac13b5dae0a0734c2810c3af5ca7cb092a99ce9af95537d"
+        },
+        {
+          "name": "shader-portability-macos-26",
+          "id": 12592654551,
+          "toolchain": "macos-26 arm64; Xcode 26/native Metal; Slang 2026.18; CMake Release; Metal and CPU bindings plus reflection",
+          "file_count": 283,
+          "extracted_tree_sha256": "70b6559cc980e9d31385586ff146449aef6a9781b65751832a3252b0ecdec8e3"
+        },
+        {
+          "name": "android-vulkan-preview",
+          "id": 12592914236,
+          "toolchain": "ubuntu-latest; Temurin Java 21; Android platform 36; NDK 29.0.14206865; CMake 4.1.2; native Vulkan APK",
+          "file_count": 1,
+          "extracted_tree_sha256": "e2eb6258ea6fa175ac812caedad51f1aeb586086827ab0b63b4632b8b1498194",
+          "apk_sha256": "0a653951b1931a4e1fcc60016f848563deb8d76b80e98d73a0197b22d5c26393"
+        },
+        {
+          "name": "ipad-unsigned-preview",
+          "id": 12592709492,
+          "toolchain": "macos-26 arm64; Xcode 26/iphoneos native Metal; Slang 2026.18",
+          "file_count": 506,
+          "metallib_count": 225,
+          "extracted_tree_sha256": "c5bc0c16b4d023d4e71b406a73b6ddb450f2d13efad5a834375c18d47eaaa38b"
+        }
+      ]
+    }
+  },
+  "physical_targets": [
+    {
+      "id": "windows-gtx1080-slang-cuda",
+      "device": "NVIDIA GeForce GTX 1080",
+      "variant": "cuda-runtime",
+      "qualification_owner": "F8-26",
+      "availability_at_freeze": "not-reachable-from-freeze-host; inventory evidence only",
+      "status": "pending"
+    },
+    {
+      "id": "windows-gtx1080-slang-d3d12",
+      "device": "NVIDIA GeForce GTX 1080",
+      "variant": "d3d12-runtime",
+      "qualification_owner": "F8-27",
+      "availability_at_freeze": "not-reachable-from-freeze-host; inventory evidence only",
+      "status": "pending"
+    },
+    {
+      "id": "linux-thomas-laptop-slang-cpu",
+      "device": "11th Gen Intel Core i7-11370H",
+      "variant": "cpu-runtime",
+      "qualification_owner": "F8-23",
+      "availability_at_freeze": "available on freeze host",
+      "status": "pending"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-cuda",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+      "variant": "cuda-runtime",
+      "qualification_owner": "F8-24",
+      "availability_at_freeze": "unavailable: nvidia-smi cannot communicate with driver; compile succeeds without execution",
+      "status": "pending"
+    },
+    {
+      "id": "linux-rtx3050ti-slang-vulkan",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+      "variant": "vulkan-runtime",
+      "qualification_owner": "F8-25",
+      "availability_at_freeze": "unavailable: no Parallel Mater Vulkan physical device exposed on freeze host",
+      "status": "pending"
+    },
+    {
+      "id": "macos-m4-slang-metal",
+      "device": "Apple M4 GPU",
+      "variant": "metal-runtime",
+      "qualification_owner": "F8-28",
+      "availability_at_freeze": "not-reachable-from-freeze-host; current access unverified",
+      "status": "pending"
+    },
+    {
+      "id": "ipados-m1-slang-metal",
+      "device": "iPad13,8 Apple M1 GPU",
+      "variant": "metal-runtime",
+      "qualification_owner": "F8-29",
+      "availability_at_freeze": "not-reachable-from-freeze-host; current paired-device access unverified",
+      "status": "pending"
+    },
+    {
+      "id": "android-pixel7-slang-vulkan",
+      "device": "Google Pixel 7 Mali-G710",
+      "variant": "vulkan-runtime",
+      "qualification_owner": "F8-30",
+      "availability_at_freeze": "available by verified F8-21 physical connection; candidate execution not run",
+      "status": "pending"
+    }
+  ],
+  "device_task_audit": {
+    "registered_host_count": 5,
+    "registered_backend_tuple_count": 8,
+    "qualification_tasks": [
+      "F8-23",
+      "F8-24",
+      "F8-25",
+      "F8-26",
+      "F8-27",
+      "F8-28",
+      "F8-29",
+      "F8-30"
+    ],
+    "additional_tasks_added": [],
+    "reason": "All eight durable registered tuples already have one bounded qualification owner and are direct F8-99 dependencies.",
+    "discovery_rule": "A newly discovered durable device/backend tuple requires a new task depending on F8-22 and that task must be added to F8-99 before exit."
+  },
+  "invalidation": {
+    "policy": "Evidence from different candidates is never unioned. Any protected change freezes a new candidate identity and reruns every affected physical row.",
+    "triggers": [
+      "shared kernel source or entry manifest",
+      "native adapter binding or dispatch path",
+      "simulation physics or coupling equations",
+      "realtime schedule, work budget or telemetry accounting",
+      "profile workload, tolerance, quality or performance budget",
+      "public oracle or execution-case contract"
+    ],
+    "completed_row_rule": "If an affected qualification task is already complete, create a bounded fix or requalification task; preserve the superseded report as history.",
+    "exit_rule": "F8-99 accepts only rows naming this exact candidate id and protected hashes, or one single later replacement candidate."
+  }
+}
