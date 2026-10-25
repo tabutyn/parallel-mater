@@ -324,4 +324,71 @@ void count_fluid_spatial_neighbors(
     std::uint32_t *neighbor_overflow,
     std::uint32_t *maximum_neighbor_count, std::uint32_t *status) noexcept;
 
+void predict_fluid_realtime(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions, void *velocities,
+    void *previous_positions, const std::uint32_t *count,
+    std::uint32_t capacity, const FluidDispatchConstants &constants,
+    const float gravity[3], float timestep, std::uint32_t profile_version,
+    void *accumulated_corrections, std::uint32_t *time_advances,
+    std::uint32_t *status) noexcept;
+
+void solve_fluid_realtime_density(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *metadata,
+    const std::uint8_t *admission, std::uint32_t leaf_capacity,
+    const std::uint32_t *query_leaf_sources, std::uint32_t query_count,
+    const void *positions, const std::uint32_t *count,
+    std::uint32_t capacity, const std::uint32_t *filtered_counts,
+    const std::uint32_t *filtered_sources,
+    std::uint32_t candidates_per_query,
+    const FluidDispatchConstants &constants, float timestep,
+    std::uint32_t profile_version, float *densities, float *lambdas,
+    std::uint32_t *status) noexcept;
+
+void solve_fluid_realtime_position_delta(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *metadata,
+    const std::uint8_t *admission, std::uint32_t leaf_capacity,
+    const std::uint32_t *query_leaf_sources, std::uint32_t query_count,
+    const void *positions, const std::uint32_t *count,
+    std::uint32_t capacity, const std::uint32_t *filtered_counts,
+    const std::uint32_t *filtered_sources,
+    std::uint32_t candidates_per_query,
+    const FluidDispatchConstants &constants, float timestep,
+    std::uint32_t profile_version, const float *lambdas,
+    const void *accumulated_corrections, void *position_deltas,
+    std::uint32_t *status) noexcept;
+
+void apply_fluid_realtime_position_delta(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions,
+    const void *position_deltas, void *accumulated_corrections,
+    const std::uint32_t *count, std::uint32_t capacity, float timestep,
+    std::uint32_t profile_version,
+    const FluidDispatchConstants &constants, std::uint32_t *status) noexcept;
+
+void solve_fluid_realtime_viscosity(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *metadata,
+    const std::uint8_t *admission, std::uint32_t leaf_capacity,
+    const std::uint32_t *query_leaf_sources, std::uint32_t query_count,
+    const void *positions, const void *velocities,
+    const std::uint32_t *count, std::uint32_t capacity,
+    const std::uint32_t *filtered_counts,
+    const std::uint32_t *filtered_sources,
+    std::uint32_t candidates_per_query,
+    const FluidDispatchConstants &constants, float timestep,
+    std::uint32_t profile_version, const float *densities,
+    void *velocity_deltas, std::uint32_t *status) noexcept;
+
+void commit_fluid_realtime(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *positions,
+    const void *previous_positions, void *velocities,
+    const void *velocity_deltas, const std::uint32_t *count,
+    std::uint32_t capacity, const FluidDispatchConstants &constants,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept;
+
 } // namespace parallel_mater::simulation

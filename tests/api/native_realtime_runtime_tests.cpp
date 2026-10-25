@@ -72,10 +72,11 @@ int main(int argc, char **argv) {
         return result;
     };
 
-    void *source_map{}, *output_map{};
+    void *source_map{}, *output_map{}, *fluid_output_map{};
     const auto source = buffer(512U, &source_map);
     const auto output = buffer(
         body_count * sizeof(PmRigidState), &output_map);
+    const auto fluid_output = buffer(1024U, &fluid_output_map);
     const float vertices[8][3] = {
         {-0.5F,-0.5F,-0.5F},{0.5F,-0.5F,-0.5F},
         {0.5F,0.5F,-0.5F},{-0.5F,0.5F,-0.5F},
@@ -120,7 +121,8 @@ int main(int argc, char **argv) {
         allocate(requirements.scratch.size), 0U};
     CHECK(pmBindSimulationMemory(device, simulation, &binding) == PM_SUCCESS);
 
-    const PmFluidCapacity fluid_capacity{4U, 4U};
+    const std::array fluid_capacities{
+        PmFluidCapacity{4U, 4U}, PmFluidCapacity{7U, 7U}};
     const PmClothCapacity cloth_capacity{3U, 3U, 1U};
     const PmRopeCapacity rope_capacity{2U};
     const PmSoftBodyCapacity soft_capacity{1U, 1U, 3U, 3U};
@@ -128,8 +130,9 @@ int main(int argc, char **argv) {
     PmSimulationCreateInfo mixed_info = simulation_info;
     mixed_info.rigidBodyCapacity = 1U;
     mixed_info.constraintCapacity = 0U;
-    mixed_info.fluidCount = device_info.enabledFeatures.particleLiquids;
-    mixed_info.pFluidCapacities = &fluid_capacity;
+    mixed_info.fluidCount = device_info.enabledFeatures.particleLiquids
+        ? static_cast<std::uint32_t>(fluid_capacities.size()) : 0U;
+    mixed_info.pFluidCapacities = fluid_capacities.data();
     mixed_info.clothCount = device_info.enabledFeatures.cloth;
     mixed_info.pClothCapacities = &cloth_capacity;
     mixed_info.ropeCount = device_info.enabledFeatures.rope;
@@ -162,13 +165,15 @@ int main(int argc, char **argv) {
     liquid_material.restParticleVolume = 0.000125F;
     liquid_material.pressureStiffness = 50.0F;
     liquid_material.velocityDamping = 0.2F;
-    liquid_material.maximumSpeed = 8.0F;
+    liquid_material.maximumSpeed = 2.9F;
     liquid_material.densityIterations = 6U;
+    const std::array liquid_materials{liquid_material, liquid_material};
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
     pipeline_info.pRigidState = &rigid_solver;
-    pipeline_info.fluidMaterialCount = 1U;
-    pipeline_info.pFluidMaterials = &liquid_material;
+    pipeline_info.fluidMaterialCount =
+        static_cast<std::uint32_t>(liquid_materials.size());
+    pipeline_info.pFluidMaterials = liquid_materials.data();
     PmPhysicsPipeline pipeline{};
     CHECK(pmCreatePhysicsPipeline(device, &pipeline_info, &pipeline) ==
           PM_SUCCESS);
@@ -194,14 +199,16 @@ int main(int argc, char **argv) {
     submit.commandBufferCount = 1U;
     submit.pCommandBuffers = &commands;
 
+    std::uint32_t execution_index{};
     const auto execute = [&](PmResult expected) {
+        ++execution_index;
         CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
         CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
         const auto waited = pmWaitForFences(
             device, 1U, &fence, PM_TRUE, PM_TIMEOUT_INFINITE);
         if (waited != expected)
-            std::fprintf(stderr, "waited=%d expected=%d\n",
-                         int(waited), int(expected));
+            std::fprintf(stderr, "execution=%u waited=%d expected=%d\n",
+                         execution_index, int(waited), int(expected));
         CHECK(waited == expected);
         CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
         CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
@@ -229,13 +236,125 @@ int main(int argc, char **argv) {
         CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
         CHECK(pmCmdSetFluidParticles(
             commands, mixed_simulation, 0U, &particle_input) == PM_SUCCESS);
+        PmBufferView empty_input{
+            {source, 384U, 0U}, PM_FORMAT_PARTICLE_STATE, 0U,
+            sizeof(PmParticleState)};
+        CHECK(pmCmdSetFluidParticles(
+            commands, mixed_simulation, 1U, &empty_input) == PM_SUCCESS);
         execute(PM_SUCCESS);
 
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
         CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
         CHECK(pmCmdStepSimulation(
             commands, mixed_simulation, &step) == PM_SUCCESS);
-        execute(PM_ERROR_FEATURE_NOT_PRESENT);
+        const PmBufferRange fluid_range{fluid_output, 0U, 512U};
+        CHECK(pmCmdCopyFluidParticles(
+            commands, mixed_simulation, 0U, &fluid_range) == PM_SUCCESS);
+        const PmBufferRange empty_range{fluid_output, 512U, 512U};
+        CHECK(pmCmdCopyFluidParticles(
+            commands, mixed_simulation, 1U, &empty_range) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        const auto *fluid_header =
+            static_cast<const PmDomainOutputHeader *>(fluid_output_map);
+        const auto *fluid_particles =
+            reinterpret_cast<const PmFluidParticleOutput *>(
+                fluid_header + 1U);
+        CHECK(fluid_header->activeCount == 1U);
+        CHECK(fluid_particles[0].position[1] < 1.0F);
+        CHECK(std::isfinite(fluid_particles[0].position[1]));
+        const auto *empty_header = reinterpret_cast<
+            const PmDomainOutputHeader *>(
+                static_cast<const std::byte *>(fluid_output_map) + 512U);
+        CHECK(empty_header->activeCount == 0U);
+
+        auto *packed = reinterpret_cast<PmParticleState *>(
+            static_cast<std::byte *>(source_map) + 256U);
+        for (std::uint32_t index = 0U; index < 7U; ++index) {
+            packed[index] = {};
+            packed[index].position[0] =
+                static_cast<float>(index % 4U) * 0.04F;
+            packed[index].position[1] =
+                1.0F + static_cast<float>(index / 4U) * 0.04F;
+        }
+        const PmBufferView first_population{
+            {source, 256U, 4U * sizeof(PmParticleState)},
+            PM_FORMAT_PARTICLE_STATE, 4U, sizeof(PmParticleState)};
+        const PmBufferView second_population{
+            {source, 256U + 4U * sizeof(PmParticleState),
+             3U * sizeof(PmParticleState)},
+            PM_FORMAT_PARTICLE_STATE, 3U, sizeof(PmParticleState)};
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdSetFluidParticles(commands, mixed_simulation, 0U,
+                                     &first_population) == PM_SUCCESS);
+        CHECK(pmCmdSetFluidParticles(commands, mixed_simulation, 1U,
+                                     &second_population) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
+        CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopyFluidParticles(
+            commands, mixed_simulation, 0U, &fluid_range) == PM_SUCCESS);
+        CHECK(pmCmdCopyFluidParticles(
+            commands, mixed_simulation, 1U, &empty_range) == PM_SUCCESS);
+        CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        PmRealtimeStepStatistics liquid_statistics{};
+        CHECK(pmGetQueryPoolResults(
+            device, query, 0U, 1U, sizeof liquid_statistics,
+            &liquid_statistics, sizeof liquid_statistics,
+            PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+        CHECK(liquid_statistics.timeAdvances == 1U);
+        CHECK(liquid_statistics.domainIterations[1] == 6U);
+        CHECK(liquid_statistics.total.spatialIndexBuilds == 1U);
+        CHECK(liquid_statistics.total.spatialIndexPublications == 1U);
+        CHECK(liquid_statistics.total.intraTickHostReadbacks == 0U);
+        fluid_header =
+            static_cast<const PmDomainOutputHeader *>(fluid_output_map);
+        fluid_particles = reinterpret_cast<const PmFluidParticleOutput *>(
+            fluid_header + 1U);
+        CHECK(fluid_header->activeCount == 4U);
+        empty_header = reinterpret_cast<const PmDomainOutputHeader *>(
+            static_cast<const std::byte *>(fluid_output_map) + 512U);
+        CHECK(empty_header->activeCount == 3U);
+        for (std::uint32_t index = 0U; index < 4U; ++index) {
+            CHECK(std::isfinite(fluid_particles[index].position[0]));
+            CHECK(std::isfinite(fluid_particles[index].position[1]));
+            CHECK(std::abs(fluid_particles[index].position[0]) < 2.0F);
+            CHECK(std::abs(fluid_particles[index].position[1]) < 2.0F);
+        }
+        if (!production) {
+            std::array<std::byte, 1024U> liquid_before_failure{};
+            std::memcpy(liquid_before_failure.data(), fluid_output_map,
+                        liquid_before_failure.size());
+            CHECK(setenv(
+                "PM_TEST_REALTIME_LIMIT_MINUS_ONE", "workgroups", 1) == 0);
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+            CHECK(pmCmdStepSimulation(
+                commands, mixed_simulation, &step) == PM_SUCCESS);
+            execute(PM_ERROR_CAPACITY_EXCEEDED);
+            CHECK(unsetenv("PM_TEST_REALTIME_LIMIT_MINUS_ONE") == 0);
+
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdCopyFluidParticles(
+                commands, mixed_simulation, 0U, &fluid_range) == PM_SUCCESS);
+            CHECK(pmCmdCopyFluidParticles(
+                commands, mixed_simulation, 1U, &empty_range) == PM_SUCCESS);
+            execute(PM_SUCCESS);
+            CHECK(std::memcmp(liquid_before_failure.data(), fluid_output_map,
+                              liquid_before_failure.size()) == 0);
+        }
 
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
         CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
@@ -245,6 +364,7 @@ int main(int argc, char **argv) {
         CHECK(pmCmdStepSimulation(
             commands, mixed_simulation, &step) == PM_SUCCESS);
         execute(PM_SUCCESS);
+
     }
     pmDestroySimulation(device, mixed_simulation);
 
@@ -416,6 +536,7 @@ int main(int argc, char **argv) {
     pmDestroySimulation(device, simulation);
     pmDestroyGeometry(device, geometry);
     pmDestroyBuffer(device, output);
+    pmDestroyBuffer(device, fluid_output);
     pmDestroyBuffer(device, source);
     for (auto allocation : memory) pmFreeMemory(device, allocation);
     pmDestroyDevice(device);

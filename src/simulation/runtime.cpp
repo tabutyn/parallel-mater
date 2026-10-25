@@ -29,6 +29,7 @@
 #include "simulation/reference_schedule.hpp"
 #include "simulation/realtime_resources.hpp"
 #include "simulation/realtime_telemetry.hpp"
+#include "simulation/fluid_realtime.hpp"
 #include "simulation/rigid_realtime.hpp"
 
 #include <algorithm>
@@ -1015,6 +1016,10 @@ struct FluidStorage {
     std::uint8_t *next_contact_flags{};
     std::uint32_t *contact_count{};
     std::uint32_t *contact_offset{};
+    Vec3 *realtime_accumulated_corrections{};
+    Vec3 *realtime_position_deltas{};
+    Vec3 *realtime_velocity_deltas{};
+    std::uint32_t *realtime_time_advances{};
     std::uint8_t *sort_workspace{};
     std::size_t sort_workspace_size{};
     std::uint8_t *select_workspace{};
@@ -1028,6 +1033,9 @@ struct FluidStorage {
     std::uint32_t frame_first_spawned{};
     std::uint32_t frame_iterations{};
     bool frame_spawned{};
+    std::uint32_t realtime_leaf_offset{};
+    std::uint32_t realtime_query_offset{};
+    simulation::FluidRealtimeTickContract realtime_contract{};
 
     ~FluidStorage() {
         release_managed(count);
@@ -1059,6 +1067,10 @@ struct FluidStorage {
         release_managed(next_contact_flags);
         release_managed(contact_count);
         release_managed(contact_offset);
+        release_managed(realtime_accumulated_corrections);
+        release_managed(realtime_position_deltas);
+        release_managed(realtime_velocity_deltas);
+        release_managed(realtime_time_advances);
         release_managed(sort_workspace);
         release_managed(select_workspace);
     }
@@ -1289,6 +1301,11 @@ struct SimulationRuntime::Impl {
     simulation::RigidSpatialPlan realtime_rigid_spatial_plan{};
     simulation::SpatialStorageBlock *realtime_rigid_spatial_scratch{};
     simulation::SpatialStorageBlock *realtime_rigid_spatial_output{};
+    simulation::FluidSpatialPlan realtime_fluid_spatial_plan{};
+    simulation::SpatialStorageBlock *realtime_fluid_spatial_scratch{};
+    simulation::SpatialAabb *realtime_query_bounds{};
+    std::uint32_t *realtime_query_masks{};
+    std::uint32_t *realtime_excluded_sort_keys{};
     simulation::RealtimeSnapshotOwnership realtime_snapshots{};
     simulation::RealtimeResourcePlan realtime_resource_plan{};
     simulation::ProductionRealtimeResources realtime_resources{};
@@ -1515,6 +1532,10 @@ struct SimulationRuntime::Impl {
         release_managed(realtime_spatial_persistent);
         release_managed(realtime_rigid_spatial_scratch);
         release_managed(realtime_rigid_spatial_output);
+        release_managed(realtime_fluid_spatial_scratch);
+        release_managed(realtime_query_bounds);
+        release_managed(realtime_query_masks);
+        release_managed(realtime_excluded_sort_keys);
         release_managed(states[1]);
         release_managed(debug_applied_forces);
         release_managed(debug_applied_torques);

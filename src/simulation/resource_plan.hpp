@@ -213,6 +213,7 @@ Status visit_global_storage(State &state, SimulationOptions options, Visitor &vi
     PM_STORAGE(meshes, options.triangle_mesh_capacity, persistent);
     state.realtime_spatial_plan = {};
     state.realtime_rigid_spatial_plan = {};
+    state.realtime_fluid_spatial_plan = {};
     if (options.realtime_spatial_enabled) {
         const auto planned = make_spatial_service_plan(
             options.realtime_spatial_leaf_capacity,
@@ -244,6 +245,23 @@ Status visit_global_storage(State &state, SimulationOptions options, Visitor &vi
         PM_STORAGE(realtime_rigid_spatial_output,
             spatial_storage_block_count(
                 state.realtime_rigid_spatial_plan.output_bytes), persistent);
+        const auto fluid_planned = make_fluid_spatial_plan(
+            options.realtime_spatial_query_capacity,
+            options.realtime_spatial_candidates_per_query,
+            state.realtime_fluid_spatial_plan);
+        if (fluid_planned != PM_SUCCESS)
+            return {StatusCode::invalid_argument,
+                    static_cast<std::int32_t>(fluid_planned),
+                    "invalid realtime fluid spatial storage plan"};
+        PM_STORAGE(realtime_fluid_spatial_scratch,
+            spatial_storage_block_count(
+                state.realtime_fluid_spatial_plan.scratch_bytes), scratch);
+        PM_STORAGE(realtime_query_bounds,
+            options.realtime_spatial_query_capacity, scratch);
+        PM_STORAGE(realtime_query_masks,
+            options.realtime_spatial_query_capacity, scratch);
+        PM_STORAGE(realtime_excluded_sort_keys,
+            options.realtime_spatial_query_capacity, scratch);
     }
     if constexpr (Visitor::materialize)
         for (std::uint32_t i = 0; i < options.triangle_mesh_capacity; ++i) state.meshes[i] = {};
@@ -288,6 +306,10 @@ Status visit_fluid_storage(State &state, std::uint32_t capacity, Visitor &visit)
     PM_STORAGE(next_contact_flags, capacity, persistent);
     PM_STORAGE(contact_count, 1U, persistent);
     PM_STORAGE(contact_offset, 1U, persistent);
+    PM_STORAGE(realtime_accumulated_corrections, capacity, scratch);
+    PM_STORAGE(realtime_position_deltas, capacity, scratch);
+    PM_STORAGE(realtime_velocity_deltas, capacity, scratch);
+    PM_STORAGE(realtime_time_advances, 1U, scratch);
     state.sort_workspace_size = radix_sort_scratch_bytes(capacity);
     state.select_workspace_size = compaction_scratch_bytes(capacity);
     PM_STORAGE(sort_workspace, state.sort_workspace_size, scratch);
