@@ -13,6 +13,11 @@
 
 namespace parallel_mater {
 
+namespace simulation {
+struct RealtimeTelemetryLimits;
+struct RealtimeTickTelemetry;
+}
+
 struct FluidId {
     std::uint32_t index{};
     std::uint32_t generation{};
@@ -336,6 +341,10 @@ struct StepOptions {
     // explicitly; a one-substep request never selects realtime equations by
     // accident.
     PhysicsStepProfile profile{PhysicsStepProfile::legacy_default};
+    // Internal native-profile instrumentation seam. Null selects the fixed
+    // production limits and retains the latest report inside the runtime.
+    const simulation::RealtimeTelemetryLimits *realtime_telemetry_limits{};
+    simulation::RealtimeTickTelemetry *realtime_telemetry_output{};
 };
 
 // Smoke is a tracer gas, separate from liquid. It may use a projected air grid

@@ -23,6 +23,38 @@ struct NativeScheduleBackend {
         return false;
 #endif
     }
+    static constexpr std::uint64_t realtime_geometry_prepare_workgroups(
+        std::uint32_t grid_blocks) noexcept {
+#if defined(PARALLEL_MATER_METAL_DRIVER)
+        (void)grid_blocks;
+        return 1U;
+#else
+        return grid_blocks;
+#endif
+    }
+    static constexpr std::uint64_t realtime_geometry_solve_dispatches(
+        std::uint32_t body_count) noexcept {
+#if defined(PARALLEL_MATER_METAL_DRIVER)
+        return body_count == 0U ? 0U :
+            std::uint64_t{simulation::rigid_realtime_sweeps} *
+                (std::uint64_t{body_count} + 1U) + 6U;
+#else
+        (void)body_count;
+        return 1U;
+#endif
+    }
+    static constexpr std::uint64_t realtime_geometry_solve_workgroups(
+        std::uint32_t body_count, std::uint32_t grid_blocks) noexcept {
+#if defined(PARALLEL_MATER_METAL_DRIVER)
+        (void)grid_blocks;
+        const auto groups = std::max<std::uint64_t>(
+            1U, (std::uint64_t{body_count} + 31U) / 32U);
+        return realtime_geometry_solve_dispatches(body_count) * groups;
+#else
+        (void)body_count;
+        return grid_blocks;
+#endif
+    }
     auto queue() const noexcept { return execution; }
     static auto success_code() noexcept { return PM_SUCCESS; }
     static Status failure(PmResult error, const char *message) noexcept {
@@ -145,12 +177,14 @@ struct NativeScheduleBackend {
     PM_SCHEDULE_DISPATCH(drag_fluid_with_smoke_grid)
     PM_SCHEDULE_DISPATCH(drag_fluid_with_smoke_particles)
     PM_SCHEDULE_DISPATCH(emit_fluid_source)
+    PM_SCHEDULE_DISPATCH(emit_rigid_spatial_proxies)
     PM_SCHEDULE_DISPATCH(emit_smoke_particles)
     PM_SCHEDULE_DISPATCH(evaluate_rigid_leaf_pairs)
     PM_SCHEDULE_DISPATCH(exchange_fluid_with_smoke)
     PM_SCHEDULE_DISPATCH(finalize_rigid_contact_manifolds)
     PM_SCHEDULE_DISPATCH(finalize_soft_body_velocities)
     PM_SCHEDULE_DISPATCH(find_fluid_source_vacancies)
+    PM_SCHEDULE_DISPATCH(filter_rigid_spatial_candidates)
     PM_SCHEDULE_DISPATCH(fluid_cell_keys)
     PM_SCHEDULE_DISPATCH(fluid_pair_cell_keys)
     PM_SCHEDULE_DISPATCH(fluid_miscible_pair_pressure_contact)
@@ -160,6 +194,7 @@ struct NativeScheduleBackend {
     PM_SCHEDULE_DISPATCH(fluid_pair_viscosity)
     PM_SCHEDULE_DISPATCH(fluid_forces)
     PM_SCHEDULE_DISPATCH(gather_fluid)
+    PM_SCHEDULE_DISPATCH(gather_rigid_spatial_pairs)
     PM_SCHEDULE_DISPATCH(gather_fluid_contact_events)
     PM_SCHEDULE_DISPATCH(generate_rigid_leaf_pairs)
     PM_SCHEDULE_DISPATCH(index_fluid_body_cells)
@@ -203,6 +238,7 @@ struct NativeScheduleBackend {
     PM_SCHEDULE_DISPATCH(smooth_smoke_grid_pressure)
     PM_SCHEDULE_DISPATCH(solve_fluid_soft_contacts)
     PM_SCHEDULE_DISPATCH(solve_geometry_constraints)
+    PM_SCHEDULE_DISPATCH(solve_geometry_constraints_fixed_realtime)
     PM_SCHEDULE_DISPATCH(splat_smoke_grid_particles)
     PM_SCHEDULE_DISPATCH(trace_smoke_grid_particles)
     PM_SCHEDULE_DISPATCH(update_cloth_surface)

@@ -362,6 +362,7 @@ add_library(
     src/simulation/realtime_schedule.hpp
     src/simulation/realtime_telemetry.hpp
     src/simulation/native_schedule_backend.cu.inc
+    src/simulation/production_realtime_backend.cu.inc
     src/simulation/runtime_diagnostics.cu.inc
     src/simulation/geometry_storage.hpp
     src/simulation/rope_storage.hpp

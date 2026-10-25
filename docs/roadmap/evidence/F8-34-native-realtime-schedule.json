@@ -1,0 +1,74 @@
+{
+  "schema": "parallel-mater-f8-native-realtime-schedule-evidence/v1",
+  "task": "F8-34",
+  "recorded_at": "2026-10-25",
+  "branch": "work/F8-34/thomas-laptop",
+  "base_revision": "f4b6ee208bdbd143e35ddf2365800bdc33082ef4",
+  "implementation_revisions": [
+    "81fcf7e5daf08faeb9e2d29ec29d5972dee96526",
+    "1d273c4f4d914b47dee08424630f6e478683ec1f",
+    "efe7f411b4b1578359d16a6efcc61ae5ad834548"
+  ],
+  "implementation": {
+    "schedule_authority": "SimulationRuntime routes the internal realtime-single-step-v1 profile through assemble_realtime_tick_measured; the legacy-default path remains unchanged and the public profile remains unadvertised.",
+    "eligible_runtime_scope": "The production binding accepts the rigid/query native subset established by F8-33. Live fluid, deformable, smoke or coupling domains fail explicitly before tick assembly rather than silently entering a partial schedule.",
+    "fixed_tick": "Each eligible tick accepts exactly one 1/60 second advance, one predict/integrate phase, one shared spatial update and publication, exactly eight AVBD iterations, and one atomic commit boundary. Catch-up, adaptive iteration counts and multi-substep requests are rejected.",
+    "adapter_bindings": "CPU executes the host-native spatial service and fixed solver. CUDA and Vulkan use the common emitted Slang kernels. D3D12 binds the reflected DXIL spatial kernels. Metal uses a bounded staged encoder that emits the fixed realtime solver without the legacy intra-tick wait/readback.",
+    "atomic_boundary": "Fixed work, phase and commit costs are reserved before device work. Current-state publication, clock advance and pending-input consumption happen only at commit; injected pre-commit failures preserve all three and may retry the same tick.",
+    "telemetry": "Measured phase records are populated from adapter-specific encoded dispatch, workgroup, barrier, submission, byte, iteration and spatial operations. CPU encode time uses a steady-clock measurement; unavailable GPU timing remains unsupported and is not relabeled as CPU time."
+  },
+  "production_runtime_cases": [
+    "empty fixed tick advances once and commits without an index build",
+    "rigid fixed tick executes one spatial update/publication and exactly eight solver iterations",
+    "multi-substep and non-1/60 requests fail before execution",
+    "zero limits for dispatches, workgroups, bytes, index builds, index publications, numerical iterations, barriers and submissions each fail before commit",
+    "zero domain-dispatch and commit-submission limits each fail before commit",
+    "repeated rejected ticks preserve the clock, current-state selection and pending impulse; the next valid tick consumes the impulse and advances exactly once",
+    "phase and total mandatory minima are rejected by production preflight before a telemetry or schedule transaction begins"
+  ],
+  "qualification": [
+    {
+      "command": "cmake --build build-sdk-cpu --target parallel-mater-native-realtime-runtime-tests parallel-mater-realtime-telemetry-tests -j2",
+      "result": "PASS"
+    },
+    {
+      "command": "ctest --test-dir build-sdk-cpu --output-on-failure -j4",
+      "result": "PASS 101/101 discovered tests; 86 executed pass and 15 explicit unsupported CPU-domain skips",
+      "notes": "Includes native runtime atomicity, every fixed telemetry-limit injection, schedule/oracle, generated API, reflected ABI and legacy behavior regressions."
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS 78/78",
+      "notes": "Includes the frozen F8-22 realtime candidate source hashes."
+    },
+    {
+      "command": "cmake --build build-f8-22-cuda --target parallel-mater-driver-slang-cuda -j2",
+      "result": "PASS",
+      "notes": "Common native runtime and generated CUDA dispatch binding compile."
+    },
+    {
+      "command": "ctest --test-dir build-f8-22-cuda -R <F8 realtime/spatial native suite> --output-on-failure -j2",
+      "result": "PASS 28/28 discovered tests; 15 host/contract tests executed and 13 physical CUDA tests explicitly skipped because no CUDA device is present"
+    },
+    {
+      "command": "cmake --build build-p3-02-vulkan --target parallel-mater-driver-slang-vulkan -j2",
+      "result": "PASS",
+      "notes": "Common native runtime and generated Vulkan dispatch binding compile."
+    },
+    {
+      "command": "ctest --test-dir build-p3-02-vulkan -R <F8 realtime/spatial contract suite> --output-on-failure -j2",
+      "result": "PASS 15/15"
+    },
+    {
+      "command": "python3 tools/roadmap.py check --base origin/main --branch work/F8-34/thomas-laptop",
+      "result": "PASS: 255 task cards, dependencies, locks, history and generated roadmap"
+    }
+  ],
+  "limits": [
+    "The public realtime-single-step-v1 capability remains unadvertised until F8-35.",
+    "Production eligibility is currently rigid/query only. Fluid, deformable, smoke and coupling configurations return an explicit unsupported status; F8-35 must not advertise those configurations.",
+    "CUDA physical runtime cases were unavailable on this host and skipped explicitly; CUDA evidence is compile plus host/contract regression evidence.",
+    "D3D12 and Metal toolchains are unavailable on this Linux host. Their bindings were checked through source/reflection and the cross-platform generated-ABI tests, but no Windows, macOS or physical runtime qualification is claimed.",
+    "Physical adapter quality and frame-time qualification remain owned by later F8 tasks."
+  ]
+}

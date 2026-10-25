@@ -301,6 +301,23 @@ if(BUILD_TESTING)
         ENVIRONMENT
             "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cpu.json")
 
+    add_executable(parallel-mater-native-realtime-runtime-tests
+        tests/api/native_realtime_runtime_tests.cpp)
+    target_compile_features(parallel-mater-native-realtime-runtime-tests
+        PRIVATE cxx_std_20)
+    target_link_libraries(parallel-mater-native-realtime-runtime-tests
+        PRIVATE parallel-mater)
+    add_dependencies(parallel-mater-native-realtime-runtime-tests
+        parallel-mater-test-driver-slang-cpu-resources)
+    add_test(NAME parallel-mater-native-realtime-runtime-tests
+        COMMAND parallel-mater-native-realtime-runtime-tests)
+    set_tests_properties(parallel-mater-native-realtime-runtime-tests
+        PROPERTIES
+            TIMEOUT 30
+            LABELS "api;runtime;schedule;telemetry;realtime;cpu;f8"
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-slang-cpu-resources.json")
+
     add_executable(parallel-mater-slang-cpu-driver-abi-tests
         tests/api/driver_abi_tests.cpp)
     target_include_directories(parallel-mater-slang-cpu-driver-abi-tests

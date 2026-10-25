@@ -31,6 +31,18 @@ PmResult solve_geometry_constraints(device::ExecutionQueue stream,
     GeometryConstraintBody *bodies, void *schedule, float timestep,
     std::uint32_t grid_blocks) noexcept;
 
+// Realtime v1 must encode a statically bounded solve without consulting GPU
+// state on the host. Adapters with a cooperative solve may share their normal
+// implementation; staged adapters emit the full guarded schedule.
+PmResult solve_geometry_constraints_fixed_realtime(
+    device::ExecutionQueue stream, const void *parameters,
+    const RigidBodyState *previous, RigidBodyState *states,
+    std::uint32_t body_count, void *manifolds,
+    std::uint32_t *active_pairs, std::uint32_t *active_pair_count,
+    void *constraints, std::uint32_t constraint_capacity,
+    GeometryConstraintBody *bodies, void *schedule, float timestep,
+    std::uint32_t grid_blocks) noexcept;
+
 PmResult solve_geometry_constraints_small(
     device::ExecutionQueue stream, const void *parameters,
     const RigidBodyState *previous, RigidBodyState *states,
