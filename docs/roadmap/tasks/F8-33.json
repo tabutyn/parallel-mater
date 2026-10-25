@@ -1,7 +1,7 @@
 {
   "id": "F8-33",
   "title": "Integrate the shared spatial epoch into production runtime",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-22"
   ],
@@ -19,6 +19,14 @@
     "Tests exercise empty, sparse, crossing, lifecycle, capacity and failure recovery through production runtime seams and verify actual epoch counters rather than a model-only backend."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "74aa424a-fa3b-4090-87e7-a211c1be9665",
+    "owner": "codex-native-spatial",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-33/thomas-laptop",
+    "claimed_at": "2026-10-25T09:53:14Z",
+    "heartbeat_at": "2026-10-25T09:53:14Z",
+    "expires_at": "2026-10-26T09:53:14Z"
+  },
   "history": []
 }
