@@ -22,6 +22,133 @@ Vec3_0 vec3(const float value[3]) noexcept {
 
 } // namespace
 
+void predict_soft_body_realtime(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions, void *velocities,
+    void *previous_positions, float *correction_used,
+    const float *inverse_masses, const float *characteristic_lengths,
+    std::uint32_t count, std::uint32_t capacity, const float gravity[3],
+    float velocity_damping, float maximum_speed, float timestep,
+    std::uint32_t profile_version, std::uint32_t *time_advances,
+    std::uint32_t *status) noexcept {
+    soft_body_realtime_predict<<<dim3(grid.x, grid.y, grid.z),
+        dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        as<Vec3_0>(positions), as<Vec3_0>(velocities),
+        as<Vec3_0>(previous_positions), correction_used,
+        const_cast<float *>(inverse_masses),
+        const_cast<float *>(characteristic_lengths), count, capacity,
+        vec3(gravity), velocity_damping, maximum_speed, timestep,
+        profile_version, time_advances, status);
+}
+
+void project_soft_body_realtime_links(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *positions,
+    void *position_deltas, float *correction_used,
+    const float *inverse_masses, const float *characteristic_lengths,
+    const std::uint32_t *offsets, const void *neighbors,
+    std::uint32_t count, std::uint32_t capacity, float compliance,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    soft_body_realtime_project_links<<<dim3(grid.x, grid.y, grid.z),
+        dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
+        as<Vec3_0>(position_deltas), correction_used,
+        const_cast<float *>(inverse_masses),
+        const_cast<float *>(characteristic_lengths),
+        const_cast<unsigned int *>(offsets),
+        const_cast<SoftBodyNeighbor_0 *>(
+            as<SoftBodyNeighbor_0>(neighbors)),
+        count, capacity, compliance, timestep, profile_version, status);
+}
+
+void apply_soft_body_realtime_position_delta(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions,
+    const void *position_deltas, float *correction_used,
+    const float *inverse_masses, const float *characteristic_lengths,
+    std::uint32_t count, std::uint32_t capacity, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept {
+    soft_body_realtime_apply_position_delta<<<dim3(grid.x, grid.y, grid.z),
+        dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        as<Vec3_0>(positions),
+        const_cast<Vec3_0 *>(as<Vec3_0>(position_deltas)), correction_used,
+        const_cast<float *>(inverse_masses),
+        const_cast<float *>(characteristic_lengths), count, capacity,
+        timestep, profile_version, status);
+}
+
+void project_soft_body_realtime_shape(
+    device::ExecutionQueue stream, void *positions, void *corrections,
+    const void *rest_positions, const float *inverse_masses,
+    const float *characteristic_lengths, float *correction_used,
+    std::uint32_t count, std::uint32_t capacity, float movable_mass,
+    const float rest_center[3], const void *inverse_rest,
+    void *stored_orientation, float stiffness, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept {
+    ShapeMatrix_0 matrix{};
+    std::memcpy(&matrix, inverse_rest, sizeof matrix);
+    soft_body_realtime_project_shape<<<1U, 128U, 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        as<Vec3_0>(positions), as<Vec3_0>(corrections),
+        const_cast<Vec3_0 *>(as<Vec3_0>(rest_positions)),
+        const_cast<float *>(inverse_masses),
+        const_cast<float *>(characteristic_lengths), correction_used,
+        count, capacity, movable_mass, vec3(rest_center), matrix,
+        as<Quaternion_0>(stored_orientation), stiffness, timestep,
+        profile_version, status);
+}
+
+void project_soft_body_realtime_contacts(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions,
+    const void *previous_positions, const float *inverse_masses,
+    const float *characteristic_lengths, float *correction_used,
+    const void *contact_normals, const float *contact_offsets,
+    const std::uint8_t *contact_active, std::uint32_t count,
+    std::uint32_t capacity, float node_radius, float friction,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    soft_body_realtime_project_contacts<<<dim3(grid.x, grid.y, grid.z),
+        dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        as<Vec3_0>(positions),
+        const_cast<Vec3_0 *>(as<Vec3_0>(previous_positions)),
+        const_cast<float *>(inverse_masses),
+        const_cast<float *>(characteristic_lengths), correction_used,
+        const_cast<Vec3_0 *>(as<Vec3_0>(contact_normals)),
+        const_cast<float *>(contact_offsets),
+        const_cast<unsigned char *>(contact_active), count, capacity,
+        node_radius, friction, timestep, profile_version, status);
+}
+
+void commit_soft_body_realtime(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *positions,
+    const void *previous_positions, void *velocities,
+    const float *inverse_masses, const float *characteristic_lengths,
+    const void *contact_normals, const float *contact_offsets,
+    const std::uint8_t *contact_active, std::uint32_t count,
+    std::uint32_t capacity, float node_radius, float friction,
+    float maximum_speed, float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    soft_body_realtime_commit<<<dim3(grid.x, grid.y, grid.z),
+        dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(previous_positions)),
+        as<Vec3_0>(velocities), const_cast<float *>(inverse_masses),
+        const_cast<float *>(characteristic_lengths),
+        const_cast<Vec3_0 *>(as<Vec3_0>(contact_normals)),
+        const_cast<float *>(contact_offsets),
+        const_cast<unsigned char *>(contact_active), count, capacity,
+        node_radius, friction, maximum_speed, timestep, profile_version,
+        status);
+}
+
 void predict_deformable(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     void *previous, void *velocities, const float *inverse_masses,

@@ -26,6 +26,12 @@ PmResult native_realtime_spatial_counts(
         if (total > std::numeric_limits<std::uint32_t>::max())
             return PM_ERROR_CAPACITY_EXCEEDED;
     }
+    for (const auto &owner : state.soft_bodies) {
+        if (!owner || !owner->alive) continue;
+        total += owner->surface_index_count / 3U;
+        if (total > std::numeric_limits<std::uint32_t>::max())
+            return PM_ERROR_CAPACITY_EXCEEDED;
+    }
     leaves = static_cast<std::uint32_t>(total);
     queries = leaves;
     return PM_SUCCESS;
@@ -163,9 +169,12 @@ PmResult native_realtime_registrations(
         const std::uint64_t elements = owner->node_count +
             std::uint64_t{owner->surface_vertex_count} +
             std::uint64_t{owner->surface_index_count} / 3U;
-        const auto status = add_owner(
-            simulation::RealtimeResourceFamily::soft_body, slot,
-            owner->generation, elements);
+        const auto status = add_realtime_registration(
+            result[simulation::realtime_index(
+                simulation::RealtimeResourceFamily::soft_body)],
+            slot, owner->generation, elements,
+            common_phases |
+                simulation::realtime_domain_execution_phase_mask);
         if (status != PM_SUCCESS) return status;
     }
     for (std::uint32_t slot = 0U; slot < state.ropes.size(); ++slot) {
@@ -286,6 +295,31 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                     simulation::cloth_realtime_constraint_sweeps);
             dispatch(commit, 2U, vertex_groups + triangle_groups);
         }
+        for (const auto &owner : state.soft_bodies) {
+            if (!owner || !owner->alive) continue;
+            const auto node_groups =
+                (std::uint64_t{owner->node_count} + 127U) / 128U;
+            const auto surface_groups =
+                (std::uint64_t{owner->surface_vertex_count} + 127U) / 128U;
+            const auto triangle_groups =
+                (std::uint64_t{owner->surface_index_count / 3U} + 127U) /
+                128U;
+            boundary.bytes_moved +=
+                2ULL * owner->node_count * sizeof(Vec3) +
+                owner->node_count * sizeof(std::uint8_t) +
+                sizeof(Quaternion) + sizeof(std::uint32_t);
+            boundary.barriers += 5U;
+            dispatch(predict, 2U, node_groups + surface_groups);
+            dispatch(index, 1U, triangle_groups);
+            dispatch(domain,
+                3U * simulation::soft_body_realtime_constraint_sweeps +
+                    simulation::soft_body_realtime_contact_passes,
+                node_groups *
+                        (2U * simulation::soft_body_realtime_constraint_sweeps +
+                         simulation::soft_body_realtime_contact_passes) +
+                    simulation::soft_body_realtime_constraint_sweeps);
+            dispatch(commit, 2U, node_groups + surface_groups);
+        }
         index.index_builds = 1U;
 #if !defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
         const auto spatial = simulation::spatial_build_dispatch_budget(
@@ -362,7 +396,10 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                 ? simulation::fluid_realtime_density_sweeps : 0U) +
             (std::any_of(state.cloths.begin(), state.cloths.end(),
                 [](const auto &owner) { return owner && owner->alive; })
-                ? simulation::cloth_realtime_constraint_sweeps : 0U);
+                ? simulation::cloth_realtime_constraint_sweeps : 0U) +
+            (std::any_of(state.soft_bodies.begin(), state.soft_bodies.end(),
+                [](const auto &owner) { return owner && owner->alive; })
+                ? simulation::soft_body_realtime_constraint_sweeps : 0U);
     }
     for (const auto &phase : limits.phase_maximum)
         (void)simulation::realtime_telemetry_detail::add(
@@ -407,22 +444,27 @@ simulation::RealtimeWorkCounters native_realtime_minimum(
     const bool cloth = std::any_of(
         state.cloths.begin(), state.cloths.end(),
         [](const auto &owner) { return owner && owner->alive; });
-    const bool domain = rigid || fluid || cloth;
+    const bool soft = std::any_of(
+        state.soft_bodies.begin(), state.soft_bodies.end(),
+        [](const auto &owner) { return owner && owner->alive; });
+    const bool domain = rigid || fluid || cloth || soft;
     return {
         .dispatches = domain ? 1U : 0U,
         .workgroups = domain ? 1U : 0U,
         .bytes_moved = rigid
             ? std::uint64_t{state.rigid_body_count} * sizeof(RigidBodyState)
-            : ((fluid || cloth) ? sizeof(Vec3) : 0U),
+            : ((fluid || cloth || soft) ? sizeof(Vec3) : 0U),
         .index_builds = domain ? 1U : 0U,
         .index_refits = 0U,
         .index_publications = 1U,
         .numerical_iterations = rigid
             ? simulation::rigid_realtime_sweeps +
                 (fluid ? simulation::fluid_realtime_density_sweeps : 0U) +
-                (cloth ? simulation::cloth_realtime_constraint_sweeps : 0U)
+                (cloth ? simulation::cloth_realtime_constraint_sweeps : 0U) +
+                (soft ? simulation::soft_body_realtime_constraint_sweeps : 0U)
             : (fluid ? simulation::fluid_realtime_density_sweeps : 0U) +
-                (cloth ? simulation::cloth_realtime_constraint_sweeps : 0U),
+                (cloth ? simulation::cloth_realtime_constraint_sweeps : 0U) +
+                (soft ? simulation::soft_body_realtime_constraint_sweeps : 0U),
         .barriers = domain ? 1U : 0U,
         .submissions = 1U,
         .readbacks = 0U,
@@ -441,7 +483,10 @@ native_realtime_phase_minimum(const State &state) noexcept {
     const bool cloth = std::any_of(
         state.cloths.begin(), state.cloths.end(),
         [](const auto &owner) { return owner && owner->alive; });
-    const bool any_domain = rigid || fluid || cloth;
+    const bool soft = std::any_of(
+        state.soft_bodies.begin(), state.soft_bodies.end(),
+        [](const auto &owner) { return owner && owner->alive; });
+    const bool any_domain = rigid || fluid || cloth || soft;
     auto &index = minimum[simulation::realtime_index(
         simulation::RealtimeTelemetryPhase::index)];
     index.index_publications = 1U;
@@ -454,13 +499,14 @@ native_realtime_phase_minimum(const State &state) noexcept {
         domain.numerical_iterations =
             (rigid ? simulation::rigid_realtime_sweeps : 0U) +
             (fluid ? simulation::fluid_realtime_density_sweeps : 0U) +
-            (cloth ? simulation::cloth_realtime_constraint_sweeps : 0U);
+            (cloth ? simulation::cloth_realtime_constraint_sweeps : 0U) +
+            (soft ? simulation::soft_body_realtime_constraint_sweeps : 0U);
         domain.barriers = 1U;
     }
     auto &commit = minimum[simulation::realtime_index(
         simulation::RealtimeTelemetryPhase::commit)];
     commit.submissions = 1U;
-    if (rigid || fluid || cloth) {
+    if (rigid || fluid || cloth || soft) {
         commit.dispatches = 1U;
         commit.workgroups = 1U;
     }
@@ -468,7 +514,7 @@ native_realtime_phase_minimum(const State &state) noexcept {
         commit.bytes_moved = sizeof(std::uint32_t);
         ++commit.barriers;
     }
-    if (rigid || fluid || cloth) ++commit.barriers;
+    if (rigid || fluid || cloth || soft) ++commit.barriers;
     return minimum;
 }
 
@@ -585,6 +631,23 @@ public:
             cloth.realtime_query_offset = cloth_offset;
             cloth_offset += cloth.index_count / 3U;
         }
+        std::uint32_t soft_offset = cloth_offset;
+        for (auto &owner : state_.soft_bodies) {
+            if (!owner || !owner->alive) continue;
+            auto &body = *owner;
+            if (body.realtime_topology_revision == 0U ||
+                !std::isfinite(body.realtime_characteristic_length) ||
+                body.realtime_characteristic_length < 0.005F ||
+                vector_length(options_.gravity) * scene.timestep *
+                        scene.timestep >
+                    0.25F * body.realtime_characteristic_length)
+                return PM_ERROR_INVALID_ARGUMENT;
+            body.realtime_leaf_offset = soft_offset;
+            body.realtime_query_offset = soft_offset;
+            soft_offset += body.surface_index_count / 3U;
+        }
+        if (soft_offset != staged_leaves_)
+            return PM_ERROR_INVALID_STATE;
         std::array<simulation::RealtimeResourceRegistration,
                    simulation::realtime_resource_family_count>
             registrations{};
@@ -744,6 +807,37 @@ public:
                 cloth.vertex_capacity * sizeof(std::uint8_t);
             boundary_work.barriers += 4U;
         }
+        for (auto &owner : state_.soft_bodies) {
+            if (!owner || !owner->alive) continue;
+            auto &body = *owner;
+            const auto bytes = std::size_t(body.node_count) * sizeof(Vec3);
+            auto result = native_.copy(
+                body.realtime_positions, body.positions, bytes,
+                device::CopyDirection::device_to_device, native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.copy(
+                    body.realtime_velocities, body.velocities, bytes,
+                    device::CopyDirection::device_to_device,
+                    native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(
+                    body.realtime_time_advances, 0,
+                    sizeof(*body.realtime_time_advances), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(
+                    body.realtime_contact_active, 0,
+                    body.node_count * sizeof(std::uint8_t), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(
+                    body.realtime_shape_orientation, 0,
+                    sizeof(*body.realtime_shape_orientation), native_.queue());
+            if (result != PM_SUCCESS) return result;
+            boundary_work.bytes_moved += 2U * bytes +
+                sizeof(*body.realtime_time_advances) +
+                body.node_count * sizeof(std::uint8_t) +
+                sizeof(*body.realtime_shape_orientation);
+            boundary_work.barriers += 5U;
+        }
         return PM_SUCCESS;
     }
 
@@ -796,6 +890,38 @@ public:
                 if (result != PM_SUCCESS) return result;
                 dispatch(simulation::RealtimeTelemetryPhase::predict,
                          groups);
+            }
+            return PM_SUCCESS;
+        }
+        if (domain == simulation::RealtimeDomain::soft_body) {
+            for (auto &owner : state_.soft_bodies) {
+                if (!owner || !owner->alive) continue;
+                auto &body = *owner;
+                const auto groups =
+                    (body.node_count + block - 1U) / block;
+                const auto surface_groups =
+                    (body.surface_vertex_count + block - 1U) / block;
+                native_.predict_soft_body_realtime(
+                    groups, block, native_.queue(),
+                    body.realtime_positions, body.realtime_velocities,
+                    body.previous, body.realtime_correction_used,
+                    body.inverse_masses,
+                    body.realtime_characteristic_lengths,
+                    body.node_count, body.node_count, &options_.gravity.x,
+                    body.velocity_damping, body.realtime_maximum_speed,
+                    scene.timestep,
+                    simulation::soft_body_realtime_profile_version,
+                    body.realtime_time_advances, snapshot_.query_status);
+                native_.update_soft_body_surface(
+                    surface_groups, block, native_.queue(),
+                    body.realtime_positions, body.rest_positions,
+                    body.surface_rest_positions, body.surface_bindings,
+                    body.realtime_surface_positions,
+                    body.surface_vertex_count);
+                const auto result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatches(simulation::RealtimeTelemetryPhase::predict, 2U,
+                    groups + surface_groups);
             }
             return PM_SUCCESS;
         }
@@ -923,6 +1049,45 @@ public:
             if (result != PM_SUCCESS) return result;
             dispatch(simulation::RealtimeTelemetryPhase::index,
                      cloth_groups);
+        }
+        for (std::uint32_t slot = 0U;
+             slot < state_.soft_bodies.size(); ++slot) {
+            auto &owner = state_.soft_bodies[slot];
+            if (!owner || !owner->alive) continue;
+            auto &body = *owner;
+            const auto triangles = body.surface_index_count / 3U;
+            const auto soft_groups = (triangles + block - 1U) / block;
+            const float soft_correction[3]{
+                simulation::soft_body_realtime_maximum_correction_fraction *
+                    body.realtime_characteristic_length,
+                simulation::soft_body_realtime_maximum_correction_fraction *
+                    body.realtime_characteristic_length,
+                simulation::soft_body_realtime_maximum_correction_fraction *
+                    body.realtime_characteristic_length};
+            native_.emit_deformable_spatial_primitives(
+                soft_groups, block, native_.queue(), body.surface_positions,
+                body.realtime_surface_positions, body.surface_vertex_count,
+                body.surface_indices,
+                body.realtime_surface_triangle_generations, triangles, 3U,
+                simulation::deformable_spatial_soft_family, slot,
+                body.generation,
+                static_cast<std::uint32_t>(body.realtime_topology_revision),
+                simulation::deformable_spatial_triangle_primitive,
+                body.realtime_leaf_offset,
+                state_.realtime_spatial_plan.leaf_capacity,
+                body.realtime_query_offset,
+                state_.realtime_spatial_plan.query_capacity,
+                body.realtime_leaf_offset,
+                simulation::deformable_spatial_contact_mask,
+                simulation::deformable_spatial_contact_mask,
+                body.node_radius, path_deviation, soft_correction, 1.0e-5F,
+                snapshot_.metadata, snapshot_.bounds,
+                snapshot_.build_flags, query_bounds, query_masks, excluded,
+                deformable_query_leaf_sources, snapshot_.query_status);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatch(simulation::RealtimeTelemetryPhase::index,
+                     soft_groups);
         }
 #if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
         result = state_.realtime_spatial.update(
@@ -1273,6 +1438,95 @@ public:
             }
             return PM_SUCCESS;
         }
+        if (domain == simulation::RealtimeDomain::soft_body) {
+            ++work(simulation::RealtimeTelemetryPhase::domain)
+                  .numerical_iterations;
+            const auto *counters = state_.realtime_spatial.counters(epoch_);
+            if (counters == nullptr) return PM_ERROR_INVALID_STATE;
+            constexpr std::uint32_t block = 128U;
+            for (auto &owner : state_.soft_bodies) {
+                if (!owner || !owner->alive) continue;
+                auto &body = *owner;
+                const auto groups =
+                    (body.node_count + block - 1U) / block;
+                if (iteration == 0U) {
+                    const auto budget =
+                        simulation::soft_body_realtime_work_budget(
+                            body.node_count, body.node_count,
+                            body.neighbor_count, body.node_count);
+                    auto result = body.realtime_contract.begin(
+                        epoch_, *counters, budget,
+                        body.realtime_topology_revision);
+                    if (result != PM_SUCCESS) return result;
+                    result = body.realtime_contract.record_advance(
+                        scene.timestep, scene.substeps);
+                    if (result != PM_SUCCESS) return result;
+                }
+                native_.project_soft_body_realtime_shape(
+                    native_.queue(), body.realtime_positions, body.scratch,
+                    body.rest_positions, body.inverse_masses,
+                    body.realtime_characteristic_lengths,
+                    body.realtime_correction_used, body.node_count,
+                    body.node_count, body.movable_mass,
+                    &body.shape_rest_center.x, &body.shape_inverse_rest,
+                    body.realtime_shape_orientation,
+                    body.shape_matching_stiffness, scene.timestep,
+                    simulation::soft_body_realtime_profile_version,
+                    snapshot_.query_status);
+                native_.project_soft_body_realtime_links(
+                    groups, block, native_.queue(),
+                    body.realtime_positions, body.scratch,
+                    body.realtime_correction_used, body.inverse_masses,
+                    body.realtime_characteristic_lengths, body.offsets,
+                    body.realtime_neighbors, body.node_count,
+                    body.node_count, body.stretch_compliance,
+                    scene.timestep,
+                    simulation::soft_body_realtime_profile_version,
+                    snapshot_.query_status);
+                native_.apply_soft_body_realtime_position_delta(
+                    groups, block, native_.queue(),
+                    body.realtime_positions, body.scratch,
+                    body.realtime_correction_used, body.inverse_masses,
+                    body.realtime_characteristic_lengths,
+                    body.node_count, body.node_count, scene.timestep,
+                    simulation::soft_body_realtime_profile_version,
+                    snapshot_.query_status);
+                auto result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatches(simulation::RealtimeTelemetryPhase::domain, 3U,
+                    2ULL * groups + 1U);
+                const bool contact_pass = (iteration & 1U) != 0U;
+                if (contact_pass) {
+                    native_.project_soft_body_realtime_contacts(
+                        groups, block, native_.queue(),
+                        body.realtime_positions, body.previous,
+                        body.inverse_masses,
+                        body.realtime_characteristic_lengths,
+                        body.realtime_correction_used,
+                        body.realtime_contact_normals,
+                        body.realtime_contact_offsets,
+                        body.realtime_contact_active, body.node_count,
+                        body.node_count, body.node_radius,
+                        body.contact_friction, scene.timestep,
+                        simulation::soft_body_realtime_profile_version,
+                        snapshot_.query_status);
+                    result = native_.check_error();
+                    if (result != PM_SUCCESS) return result;
+                    dispatch(simulation::RealtimeTelemetryPhase::domain,
+                             groups);
+                }
+                result = body.realtime_contract.record_sweep(
+                    epoch_, *counters, body.realtime_topology_revision,
+                    contact_pass);
+                if (result != PM_SUCCESS) return result;
+                if (iteration + 1U ==
+                    simulation::soft_body_realtime_constraint_sweeps) {
+                    result = body.realtime_contract.finish();
+                    if (result != PM_SUCCESS) return result;
+                }
+            }
+            return PM_SUCCESS;
+        }
         if (domain != simulation::RealtimeDomain::rigid)
             return PM_ERROR_FEATURE_NOT_PRESENT;
         ++work(simulation::RealtimeTelemetryPhase::domain)
@@ -1351,6 +1605,34 @@ public:
             result = native_.check_error();
             if (result != PM_SUCCESS) return result;
         }
+        for (auto &owner : state_.soft_bodies) {
+            if (!owner || !owner->alive) continue;
+            auto &body = *owner;
+            const auto groups =
+                (body.node_count + block - 1U) / block;
+            native_.commit_soft_body_realtime(
+                groups, block, native_.queue(), body.realtime_positions,
+                body.previous, body.realtime_velocities,
+                body.inverse_masses,
+                body.realtime_characteristic_lengths,
+                body.realtime_contact_normals,
+                body.realtime_contact_offsets,
+                body.realtime_contact_active, body.node_count,
+                body.node_count, body.node_radius, body.contact_friction,
+                body.realtime_maximum_speed, scene.timestep,
+                simulation::soft_body_realtime_profile_version,
+                snapshot_.query_status);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            native_.update_soft_body_surface(
+                (body.surface_vertex_count + block - 1U) / block,
+                block, native_.queue(), body.realtime_positions,
+                body.rest_positions, body.surface_rest_positions,
+                body.surface_bindings, body.realtime_surface_positions,
+                body.surface_vertex_count);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+        }
         if (state_.rigid_body_count != 0U) {
             const auto groups =
                 (state_.rigid_body_count + block - 1U) / block;
@@ -1387,6 +1669,13 @@ public:
                 std::swap(owner->surface_positions,
                           owner->realtime_surface_positions);
         }
+        for (auto &owner : state_.soft_bodies) {
+            if (!owner || !owner->alive) continue;
+            std::swap(owner->positions, owner->realtime_positions);
+            std::swap(owner->velocities, owner->realtime_velocities);
+            std::swap(owner->surface_positions,
+                      owner->realtime_surface_positions);
+        }
         ++state_.frame_index;
         ++state_.revision;
         state_.rigid_contact_revision = state_.revision;
@@ -1401,6 +1690,8 @@ public:
         if (state_.realtime_resources.pending())
             (void)state_.realtime_resources.abort();
         for (auto &owner : state_.cloths)
+            if (owner && owner->alive) owner->realtime_contract = {};
+        for (auto &owner : state_.soft_bodies)
             if (owner && owner->alive) owner->realtime_contract = {};
         return PM_SUCCESS;
     }
@@ -1489,6 +1780,15 @@ private:
                 (owner->index_count / 3U + 127U) / 128U;
             dispatches(simulation::RealtimeTelemetryPhase::commit, 2U,
                        vertex_groups + triangle_groups);
+        }
+        for (const auto &owner : state_.soft_bodies) {
+            if (!owner || !owner->alive) continue;
+            const auto node_groups =
+                (owner->node_count + 127U) / 128U;
+            const auto surface_groups =
+                (owner->surface_vertex_count + 127U) / 128U;
+            dispatches(simulation::RealtimeTelemetryPhase::commit, 2U,
+                       node_groups + surface_groups);
         }
     }
 

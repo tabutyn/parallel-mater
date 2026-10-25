@@ -33,6 +33,7 @@
 #include "simulation/deformable_spatial.hpp"
 #include "simulation/fluid_realtime.hpp"
 #include "simulation/rigid_realtime.hpp"
+#include "simulation/soft_body_realtime.hpp"
 
 #include <algorithm>
 #include <array>
@@ -858,6 +859,24 @@ struct SoftBodyStorage {
     std::uint32_t *dynamic_contact_flag{};
     std::uint32_t *contact_count{};
     std::uint32_t *count{};
+    Vec3 *realtime_positions{};
+    Vec3 *realtime_velocities{};
+    Vec3 *realtime_surface_positions{};
+    SoftBodyNeighbor *realtime_neighbors{};
+    float *realtime_characteristic_lengths{};
+    std::uint32_t *realtime_surface_triangle_generations{};
+    float *realtime_correction_used{};
+    Vec3 *realtime_contact_normals{};
+    float *realtime_contact_offsets{};
+    std::uint8_t *realtime_contact_active{};
+    Quaternion *realtime_shape_orientation{};
+    std::uint32_t *realtime_time_advances{};
+    std::uint32_t realtime_leaf_offset{};
+    std::uint32_t realtime_query_offset{};
+    std::uint64_t realtime_topology_revision{1U};
+    float realtime_characteristic_length{};
+    float realtime_maximum_speed{};
+    simulation::SoftBodyRealtimeTickContract realtime_contract{};
 
     void release() noexcept {
         release_managed(positions);
@@ -896,6 +915,18 @@ struct SoftBodyStorage {
         release_managed(dynamic_contact_flag);
         release_managed(contact_count);
         release_managed(count);
+        release_managed(realtime_positions);
+        release_managed(realtime_velocities);
+        release_managed(realtime_surface_positions);
+        release_managed(realtime_neighbors);
+        release_managed(realtime_characteristic_lengths);
+        release_managed(realtime_surface_triangle_generations);
+        release_managed(realtime_correction_used);
+        release_managed(realtime_contact_normals);
+        release_managed(realtime_contact_offsets);
+        release_managed(realtime_contact_active);
+        release_managed(realtime_shape_orientation);
+        release_managed(realtime_time_advances);
     }
     ~SoftBodyStorage() { release(); }
 };

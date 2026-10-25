@@ -1,0 +1,96 @@
+{
+  "schema": "parallel-mater-f8-soft-body-production-ticks-evidence/v1",
+  "task": "F8-42",
+  "status": "passed",
+  "recorded_at": "2026-10-25",
+  "branch": "work/F8-42/thomas-laptop-pixel7",
+  "lease_token": "02cd9fa0-22de-4437-9c56-53a55d29eccb",
+  "base_revision": "095a24ac3a2123033e85242f0be37d042fae8c71",
+  "implementation_revision": "78828ff2835ca0329e67e8890d28b8791973f857",
+  "implementation": {
+    "public_path": "Live soft-body resources execute the production realtime-single-step schedule instead of the former blanket PM_ERROR_FEATURE_NOT_PRESENT rejection.",
+    "fixed_tick": "One 1/60 predictor, one predicted-surface skin, one common spatial build/query/publication, eight shape/link/apply sweeps, contacts after sweeps 2/4/6/8, one velocity commit and one final surface skin.",
+    "common_epoch": "F8-10 swept soft-body surface triangles occupy reserved ranges of the same published spatial epoch used by rigid, liquid and cloth resources; the soft-body solve performs no rebuild, refit, sort or query.",
+    "volume_shape": "The frozen F8-14 shape matcher is the public soft-body representation's volume-retention operator; no unexposed tetrahedral material or second solver was introduced.",
+    "collision_consumer": "The four frozen F8-14 contact projections consume a cleared canonical per-node view. Rigid/soft contact generation and reciprocal exchange remain F8-45.",
+    "atomic_state": "Node positions, velocities and surface positions publish only after successful resource, snapshot and spatial commit. Exact-limit failure leaves public bytes unchanged; replacement and reset renew generation/revision identity.",
+    "adapters": "CPU, CUDA, Vulkan and Metal dispatch bindings call the common F8-10/F8-14 Slang entries; no adapter contains private soft-body equations."
+  },
+  "public_cases": [
+    "cold sparse-capacity soft-body tick with one exact pin, four dynamic nodes, ten bonds and a four-vertex surface",
+    "one time advance, eight soft-body iterations, one index build, one publication and zero intra-tick host readbacks",
+    "finite dynamic state, exact pin preservation and less than 0.03 m absolute bond error",
+    "one-below workgroup-limit failure with byte-for-byte rollback and capacity reuse",
+    "whole-soft-body topology replacement at a tick boundary",
+    "simulation reset followed by slot rewrite and a successful cold tick"
+  ],
+  "qualification": {
+    "host_suite": {
+      "command": "cmake --build build-f8-23-cpu -j2 && ctest --test-dir build-f8-23-cpu --output-on-failure -j2",
+      "result": "PASS: 102/102 discovered; 87 executed passed and 15 unadvertised CPU-domain tests explicitly skipped"
+    },
+    "protected_closure": {
+      "command": "python3 tools/check_realtime_candidate.py",
+      "result": "PASS: realtime-single-step-v1-3671f18 protected closure and routing are exact"
+    },
+    "public_cuda_runtime": {
+      "command": "PM_DRIVER_FILES=build-f8-22-cuda/Release/manifests/slang-cuda.json PM_LAYER_FILES=build-f8-22-cuda/Release/manifests/validation.json ./build-f8-23-cpu/parallel-mater-native-realtime-runtime-tests --production",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU, compute 8.6, driver 590.44.01",
+      "result": "PASS through the production CUDA driver"
+    },
+    "physical_operator_oracle": {
+      "source": "docs/roadmap/evidence/F8-14-soft-body-60hz.json",
+      "device": "Apple M4, 8-core physical Metal GPU",
+      "result": "PASS: one-tick volume error 0.00895625, bond RMS 0.0102437, maximum bond error 0.0199945, shape RMS/h 0.017224, inverted input rejected; 3,600-tick cold/rest/impact run had zero tunneling, settled volume error 0.00384992, bond RMS 0.00112162 and shape RMS/h 0.00132958",
+      "binding": "F8-42 changes dispatch adapters and the enclosing production schedule, not the protected F8-14 Slang entries or tolerances. Physical CUDA and Vulkan public fixtures execute those exact entries through production."
+    },
+    "cuda_adapter": {
+      "command": "cmake --build build-f8-22-cuda --target parallel-mater-driver-slang-cuda -j2",
+      "result": "PASS"
+    },
+    "metal_adapter": {
+      "command": "clang++ -std=c++20 -fsyntax-only -DPARALLEL_MATER_DRIVER_IMPLEMENTATION=1 -DPARALLEL_MATER_METAL_DRIVER=1 -Isrc/device/metal_compat -Isrc -Iinclude -Ibuild-f8-23-cpu/generated/api src/simulation/metal_soft_body_dispatch.cpp src/simulation/metal_geometry_soft_body_dispatch.cpp",
+      "result": "PASS"
+    },
+    "conformance_contracts": {
+      "command": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py' && python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS: 418 conformance tests and 87 roadmap tests"
+    }
+  },
+  "physical_vulkan_adapter": {
+    "build": "ANDROID_HOME=/home/thomas/Android/Sdk SLANGC=build-f8-22-cuda/_deps/parallel_mater_slang-src/bin/slangc ./scripts/Build-AndroidGallery.sh -PphysicsBackend=vulkan -Pqualification=true",
+    "harness": "python3 scripts/Test-AndroidVulkan.py --serial 2B241FDH20060P --adb /usr/bin/adb --build-directory examples/android/app/.cxx/Debug/22642c33/arm64-v8a --output /tmp/F8-42-android-native-78828ff --timeout 180 --conformance-timeout 420 --native-only",
+    "device": {
+      "manufacturer": "Google",
+      "model": "Pixel 7",
+      "product": "panther",
+      "android_version": "17",
+      "api_level": "37",
+      "security_patch": "2026-10-05"
+    },
+    "adapter": "production Slang Vulkan",
+    "toolchain": {
+      "android_ndk": "29.0.14206865",
+      "slang": "2026.18"
+    },
+    "source_commit": "78828ff2835ca0329e67e8890d28b8791973f857",
+    "apk_sha256": "44d292d1413c2f9b6316e877403bad250735c5714b7653d62e4a02ebeb4b9fc0",
+    "driver_sha256": "698f07eec3713d470e2b75b47db3504433c5e722e3471bc450bbdacd73ec78a0",
+    "capture_sha256": "441465a627c699e06eb7c35dacf5b32ce92bd4dec2b33ff4ac1b396c41b7181b",
+    "results_sha256": "56a60519e28783f2a030d3384922abf92d994cf059c661e22298c94925caacba",
+    "realtime_log_sha256": "1ac19d2e81be41b94416fa66b33d7e733a7579c29005a1f3d94805823711eeb7",
+    "native_runs": [
+      "PASS: pm-android-command-tests",
+      "PASS: pm-android-async-tests",
+      "PASS: pm-android-liquid-tests",
+      "PASS: pm-android-realtime-runtime-tests --production"
+    ],
+    "trace": "Observed production Vulkan pipelines for soft-body predict, predicted/final surface skin, F8-10 deformable spatial emit, shape/link/apply/contact solve, commit and public export.",
+    "validation_errors": 0
+  },
+  "limits": [
+    "F8-42 does not bind rigid/soft contact generation or bidirectional response; F8-45 owns that existing interaction.",
+    "The end-to-end production public fixture therefore consumes an empty canonical contact view. Impact and tunneling quality comes from the immutable F8-14 operator oracle; F8-45 must repeat end-to-end interaction qualification when it populates that view.",
+    "Physical D3D12 and Metal execution were unavailable on this Linux/Android machine; protected common Slang closure, CUDA/Vulkan execution, prior physical Metal operator evidence and local Metal binding syntax passed."
+  ]
+}

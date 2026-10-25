@@ -1,7 +1,7 @@
 {
   "id": "F8-42",
   "title": "Connect soft-body operators to production fixed ticks",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-39"
   ],
@@ -18,15 +18,29 @@
     "Cold/rest/impact, topology replacement, sparse capacity, reset and failure rollback exercise staged state and cache generation ownership.",
     "Public admission and generated dispatch/reflection builds match the implemented domain; standalone-kernel success is insufficient."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "02cd9fa0-22de-4437-9c56-53a55d29eccb",
-    "owner": "codex-android-overnight",
-    "machine": "thomas-laptop-pixel7",
-    "branch": "work/F8-42/thomas-laptop-pixel7",
-    "claimed_at": "2026-10-25T18:54:12Z",
-    "heartbeat_at": "2026-10-25T18:54:12Z",
-    "expires_at": "2026-10-26T18:54:12Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/F8-42-SOFT-BODY-PRODUCTION-TICKS.md",
+    "docs/roadmap/evidence/F8-42-soft-body-production-ticks.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "02cd9fa0-22de-4437-9c56-53a55d29eccb",
+        "owner": "codex-android-overnight",
+        "machine": "thomas-laptop-pixel7",
+        "branch": "work/F8-42/thomas-laptop-pixel7",
+        "claimed_at": "2026-10-25T18:54:12Z",
+        "heartbeat_at": "2026-10-25T18:54:12Z",
+        "expires_at": "2026-10-26T18:54:12Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-25T19:13:59Z",
+      "reason": "Soft-body self-dynamics now execute through the public fixed-tick production schedule with one shared spatial epoch, exact eight-sweep and frozen contact-consumer telemetry, atomic staged node/surface state, cross-adapter bindings, and physical CUDA plus Pixel 7 Vulkan qualification.",
+      "evidence": [
+        "docs/roadmap/F8-42-SOFT-BODY-PRODUCTION-TICKS.md",
+        "docs/roadmap/evidence/F8-42-soft-body-production-ticks.json"
+      ]
+    }
+  ]
 }

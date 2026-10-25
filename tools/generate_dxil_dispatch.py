@@ -42,7 +42,7 @@ def unwrap(expression):
                 f'{unwrap(dereference[2])})')
     if expression.startswith('*as<Vec3_0>('):
         return expression.replace('*as<Vec3_0>(', '*static_cast<const Vec3 *>(', 1)
-    return expression
+    return re.sub(r'\bVec3_0\s*\{', 'Vec3{', expression)
 
 
 def pack(abi, type_info, expression, offset):

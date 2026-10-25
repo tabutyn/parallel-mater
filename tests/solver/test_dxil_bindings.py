@@ -47,6 +47,12 @@ class DxilBindingGeneratorTest(unittest.TestCase):
             generate_dxil_dispatch.unwrap('*as<TriangleMeshResource_0>(mesh)'),
             '*static_cast<const TriangleMeshResource *>(mesh)')
 
+    def test_generated_vec3_value_uses_host_descriptor(self):
+        self.assertEqual(
+            generate_dxil_dispatch.unwrap(
+                'Vec3_0{gravity[0], gravity[1], gravity[2]}'),
+            'Vec3{gravity[0], gravity[1], gravity[2]}')
+
     def test_embedded_library_emits_reflected_symbolic_layout(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
