@@ -1,0 +1,24 @@
+{
+  "id": "F8-33",
+  "title": "Integrate the shared spatial epoch into production runtime",
+  "status": "open",
+  "dependencies": [
+    "F8-22"
+  ],
+  "locks": [
+    "f8-native-spatial-runtime"
+  ],
+  "requires": [
+    "Host capable of building the Slang CPU/reference driver and running native runtime tests"
+  ],
+  "scope": "Repair the rejected realtime-single-step-v1 candidate by binding the F8-05--10 shared spatial service to production SimulationRuntime resource plans and native dispatch, while leaving legacy-default behavior unchanged. Follow docs/roadmap/evidence/F8-23-CANDIDATE-REJECTION.md; this task does not advertise the public profile or refreeze a candidate.",
+  "acceptance": [
+    "Production realtime state stages canonical leaves for every present advertised domain, performs at most one build/refit, publishes exactly one generation-tagged epoch including empty ticks, and pins that epoch for all domain and coupling consumers.",
+    "Boundary births, removals, replacements and transfers remain atomic; overflow, invalid identity and envelope escape preserve the prior committed epoch/state and cannot trigger a retry, second update, host readback or wait.",
+    "Native CPU execution covers its required rigid/query subset, while unsupported CPU domains remain explicit; every compiled native adapter still builds against the common runtime and legacy-default regressions remain unchanged.",
+    "Tests exercise empty, sparse, crossing, lifecycle, capacity and failure recovery through production runtime seams and verify actual epoch counters rather than a model-only backend."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

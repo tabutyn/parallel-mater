@@ -3,7 +3,8 @@
   "title": "Qualify independent CPU and public-contract cases",
   "status": "open",
   "dependencies": [
-    "F8-22"
+    "F8-22",
+    "F8-36"
   ],
   "locks": [
     "f8-qualification-cpu"

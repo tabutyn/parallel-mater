@@ -1,0 +1,24 @@
+{
+  "id": "F8-35",
+  "title": "Expose executable realtime profile through installed API",
+  "status": "open",
+  "dependencies": [
+    "F8-34"
+  ],
+  "locks": [
+    "f8-realtime-public-api"
+  ],
+  "requires": [
+    "Installed public SDK test toolchain and at least the Slang CPU production driver"
+  ],
+  "scope": "Replace the F8-23 rejected native profile stub with truthful execution-profile enumeration and selection after production scheduling exists. Add installed-public-API observation generation; do not claim physical qualification or change advertised interaction capabilities.",
+  "acceptance": [
+    "Eligible production adapters enumerate realtime-single-step 1.0 and accept its immutable simulation-create request; missing extension, unknown name, incompatible version, invalid chain, timestep outside one binary32 ULP and substeps other than one fail without fallback.",
+    "An installed C consumer performs the frozen public sequence through submission, fence wait, simulation status, statistics and copied public state with validation both disabled and enabled on the Slang CPU driver.",
+    "The public observation record identifies installed API use, exact profile/candidate inputs and complete step/work counters required by realtime_oracle.py; private state and mock-driver execution cannot satisfy native evidence.",
+    "Loader, validation, ABI, installed-SDK and legacy omission regressions pass; unsupported domains and adapters remain explicit rather than inheriting profile support."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,24 @@
+{
+  "id": "F8-34",
+  "title": "Bind fixed realtime phases and telemetry to native adapters",
+  "status": "open",
+  "dependencies": [
+    "F8-33"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule"
+  ],
+  "requires": [
+    "Native adapter build toolchains and the completed production shared-spatial integration"
+  ],
+  "scope": "Make realtime_schedule.hpp the production ordering authority for realtime-single-step-v1 on native adapters. Bind each phase to emitted kernels and F8-21 measurement without changing the legacy-default schedule or advertising the public profile.",
+  "acceptance": [
+    "SimulationRuntime routes realtime-single-step-v1 through assemble_realtime_tick and binds boundary, predict, shared-index update/publication, exact domain iterations, batched coupling sweeps and atomic commit/abort to production work for every compiled native adapter.",
+    "The runtime executes exactly one 1/60 advance with no hidden substeps, catch-up, adaptive work, second spatial update or intra-tick host wait/readback; every failure preserves clock, state and pending inputs.",
+    "Measured execution reports actual per-phase dispatches, workgroups, barriers, submissions, bytes, iterations and spatial counters; GPU timing stays explicitly unsupported where unavailable and CPU time is never relabeled.",
+    "Negative injection exceeds each fixed work/synchronization limit and fails before commit; native CPU runtime tests and all available adapter compile/regression gates pass with legacy behavior unchanged."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
