@@ -56,7 +56,10 @@
     "F8-50",
     "F8-51",
     "F8-52",
-    "F8-53"
+    "F8-53",
+    "F8-54",
+    "F8-55",
+    "F8-56"
   ],
   "locks": [
     "foundation-8-review"
@@ -64,14 +67,15 @@
   "requires": [
     "Access to every registered machine's durable candidate evidence and independent review"
   ],
-  "scope": "Audit F8 against the maintainer's sole-production-architecture requirement in docs/roadmap/F8-SINGLE-EXECUTION-PATH.md. Require complete native/public/Gallery integration for all supported domains/interactions, removal of the legacy production path and selector, and all device quality/performance evidence on one final candidate.",
+  "scope": "Audit F8 against the maintainer's sole-production-architecture requirement in docs/roadmap/F8-SINGLE-EXECUTION-PATH.md. Require complete native/public/Gallery integration for all supported domains/interactions, removal of the legacy production path and selector, and all device quality/performance evidence on one final candidate. Mandatory dispatch reduction requirements are defined in docs/roadmap/F8-DISPATCH-REDUCTION.md.",
   "acceptance": [
     "All dependency cards and every current-candidate required kernel/device row are merged done with reviewable evidence; missing hardware, failed quality or missed performance budgets keep this gate open.",
     "Verify one fixed 1/60 step, one shared dynamic index publication, no hidden time subdivision/catch-up, bounded algebraic work, interpolation and deliberate overload slow-motion.",
     "Verify approved accuracy tradeoffs, explicit API/ABI compatibility without selectable execution modes, no vendor-specific physical fork, candidate-consistent deployed app/SDK identities and complete sustained timings.",
     "Review independent quality, installed SDK/Gallery and device coverage separately; add any discovered gaps as new dependencies before claiming/completing this review.",
     "Source/symbol review and installed public execution prove the old scheduler/profile selection is removed across ordinary, mixed-domain, empty, headless, diagnostic and failure/recovery paths. Historical regression evidence and independent oracles may remain.",
-    "Every baseline supported domain/interaction and Gallery scene executes the sole schedule on each applicable adapter; a rigid-only run, shader compilation, mock schedule or reduced capability matrix cannot close the gate."
+    "Every baseline supported domain/interaction and Gallery scene executes the sole schedule on each applicable adapter; a rigid-only run, shader compilation, mock schedule or reduced capability matrix cannot close the gate.",
+    "Explicitly audit F8-54--56: Metal has no body-count-sized no-op launch graph, production coupling searches use complete shared-epoch candidates or documented direct/stencil semantics, and compatible edges are batched. Independent ceilings and matched installed Mac/iPad traces prove substantial reductions; deriving the pass budget from current implementation cost is insufficient."
   ],
   "evidence": [],
   "lease": null,

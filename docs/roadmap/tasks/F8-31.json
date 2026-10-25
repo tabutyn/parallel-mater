@@ -13,7 +13,8 @@
     "F8-30",
     "F8-51",
     "F8-52",
-    "F8-53"
+    "F8-53",
+    "F8-56"
   ],
   "locks": [
     "sdk-realtime-profile-release"
@@ -21,12 +22,13 @@
   "requires": [
     "Any development host; access to current API, schedule and qualification records"
   ],
-  "scope": "Package, deploy and document the qualified single-path SDK and Gallery candidate. Normal simulation creation always uses the fixed-tick architecture; no F8/legacy mode selection remains. Verify installed revision/backend/artifact identities for desktop launchers, Android and iPad. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md; retain historical evidence and all baseline supported interactions.",
+  "scope": "Package, deploy and document the qualified single-path SDK and Gallery candidate. Normal simulation creation always uses the fixed-tick architecture; no F8/legacy mode selection remains. Verify installed revision/backend/artifact identities for desktop launchers, Android and iPad. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md; retain historical evidence and all baseline supported interactions. Mandatory dispatch reduction requirements are defined in docs/roadmap/F8-DISPATCH-REDUCTION.md.",
   "acceptance": [
     "Installed public C/C++ SDK and Gallery tests use normal creation and stepping with no execution-profile request. Every supported domain/interaction uses the same schedule; incompatible API/ABI requests fail clearly.",
     "Publish exact device/workload quality and performance limits and migration instructions for the single architecture; historical evidence is not relabeled and missing integration cannot be hidden as unsupported hardware.",
     "Relocatable packages and installed desktop/mobile applications match the frozen candidate's artifact/revision/backend identities, including the macOS Dock launcher. Material runtime/kernel/API/app changes require candidate refresh and affected requalification.",
-    "Show 30/60/high-refresh presentation, bounded long-running memory ownership, lifecycle recovery and ordinary Gallery startup with no user-facing F8 toggle."
+    "Show 30/60/high-refresh presentation, bounded long-running memory ownership, lifecycle recovery and ordinary Gallery startup with no user-facing F8 toggle.",
+    "Publish the final candidate's F8-54--56 actual native dispatch/work reductions and independent ceilings alongside its quality and frame timings. Installed Mac/iPad identities match the measured candidate; preserve comparable workload counts and disclose remaining limits."
   ],
   "evidence": [],
   "lease": null,

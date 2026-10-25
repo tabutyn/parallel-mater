@@ -3,7 +3,10 @@
   "title": "Freeze the complete single-path SDK and Gallery candidate",
   "status": "open",
   "dependencies": [
-    "F8-51"
+    "F8-51",
+    "F8-54",
+    "F8-55",
+    "F8-56"
   ],
   "locks": [
     "f8-candidate-freeze"
@@ -11,13 +14,14 @@
   "requires": [
     "Clean candidate freeze environment and all single-path integration tasks merged"
   ],
-  "scope": "Replace the interim rigid-only candidates with one exact all-supported-domain, single-schedule public SDK/Gallery candidate before final F8 device qualification. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "scope": "Replace the interim rigid-only candidates with one exact all-supported-domain, single-schedule public SDK/Gallery candidate before final F8 device qualification. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md. Mandatory dispatch reduction requirements are defined in docs/roadmap/F8-DISPATCH-REDUCTION.md.",
   "acceptance": [
     "Audit installed public creation/step and Gallery paths for all baseline supported domains/interactions and auxiliary features; fail on any remaining legacy choice, blanket integration rejection or private-test-only coverage.",
-    "Freeze source, API/ABI, kernel/adapter/runtime/oracle/contract, workload and application artifact identities after F8-39--51; preserve interim candidate records as historical evidence without rewriting their hashes.",
-    "Through a coordination PR, route unleased F8-24--30 and F8-53 cards to the exact new candidate before they are claimed; their F8-52 dependency remains in place. Preserve the live F8-23 interim qualification and its evidence; F8-53 supplies final CPU/public-contract requalification. Completion cannot redefine other cards or active leases.",
+    "Freeze source, API/ABI, kernel/adapter/runtime/oracle/contract, workload, independent dispatch/work ceilings and application artifact identities after F8-39--51 and F8-54--56; preserve interim candidate records as historical evidence without rewriting their hashes.",
+    "Through a coordination PR, route unleased F8-24--30 and F8-53 cards to the exact new candidate before they are claimed; their F8-52 dependency remains in place. Preserve completed F8-23 interim qualification and its evidence; F8-53 supplies final CPU/public-contract requalification. Completion cannot redefine other cards or active leases.",
     "Candidate validation rejects protected drift and evidence union across revisions. Retain independent oracles and unchanged workload/quality/performance gates; collect installed-consumer preflight evidence.",
-    "Device/API capability manifests accurately retain the baseline supported surface; missing runtime work must create a prerequisite repair task rather than shrinking the qualification matrix."
+    "Device/API capability manifests accurately retain the baseline supported surface; missing runtime work must create a prerequisite repair task rather than shrinking the qualification matrix.",
+    "Reject the freeze until F8-54 Metal batching, F8-55 common-BVH coupling searches/batching and F8-56 independent native/Gallery reduction evidence are merged done. A runtime-derived budget, one spatial-build counter, compile-only result or absent Apple-device run cannot satisfy this gate."
   ],
   "evidence": [],
   "lease": null,
