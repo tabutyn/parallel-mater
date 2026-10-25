@@ -4,7 +4,8 @@
   "status": "open",
   "dependencies": [
     "F8-02",
-    "F8-22"
+    "F8-22",
+    "F8-36"
   ],
   "locks": [
     "android-vulkan-frame-performance"

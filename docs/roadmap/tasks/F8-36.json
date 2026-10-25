@@ -1,0 +1,24 @@
+{
+  "id": "F8-36",
+  "title": "Freeze replacement executable realtime candidate",
+  "status": "open",
+  "dependencies": [
+    "F8-35"
+  ],
+  "locks": [
+    "f8-candidate-freeze"
+  ],
+  "requires": [
+    "Clean cross-platform build environment and completed native runtime/public API repair"
+  ],
+  "scope": "Freeze one replacement candidate after F8-33--35 make the profile executable. Preserve realtime-single-step-v1-dea47c1 as rejected history, never union its evidence with the replacement, and update qualification routing without weakening the F8-00 contract.",
+  "acceptance": [
+    "Publish a new immutable candidate identity with exact source, protected runtime/kernel/profile/oracle hashes, native binary hashes and complete canonical kernel-group and runtime-variant coverage.",
+    "Cross-platform build/reflection/install gates pass and at least the Slang CPU production driver executes the installed public profile; compile-only mirrors remain non-qualification evidence.",
+    "Mark candidate v1 rejected in a separate durable record, invalidate every affected physical row, and require F8-23--30 to report only the single replacement candidate.",
+    "Candidate validation fails on any protected runtime, adapter binding, dispatch, schedule, telemetry, profile or public-oracle drift; F8-99 depends on every repair/refreeze leaf."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
