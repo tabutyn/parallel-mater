@@ -1,0 +1,89 @@
+{
+  "schema": "parallel-mater-f8-mechanical-couplings-production-ticks-evidence/v1",
+  "task": "F8-45",
+  "status": "passed",
+  "recorded_at": "2026-10-25",
+  "branch": "work/F8-45/thomas-laptop-pixel7",
+  "lease_token": "9916cdc8-087e-4cad-80a8-f120263d7534",
+  "base_revision": "b548454f973cb1209470a1115fbfa15979fe180d",
+  "implementation_revision": "9d353580f7b330d5f3ee8cb2815a0d1f0de0b1aa",
+  "implemented_modes": [
+    "rigid-cloth contact",
+    "rigid-soft-body contact",
+    "rigid-rope contact",
+    "rigid-rope attachment",
+    "cloth-soft-body contact",
+    "cloth-rope attachment",
+    "soft-body-rope contact",
+    "soft-body-rope attachment"
+  ],
+  "implementation": {
+    "public_graph": "Rigid contact edges derive from installed live resources, rigid-rope attachments derive from PmRopeInfo, and deformable edges derive from installed PmCouplingStateInfo graph state.",
+    "fixed_tick": "Each present coupling family executes four fixed sweeps after all domain solves and before one atomic commit.",
+    "common_epoch": "Both endpoints consume the one F8-10 spatial build/query/publication and one staged state generation; coupling performs no integration, index rebuild, readback or wait.",
+    "reciprocity": "Existing specialized contact kernels exchange rigid/cloth, rigid/soft-body, rigid/rope and cloth/soft-body impulses. Frozen F8-17/F8-19 entries apply rigid-rope, cloth-rope and soft-body-rope endpoint constraints, with bound soft-surface scatter for reciprocal rope response.",
+    "fixed_resources": "Creation reserves generation tables, 64 constraint records, proposal/impulse/correction arrays and rope rigid-reduction scratch.",
+    "atomic_state": "Capacity and telemetry preflight precede device mutation; failed mixed-family ticks do not publish cloth, soft-body or rope output.",
+    "adapters": "CUDA, Vulkan, D3D12 and Metal routes bind the common rigid_coupling and deformable_smoke_coupling Slang modules; CPU test stubs remain non-physical."
+  },
+  "public_cases": [
+    "rigid-rope contact and moving rigid attachment report two edges and four sweeps",
+    "one cloth, soft body and rope install all three public deformable pairs in non-canonical caller order",
+    "three intrinsic rigid contacts plus four deformable contact/attachment edges report seven edges and eight family sweeps",
+    "one time advance, one spatial build, one publication and zero intra-tick host readbacks",
+    "finite public output from all three deformable families",
+    "one-below workgroup limit preserves all three public outputs byte-for-byte",
+    "public graph removal succeeds after the mixed tick"
+  ],
+  "qualification": {
+    "host_suite": {
+      "command": "cmake --build build-sdk-cpu -j2 && ctest --test-dir build-sdk-cpu --output-on-failure -j2",
+      "result": "PASS: 102/102 discovered; 87 executed passed and 15 unadvertised CPU-domain tests explicitly skipped"
+    },
+    "protected_closure": {
+      "command": "python3 tools/check_realtime_candidate.py",
+      "result": "PASS: realtime-single-step-v1-3671f18 protected closure and routing are exact"
+    },
+    "cross_adapter_builds": {
+      "commands": [
+        "cmake --build build-f8-22-cuda -j2 --target parallel-mater-driver-slang-cuda parallel-mater-rigid-coupling-realtime-cuda-tests parallel-mater-deform-coupling-cuda-tests",
+        "cmake --build build-p3-02-vulkan -j2 --target parallel-mater-driver-slang-vulkan",
+        "ANDROID_HOME=/home/thomas/Android/Sdk ANDROID_SDK_ROOT=/home/thomas/Android/Sdk SLANGC=build-f8-22-cuda/_deps/parallel_mater_slang-src/bin/slangc ./scripts/Build-AndroidGallery.sh -PphysicsBackend=vulkan -Pqualification=true"
+      ],
+      "result": "PASS: CUDA, desktop Vulkan and Android arm64-v8a Vulkan builds completed"
+    },
+    "metal_bindings": {
+      "command": "c++ -std=c++20 -fsyntax-only -DPARALLEL_MATER_DRIVER_IMPLEMENTATION=1 -DPARALLEL_MATER_METAL_DRIVER=1 -Isrc/device/metal_compat -Isrc -Iinclude -Ibuild-p3-02-vulkan/generated/include src/simulation/metal_rigid_coupling_dispatch.cpp src/simulation/metal_deformable_smoke_coupling_dispatch.cpp",
+      "result": "PASS"
+    },
+    "contracts": {
+      "command": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py' && python3 -m unittest discover -s tests/roadmap -p 'test_*.py' && python3 tools/roadmap.py check",
+      "result": "PASS: 418 conformance tests, 87 roadmap tests and 272-card catalog check"
+    },
+    "inherited_physical_rigid_quality": {
+      "source": "docs/roadmap/evidence/F8-17-rigid-couplings-60hz.json",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU, compute 8.6",
+      "result": "PASS: all eight F8-17 family/mode combinations, zero tunnels, linear residual 0.00000010, angular residual 0.00000008, attachment separation 0.0005 m, stale/rebound generation and atomic invalid-profile checks"
+    },
+    "inherited_physical_deformable_quality": {
+      "source": "docs/roadmap/evidence/F8-19-deformable-smoke-couplings-60hz.json",
+      "device": "NVIDIA GeForce GTX 1080, compute 6.1",
+      "result": "PASS: all sixteen F8-19 pair/mode variants, zero tunnels, reciprocal residual 0.00000010, attachment separation 0.0005 m, directional mutation, lifecycle and atomic failure checks"
+    }
+  },
+  "android_cross_build": {
+    "build_directory": "examples/android/app/.cxx/Debug/5w1y5q4a/arm64-v8a",
+    "toolchain": {
+      "android_ndk": "29.0.14206865",
+      "slang": "2026.18"
+    },
+    "apk_sha256": "21ad2d7a47415a9fdf538ac2c27b2c9f2032586d292808dcf20c8325342e1e5b",
+    "driver_sha256": "05fe4c99963aa09749ff1d49ee5bcd7456b3943f646d01c02767f57ec043a4b6",
+    "device_execution": "Not run: adb reported no attached Pixel 7."
+  },
+  "limits": [
+    "A fresh physical public-runtime execution was unavailable: the NVIDIA kernel driver exposed no device nodes and adb reported no attached Pixel 7. The record relies on immutable F8-17/F8-19 physical operator quality plus current CUDA/Vulkan/Android builds and public CPU scheduling/lifecycle execution.",
+    "Physical D3D12 and Metal execution were unavailable on this Linux host; shared Slang compilation and Metal binding syntax passed.",
+    "Liquid interactions remain F8-46 and smoke interactions remain F8-47. Unsupported same-family deformable modes remain explicit."
+  ]
+}

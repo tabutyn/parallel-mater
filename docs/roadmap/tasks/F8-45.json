@@ -1,7 +1,7 @@
 {
   "id": "F8-45",
   "title": "Connect rigid and deformable interactions to production fixed ticks",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-41",
     "F8-42",
@@ -20,15 +20,27 @@
     "Independent contact/attachment, reciprocal impulse and mixed-family quality gates pass on an applicable physical GPU; include three-family graphs and endpoint reversal.",
     "Rebinding, destruction, stale generations and capacity failure preserve atomic graph/state ownership; unsupported modes remain explicit."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "9916cdc8-087e-4cad-80a8-f120263d7534",
-    "owner": "codex-android-overnight",
-    "machine": "thomas-laptop-pixel7",
-    "branch": "work/F8-45/thomas-laptop-pixel7",
-    "claimed_at": "2026-10-25T22:05:06Z",
-    "heartbeat_at": "2026-10-25T22:05:06Z",
-    "expires_at": "2026-10-26T22:05:06Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F8-45-mechanical-couplings-production-ticks.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "9916cdc8-087e-4cad-80a8-f120263d7534",
+        "owner": "codex-android-overnight",
+        "machine": "thomas-laptop-pixel7",
+        "branch": "work/F8-45/thomas-laptop-pixel7",
+        "claimed_at": "2026-10-25T22:05:06Z",
+        "heartbeat_at": "2026-10-25T22:05:06Z",
+        "expires_at": "2026-10-26T22:05:06Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-25T22:35:02Z",
+      "reason": "Connected rigid and deformable contact/attachment edges to four-sweep production ticks with shared spatial epoch, bounded storage, telemetry, atomic rollback, and cross-adapter qualification.",
+      "evidence": [
+        "docs/roadmap/evidence/F8-45-mechanical-couplings-production-ticks.json"
+      ]
+    }
+  ]
 }

@@ -18,6 +18,8 @@ add_library(parallel-mater-driver-slang-metal SHARED
     src/simulation/metal_smoke_grid_dispatch.cpp src/simulation/metal_geometry_smoke_dispatch.cpp
     src/simulation/metal_cloth_smoke_dispatch.cpp src/simulation/metal_soft_body_smoke_dispatch.cpp
     src/simulation/metal_rope_smoke_dispatch.cpp src/simulation/metal_fluid_smoke_dispatch.cpp
+    src/simulation/metal_rigid_coupling_dispatch.cpp
+    src/simulation/metal_deformable_smoke_coupling_dispatch.cpp
     src/simulation/metal_exports.cpp src/simulation/memory_arena.cpp)
 target_compile_features(parallel-mater-driver-slang-metal PRIVATE cxx_std_20)
 target_compile_definitions(parallel-mater-driver-slang-metal PRIVATE

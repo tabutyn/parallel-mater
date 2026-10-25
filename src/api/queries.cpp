@@ -242,9 +242,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdEndStatisticsQuery(
                         ledger.domain_iterations[index];
                 for (const auto sweeps : ledger.coupling_sweeps)
                     realtime.couplingSweeps += sweeps;
-                // Realtime simulations currently reject graph-coupling
-                // capacity, so a successful public record has zero edges.
-                realtime.couplingEdgeCount = 0U;
+                for (const auto edges : ledger.coupling_edges)
+                    realtime.couplingEdgeCount += edges;
             }
             pool->slots[query].available = true;
             return PM_SUCCESS;

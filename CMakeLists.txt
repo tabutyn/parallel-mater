@@ -1116,6 +1116,8 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
         src/simulation/geometry_cloth_dispatch.cu
         src/simulation/geometry_smoke_dispatch.cu
         src/simulation/geometry_soft_body_dispatch.cu
+        src/simulation/rigid_coupling_dispatch.cu
+        src/simulation/deformable_smoke_coupling_dispatch.cu
         src/simulation/smoke_grid_dispatch.cu
         src/simulation/exports.cu)
     set(PARALLEL_MATER_D3D12_DOMAIN_DISPATCH

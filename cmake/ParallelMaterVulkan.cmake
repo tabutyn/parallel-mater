@@ -13,7 +13,8 @@ foreach(module geometry geometry_constraints geometry_constraints_small
                cloth geometry_cloth fluid_cloth soft_body geometry_soft_body
                fluid_soft_body soft_body_cloth rope fluid_rope cloth_rope
                soft_body_rope geometry_smoke smoke_grid fluid_smoke cloth_smoke
-               soft_body_smoke rope_smoke)
+               soft_body_smoke rope_smoke rigid_coupling
+               deformable_smoke_coupling)
     parallel_mater_slang_entry_arguments(${module} CUDA entries)
     parallel_mater_slang_definition_arguments(${module} CUDA definitions)
     set(wrapper "src/simulation/${module}_dispatch.cu")

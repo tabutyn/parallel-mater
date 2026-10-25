@@ -19,6 +19,8 @@
 #include "simulation/geometry_fluid_dispatch.hpp"
 #include "simulation/geometry_smoke_dispatch.hpp"
 #include "simulation/geometry_soft_body_dispatch.hpp"
+#include "simulation/rigid_coupling_dispatch.hpp"
+#include "simulation/deformable_smoke_coupling_dispatch.hpp"
 #include "simulation/smoke_grid_dispatch.hpp"
 #include "simulation/rope_dispatch.hpp"
 #include "simulation/exports.hpp"
@@ -1370,6 +1372,39 @@ struct SimulationRuntime::Impl {
     std::uint32_t *realtime_excluded_sort_keys{};
     std::uint32_t *realtime_smoke_payload_refs{};
     std::vector<std::uint32_t> realtime_smoke_payload_refs_host{};
+    std::uint32_t *realtime_rigid_generations{};
+    std::vector<std::uint32_t> realtime_rigid_generations_host{};
+    float *realtime_rigid_correction_used{};
+    std::uint32_t *realtime_coupling_first_endpoints{};
+    std::uint32_t *realtime_coupling_second_endpoints{};
+    std::uint32_t *realtime_coupling_first_generations{};
+    std::uint32_t *realtime_coupling_second_generations{};
+    std::uint32_t *realtime_coupling_pairs{};
+    std::uint32_t *realtime_coupling_modes{};
+    Vec3 *realtime_coupling_normals{};
+    Vec3 *realtime_coupling_body_local_points{};
+    float *realtime_coupling_contact_distances{};
+    float *realtime_coupling_frictions{};
+    float *realtime_coupling_responses{};
+    std::uint8_t *realtime_coupling_active{};
+    Vec3 *realtime_coupling_first_position_deltas{};
+    Vec3 *realtime_coupling_second_position_deltas{};
+    Vec3 *realtime_coupling_first_impulses{};
+    Vec3 *realtime_coupling_second_impulses{};
+    float *realtime_coupling_first_correction_used{};
+    float *realtime_coupling_second_correction_used{};
+    std::array<std::uint32_t, 64U> realtime_coupling_first_endpoints_host{};
+    std::array<std::uint32_t, 64U> realtime_coupling_second_endpoints_host{};
+    std::array<std::uint32_t, 64U> realtime_coupling_first_generations_host{};
+    std::array<std::uint32_t, 64U> realtime_coupling_second_generations_host{};
+    std::array<std::uint32_t, 64U> realtime_coupling_pairs_host{};
+    std::array<std::uint32_t, 64U> realtime_coupling_modes_host{};
+    std::array<Vec3, 64U> realtime_coupling_normals_host{};
+    std::array<Vec3, 64U> realtime_coupling_body_local_points_host{};
+    std::array<float, 64U> realtime_coupling_contact_distances_host{};
+    std::array<float, 64U> realtime_coupling_frictions_host{};
+    std::array<float, 64U> realtime_coupling_responses_host{};
+    std::array<std::uint8_t, 64U> realtime_coupling_active_host{};
     simulation::RealtimeSnapshotOwnership realtime_snapshots{};
     simulation::RealtimeResourcePlan realtime_resource_plan{};
     simulation::ProductionRealtimeResources realtime_resources{};
@@ -1975,6 +2010,8 @@ Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &o
             options.physics_debug.frame_capacity);
         implementation->realtime_smoke_payload_refs_host.resize(
             options.realtime_spatial_leaf_capacity);
+        implementation->realtime_rigid_generations_host.resize(
+            options.rigid_body_capacity);
     } catch (...) {
         return failure(StatusCode::out_of_memory,
                        "failed to allocate world host storage");
