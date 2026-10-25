@@ -161,7 +161,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-36](roadmap/tasks/F8-36.json) | Freeze replacement executable realtime candidate | done | F8-35 | — |
 | [F8-37](roadmap/tasks/F8-37.json) | Repair native realtime telemetry envelope | done | F8-36 | — |
 | [F8-38](roadmap/tasks/F8-38.json) | Refreeze realtime candidate after telemetry repair | done | F8-37 | — |
-| [F8-39](roadmap/tasks/F8-39.json) | Prepare common storage and atomic staging for all domains | ready | F8-38 | — |
+| [F8-39](roadmap/tasks/F8-39.json) | Prepare common storage and atomic staging for all domains | leased | F8-38 | codex-android-overnight / thomas-laptop-pixel7 / 2026-10-26T15:45:09Z |
 | [F8-40](roadmap/tasks/F8-40.json) | Connect liquid operators to production fixed ticks | waiting on dependencies | F8-39 | — |
 | [F8-41](roadmap/tasks/F8-41.json) | Connect cloth operators to production fixed ticks | waiting on dependencies | F8-39 | — |
 | [F8-42](roadmap/tasks/F8-42.json) | Connect soft-body operators to production fixed ticks | waiting on dependencies | F8-39 | — |
