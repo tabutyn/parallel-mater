@@ -192,7 +192,7 @@ def main():
         observations = output / "realtime-observations"
         observations.mkdir()
         candidate_path = (
-            root / "conformance/v1/qualification/realtime-candidate-v2.json")
+            root / "conformance/v1/qualification/realtime-candidate-v3.json")
         candidate_bytes = candidate_path.read_bytes()
         candidate = json.loads(candidate_bytes)
         installed_cpu_manifest = (
@@ -231,6 +231,13 @@ def main():
                 mode: hashlib.sha256(
                     (observations / (mode + ".json")).read_bytes()).hexdigest()
                 for mode in ("plain", "validation")
+            }
+            capacity_path = observations / "capacity.json"
+            report["realtime_capacity_regression"] = {
+                "status": "passed",
+                "sha256": hashlib.sha256(capacity_path.read_bytes()).hexdigest(),
+                "workload": json.loads(capacity_path.read_text(encoding="utf-8"))[
+                    "workload"],
             }
         for version in ("0.1", "0.3"):
             run("reject-version-" + version, ["cmake", "-S", source, "-B",

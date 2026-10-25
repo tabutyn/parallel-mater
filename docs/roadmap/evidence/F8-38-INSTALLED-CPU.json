@@ -1,0 +1,78 @@
+{
+  "schema": "parallel-mater-realtime-freeze-execution/v2",
+  "task": "F8-38",
+  "status": "passed",
+  "scope": "installed_public_profile_and_exact_capacity_build_gate_not_physical_qualification",
+  "candidate": {
+    "id": "realtime-single-step-v1-3671f18",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v3.json",
+    "manifest_sha256": "d6d84f85a87af71fcdb0ee5c335f6c3979a741a151b3fbb4151096dd588d4a04",
+    "source_revision": "3671f180ed951d8a62cb34e5ec4ce1dab52cd560",
+    "source_tree": "785513efa475e8b3b1010a79cb2142e33463089a",
+    "protected_closures": "passed tools/check_realtime_candidate.py before and after installed execution"
+  },
+  "command": "python3 tools/check_sdk_install.py --build-dir build-f8-23-cpu --output /tmp/f8-38-sdk-final.MFTXtO/evidence --require-realtime-driver",
+  "checkout": {
+    "revision": "8d77e5b5924df56c3093ecc555def62eee02f504",
+    "dirty": true,
+    "dirty_scope": "F8-38 candidate manifest, rejection, validation, installed exact-capacity regression and documentation; protected closure hashes equal merged F8-37"
+  },
+  "host": {
+    "platform": "Linux-6.1.0-54-amd64-x86_64-with-glibc2.36",
+    "architecture": "x86_64",
+    "configuration": "Release",
+    "compiler": "GNU 12.2.0",
+    "slang": "2026.18"
+  },
+  "installed_public_profile": {
+    "runtime_variant": "cpu-runtime",
+    "driver": "build-f8-23-cpu/libparallel_mater_driver_slang_cpu.so",
+    "driver_sha256": "07435a004f0431da8a324bc1b980bc1a6f44ce0349544149d17df32ab6e054b7",
+    "status": "passed",
+    "execution_identity_claimed": false,
+    "plain_observation_sha256": "c64243026e2fd1cbc3bf29270a409c0d83859bd09fcdf52f5241d5d030031bbe",
+    "validation_observation_sha256": "1e17ddfa114692e5797b61ca9abfa637abceafdf3581d7f76ce070ec952d0d73",
+    "exact_capacity_regression": {
+      "status": "passed",
+      "observation_sha256": "a72ef85825832d8a660899d516cf1f2e58aa62b4a95b0c11b49c5e5ccc96741a",
+      "workload": {
+        "rigid_bodies_live": 8,
+        "rigid_bodies_capacity": 8,
+        "constraints_live": 8,
+        "constraints_capacity": 8,
+        "contact_capacity": 2048
+      },
+      "work": {
+        "dispatches": 20,
+        "workgroups": 1421,
+        "rigid_iterations": 8,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "time_advances": 1,
+        "queue_submissions": 1,
+        "intra_tick_host_readbacks": 0
+      },
+      "ticks": 1,
+      "all_public_states_finite": true
+    },
+    "consumer_tests_passed": 22,
+    "sdk_report_sha256": "dca6c7aef7d81a03575290d792e0134a58abfd74110efc378ccd0870183c48b0"
+  },
+  "checks": [
+    {"name": "install", "exit_code": 0, "expected": 0},
+    {"name": "consumer-configure", "exit_code": 0, "expected": 0},
+    {"name": "consumer-build", "exit_code": 0, "expected": 0},
+    {"name": "consumer-tests", "exit_code": 0, "expected": 0},
+    {"name": "realtime-observation-plain", "exit_code": 0, "expected": 0},
+    {"name": "realtime-observation-validation", "exit_code": 0, "expected": 0},
+    {"name": "reject-version-0.1", "exit_code": 1, "expected": 1},
+    {"name": "reject-version-0.3", "exit_code": 1, "expected": 1},
+    {"name": "conformance-configure", "exit_code": 0, "expected": 0},
+    {"name": "conformance-build", "exit_code": 0, "expected": 0},
+    {"name": "conformance-inputs", "exit_code": 0, "expected": 0},
+    {"name": "installed-runner-inputs", "exit_code": 0, "expected": 0},
+    {"name": "unsupported-case", "exit_code": 77, "expected": 77},
+    {"name": "missing-driver", "exit_code": 2, "expected": 2}
+  ],
+  "result": "All 14 install, consumer, production-driver execution, public-oracle, exact-capacity, version-negative and installed-conformance stages passed. The consumer stage passed 22/22 tests including the formerly overflowing workload. This proves candidate executability and freeze integrity, not F8-23 physical quality or performance qualification."
+}
