@@ -1,7 +1,7 @@
 {
   "id": "F8-22",
   "title": "Freeze the cross-machine candidate and complete kernel coverage",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-01",
     "F8-03",
@@ -21,15 +21,37 @@
     "Create extra bounded device qualification/fix tasks where needed and add them to the exit dependencies before claiming F8-99; keep active task definitions frozen.",
     "Document candidate invalidation: later kernel/schedule/physics/profile changes require a new candidate and affected-device reruns, never a union of incompatible green reports."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "bebd9499-0f11-4ecb-a1d1-0644c6bad57b",
-    "owner": "codex-candidate-freeze",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-22/thomas-laptop",
-    "claimed_at": "2026-10-25T09:10:37Z",
-    "heartbeat_at": "2026-10-25T09:10:37Z",
-    "expires_at": "2026-10-26T09:10:37Z"
-  },
-  "history": []
+  "evidence": [
+    "conformance/v1/qualification/realtime-candidate-v1.json",
+    "docs/roadmap/F8-22-CANDIDATE-FREEZE.md",
+    "python3 -m unittest discover -s tests/roadmap -p 'test_*.py': PASS 78",
+    "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py': PASS 418",
+    "ctest --test-dir build-p3-02-vulkan -L f8 --output-on-failure: PASS 16/16",
+    "CMake 4.1.2 Release CUDA build: PASS 615/615 edges"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "bebd9499-0f11-4ecb-a1d1-0644c6bad57b",
+        "owner": "codex-candidate-freeze",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-22/thomas-laptop",
+        "claimed_at": "2026-10-25T09:10:37Z",
+        "heartbeat_at": "2026-10-25T09:10:37Z",
+        "expires_at": "2026-10-26T09:10:37Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-25T09:24:13Z",
+      "reason": "Froze one hash-bound realtime candidate, proved complete kernel/runtime-case mapping, compiled CUDA/Vulkan/D3D12/Metal artifacts, enumerated all physical targets, and defined strict invalidation.",
+      "evidence": [
+        "conformance/v1/qualification/realtime-candidate-v1.json",
+        "docs/roadmap/F8-22-CANDIDATE-FREEZE.md",
+        "python3 -m unittest discover -s tests/roadmap -p 'test_*.py': PASS 78",
+        "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py': PASS 418",
+        "ctest --test-dir build-p3-02-vulkan -L f8 --output-on-failure: PASS 16/16",
+        "CMake 4.1.2 Release CUDA build: PASS 615/615 edges"
+      ]
+    }
+  ]
 }
