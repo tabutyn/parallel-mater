@@ -1,7 +1,7 @@
 {
   "id": "F8-37",
   "title": "Repair native realtime telemetry envelope",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-36"
   ],
@@ -19,6 +19,14 @@
     "Native CPU, telemetry, public-profile, candidate-drift and available cross-platform compile/regression gates pass; retain reviewable failure and repaired observations without treating them as F8-23 qualification evidence."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "9e3c06d0-5115-4b76-80c9-e0a04776cf3f",
+    "owner": "codex-realtime-repair",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-37/thomas-laptop",
+    "claimed_at": "2026-10-25T13:49:48Z",
+    "heartbeat_at": "2026-10-25T13:49:48Z",
+    "expires_at": "2026-10-26T13:49:48Z"
+  },
   "history": []
 }
