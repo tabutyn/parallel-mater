@@ -167,9 +167,9 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-42](roadmap/tasks/F8-42.json) | Connect soft-body operators to production fixed ticks | done | F8-39 | — |
 | [F8-43](roadmap/tasks/F8-43.json) | Connect rope operators to production fixed ticks | done | F8-39 | — |
 | [F8-44](roadmap/tasks/F8-44.json) | Connect both smoke representations to production fixed ticks | done | F8-39 | — |
-| [F8-45](roadmap/tasks/F8-45.json) | Connect rigid and deformable interactions to production fixed ticks | ready | F8-41, F8-42, F8-43 | — |
-| [F8-46](roadmap/tasks/F8-46.json) | Connect liquid interactions to production fixed ticks | ready | F8-40, F8-41, F8-42, F8-43, F8-44 | — |
-| [F8-47](roadmap/tasks/F8-47.json) | Connect remaining smoke interactions to production fixed ticks | ready | F8-41, F8-42, F8-43, F8-44 | — |
+| [F8-45](roadmap/tasks/F8-45.json) | Connect rigid and deformable interactions to production fixed ticks | leased | F8-41, F8-42, F8-43 | codex-android-overnight / thomas-laptop-pixel7 / 2026-10-26T22:05:06Z |
+| [F8-46](roadmap/tasks/F8-46.json) | Connect liquid interactions to production fixed ticks | waiting on lock | F8-40, F8-41, F8-42, F8-43, F8-44 | — |
+| [F8-47](roadmap/tasks/F8-47.json) | Connect remaining smoke interactions to production fixed ticks | waiting on lock | F8-41, F8-42, F8-43, F8-44 | — |
 | [F8-48](roadmap/tasks/F8-48.json) | Complete source and topology lifecycle in the common tick | waiting on dependencies | F8-45, F8-46, F8-47 | — |
 | [F8-49](roadmap/tasks/F8-49.json) | Integrate paint, capture and public outputs with the common tick | waiting on dependencies | F8-48 | — |
 | [F8-50](roadmap/tasks/F8-50.json) | Make the fixed-tick runtime the sole public execution path | waiting on dependencies | F8-49 | — |
