@@ -6,7 +6,8 @@
   "base_revision": "f4b6ee208bdbd143e35ddf2365800bdc33082ef4",
   "implementation_revisions": [
     "81fcf7e5daf08faeb9e2d29ec29d5972dee96526",
-    "1d273c4f4d914b47dee08424630f6e478683ec1f"
+    "1d273c4f4d914b47dee08424630f6e478683ec1f",
+    "efe7f411b4b1578359d16a6efcc61ae5ad834548"
   ],
   "implementation": {
     "schedule_authority": "SimulationRuntime routes the internal realtime-single-step-v1 profile through assemble_realtime_tick_measured; the legacy-default path remains unchanged and the public profile remains unadvertised.",
