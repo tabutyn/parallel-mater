@@ -244,6 +244,26 @@ void rigid_avbd_store_solve_contact(
     PM_AVBD_MANIFOLD_BUFFER manifolds, uint active, uint point,
     AvbdSolveContact value)
 {
+#if PM_TARGET_D3D12
+    // The DXIL byte-address adapter cannot assign through a field of its
+    // contact proxy. Preserve untouched collision metadata in a local and
+    // commit the complete contact in one supported store.
+    ContactManifold storedManifold = manifolds[active];
+    Contact stored = storedManifold.contacts[point];
+    stored.accumulated_normal_impulse = value.accumulated_normal_impulse;
+    stored.accumulated_friction_impulse = value.accumulated_friction_impulse;
+    stored.reported_normal_impulse = value.reported_normal_impulse;
+    stored.reported_friction_impulse = value.reported_friction_impulse;
+    for (uint axis = 0u; axis < 3u; ++axis)
+    {
+        stored.avbd_dual[axis].lambda = value.dual[axis].lambda;
+        stored.avbd_dual[axis].penalty = value.dual[axis].penalty;
+    }
+    stored.avbd_anchor_a = value.anchor_a;
+    stored.avbd_anchor_b = value.anchor_b;
+    storedManifold.contacts[point] = stored;
+    manifolds[active] = storedManifold;
+#else
     PM_AVBD_MANIFOLD_CONTACT(manifolds, active, point)
         .accumulated_normal_impulse = value.accumulated_normal_impulse;
     PM_AVBD_MANIFOLD_CONTACT(manifolds, active, point)
@@ -263,6 +283,7 @@ void rigid_avbd_store_solve_contact(
         value.anchor_a;
     PM_AVBD_MANIFOLD_CONTACT(manifolds, active, point).avbd_anchor_b =
         value.anchor_b;
+#endif
 }
 
 float rigid_avbd_component(Vec3 value, uint axis)
