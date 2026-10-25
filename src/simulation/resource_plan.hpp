@@ -523,6 +523,42 @@ Status visit_rope_storage(State &state, std::size_t nodes, std::size_t rigid,
 }
 
 template<class State, class Visitor>
+Status visit_rope_realtime_storage(State &state, std::size_t nodes,
+                                   Visitor &visit) noexcept {
+    const std::size_t segments = nodes == 0U ? 0U : nodes - 1U;
+    if (segments > std::numeric_limits<std::size_t>::max() / 2U)
+        return {StatusCode::out_of_memory, 0,
+                "rope realtime segment storage overflow"};
+#define PM_STORAGE_KIND(member, count, kind) do { \
+    const auto result = visit(state.member, count, kind); \
+    if (!result) return result; \
+} while (false)
+#define PM_STORAGE(member, count) \
+    PM_STORAGE_KIND(member, count, MemoryClass::persistent)
+#define PM_SCRATCH(member, count) \
+    PM_STORAGE_KIND(member, count, MemoryClass::scratch)
+    PM_STORAGE(realtime_positions, nodes);
+    PM_STORAGE(realtime_velocities, nodes);
+    PM_STORAGE(realtime_inverse_masses, nodes);
+    PM_STORAGE(realtime_rest_bend_lengths, nodes);
+    PM_STORAGE(realtime_anchor_targets, 2U);
+    PM_STORAGE(realtime_anchor_active, 2U);
+    PM_STORAGE(realtime_segment_indices, 2U * segments);
+    PM_STORAGE(realtime_segment_generations, segments);
+    PM_SCRATCH(realtime_previous_positions, nodes);
+    PM_SCRATCH(realtime_position_deltas, nodes);
+    PM_SCRATCH(realtime_correction_used, nodes);
+    PM_SCRATCH(realtime_contact_normals, nodes);
+    PM_SCRATCH(realtime_contact_offsets, nodes);
+    PM_SCRATCH(realtime_contact_active, nodes);
+    PM_SCRATCH(realtime_time_advances, 1U);
+#undef PM_SCRATCH
+#undef PM_STORAGE
+#undef PM_STORAGE_KIND
+    return {};
+}
+
+template<class State, class Visitor>
 Status visit_soft_body_storage(State &state, std::size_t neighbors,
     std::size_t warp_neighbors, std::size_t surface_influences, Visitor &visit) noexcept {
 #define PM_STORAGE_KIND(member, count, kind) do { \

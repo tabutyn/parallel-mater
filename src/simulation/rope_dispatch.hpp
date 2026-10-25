@@ -46,6 +46,57 @@ struct RopeSoftTargetDispatch {
     bool first_anchor{}, last_anchor{};
 };
 
+void predict_rope_realtime(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions, void *velocities,
+    void *previous_positions, float *correction_used,
+    const float *inverse_masses, const void *anchor_targets,
+    const std::uint8_t *anchor_active, std::uint32_t count,
+    std::uint32_t capacity, float node_spacing, float radius,
+    const float gravity[3], float velocity_damping, float friction,
+    float maximum_speed, float timestep, std::uint32_t profile_version,
+    std::uint32_t *time_advances, std::uint32_t *status) noexcept;
+
+void project_rope_realtime_constraints(
+    device::ExecutionQueue stream, const void *positions,
+    void *position_deltas, float *correction_used,
+    const float *inverse_masses, const float *rest_lengths,
+    const float *rest_bend_lengths, const std::uint8_t *anchor_active,
+    std::uint32_t count, std::uint32_t capacity, float node_spacing,
+    float structural_compliance, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept;
+
+void apply_rope_realtime_position_delta(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions,
+    const void *position_deltas, float *correction_used,
+    const float *inverse_masses, const std::uint8_t *anchor_active,
+    std::uint32_t count, std::uint32_t capacity, float node_spacing,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept;
+
+void project_rope_realtime_contacts(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions,
+    const void *previous_positions, const float *inverse_masses,
+    float *correction_used, const std::uint8_t *anchor_active,
+    const void *contact_normals, const float *contact_offsets,
+    const std::uint8_t *contact_active, std::uint32_t count,
+    std::uint32_t capacity, float node_spacing, float radius,
+    float friction, float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept;
+
+void commit_rope_realtime(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *positions,
+    const void *previous_positions, void *velocities,
+    const float *inverse_masses, const std::uint8_t *anchor_active,
+    const void *contact_normals, const float *contact_offsets,
+    const std::uint8_t *contact_active, std::uint32_t count,
+    std::uint32_t capacity, float node_spacing, float radius,
+    float friction, float maximum_speed, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept;
+
 void advance_rope(device::ExecutionQueue stream, const RopeDispatchData &rope,
     float timestep, Vec3 gravity, int first, int last,
     const void *body_parameters, void *body_states,

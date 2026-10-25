@@ -32,6 +32,12 @@ PmResult native_realtime_spatial_counts(
         if (total > std::numeric_limits<std::uint32_t>::max())
             return PM_ERROR_CAPACITY_EXCEEDED;
     }
+    for (const auto &owner : state.ropes) {
+        if (!owner || !owner->alive) continue;
+        total += owner->data.count - 1U;
+        if (total > std::numeric_limits<std::uint32_t>::max())
+            return PM_ERROR_CAPACITY_EXCEEDED;
+    }
     leaves = static_cast<std::uint32_t>(total);
     queries = leaves;
     return PM_SUCCESS;
@@ -182,9 +188,12 @@ PmResult native_realtime_registrations(
         if (!owner || !owner->alive) continue;
         const std::uint64_t elements = owner->data.count +
             std::uint64_t{owner->data.count - 1U};
-        const auto status = add_owner(
-            simulation::RealtimeResourceFamily::rope, slot,
-            owner->generation, elements);
+        const auto status = add_realtime_registration(
+            result[simulation::realtime_index(
+                simulation::RealtimeResourceFamily::rope)],
+            slot, owner->generation, elements,
+            common_phases |
+                simulation::realtime_domain_execution_phase_mask);
         if (status != PM_SUCCESS) return status;
     }
     for (std::uint32_t slot = 0U; slot < state.smokes.size(); ++slot) {
@@ -320,6 +329,28 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                     simulation::soft_body_realtime_constraint_sweeps);
             dispatch(commit, 2U, node_groups + surface_groups);
         }
+        for (const auto &owner : state.ropes) {
+            if (!owner || !owner->alive) continue;
+            const auto nodes = owner->data.count;
+            const auto node_groups =
+                (std::uint64_t{nodes} + 127U) / 128U;
+            const auto segment_groups =
+                (std::uint64_t{nodes - 1U} + 127U) / 128U;
+            boundary.bytes_moved +=
+                2ULL * nodes * sizeof(Vec3) +
+                nodes * sizeof(std::uint8_t) + sizeof(std::uint32_t);
+            boundary.barriers += 4U;
+            dispatch(predict, 1U, node_groups);
+            dispatch(index, 1U, segment_groups);
+            dispatch(domain,
+                2U * simulation::rope_realtime_constraint_sweeps +
+                    simulation::rope_realtime_contact_passes,
+                simulation::rope_realtime_constraint_sweeps +
+                    node_groups *
+                        (simulation::rope_realtime_constraint_sweeps +
+                         simulation::rope_realtime_contact_passes));
+            dispatch(commit, 1U, node_groups);
+        }
         index.index_builds = 1U;
 #if !defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
         const auto spatial = simulation::spatial_build_dispatch_budget(
@@ -399,7 +430,10 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                 ? simulation::cloth_realtime_constraint_sweeps : 0U) +
             (std::any_of(state.soft_bodies.begin(), state.soft_bodies.end(),
                 [](const auto &owner) { return owner && owner->alive; })
-                ? simulation::soft_body_realtime_constraint_sweeps : 0U);
+                ? simulation::soft_body_realtime_constraint_sweeps : 0U) +
+            (std::any_of(state.ropes.begin(), state.ropes.end(),
+                [](const auto &owner) { return owner && owner->alive; })
+                ? simulation::rope_realtime_constraint_sweeps : 0U);
     }
     for (const auto &phase : limits.phase_maximum)
         (void)simulation::realtime_telemetry_detail::add(
@@ -646,7 +680,42 @@ public:
             body.realtime_query_offset = soft_offset;
             soft_offset += body.surface_index_count / 3U;
         }
-        if (soft_offset != staged_leaves_)
+        std::uint32_t rope_offset = soft_offset;
+        for (auto &owner : state_.ropes) {
+            if (!owner || !owner->alive) continue;
+            auto &rope = *owner;
+            const auto nodes = rope.data.count;
+            const float inverse_node_mass =
+                static_cast<float>(nodes) / rope.data.options.mass;
+            simulation::RopeRealtimeInput material{};
+            material.node_spacing = rope.data.options.node_spacing;
+            material.radius = rope.data.options.radius;
+            material.total_mass = rope.data.options.mass;
+            material.node_count = nodes;
+            material.linear_speed = rope.data.options.maximum_speed;
+            material.acceleration_displacement =
+                vector_length(options_.gravity) * scene.timestep *
+                scene.timestep;
+            material.solver_correction =
+                simulation::rope_realtime_maximum_correction_fraction *
+                rope.data.options.node_spacing;
+            material.structural_compliance =
+                rope.data.options.stretch_compliance;
+            material.effective_inverse_mass = inverse_node_mass;
+            material.velocity_damping =
+                rope.data.options.velocity_damping;
+            material.contact_friction = rope.data.options.friction;
+            auto validation =
+                simulation::validate_rope_realtime_input(material);
+            if (validation != PM_SUCCESS) return validation;
+            material.effective_inverse_mass = 2.0F * inverse_node_mass;
+            validation = simulation::validate_rope_realtime_input(material);
+            if (validation != PM_SUCCESS) return validation;
+            rope.realtime_leaf_offset = rope_offset;
+            rope.realtime_query_offset = rope_offset;
+            rope_offset += nodes - 1U;
+        }
+        if (rope_offset != staged_leaves_)
             return PM_ERROR_INVALID_STATE;
         std::array<simulation::RealtimeResourceRegistration,
                    simulation::realtime_resource_family_count>
@@ -838,6 +907,33 @@ public:
                 sizeof(*body.realtime_shape_orientation);
             boundary_work.barriers += 5U;
         }
+        for (auto &owner : state_.ropes) {
+            if (!owner || !owner->alive) continue;
+            auto &rope = *owner;
+            const auto bytes =
+                std::size_t(rope.data.count) * sizeof(Vec3);
+            auto result = native_.copy(
+                rope.realtime_positions, rope.data.positions, bytes,
+                device::CopyDirection::device_to_device, native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.copy(
+                    rope.realtime_velocities, rope.data.velocities, bytes,
+                    device::CopyDirection::device_to_device,
+                    native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(
+                    rope.realtime_time_advances, 0,
+                    sizeof(*rope.realtime_time_advances), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(
+                    rope.realtime_contact_active, 0,
+                    rope.data.count * sizeof(std::uint8_t), native_.queue());
+            if (result != PM_SUCCESS) return result;
+            boundary_work.bytes_moved += 2U * bytes +
+                sizeof(*rope.realtime_time_advances) +
+                rope.data.count * sizeof(std::uint8_t);
+            boundary_work.barriers += 4U;
+        }
         return PM_SUCCESS;
     }
 
@@ -922,6 +1018,34 @@ public:
                 if (result != PM_SUCCESS) return result;
                 dispatches(simulation::RealtimeTelemetryPhase::predict, 2U,
                     groups + surface_groups);
+            }
+            return PM_SUCCESS;
+        }
+        if (domain == simulation::RealtimeDomain::rope) {
+            for (auto &owner : state_.ropes) {
+                if (!owner || !owner->alive) continue;
+                auto &rope = *owner;
+                const auto groups =
+                    (rope.data.count + block - 1U) / block;
+                native_.predict_rope_realtime(
+                    groups, block, native_.queue(),
+                    rope.realtime_positions, rope.realtime_velocities,
+                    rope.realtime_previous_positions,
+                    rope.realtime_correction_used,
+                    rope.realtime_inverse_masses,
+                    rope.realtime_anchor_targets,
+                    rope.realtime_anchor_active, rope.data.count,
+                    rope.data.count, rope.data.options.node_spacing,
+                    rope.data.options.radius, &options_.gravity.x,
+                    rope.data.options.velocity_damping,
+                    rope.data.options.friction,
+                    rope.data.options.maximum_speed, scene.timestep,
+                    simulation::rope_realtime_profile_version,
+                    rope.realtime_time_advances, snapshot_.query_status);
+                const auto result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatch(simulation::RealtimeTelemetryPhase::predict,
+                         groups);
             }
             return PM_SUCCESS;
         }
@@ -1088,6 +1212,44 @@ public:
             if (result != PM_SUCCESS) return result;
             dispatch(simulation::RealtimeTelemetryPhase::index,
                      soft_groups);
+        }
+        for (std::uint32_t slot = 0U; slot < state_.ropes.size(); ++slot) {
+            auto &owner = state_.ropes[slot];
+            if (!owner || !owner->alive) continue;
+            auto &rope = *owner;
+            const auto segments = rope.data.count - 1U;
+            const auto rope_groups = (segments + block - 1U) / block;
+            const float rope_correction[3]{
+                simulation::rope_realtime_maximum_correction_fraction *
+                    rope.data.options.node_spacing,
+                simulation::rope_realtime_maximum_correction_fraction *
+                    rope.data.options.node_spacing,
+                simulation::rope_realtime_maximum_correction_fraction *
+                    rope.data.options.node_spacing};
+            native_.emit_deformable_spatial_primitives(
+                rope_groups, block, native_.queue(), rope.data.positions,
+                rope.realtime_positions, rope.data.count,
+                rope.realtime_segment_indices,
+                rope.realtime_segment_generations, segments, 2U,
+                simulation::deformable_spatial_rope_family, slot,
+                rope.generation,
+                static_cast<std::uint32_t>(rope.realtime_topology_revision),
+                simulation::deformable_spatial_segment_primitive,
+                rope.realtime_leaf_offset,
+                state_.realtime_spatial_plan.leaf_capacity,
+                rope.realtime_query_offset,
+                state_.realtime_spatial_plan.query_capacity,
+                rope.realtime_leaf_offset,
+                simulation::deformable_spatial_contact_mask,
+                simulation::deformable_spatial_contact_mask,
+                rope.data.options.radius, path_deviation, rope_correction,
+                1.0e-5F, snapshot_.metadata, snapshot_.bounds,
+                snapshot_.build_flags, query_bounds, query_masks, excluded,
+                deformable_query_leaf_sources, snapshot_.query_status);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatch(simulation::RealtimeTelemetryPhase::index,
+                     rope_groups);
         }
 #if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
         result = state_.realtime_spatial.update(
@@ -1527,6 +1689,88 @@ public:
             }
             return PM_SUCCESS;
         }
+        if (domain == simulation::RealtimeDomain::rope) {
+            ++work(simulation::RealtimeTelemetryPhase::domain)
+                  .numerical_iterations;
+            const auto *counters = state_.realtime_spatial.counters(epoch_);
+            if (counters == nullptr) return PM_ERROR_INVALID_STATE;
+            constexpr std::uint32_t block = 128U;
+            for (auto &owner : state_.ropes) {
+                if (!owner || !owner->alive) continue;
+                auto &rope = *owner;
+                const auto groups =
+                    (rope.data.count + block - 1U) / block;
+                if (iteration == 0U) {
+                    const auto budget = simulation::rope_realtime_work_budget(
+                        rope.data.count, rope.data.count, rope.data.count);
+                    auto result = rope.realtime_contract.begin(
+                        epoch_, *counters, budget,
+                        rope.realtime_topology_revision);
+                    if (result != PM_SUCCESS) return result;
+                    result = rope.realtime_contract.record_advance(
+                        scene.timestep, scene.substeps);
+                    if (result != PM_SUCCESS) return result;
+                }
+                native_.project_rope_realtime_constraints(
+                    native_.queue(), rope.realtime_positions,
+                    rope.realtime_position_deltas,
+                    rope.realtime_correction_used,
+                    rope.realtime_inverse_masses, rope.data.rest,
+                    rope.realtime_rest_bend_lengths,
+                    rope.realtime_anchor_active, rope.data.count,
+                    rope.data.count, rope.data.options.node_spacing,
+                    rope.data.options.stretch_compliance, scene.timestep,
+                    simulation::rope_realtime_profile_version,
+                    snapshot_.query_status);
+                native_.apply_rope_realtime_position_delta(
+                    groups, block, native_.queue(),
+                    rope.realtime_positions,
+                    rope.realtime_position_deltas,
+                    rope.realtime_correction_used,
+                    rope.realtime_inverse_masses,
+                    rope.realtime_anchor_active, rope.data.count,
+                    rope.data.count, rope.data.options.node_spacing,
+                    scene.timestep,
+                    simulation::rope_realtime_profile_version,
+                    snapshot_.query_status);
+                auto result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatches(simulation::RealtimeTelemetryPhase::domain, 2U,
+                           1U + groups);
+                const bool contact_pass = (iteration & 1U) != 0U;
+                if (contact_pass) {
+                    native_.project_rope_realtime_contacts(
+                        groups, block, native_.queue(),
+                        rope.realtime_positions,
+                        rope.realtime_previous_positions,
+                        rope.realtime_inverse_masses,
+                        rope.realtime_correction_used,
+                        rope.realtime_anchor_active,
+                        rope.realtime_contact_normals,
+                        rope.realtime_contact_offsets,
+                        rope.realtime_contact_active, rope.data.count,
+                        rope.data.count, rope.data.options.node_spacing,
+                        rope.data.options.radius, rope.data.options.friction,
+                        scene.timestep,
+                        simulation::rope_realtime_profile_version,
+                        snapshot_.query_status);
+                    result = native_.check_error();
+                    if (result != PM_SUCCESS) return result;
+                    dispatch(simulation::RealtimeTelemetryPhase::domain,
+                             groups);
+                }
+                result = rope.realtime_contract.record_sweep(
+                    epoch_, *counters, rope.realtime_topology_revision,
+                    contact_pass);
+                if (result != PM_SUCCESS) return result;
+                if (iteration + 1U ==
+                    simulation::rope_realtime_constraint_sweeps) {
+                    result = rope.realtime_contract.finish();
+                    if (result != PM_SUCCESS) return result;
+                }
+            }
+            return PM_SUCCESS;
+        }
         if (domain != simulation::RealtimeDomain::rigid)
             return PM_ERROR_FEATURE_NOT_PRESENT;
         ++work(simulation::RealtimeTelemetryPhase::domain)
@@ -1633,6 +1877,28 @@ public:
             result = native_.check_error();
             if (result != PM_SUCCESS) return result;
         }
+        for (auto &owner : state_.ropes) {
+            if (!owner || !owner->alive) continue;
+            auto &rope = *owner;
+            const auto groups =
+                (rope.data.count + block - 1U) / block;
+            native_.commit_rope_realtime(
+                groups, block, native_.queue(),
+                rope.realtime_positions,
+                rope.realtime_previous_positions,
+                rope.realtime_velocities, rope.realtime_inverse_masses,
+                rope.realtime_anchor_active,
+                rope.realtime_contact_normals,
+                rope.realtime_contact_offsets,
+                rope.realtime_contact_active, rope.data.count,
+                rope.data.count, rope.data.options.node_spacing,
+                rope.data.options.radius, rope.data.options.friction,
+                rope.data.options.maximum_speed, scene.timestep,
+                simulation::rope_realtime_profile_version,
+                snapshot_.query_status);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+        }
         if (state_.rigid_body_count != 0U) {
             const auto groups =
                 (state_.rigid_body_count + block - 1U) / block;
@@ -1676,6 +1942,11 @@ public:
             std::swap(owner->surface_positions,
                       owner->realtime_surface_positions);
         }
+        for (auto &owner : state_.ropes) {
+            if (!owner || !owner->alive) continue;
+            std::swap(owner->data.positions, owner->realtime_positions);
+            std::swap(owner->data.velocities, owner->realtime_velocities);
+        }
         ++state_.frame_index;
         ++state_.revision;
         state_.rigid_contact_revision = state_.revision;
@@ -1692,6 +1963,8 @@ public:
         for (auto &owner : state_.cloths)
             if (owner && owner->alive) owner->realtime_contract = {};
         for (auto &owner : state_.soft_bodies)
+            if (owner && owner->alive) owner->realtime_contract = {};
+        for (auto &owner : state_.ropes)
             if (owner && owner->alive) owner->realtime_contract = {};
         return PM_SUCCESS;
     }
@@ -1789,6 +2062,12 @@ private:
                 (owner->surface_vertex_count + 127U) / 128U;
             dispatches(simulation::RealtimeTelemetryPhase::commit, 2U,
                        node_groups + surface_groups);
+        }
+        for (const auto &owner : state_.ropes) {
+            if (!owner || !owner->alive) continue;
+            const auto groups =
+                (owner->data.count + 127U) / 128U;
+            dispatch(simulation::RealtimeTelemetryPhase::commit, groups);
         }
     }
 

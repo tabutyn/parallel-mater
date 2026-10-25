@@ -1790,6 +1790,9 @@ Status SimulationRuntime::rope_memory_requirements(std::uint32_t nodes,
     RopeStorage state;
     simulation::StoragePlanner planner;
     auto status = simulation::visit_rope_storage(state.data, nodes, rigid, planner);
+    if (status)
+        status = simulation::visit_rope_realtime_storage(
+            state, nodes, planner);
     if (status) output = planner.requirements;
     return status;
 }

@@ -1475,15 +1475,42 @@ Status SimulationRuntime::add_rope(RopeOptions options, RopeId &output) noexcept
     r.body_capacity=impl_->options.rigid_body_capacity;
     StorageAllocator allocator;
     status = simulation::visit_rope_storage(r, r.count, r.body_capacity, allocator);
+    if (status)
+        status = simulation::visit_rope_realtime_storage(
+            *owner, r.count, allocator);
     if (!status) return status;
     r.soft_anchor_inverse_masses[0] = r.soft_anchor_inverse_masses[1] = 0.0F;
     std::fill_n(r.solid_hint,std::size_t(r.count)*r.body_capacity,~0U);
+    const float inverse_node_mass = static_cast<float>(r.count) /
+        r.options.mass;
+    std::fill_n(owner->realtime_rest_bend_lengths, r.count, 0.0F);
+    std::fill_n(owner->realtime_contact_normals, r.count, Vec3{});
+    std::fill_n(owner->realtime_contact_offsets, r.count, 0.0F);
+    std::fill_n(owner->realtime_contact_active, r.count, 0U);
     for(unsigned i=0;i<r.count;++i){
         r.positions[i]=r.previous[i]=nodes[i];
         r.velocities[i]=r.constraint_forces[i]=r.contact_forces[i]=r.fluid_contact_forces[i]=r.soft_body_contact_forces[i]={};
+        owner->realtime_positions[i] = nodes[i];
+        owner->realtime_velocities[i] = {};
+        owner->realtime_previous_positions[i] = nodes[i];
+        owner->realtime_position_deltas[i] = {};
+        owner->realtime_correction_used[i] = 0.0F;
+        owner->realtime_inverse_masses[i] = inverse_node_mass;
         if(i+1<r.count){r.rest[i]=vector_length(subtract(nodes[i+1],nodes[i]));
-            if(!finite(r.rest[i]) || r.rest[i]<1e-6F)return failure(StatusCode::invalid_argument,"rope contains an invalid segment");}
+            if(!finite(r.rest[i]) || r.rest[i]<1e-6F)return failure(StatusCode::invalid_argument,"rope contains an invalid segment");
+            owner->realtime_segment_indices[2U * i] = i;
+            owner->realtime_segment_indices[2U * i + 1U] = i + 1U;
+            owner->realtime_segment_generations[i] = 1U;
+        }
+        if(i+2<r.count)
+            owner->realtime_rest_bend_lengths[i] = vector_length(
+                subtract(nodes[i+2], nodes[i]));
     }
+    owner->realtime_anchor_targets[0] = nodes.front();
+    owner->realtime_anchor_targets[1] = nodes.back();
+    owner->realtime_anchor_active[0] = options.first.enabled ? 1U : 0U;
+    owner->realtime_anchor_active[1] = options.last.enabled ? 1U : 0U;
+    *owner->realtime_time_advances = 0U;
     owner->alive=true;output={slot,owner->generation};impl_->ropes[slot]=std::move(owner);++impl_->revision;
     return success();
 }
