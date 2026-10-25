@@ -22,11 +22,11 @@ jobs:
           cmake --build --preset sdk-minimal
       - name: Build and test headless SDK
         run: |
-          cmake --preset sdk-ci
+          cmake --preset sdk-ci -DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=ON
           cmake --build --preset sdk-ci
           ctest --preset sdk-ci
       - name: Relocate and build independent applications and vendor driver
-        run: python3 tools/check_sdk_install.py --build-dir build-sdk-ci --output out/sdk-evidence/ci
+        run: python3 tools/check_sdk_install.py --build-dir build-sdk-ci --output out/sdk-evidence/ci --require-realtime-driver
       - name: Validate selected package components
         run: python3 tools/check_sdk_components.py --build-dir build-sdk-ci --output out/sdk-components/ci
       - name: Compare two clean release builds

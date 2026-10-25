@@ -13,6 +13,19 @@ set(PM_REALTIME_CANDIDATE_SHA256 "" CACHE STRING
     "Exact candidate manifest SHA-256")
 set(PM_REALTIME_CANDIDATE_REVISION "" CACHE STRING
     "Exact candidate source revision")
+option(PM_ENABLE_REALTIME_PROFILE_TESTS
+    "Build and run the installed production realtime profile gate" ON)
+if(PM_ENABLE_REALTIME_PROFILE_TESTS)
+    foreach(required IN ITEMS PM_REALTIME_DRIVER_MANIFEST
+                              PM_REALTIME_OBSERVATION_DIR
+                              PM_REALTIME_CANDIDATE_ID
+                              PM_REALTIME_CANDIDATE_SHA256
+                              PM_REALTIME_CANDIDATE_REVISION)
+        if("${${required}}" STREQUAL "")
+            message(FATAL_ERROR "${required} is required for the realtime profile gate")
+        endif()
+    endforeach()
+endif()
 find_package(ParallelMater ${PM_REQUIRED_VERSION} CONFIG REQUIRED
     COMPONENTS loader scene preparation validation)
 add_library(external-mock SHARED mock_driver.cpp)
@@ -76,9 +89,11 @@ target_link_libraries(scene-consumer PRIVATE ParallelMater::scene)
 add_executable(compatibility-consumer compatibility.c)
 target_compile_features(compatibility-consumer PRIVATE c_std_11)
 target_link_libraries(compatibility-consumer PRIVATE ParallelMater::api)
-add_executable(realtime-profile-consumer realtime_profile.c)
-target_compile_features(realtime-profile-consumer PRIVATE c_std_11)
-target_link_libraries(realtime-profile-consumer PRIVATE ParallelMater::api)
+if(PM_ENABLE_REALTIME_PROFILE_TESTS)
+    add_executable(realtime-profile-consumer realtime_profile.c)
+    target_compile_features(realtime-profile-consumer PRIVATE c_std_11)
+    target_link_libraries(realtime-profile-consumer PRIVATE ParallelMater::api)
+endif()
 add_executable(legacy-0-2-consumer legacy_0_2_client.c)
 target_compile_features(legacy-0-2-consumer PRIVATE c_std_11)
 target_link_libraries(legacy-0-2-consumer PRIVATE ParallelMater::api)
@@ -87,16 +102,18 @@ foreach(consumer c-consumer diagnostics-consumer cpp-consumer scene-consumer)
     set_tests_properties(${consumer} PROPERTIES ENVIRONMENT
         "PM_DRIVER_FILES=$<TARGET_FILE_DIR:external-mock>/mock.json")
 endforeach()
-foreach(mode IN ITEMS plain validation)
-    add_test(NAME realtime-profile-${mode}
-        COMMAND realtime-profile-consumer ${mode}
-            "${PM_REALTIME_OBSERVATION_DIR}/${mode}.json"
-            "${PM_REALTIME_CANDIDATE_ID}"
-            "${PM_REALTIME_CANDIDATE_SHA256}"
-            "${PM_REALTIME_CANDIDATE_REVISION}")
-    set_tests_properties(realtime-profile-${mode} PROPERTIES ENVIRONMENT
-        "PM_DRIVER_FILES=${PM_REALTIME_DRIVER_MANIFEST}")
-endforeach()
+if(PM_ENABLE_REALTIME_PROFILE_TESTS)
+    foreach(mode IN ITEMS plain validation)
+        add_test(NAME realtime-profile-${mode}
+            COMMAND realtime-profile-consumer ${mode}
+                "${PM_REALTIME_OBSERVATION_DIR}/${mode}.json"
+                "${PM_REALTIME_CANDIDATE_ID}"
+                "${PM_REALTIME_CANDIDATE_SHA256}"
+                "${PM_REALTIME_CANDIDATE_REVISION}")
+        set_tests_properties(realtime-profile-${mode} PROPERTIES ENVIRONMENT
+            "PM_DRIVER_FILES=${PM_REALTIME_DRIVER_MANIFEST}")
+    endforeach()
+endif()
 add_test(NAME legacy-0-2-consumer COMMAND legacy-0-2-consumer)
 set_tests_properties(legacy-0-2-consumer PROPERTIES ENVIRONMENT
     "PM_DRIVER_FILES=$<TARGET_FILE_DIR:external-mock>/mock.json")

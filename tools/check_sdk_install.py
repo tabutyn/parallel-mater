@@ -120,6 +120,10 @@ def main():
     parser.add_argument("--output", type=Path, required=True,
                         help="New evidence directory (never overwritten)")
     parser.add_argument("--config", default="Release")
+    parser.add_argument(
+        "--require-realtime-driver", action="store_true",
+        help="Fail unless the installed Slang CPU production driver is available",
+    )
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     output = args.output.resolve()
@@ -193,12 +197,19 @@ def main():
         candidate = json.loads(candidate_bytes)
         installed_cpu_manifest = (
             sdk / "share/parallel-mater/drivers.d/parallel_mater_slang_cpu.json")
-        if not installed_cpu_manifest.is_file():
+        realtime_available = installed_cpu_manifest.is_file()
+        if args.require_realtime_driver and not realtime_available:
             raise RuntimeError(
                 "installed Slang CPU production driver manifest is missing")
+        report["realtime_profile"] = {
+            "status": "tested" if realtime_available else "not_available",
+            "required": args.require_realtime_driver,
+        }
         run("consumer-configure", ["cmake", "-S", source, "-B", build,
             *generator, f"-DCMAKE_BUILD_TYPE={args.config}",
             f"-DCMAKE_PREFIX_PATH={sdk}",
+            "-DPM_ENABLE_REALTIME_PROFILE_TESTS=" +
+                ("ON" if realtime_available else "OFF"),
             f"-DPM_REALTIME_DRIVER_MANIFEST={installed_cpu_manifest}",
             f"-DPM_REALTIME_OBSERVATION_DIR={observations}",
             f"-DPM_REALTIME_CANDIDATE_ID={candidate['id']}",
@@ -210,16 +221,17 @@ def main():
                                "--parallel", "1"])
         run("consumer-tests", ["ctest", "--test-dir", build, "--output-on-failure",
                                 "--no-tests=error", "-C", args.config, "-j1"])
-        for mode in ("plain", "validation"):
-            run("realtime-observation-" + mode,
-                [sys.executable, root / "conformance/v1/realtime_oracle.py",
-                 "--validate-observation", observations / (mode + ".json"),
-                 "--candidate-manifest", candidate_path])
-        report["realtime_observations"] = {
-            mode: hashlib.sha256(
-                (observations / (mode + ".json")).read_bytes()).hexdigest()
-            for mode in ("plain", "validation")
-        }
+        if realtime_available:
+            for mode in ("plain", "validation"):
+                run("realtime-observation-" + mode,
+                    [sys.executable, root / "conformance/v1/realtime_oracle.py",
+                     "--validate-observation", observations / (mode + ".json"),
+                     "--candidate-manifest", candidate_path])
+            report["realtime_observations"] = {
+                mode: hashlib.sha256(
+                    (observations / (mode + ".json")).read_bytes()).hexdigest()
+                for mode in ("plain", "validation")
+            }
         for version in ("0.1", "0.3"):
             run("reject-version-" + version, ["cmake", "-S", source, "-B",
                 output / ("version-" + version), *generator,

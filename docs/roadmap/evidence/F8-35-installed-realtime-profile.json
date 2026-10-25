@@ -14,7 +14,7 @@
     "candidate_boundary": "realtime-single-step-v1-dea47c1 remains rejected history and is named only as a qualification-input manifest. Observations set execution_identity_claimed=false. F8-36 owns the single replacement executable candidate identity."
   },
   "installed_sdk_evidence": {
-    "command": "python3 tools/check_sdk_install.py --build-dir build-sdk-cpu --output /tmp/f8-35-sdk-evidence-6",
+    "command": "python3 tools/check_sdk_install.py --build-dir build-sdk-cpu --output /tmp/f8-35-sdk-evidence-8 --require-realtime-driver",
     "result": "PASS",
     "checks": [
       "relocated install",
@@ -55,6 +55,10 @@
     }
   },
   "qualification": [
+    {
+      "command": "python3 tools/check_sdk_install.py --build-dir build-sdk-ci --output /tmp/f8-35-sdk-evidence-9",
+      "result": "PASS; driverless SDK retained all packaging/public-ABI gates and recorded realtime_profile.status=not_available"
+    },
     {
       "command": "ctest --test-dir build-sdk-cpu --output-on-failure",
       "result": "PASS 101/101 discovered tests; 86 executed pass and 15 explicit unsupported CPU-domain skips"
