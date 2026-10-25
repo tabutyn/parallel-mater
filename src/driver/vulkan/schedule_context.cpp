@@ -527,7 +527,17 @@ struct ScheduleContext::Impl {
         completed = submitted;
         pending = false;
     }
-    void device_barrier() {
+    void compute_barrier() {
+        VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        barrier.dstAccessMask =
+            VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT |
+            VK_ACCESS_SHADER_WRITE_BIT;
+        vkCmdPipelineBarrier(commands, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1,
+                             &barrier, 0, nullptr, 0, nullptr);
+    }
+    void cross_domain_barrier() {
         VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
         barrier.srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT;
         barrier.dstAccessMask =
@@ -538,15 +548,27 @@ struct ScheduleContext::Impl {
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
             0, 1, &barrier, 0, nullptr, 0, nullptr);
     }
-    void compute_barrier() {
-        device_barrier();
-    }
     void prepare_transfer_barrier() {
-        // Every preceding device command already publishes through
-        // device_barrier(); the submission-begin barrier handles host writes.
+        VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        barrier.dstAccessMask =
+            VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+        vkCmdPipelineBarrier(commands, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 1, &barrier,
+                             0, nullptr, 0, nullptr);
     }
     void transfer_barrier() {
-        device_barrier();
+        VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask =
+            VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT |
+            VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT |
+            VK_ACCESS_TRANSFER_WRITE_BIT;
+        vkCmdPipelineBarrier(
+            commands, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0, 1, &barrier, 0, nullptr, 0, nullptr);
     }
     void begin_barrier() {
         VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
@@ -1089,7 +1111,13 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
         vkCmdDispatch(i.commands, grid.x, grid.y, grid.z);
         if (i.profile.segment_open)
             ++i.profile.dispatches;
-        i.compute_barrier();
+        // The coupled module dereferences both domains through physical buffer
+        // addresses. Mali requires general memory visibility across that
+        // boundary; other modules retain the cheaper typed dependency.
+        if (module == "fluid_smoke")
+            i.cross_domain_barrier();
+        else
+            i.compute_barrier();
         // Diagnostic mode: isolate a failing dispatch without changing normal
         // asynchronous submission behavior.
         if (std::getenv("PM_VULKAN_SYNCHRONOUS_DISPATCH"))
