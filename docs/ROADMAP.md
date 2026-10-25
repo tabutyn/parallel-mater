@@ -151,7 +151,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-30](roadmap/tasks/F8-30.json) | Qualify the candidate and sustained performance on Android | waiting on dependencies | F8-02, F8-22, F8-36 | — |
 | [F8-31](roadmap/tasks/F8-31.json) | Ship and document the qualified real-time SDK and Gallery profile | waiting on dependencies | F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30 | — |
 | [F8-32](roadmap/tasks/F8-32.json) | Expose the real-time profile through the registry and SDK | done | F8-00 | — |
-| [F8-33](roadmap/tasks/F8-33.json) | Integrate the shared spatial epoch into production runtime | ready | F8-22 | — |
+| [F8-33](roadmap/tasks/F8-33.json) | Integrate the shared spatial epoch into production runtime | leased | F8-22 | codex-native-spatial / thomas-laptop / 2026-10-26T09:53:14Z |
 | [F8-34](roadmap/tasks/F8-34.json) | Bind fixed realtime phases and telemetry to native adapters | waiting on dependencies | F8-33 | — |
 | [F8-35](roadmap/tasks/F8-35.json) | Expose executable realtime profile through installed API | waiting on dependencies | F8-34 | — |
 | [F8-36](roadmap/tasks/F8-36.json) | Freeze replacement executable realtime candidate | waiting on dependencies | F8-35 | — |
