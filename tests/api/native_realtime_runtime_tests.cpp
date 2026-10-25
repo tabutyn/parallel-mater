@@ -73,13 +73,14 @@ int main(int argc, char **argv) {
     };
 
     void *source_map{}, *output_map{}, *fluid_output_map{}, *cloth_output_map{},
-        *soft_output_map{};
+        *soft_output_map{}, *rope_output_map{};
     const auto source = buffer(512U, &source_map);
     const auto output = buffer(
         body_count * sizeof(PmRigidState), &output_map);
     const auto fluid_output = buffer(1024U, &fluid_output_map);
     const auto cloth_output = buffer(1024U, &cloth_output_map);
     const auto soft_output = buffer(1024U, &soft_output_map);
+    const auto rope_output = buffer(1024U, &rope_output_map);
     const float vertices[8][3] = {
         {-0.5F,-0.5F,-0.5F},{0.5F,-0.5F,-0.5F},
         {0.5F,0.5F,-0.5F},{-0.5F,0.5F,-0.5F},
@@ -127,7 +128,7 @@ int main(int argc, char **argv) {
     const std::array fluid_capacities{
         PmFluidCapacity{4U, 4U}, PmFluidCapacity{7U, 7U}};
     const PmClothCapacity cloth_capacity{3U, 3U, 3U};
-    const PmRopeCapacity rope_capacity{2U};
+    const PmRopeCapacity rope_capacity{6U};
     const PmSoftBodyCapacity soft_capacity{8U, 16U, 8U, 18U};
     const PmSmokeCapacity smoke_capacity{4U, 8U};
     PmSimulationCreateInfo mixed_info = simulation_info;
@@ -178,6 +179,17 @@ int main(int argc, char **argv) {
     cloth_material.contactFriction = 0.2F;
     cloth_material.solverIterations = 8U;
     cloth_material.fracturePersistenceSubsteps = 1U;
+    PmRopeMaterialState rope_material{};
+    rope_material.nodeSpacing = 0.1F;
+    rope_material.radius = 0.05F;
+    rope_material.mass = 0.4F;
+    rope_material.stretchCompliance = 0.0F;
+    rope_material.velocityDamping = 0.2F;
+    rope_material.maximumSubstepTimestep = 1.0F / 240.0F;
+    rope_material.friction = 0.2F;
+    rope_material.maximumSpeed = 2.9F;
+    rope_material.solverIterations = 3U;
+    rope_material.selfCollision = PM_FALSE;
     PmSoftBodyMaterialState soft_material{};
     soft_material.nodeMass = 1.0F;
     soft_material.nodeRadius = 0.01F;
@@ -196,6 +208,8 @@ int main(int argc, char **argv) {
     pipeline_info.pFluidMaterials = liquid_materials.data();
     pipeline_info.clothMaterialCount = mixed_info.clothCount;
     pipeline_info.pClothMaterials = &cloth_material;
+    pipeline_info.ropeMaterialCount = mixed_info.ropeCount;
+    pipeline_info.pRopeMaterials = &rope_material;
     pipeline_info.softBodyMaterialCount = mixed_info.softBodyCount;
     pipeline_info.pSoftBodyMaterials = &soft_material;
     PmPhysicsPipeline pipeline{};
@@ -685,6 +699,133 @@ int main(int argc, char **argv) {
             static_cast<const PmDomainOutputHeader *>(soft_output_map);
         CHECK(soft_header->activeCount == 5U);
     }
+    if (mixed_info.ropeCount != 0U) {
+        PmRigidBodyInfo anchor{};
+        anchor.active = PM_TRUE;
+        anchor.geometry = geometry;
+        anchor.motionType = PM_MOTION_STATIC;
+        anchor.mass = 1.0F;
+        anchor.inertiaDiagonal[0] = anchor.inertiaDiagonal[1] =
+            anchor.inertiaDiagonal[2] = 1.0F / 6.0F;
+        anchor.state.position[1] = 1.0F;
+        anchor.state.orientation[3] = 1.0F;
+        anchor.maximumLinearSpeed = anchor.maximumAngularSpeed = 100.0F;
+        anchor.collisionMargin = 0.005F;
+        const PmFloat3 centerline[2]{
+            {0.5F, 1.0F, 0.0F}, {1.0F, 1.0F, 0.0F}};
+        PmRopeInfo rope{};
+        rope.active = PM_TRUE;
+        rope.pointCount = 2U;
+        rope.pCenterline = centerline;
+        rope.first = {0U, {0.5F, 0.0F, 0.0F}, PM_TRUE};
+        const PmBufferRange rope_range{rope_output, 0U, 1024U};
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteRigidBodies(
+            commands, mixed_simulation, 0U, 1U, &anchor) == PM_SUCCESS);
+        CHECK(pmCmdWriteRopes(
+            commands, mixed_simulation, 0U, 1U, &rope) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
+        CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopyRopeState(
+            commands, mixed_simulation, 0U, &rope_range) == PM_SUCCESS);
+        CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        PmRealtimeStepStatistics rope_statistics{};
+        CHECK(pmGetQueryPoolResults(
+            device, query, 0U, 1U, sizeof rope_statistics,
+            &rope_statistics, sizeof rope_statistics,
+            PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+        CHECK(rope_statistics.timeAdvances == 1U);
+        CHECK(rope_statistics.domainIterations[4] == 8U);
+        CHECK(rope_statistics.total.spatialIndexBuilds == 1U);
+        CHECK(rope_statistics.total.spatialIndexPublications == 1U);
+        CHECK(rope_statistics.total.intraTickHostReadbacks == 0U);
+        const auto *rope_header =
+            static_cast<const PmDomainOutputHeader *>(rope_output_map);
+        const auto *rope_nodes = reinterpret_cast<const PmRopeNodeState *>(
+            rope_header + 1U);
+        CHECK(rope_header->activeCount == 6U);
+        CHECK(rope_nodes[0].position.x == centerline[0].x);
+        CHECK(rope_nodes[0].position.y == centerline[0].y);
+        CHECK(rope_nodes[0].position.z == centerline[0].z);
+        CHECK(rope_nodes[0].velocity.x == 0.0F);
+        CHECK(rope_nodes[0].velocity.y == 0.0F);
+        CHECK(rope_nodes[0].velocity.z == 0.0F);
+        for (std::uint32_t node = 1U; node < 6U; ++node) {
+            CHECK(std::isfinite(rope_nodes[node].position.x));
+            CHECK(std::isfinite(rope_nodes[node].position.y));
+            CHECK(std::isfinite(rope_nodes[node].velocity.y));
+            const auto &first_node = rope_nodes[node - 1U].position;
+            const auto &second_node = rope_nodes[node].position;
+            const float x = first_node.x - second_node.x;
+            const float y = first_node.y - second_node.y;
+            const float z = first_node.z - second_node.z;
+            CHECK(std::abs(std::sqrt(x * x + y * y + z * z) - 0.1F) <
+                  0.03F);
+        }
+
+        if (!production) {
+            std::array<std::byte, 1024U> rope_before_failure{};
+            std::memcpy(rope_before_failure.data(), rope_output_map,
+                        rope_before_failure.size());
+            CHECK(setenv(
+                "PM_TEST_REALTIME_LIMIT_MINUS_ONE", "workgroups", 1) == 0);
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+            CHECK(pmCmdStepSimulation(
+                commands, mixed_simulation, &step) == PM_SUCCESS);
+            execute(PM_ERROR_CAPACITY_EXCEEDED);
+            CHECK(unsetenv("PM_TEST_REALTIME_LIMIT_MINUS_ONE") == 0);
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdCopyRopeState(
+                commands, mixed_simulation, 0U, &rope_range) == PM_SUCCESS);
+            execute(PM_SUCCESS);
+            CHECK(std::memcmp(rope_before_failure.data(), rope_output_map,
+                              rope_before_failure.size()) == 0);
+        }
+
+        const PmFloat3 shorter_centerline[2]{
+            centerline[0], {0.9F, 1.0F, 0.0F}};
+        rope.pCenterline = shorter_centerline;
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteRopes(
+            commands, mixed_simulation, 0U, 1U, &rope) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopyRopeState(
+            commands, mixed_simulation, 0U, &rope_range) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        rope_header =
+            static_cast<const PmDomainOutputHeader *>(rope_output_map);
+        CHECK(rope_header->activeCount == 5U);
+
+        rope.pCenterline = centerline;
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteRigidBodies(
+            commands, mixed_simulation, 0U, 1U, &anchor) == PM_SUCCESS);
+        CHECK(pmCmdWriteRopes(
+            commands, mixed_simulation, 0U, 1U, &rope) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopyRopeState(
+            commands, mixed_simulation, 0U, &rope_range) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        rope_header =
+            static_cast<const PmDomainOutputHeader *>(rope_output_map);
+        CHECK(rope_header->activeCount == 6U);
+    }
     pmDestroySimulation(device, mixed_simulation);
 
     std::array<PmRigidBodyInfo, body_count> bodies{};
@@ -857,6 +998,7 @@ int main(int argc, char **argv) {
     pmDestroyBuffer(device, fluid_output);
     pmDestroyBuffer(device, cloth_output);
     pmDestroyBuffer(device, soft_output);
+    pmDestroyBuffer(device, rope_output);
     pmDestroyBuffer(device, source);
     for (auto allocation : memory) pmFreeMemory(device, allocation);
     pmDestroyDevice(device);

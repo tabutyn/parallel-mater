@@ -10,6 +10,25 @@ struct RopeStorage {
     RopeData data{};
     std::uint32_t generation{1U};
     bool alive{};
+    Vec3 *realtime_positions{};
+    Vec3 *realtime_velocities{};
+    Vec3 *realtime_previous_positions{};
+    Vec3 *realtime_position_deltas{};
+    float *realtime_correction_used{};
+    float *realtime_inverse_masses{};
+    float *realtime_rest_bend_lengths{};
+    Vec3 *realtime_anchor_targets{};
+    std::uint8_t *realtime_anchor_active{};
+    std::uint32_t *realtime_segment_indices{};
+    std::uint32_t *realtime_segment_generations{};
+    Vec3 *realtime_contact_normals{};
+    float *realtime_contact_offsets{};
+    std::uint8_t *realtime_contact_active{};
+    std::uint32_t *realtime_time_advances{};
+    std::uint32_t realtime_leaf_offset{};
+    std::uint32_t realtime_query_offset{};
+    std::uint64_t realtime_topology_revision{1U};
+    simulation::RopeRealtimeTickContract realtime_contract{};
     void release() {
         release_managed(data.positions);
         release_managed(data.previous);
@@ -31,6 +50,21 @@ struct RopeStorage {
         release_managed(data.normals);
         release_managed(data.normals2);
         release_managed(data.solid_hint);
+        release_managed(realtime_positions);
+        release_managed(realtime_velocities);
+        release_managed(realtime_previous_positions);
+        release_managed(realtime_position_deltas);
+        release_managed(realtime_correction_used);
+        release_managed(realtime_inverse_masses);
+        release_managed(realtime_rest_bend_lengths);
+        release_managed(realtime_anchor_targets);
+        release_managed(realtime_anchor_active);
+        release_managed(realtime_segment_indices);
+        release_managed(realtime_segment_generations);
+        release_managed(realtime_contact_normals);
+        release_managed(realtime_contact_offsets);
+        release_managed(realtime_contact_active);
+        release_managed(realtime_time_advances);
     }
     ~RopeStorage() { release(); }
 };

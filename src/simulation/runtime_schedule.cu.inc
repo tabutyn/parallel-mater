@@ -29,20 +29,19 @@ Status SimulationRuntime::step_async(StepOptions options, FrameToken &completion
         return failure(StatusCode::invalid_argument,
                        "step timestep, substeps, gravity, or contact pass limit is invalid");
     }
-    // Advance rigid attachments and ropes on the same clock. Splitting only
-    // the rope after a coarse rigid step leaves endpoints discontinuous.
-    for (const auto &rope : impl_->ropes) if (rope && rope->alive) {
-        const float required = std::ceil(options.timestep /
-            rope->data.options.maximum_substep_timestep);
-        if (!finite(required) || required > 1'024.0F)
-            return failure(StatusCode::invalid_argument,
-                           "rope timestep limit requires more than 1024 substeps");
-        if (realtime && required > 1.0F)
-            return failure(StatusCode::invalid_argument,
-                "realtime profile forbids rope-driven hidden substeps");
-        options.substeps = std::max(options.substeps,
-                                   static_cast<std::uint32_t>(required));
-    }
+    // Legacy ropes may request smaller shared steps so rigid attachments stay
+    // on the same clock. Realtime v1 ignores that legacy knob: its contract is
+    // always one 1/60 advance and eight fixed constraint sweeps.
+    if (!realtime)
+        for (const auto &rope : impl_->ropes) if (rope && rope->alive) {
+            const float required = std::ceil(options.timestep /
+                rope->data.options.maximum_substep_timestep);
+            if (!finite(required) || required > 1'024.0F)
+                return failure(StatusCode::invalid_argument,
+                    "rope timestep limit requires more than 1024 substeps");
+            options.substeps = std::max(options.substeps,
+                static_cast<std::uint32_t>(required));
+        }
     if (!realtime)
         for (auto &cloth : impl_->cloths) if (cloth && cloth->alive) {
             status = rebuild_cloth_topology(*cloth, queue);

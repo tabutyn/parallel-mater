@@ -16,6 +16,10 @@ template <typename T> const T *as(const void *value) noexcept {
     return reinterpret_cast<const T *>(value);
 }
 
+Vec3_0 vec3(const float value[3]) noexcept {
+    return {value[0], value[1], value[2]};
+}
+
 #if defined(PM_VULKAN_GENERATED_DISPATCH)
 template <typename T>
 T *device_pointer(vulkan::ScheduleContext &execution,
@@ -150,6 +154,113 @@ RopeSoftTarget_0 shader_target(
 #endif
 
 } // namespace
+
+void predict_rope_realtime(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions, void *velocities,
+    void *previous_positions, float *correction_used,
+    const float *inverse_masses, const void *anchor_targets,
+    const std::uint8_t *anchor_active, std::uint32_t count,
+    std::uint32_t capacity, float node_spacing, float radius,
+    const float gravity[3], float velocity_damping, float friction,
+    float maximum_speed, float timestep, std::uint32_t profile_version,
+    std::uint32_t *time_advances, std::uint32_t *status) noexcept {
+    const auto native = static_cast<cudaStream_t>(stream.native_handle);
+    rope_realtime_predict<<<dim3(grid.x, grid.y, grid.z),
+        dim3(block.x, block.y, block.z), 0U, native>>>(
+        as<Vec3_0>(positions), as<Vec3_0>(velocities),
+        as<Vec3_0>(previous_positions), correction_used,
+        const_cast<float *>(inverse_masses),
+        const_cast<Vec3_0 *>(as<Vec3_0>(anchor_targets)),
+        const_cast<unsigned char *>(anchor_active), count, capacity,
+        node_spacing, radius, vec3(gravity), velocity_damping, friction,
+        maximum_speed, timestep, profile_version, time_advances, status);
+}
+
+void project_rope_realtime_constraints(
+    device::ExecutionQueue stream, const void *positions,
+    void *position_deltas, float *correction_used,
+    const float *inverse_masses, const float *rest_lengths,
+    const float *rest_bend_lengths, const std::uint8_t *anchor_active,
+    std::uint32_t count, std::uint32_t capacity, float node_spacing,
+    float structural_compliance, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept {
+    rope_realtime_project_constraints<<<1U, 128U, 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
+        as<Vec3_0>(position_deltas), correction_used,
+        const_cast<float *>(inverse_masses),
+        const_cast<float *>(rest_lengths),
+        const_cast<float *>(rest_bend_lengths),
+        const_cast<unsigned char *>(anchor_active), count, capacity,
+        node_spacing, structural_compliance, timestep, profile_version,
+        status);
+}
+
+void apply_rope_realtime_position_delta(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions,
+    const void *position_deltas, float *correction_used,
+    const float *inverse_masses, const std::uint8_t *anchor_active,
+    std::uint32_t count, std::uint32_t capacity, float node_spacing,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    rope_realtime_apply_position_delta<<<dim3(grid.x, grid.y, grid.z),
+        dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        as<Vec3_0>(positions),
+        const_cast<Vec3_0 *>(as<Vec3_0>(position_deltas)), correction_used,
+        const_cast<float *>(inverse_masses),
+        const_cast<unsigned char *>(anchor_active), count, capacity,
+        node_spacing, timestep, profile_version, status);
+}
+
+void project_rope_realtime_contacts(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions,
+    const void *previous_positions, const float *inverse_masses,
+    float *correction_used, const std::uint8_t *anchor_active,
+    const void *contact_normals, const float *contact_offsets,
+    const std::uint8_t *contact_active, std::uint32_t count,
+    std::uint32_t capacity, float node_spacing, float radius,
+    float friction, float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    rope_realtime_project_contacts<<<dim3(grid.x, grid.y, grid.z),
+        dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        as<Vec3_0>(positions),
+        const_cast<Vec3_0 *>(as<Vec3_0>(previous_positions)),
+        const_cast<float *>(inverse_masses), correction_used,
+        const_cast<unsigned char *>(anchor_active),
+        const_cast<Vec3_0 *>(as<Vec3_0>(contact_normals)),
+        const_cast<float *>(contact_offsets),
+        const_cast<unsigned char *>(contact_active), count, capacity,
+        node_spacing, radius, friction, timestep, profile_version, status);
+}
+
+void commit_rope_realtime(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *positions,
+    const void *previous_positions, void *velocities,
+    const float *inverse_masses, const std::uint8_t *anchor_active,
+    const void *contact_normals, const float *contact_offsets,
+    const std::uint8_t *contact_active, std::uint32_t count,
+    std::uint32_t capacity, float node_spacing, float radius,
+    float friction, float maximum_speed, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept {
+    rope_realtime_commit<<<dim3(grid.x, grid.y, grid.z),
+        dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(previous_positions)),
+        as<Vec3_0>(velocities), const_cast<float *>(inverse_masses),
+        const_cast<unsigned char *>(anchor_active),
+        const_cast<Vec3_0 *>(as<Vec3_0>(contact_normals)),
+        const_cast<float *>(contact_offsets),
+        const_cast<unsigned char *>(contact_active), count, capacity,
+        node_spacing, radius, friction, maximum_speed, timestep,
+        profile_version, status);
+}
 
 void advance_rope(device::ExecutionQueue stream, const RopeDispatchData &rope,
     float timestep, Vec3 gravity, int first, int last,
