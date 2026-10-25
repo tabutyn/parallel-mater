@@ -214,6 +214,7 @@ Status visit_global_storage(State &state, SimulationOptions options, Visitor &vi
     state.realtime_spatial_plan = {};
     state.realtime_rigid_spatial_plan = {};
     state.realtime_fluid_spatial_plan = {};
+    state.realtime_deformable_spatial_plan = {};
     if (options.realtime_spatial_enabled) {
         const auto planned = make_spatial_service_plan(
             options.realtime_spatial_leaf_capacity,
@@ -256,6 +257,18 @@ Status visit_global_storage(State &state, SimulationOptions options, Visitor &vi
         PM_STORAGE(realtime_fluid_spatial_scratch,
             spatial_storage_block_count(
                 state.realtime_fluid_spatial_plan.scratch_bytes), scratch);
+        const auto deformable_planned = make_deformable_spatial_plan(
+            options.realtime_spatial_query_capacity,
+            options.realtime_spatial_candidates_per_query,
+            state.realtime_deformable_spatial_plan);
+        if (deformable_planned != PM_SUCCESS)
+            return {StatusCode::invalid_argument,
+                    static_cast<std::int32_t>(deformable_planned),
+                    "invalid realtime deformable spatial storage plan"};
+        PM_STORAGE(realtime_deformable_spatial_scratch,
+            spatial_storage_block_count(
+                state.realtime_deformable_spatial_plan.scratch_bytes),
+            scratch);
         PM_STORAGE(realtime_query_bounds,
             options.realtime_spatial_query_capacity, scratch);
         PM_STORAGE(realtime_query_masks,
@@ -418,10 +431,12 @@ inline Status fluid_pair_neighbor_index_storage_requirements(
 template<class State, class Visitor>
 Status visit_cloth_storage(State &state, std::size_t rigid, bool fracture,
     bool volume, bool rope, bool fluid, bool smoke, Visitor &visit) noexcept {
-#define PM_STORAGE(member, count) do { \
-    const auto result = visit(state.member, count, MemoryClass::persistent); \
+#define PM_STORAGE_KIND(member, count, kind) do { \
+    const auto result = visit(state.member, count, MemoryClass::kind); \
     if (!result) return result; \
 } while (false)
+#define PM_STORAGE(member, count) PM_STORAGE_KIND(member, count, persistent)
+#define PM_SCRATCH(member, count) PM_STORAGE_KIND(member, count, scratch)
     const auto vertices = state.vertex_capacity;
     const auto indices = state.index_count;
     const auto bonds = state.bond_count;
@@ -458,7 +473,19 @@ Status visit_cloth_storage(State &state, std::size_t rigid, bool fracture,
     if (fluid) PM_STORAGE(fluid_forces, vertices);
     if (smoke) PM_STORAGE(smoke_forces, vertices);
     PM_STORAGE(count, 1);
+    PM_STORAGE(realtime_positions, vertices);
+    PM_STORAGE(realtime_velocities, vertices);
+    PM_STORAGE(realtime_surface_positions, indices);
+    PM_STORAGE(realtime_characteristic_lengths, vertices);
+    PM_STORAGE(realtime_triangle_generations, indices / 3U);
+    PM_SCRATCH(realtime_correction_used, vertices);
+    PM_SCRATCH(realtime_contact_normals, vertices);
+    PM_SCRATCH(realtime_contact_offsets, vertices);
+    PM_SCRATCH(realtime_contact_active, vertices);
+    PM_SCRATCH(realtime_time_advances, 1U);
+#undef PM_SCRATCH
 #undef PM_STORAGE
+#undef PM_STORAGE_KIND
     return {};
 }
 

@@ -135,10 +135,11 @@ struct RealtimeSpatialCapacities {
     }
     for (const auto capacity :
          std::span(info.pClothCapacities, info.clothCount)) {
+        const std::uint64_t cloth_queries = std::max<std::uint64_t>(
+            capacity.vertexCapacity, capacity.triangleIndexCapacity / 3U);
         if (!add_realtime_capacity(
                 output.leaves, capacity.triangleIndexCapacity / 3U) ||
-            !add_realtime_capacity(output.queries,
-                                   capacity.vertexCapacity))
+            !add_realtime_capacity(output.queries, cloth_queries))
             return false;
         output.candidates_per_query = std::max(
             output.candidates_per_query, 64U);

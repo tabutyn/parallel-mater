@@ -29,6 +29,8 @@
 #include "simulation/reference_schedule.hpp"
 #include "simulation/realtime_resources.hpp"
 #include "simulation/realtime_telemetry.hpp"
+#include "simulation/cloth_realtime.hpp"
+#include "simulation/deformable_spatial.hpp"
 #include "simulation/fluid_realtime.hpp"
 #include "simulation/rigid_realtime.hpp"
 
@@ -594,6 +596,22 @@ struct ClothStorage {
     Vec3 *smoke_forces{};
     float *volume_lambda{};
     std::uint32_t *count{};
+    Vec3 *realtime_positions{};
+    Vec3 *realtime_velocities{};
+    Vec3 *realtime_surface_positions{};
+    float *realtime_characteristic_lengths{};
+    std::uint32_t *realtime_triangle_generations{};
+    float *realtime_correction_used{};
+    Vec3 *realtime_contact_normals{};
+    float *realtime_contact_offsets{};
+    std::uint8_t *realtime_contact_active{};
+    std::uint32_t *realtime_time_advances{};
+    std::uint32_t realtime_leaf_offset{};
+    std::uint32_t realtime_query_offset{};
+    std::uint64_t realtime_topology_revision{1U};
+    float realtime_characteristic_length{};
+    float realtime_maximum_speed{};
+    simulation::ClothRealtimeTickContract realtime_contract{};
 
     void release() noexcept {
         release_managed(positions);
@@ -625,6 +643,16 @@ struct ClothStorage {
         release_managed(smoke_forces);
         release_managed(volume_lambda);
         release_managed(count);
+        release_managed(realtime_positions);
+        release_managed(realtime_velocities);
+        release_managed(realtime_surface_positions);
+        release_managed(realtime_characteristic_lengths);
+        release_managed(realtime_triangle_generations);
+        release_managed(realtime_correction_used);
+        release_managed(realtime_contact_normals);
+        release_managed(realtime_contact_offsets);
+        release_managed(realtime_contact_active);
+        release_managed(realtime_time_advances);
     }
     ~ClothStorage() { release(); }
 };
@@ -1303,6 +1331,8 @@ struct SimulationRuntime::Impl {
     simulation::SpatialStorageBlock *realtime_rigid_spatial_output{};
     simulation::FluidSpatialPlan realtime_fluid_spatial_plan{};
     simulation::SpatialStorageBlock *realtime_fluid_spatial_scratch{};
+    simulation::DeformableSpatialPlan realtime_deformable_spatial_plan{};
+    simulation::SpatialStorageBlock *realtime_deformable_spatial_scratch{};
     simulation::SpatialAabb *realtime_query_bounds{};
     std::uint32_t *realtime_query_masks{};
     std::uint32_t *realtime_excluded_sort_keys{};
@@ -1533,6 +1563,7 @@ struct SimulationRuntime::Impl {
         release_managed(realtime_rigid_spatial_scratch);
         release_managed(realtime_rigid_spatial_output);
         release_managed(realtime_fluid_spatial_scratch);
+        release_managed(realtime_deformable_spatial_scratch);
         release_managed(realtime_query_bounds);
         release_managed(realtime_query_masks);
         release_managed(realtime_excluded_sort_keys);
