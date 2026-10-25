@@ -130,6 +130,53 @@ simulation::RealtimeWorkCounters native_realtime_minimum(
 }
 
 template <typename State>
+std::array<simulation::RealtimeWorkCounters,
+           simulation::realtime_telemetry_phase_count>
+native_realtime_phase_minimum(const State &state) noexcept {
+    std::array<simulation::RealtimeWorkCounters,
+               simulation::realtime_telemetry_phase_count> minimum{};
+    const bool rigid = state.rigid_body_count != 0U;
+    auto &index = minimum[simulation::realtime_index(
+        simulation::RealtimeTelemetryPhase::index)];
+    index.index_publications = 1U;
+    if (rigid) index.index_builds = 1U;
+    auto &domain = minimum[simulation::realtime_index(
+        simulation::RealtimeTelemetryPhase::domain)];
+    if (rigid) {
+        domain.dispatches = 1U;
+        domain.workgroups = 1U;
+        domain.numerical_iterations = simulation::rigid_realtime_sweeps;
+        domain.barriers = 1U;
+    }
+    auto &commit = minimum[simulation::realtime_index(
+        simulation::RealtimeTelemetryPhase::commit)];
+    commit.submissions = 1U;
+    if (rigid) {
+        commit.dispatches = 1U;
+        commit.workgroups = 1U;
+    } else {
+        commit.bytes_moved = sizeof(std::uint32_t);
+    }
+    commit.barriers = 1U;
+    return minimum;
+}
+
+template <typename State>
+bool native_realtime_limits_admit_minimum(
+    const State &state,
+    const simulation::RealtimeTelemetryLimits &limits) noexcept {
+    if (!simulation::realtime_telemetry_detail::within(
+            native_realtime_minimum(state), limits.total_maximum))
+        return false;
+    const auto phase_minimum = native_realtime_phase_minimum(state);
+    for (std::size_t index = 0U; index < phase_minimum.size(); ++index)
+        if (!simulation::realtime_telemetry_detail::within(
+                phase_minimum[index], limits.phase_maximum[index]))
+            return false;
+    return true;
+}
+
+template <typename State>
 class NativeRealtimeBackend {
 public:
     NativeRealtimeBackend(State &state, NativeScheduleBackend &native,
@@ -793,8 +840,7 @@ Status schedule_native_realtime(State &state, NativeScheduleBackend &native,
     const auto defaults = native_realtime_limits(state);
     const auto &limits = options.realtime_telemetry_limits != nullptr
         ? *options.realtime_telemetry_limits : defaults;
-    if (!simulation::realtime_telemetry_detail::within(
-            native_realtime_minimum(state), limits.total_maximum)) {
+    if (!native_realtime_limits_admit_minimum(state, limits)) {
         state.realtime_ledger = {};
         state.realtime_ledger.failed = true;
         state.realtime_telemetry = {};

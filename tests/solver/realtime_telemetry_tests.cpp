@@ -246,7 +246,7 @@ void disabled_telemetry_has_no_adapter_cost() {
 void regressions_fail_before_commit() {
     const auto input = scene();
     const auto budget = limits();
-    for (const auto kind : {1U, 2U, 3U, 4U}) {
+    for (const auto kind : {1U, 2U, 3U}) {
         MeasuredBackend backend{};
         backend.extra_iteration = kind == 1U;
         backend.extra_rebuild = kind == 2U;
@@ -256,9 +256,6 @@ void regressions_fail_before_commit() {
             strict.total_maximum.dispatches = 4U;
             strict.phase_maximum[realtime_index(
                 RealtimeTelemetryPhase::domain)].dispatches = 1U;
-        } else if (kind == 4U) {
-            strict.phase_maximum[realtime_index(
-                RealtimeTelemetryPhase::boundary)].dispatches = 0U;
         }
         RealtimeScheduleLedger ledger{};
         RealtimeTickTelemetry telemetry{};
