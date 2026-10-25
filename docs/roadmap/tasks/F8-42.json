@@ -1,7 +1,7 @@
 {
   "id": "F8-42",
   "title": "Connect soft-body operators to production fixed ticks",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-39"
   ],
@@ -19,6 +19,14 @@
     "Public admission and generated dispatch/reflection builds match the implemented domain; standalone-kernel success is insufficient."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "02cd9fa0-22de-4437-9c56-53a55d29eccb",
+    "owner": "codex-android-overnight",
+    "machine": "thomas-laptop-pixel7",
+    "branch": "work/F8-42/thomas-laptop-pixel7",
+    "claimed_at": "2026-10-25T18:54:12Z",
+    "heartbeat_at": "2026-10-25T18:54:12Z",
+    "expires_at": "2026-10-26T18:54:12Z"
+  },
   "history": []
 }
