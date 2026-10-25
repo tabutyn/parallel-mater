@@ -10,7 +10,9 @@
     "F8-27",
     "F8-28",
     "F8-29",
-    "F8-30"
+    "F8-30",
+    "F8-51",
+    "F8-52"
   ],
   "locks": [
     "sdk-realtime-profile-release"
@@ -18,12 +20,12 @@
   "requires": [
     "Any development host; access to current API, schedule and qualification records"
   ],
-  "scope": "Package the already-qualified candidate and document the user-facing fixed-step, interpolation, slow-motion and accuracy tradeoffs without silently changing its equations or defaults. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "scope": "Package, deploy and document the qualified single-path SDK and Gallery candidate. Normal simulation creation always uses the fixed-tick architecture; no F8/legacy mode selection remains. Verify installed revision/backend/artifact identities for desktop launchers, Android and iPad. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md; retain historical evidence and all baseline supported interactions.",
   "acceptance": [
-    "Installed SDK and Gallery tests demonstrate explicit profile/version selection and capability behavior, including unsupported requests and clear rejection of incompatible old clients. Keeping a legacy solver available is optional, not an exit requirement.",
-    "Publish exact device/workload quality and performance limits, remaining unsupported modes and honest default-selection behavior; legacy evidence is not relabeled.",
-    "Verify relocatable packages and runtime artifact hashes against the frozen candidate; any material kernel/schedule/profile change triggers candidate refresh and affected requalification.",
-    "Show 30/60/high-refresh presentation behavior and bounded long-running memory/resource ownership through public clients."
+    "Installed public C/C++ SDK and Gallery tests use normal creation and stepping with no execution-profile request. Every supported domain/interaction uses the same schedule; incompatible API/ABI requests fail clearly.",
+    "Publish exact device/workload quality and performance limits and migration instructions for the single architecture; historical evidence is not relabeled and missing integration cannot be hidden as unsupported hardware.",
+    "Relocatable packages and installed desktop/mobile applications match the frozen candidate's artifact/revision/backend identities, including the macOS Dock launcher. Material runtime/kernel/API/app changes require candidate refresh and affected requalification.",
+    "Show 30/60/high-refresh presentation, bounded long-running memory ownership, lifecycle recovery and ordinary Gallery startup with no user-facing F8 toggle."
   ],
   "evidence": [],
   "lease": null,

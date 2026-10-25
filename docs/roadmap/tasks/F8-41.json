@@ -1,0 +1,24 @@
+{
+  "id": "F8-41",
+  "title": "Connect cloth operators to production fixed ticks",
+  "status": "open",
+  "dependencies": [
+    "F8-39"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule"
+  ],
+  "requires": [
+    "Production runtime/toolchain plus applicable physical GPU; cross-platform build evidence"
+  ],
+  "scope": "Bind the existing F8-10/F8-13 cloth operators to the production schedule and staged state, including constraints, pinned vertices and collision consumers. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "Installed public cloth-only and cloth/rigid-resource fixtures execute the real production path with eight constraint iterations, one time advance and one spatial publication.",
+    "Independent stretch, bend, volume, pin-drift and tunneling oracles pass within the existing input envelope on an applicable physical GPU.",
+    "Topology replacement, cold start, capacity failure and reset invalidate caches and preserve atomic public state on failed ticks.",
+    "Remove the corresponding blanket runtime restriction only when the supported execution is complete; no second cloth schedule or private adapter physics."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

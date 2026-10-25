@@ -1,0 +1,24 @@
+{
+  "id": "F8-40",
+  "title": "Connect liquid operators to production fixed ticks",
+  "status": "open",
+  "dependencies": [
+    "F8-39"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule"
+  ],
+  "requires": [
+    "Production runtime/toolchain plus applicable physical GPU; cross-platform build evidence"
+  ],
+  "scope": "Bind F8-09/F8-12 liquid prediction, density solve, velocity update and commit through the native fixed-tick public execution path, replacing its blanket liquid rejection when the complete liquid-only lifecycle is supported. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "An installed public client creates and advances each currently supported liquid representation with exactly one 1/60 advance, one spatial publication and six density iterations; run existing independent liquid oracles.",
+    "Neighbor queries consume the common epoch; no per-population/iteration rebuild, hidden substep, serial CPU GPU-physics fallback or double integration.",
+    "Cold/warm, free-surface, containment, unequal population sizes, empty capacity, overflow and rollback cases exercise real public production dispatch on an applicable physical GPU.",
+    "Retain numerical/workload limits and adapter compilation coverage; successful private kernel tests alone cannot complete this task."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,25 @@
+{
+  "id": "F8-52",
+  "title": "Freeze the complete single-path SDK and Gallery candidate",
+  "status": "open",
+  "dependencies": [
+    "F8-51"
+  ],
+  "locks": [
+    "f8-candidate-freeze"
+  ],
+  "requires": [
+    "Clean candidate freeze environment and all single-path integration tasks merged"
+  ],
+  "scope": "Replace the interim rigid-only candidates with one exact all-supported-domain, single-schedule public SDK/Gallery candidate before final F8 device qualification. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "Audit installed public creation/step and Gallery paths for all baseline supported domains/interactions and auxiliary features; fail on any remaining legacy choice, blanket integration rejection or private-test-only coverage.",
+    "Freeze source, API/ABI, kernel/adapter/runtime/oracle/contract, workload and application artifact identities after F8-39--51; preserve interim candidate records as historical evidence without rewriting their hashes.",
+    "Through a coordination PR, route unleased F8-23--30 cards to the exact new candidate before they are claimed; their F8-52 dependency remains in place. Completion cannot redefine other cards or active leases.",
+    "Candidate validation rejects protected drift and evidence union across revisions. Retain independent oracles and unchanged workload/quality/performance gates; collect installed-consumer preflight evidence.",
+    "Device/API capability manifests accurately retain the baseline supported surface; missing runtime work must create a prerequisite repair task rather than shrinking the qualification matrix."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

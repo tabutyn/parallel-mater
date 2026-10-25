@@ -1,0 +1,27 @@
+{
+  "id": "F8-51",
+  "title": "Make shared Gallery use the sole fixed-tick architecture",
+  "status": "open",
+  "dependencies": [
+    "F8-50"
+  ],
+  "locks": [
+    "gallery-common-runtime",
+    "gallery-frame-policy",
+    "gallery-platform-rollout"
+  ],
+  "requires": [
+    "Shared Gallery build/tests, desktop and mobile CI; physical execution on available targets"
+  ],
+  "scope": "Remove Gallery's legacy/F8 clock selection and use the normal fixed-tick public API through shared session/scene creation on desktop, Android and iPad. Platform changes are limited to presentation/input/lifecycle and packaging hooks. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "Every supported Gallery scene creates the normal simulation and gets the single shared schedule without a user switch or per-platform physics policy; no private runtime entry point or silent old-path fallback.",
+    "Shared pacing/interpolation tests cover 30/60/90/120/144 Hz, pause/reset/scene change/background recovery and stalls with no catch-up or larger timestep; headless runs execute fixed ticks without artificial wall-clock throttling.",
+    "Remove hard-coded 30 FPS presentation caps where the display supports 60 Hz, including the current iPad request; retain explicit display limitations and overload slow motion without claiming they meet the 60 Hz gate.",
+    "Build all platform shells; execute public Gallery smoke tests for mixed domains, diagnostics and render output on available hardware, with missing physical targets reserved for F8-23--30 rather than called passes.",
+    "Bind app revision/backend/artifact identity to deployment tooling so F8-31 can install and verify the exact qualified candidate on Dock/mobile launchers."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

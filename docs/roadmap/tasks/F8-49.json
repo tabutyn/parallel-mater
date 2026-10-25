@@ -1,0 +1,24 @@
+{
+  "id": "F8-49",
+  "title": "Integrate paint, capture and public outputs with the common tick",
+  "status": "open",
+  "dependencies": [
+    "F8-48"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule"
+  ],
+  "requires": [
+    "Production runtime/toolchain plus applicable physical GPU; cross-platform build evidence"
+  ],
+  "scope": "Remove remaining blanket paint/debug/query/output exclusions by integrating existing auxiliary operations with the same fixed-tick production path and resource lifetime rules. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "Existing paint rules/fields, debug capture, statistics queries, snapshots and GPU render exports function through installed public consumers on an applicable physical adapter.",
+    "Enabling diagnostics does not switch the solver, change timestep/iteration count, integrate fluid visuals twice or insert routine physics-phase host waits/readbacks; explicit post-completion observations are accounted separately.",
+    "Queries and output buffers describe the committed tick and remain unavailable for aborted work; reset/replacement/destruction retain valid lifetimes and generations.",
+    "Empty, mixed-family, diagnostic, headless and render-export fixtures preserve atomicity and all already supported capabilities."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -1,0 +1,27 @@
+{
+  "id": "F8-47",
+  "title": "Connect remaining smoke interactions to production fixed ticks",
+  "status": "open",
+  "dependencies": [
+    "F8-41",
+    "F8-42",
+    "F8-43",
+    "F8-44"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule"
+  ],
+  "requires": [
+    "Production runtime/toolchain plus applicable physical GPU; cross-platform build evidence"
+  ],
+  "scope": "Bind remaining F8-19 smoke/rigid, smoke/cloth, smoke/soft-body and smoke/rope mechanical operators to the native production graph. Liquid/smoke binding belongs to F8-46; unavailable P-series smoke/smoke modes remain outside scope. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "Every currently implemented smoke contact/drag tuple executes through the installed public API and real GPU dispatch, using the common epoch and four fixed sweeps.",
+    "Independent endpoint-domain, reciprocal exchange where specified, energy and mixed-family quality assertions pass without changing tolerances or pretending one-way modes are reciprocal.",
+    "Graph edits, endpoint destruction, reset, overflow and failed-tick recovery preserve one coherent commit and no double integration.",
+    "Map actual executed kernels and counters to canonical obligations; no platform-local physics or hidden fallback path."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

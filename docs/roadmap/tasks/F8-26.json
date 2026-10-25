@@ -5,7 +5,8 @@
   "dependencies": [
     "F8-22",
     "F8-36",
-    "F8-38"
+    "F8-38",
+    "F8-52"
   ],
   "locks": [
     "f8-qualification-windows-cuda"
@@ -13,12 +14,13 @@
   "requires": [
     "Registered physical Windows CUDA devices including GTX 1080 where available"
   ],
-  "scope": "Candidate realtime-single-step-v1-fd78fa8 from F8-36 failed a required row and is rejected for qualification. Execute and report only replacement candidate realtime-single-step-v1-3671f18 from exact source revision 3671f180ed951d8a62cb34e5ec4ce1dab52cd560, frozen by F8-38; rejected candidate evidence is invalid and cannot be unioned: Each registered Windows CUDA hardware tuple, using the same cases as its D3D12 comparison. This is qualification, not authority to introduce unreviewed solver fixes. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "scope": "FINAL RELEASE GATE: wait for F8-52 to freeze and route the complete single-path SDK/Gallery candidate after F8-39--51. The interim candidate named below is retained provenance, not authority to qualify or release a rigid-only optional execution path. Candidate realtime-single-step-v1-fd78fa8 from F8-36 failed a required row and is rejected for qualification. Execute and report only replacement candidate realtime-single-step-v1-3671f18 from exact source revision 3671f180ed951d8a62cb34e5ec4ce1dab52cd560, frozen by F8-38; rejected candidate evidence is invalid and cannot be unioned: Each registered Windows CUDA hardware tuple, using the same cases as its D3D12 comparison. This is qualification, not authority to introduce unreviewed solver fixes. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md; no qualification claim until the card names the F8-52 candidate.",
   "acceptance": [
     "Run every applicable kernel/variant, domain, coupling, lifecycle and negative case in the frozen matrix; record unsupported and missing cases explicitly. All required rows must execute and pass.",
     "Prove one dt=1/60 advance and one spatial publication per tick; verify high-rate interpolation, low-rate slow-motion, no catch-up and fixed dispatch/iteration/synchronization budgets.",
     "Report the fixed profile's independent quality assertions and per-tier CPU/GPU/frame p50/p95/p99 budgets, plus cold-start and sustained runs. Never lower counts/tolerances or substitute another device.",
-    "Attach reviewable artifacts identifying exact candidate, binary/deployment, device/OS/GPU/driver/toolchain and manifest hashes; preserve failures and create separate fix/requalification leaves instead of declaring partial success."
+    "Attach reviewable artifacts identifying exact candidate, binary/deployment, device/OS/GPU/driver/toolchain and manifest hashes; preserve failures and create separate fix/requalification leaves instead of declaring partial success.",
+    "Use normal public simulation creation with the sole schedule and no execution-profile opt-in; verify all baseline supported domains/interactions and installed Gallery behavior where applicable. Missing production integration is a failure, not a newly unsupported capability."
   ],
   "evidence": [],
   "lease": null,

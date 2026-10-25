@@ -1,7 +1,11 @@
 # F8-00: real-time single-step profile contract
 
-Status: normative design contract for `realtime-single-step` version 1.0. It is
-not a claim that any current driver implements or qualifies the profile. The
+Status: original numerical design contract for `realtime-single-step` version 1.0.
+The 2026-10-25 [single execution path decision](F8-SINGLE-EXECUTION-PATH.md)
+supersedes its opt-in and legacy-default selection policy: F8 must become the
+sole production architecture, with no Gallery or application mode choice.
+The numerical limits below remain required. This is
+not a claim that any current driver implements or qualifies the full contract. The
 machine-readable source of the numbers below is
 `conformance/v1/qualification/realtime-profile-v1.json`.
 
@@ -13,6 +17,12 @@ implement the schedule and solvers, and F8-22 freezes a candidate before any
 physical device can qualify it.
 
 ## Selection and compatibility
+
+The following records the original version-1 negotiation contract implemented
+by F8-32 and retained in frozen candidate inputs. It is superseded for the final
+release by F8-50: normal creation must use the sole F8 schedule and the legacy
+production path must be removed. F8-52 must freeze new evidence inputs after
+that API/runtime migration; historical hashes are not rewritten here.
 
 The semantic profile identifier is `realtime-single-step`, version 1.0. F8-32
 will reserve the corresponding registry symbols and generated C structures. A
