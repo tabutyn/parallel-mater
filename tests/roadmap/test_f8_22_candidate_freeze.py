@@ -22,12 +22,13 @@ PROFILE_PATH = (
 ORACLE_PATH = ROOT / "conformance" / "v1" / "realtime" / "oracle-suite-v1.json"
 MANIFEST_PATH = ROOT / "cmake" / "SlangKernelManifest.cmake"
 TASK_DIR = ROOT / "docs" / "roadmap" / "tasks"
-F8_35_TRANSITION_HASHES = {
-    "conformance/v1/qualification/capability-obligations-v1.json":
-        "b99fac0d60165f6e974cf131a01286ff2e3fedd899e1b64f393cf7c13fe209f9",
-    "conformance/v1/realtime/oracle-suite-v1.json":
-        "6c5479f922a338adf66cc9eaaa8d7250032f91b2aad619cb33e4c3eb82f8d9e8",
-}
+REJECTION_PATH = (
+    ROOT / "conformance" / "v1" / "qualification"
+    / "realtime-candidate-v1-rejection.json"
+)
+OLD_MANIFEST_SHA256 = (
+    "c25c010be3a0e908537e3c6542c1759b28b10cfb4a4169b51bb2834233411d43"
+)
 
 
 def load_json(path):
@@ -90,28 +91,15 @@ class F822CandidateFreezeTests(unittest.TestCase):
         self.assertEqual(frozen_profile["version"], self.profile["profile"]["version"])
         self.assertEqual(frozen_profile["timestep"], "1/60")
 
-        protected = self.candidate["source"]["protected_files"]
-        self.assertEqual(len(protected), len({item["path"] for item in protected}))
-        for item in protected:
-            path = ROOT / item["path"]
-            self.assertTrue(path.is_file(), item["path"])
-            actual = sha256(path)
-            if actual != item["sha256"]:
-                self.assertEqual(
-                    actual, F8_35_TRANSITION_HASHES.get(item["path"]),
-                    item["path"],
-                )
-
-        # F8-35 changes only the installed-public-API declaration/oracle
-        # surface. Its two exact hashes remain a bounded handoff to F8-36;
-        # the rejected F8-22 candidate manifest itself stays immutable.
-        replacement = load_json(TASK_DIR / "F8-36.json")
-        self.assertEqual(replacement["dependencies"], ["F8-35"])
-        self.assertEqual(
-            set(F8_35_TRANSITION_HASHES),
-            {item["path"] for item in protected
-             if sha256(ROOT / item["path"]) != item["sha256"]},
-        )
+        # The rejected manifest is immutable history. Its old protected files
+        # are deliberately not compared with the replacement source tree.
+        self.assertEqual(sha256(CANDIDATE_PATH), OLD_MANIFEST_SHA256)
+        rejection = load_json(REJECTION_PATH)
+        self.assertEqual(rejection["candidate_id"], self.candidate["id"])
+        self.assertEqual(rejection["candidate_manifest_sha256"],
+                         OLD_MANIFEST_SHA256)
+        self.assertEqual(rejection["status"], "rejected-non-executable")
+        self.assertFalse(rejection["evidence_union_allowed"])
 
         count, digest = slang_closure_hash()
         closure = self.candidate["source"]["slang_source_closure"]

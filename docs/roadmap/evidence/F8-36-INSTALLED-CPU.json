@@ -1,0 +1,53 @@
+{
+  "schema": "parallel-mater-realtime-freeze-execution/v1",
+  "task": "F8-36",
+  "status": "passed",
+  "scope": "installed_public_profile_build_gate_not_physical_qualification",
+  "candidate": {
+    "id": "realtime-single-step-v1-fd78fa8",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v2.json",
+    "manifest_sha256": "f4f1c7807dd50b07857c568b9df3e8e2ccd6fd3870907238dc9dcfab45b493af",
+    "source_revision": "fd78fa83048a57ba5ad2e62827daf76cb94d62c1",
+    "protected_closures": "passed tools/check_realtime_candidate.py before and after execution"
+  },
+  "command": "python3 tools/check_sdk_install.py --build-dir build-sdk-cpu --output /tmp/f8-36-sdk-evidence-2 --require-realtime-driver",
+  "checkout": {
+    "revision": "f825c5430771eb5b975c8e09f495b099ff08130d",
+    "dirty": true,
+    "dirty_scope": "F8-36 freeze manifest, active-candidate routing, validation, rejection and documentation; protected closure hashes equal the candidate"
+  },
+  "host": {
+    "platform": "Linux-6.1.0-54-amd64-x86_64-with-glibc2.36",
+    "architecture": "x86_64",
+    "configuration": "Release",
+    "compiler": "GNU 12.2.0",
+    "slang": "2026.18"
+  },
+  "installed_public_profile": {
+    "runtime_variant": "cpu-runtime",
+    "driver": "build-sdk-cpu/libparallel_mater_driver_slang_cpu.so",
+    "driver_sha256": "4a457b2288c3fe4474a73acc0f602b0eda7bb7153dbcdee3c7f66e9646622a47",
+    "status": "passed",
+    "execution_identity_claimed": false,
+    "plain_observation_sha256": "55b4e6c457e9ff2d89ded37494c5ec0f466fe6a892ce7e41eaca002d78fe80e8",
+    "validation_observation_sha256": "0fb6a4ee7c51ac727fed739c41d1ea0f8d77e95766fb71ec9f394aaca70ddc3e",
+    "report_sha256": "2ce921017703d613d7ab188be569c657127754261475d7dd6d1cbaefb407e6e2"
+  },
+  "checks": [
+    {"name": "install", "exit_code": 0, "expected": 0},
+    {"name": "consumer-configure", "exit_code": 0, "expected": 0},
+    {"name": "consumer-build", "exit_code": 0, "expected": 0},
+    {"name": "consumer-tests", "exit_code": 0, "expected": 0},
+    {"name": "realtime-observation-plain", "exit_code": 0, "expected": 0},
+    {"name": "realtime-observation-validation", "exit_code": 0, "expected": 0},
+    {"name": "reject-version-0.1", "exit_code": 1, "expected": 1},
+    {"name": "reject-version-0.3", "exit_code": 1, "expected": 1},
+    {"name": "conformance-configure", "exit_code": 0, "expected": 0},
+    {"name": "conformance-build", "exit_code": 0, "expected": 0},
+    {"name": "conformance-inputs", "exit_code": 0, "expected": 0},
+    {"name": "installed-runner-inputs", "exit_code": 0, "expected": 0},
+    {"name": "unsupported-case", "exit_code": 77, "expected": 77},
+    {"name": "missing-driver", "exit_code": 2, "expected": 2}
+  ],
+  "result": "All 14 required install, consumer, production-driver execution, public-oracle, version-negative and installed-conformance checks passed. This proves candidate executability, not F8-23 physical quality or performance qualification."
+}

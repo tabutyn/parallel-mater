@@ -29,7 +29,7 @@ CAPABILITY_PATH = (
 )
 SUITE_PATH = ROOT / "conformance/v1/realtime/oracle-suite-v1.json"
 CANDIDATE_PATH = (
-    ROOT / "conformance/v1/qualification/realtime-candidate-v1.json"
+    ROOT / "conformance/v1/qualification/realtime-candidate-v2.json"
 )
 
 CAPABILITY_FIELDS = (
