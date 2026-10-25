@@ -68,6 +68,7 @@ android {
                 targets += "parallel-mater-gallery-android"
                 if (qualification) targets += listOf("pm-android-command-tests",
                     "pm-android-async-tests", "pm-android-liquid-tests",
+                    "pm-android-realtime-runtime-tests",
                     "pm-android-conformance", "pm-android-device-contracts")
             }
         }

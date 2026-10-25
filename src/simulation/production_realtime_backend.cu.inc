@@ -50,6 +50,121 @@ simulation::RealtimeScheduleScene native_realtime_scene(
     return scene;
 }
 
+[[nodiscard]] constexpr std::uint64_t realtime_identity_mix(
+    std::uint64_t hash, std::uint64_t value) noexcept {
+    constexpr std::uint64_t prime = 1099511628211ULL;
+    for (std::uint32_t byte = 0U; byte < 8U; ++byte) {
+        hash ^= (value >> (byte * 8U)) & 0xffU;
+        hash *= prime;
+    }
+    return hash;
+}
+
+[[nodiscard]] PmResult add_realtime_registration(
+    simulation::RealtimeResourceRegistration &registration,
+    std::uint32_t slot, std::uint32_t generation,
+    std::uint64_t elements, std::uint32_t operator_phases) noexcept {
+    if (elements == 0U ||
+        registration.live_slots == std::numeric_limits<std::uint32_t>::max() ||
+        elements > std::numeric_limits<std::uint64_t>::max() -
+            registration.reserved_elements)
+        return PM_ERROR_CAPACITY_EXCEEDED;
+    ++registration.live_slots;
+    registration.reserved_elements += elements;
+    auto hash = registration.identity_hash;
+    if (hash == 0U) hash = 1469598103934665603ULL;
+    hash = realtime_identity_mix(hash, slot);
+    hash = realtime_identity_mix(hash, generation);
+    hash = realtime_identity_mix(hash, elements);
+    registration.identity_hash = hash == 0U ? 1U : hash;
+    registration.operator_phases |= operator_phases;
+    return PM_SUCCESS;
+}
+
+template <typename State>
+PmResult native_realtime_registrations(
+    const State &state,
+    std::array<simulation::RealtimeResourceRegistration,
+               simulation::realtime_resource_family_count> &result) noexcept {
+    result = {};
+    const std::uint32_t common_phases =
+        simulation::realtime_phase_bit(
+            simulation::RealtimeResourcePhase::boundary) |
+        simulation::realtime_phase_bit(
+            simulation::RealtimeResourcePhase::commit);
+    auto &rigid = result[simulation::realtime_index(
+        simulation::RealtimeResourceFamily::rigid)];
+    for (std::uint32_t slot = 0U; slot < state.slots.size(); ++slot) {
+        const auto &owner = state.slots[slot];
+        if (!owner.alive) continue;
+        const auto status = add_realtime_registration(
+            rigid, slot, owner.generation, 1U,
+            common_phases |
+                simulation::realtime_domain_execution_phase_mask);
+        if (status != PM_SUCCESS) return status;
+    }
+
+    auto add_owner = [&](simulation::RealtimeResourceFamily family,
+                         std::uint32_t slot, std::uint32_t generation,
+                         std::uint64_t elements) noexcept {
+        return add_realtime_registration(
+            result[simulation::realtime_index(family)], slot, generation,
+            elements, common_phases);
+    };
+    for (std::uint32_t slot = 0U; slot < state.fluids.size(); ++slot) {
+        const auto &owner = state.fluids[slot];
+        if (!owner || !owner->alive) continue;
+        const auto status = add_owner(
+            simulation::RealtimeResourceFamily::liquid, slot,
+            owner->generation, owner->options.capacity);
+        if (status != PM_SUCCESS) return status;
+    }
+    for (std::uint32_t slot = 0U; slot < state.cloths.size(); ++slot) {
+        const auto &owner = state.cloths[slot];
+        if (!owner || !owner->alive) continue;
+        const std::uint64_t elements = owner->vertex_capacity +
+            std::uint64_t{owner->index_count} / 3U;
+        const auto status = add_owner(
+            simulation::RealtimeResourceFamily::cloth, slot,
+            owner->generation, elements);
+        if (status != PM_SUCCESS) return status;
+    }
+    for (std::uint32_t slot = 0U; slot < state.soft_bodies.size(); ++slot) {
+        const auto &owner = state.soft_bodies[slot];
+        if (!owner || !owner->alive) continue;
+        const std::uint64_t elements = owner->node_count +
+            std::uint64_t{owner->surface_vertex_count} +
+            std::uint64_t{owner->surface_index_count} / 3U;
+        const auto status = add_owner(
+            simulation::RealtimeResourceFamily::soft_body, slot,
+            owner->generation, elements);
+        if (status != PM_SUCCESS) return status;
+    }
+    for (std::uint32_t slot = 0U; slot < state.ropes.size(); ++slot) {
+        const auto &owner = state.ropes[slot];
+        if (!owner || !owner->alive) continue;
+        const std::uint64_t elements = owner->data.count +
+            std::uint64_t{owner->data.count - 1U};
+        const auto status = add_owner(
+            simulation::RealtimeResourceFamily::rope, slot,
+            owner->generation, elements);
+        if (status != PM_SUCCESS) return status;
+    }
+    for (std::uint32_t slot = 0U; slot < state.smokes.size(); ++slot) {
+        const auto &owner = state.smokes[slot];
+        if (!owner || !owner->alive) continue;
+        const bool grid = owner->options.grid_resolution != 0U;
+        const std::uint64_t elements = owner->options.capacity +
+            (grid ? std::uint64_t{owner->grid.cell_count} : 0U);
+        const auto status = add_owner(
+            grid ? simulation::RealtimeResourceFamily::grid_smoke
+                 : simulation::RealtimeResourceFamily::particle_smoke,
+            slot, owner->generation, elements);
+        if (status != PM_SUCCESS) return status;
+    }
+    return PM_SUCCESS;
+}
+
 template <typename State>
 simulation::RealtimeTelemetryLimits native_realtime_limits(
     const State &state) noexcept {
@@ -314,9 +429,6 @@ public:
 
     PmResult begin_tick(
         const simulation::RealtimeScheduleScene &scene) noexcept {
-        for (std::size_t index = 1U;
-             index < simulation::realtime_domain_count; ++index)
-            if (scene.domains[index]) return PM_ERROR_FEATURE_NOT_PRESENT;
         if (!state_.options.realtime_spatial_enabled ||
             !state_.realtime_spatial.configured() ||
             state_.rigid_body_count >
@@ -325,15 +437,28 @@ public:
                  state_.options.realtime_spatial_query_capacity ||
             state_.options.realtime_spatial_candidates_per_query == 0U)
             return PM_ERROR_FEATURE_NOT_PRESENT;
-        auto result = state_.realtime_snapshots.begin(
-            scene.input_snapshot, scene.render_snapshot);
+        std::array<simulation::RealtimeResourceRegistration,
+                   simulation::realtime_resource_family_count>
+            registrations{};
+        auto result = native_realtime_registrations(state_, registrations);
+        if (result != PM_SUCCESS) return result;
+        result = state_.realtime_resources.stage(
+            scene.tick, scene.graph_revision, scene.resource_revision,
+            scene.input_snapshot, scene.render_snapshot, registrations);
         if (result != PM_SUCCESS) return result;
         const auto fail_begin = [&](PmResult failure) noexcept {
-            state_.realtime_spatial.abort();
+            (void)state_.realtime_spatial.abort();
             if (state_.realtime_snapshots.pending())
                 (void)state_.realtime_snapshots.abort();
+            if (state_.realtime_resources.pending())
+                (void)state_.realtime_resources.abort();
             return failure;
         };
+        result = state_.realtime_snapshots.begin(
+            scene.input_snapshot, scene.render_snapshot);
+        if (result != PM_SUCCESS) return fail_begin(result);
+        result = state_.realtime_resources.execution_status();
+        if (result != PM_SUCCESS) return fail_begin(result);
 #if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
         result = state_.realtime_spatial.begin_tick(
             scene.tick, simulation::rigid_realtime_profile_version,
@@ -529,6 +654,8 @@ public:
             result = state_.realtime_spatial.publish_device(epoch_);
 #endif
         if (result != PM_SUCCESS) return result;
+        result = state_.realtime_resources.publish_spatial();
+        if (result != PM_SUCCESS) return result;
         ++work(simulation::RealtimeTelemetryPhase::index)
               .index_publications;
 #if !defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
@@ -565,8 +692,9 @@ public:
             result = state_.realtime_spatial.record_device_queries(
                 epoch_, state_.rigid_body_count);
         if (result != PM_SUCCESS) return result;
-        dispatch(simulation::RealtimeTelemetryPhase::candidates,
-                 (state_.rigid_body_count + 63U) / 64U);
+        if (state_.rigid_body_count != 0U)
+            dispatch(simulation::RealtimeTelemetryPhase::candidates,
+                     (state_.rigid_body_count + 63U) / 64U);
 #endif
         if (state_.rigid_constraint_count != 0U) {
             result = native_.build_fixed_collision_groups(
@@ -612,16 +740,18 @@ public:
 
     PmResult commit_tick(
         const simulation::RealtimeScheduleScene &) noexcept {
+        auto result = state_.realtime_resources.prepare_commit();
+        if (result != PM_SUCCESS) return result;
         if (state_.rigid_body_count != 0U) {
             constexpr std::uint32_t block = 128U;
             const auto groups =
                 (state_.rigid_body_count + block - 1U) / block;
-            auto result = native_.clear_rigid_inputs(
+            result = native_.clear_rigid_inputs(
                 groups, block, native_.queue(), state_.accumulators,
                 state_.targets, state_.rigid_body_count);
             if (result != PM_SUCCESS) return result;
         } else {
-            const auto result = native_.clear(
+            result = native_.clear(
                 state_.rigid_contact_count, 0,
                 sizeof(*state_.rigid_contact_count), native_.queue());
             if (result != PM_SUCCESS) return result;
@@ -630,6 +760,8 @@ public:
         if (spatial_result != PM_SUCCESS) return spatial_result;
         const auto snapshot_result = state_.realtime_snapshots.commit();
         if (snapshot_result != PM_SUCCESS) return snapshot_result;
+        const auto resource_result = state_.realtime_resources.commit();
+        if (resource_result != PM_SUCCESS) return resource_result;
         if (state_.rigid_body_count != 0U) {
             state_.current_state = output_state_;
             state_.rigid_contact_epoch = pending_contact_epoch_;
@@ -645,6 +777,8 @@ public:
         state_.realtime_spatial.abort();
         if (state_.realtime_snapshots.pending())
             (void)state_.realtime_snapshots.abort();
+        if (state_.realtime_resources.pending())
+            (void)state_.realtime_resources.abort();
         return PM_SUCCESS;
     }
 

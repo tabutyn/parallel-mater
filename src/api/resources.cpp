@@ -104,6 +104,83 @@ struct StructureHeader {
     return true;
 }
 
+struct RealtimeSpatialCapacities {
+    std::uint32_t leaves{};
+    std::uint32_t queries{};
+    std::uint32_t candidates_per_query{};
+};
+
+[[nodiscard]] bool add_realtime_capacity(
+    std::uint32_t &total, std::uint64_t value) noexcept {
+    if (value > std::numeric_limits<std::uint32_t>::max() - total)
+        return false;
+    total += static_cast<std::uint32_t>(value);
+    return true;
+}
+
+[[nodiscard]] bool realtime_spatial_capacities(
+    const PmSimulationCreateInfo &info,
+    RealtimeSpatialCapacities &output) noexcept {
+    output = {info.rigidBodyCapacity, info.rigidBodyCapacity,
+              info.rigidBodyCapacity};
+    for (const auto capacity :
+         std::span(info.pFluidCapacities, info.fluidCount)) {
+        if (!add_realtime_capacity(output.leaves,
+                                   capacity.particleCapacity) ||
+            !add_realtime_capacity(output.queries,
+                                   capacity.particleCapacity))
+            return false;
+        output.candidates_per_query = std::max(
+            output.candidates_per_query, 128U);
+    }
+    for (const auto capacity :
+         std::span(info.pClothCapacities, info.clothCount)) {
+        if (!add_realtime_capacity(
+                output.leaves, capacity.triangleIndexCapacity / 3U) ||
+            !add_realtime_capacity(output.queries,
+                                   capacity.vertexCapacity))
+            return false;
+        output.candidates_per_query = std::max(
+            output.candidates_per_query, 64U);
+    }
+    for (const auto capacity :
+         std::span(info.pRopeCapacities, info.ropeCount)) {
+        if (!add_realtime_capacity(
+                output.leaves,
+                std::uint64_t{capacity.nodeCapacity} * 2U - 1U) ||
+            !add_realtime_capacity(output.queries, capacity.nodeCapacity))
+            return false;
+        output.candidates_per_query = std::max(
+            output.candidates_per_query, 64U);
+    }
+    for (const auto capacity :
+         std::span(info.pSoftBodyCapacities, info.softBodyCount)) {
+        if (!add_realtime_capacity(
+                output.leaves,
+                std::uint64_t{capacity.nodeCapacity} +
+                    capacity.surfaceTriangleIndexCapacity / 3U) ||
+            !add_realtime_capacity(
+                output.queries,
+                std::uint64_t{capacity.nodeCapacity} +
+                    capacity.surfaceVertexCapacity))
+            return false;
+        output.candidates_per_query = std::max(
+            output.candidates_per_query, 64U);
+    }
+    for (const auto capacity :
+         std::span(info.pSmokeCapacities, info.smokeCount)) {
+        if (!add_realtime_capacity(output.leaves,
+                                   capacity.particleCapacity) ||
+            !add_realtime_capacity(output.queries,
+                                   capacity.particleCapacity))
+            return false;
+        output.candidates_per_query = std::max(
+            output.candidates_per_query, 128U);
+    }
+    return output.leaves != 0U && output.queries != 0U &&
+        output.candidates_per_query != 0U;
+}
+
 [[nodiscard]] bool geometry_view_fits(PmDevice device,
                                       const PmBufferView &view,
                                       PmFormat format,
@@ -178,11 +255,13 @@ struct StructureHeader {
     options.physics_debug.frame_capacity = info.debugFrameCapacity;
     options.rigid_sleeping = false;
     if (profile == PmSimulationExecutionProfile::realtime_single_step) {
+        RealtimeSpatialCapacities capacities{};
+        (void)realtime_spatial_capacities(info, capacities);
         options.realtime_spatial_enabled = true;
-        options.realtime_spatial_leaf_capacity = options.rigid_body_capacity;
-        options.realtime_spatial_query_capacity = options.rigid_body_capacity;
+        options.realtime_spatial_leaf_capacity = capacities.leaves;
+        options.realtime_spatial_query_capacity = capacities.queries;
         options.realtime_spatial_candidates_per_query =
-            options.rigid_body_capacity;
+            capacities.candidates_per_query;
     }
     return options;
 }
@@ -191,6 +270,10 @@ struct StructureHeader {
     const PmSimulationCreateInfo &info,
     PmSimulationExecutionProfile profile,
     PmSimulationMemoryRequirements &output) noexcept {
+    if (profile == PmSimulationExecutionProfile::realtime_single_step) {
+        RealtimeSpatialCapacities capacities{};
+        if (!realtime_spatial_capacities(info, capacities)) return false;
+    }
     parallel_mater::simulation::StorageRequirements base{};
     if (!parallel_mater::SimulationRuntime::base_memory_requirements(
             simulation_options(info, profile), base)) return false;
@@ -502,9 +585,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
         device, info->pNext, execution_profile);
     if (profile_result != PM_SUCCESS) return profile_result;
     if (execution_profile == PmSimulationExecutionProfile::realtime_single_step &&
-        (info->fluidCount != 0U || info->clothCount != 0U ||
-         info->ropeCount != 0U || info->softBodyCount != 0U ||
-         info->smokeCount != 0U || info->couplingCapacity != 0U ||
+        (info->couplingCapacity != 0U ||
          info->emitterCapacity != 0U || info->destroyerCapacity != 0U ||
          info->paintFieldCount != 0U || info->paintRuleCapacity != 0U ||
          info->debugFrameCapacity != 0U))

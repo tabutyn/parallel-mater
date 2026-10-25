@@ -41,6 +41,8 @@ def main():
     parser.add_argument("--output", type=Path, default=ROOT / "out/android/native-vulkan-tests")
     parser.add_argument("--timeout", type=int, default=300)
     parser.add_argument("--conformance-timeout", type=int, default=3600)
+    parser.add_argument("--native-only", action="store_true",
+                        help="Run required native adapter tests and capture provenance")
     parser.add_argument("--prepare-only", action="store_true",
                         help="Stage and verify the device payload without using adb")
     args = parser.parse_args()
@@ -58,7 +60,8 @@ def main():
     if stage.exists():
         shutil.rmtree(stage)
     stage.mkdir(parents=True, exist_ok=True)
-    tests = ("pm-android-command-tests", "pm-android-async-tests", "pm-android-liquid-tests")
+    tests = ("pm-android-command-tests", "pm-android-async-tests",
+             "pm-android-liquid-tests", "pm-android-realtime-runtime-tests")
     tools = tests + ("pm-android-conformance", "pm-android-device-contracts")
     for name in tools:
         shutil.copy2(libraries / name, stage / name)
@@ -107,6 +110,11 @@ def main():
     if cache_value(cache, "PARALLEL_MATER_SOURCE_REVISION") != source_revision:
         raise SystemExit("Qualification build is stale; rebuild it from the clean current commit")
     adb = [args.adb, "-s", args.serial]
+
+    def prop(name):
+        return subprocess.run(adb + ["shell", "getprop", name], check=True,
+                              capture_output=True, text=True).stdout.strip()
+
     subprocess.run(adb + ["shell", "rm", "-rf", REMOTE], check=True)
     subprocess.run(adb + ["shell", "mkdir", "-p", REMOTE], check=True)
     subprocess.run(adb + ["push", str(stage) + "/.", REMOTE], check=True)
@@ -153,7 +161,36 @@ def main():
         return record, stdout
 
     for name in tests:
-        run_device(name, required=True)
+        arguments = ("--production",) \
+            if name == "pm-android-realtime-runtime-tests" else ()
+        run_device(name, arguments, required=True)
+
+    if args.native_only:
+        apk = ROOT / "examples/android/app/build/outputs/apk/debug/app-debug.apk"
+        capture = {
+            "schema": "parallel-mater-android-native-capture/v1",
+            "source_commit": source_revision,
+            "apk_sha256": sha256(apk),
+            "driver_sha256": sha256(
+                stage / "libparallel_mater_driver_slang_vulkan.so"),
+            "device": {
+                "manufacturer": prop("ro.product.manufacturer"),
+                "model": prop("ro.product.model"),
+                "product": prop("ro.product.name"),
+                "android_version": prop("ro.build.version.release"),
+                "api_level": prop("ro.build.version.sdk"),
+                "security_patch": prop("ro.build.version.security_patch"),
+            },
+            "toolchain": {
+                "ndk": cache_value(cache, "CMAKE_ANDROID_NDK"),
+                "slang": cache_value(cache, "PARALLEL_MATER_SLANG_VERSION"),
+            },
+            "native_runs": results,
+        }
+        (args.output / "capture.json").write_text(
+            json.dumps(capture, indent=2) + "\n")
+        print(f"Capture written to {args.output / 'capture.json'}", flush=True)
+        return
 
     remote_results = f"{REMOTE}/results"
     subprocess.run(adb + ["shell", "mkdir", "-p", f"{remote_results}/cases",
@@ -249,10 +286,6 @@ def main():
             "kind": kind, "profile": profile,
             "report": str(report.relative_to(args.output)),
             "returncode": result.returncode, "passed": result.returncode == 0})
-
-    def prop(name):
-        return subprocess.run(adb + ["shell", "getprop", name], check=True,
-                              capture_output=True, text=True).stdout.strip()
 
     apk = ROOT / "examples/android/app/build/outputs/apk/debug/app-debug.apk"
     provenance = json.loads((args.output / "provenance.json").read_text())

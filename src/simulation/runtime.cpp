@@ -27,6 +27,7 @@
 #include "simulation/resource_plan.hpp"
 #include "simulation/primitives.hpp"
 #include "simulation/reference_schedule.hpp"
+#include "simulation/realtime_resources.hpp"
 #include "simulation/realtime_telemetry.hpp"
 #include "simulation/rigid_realtime.hpp"
 
@@ -1289,6 +1290,8 @@ struct SimulationRuntime::Impl {
     simulation::SpatialStorageBlock *realtime_rigid_spatial_scratch{};
     simulation::SpatialStorageBlock *realtime_rigid_spatial_output{};
     simulation::RealtimeSnapshotOwnership realtime_snapshots{};
+    simulation::RealtimeResourcePlan realtime_resource_plan{};
+    simulation::ProductionRealtimeResources realtime_resources{};
     simulation::RealtimeTickTelemetry realtime_telemetry{};
     simulation::RealtimeScheduleLedger realtime_ledger{};
     std::shared_ptr<CompletionState> frame{};
@@ -1914,6 +1917,39 @@ Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &o
         if (error != PM_SUCCESS)
             return backend_failure(
                 error, "failed to configure realtime spatial runtime");
+        const auto maximum_family_elements = [](
+            std::uint32_t slots, std::uint32_t fields = 1U) {
+            if (slots == 0U) return std::uint64_t{};
+            const auto per_slot =
+                std::uint64_t{std::numeric_limits<std::uint32_t>::max()} *
+                fields;
+            return slots > std::numeric_limits<std::uint64_t>::max() /
+                    per_slot
+                ? std::numeric_limits<std::uint64_t>::max()
+                : std::uint64_t{slots} * per_slot;
+        };
+        implementation->realtime_resource_plan.families = {{
+            {options.rigid_body_capacity, options.rigid_body_capacity},
+            {options.fluid_capacity,
+             maximum_family_elements(options.fluid_capacity)},
+            {options.cloth_capacity,
+             maximum_family_elements(options.cloth_capacity, 2U)},
+            {options.soft_body_capacity,
+             maximum_family_elements(options.soft_body_capacity, 3U)},
+            {options.rope_capacity,
+             maximum_family_elements(options.rope_capacity, 2U)},
+            {options.smoke_capacity,
+             maximum_family_elements(options.smoke_capacity)},
+            {options.smoke_capacity,
+             maximum_family_elements(options.smoke_capacity, 2U)},
+        }};
+        implementation->realtime_resource_plan.shared_smoke_slots =
+            options.smoke_capacity;
+        error = implementation->realtime_resources.configure(
+            implementation->realtime_resource_plan);
+        if (error != PM_SUCCESS)
+            return backend_failure(
+                error, "failed to configure realtime resource staging");
     }
     for (std::uint32_t i = 0; i < options.paint_field_capacity; ++i)
         implementation->paint_fields[i] = {};
