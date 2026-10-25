@@ -200,6 +200,7 @@ struct ScheduleContext::Impl {
     };
     struct Pipeline {
         VkPipeline pipeline{};
+        bool cross_domain_barrier{};
     };
     struct ProfilePhase {
         std::string name;
@@ -1075,7 +1076,8 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
             vkDestroyShaderModule(i.device, handle, nullptr);
             check(result, "create compute pipeline");
             try {
-                p = i.pipelines.emplace(key, Impl::Pipeline{pipeline}).first;
+                p = i.pipelines.emplace(key, Impl::Pipeline{
+                    pipeline, module == "fluid_smoke"}).first;
             } catch (...) {
                 vkDestroyPipeline(i.device, pipeline, nullptr);
                 throw;
@@ -1114,7 +1116,7 @@ void ScheduleContext::dispatch(std::string_view module, std::string_view entry,
         // The coupled module dereferences both domains through physical buffer
         // addresses. Mali requires general memory visibility across that
         // boundary; other modules retain the cheaper typed dependency.
-        if (module == "fluid_smoke")
+        if (p->second.cross_domain_barrier)
             i.cross_domain_barrier();
         else
             i.compute_barrier();
