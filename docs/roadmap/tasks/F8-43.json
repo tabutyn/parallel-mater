@@ -1,0 +1,24 @@
+{
+  "id": "F8-43",
+  "title": "Connect rope operators to production fixed ticks",
+  "status": "open",
+  "dependencies": [
+    "F8-39"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule"
+  ],
+  "requires": [
+    "Production runtime/toolchain plus applicable physical GPU; cross-platform build evidence"
+  ],
+  "scope": "Bind F8-10/F8-15 rope prediction, segment/bend/attachment constraints and commit to the native fixed-tick schedule; remove rope-driven smaller-step behavior from this path. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "An installed public rope fixture advances exactly once at 1/60 with eight fixed iterations and the shared spatial epoch; no maximum_substep_timestep escape to another scheduler.",
+    "Independent stretch, bend, attachment and tunneling limits pass on an applicable physical GPU, including cold starts, impulses and high mass ratios within the contract.",
+    "Pin/endpoint edits, reset, replacement and failed-tick recovery preserve coherent state generations and consume pending input once.",
+    "Preserve all already supported rope semantics; missing P-series capsule/pair features are not silently advertised."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

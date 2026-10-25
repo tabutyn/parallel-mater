@@ -1,6 +1,10 @@
 # F8: 60 Hz single-step simulation and shared spatial indexing
 
-Status: planning contract; no F8 implementation or qualification claimed.
+Status: implementation in progress; full production integration and device
+qualification remain incomplete. The 2026-10-25
+[single execution path decision](F8-SINGLE-EXECUTION-PATH.md) supersedes all
+optional-profile/legacy-default migration language: F8 is the sole target
+production architecture for every supported simulation and Gallery platform.
 Task cards in `tasks/F8-*.json` remain the canonical queue. This document records
 the user-directed architecture change of 2026-10-21, not a second task tracker.
 
@@ -8,7 +12,7 @@ the user-directed architecture change of 2026-10-21, not a second task tracker.
 
 1. Advance simulation exactly once by `dt = 1/60 s` per physics tick. No eight
    global substeps, hidden per-domain smaller timesteps, adaptive time subdivision,
-   or catch-up bursts in the new real-time profile. A render callback executes
+   or catch-up bursts in the production architecture. A Gallery render callback executes
    at most one physics tick. At 120/144 Hz, render between completed states;
    rendering does not increase the physics rate. At 30 Hz under load, advance
    30 ticks of 1/60 s per wall-clock second: half-speed simulation, not `dt=1/30`.
@@ -39,9 +43,18 @@ the user-directed architecture change of 2026-10-21, not a second task tracker.
 
 F8 does not add new advertised interaction modes. In particular, sharing an
 index does not establish pressure, viscosity or any other coupling capability.
-Existing modes must retain their semantics or explicitly negotiate a new profile.
+Existing interaction modes must retain their documented semantics within the
+fixed-tick quality contract. Incompatible API semantics require explicit version
+handling, not a second selectable solver.
 
-## Current architecture is not yet shared
+## Historical baseline and current integration gaps
+
+The table below describes the starting point. Completed component work does not
+establish all-domain production integration: at `8d77e5b5`, the native F8 path
+and public creation still restrict execution to rigid/query setups, and Gallery
+still selects legacy behavior. F8-39 through F8-52 close these gaps and remove
+the dual path before qualification/release. See the single execution path
+decision for exact source locations and responsibilities.
 
 Source inventory at main `4f9c43c` (reconfirm in F8-05):
 
@@ -115,10 +128,11 @@ machine-readable `conformance/v1/qualification/realtime-profile-v1.json` define
 the named/versioned profile, quantitative input and quality envelopes, exact
 iteration counts, frozen device workloads and p95 allocations before
 implementation. Lower accuracy is allowed and reported, not disguised as legacy
-conformance. Keep old-profile tests/results separate. Capability/version
-negotiation and unsupported behavior are explicit. This does not require shipping
-two solvers forever: an explicitly versioned replacement may retire the old
-implementation. Preserve its historical evidence and reject incompatible
+conformance. Keep historical tests/results separate. API/ABI compatibility and
+unsupported capabilities are explicit. The released SDK must
+contain one production schedule and no application execution-profile choice.
+F8-50 retires the old implementation and handles incompatible clients through
+API/ABI versioning. Preserve historical evidence and reject incompatible
 requests clearly instead of silently reinterpreting them.
 
 F8-03 implements independent small-scene oracles, fixed workloads and adversarial
@@ -149,12 +163,12 @@ which uninstalled optimization did or did not work.
 | Lane | Initial responsibility | Final evidence |
 |---|---|---|
 | Any host | F8-00 contract, F8-01 inventory, F8-05 design; independent planning leaves | Reviewed contracts and exact obligations, not performance claims |
-| Shared-runtime/GPU development | F8-03–21 plus F8-32, dependency-ordered | Shared kernels, profile API, fixed-step tests, scheduling and dispatch budgets |
-| Linux CPU/CUDA/Vulkan | F8-23/24/25 | Independent oracle plus physical GPU runs for each registered device |
+| Shared-runtime/GPU development | F8-03–21, F8-32–35 and F8-39–50, dependency-ordered | Shared kernels and full public production execution, fixed-step tests, scheduling and dispatch budgets |
+| Linux CPU/CUDA/Vulkan | F8-53/24/25 (F8-23 interim) | Independent oracle plus physical GPU runs for each registered device |
 | Windows CUDA/D3D12 | F8-26/27 | Same candidate/workloads on both drivers; honor P1-59 ownership |
 | macOS/iOS Metal | F8-28/29 | macOS and physical iOS/iPadOS runs, not simulator substitution |
 | Android Vulkan | F8-02 and F8-30 | Verified installed build; Pixel 7 first plus every other registered target |
-| Integration/release | F8-22, F8-31, F8-99 | Frozen candidate matrix, installed SDK/Gallery and honest exit review |
+| Integration/release | F8-51/52 then F8-31/99 | Sole-path Gallery, complete frozen candidate, deployed SDK/Gallery and exit review |
 
 F8-01 records actual OS/device/GPU/driver/toolchain owners; this table does not
 claim all those machines are currently available. Cover every registered physical
@@ -167,9 +181,13 @@ An explicitly unsupported mode is not qualified; compile-only is not execution.
 
 F8-22 froze the original source revision, which F8-23 rejected as non-executable.
 F8-36 froze `realtime-single-step-v1-fd78fa8`, which F8-23 rejected after its
-exact CPU row overflowed the frozen telemetry envelope. F8-38 freezes repaired
-replacement `realtime-single-step-v1-3671f18`; only this exact candidate can
-receive F8-23--30 evidence. Qualification leaves are test/report work, not
+exact CPU row overflowed the frozen telemetry envelope. F8-38 froze repaired
+replacement `realtime-single-step-v1-3671f18`; the live F8-23 lease qualifies that
+interim candidate without a scope change. None of these freezes establishes the
+required single-path, all-domain release. F8-52 must freeze the complete
+runtime/API/Gallery candidate after F8-39--51 and route F8-24--30 and F8-53 to
+its exact identity. F8-53 requalifies the final CPU/public-contract row; interim
+F8-23 evidence cannot replace it. Qualification leaves are test/report work, not
 permission for private platform physics. A failure gets a separately leased fix.
 Any later physics/kernel/schedule/profile change invalidates affected candidate
 rows. Freeze a new candidate and rerun affected rows (new follow-up cards if an
@@ -195,7 +213,10 @@ tasks cannot race deployment or overlapping experiments. P1-59 D3D12 parity
 retains its existing owner/contract. The completed F5-99 review remains evidence
 for the legacy implementation; new equations need new qualification.
 
-F8-99 closes only when all dependencies, device rows, quantitative quality and
+F8-99 closes only when the legacy production scheduler and execution-profile
+choice are removed, all supported domains/interactions use the sole shared
+schedule, Gallery uses it by default on all platforms, and all dependencies,
+device rows, quantitative quality and
 frame budgets pass on the final candidate, the once-per-tick invariants are
 enforced, installed clients interpolate/slow correctly, and remaining unsupported
 features are documented. Failed or missing evidence keeps the gate open.

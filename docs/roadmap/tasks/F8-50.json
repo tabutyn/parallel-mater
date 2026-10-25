@@ -1,0 +1,28 @@
+{
+  "id": "F8-50",
+  "title": "Make the fixed-tick runtime the sole public execution path",
+  "status": "open",
+  "dependencies": [
+    "F8-49"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule",
+    "registry-contract",
+    "validation-layer",
+    "realtime-profile-negotiation"
+  ],
+  "requires": [
+    "Production runtime/toolchain plus applicable physical GPU; cross-platform build evidence"
+  ],
+  "scope": "Replace the legacy-default/profile split with one production simulation architecture. Remove legacy scheduler dispatch and execution-profile selection from runtime, public registry/generated API and shipping configurations; preserve historical evidence separately. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "Normal public simulation creation and stepping execute the complete fixed-tick path on every applicable adapter without an extension/profile request, mode flag, environment variable or build-time legacy choice.",
+    "Delete unreachable legacy production scheduler/glue and selector branches; shared reusable physics helpers remain only where used. Source/symbol and public execution checks prove a single schedule for all supported domains, mixed scenes, headless, diagnostics and recovery.",
+    "Keep the create/resources/commands/submit/output application model; publish explicit API/ABI version migration when incompatible timestep/substep or layout semantics require it, and reject incompatible old requests instead of silently changing their meaning.",
+    "Update machine-readable contract negotiation, generated bindings/reference artifacts, capability/validation logic and installed C/C++ consumer tests together. A historical evidence profile identifier must not remain a selectable production engine.",
+    "Retain all currently supported domain/interaction capabilities and fixed numeric gates; unsupported-hardware reporting cannot mask a missing native binding. Cross-platform builds and meaningful public production tests pass."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

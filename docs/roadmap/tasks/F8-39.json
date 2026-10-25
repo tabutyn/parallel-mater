@@ -1,0 +1,24 @@
+{
+  "id": "F8-39",
+  "title": "Prepare common storage and atomic staging for all domains",
+  "status": "open",
+  "dependencies": [
+    "F8-38"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule"
+  ],
+  "requires": [
+    "Production runtime/toolchain plus applicable physical GPU; cross-platform build evidence"
+  ],
+  "scope": "Extend the existing native fixed-tick runtime's resource planning, staged state, domain registration and commit/abort ownership to every currently supported family. Reuse existing F8 spatial/resource services; no new execution mode or duplicate scheduler. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "Production allocation/admission tests cover rigid, liquid, cloth, soft-body, rope and both smoke representations, including empty, sparse and mixed resources; unsupported operators are rejected explicitly until their binding tasks land.",
+    "Failed allocation, overflow and pre-commit failure preserve public state, pending inputs, clock, resource lifetime and reusable capacities; reset/replacement invalidates staged generations.",
+    "Define concrete phase binding points and resource ownership for F8-40--49, with one shared spatial publication and no intra-tick host readback or global GPU wait.",
+    "Execute the production resource/lifecycle path on one applicable physical adapter and the available reference runtime; retain build/reflection coverage and explicit unavailable-device results."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

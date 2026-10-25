@@ -1,9 +1,13 @@
 # F8-04: fixed-tick presentation clock
 
-Status: implemented client contract for the explicit
+Status: implemented client clock scaffolding for the explicit
 `realtime-single-step-v1` Gallery frame profile. This clock profile does not by
 itself advertise solver execution support or select the API simulation profile;
-those remain negotiated by the F8 runtime work. `legacy-v1` remains the default.
+those remain negotiated by the F8 runtime work. `legacy-v1` remains the current
+code default. The [single execution path decision](F8-SINGLE-EXECUTION-PATH.md)
+requires F8-51 to remove this selection and make the fixed-tick clock normal
+Gallery behavior after the production runtime migration in F8-50. The default
+described here is an implementation gap, not the intended released behavior.
 
 ## Tick clock
 
