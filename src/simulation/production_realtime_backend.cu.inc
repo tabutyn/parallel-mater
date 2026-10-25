@@ -10,6 +10,22 @@ T *realtime_range(void *base,
 }
 
 template <typename State>
+PmResult native_realtime_spatial_counts(
+    const State &state, std::uint32_t &leaves,
+    std::uint32_t &queries) noexcept {
+    std::uint64_t total = state.rigid_body_count;
+    for (const auto &owner : state.fluids) {
+        if (!owner || !owner->alive) continue;
+        total += owner->options.capacity;
+        if (total > std::numeric_limits<std::uint32_t>::max())
+            return PM_ERROR_CAPACITY_EXCEEDED;
+    }
+    leaves = static_cast<std::uint32_t>(total);
+    queries = leaves;
+    return PM_SUCCESS;
+}
+
+template <typename State>
 simulation::RealtimeScheduleScene native_realtime_scene(
     const State &state, const StepOptions &options) noexcept {
     simulation::RealtimeScheduleScene scene{};
@@ -114,9 +130,12 @@ PmResult native_realtime_registrations(
     for (std::uint32_t slot = 0U; slot < state.fluids.size(); ++slot) {
         const auto &owner = state.fluids[slot];
         if (!owner || !owner->alive) continue;
-        const auto status = add_owner(
-            simulation::RealtimeResourceFamily::liquid, slot,
-            owner->generation, owner->options.capacity);
+        const auto status = add_realtime_registration(
+            result[simulation::realtime_index(
+                simulation::RealtimeResourceFamily::liquid)],
+            slot, owner->generation, owner->options.capacity,
+            common_phases |
+                simulation::realtime_domain_execution_phase_mask);
         if (status != PM_SUCCESS) return status;
     }
     for (std::uint32_t slot = 0U; slot < state.cloths.size(); ++slot) {
@@ -189,9 +208,14 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
         work.barriers += static_cast<std::uint32_t>(count);
     };
     const std::uint32_t rigid = state.rigid_body_count;
+    std::uint32_t staged_leaves{};
+    std::uint32_t staged_queries{};
+    if (native_realtime_spatial_counts(
+            state, staged_leaves, staged_queries) != PM_SUCCESS)
+        return limits;
     commit.submissions = 1U;
     index.index_publications = 1U;
-    if (rigid == 0U) {
+    if (staged_leaves == 0U) {
 #if !defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
         dispatch(boundary, 1U, 1U);
         index.bytes_moved = sizeof(std::uint32_t);
@@ -201,19 +225,40 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
         commit.bytes_moved = sizeof(std::uint32_t);
         ++commit.barriers;
     } else {
-        const std::uint64_t body_groups = (rigid + 127U) / 128U;
-        boundary.bytes_moved = sizeof(std::uint32_t) +
-            std::uint64_t{rigid} * sizeof(RigidBodyState);
-        boundary.barriers = 2U;
+        boundary.bytes_moved = sizeof(std::uint32_t);
+        boundary.barriers = 1U;
 #if !defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
         dispatch(boundary, 1U, 1U);
 #endif
-        dispatch(predict, 1U, body_groups);
-        dispatch(index, 1U, body_groups);
+        if (rigid != 0U) {
+            const std::uint64_t body_groups = (rigid + 127U) / 128U;
+            boundary.bytes_moved +=
+                std::uint64_t{rigid} * sizeof(RigidBodyState);
+            ++boundary.barriers;
+            dispatch(predict, 1U, body_groups);
+            dispatch(index, 1U, body_groups);
+        }
+        for (const auto &owner : state.fluids) {
+            if (!owner || !owner->alive) continue;
+            const auto groups =
+                (std::uint64_t{owner->options.capacity} + 127U) / 128U;
+            boundary.bytes_moved +=
+                2ULL * owner->options.capacity * sizeof(Vec3) +
+                sizeof(std::uint32_t);
+            boundary.barriers += 3U;
+            dispatch(predict, 1U, groups);
+            dispatch(index, 1U, groups);
+            dispatch(candidates, 1U, groups);
+            dispatch(domain,
+                3U * simulation::fluid_realtime_density_sweeps + 1U,
+                groups *
+                    (3U * simulation::fluid_realtime_density_sweeps + 1U));
+            dispatch(commit, 1U, groups);
+        }
         index.index_builds = 1U;
 #if !defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
         const auto spatial = simulation::spatial_build_dispatch_budget(
-            state.realtime_spatial_plan.leaf_capacity, rigid);
+            state.realtime_spatial_plan.leaf_capacity, staged_leaves);
         dispatch(index, 1U + spatial.total_dispatches,
             state.realtime_spatial_plan.build.block_capacity +
                 spatial.total_workgroups);
@@ -223,56 +268,67 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
             ++index.barriers;
         }
         dispatch(index, 1U, 1U);
-        dispatch(candidates, 1U, (rigid + 63U) / 64U);
+        dispatch(candidates, 1U, (staged_queries + 63U) / 64U);
 #endif
-        if (state.rigid_constraint_count != 0U)
-            dispatch(candidates, 1U, 1U);
-        const auto candidate_groups =
-            (std::uint64_t{state.realtime_rigid_spatial_plan
-                               .candidate_slot_capacity} + 127U) / 128U;
-        dispatch(candidates, 1U, candidate_groups);
-        dispatch(candidates, 3U,
-            2ULL * state.realtime_rigid_spatial_plan.compaction_blocks + 1U);
-        dispatch(candidates, 1U, candidate_groups);
+        if (rigid != 0U) {
+            const auto body_groups = (rigid + 127U) / 128U;
+            if (state.rigid_constraint_count != 0U)
+                dispatch(candidates, 1U, 1U);
+            const auto candidate_groups =
+                (std::uint64_t{state.realtime_rigid_spatial_plan
+                                   .candidate_slot_capacity} + 127U) / 128U;
+            dispatch(candidates, 1U, candidate_groups);
+            dispatch(candidates, 3U,
+                2ULL * state.realtime_rigid_spatial_plan.compaction_blocks +
+                    1U);
+            dispatch(candidates, 1U, candidate_groups);
 
-        const auto contact_groups = std::min<std::uint64_t>(
-            128U, std::uint64_t{rigid} * rigid);
-        const bool reduces_leaf_manifolds =
-            state.rigid_leaf_manifolds != nullptr;
-        const std::uint32_t leaf_blocks = reduces_leaf_manifolds
-            ? k_rigid_leaf_blocks_per_pair : 1U;
-        const std::uint32_t avbd_grid = std::min(
-            state.rigid_contact_grid_limit,
-            std::max(1U, (rigid + 31U) / 32U));
-        const std::uint32_t constraint_capacity =
-            state.rigid_constraint_count != 0U
-                ? state.options.rigid_constraint_capacity : 0U;
-        dispatch(domain, 1U, contact_groups); // generate leaf pairs
-        dispatch(domain, 1U, contact_groups); // finalize leaf contacts
-        dispatch(domain, 1U, contact_groups * leaf_blocks);
-        if (reduces_leaf_manifolds)
+            const auto contact_groups = std::min<std::uint64_t>(
+                128U, std::uint64_t{rigid} * rigid);
+            const bool reduces_leaf_manifolds =
+                state.rigid_leaf_manifolds != nullptr;
+            const std::uint32_t leaf_blocks = reduces_leaf_manifolds
+                ? k_rigid_leaf_blocks_per_pair : 1U;
+            const std::uint32_t avbd_grid = std::min(
+                state.rigid_contact_grid_limit,
+                std::max(1U, (rigid + 31U) / 32U));
+            const std::uint32_t constraint_capacity =
+                state.rigid_constraint_count != 0U
+                    ? state.options.rigid_constraint_capacity : 0U;
             dispatch(domain, 1U, contact_groups);
-        dispatch(domain, 1U, contact_groups); // finalize body contacts
-        dispatch(domain, 1U, 1U); // prepare public contact events
-        dispatch(domain, 1U, contact_groups); // load contact cache
-        dispatch(domain, 1U,
-            NativeScheduleBackend::realtime_geometry_prepare_workgroups(
-                avbd_grid));
-        dispatch(domain,
-            NativeScheduleBackend::realtime_geometry_solve_dispatches(rigid),
-            NativeScheduleBackend::realtime_geometry_solve_workgroups(
-                rigid, avbd_grid));
-        if (!NativeScheduleBackend::geometry_constraints_inline_speed_clamp(
-                rigid, constraint_capacity, avbd_grid))
-            dispatch(domain, 1U, body_groups);
-        dispatch(domain, 1U, contact_groups); // save contact cache
-        domain.numerical_iterations = simulation::rigid_realtime_sweeps;
-        if (state.rigid_contact_revision != state.revision) {
-            domain.bytes_moved = std::uint64_t{rigid} * rigid *
-                sizeof(*state.rigid_contact_cache_slots);
-            ++domain.barriers;
+            dispatch(domain, 1U, contact_groups);
+            dispatch(domain, 1U, contact_groups * leaf_blocks);
+            if (reduces_leaf_manifolds)
+                dispatch(domain, 1U, contact_groups);
+            dispatch(domain, 1U, contact_groups);
+            dispatch(domain, 1U, 1U);
+            dispatch(domain, 1U, contact_groups);
+            dispatch(domain, 1U,
+                NativeScheduleBackend::realtime_geometry_prepare_workgroups(
+                    avbd_grid));
+            dispatch(domain,
+                NativeScheduleBackend::realtime_geometry_solve_dispatches(
+                    rigid),
+                NativeScheduleBackend::realtime_geometry_solve_workgroups(
+                    rigid, avbd_grid));
+            if (!NativeScheduleBackend::geometry_constraints_inline_speed_clamp(
+                    rigid, constraint_capacity, avbd_grid))
+                dispatch(domain, 1U, body_groups);
+            dispatch(domain, 1U, contact_groups);
+            if (state.rigid_contact_revision != state.revision) {
+                domain.bytes_moved += std::uint64_t{rigid} * rigid *
+                    sizeof(*state.rigid_contact_cache_slots);
+                ++domain.barriers;
+            }
+            dispatch(commit, 1U, body_groups);
+        } else {
+            commit.bytes_moved += sizeof(std::uint32_t);
+            ++commit.barriers;
         }
-        dispatch(commit, 1U, body_groups);
+        domain.numerical_iterations =
+            (rigid != 0U ? simulation::rigid_realtime_sweeps : 0U) +
+            (state.fluid_count != 0U
+                ? simulation::fluid_realtime_density_sweeps : 0U);
     }
     for (const auto &phase : limits.phase_maximum)
         (void)simulation::realtime_telemetry_detail::add(
@@ -313,18 +369,22 @@ template <typename State>
 simulation::RealtimeWorkCounters native_realtime_minimum(
     const State &state) noexcept {
     const bool rigid = state.rigid_body_count != 0U;
+    const bool fluid = state.fluid_count != 0U;
+    const bool domain = rigid || fluid;
     return {
-        .dispatches = rigid ? 1U : 0U,
-        .workgroups = rigid ? 1U : 0U,
+        .dispatches = domain ? 1U : 0U,
+        .workgroups = domain ? 1U : 0U,
         .bytes_moved = rigid
             ? std::uint64_t{state.rigid_body_count} * sizeof(RigidBodyState)
-            : 0U,
-        .index_builds = rigid ? 1U : 0U,
+            : (fluid ? sizeof(Vec3) : 0U),
+        .index_builds = domain ? 1U : 0U,
         .index_refits = 0U,
         .index_publications = 1U,
         .numerical_iterations = rigid
-            ? simulation::rigid_realtime_sweeps : 0U,
-        .barriers = rigid ? 1U : 0U,
+            ? simulation::rigid_realtime_sweeps +
+                (fluid ? simulation::fluid_realtime_density_sweeps : 0U)
+            : (fluid ? simulation::fluid_realtime_density_sweeps : 0U),
+        .barriers = domain ? 1U : 0U,
         .submissions = 1U,
         .readbacks = 0U,
         .host_waits = 0U,
@@ -338,28 +398,34 @@ native_realtime_phase_minimum(const State &state) noexcept {
     std::array<simulation::RealtimeWorkCounters,
                simulation::realtime_telemetry_phase_count> minimum{};
     const bool rigid = state.rigid_body_count != 0U;
+    const bool fluid = state.fluid_count != 0U;
+    const bool any_domain = rigid || fluid;
     auto &index = minimum[simulation::realtime_index(
         simulation::RealtimeTelemetryPhase::index)];
     index.index_publications = 1U;
-    if (rigid) index.index_builds = 1U;
+    if (any_domain) index.index_builds = 1U;
     auto &domain = minimum[simulation::realtime_index(
         simulation::RealtimeTelemetryPhase::domain)];
-    if (rigid) {
+    if (any_domain) {
         domain.dispatches = 1U;
         domain.workgroups = 1U;
-        domain.numerical_iterations = simulation::rigid_realtime_sweeps;
+        domain.numerical_iterations =
+            (rigid ? simulation::rigid_realtime_sweeps : 0U) +
+            (fluid ? simulation::fluid_realtime_density_sweeps : 0U);
         domain.barriers = 1U;
     }
     auto &commit = minimum[simulation::realtime_index(
         simulation::RealtimeTelemetryPhase::commit)];
     commit.submissions = 1U;
-    if (rigid) {
+    if (rigid || fluid) {
         commit.dispatches = 1U;
         commit.workgroups = 1U;
-    } else {
-        commit.bytes_moved = sizeof(std::uint32_t);
     }
-    commit.barriers = 1U;
+    if (!rigid) {
+        commit.bytes_moved = sizeof(std::uint32_t);
+        ++commit.barriers;
+    }
+    if (rigid || fluid) ++commit.barriers;
     return minimum;
 }
 
@@ -429,14 +495,38 @@ public:
 
     PmResult begin_tick(
         const simulation::RealtimeScheduleScene &scene) noexcept {
+        auto count_result = native_realtime_spatial_counts(
+            state_, staged_leaves_, staged_queries_);
+        if (count_result != PM_SUCCESS) return count_result;
         if (!state_.options.realtime_spatial_enabled ||
             !state_.realtime_spatial.configured() ||
-            state_.rigid_body_count >
+            staged_leaves_ >
                  state_.options.realtime_spatial_leaf_capacity ||
-            state_.rigid_body_count >
+            staged_queries_ >
                  state_.options.realtime_spatial_query_capacity ||
             state_.options.realtime_spatial_candidates_per_query == 0U)
             return PM_ERROR_FEATURE_NOT_PRESENT;
+        std::uint32_t fluid_offset = state_.rigid_body_count;
+        for (auto &owner : state_.fluids) {
+            if (!owner || !owner->alive) continue;
+            const auto &fluid = *owner;
+            const auto material = simulation::validate_fluid_realtime_input({
+                0.0F, fluid.options.support_radius,
+                fluid.options.particle_radius, fluid.options.rest_density,
+                fluid.options.rest_particle_volume,
+                fluid.options.maximum_speed,
+                vector_length(options_.gravity) * scene.timestep *
+                    scene.timestep,
+                simulation::fluid_realtime_maximum_correction_fraction *
+                    fluid.options.support_radius,
+                fluid.options.repulsion, fluid.options.viscosity,
+                fluid.options.normal_damping,
+                fluid.options.velocity_damping});
+            if (material != PM_SUCCESS) return material;
+            owner->realtime_leaf_offset = fluid_offset;
+            owner->realtime_query_offset = fluid_offset;
+            fluid_offset += owner->options.capacity;
+        }
         std::array<simulation::RealtimeResourceRegistration,
                    simulation::realtime_resource_family_count>
             registrations{};
@@ -463,18 +553,18 @@ public:
         result = state_.realtime_spatial.begin_tick(
             scene.tick, simulation::rigid_realtime_profile_version,
             scene.graph_revision, scene.resource_revision,
-            state_.rigid_body_count);
+            staged_leaves_);
 #else
         result = state_.realtime_spatial.begin_device_tick(
             scene.tick, simulation::rigid_realtime_profile_version,
             scene.graph_revision, scene.resource_revision,
-            state_.rigid_body_count);
+            staged_leaves_);
 #endif
         if (result != PM_SUCCESS) return fail_begin(result);
         snapshot_ = state_.realtime_spatial.staging_snapshot();
         if (!snapshot_) return fail_begin(PM_ERROR_INVALID_STATE);
 #if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
-        if (state_.rigid_body_count == 0U) {
+        if (staged_leaves_ == 0U) {
             result = state_.realtime_spatial.update(
                 simulation::SpatialUpdateKind::empty);
             if (result != PM_SUCCESS) return fail_begin(result);
@@ -492,13 +582,13 @@ public:
             {snapshot_.token.tick, snapshot_.token.graph_revision,
              snapshot_.token.resource_revision,
              snapshot_.token.profile_version, snapshot_.token.generation,
-             state_.rigid_body_count,
-             static_cast<std::uint32_t>(state_.rigid_body_count == 0U
+             staged_leaves_,
+             static_cast<std::uint32_t>(staged_leaves_ == 0U
                  ? simulation::SpatialUpdateKind::empty
                  : simulation::SpatialUpdateKind::build)});
         if (result != PM_SUCCESS) return fail_begin(result);
         dispatch(simulation::RealtimeTelemetryPhase::boundary, 1U);
-        if (state_.rigid_body_count == 0U) {
+        if (staged_leaves_ == 0U) {
             auto *active_count = realtime_range<std::uint32_t>(
                 snapshot_.build_scratch,
                 state_.realtime_spatial_plan.build.active_count);
@@ -513,7 +603,7 @@ public:
             ++index.barriers;
         }
 #endif
-        if (state_.rigid_body_count == 0U) {
+        if (staged_leaves_ == 0U) {
             stage_commit_measurement();
             return PM_SUCCESS;
         }
@@ -534,27 +624,72 @@ public:
 
     PmResult boundary(
         const simulation::RealtimeScheduleScene &) noexcept {
-        if (state_.rigid_body_count == 0U) return PM_SUCCESS;
-        const std::size_t bytes = std::size_t(state_.rigid_body_count) *
-            sizeof(RigidBodyState);
-        const auto result = native_.copy(
-            state_.render_previous_states,
-            state_.states[state_.current_state], bytes,
-            device::CopyDirection::device_to_device, native_.queue());
-        if (result == PM_SUCCESS) {
-            auto &boundary_work = work(
-                simulation::RealtimeTelemetryPhase::boundary);
+        auto &boundary_work = work(
+            simulation::RealtimeTelemetryPhase::boundary);
+        if (state_.rigid_body_count != 0U) {
+            const std::size_t bytes = std::size_t(state_.rigid_body_count) *
+                sizeof(RigidBodyState);
+            const auto result = native_.copy(
+                state_.render_previous_states,
+                state_.states[state_.current_state], bytes,
+                device::CopyDirection::device_to_device, native_.queue());
+            if (result != PM_SUCCESS) return result;
             boundary_work.bytes_moved += bytes;
             ++boundary_work.barriers;
         }
-        return result;
+        for (auto &owner : state_.fluids) {
+            if (!owner || !owner->alive) continue;
+            auto &fluid = *owner;
+            const auto bytes = std::size_t(fluid.options.capacity) *
+                sizeof(Vec3);
+            auto result = native_.copy(
+                fluid.next_positions, fluid.positions, bytes,
+                device::CopyDirection::device_to_device, native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.copy(
+                    fluid.next_velocities, fluid.velocities, bytes,
+                    device::CopyDirection::device_to_device, native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(
+                    fluid.realtime_time_advances, 0,
+                    sizeof(*fluid.realtime_time_advances), native_.queue());
+            if (result != PM_SUCCESS) return result;
+            boundary_work.bytes_moved += 2U * bytes +
+                sizeof(*fluid.realtime_time_advances);
+            boundary_work.barriers += 3U;
+        }
+        return PM_SUCCESS;
     }
 
     PmResult predict(simulation::RealtimeDomain domain,
                      const simulation::RealtimeScheduleScene &scene) noexcept {
+        constexpr std::uint32_t block = 128U;
+        if (domain == simulation::RealtimeDomain::fluid) {
+            for (auto &owner : state_.fluids) {
+                if (!owner || !owner->alive) continue;
+                auto &fluid = *owner;
+                const auto groups =
+                    (fluid.options.capacity + block - 1U) / block;
+                const auto constants = native_.fluid_constants(
+                    fluid.options, options_.gravity, scene.timestep,
+                    fluid.options.capacity);
+                native_.predict_fluid_realtime(
+                    groups, block, native_.queue(), fluid.next_positions,
+                    fluid.next_velocities, fluid.previous, fluid.count,
+                    fluid.options.capacity, constants, &options_.gravity.x,
+                    scene.timestep,
+                    simulation::fluid_realtime_profile_version,
+                    fluid.realtime_accumulated_corrections,
+                    fluid.realtime_time_advances, snapshot_.query_status);
+                const auto result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatch(simulation::RealtimeTelemetryPhase::predict,
+                         groups);
+            }
+            return PM_SUCCESS;
+        }
         if (domain != simulation::RealtimeDomain::rigid)
             return PM_ERROR_FEATURE_NOT_PRESENT;
-        constexpr std::uint32_t block = 128U;
         const auto groups = (state_.rigid_body_count + block - 1U) / block;
         const auto result = native_.integrate_rigid_bodies(
             groups, block, native_.queue(), state_.parameters,
@@ -576,27 +711,67 @@ public:
         const auto groups = (state_.rigid_body_count + block - 1U) / block;
         const float path_deviation[3]{};
         const float correction_budget[3]{1.0F, 1.0F, 1.0F};
-        auto *query_bounds = rigid<simulation::SpatialAabb>(
-            state_.realtime_rigid_spatial_plan.query_bounds);
-        auto *query_masks = rigid<std::uint32_t>(
-            state_.realtime_rigid_spatial_plan.query_masks);
-        auto *excluded = rigid<std::uint32_t>(
-            state_.realtime_rigid_spatial_plan.excluded_sort_keys);
-        auto result = native_.emit_rigid_spatial_proxies(
-            groups, block, native_.queue(), state_.parameters,
-            state_.states[state_.current_state], state_.states[output_state_],
-            state_.meshes, state_.options.triangle_mesh_capacity, state_.ids,
-            state_.rigid_body_count, 0U,
-            state_.realtime_spatial_plan.leaf_capacity, 0U,
-            static_cast<std::uint32_t>(
-                scene.graph_revision %
-                (std::numeric_limits<std::uint32_t>::max() - 1U)) + 1U,
-            simulation::rigid_spatial_query_mask, path_deviation,
-            correction_budget, 1.0e-5F, snapshot_.metadata,
-            snapshot_.bounds, snapshot_.build_flags, query_bounds,
-            query_masks, excluded, snapshot_.query_status);
-        if (result != PM_SUCCESS) return result;
-        dispatch(simulation::RealtimeTelemetryPhase::index, groups);
+        auto *query_bounds = state_.realtime_query_bounds;
+        auto *query_masks = state_.realtime_query_masks;
+        auto *excluded = state_.realtime_excluded_sort_keys;
+        auto result = PM_SUCCESS;
+        if (state_.rigid_body_count != 0U) {
+            result = native_.emit_rigid_spatial_proxies(
+                groups, block, native_.queue(), state_.parameters,
+                state_.states[state_.current_state],
+                state_.states[output_state_], state_.meshes,
+                state_.options.triangle_mesh_capacity, state_.ids,
+                state_.rigid_body_count, 0U,
+                state_.realtime_spatial_plan.leaf_capacity, 0U,
+                static_cast<std::uint32_t>(
+                    scene.graph_revision %
+                    (std::numeric_limits<std::uint32_t>::max() - 1U)) + 1U,
+                simulation::rigid_spatial_query_mask, path_deviation,
+                correction_budget, 1.0e-5F, snapshot_.metadata,
+                snapshot_.bounds, snapshot_.build_flags, query_bounds,
+                query_masks, excluded, snapshot_.query_status);
+            if (result != PM_SUCCESS) return result;
+            dispatch(simulation::RealtimeTelemetryPhase::index, groups);
+        }
+        auto *query_leaf_sources = fluid_spatial<std::uint32_t>(
+            state_.realtime_fluid_spatial_plan.query_leaf_sources);
+        for (std::uint32_t slot = 0U; slot < state_.fluids.size(); ++slot) {
+            auto &owner = state_.fluids[slot];
+            if (!owner || !owner->alive) continue;
+            auto &fluid = *owner;
+            const auto fluid_groups =
+                (fluid.options.capacity + block - 1U) / block;
+            const float fluid_correction[3]{
+                simulation::fluid_realtime_maximum_correction_fraction *
+                    fluid.options.support_radius,
+                simulation::fluid_realtime_maximum_correction_fraction *
+                    fluid.options.support_radius,
+                simulation::fluid_realtime_maximum_correction_fraction *
+                    fluid.options.support_radius};
+            native_.emit_fluid_spatial_particles(
+                fluid_groups, block, native_.queue(), fluid.positions,
+                fluid.next_positions, fluid.ids, fluid.count,
+                fluid.options.capacity, slot, fluid.generation,
+                static_cast<std::uint32_t>(
+                    scene.graph_revision %
+                    (std::numeric_limits<std::uint32_t>::max() - 1U)) + 1U,
+                fluid.realtime_leaf_offset,
+                state_.realtime_spatial_plan.leaf_capacity,
+                fluid.realtime_query_offset,
+                state_.realtime_spatial_plan.query_capacity,
+                fluid.realtime_leaf_offset,
+                simulation::fluid_spatial_query_mask,
+                simulation::fluid_spatial_query_mask, 0.0F,
+                fluid.options.support_radius, path_deviation,
+                fluid_correction, 1.0e-5F, snapshot_.metadata,
+                snapshot_.bounds, snapshot_.build_flags, query_bounds,
+                query_masks, excluded, query_leaf_sources,
+                snapshot_.query_status);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatch(simulation::RealtimeTelemetryPhase::index,
+                     fluid_groups);
+        }
 #if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
         result = state_.realtime_spatial.update(
             simulation::SpatialUpdateKind::build);
@@ -611,14 +786,14 @@ public:
             snapshot_.build_scratch};
         result = simulation::build_spatial_index_device(
             native_.queue(), state_.realtime_spatial_plan.build, buffers,
-            excluded, state_.rigid_body_count);
+            excluded, staged_leaves_);
         if (result != PM_SUCCESS) return result;
         result = state_.realtime_spatial.record_device_update(
             simulation::SpatialUpdateKind::build);
         if (result != PM_SUCCESS) return result;
         const auto budget = simulation::spatial_build_dispatch_budget(
             state_.realtime_spatial_plan.leaf_capacity,
-            state_.rigid_body_count);
+            staged_leaves_);
         dispatches(simulation::RealtimeTelemetryPhase::index,
                    1U + budget.total_dispatches,
                    state_.realtime_spatial_plan.build.block_capacity +
@@ -661,14 +836,11 @@ public:
 #if !defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
         dispatch(simulation::RealtimeTelemetryPhase::index, 1U);
 #endif
-        auto *query_bounds = rigid<simulation::SpatialAabb>(
-            state_.realtime_rigid_spatial_plan.query_bounds);
-        auto *query_masks = rigid<std::uint32_t>(
-            state_.realtime_rigid_spatial_plan.query_masks);
-        auto *excluded = rigid<std::uint32_t>(
-            state_.realtime_rigid_spatial_plan.excluded_sort_keys);
+        auto *query_bounds = state_.realtime_query_bounds;
+        auto *query_masks = state_.realtime_query_masks;
+        auto *excluded = state_.realtime_excluded_sort_keys;
 #if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
-        for (std::uint32_t index = 0U; index < state_.rigid_body_count;
+        for (std::uint32_t index = 0U; index < staged_queries_;
              ++index) {
             result = state_.realtime_spatial.query(
                 epoch_, index, query_bounds[index], query_masks[index],
@@ -686,16 +858,52 @@ public:
         result = simulation::query_spatial_epoch_device(
             native_.queue(), state_.realtime_spatial_plan.build,
             query_buffers, query_bounds, query_masks, excluded,
-            state_.rigid_body_count,
+            staged_queries_,
             state_.options.realtime_spatial_candidates_per_query);
         if (result == PM_SUCCESS)
             result = state_.realtime_spatial.record_device_queries(
-                epoch_, state_.rigid_body_count);
+                epoch_, staged_queries_);
         if (result != PM_SUCCESS) return result;
-        if (state_.rigid_body_count != 0U)
+        if (staged_queries_ != 0U)
             dispatch(simulation::RealtimeTelemetryPhase::candidates,
-                     (state_.rigid_body_count + 63U) / 64U);
+                     (staged_queries_ + 63U) / 64U);
 #endif
+        constexpr std::uint32_t block = 128U;
+        const auto candidates_per_query =
+            state_.options.realtime_spatial_candidates_per_query;
+        auto *query_leaf_sources = fluid_spatial<std::uint32_t>(
+            state_.realtime_fluid_spatial_plan.query_leaf_sources);
+        auto *filtered_counts = fluid_spatial<std::uint32_t>(
+            state_.realtime_fluid_spatial_plan.filtered_counts);
+        auto *filtered_sources = fluid_spatial<std::uint32_t>(
+            state_.realtime_fluid_spatial_plan.filtered_sources);
+        for (std::uint32_t slot = 0U; slot < state_.fluids.size(); ++slot) {
+            auto &owner = state_.fluids[slot];
+            if (!owner || !owner->alive) continue;
+            auto &fluid = *owner;
+            const auto groups =
+                (fluid.options.capacity + block - 1U) / block;
+            const auto query_offset = fluid.realtime_query_offset;
+            native_.filter_fluid_spatial_candidates(
+                groups, block, native_.queue(), snapshot_.metadata,
+                snapshot_.admission,
+                state_.realtime_spatial_plan.leaf_capacity,
+                query_leaf_sources + query_offset, fluid.options.capacity,
+                slot, fluid.generation, fluid.ids, fluid.count,
+                fluid.options.capacity, slot, fluid.generation, fluid.ids,
+                fluid.count, fluid.options.capacity,
+                snapshot_.query_counts + query_offset,
+                snapshot_.query_candidates +
+                    std::size_t(query_offset) * candidates_per_query,
+                candidates_per_query, filtered_counts + query_offset,
+                filtered_sources +
+                    std::size_t(query_offset) * candidates_per_query,
+                snapshot_.query_status);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatch(simulation::RealtimeTelemetryPhase::candidates,
+                     groups);
+        }
         if (state_.rigid_constraint_count != 0U) {
             result = native_.build_fixed_collision_groups(
                 1U, 1U, native_.queue(), state_.rigid_constraints,
@@ -710,6 +918,116 @@ public:
     PmResult solve_domain(
         simulation::RealtimeDomain domain, std::uint32_t iteration,
         const simulation::RealtimeScheduleScene &scene) noexcept {
+        if (domain == simulation::RealtimeDomain::fluid) {
+            ++work(simulation::RealtimeTelemetryPhase::domain)
+                  .numerical_iterations;
+            const auto *counters = state_.realtime_spatial.counters(epoch_);
+            if (counters == nullptr) return PM_ERROR_INVALID_STATE;
+            constexpr std::uint32_t block = 128U;
+            const auto candidates_per_query =
+                state_.options.realtime_spatial_candidates_per_query;
+            auto *query_leaf_sources = fluid_spatial<std::uint32_t>(
+                state_.realtime_fluid_spatial_plan.query_leaf_sources);
+            auto *filtered_counts = fluid_spatial<std::uint32_t>(
+                state_.realtime_fluid_spatial_plan.filtered_counts);
+            auto *filtered_sources = fluid_spatial<std::uint32_t>(
+                state_.realtime_fluid_spatial_plan.filtered_sources);
+            for (auto &owner : state_.fluids) {
+                if (!owner || !owner->alive) continue;
+                auto &fluid = *owner;
+                const auto groups =
+                    (fluid.options.capacity + block - 1U) / block;
+                const auto query_offset = fluid.realtime_query_offset;
+                auto *local_query_sources =
+                    query_leaf_sources + query_offset;
+                auto *local_filtered_counts =
+                    filtered_counts + query_offset;
+                auto *local_filtered_sources = filtered_sources +
+                    std::size_t(query_offset) * candidates_per_query;
+                const auto constants = native_.fluid_constants(
+                    fluid.options, options_.gravity, scene.timestep,
+                    fluid.options.capacity);
+                if (iteration == 0U) {
+                    const auto budget = simulation::fluid_realtime_work_budget(
+                        fluid.options.capacity, fluid.options.capacity,
+                        candidates_per_query);
+                    auto result = fluid.realtime_contract.begin(
+                        epoch_, *counters, budget);
+                    if (result != PM_SUCCESS) return result;
+                    result = fluid.realtime_contract.record_advance(
+                        scene.timestep, scene.substeps);
+                    if (result != PM_SUCCESS) return result;
+                }
+                native_.solve_fluid_realtime_density(
+                    groups, block, native_.queue(), snapshot_.metadata,
+                    snapshot_.admission,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    local_query_sources, fluid.options.capacity,
+                    fluid.next_positions, fluid.count,
+                    fluid.options.capacity, local_filtered_counts,
+                    local_filtered_sources, candidates_per_query, constants,
+                    scene.timestep,
+                    simulation::fluid_realtime_profile_version,
+                    fluid.foam_source, fluid.next_foam,
+                    snapshot_.query_status);
+                auto result = native_.check_error();
+                if (result == PM_SUCCESS) {
+                    native_.solve_fluid_realtime_position_delta(
+                        groups, block, native_.queue(), snapshot_.metadata,
+                        snapshot_.admission,
+                        state_.realtime_spatial_plan.leaf_capacity,
+                        local_query_sources, fluid.options.capacity,
+                        fluid.next_positions, fluid.count,
+                        fluid.options.capacity, local_filtered_counts,
+                        local_filtered_sources, candidates_per_query,
+                        constants, scene.timestep,
+                        simulation::fluid_realtime_profile_version,
+                        fluid.next_foam,
+                        fluid.realtime_accumulated_corrections,
+                        fluid.realtime_position_deltas,
+                        snapshot_.query_status);
+                    result = native_.check_error();
+                }
+                if (result == PM_SUCCESS) {
+                    native_.apply_fluid_realtime_position_delta(
+                        groups, block, native_.queue(), fluid.next_positions,
+                        fluid.realtime_position_deltas,
+                        fluid.realtime_accumulated_corrections, fluid.count,
+                        fluid.options.capacity, scene.timestep,
+                        simulation::fluid_realtime_profile_version, constants,
+                        snapshot_.query_status);
+                    result = native_.check_error();
+                }
+                if (result != PM_SUCCESS) return result;
+                dispatches(simulation::RealtimeTelemetryPhase::domain, 3U,
+                           3ULL * groups);
+                result = fluid.realtime_contract.record_sweep(
+                    epoch_, *counters);
+                if (result != PM_SUCCESS) return result;
+                if (iteration + 1U ==
+                    simulation::fluid_realtime_density_sweeps) {
+                    native_.solve_fluid_realtime_viscosity(
+                        groups, block, native_.queue(), snapshot_.metadata,
+                        snapshot_.admission,
+                        state_.realtime_spatial_plan.leaf_capacity,
+                        local_query_sources, fluid.options.capacity,
+                        fluid.next_positions, fluid.next_velocities,
+                        fluid.count, fluid.options.capacity,
+                        local_filtered_counts, local_filtered_sources,
+                        candidates_per_query, constants, scene.timestep,
+                        simulation::fluid_realtime_profile_version,
+                        fluid.foam_source, fluid.realtime_velocity_deltas,
+                        snapshot_.query_status);
+                    result = native_.check_error();
+                    if (result != PM_SUCCESS) return result;
+                    dispatch(simulation::RealtimeTelemetryPhase::domain,
+                             groups);
+                    result = fluid.realtime_contract.finish();
+                    if (result != PM_SUCCESS) return result;
+                }
+            }
+            return PM_SUCCESS;
+        }
         if (domain != simulation::RealtimeDomain::rigid)
             return PM_ERROR_FEATURE_NOT_PRESENT;
         ++work(simulation::RealtimeTelemetryPhase::domain)
@@ -739,11 +1057,29 @@ public:
     }
 
     PmResult commit_tick(
-        const simulation::RealtimeScheduleScene &) noexcept {
+        const simulation::RealtimeScheduleScene &scene) noexcept {
         auto result = state_.realtime_resources.prepare_commit();
         if (result != PM_SUCCESS) return result;
+        constexpr std::uint32_t block = 128U;
+        for (auto &owner : state_.fluids) {
+            if (!owner || !owner->alive) continue;
+            auto &fluid = *owner;
+            const auto groups =
+                (fluid.options.capacity + block - 1U) / block;
+            const auto constants = native_.fluid_constants(
+                fluid.options, options_.gravity, scene.timestep,
+                fluid.options.capacity);
+            native_.commit_fluid_realtime(
+                groups, block, native_.queue(), fluid.next_positions,
+                fluid.previous, fluid.next_velocities,
+                fluid.realtime_velocity_deltas, fluid.count,
+                fluid.options.capacity, constants, scene.timestep,
+                simulation::fluid_realtime_profile_version,
+                snapshot_.query_status);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+        }
         if (state_.rigid_body_count != 0U) {
-            constexpr std::uint32_t block = 128U;
             const auto groups =
                 (state_.rigid_body_count + block - 1U) / block;
             result = native_.clear_rigid_inputs(
@@ -765,6 +1101,11 @@ public:
         if (state_.rigid_body_count != 0U) {
             state_.current_state = output_state_;
             state_.rigid_contact_epoch = pending_contact_epoch_;
+        }
+        for (auto &owner : state_.fluids) {
+            if (!owner || !owner->alive) continue;
+            std::swap(owner->positions, owner->next_positions);
+            std::swap(owner->velocities, owner->next_velocities);
         }
         ++state_.frame_index;
         ++state_.revision;
@@ -809,6 +1150,12 @@ private:
                                  range);
     }
 
+    template <typename T>
+    T *fluid_spatial(simulation::SpatialBufferRange range) const noexcept {
+        return realtime_range<T>(state_.realtime_fluid_spatial_scratch,
+                                 range);
+    }
+
     simulation::RealtimeWorkCounters &work(
         simulation::RealtimeTelemetryPhase phase) noexcept {
         return pending_.phases[simulation::realtime_index(phase)];
@@ -838,6 +1185,12 @@ private:
         } else {
             entry.bytes_moved += sizeof(*state_.rigid_contact_count);
             ++entry.barriers;
+        }
+        for (const auto &owner : state_.fluids) {
+            if (!owner || !owner->alive) continue;
+            const auto groups =
+                (owner->options.capacity + 127U) / 128U;
+            dispatch(simulation::RealtimeTelemetryPhase::commit, groups);
         }
     }
 
@@ -1052,6 +1405,8 @@ private:
     simulation::RigidRealtimeTickContract rigid_contract_{};
     std::uint32_t output_state_{};
     std::uint64_t pending_contact_epoch_{};
+    std::uint32_t staged_leaves_{};
+    std::uint32_t staged_queries_{};
 };
 
 template <typename State>
