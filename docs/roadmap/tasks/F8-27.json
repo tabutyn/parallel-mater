@@ -5,6 +5,7 @@
   "dependencies": [
     "F8-22",
     "F8-36",
+    "F8-38",
     "P1-59"
   ],
   "locks": [
@@ -13,7 +14,7 @@
   "requires": [
     "Registered physical Windows D3D12 devices including GTX 1080 and merged P1-59 parity"
   ],
-  "scope": "Execute and report only replacement candidate realtime-single-step-v1-fd78fa8 from F8-36; rejected candidate evidence is invalid and cannot be unioned: Each registered Windows D3D12 tuple; retain the existing P1-59 owner and parity gate. This is qualification, not authority to introduce unreviewed solver fixes. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "scope": "Candidate realtime-single-step-v1-fd78fa8 from F8-36 failed a required row and is rejected for qualification. Execute and report only the single replacement candidate frozen by F8-38 after its exact routing is planned; rejected candidate evidence is invalid and cannot be unioned: Each registered Windows D3D12 tuple; retain the existing P1-59 owner and parity gate. This is qualification, not authority to introduce unreviewed solver fixes. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
   "acceptance": [
     "Run every applicable kernel/variant, domain, coupling, lifecycle and negative case in the frozen matrix; record unsupported and missing cases explicitly. All required rows must execute and pass.",
     "Prove one dt=1/60 advance and one spatial publication per tick; verify high-rate interpolation, low-rate slow-motion, no catch-up and fixed dispatch/iteration/synchronization budgets.",

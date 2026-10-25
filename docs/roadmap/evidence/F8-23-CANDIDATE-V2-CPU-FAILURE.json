@@ -1,0 +1,76 @@
+{
+  "schema": "parallel-mater-realtime-cpu-capture/v1",
+  "status": "failed-required-row",
+  "source": "installed-public-api",
+  "driver_private_state_used": false,
+  "candidate": {
+    "id": "realtime-single-step-v1-fd78fa8",
+    "manifest_sha256": "f4f1c7807dd50b07857c568b9df3e8e2ccd6fd3870907238dc9dcfab45b493af",
+    "source_revision": "fd78fa83048a57ba5ad2e62827daf76cb94d62c1",
+    "runtime_variant": "cpu-runtime"
+  },
+  "binary": {
+    "driver_sha256": "4a457b2288c3fe4474a73acc0f602b0eda7bb7153dbcdee3c7f66e9646622a47",
+    "qualification_harness_sha256": "9d5f85c84c206f730e1053bbc230e73a36e227ff553288d165bea75e2e4e577b"
+  },
+  "device": {
+    "target": "linux-thomas-laptop-slang-cpu",
+    "name": "Parallel Mater Slang CPU (Slang CPU reference)",
+    "host_cpu": "11th Gen Intel Core i7-11370H",
+    "os": "Debian GNU/Linux 12 (bookworm), Linux 6.1.0-54-amd64, x86_64",
+    "gpu": "not applicable",
+    "vendor_id": 0,
+    "device_id": 0,
+    "driver_version": 202618,
+    "host_compiler": "GNU 12.2.0",
+    "slang": "2026.18"
+  },
+  "profile": {
+    "name": "realtime-single-step",
+    "version": {
+      "major": 1,
+      "minor": 0
+    }
+  },
+  "workload": {
+    "tier": "cpu-reference-v1",
+    "id": "rigid-brick-oracle",
+    "counts": {
+      "rigid_bodies_live": 8,
+      "rigid_bodies_capacity": 8,
+      "constraints_live": 8,
+      "constraints_capacity": 8,
+      "contact_capacity": 2048
+    }
+  },
+  "failure": {
+    "tick": 1,
+    "fence_result": "PM_ERROR_CAPACITY_EXCEEDED",
+    "query_result": "PM_SUCCESS",
+    "execution_result": "PM_ERROR_CAPACITY_EXCEEDED",
+    "partial_work": {
+      "dispatches": 20,
+      "workgroups": 1421,
+      "numerical_iterations": 1,
+      "spatial_index_builds": 1,
+      "spatial_index_refits": 0,
+      "spatial_index_publications": 1
+    }
+  },
+  "commands": [
+    "cmake -S . -B build-f8-23-cpu -G Ninja -DCMAKE_BUILD_TYPE=Release -DPARALLEL_MATER_BUILD_CUDA=OFF -DPARALLEL_MATER_BUILD_D3D12=OFF -DPARALLEL_MATER_BUILD_GALLERY=OFF -DPARALLEL_MATER_BUILD_SCENE_SDK=OFF -DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=ON -DPARALLEL_MATER_BUILD_CONFORMANCE=ON -DPARALLEL_MATER_BUILD_SLANG_MIRRORS=OFF -DPARALLEL_MATER_BUILD_SLANG_GEOMETRY_CONSTRAINTS=OFF -DPARALLEL_MATER_SLANGC_EXECUTABLE=/home/thomas/Repos/ballroller-2026/parallel-mater/build-f8-22-cuda/_deps/parallel_mater_slang-src/bin/slangc -DPARALLEL_MATER_SOURCE_REVISION=fd78fa83048a57ba5ad2e62827daf76cb94d62c1",
+    "cmake --build build-f8-23-cpu --parallel 4",
+    "python3 tools/check_sdk_install.py --build-dir build-f8-23-cpu --output /tmp/f8-23-sdk --require-realtime-driver",
+    "PM_DRIVER_FILES=/tmp/f8-23-sdk/relocated-sdk/share/parallel-mater/drivers.d/parallel_mater_slang_cpu.json /tmp/f8-23-realtime-cpu-qualification /tmp/f8-23-cpu-capture.json realtime-single-step-v1-fd78fa8 f4f1c7807dd50b07857c568b9df3e8e2ccd6fd3870907238dc9dcfab45b493af fd78fa83048a57ba5ad2e62827daf76cb94d62c1 4a457b2288c3fe4474a73acc0f602b0eda7bb7153dbcdee3c7f66e9646622a47"
+  ],
+  "install_gate": {
+    "status": "passed",
+    "checks": 14,
+    "embedded_source_revision": "fd78fa83048a57ba5ad2e62827daf76cb94d62c1",
+    "plain_observation_sha256": "55b4e6c457e9ff2d89ded37494c5ec0f466fe6a892ce7e41eaca002d78fe80e8",
+    "validation_observation_sha256": "0fb6a4ee7c51ac727fed739c41d1ea0f8d77e95766fb71ec9f394aaca70ddc3e"
+  },
+  "required_result": "PM_SUCCESS for all 7800 ticks",
+  "observed_result": "PM_ERROR_CAPACITY_EXCEEDED on first exact-workload tick",
+  "qualification_effect": "F8-23 remains incomplete. Candidate v2 cannot qualify this required physical row and must be repaired/refrozen before requalification; this failure cannot be unioned with passing evidence."
+}
