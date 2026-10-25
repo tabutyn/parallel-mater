@@ -193,12 +193,15 @@ The debug-only `pm_vulkan_profile` Boolean extra enables bounded production-
 schedule telemetry. Timestamp queries are written around shared scheduler phase
 boundaries in the existing command buffer. The driver logs one stable JSON
 `VulkanScheduleProfile` record per queue submission with GPU time, actual
-dispatch count and phase aggregates; it does not add a submission or host wait.
+dispatch/workgroup, barrier, transfer, readback and byte counts plus phase
+aggregates and CPU record/submit/wait time. Query reset/write/read traffic is
+reported separately; profiling does not add a submission or forced host wait.
 Normal launches do not create the query pool or read timestamps. Capture matched
-60-frame Rigid Body, Fluid and Smoke Soft Body diagnostics with:
+Rigid Body, Fluid and Smoke Soft Body diagnostics after an explicit warmup with:
 
 ```sh
 python3 scripts/Test-AndroidVulkanSchedule.py --serial PHONE_SERIAL \
+  --warmup 30 --schedules 60 \
   --output out/android/vulkan-schedule-profile
 ```
 

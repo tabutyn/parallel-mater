@@ -17,7 +17,7 @@ import android_deployment as deployment  # noqa: E402
 
 PACKAGE = deployment.PACKAGE
 ACTIVITY = PACKAGE + "/.GalleryActivity"
-PROFILE_SCHEMA = "parallel-mater-vulkan-schedule-profile/v1"
+PROFILE_SCHEMA = "parallel-mater-vulkan-schedule-profile/v2"
 PROFILE_PREFIX = "VulkanScheduleProfile "
 CHUNK = re.compile(
     r"VulkanScheduleProfileChunk (?P<id>\d+) (?P<index>\d+)/(?P<count>\d+) (?P<data>.*)$")
@@ -84,20 +84,39 @@ def aggregate_profile_schedules(profiles):
         for submission in submissions:
             for phase in submission["phases"]:
                 value = phases.setdefault(phase["name"], {
-                    "gpu_ms": 0.0, "dispatches": 0,
+                    "gpu_ms": 0.0, "dispatches": 0, "workgroups": 0,
+                    "barriers": 0, "transfer_commands": 0,
+                    "readbacks": 0, "bytes_moved": 0,
                     "declared_launches": 0, "occurrences": 0})
                 for field in value:
                     value[field] += phase[field]
+        instrumentation = {
+            field: sum(item["instrumentation"][field] for item in submissions)
+            for field in ("query_resets", "timestamp_queries",
+                          "asynchronous_result_reads", "forced_waits",
+                          "result_bytes")
+        }
         schedules.append({
             "schedule": schedule,
             "submissions": len(submissions),
             "dispatches": sum(item["dispatches"] for item in submissions),
+            "workgroups": sum(item["workgroups"] for item in submissions),
+            "barriers": sum(item["barriers"] for item in submissions),
+            "transfer_commands": sum(
+                item["transfer_commands"] for item in submissions),
+            "readbacks": sum(item["readbacks"] for item in submissions),
+            "bytes_moved": sum(item["bytes_moved"] for item in submissions),
             "gpu_ms": sum(item["gpu_ms"] for item in submissions),
+            "gpu_timing_status": sorted({
+                item["gpu_timing_status"] for item in submissions}),
             "record_ms": sum(item["record_ms"] for item in submissions),
+            "submit_ms": sum(item["submit_ms"] for item in submissions),
+            "wait_ms": sum(item["wait_ms"] for item in submissions),
             "submit_to_fence_ms": sum(
                 item["submit_to_fence_ms"] for item in submissions),
             "timestamp_overflow": any(
                 item["timestamp_overflow"] for item in submissions),
+            "instrumentation": instrumentation,
             "phases": phases,
         })
     return schedules
@@ -128,6 +147,10 @@ def summarize_schedules(schedules):
         raise ValueError("no complete Vulkan schedule profiles")
     if any(item["timestamp_overflow"] for item in schedules):
         raise ValueError("Vulkan timestamp profile overflowed its bounded query pool")
+    if any(item["gpu_timing_status"] != ["supported"] for item in schedules):
+        raise ValueError("Vulkan GPU timing support was not explicit and uniform")
+    if any(item["instrumentation"]["forced_waits"] for item in schedules):
+        raise ValueError("Vulkan telemetry inserted a forced wait")
     names = sorted({name for item in schedules for name in item["phases"]})
     phases = []
     for name in names:
@@ -138,6 +161,16 @@ def summarize_schedules(schedules):
                 item.get("gpu_ms", 0.0) for item in values]),
             "dispatches": distribution([
                 item.get("dispatches", 0) for item in values]),
+            "workgroups": distribution([
+                item.get("workgroups", 0) for item in values]),
+            "barriers": distribution([
+                item.get("barriers", 0) for item in values]),
+            "transfer_commands": distribution([
+                item.get("transfer_commands", 0) for item in values]),
+            "readbacks": distribution([
+                item.get("readbacks", 0) for item in values]),
+            "bytes_moved": distribution([
+                item.get("bytes_moved", 0) for item in values]),
             "total_occurrences": sum(
                 item.get("occurrences", 0) for item in values),
         })
@@ -147,12 +180,43 @@ def summarize_schedules(schedules):
             item["submissions"] for item in schedules]),
         "dispatches_per_tick": distribution([
             item["dispatches"] for item in schedules]),
+        "workgroups_per_tick": distribution([
+            item["workgroups"] for item in schedules]),
+        "barriers_per_tick": distribution([
+            item["barriers"] for item in schedules]),
+        "transfer_commands_per_tick": distribution([
+            item["transfer_commands"] for item in schedules]),
+        "readbacks_per_tick": distribution([
+            item["readbacks"] for item in schedules]),
+        "bytes_moved_per_tick": distribution([
+            item["bytes_moved"] for item in schedules]),
         "gpu_ms_per_tick": distribution([
             item["gpu_ms"] for item in schedules]),
+        "gpu_timing_status": "supported",
         "cpu_record_ms_per_tick": distribution([
             item["record_ms"] for item in schedules]),
+        "cpu_submit_ms_per_tick": distribution([
+            item["submit_ms"] for item in schedules]),
+        "cpu_wait_ms_per_tick": distribution([
+            item["wait_ms"] for item in schedules]),
         "cpu_submit_to_fence_ms_per_tick": distribution([
             item["submit_to_fence_ms"] for item in schedules]),
+        "instrumentation_overhead": {
+            "query_resets_per_tick": distribution([
+                item["instrumentation"]["query_resets"]
+                for item in schedules]),
+            "timestamp_queries_per_tick": distribution([
+                item["instrumentation"]["timestamp_queries"]
+                for item in schedules]),
+            "asynchronous_result_reads_per_tick": distribution([
+                item["instrumentation"]["asynchronous_result_reads"]
+                for item in schedules]),
+            "result_bytes_per_tick": distribution([
+                item["instrumentation"]["result_bytes"]
+                for item in schedules]),
+            "forced_waits_per_tick": 0,
+            "cpu_delta_status": "not-measured",
+        },
         "phases": phases,
     }
 
@@ -209,6 +273,7 @@ def main():
     parser.add_argument("--serial", required=True)
     parser.add_argument("--adb", default="adb")
     parser.add_argument("--schedules", type=int, default=60)
+    parser.add_argument("--warmup", type=int, default=30)
     parser.add_argument("--scene-timeout", type=int, default=240)
     parser.add_argument("--scene", choices=[scene["id"] for scene in SCENES],
                         action="append")
@@ -219,6 +284,8 @@ def main():
     args = parser.parse_args()
     if not 1 <= args.schedules <= 600:
         parser.error("--schedules must be 1..600")
+    if args.warmup < 0 or args.schedules + args.warmup > 600:
+        parser.error("--warmup must be non-negative and total samples at most 600")
     if args.scene_timeout < 10:
         parser.error("--scene-timeout must be at least 10 seconds")
     root = pathlib.Path(__file__).resolve().parents[1]
@@ -258,12 +325,12 @@ def main():
                     matched = section[:window_matches[-1].end()]
                     windows = parse_frame_windows(matched)
                     schedules = aggregate_profile_schedules(parse_profiles(matched))
-                    selected = schedules[-args.schedules:]
-            if windows and len(selected) == args.schedules:
+                    selected = schedules[-(args.schedules + args.warmup):]
+            if windows and len(selected) == args.schedules + args.warmup:
                 break
             time.sleep(2)
         logs.append(f"===== {scene['id']} =====\n{log}")
-        if not windows or len(selected) != args.schedules:
+        if not windows or len(selected) != args.schedules + args.warmup:
             raise RuntimeError(f"timed out profiling {scene['id']}")
         window = windows[-1]
         if (window["scene"] != scene["asset"] or window["backend"] != "vulkan" or
@@ -277,7 +344,8 @@ def main():
         deployment.verify_runtime_identity(runtime, nonce, source)
         if workload.get("scene") != scene["asset"]:
             raise RuntimeError(f"workload snapshot is for the wrong scene: {scene['id']}")
-        summary = summarize_schedules(selected)
+        measured = selected[args.warmup:]
+        summary = summarize_schedules(measured)
         records.append({
             **scene,
             "nonce": nonce,
@@ -285,7 +353,7 @@ def main():
             "workload": workload,
             "effective_simulation_to_wall_ratio": window["fps"] / 30.0,
             "schedule_profile": summary,
-            "schedule_samples": selected,
+            "schedule_samples": measured,
             "thermal": thermal(),
         })
         print(f"{scene['id']}: physics {window['physics_ms']:.3f} ms, "
@@ -302,11 +370,19 @@ def main():
         [thermal_start["status"], thermal_end["status"]] +
         [record["thermal"]["status"] for record in records])
     report = {
-        "schema": "parallel-mater-android-vulkan-legacy-baseline/v2",
+        "schema": "parallel-mater-android-vulkan-legacy-baseline/v3",
         "source": source,
         "deployment": installed,
         "run_nonce": run_nonce,
         "legacy_profile": {"target_fps": 30, "solver_substeps_per_tick": 8},
+        "measurement_contract": {
+            "schema_version": 2,
+            "profile_version": 0,
+            "budget_version": 0,
+            "gpu_timing": "supported",
+            "query_storage": "bounded-and-asynchronous-after-normal-fence",
+        },
+        "warmup_schedules_per_scene": args.warmup,
         "schedules_per_scene": args.schedules,
         "artifacts": {
             "runner_sha256": deployment.sha256_path(pathlib.Path(__file__)),
@@ -323,6 +399,7 @@ def main():
             "The runner installed the named local APK and byte-compared the installed base APK and bundled Vulkan driver before launching it.",
             "Every scene and runtime report is bound to a fresh nonce and the APK-embedded revision/dirty-patch/toolchain identity.",
             "Timestamp queries use the production schedule command buffer; telemetry adds no queue submission or per-dispatch host wait.",
+            "Instrumentation overhead reports query resets, writes, asynchronous result reads and bytes; an instrumented-vs-disabled CPU delta was not measured in this legacy capture.",
             "FrameWindow CPU timings and schedule GPU timings cover the same final 60-frame window.",
             "Workload readback occurs only after freezing and outside the measured window.",
             "Effective simulation/wall rate is observed FPS divided by the unchanged legacy 30 Hz fixed-step target.",

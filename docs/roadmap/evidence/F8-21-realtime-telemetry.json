@@ -1,0 +1,196 @@
+{
+  "schema": "parallel-mater-f8-realtime-telemetry-evidence/v1",
+  "task": "F8-21",
+  "recorded_at": "2026-10-25",
+  "branch": "work/F8-21/thomas-laptop",
+  "base_commit": "bdc9d0a4d0d43e49b6e4e1893a4c6e5d5f90423b",
+  "implementation_commit": "453a238eeee0dc2befbb8e09e7f7b3732b25f776",
+  "lease_token": "7822c0f1-ed1a-4099-bdec-0476553c58a8",
+  "contract": {
+    "telemetry_schema_version": 1,
+    "profile_version": 1,
+    "budget_version": 1,
+    "phases": [
+      "boundary",
+      "predict",
+      "index",
+      "candidates",
+      "domain",
+      "coupling",
+      "commit"
+    ],
+    "work_fields": [
+      "dispatches",
+      "workgroups",
+      "bytes_moved",
+      "index_builds",
+      "index_refits",
+      "index_publications",
+      "numerical_iterations",
+      "barriers",
+      "submissions",
+      "readbacks",
+      "host_waits"
+    ],
+    "cpu_timing_fields": [
+      "encode_ns",
+      "submit_ns",
+      "wait_ns"
+    ],
+    "gpu_timing_states": [
+      "unsupported",
+      "pending",
+      "valid"
+    ],
+    "query_storage": "fixed-size generation-tagged ring; full or incomplete returns PM_NOT_READY without wait or eviction",
+    "disabled_path": "ordinary assemble_realtime_tick has no telemetry method, query, readback, allocation or wait"
+  },
+  "mixed_tick_contract_case": {
+    "domains": 6,
+    "coupling_families": 3,
+    "total": {
+      "dispatches": 67,
+      "workgroups": 247,
+      "bytes_moved": 64,
+      "index_builds": 1,
+      "index_refits": 0,
+      "index_publications": 1,
+      "numerical_iterations": 56,
+      "barriers": 67,
+      "submissions": 1,
+      "readbacks": 0,
+      "host_waits": 0
+    },
+    "instrumentation": {
+      "timestamp_queries": 14,
+      "asynchronous_result_reads": 1,
+      "result_bytes": 112,
+      "forced_waits": 0
+    }
+  },
+  "negative_controls": {
+    "extra_iteration": "rejected before commit",
+    "duplicate_index_build": "rejected before commit",
+    "dispatch_budget_regression": "rejected before commit",
+    "query_ring_full": "PM_NOT_READY without wait or eviction",
+    "query_result_not_ready": "PM_NOT_READY without wait",
+    "unsupported_gpu_timing": "explicit unsupported status and zero query traffic",
+    "telemetry_disabled": "zero adapter telemetry/query calls"
+  },
+  "qualification": [
+    {
+      "command": "cmake --build build-p3-02-vulkan --parallel 2",
+      "result": "PASS",
+      "notes": "production Vulkan driver, Gallery and solver targets"
+    },
+    {
+      "command": "ctest --test-dir build-p3-02-vulkan -L f8 --output-on-failure",
+      "result": "PASS 16/16",
+      "notes": "realtime telemetry plus spatial, domain and coupling regression suite"
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/gallery -p '*android*py'",
+      "result": "PASS 20/20",
+      "notes": "Android deployment and Vulkan telemetry report parsing"
+    },
+    {
+      "command": "Android NDK 29 AArch64 build; adb push and execute parallel-mater-realtime-telemetry-tests",
+      "result": "PASS",
+      "binary_sha256": "f6a66fb19e33ece1f6c688fe86f0a758baae0ec6bd01e93f516014709ca85228"
+    },
+    {
+      "command": "python3 scripts/Test-AndroidVulkanSchedule.py --serial 2B241FDH20060P --adb /usr/bin/adb --apk examples/android/app/build/outputs/apk/debug/app-debug.apk --schedules 30 --warmup 10 --scene-timeout 300 --output out/android/F8-21-vulkan-telemetry-453a238",
+      "result": "PASS 3/3 legacy workloads",
+      "notes": "clean provenance-bound physical Vulkan telemetry capture; not realtime performance qualification"
+    }
+  ],
+  "host_full_suite_note": {
+    "command": "ctest --test-dir build-p3-02-vulkan --output-on-failure",
+    "result": "24 device-dependent failures and 23 skips; remaining tests passed",
+    "reason": "the laptop exposes no Parallel Mater Vulkan physical device; the affected Vulkan path was executed by the clean Pixel APK instead"
+  },
+  "physical_device": {
+    "manufacturer": "Google",
+    "model": "Pixel 7",
+    "product": "panther",
+    "android_version": "17",
+    "security_patch": "2026-10-05",
+    "gpu": "Mali-G710",
+    "ndk": "29.0.14206865",
+    "slang": "2026.18",
+    "max_thermal_status": 0
+  },
+  "physical_legacy_capture": {
+    "schema": "parallel-mater-android-vulkan-legacy-baseline/v3",
+    "vulkan_profile_schema": "parallel-mater-vulkan-schedule-profile/v2",
+    "source_commit": "453a238eeee0dc2befbb8e09e7f7b3732b25f776",
+    "source_dirty": false,
+    "report_sha256": "49e86495ee14aeb58fe223f5ceba613695c83bdceb032a9ec8d4979b7f067a93",
+    "apk_sha256": "375bcb629c334d43e1db355b28cf6d39968a0df3adeff1451728464cecd154c4",
+    "driver_sha256": "d8c401c54f2296277ce5b18e4bb9ab7b88f6ff40b275a338a5e90d8fa79eb624",
+    "warmup_ticks_per_scene": 10,
+    "measured_ticks_per_scene": 30,
+    "target_fps": 30,
+    "substeps_per_tick": 8,
+    "workloads": [
+      {
+        "id": "rigid-body",
+        "live_counts": {"rigid": 6, "fluid": 0, "smoke": 0, "soft_body_nodes": 0},
+        "dispatches_per_tick": 122,
+        "workgroups_per_tick": 962,
+        "barriers_per_tick": 125,
+        "readbacks_per_tick": 0,
+        "bytes_moved_per_tick": 312,
+        "gpu_ms": {"p50": 47.420005, "p95": 52.345664, "p99": 61.038088},
+        "cpu_record_ms": {"p50": 2.256511, "p95": 6.691529, "p99": 6.924642},
+        "cpu_submit_ms": {"p50": 0.197184, "p95": 0.326294, "p99": 0.384522},
+        "cpu_wait_ms": {"p50": 48.60323, "p95": 53.651367, "p99": 62.820109},
+        "simulation_to_wall_ratio": 0.5386666666666666,
+        "timestamp_queries_per_tick": 91,
+        "query_result_bytes_per_tick": 728,
+        "forced_instrumentation_waits": 0
+      },
+      {
+        "id": "fluid",
+        "live_counts": {"rigid": 1, "fluid": 128, "smoke": 0, "soft_body_nodes": 0},
+        "dispatches_per_tick": 1155,
+        "workgroups_per_tick": 1155,
+        "barriers_per_tick": 1330,
+        "readbacks_per_tick": 2,
+        "bytes_moved_per_tick": 550832,
+        "gpu_ms": {"p50": 26.361939, "p95": 28.564577, "p99": 31.586141},
+        "cpu_record_ms": {"p50": 12.37378, "p95": 19.076213, "p99": 19.695028},
+        "cpu_submit_ms": {"p50": 0.51054, "p95": 0.72282, "p99": 0.776449},
+        "cpu_wait_ms": {"p50": 30.234335, "p95": 32.521444, "p99": 37.330648},
+        "simulation_to_wall_ratio": 0.5723333333333334,
+        "timestamp_queries_per_tick": 208,
+        "query_result_bytes_per_tick": 1664,
+        "forced_instrumentation_waits": 0
+      },
+      {
+        "id": "smoke-soft-body",
+        "live_counts": {"rigid": 2, "fluid": 0, "smoke": 128, "soft_body_nodes": 3520},
+        "dispatches_per_tick": 6825,
+        "workgroups_per_tick": 153416,
+        "barriers_per_tick": 10822,
+        "readbacks_per_tick": 2,
+        "bytes_moved_per_tick": 12934232,
+        "gpu_ms": {"p50": 234.408984, "p95": 246.967985, "p99": 248.021858},
+        "cpu_record_ms": {"p50": 55.454996, "p95": 77.262694, "p99": 78.997314},
+        "cpu_submit_ms": {"p50": 0.578614, "p95": 0.696452, "p99": 0.772379},
+        "cpu_wait_ms": {"p50": 239.073282, "p95": 253.876424, "p99": 254.09725},
+        "simulation_to_wall_ratio": 0.111,
+        "timestamp_queries_per_tick": 1538,
+        "query_result_bytes_per_tick": 12304,
+        "forced_instrumentation_waits": 0
+      }
+    ]
+  },
+  "evidence_boundary": {
+    "physical_capture_profile": "legacy-default",
+    "realtime_profile_advertised": false,
+    "claim": "physical capture validates Vulkan telemetry and provenance, not realtime-single-step performance",
+    "candidate_freeze_and_native_completion": "F8-22",
+    "device_qualification": "F8-23 through F8-30"
+  }
+}
