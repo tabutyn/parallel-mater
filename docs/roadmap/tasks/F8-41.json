@@ -1,7 +1,7 @@
 {
   "id": "F8-41",
   "title": "Connect cloth operators to production fixed ticks",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-39"
   ],
@@ -19,6 +19,14 @@
     "Remove the corresponding blanket runtime restriction only when the supported execution is complete; no second cloth schedule or private adapter physics."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "b26aa63c-f2ab-4d4e-834c-b9aebe7b3437",
+    "owner": "codex-android-overnight",
+    "machine": "thomas-laptop-pixel7",
+    "branch": "work/F8-41/thomas-laptop-pixel7",
+    "claimed_at": "2026-10-25T18:08:36Z",
+    "heartbeat_at": "2026-10-25T18:08:36Z",
+    "expires_at": "2026-10-26T18:08:36Z"
+  },
   "history": []
 }
