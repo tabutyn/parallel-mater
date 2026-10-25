@@ -1,7 +1,7 @@
 {
   "id": "F8-43",
   "title": "Connect rope operators to production fixed ticks",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-39"
   ],
@@ -19,6 +19,14 @@
     "Preserve all already supported rope semantics; missing P-series capsule/pair features are not silently advertised."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "633f1253-b3c8-4875-aed5-fe90155fdb83",
+    "owner": "codex-android-overnight",
+    "machine": "thomas-laptop-pixel7",
+    "branch": "work/F8-43/thomas-laptop-pixel7",
+    "claimed_at": "2026-10-25T19:54:16Z",
+    "heartbeat_at": "2026-10-25T19:54:16Z",
+    "expires_at": "2026-10-26T19:54:16Z"
+  },
   "history": []
 }
