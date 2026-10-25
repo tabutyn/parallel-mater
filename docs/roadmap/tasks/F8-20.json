@@ -1,7 +1,7 @@
 {
   "id": "F8-20",
   "title": "Assemble the one-tick backend-neutral schedule",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-04",
     "F8-17",
@@ -23,6 +23,14 @@
     "Run all new-profile independent integration cases at dt=1/60; report simulation rate without using slow-motion to pass a frame-time gate."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "4f99d1b4-3d34-4a61-a7a3-3d821c783809",
+    "owner": "codex-android-vulkan",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-20/thomas-laptop",
+    "claimed_at": "2026-10-25T07:25:38Z",
+    "heartbeat_at": "2026-10-25T07:25:38Z",
+    "expires_at": "2026-10-26T07:25:38Z"
+  },
   "history": []
 }
