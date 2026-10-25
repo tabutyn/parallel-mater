@@ -35,6 +35,8 @@ struct ProductionSpatialSnapshot {
     std::uint32_t *query_visited_nodes{};
     std::uint32_t *query_counter{};
     std::uint32_t *query_status{};
+    std::byte *build_output{};
+    std::byte *build_scratch{};
     std::uint32_t leaf_capacity{};
     std::uint32_t query_capacity{};
     std::uint32_t candidates_per_query{};
@@ -128,6 +130,36 @@ public:
         return PM_SUCCESS;
     }
 
+    // Device adapters own initialization and build dispatches.  This records
+    // the identical host lifecycle without touching device-only storage.
+    [[nodiscard]] PmResult begin_device_tick(
+        std::uint64_t tick, std::uint32_t profile_version,
+        std::uint64_t graph_revision, std::uint64_t resource_revision,
+        std::uint32_t staged_leaf_slots,
+        bool refit_eligible = false) noexcept {
+        if (host_accessible_) return PM_ERROR_INVALID_STATE;
+        if (!lifecycle_ || staging_.has_value())
+            return PM_ERROR_INVALID_STATE;
+        if (staged_leaf_slots > plan_.leaf_capacity)
+            return PM_ERROR_CAPACITY_EXCEEDED;
+        const auto result = lifecycle_->stage_boundary(
+            tick, profile_version, graph_revision, resource_revision,
+            staged_leaf_slots, refit_eligible);
+        if (result != PM_SUCCESS) return result;
+        const auto *token = lifecycle_->staging_token();
+        if (token == nullptr) {
+            lifecycle_->abort();
+            return PM_ERROR_INVALID_STATE;
+        }
+        staging_ = *token;
+        staged_leaf_slots_ = staged_leaf_slots;
+        slot_leaf_slots_[token->slot] = staged_leaf_slots;
+        active_leaf_count_ = staged_leaf_slots;
+        update_kind_.reset();
+        pinned_ = false;
+        return PM_SUCCESS;
+    }
+
     [[nodiscard]] ProductionSpatialSnapshot staging_snapshot() noexcept {
         return staging_.has_value()
             ? snapshot_for(*staging_) : ProductionSpatialSnapshot{};
@@ -177,6 +209,18 @@ public:
         return PM_SUCCESS;
     }
 
+    [[nodiscard]] PmResult record_device_update(
+        SpatialUpdateKind kind) noexcept {
+        if (host_accessible_ || !lifecycle_ || !staging_ ||
+            update_kind_.has_value() ||
+            (staged_leaf_slots_ == 0U) != (kind == SpatialUpdateKind::empty))
+            return PM_ERROR_INVALID_STATE;
+        const auto result = lifecycle_->record_update(kind);
+        if (result != PM_SUCCESS) return result;
+        update_kind_ = kind;
+        return PM_SUCCESS;
+    }
+
     [[nodiscard]] PmResult publish(SpatialEpochToken &token) noexcept {
         if (!host_accessible_) return PM_ERROR_FEATURE_NOT_PRESENT;
         if (!lifecycle_ || !staging_ || !update_kind_.has_value() || pinned_)
@@ -195,6 +239,36 @@ public:
         }
         pinned_ = true;
         snapshot.header->publication_count = 1U;
+        return PM_SUCCESS;
+    }
+
+    [[nodiscard]] PmResult publish_device(
+        SpatialEpochToken &token) noexcept {
+        if (host_accessible_ || !lifecycle_ || !staging_ ||
+            !update_kind_.has_value() || pinned_)
+            return PM_ERROR_INVALID_STATE;
+        auto result = lifecycle_->publish(token);
+        if (result != PM_SUCCESS) return result;
+        if (token != *staging_) return PM_ERROR_INVALID_STATE;
+        result = lifecycle_->acquire(token);
+        if (result != PM_SUCCESS) {
+            lifecycle_->abort();
+            staging_.reset();
+            return result;
+        }
+        pinned_ = true;
+        return PM_SUCCESS;
+    }
+
+    [[nodiscard]] PmResult record_device_queries(
+        const SpatialEpochToken &token, std::uint32_t count) noexcept {
+        if (host_accessible_ || !lifecycle_ || !staging_ ||
+            token != *staging_ || !pinned_)
+            return PM_ERROR_INVALID_STATE;
+        for (std::uint32_t index = 0U; index < count; ++index) {
+            const auto result = lifecycle_->record_query(token, 0U, false);
+            if (result != PM_SUCCESS) return result;
+        }
         return PM_SUCCESS;
     }
 
@@ -361,6 +435,8 @@ private:
             range<std::uint32_t>(persistent_, layout.query_visited_nodes),
             range<std::uint32_t>(persistent_, layout.query_counter),
             range<std::uint32_t>(persistent_, layout.query_status),
+            persistent_ + layout.build_output.offset,
+            scratch_ + plan_.build_scratch.offset,
             plan_.leaf_capacity, plan_.query_capacity,
             plan_.candidates_per_query};
     }

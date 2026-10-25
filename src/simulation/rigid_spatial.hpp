@@ -27,6 +27,9 @@ struct RigidSpatialPlan {
     SpatialBufferRange compaction_offsets{};
     SpatialBufferRange compacted_slots{};
     SpatialBufferRange status{};
+    SpatialBufferRange query_bounds{};
+    SpatialBufferRange query_masks{};
+    SpatialBufferRange excluded_sort_keys{};
     std::size_t scratch_bytes{};
 
     SpatialBufferRange active_pairs{};
@@ -78,7 +81,13 @@ struct RigidSpatialWorkBudget {
                       plan.compaction_offsets) ||
         !append_range(scratch, slots, sizeof(std::uint32_t),
                       plan.compacted_slots) ||
-        !append_range(scratch, 1U, sizeof(std::uint32_t), plan.status))
+        !append_range(scratch, 1U, sizeof(std::uint32_t), plan.status) ||
+        !append_range(scratch, body_capacity, sizeof(SpatialAabb),
+                      plan.query_bounds) ||
+        !append_range(scratch, body_capacity, sizeof(std::uint32_t),
+                      plan.query_masks) ||
+        !append_range(scratch, body_capacity, sizeof(std::uint32_t),
+                      plan.excluded_sort_keys))
         return PM_ERROR_CAPACITY_EXCEEDED;
     plan.scratch_bytes = scratch;
 

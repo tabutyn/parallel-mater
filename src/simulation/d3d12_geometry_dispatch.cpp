@@ -52,6 +52,11 @@ consteval bool same_layout() {
     return true;
 }
 
+template <typename T>
+T *spatial_range(std::byte *base, SpatialBufferRange range) noexcept {
+    return reinterpret_cast<T *>(base + range.offset);
+}
+
 template <std::size_t Size>
 PmResult launch(device::ExecutionQueue stream, std::string_view module,
                    std::string_view entry, device::DispatchSize grid, device::DispatchSize block,
@@ -599,6 +604,19 @@ PmResult solve_geometry_constraints(
                   device::DispatchSize(grid_blocks), device::DispatchSize(32U), values);
 }
 
+PmResult solve_geometry_constraints_fixed_realtime(
+    device::ExecutionQueue stream, const void *parameters,
+    const RigidBodyState *previous, RigidBodyState *states,
+    std::uint32_t body_count, void *manifolds,
+    std::uint32_t *active_pairs, std::uint32_t *active_pair_count,
+    void *constraints, std::uint32_t constraint_capacity,
+    GeometryConstraintBody *bodies, void *schedule, float timestep,
+    std::uint32_t grid_blocks) noexcept {
+    return solve_geometry_constraints(stream, parameters, previous, states,
+        body_count, manifolds, active_pairs, active_pair_count, constraints,
+        constraint_capacity, bodies, schedule, timestep, grid_blocks);
+}
+
 PmResult compact_flagged_indices(
     device::ExecutionQueue stream, const std::uint8_t *flags, std::uint32_t count,
     std::uint32_t *output, std::uint32_t *output_count,
@@ -706,6 +724,363 @@ PmResult radix_sort_pairs_u64_u32(
         result = execution->copy_device(output_values, input_values,
             static_cast<std::size_t>(count) * sizeof(*input_values));
     return result;
+}
+
+PmResult initialize_spatial_epoch_device(
+    device::ExecutionQueue stream, const SpatialBuildPlan &plan,
+    const SpatialDeviceBuffers &buffers,
+    const SpatialDeviceEpoch &epoch) noexcept {
+    if (buffers.header == nullptr || buffers.query_counter == nullptr ||
+        buffers.query_status == nullptr || buffers.build_scratch == nullptr ||
+        epoch.leaf_count > plan.capacity)
+        return PM_ERROR_INVALID_ARGUMENT;
+    auto *execution = d3d12::context(stream.native_handle);
+    if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+    using Layout = d3d12::generated::layout::primitives::
+        Kernel_pm_spatial_initialize_epoch;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_header, *execution, buffers.header);
+    values.set(Layout::arg_tick, epoch.tick);
+    values.set(Layout::arg_graph_revision, epoch.graph_revision);
+    values.set(Layout::arg_resource_revision, epoch.resource_revision);
+    values.set(Layout::arg_profile_version, epoch.profile_version);
+    values.set(Layout::arg_slot_generation, epoch.generation);
+    values.set(Layout::arg_leaf_count, epoch.leaf_count);
+    values.set(Layout::arg_update_kind, epoch.update_kind);
+    values.buffer(Layout::arg_query_counter, *execution,
+                  buffers.query_counter);
+    values.buffer(Layout::arg_query_status, *execution,
+                  buffers.query_status);
+    values.buffer(Layout::arg_status, *execution,
+        spatial_range<std::uint32_t>(buffers.build_scratch, plan.status));
+    return launch(stream, "primitives", "pm_spatial_initialize_epoch",
+                  device::DispatchSize(1U), device::DispatchSize(1U), values);
+}
+
+PmResult build_spatial_index_device(
+    device::ExecutionQueue stream, const SpatialBuildPlan &plan,
+    const SpatialDeviceBuffers &buffers, const std::uint32_t *sort_keys,
+    std::uint32_t expected_active_count) noexcept {
+    if (expected_active_count > plan.capacity ||
+        (plan.capacity != 0U && (buffers.metadata == nullptr ||
+            buffers.bounds == nullptr || buffers.build_flags == nullptr ||
+            buffers.build_output == nullptr ||
+            buffers.build_scratch == nullptr ||
+            (expected_active_count != 0U && sort_keys == nullptr))))
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (plan.capacity == 0U) return PM_SUCCESS;
+    auto *execution = d3d12::context(stream.native_handle);
+    if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+
+    auto *counts = spatial_range<std::uint32_t>(
+        buffers.build_scratch, plan.compaction_counts);
+    auto *active = spatial_range<std::uint32_t>(
+        buffers.build_scratch, plan.active_indices);
+    auto *active_count = spatial_range<std::uint32_t>(
+        buffers.build_scratch, plan.active_count);
+    auto *keys0 = spatial_range<std::uint64_t>(
+        buffers.build_scratch, plan.keys[0]);
+    auto *keys1 = spatial_range<std::uint64_t>(
+        buffers.build_scratch, plan.keys[1]);
+    auto *values0 = spatial_range<std::uint32_t>(
+        buffers.build_scratch, plan.values[0]);
+    auto *values1 = spatial_range<std::uint32_t>(
+        buffers.build_scratch, plan.values[1]);
+    auto *histograms = spatial_range<std::uint32_t>(
+        buffers.build_scratch, plan.radix_histograms);
+    auto *radix_offsets = spatial_range<std::uint32_t>(
+        buffers.build_scratch, plan.radix_offsets);
+    auto *block_bounds = spatial_range<SpatialAabb>(
+        buffers.build_scratch, plan.block_bounds);
+    auto *scene_bounds = spatial_range<SpatialAabb>(
+        buffers.build_scratch, plan.scene_bounds);
+    auto *arrivals = spatial_range<std::uint32_t>(
+        buffers.build_scratch, plan.arrivals);
+    auto *status = spatial_range<std::uint32_t>(
+        buffers.build_scratch, plan.status);
+    auto *left = spatial_range<std::uint32_t>(
+        buffers.build_output, plan.left_children);
+    auto *right = spatial_range<std::uint32_t>(
+        buffers.build_output, plan.right_children);
+    auto *parents = spatial_range<std::uint32_t>(
+        buffers.build_output, plan.parents);
+    auto *leaf_sources = spatial_range<std::uint32_t>(
+        buffers.build_output, plan.leaf_sources);
+    auto *node_bounds = spatial_range<SpatialAabb>(
+        buffers.build_output, plan.node_bounds);
+    const auto capacity_blocks = primitive_block_count(plan.capacity);
+    const auto active_blocks = primitive_block_count(expected_active_count);
+
+    using StageLayout = d3d12::generated::layout::primitives::
+        Kernel_pm_spatial_stage_leaves;
+    Constants<StageLayout::constant_size> stage;
+    stage.buffer(StageLayout::arg_metadata, *execution, buffers.metadata);
+    stage.buffer(StageLayout::arg_bounds, *execution, buffers.bounds);
+    stage.set(StageLayout::arg_leaf_count, expected_active_count);
+    stage.set(StageLayout::arg_capacity, plan.capacity);
+    stage.buffer(StageLayout::arg_build_flags, *execution,
+                 buffers.build_flags);
+    stage.buffer(StageLayout::arg_admission, *execution, buffers.admission);
+    stage.buffer(StageLayout::arg_status, *execution, status);
+    auto result = launch(stream, "primitives", "pm_spatial_stage_leaves",
+        device::DispatchSize(capacity_blocks),
+        device::DispatchSize(primitive_tile_size), stage);
+    if (result != PM_SUCCESS) return result;
+    result = compact_flagged_indices(
+        stream, buffers.build_flags, plan.capacity, active, active_count,
+        counts, plan.compaction_offsets.offset + plan.compaction_offsets.size -
+            plan.compaction_counts.offset);
+    if (result != PM_SUCCESS || expected_active_count == 0U) return result;
+    if (plan.arrivals.size != 0U) {
+        result = stream.services->clear(arrivals, 0, plan.arrivals.size);
+        if (result != PM_SUCCESS) return result;
+    }
+
+    using ReduceLayout = d3d12::generated::layout::primitives::
+        Kernel_pm_spatial_reduce_bounds_blocks;
+    Constants<ReduceLayout::constant_size> reduce;
+    reduce.buffer(ReduceLayout::arg_active_indices, *execution, active);
+    reduce.buffer(ReduceLayout::arg_active_count, *execution, active_count);
+    reduce.set(ReduceLayout::arg_capacity, plan.capacity);
+    reduce.buffer(ReduceLayout::arg_input_bounds, *execution, buffers.bounds);
+    reduce.buffer(ReduceLayout::arg_block_bounds, *execution, block_bounds);
+    reduce.buffer(ReduceLayout::arg_status, *execution, status);
+    result = launch(stream, "primitives", "pm_spatial_reduce_bounds_blocks",
+        device::DispatchSize(active_blocks),
+        device::DispatchSize(primitive_tile_size), reduce);
+    if (result != PM_SUCCESS) return result;
+
+    using FinalLayout = d3d12::generated::layout::primitives::
+        Kernel_pm_spatial_reduce_bounds_final;
+    Constants<FinalLayout::constant_size> final;
+    final.buffer(FinalLayout::arg_block_bounds, *execution, block_bounds);
+    final.set(FinalLayout::arg_block_count, active_blocks);
+    final.buffer(FinalLayout::arg_active_count, *execution, active_count);
+    final.set(FinalLayout::arg_capacity, plan.capacity);
+    final.buffer(FinalLayout::arg_scene_bounds, *execution, scene_bounds);
+    final.buffer(FinalLayout::arg_status, *execution, status);
+    result = launch(stream, "primitives", "pm_spatial_reduce_bounds_final",
+        device::DispatchSize(1U), device::DispatchSize(primitive_tile_size),
+        final);
+    if (result != PM_SUCCESS) return result;
+
+    using KeyLayout = d3d12::generated::layout::primitives::
+        Kernel_pm_spatial_emit_keys;
+    Constants<KeyLayout::constant_size> key_values;
+    key_values.buffer(KeyLayout::arg_active_indices, *execution, active);
+    key_values.buffer(KeyLayout::arg_active_count, *execution, active_count);
+    key_values.set(KeyLayout::arg_capacity, plan.capacity);
+    key_values.buffer(KeyLayout::arg_identities, *execution, sort_keys);
+    key_values.buffer(KeyLayout::arg_input_bounds, *execution,
+                      buffers.bounds);
+    key_values.buffer(KeyLayout::arg_scene_bounds, *execution, scene_bounds);
+    key_values.buffer(KeyLayout::arg_keys, *execution, keys0);
+    key_values.buffer(KeyLayout::arg_values, *execution, values0);
+    key_values.buffer(KeyLayout::arg_status, *execution, status);
+    result = launch(stream, "primitives", "pm_spatial_emit_keys",
+        device::DispatchSize(active_blocks),
+        device::DispatchSize(primitive_tile_size), key_values);
+    if (result != PM_SUCCESS) return result;
+
+    if (expected_active_count > 1U &&
+        expected_active_count <= spatial_small_sort_capacity) {
+        using SortLayout = d3d12::generated::layout::primitives::
+            Kernel_pm_spatial_sort_small_u64_u32;
+        Constants<SortLayout::constant_size> sort;
+        sort.buffer(SortLayout::arg_keys, *execution, keys0);
+        sort.buffer(SortLayout::arg_values, *execution, values0);
+        sort.buffer(SortLayout::arg_active_count, *execution, active_count);
+        sort.set(SortLayout::arg_capacity, plan.capacity);
+        sort.buffer(SortLayout::arg_status, *execution, status);
+        result = launch(stream, "primitives",
+            "pm_spatial_sort_small_u64_u32", device::DispatchSize(1U),
+            device::DispatchSize(primitive_tile_size), sort);
+        if (result != PM_SUCCESS) return result;
+    } else if (expected_active_count > spatial_small_sort_capacity) {
+        auto *source_keys = keys0;
+        auto *target_keys = keys1;
+        auto *source_values = values0;
+        auto *target_values = values1;
+        for (std::uint32_t shift = 0U; shift < 64U; shift += 8U) {
+            using HistogramLayout = d3d12::generated::layout::primitives::
+                Kernel_pm_spatial_radix_histogram_u64;
+            Constants<HistogramLayout::constant_size> histogram;
+            histogram.buffer(HistogramLayout::arg_keys, *execution,
+                             source_keys);
+            histogram.buffer(HistogramLayout::arg_active_count, *execution,
+                             active_count);
+            histogram.set(HistogramLayout::arg_capacity, plan.capacity);
+            histogram.set(HistogramLayout::arg_shift, shift);
+            histogram.set(HistogramLayout::arg_block_count, active_blocks);
+            histogram.buffer(HistogramLayout::arg_histograms, *execution,
+                             histograms);
+            histogram.buffer(HistogramLayout::arg_status, *execution,
+                             status);
+            result = launch(stream, "primitives",
+                "pm_spatial_radix_histogram_u64",
+                device::DispatchSize(active_blocks),
+                device::DispatchSize(primitive_tile_size), histogram);
+            if (result != PM_SUCCESS) return result;
+
+            using PrefixLayout = d3d12::generated::layout::primitives::
+                Kernel_pm_spatial_radix_prefix_u32;
+            Constants<PrefixLayout::constant_size> prefix;
+            prefix.buffer(PrefixLayout::arg_histograms, *execution,
+                          histograms);
+            prefix.set(PrefixLayout::arg_block_count, active_blocks);
+            prefix.buffer(PrefixLayout::arg_offsets, *execution,
+                          radix_offsets);
+            result = launch(stream, "primitives",
+                "pm_spatial_radix_prefix_u32", device::DispatchSize(1U),
+                device::DispatchSize(primitive_tile_size), prefix);
+            if (result != PM_SUCCESS) return result;
+
+            using ScatterLayout = d3d12::generated::layout::primitives::
+                Kernel_pm_spatial_radix_scatter_u64_u32;
+            Constants<ScatterLayout::constant_size> scatter;
+            scatter.buffer(ScatterLayout::arg_input_keys, *execution,
+                           source_keys);
+            scatter.buffer(ScatterLayout::arg_input_values, *execution,
+                           source_values);
+            scatter.buffer(ScatterLayout::arg_active_count, *execution,
+                           active_count);
+            scatter.set(ScatterLayout::arg_capacity, plan.capacity);
+            scatter.set(ScatterLayout::arg_shift, shift);
+            scatter.set(ScatterLayout::arg_block_count, active_blocks);
+            scatter.buffer(ScatterLayout::arg_offsets, *execution,
+                           radix_offsets);
+            scatter.buffer(ScatterLayout::arg_output_keys, *execution,
+                           target_keys);
+            scatter.buffer(ScatterLayout::arg_output_values, *execution,
+                           target_values);
+            scatter.buffer(ScatterLayout::arg_status, *execution, status);
+            result = launch(stream, "primitives",
+                "pm_spatial_radix_scatter_u64_u32",
+                device::DispatchSize(active_blocks),
+                device::DispatchSize(primitive_tile_size), scatter);
+            if (result != PM_SUCCESS) return result;
+            std::swap(source_keys, target_keys);
+            std::swap(source_values, target_values);
+        }
+    }
+
+    using TopologyLayout = d3d12::generated::layout::primitives::
+        Kernel_pm_spatial_build_topology;
+    Constants<TopologyLayout::constant_size> topology;
+    topology.buffer(TopologyLayout::arg_sorted_keys, *execution, keys0);
+    topology.buffer(TopologyLayout::arg_sorted_values, *execution, values0);
+    topology.buffer(TopologyLayout::arg_active_count, *execution,
+                    active_count);
+    topology.set(TopologyLayout::arg_capacity, plan.capacity);
+    topology.buffer(TopologyLayout::arg_input_bounds, *execution,
+                    buffers.bounds);
+    topology.buffer(TopologyLayout::arg_left_children, *execution, left);
+    topology.buffer(TopologyLayout::arg_right_children, *execution, right);
+    topology.buffer(TopologyLayout::arg_parents, *execution, parents);
+    topology.buffer(TopologyLayout::arg_leaf_sources, *execution,
+                    leaf_sources);
+    topology.buffer(TopologyLayout::arg_node_bounds, *execution,
+                    node_bounds);
+    topology.buffer(TopologyLayout::arg_status, *execution, status);
+    result = launch(stream, "primitives", "pm_spatial_build_topology",
+        device::DispatchSize(active_blocks),
+        device::DispatchSize(primitive_tile_size), topology);
+    if (result != PM_SUCCESS || expected_active_count <= 1U) return result;
+
+    using UnionLayout = d3d12::generated::layout::primitives::
+        Kernel_pm_spatial_union_bounds;
+    Constants<UnionLayout::constant_size> union_values;
+    union_values.buffer(UnionLayout::arg_active_count, *execution,
+                        active_count);
+    union_values.set(UnionLayout::arg_capacity, plan.capacity);
+    union_values.buffer(UnionLayout::arg_left_children, *execution, left);
+    union_values.buffer(UnionLayout::arg_right_children, *execution, right);
+    union_values.buffer(UnionLayout::arg_parents, *execution, parents);
+    union_values.buffer(UnionLayout::arg_node_bounds, *execution,
+                        node_bounds);
+    union_values.buffer(UnionLayout::arg_arrivals, *execution, arrivals);
+    union_values.buffer(UnionLayout::arg_status, *execution, status);
+    return launch(stream, "primitives", "pm_spatial_union_bounds",
+        device::DispatchSize(active_blocks),
+        device::DispatchSize(primitive_tile_size), union_values);
+}
+
+PmResult publish_spatial_epoch_device(
+    device::ExecutionQueue stream, const SpatialBuildPlan &plan,
+    const SpatialDeviceBuffers &buffers) noexcept {
+    if (buffers.header == nullptr || buffers.build_scratch == nullptr)
+        return PM_ERROR_INVALID_ARGUMENT;
+    auto *execution = d3d12::context(stream.native_handle);
+    if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+    using Layout = d3d12::generated::layout::primitives::
+        Kernel_pm_spatial_publish_epoch;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_header, *execution, buffers.header);
+    values.buffer(Layout::arg_active_count, *execution,
+        spatial_range<std::uint32_t>(buffers.build_scratch,
+                                     plan.active_count));
+    values.set(Layout::arg_capacity, plan.capacity);
+    values.buffer(Layout::arg_status, *execution,
+        spatial_range<std::uint32_t>(buffers.build_scratch, plan.status));
+    return launch(stream, "primitives", "pm_spatial_publish_epoch",
+        device::DispatchSize(1U), device::DispatchSize(1U), values);
+}
+
+PmResult query_spatial_epoch_device(
+    device::ExecutionQueue stream, const SpatialBuildPlan &plan,
+    const SpatialDeviceBuffers &buffers, const SpatialAabb *queries,
+    const std::uint32_t *query_masks,
+    const std::uint32_t *excluded_sort_keys, std::uint32_t query_count,
+    std::uint32_t candidates_per_query) noexcept {
+    if (query_count == 0U) return PM_SUCCESS;
+    if (buffers.header == nullptr || buffers.metadata == nullptr ||
+        buffers.admission == nullptr || buffers.query_counts == nullptr ||
+        buffers.query_candidates == nullptr ||
+        buffers.query_visited_nodes == nullptr ||
+        buffers.query_counter == nullptr || buffers.query_status == nullptr ||
+        buffers.build_output == nullptr || queries == nullptr ||
+        query_masks == nullptr || excluded_sort_keys == nullptr ||
+        candidates_per_query == 0U)
+        return PM_ERROR_INVALID_ARGUMENT;
+    auto *execution = d3d12::context(stream.native_handle);
+    if (execution == nullptr) return PM_ERROR_INVALID_ARGUMENT;
+    auto *left = spatial_range<std::uint32_t>(
+        buffers.build_output, plan.left_children);
+    auto *right = spatial_range<std::uint32_t>(
+        buffers.build_output, plan.right_children);
+    auto *leaf_sources = spatial_range<std::uint32_t>(
+        buffers.build_output, plan.leaf_sources);
+    auto *node_bounds = spatial_range<SpatialAabb>(
+        buffers.build_output, plan.node_bounds);
+    using Layout = d3d12::generated::layout::primitives::
+        Kernel_pm_spatial_query_aabbs;
+    Constants<Layout::constant_size> values;
+    values.buffer(Layout::arg_header, *execution, buffers.header);
+    values.buffer(Layout::arg_query_counter, *execution,
+                  buffers.query_counter);
+    values.buffer(Layout::arg_queries, *execution, queries);
+    values.buffer(Layout::arg_query_masks, *execution, query_masks);
+    values.buffer(Layout::arg_excluded_sort_keys, *execution,
+                  excluded_sort_keys);
+    values.set(Layout::arg_query_count, query_count);
+    values.set(Layout::arg_candidates_per_query, candidates_per_query);
+    values.set(Layout::arg_capacity, plan.capacity);
+    values.buffer(Layout::arg_left_children, *execution, left);
+    values.buffer(Layout::arg_right_children, *execution, right);
+    values.buffer(Layout::arg_leaf_sources, *execution, leaf_sources);
+    values.buffer(Layout::arg_node_bounds, *execution, node_bounds);
+    values.buffer(Layout::arg_metadata, *execution, buffers.metadata);
+    values.buffer(Layout::arg_admission, *execution, buffers.admission);
+    values.buffer(Layout::arg_candidate_counts, *execution,
+                  buffers.query_counts);
+    values.buffer(Layout::arg_candidates, *execution,
+                  buffers.query_candidates);
+    values.buffer(Layout::arg_visited_nodes, *execution,
+                  buffers.query_visited_nodes);
+    values.buffer(Layout::arg_status, *execution, buffers.query_status);
+    return launch(stream, "primitives", "pm_spatial_query_aabbs",
+        device::DispatchSize((query_count + 63U) / 64U),
+        device::DispatchSize(64U), values);
 }
 
 } // namespace parallel_mater::simulation

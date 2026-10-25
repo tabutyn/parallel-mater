@@ -81,4 +81,17 @@ PmResult solve_geometry_constraints(
     return PM_SUCCESS;
 }
 
+PmResult solve_geometry_constraints_fixed_realtime(
+    device::ExecutionQueue stream, const void *parameters,
+    const RigidBodyState *previous, RigidBodyState *states,
+    std::uint32_t body_count, void *manifolds,
+    std::uint32_t *active_pairs, std::uint32_t *active_pair_count,
+    void *constraints, std::uint32_t constraint_capacity,
+    GeometryConstraintBody *bodies, void *schedule, float timestep,
+    std::uint32_t grid_blocks) noexcept {
+    return solve_geometry_constraints(stream, parameters, previous, states,
+        body_count, manifolds, active_pairs, active_pair_count, constraints,
+        constraint_capacity, bodies, schedule, timestep, grid_blocks);
+}
+
 } // namespace parallel_mater::simulation

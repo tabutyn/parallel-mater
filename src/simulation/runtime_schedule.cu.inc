@@ -43,22 +43,24 @@ Status SimulationRuntime::step_async(StepOptions options, FrameToken &completion
         options.substeps = std::max(options.substeps,
                                    static_cast<std::uint32_t>(required));
     }
-    for (auto &cloth : impl_->cloths) if (cloth && cloth->alive) {
-        status = rebuild_cloth_topology(*cloth, queue);
-        if (!status) return status;
-    }
+    if (!realtime)
+        for (auto &cloth : impl_->cloths) if (cloth && cloth->alive) {
+            status = rebuild_cloth_topology(*cloth, queue);
+            if (!status) return status;
+        }
     const bool debug_enabled =
         impl_->options.physics_debug.frame_capacity != 0U;
-    if (impl_->rigid_body_count == 0U) {
+    if (!realtime && impl_->rigid_body_count == 0U) {
         const auto cleared = clear_bytes(impl_->rigid_contact_count, 0,
                                          sizeof(std::uint32_t), queue);
         if (cleared != PM_SUCCESS) return backend_failure(cleared, "contact count clear failed");
     }
-    for (auto *counter : {impl_->fluid_neighbor_overflow, impl_->fluid_maximum_neighbor_count,
-                          impl_->fluid_contact_count, impl_->fluid_contact_overflow}) {
-        const auto cleared = clear_bytes(counter, 0, sizeof(std::uint32_t), queue);
-        if (cleared != PM_SUCCESS) return backend_failure(cleared, "fluid count clear failed");
-    }
+    if (!realtime)
+        for (auto *counter : {impl_->fluid_neighbor_overflow, impl_->fluid_maximum_neighbor_count,
+                              impl_->fluid_contact_count, impl_->fluid_contact_overflow}) {
+            const auto cleared = clear_bytes(counter, 0, sizeof(std::uint32_t), queue);
+            if (cleared != PM_SUCCESS) return backend_failure(cleared, "fluid count clear failed");
+        }
 
     std::unique_ptr<FrameToken::Impl> token_impl;
     if (completion.impl_) {
@@ -96,9 +98,11 @@ Status SimulationRuntime::step_async(StepOptions options, FrameToken &completion
         return backend_failure(error, "failed to create frame completion event");
     }
     NativeScheduleBackend backend(queue);
-    status = simulation::schedule_frame(*impl_, backend, options);
+    status = realtime
+        ? schedule_native_realtime(*impl_, backend, options)
+        : simulation::schedule_frame(*impl_, backend, options);
     if (!status) {
-        (void)wait_queue(stream);
+        if (!realtime) (void)wait_queue(stream);
         return status;
     }
     error = impl_->execution.services->record_event(frame->event);

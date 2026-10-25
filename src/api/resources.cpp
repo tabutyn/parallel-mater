@@ -81,9 +81,13 @@ struct StructureHeader {
         return PM_ERROR_FEATURE_NOT_PRESENT;
     if (request->versionMajor != 1U || request->versionMinor != 0U)
         return PM_ERROR_INCOMPATIBLE_VERSION;
-    // The public negotiation contract lands before the F8 schedule and solver
-    // work. Never accept this profile until those tasks provide the runtime.
+#if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
+    profile = PmSimulationExecutionProfile::realtime_single_step;
+    return PM_SUCCESS;
+#else
+    // Production advertisement remains gated on the F8-35 qualification task.
     return PM_ERROR_FEATURE_NOT_PRESENT;
+#endif
 }
 
 [[nodiscard]] bool finite(const PmRigidState &state) noexcept {
@@ -177,6 +181,13 @@ struct StructureHeader {
     options.rope_cloth_coupling_capacity = coupling_capacity;
     options.physics_debug.frame_capacity = info.debugFrameCapacity;
     options.rigid_sleeping = false;
+#if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
+    options.realtime_spatial_enabled = true;
+    options.realtime_spatial_leaf_capacity = options.rigid_body_capacity;
+    options.realtime_spatial_query_capacity = options.rigid_body_capacity;
+    options.realtime_spatial_candidates_per_query =
+        options.rigid_body_capacity;
+#endif
     return options;
 }
 

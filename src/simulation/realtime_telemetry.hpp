@@ -275,9 +275,11 @@ public:
 
     [[nodiscard]] PmResult begin_tick(
         const RealtimeScheduleScene &scene) noexcept {
-        const auto result = backend_.begin_tick(scene);
-        return result == PM_SUCCESS
-            ? capture({RealtimeSchedulePhase::boundary, 0U, 0U}) : result;
+        auto result = backend_.begin_tick(scene);
+        if (result != PM_SUCCESS) return result;
+        result = capture({RealtimeSchedulePhase::boundary, 0U, 0U});
+        if (result != PM_SUCCESS) (void)backend_.abort_tick(scene);
+        return result;
     }
     [[nodiscard]] PmResult boundary(
         const RealtimeScheduleScene &scene) noexcept {

@@ -55,4 +55,34 @@ PmResult solve_geometry_constraints(device::ExecutionQueue stream,
         if (result != PM_SUCCESS) throw std::runtime_error("Metal staged AVBD dispatch failed");
     });
 }
+
+PmResult solve_geometry_constraints_fixed_realtime(
+    device::ExecutionQueue stream, const void *parameters,
+    const RigidBodyState *previous, RigidBodyState *states,
+    std::uint32_t body_count, void *manifolds,
+    std::uint32_t *active_pairs, std::uint32_t *active_pair_count,
+    void *constraints, std::uint32_t constraint_capacity,
+    GeometryConstraintBody *bodies, void *schedule, float timestep,
+    std::uint32_t) noexcept {
+    auto *execution = metal::context(stream);
+    if (!execution) return PM_ERROR_INVALID_ARGUMENT;
+    return execution->checked_result([&] {
+        PmResult result = PM_SUCCESS;
+        encode_avbd_schedule(rigid_realtime_sweeps, body_count,
+            [&](AvbdStage operation, std::uint32_t phase,
+                std::uint32_t iteration, std::uint32_t color) {
+                if (result != PM_SUCCESS) return;
+                result = metal::launch(stream, "solve_avbd_stage_kernel",
+                    std::max(1U, (body_count + 31U) / 32U), parameters,
+                    previous, states, body_count, manifolds, active_pairs,
+                    active_pair_count, constraints, constraint_capacity,
+                    bodies, schedule, timestep,
+                    static_cast<std::uint32_t>(operation), phase, iteration,
+                    color);
+            }, 1U);
+        if (result != PM_SUCCESS)
+            throw std::runtime_error(
+                "Metal fixed realtime AVBD dispatch failed");
+    });
+}
 } // namespace parallel_mater::simulation

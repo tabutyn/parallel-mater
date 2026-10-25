@@ -4,6 +4,7 @@
 #include "geometry_storage.hpp"
 #include "primitives.hpp"
 #include "production_spatial_runtime.hpp"
+#include "rigid_spatial.hpp"
 #include "status.hpp"
 #include "types.hpp"
 #include <algorithm>
@@ -211,6 +212,7 @@ Status visit_global_storage(State &state, SimulationOptions options, Visitor &vi
     PM_STORAGE(rigid_contact_count, 1, persistent);
     PM_STORAGE(meshes, options.triangle_mesh_capacity, persistent);
     state.realtime_spatial_plan = {};
+    state.realtime_rigid_spatial_plan = {};
     if (options.realtime_spatial_enabled) {
         const auto planned = make_spatial_service_plan(
             options.realtime_spatial_leaf_capacity,
@@ -228,6 +230,20 @@ Status visit_global_storage(State &state, SimulationOptions options, Visitor &vi
         PM_STORAGE(realtime_spatial_scratch,
             spatial_storage_block_count(
                 state.realtime_spatial_plan.scratch_bytes), scratch);
+        const auto rigid_planned = make_rigid_spatial_plan(
+            options.rigid_body_capacity,
+            options.realtime_spatial_candidates_per_query,
+            state.realtime_rigid_spatial_plan);
+        if (rigid_planned != PM_SUCCESS)
+            return {StatusCode::invalid_argument,
+                    static_cast<std::int32_t>(rigid_planned),
+                    "invalid realtime rigid spatial storage plan"};
+        PM_STORAGE(realtime_rigid_spatial_scratch,
+            spatial_storage_block_count(
+                state.realtime_rigid_spatial_plan.scratch_bytes), scratch);
+        PM_STORAGE(realtime_rigid_spatial_output,
+            spatial_storage_block_count(
+                state.realtime_rigid_spatial_plan.output_bytes), persistent);
     }
     if constexpr (Visitor::materialize)
         for (std::uint32_t i = 0; i < options.triangle_mesh_capacity; ++i) state.meshes[i] = {};

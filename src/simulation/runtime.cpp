@@ -27,15 +27,18 @@
 #include "simulation/resource_plan.hpp"
 #include "simulation/primitives.hpp"
 #include "simulation/reference_schedule.hpp"
+#include "simulation/realtime_telemetry.hpp"
 #include "simulation/rigid_realtime.hpp"
 
 #include <algorithm>
 #include <array>
 #include <climits>
 #include <cfloat>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <cstdlib>
 #include <functional>
 #include <limits>
 #include <map>
@@ -1282,6 +1285,12 @@ struct SimulationRuntime::Impl {
     simulation::SpatialStorageBlock *realtime_spatial_persistent{};
     simulation::SpatialStorageBlock *realtime_spatial_scratch{};
     simulation::ProductionSpatialRuntime realtime_spatial{};
+    simulation::RigidSpatialPlan realtime_rigid_spatial_plan{};
+    simulation::SpatialStorageBlock *realtime_rigid_spatial_scratch{};
+    simulation::SpatialStorageBlock *realtime_rigid_spatial_output{};
+    simulation::RealtimeSnapshotOwnership realtime_snapshots{};
+    simulation::RealtimeTickTelemetry realtime_telemetry{};
+    simulation::RealtimeScheduleLedger realtime_ledger{};
     std::shared_ptr<CompletionState> frame{};
     std::vector<device::Event> timing_events{};
     std::vector<TimingStage> timing_stages{};
@@ -1501,6 +1510,8 @@ struct SimulationRuntime::Impl {
         release_managed(rigid_contact_cache_slots);
         release_managed(realtime_spatial_scratch);
         release_managed(realtime_spatial_persistent);
+        release_managed(realtime_rigid_spatial_scratch);
+        release_managed(realtime_rigid_spatial_output);
         release_managed(states[1]);
         release_managed(debug_applied_forces);
         release_managed(debug_applied_torques);
@@ -1971,6 +1982,7 @@ Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &o
 #include "runtime_deformables.cu.inc"
 #include "runtime_rigid.cu.inc"
 #include "native_schedule_backend.cu.inc"
+#include "production_realtime_backend.cu.inc"
 #include "runtime_schedule.cu.inc"
 #include "runtime_diagnostics.cu.inc"
 

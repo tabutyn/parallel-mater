@@ -51,4 +51,31 @@ PmResult radix_sort_pairs_u64_u32(
     }
 }
 
+PmResult initialize_spatial_epoch_device(
+    device::ExecutionQueue, const SpatialBuildPlan &,
+    const SpatialDeviceBuffers &, const SpatialDeviceEpoch &) noexcept {
+    return PM_ERROR_FEATURE_NOT_PRESENT;
+}
+
+PmResult build_spatial_index_device(
+    device::ExecutionQueue, const SpatialBuildPlan &,
+    const SpatialDeviceBuffers &, const std::uint32_t *,
+    std::uint32_t) noexcept {
+    return PM_ERROR_FEATURE_NOT_PRESENT;
+}
+
+PmResult publish_spatial_epoch_device(
+    device::ExecutionQueue, const SpatialBuildPlan &,
+    const SpatialDeviceBuffers &) noexcept {
+    return PM_ERROR_FEATURE_NOT_PRESENT;
+}
+
+PmResult query_spatial_epoch_device(
+    device::ExecutionQueue, const SpatialBuildPlan &,
+    const SpatialDeviceBuffers &, const SpatialAabb *,
+    const std::uint32_t *, const std::uint32_t *, std::uint32_t,
+    std::uint32_t) noexcept {
+    return PM_ERROR_FEATURE_NOT_PRESENT;
+}
+
 } // namespace parallel_mater::simulation
