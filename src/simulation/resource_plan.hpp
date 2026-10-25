@@ -275,6 +275,8 @@ Status visit_global_storage(State &state, SimulationOptions options, Visitor &vi
             options.realtime_spatial_query_capacity, scratch);
         PM_STORAGE(realtime_excluded_sort_keys,
             options.realtime_spatial_query_capacity, scratch);
+        PM_STORAGE(realtime_smoke_payload_refs,
+            options.realtime_spatial_leaf_capacity, scratch);
     }
     if constexpr (Visitor::materialize)
         for (std::uint32_t i = 0; i < options.triangle_mesh_capacity; ++i) state.meshes[i] = {};
@@ -710,6 +712,7 @@ Status visit_smoke_particles_storage(State &state, std::uint32_t capacity, Visit
     PM_STORAGE(realtime_candidate_counts, capacity, scratch);
     PM_STORAGE(realtime_candidate_indices,
         static_cast<std::size_t>(capacity) * 64U, scratch);
+    PM_STORAGE(realtime_candidate_slot_count, 1U, scratch);
     PM_STORAGE(realtime_time_advances, 1U, scratch);
     state.sort_workspace_size = radix_sort_scratch_bytes(capacity);
     PM_STORAGE(sort_workspace, state.sort_workspace_size, scratch);

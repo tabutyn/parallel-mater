@@ -801,15 +801,8 @@ void fluid_filter_spatial_candidates(
         pmAtomicOr(status, kFluidSpatialQueryOverflow);
         return;
     }
-    // Realtime particle smoke shares this published index but consumes local
-    // dense indices from a fixed 64-candidate view. The high owner bit is an
-    // internal adapter tag; ordinary fluid filtering keeps its original
-    // global-source representation and stride.
-    bool localDenseOutput = (target_owner_slot & 0x80000000u) != 0u;
-    uint outputCapacity = localDenseOutput ? 64u : candidates_per_query;
     uint written = 0u;
     uint base = query * candidates_per_query;
-    uint outputBase = query * outputCapacity;
     for (uint candidate = 0u; candidate < count; ++candidate)
     {
         uint source = candidate_sources[base + candidate];
@@ -837,14 +830,7 @@ void fluid_filter_spatial_candidates(
             filtered_counts[query] = 0u;
             return;
         }
-        if (written >= outputCapacity)
-        {
-            pmAtomicOr(status, kFluidSpatialQueryOverflow);
-            filtered_counts[query] = 0u;
-            return;
-        }
-        filtered_sources[outputBase + written++] = localDenseOutput
-            ? target.payload_ref : source;
+        filtered_sources[base + written++] = source;
     }
     filtered_counts[query] = written;
 }

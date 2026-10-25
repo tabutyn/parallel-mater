@@ -1368,6 +1368,8 @@ struct SimulationRuntime::Impl {
     simulation::SpatialAabb *realtime_query_bounds{};
     std::uint32_t *realtime_query_masks{};
     std::uint32_t *realtime_excluded_sort_keys{};
+    std::uint32_t *realtime_smoke_payload_refs{};
+    std::vector<std::uint32_t> realtime_smoke_payload_refs_host{};
     simulation::RealtimeSnapshotOwnership realtime_snapshots{};
     simulation::RealtimeResourcePlan realtime_resource_plan{};
     simulation::ProductionRealtimeResources realtime_resources{};
@@ -1599,6 +1601,7 @@ struct SimulationRuntime::Impl {
         release_managed(realtime_query_bounds);
         release_managed(realtime_query_masks);
         release_managed(realtime_excluded_sort_keys);
+        release_managed(realtime_smoke_payload_refs);
         release_managed(states[1]);
         release_managed(debug_applied_forces);
         release_managed(debug_applied_torques);
@@ -1970,6 +1973,8 @@ Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &o
         implementation->destroy_planes.resize(options.particle_destroy_plane_capacity);
         implementation->debug_frames.resize(
             options.physics_debug.frame_capacity);
+        implementation->realtime_smoke_payload_refs_host.resize(
+            options.realtime_spatial_leaf_capacity);
     } catch (...) {
         return failure(StatusCode::out_of_memory,
                        "failed to allocate world host storage");

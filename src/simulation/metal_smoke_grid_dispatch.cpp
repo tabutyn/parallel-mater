@@ -227,10 +227,8 @@ void resolve_smoke_grid_particle_fields(
     const std::uint64_t *temperature_accumulator, float *density,
     float *temperature, std::uint32_t count) noexcept {
     (void)metal::launch(stream, "smoke_grid_resolve_particle_fields", grid,
-        const_cast<unsigned long long *>(
-            density_accumulator),
-        const_cast<unsigned long long *>(
-            temperature_accumulator),
+        const_cast<std::uint64_t *>(density_accumulator),
+        const_cast<std::uint64_t *>(temperature_accumulator),
         density, temperature, count);
 }
 
