@@ -1,0 +1,90 @@
+{
+  "schema": "parallel-mater-f8-smoke-production-ticks-evidence/v1",
+  "task": "F8-44",
+  "status": "passed",
+  "recorded_at": "2026-10-25",
+  "branch": "work/F8-44/thomas-laptop-pixel7",
+  "lease_token": "e8cd1b03-595b-403d-8eb8-31295c992283",
+  "base_revision": "aa2bbe9cfd796743b0ffed3b5bdf5fc9356bbc0b",
+  "implementation_revision": "aaccbe508977bd02bef8f8110e0381d5c70fb745",
+  "implementation": {
+    "public_path": "Live particle-smoke and grid-smoke resources execute the production realtime-single-step schedule instead of the former blanket PM_ERROR_FEATURE_NOT_PRESENT rejection.",
+    "particle_tick": "One bounded emission and predictor, one common spatial build/query/publication, six density/pressure-position/apply sweeps, one velocity commit and one public export.",
+    "grid_tick": "One fixed source application, scalar and face advection, buoyancy/force preparation, boundary enforcement, twelve projection cycles, velocity correction, particle tracing and one public export.",
+    "common_epoch": "Particle-smoke swept particles occupy reserved ranges of the F8-10 spatial epoch used by every active domain. Frozen filtering plus two frozen bounded gathers convert global spatial sources to the F8-16 local 64-wide candidate view without changing the protected Slang closure.",
+    "fixed_resources": "All realtime particle, grid, candidate-adapter and publication storage is planned before execution. A tick performs no heap allocation, readback or index rebuild inside smoke domain iterations.",
+    "atomic_state": "Particle and grid state publishes only after successful resource, snapshot and spatial commit. Exact-limit failure leaves public bytes unchanged; whole-resource replacement and reset renew generation/revision identity.",
+    "adapters": "CUDA, Vulkan and Metal dispatch bindings call the common protected F8-16 Slang entries. Adapter code contains no private smoke physics equations."
+  },
+  "public_cases": [
+    "cold particle-smoke emission through the installed public API",
+    "six particle-pressure iterations, one time advance, one index build, one publication and zero intra-tick host readbacks",
+    "finite particle state with bounded speed and nonzero output count",
+    "one-below workgroup-limit failure with byte-for-byte rollback and capacity reuse",
+    "whole-resource replacement from particle smoke to sparse grid smoke at a tick boundary",
+    "twelve grid projection iterations, one time advance, one index build and one publication",
+    "simulation reset followed by particle-smoke slot rewrite and a successful cold tick"
+  ],
+  "qualification": {
+    "host_suite": {
+      "command": "cmake --build build-sdk-cpu -j2 && ctest --test-dir build-sdk-cpu --output-on-failure -j2",
+      "result": "PASS: 102/102 discovered; 87 executed passed and 15 unadvertised CPU-domain tests explicitly skipped"
+    },
+    "protected_closure": {
+      "command": "python3 tools/check_realtime_candidate.py",
+      "result": "PASS: realtime-single-step-v1-3671f18 protected closure and routing are exact"
+    },
+    "public_cuda_runtime": {
+      "command": "PM_DRIVER_FILES=build-f8-22-cuda/Release/manifests/slang-cuda.json PM_LAYER_FILES=build-f8-22-cuda/Release/manifests/validation.json build-sdk-cpu/parallel-mater-native-realtime-runtime-tests --production",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU, compute 8.6, driver 590.44.01",
+      "result": "PASS: production realtime resources are fixed and atomic"
+    },
+    "public_vulkan_runtime": {
+      "command": "PM_DRIVER_FILES=build-p3-02-vulkan/Release/manifests/slang-vulkan.json /tmp/F8-44-native-realtime-vulkan --production",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU, Vulkan 1.4.325, driver 590.44.01",
+      "result": "PASS: production realtime resources are fixed and atomic"
+    },
+    "physical_particle_oracle": {
+      "command": "./build-f8-22-cuda/tests/solver/parallel-mater-smoke-particle-realtime-cuda-tests",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU, compute 8.6",
+      "result": "PASS: cold emit 4, one time advance, maximum correction 0.04082789 m; 4,500 particles for 3,600 ticks, density-error p95 0, maximum speed 0.22072044 m/s and p95 0.059392 ms"
+    },
+    "physical_grid_oracle": {
+      "command": "./build-f8-22-cuda/tests/solver/parallel-mater-smoke-grid-realtime-cuda-tests",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU, compute 8.6",
+      "result": "PASS: divergence-dt RMS 0.31249997 to 0.00655778, maximum 0.02505636 after twelve cycles, obstacle and buoyancy checks passed; 3,600-tick tracer mass error 0.00000048, centroid error 0.00000008 cells, maximum speed 1.00008619 m/s and p95 0.705536 ms"
+    },
+    "cross_adapter_builds": {
+      "commands": [
+        "cmake --build build-f8-22-cuda --target parallel-mater-driver-slang-cuda -j2",
+        "cmake --build build-p3-02-vulkan -j2",
+        "ANDROID_HOME=/home/thomas/Android/Sdk ANDROID_SDK_ROOT=/home/thomas/Android/Sdk SLANGC=build-f8-22-cuda/_deps/parallel_mater_slang-src/bin/slangc ./scripts/Build-AndroidGallery.sh -PphysicsBackend=vulkan -Pqualification=true"
+      ],
+      "result": "PASS: CUDA, desktop Vulkan and Android arm64-v8a Vulkan builds completed from implementation revision aaccbe508977bd02bef8f8110e0381d5c70fb745"
+    },
+    "metal_adapters": {
+      "command": "c++ -std=c++20 -fsyntax-only -DPARALLEL_MATER_DRIVER_IMPLEMENTATION=1 -DPARALLEL_MATER_METAL_DRIVER=1 -Isrc/device/metal_compat -Isrc -Iinclude -Ibuild-p3-02-vulkan/generated/include src/simulation/metal_geometry_smoke_dispatch.cpp src/simulation/metal_smoke_grid_dispatch.cpp",
+      "result": "PASS"
+    },
+    "contracts": {
+      "command": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py' && python3 -m unittest discover -s tests/roadmap -p 'test_*.py' && python3 tools/roadmap.py check",
+      "result": "PASS: 418 conformance tests, 87 roadmap tests and 272-card catalog check"
+    }
+  },
+  "android_cross_build": {
+    "build_directory": "examples/android/app/.cxx/Debug/5i4r3i6p/arm64-v8a",
+    "toolchain": {
+      "android_ndk": "29.0.14206865",
+      "slang": "2026.18"
+    },
+    "source_commit": "aaccbe508977bd02bef8f8110e0381d5c70fb745",
+    "apk_sha256": "5ec5f8ad35f8d3bb89f28ea246b2eb48112841872781045cb95f0eae1f9839bb",
+    "driver_sha256": "d29d487dfc6bcfa8266b33de689d1d2c370fbe5a01fde46c05de6f56452f142e",
+    "device_execution": "Not run: Pixel 7 serial 2B241FDH20060P was absent from adb after the clean build. Physical desktop CUDA and Vulkan public execution and both independent CUDA quality oracles passed."
+  },
+  "limits": [
+    "F8-44 consumes the existing frozen grid obstacle/open-face fields; reciprocal rigid/deformable interaction population remains F8-45.",
+    "Physical D3D12 and Metal execution were unavailable on this Linux host; protected common Slang closure, CUDA/Vulkan physical execution, Android cross-compilation and local Metal binding syntax passed.",
+    "The Pixel 7 disconnected before final harness execution, so this evidence claims Android cross-build parity, not physical Android execution."
+  ]
+}
