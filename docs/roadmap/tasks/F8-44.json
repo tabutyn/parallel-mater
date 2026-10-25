@@ -1,7 +1,7 @@
 {
   "id": "F8-44",
   "title": "Connect both smoke representations to production fixed ticks",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-39"
   ],
@@ -18,15 +18,27 @@
     "Boundary conditions, sparse fields, topology/resource replacement, cold starts, overflow and rollback use real production state and bounded work.",
     "No separate smoke timestep, CPU physics fallback for GPU execution, repeated collision index build or weakening of quality tolerances."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "e8cd1b03-595b-403d-8eb8-31295c992283",
-    "owner": "codex-android-overnight",
-    "machine": "thomas-laptop-pixel7",
-    "branch": "work/F8-44/thomas-laptop-pixel7",
-    "claimed_at": "2026-10-25T20:50:42Z",
-    "heartbeat_at": "2026-10-25T20:50:42Z",
-    "expires_at": "2026-10-26T20:50:42Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F8-44-smoke-production-ticks.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "e8cd1b03-595b-403d-8eb8-31295c992283",
+        "owner": "codex-android-overnight",
+        "machine": "thomas-laptop-pixel7",
+        "branch": "work/F8-44/thomas-laptop-pixel7",
+        "claimed_at": "2026-10-25T20:50:42Z",
+        "heartbeat_at": "2026-10-25T20:50:42Z",
+        "expires_at": "2026-10-26T20:50:42Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-25T21:49:59Z",
+      "reason": "Connected particle and grid smoke to production fixed ticks with protected F8-16 operators, atomic publication, bounded rollback, and CUDA/Vulkan/Android/Metal adapter qualification.",
+      "evidence": [
+        "docs/roadmap/evidence/F8-44-smoke-production-ticks.json"
+      ]
+    }
+  ]
 }

@@ -17,6 +17,87 @@ struct SmokeGridBoundaryDispatch {
     std::uint32_t *nearest_triangle[3]{};
 };
 
+void begin_smoke_grid_realtime(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, float timestep,
+    std::uint32_t profile_version, float *pressure, float *divergence,
+    std::uint32_t *time_advances, std::uint32_t *status) noexcept;
+
+void apply_smoke_grid_realtime_source(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, const float *density_rate,
+    const float *temperature_rate, float *density, float *temperature,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept;
+
+void advect_smoke_grid_realtime_scalar(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, const float *source,
+    float *destination, float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept;
+
+void advect_smoke_grid_realtime_face(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, int axis,
+    const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, const float *source,
+    float *destination, float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept;
+
+void apply_smoke_grid_realtime_face_forces(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, int axis,
+    const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, const float *source,
+    float *destination, const float *open, const float *wall,
+    const float *strain, const void *subgrid, const float *temperature,
+    float timestep, const float gravity[3], std::uint32_t profile_version,
+    std::uint32_t *status) noexcept;
+
+void apply_smoke_grid_realtime_boundaries(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, int axis,
+    const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, float *values,
+    const float *open, const float *wall, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept;
+
+void calculate_smoke_grid_realtime_divergence(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, float *divergence,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept;
+
+void solve_smoke_grid_realtime_pressure_cycle(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, const float *rhs,
+    const float *pressure, float *next, const float *open_x,
+    const float *open_y, const float *open_z, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept;
+
+void project_smoke_grid_realtime_face(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, int axis,
+    const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, const float *pressure,
+    float *velocity, const float *open, const float *wall, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept;
+
+void trace_smoke_grid_realtime_particles(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions,
+    void *previous_positions, void *velocities, float *ages,
+    float *thermal_lift, float *number_densities, float *pressures,
+    void *vorticities, std::uint32_t count,
+    const SmokeDomainDispatchOptions &options,
+    const SmokeGridDispatchField &field, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept;
+
 void initialize_smoke_grid_cells(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *velocity,
     float *density, float *temperature, float *pressure, float *divergence,
