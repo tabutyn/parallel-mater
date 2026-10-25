@@ -1,0 +1,5887 @@
+{
+  "artifacts": {
+    "deployment_helper_sha256": "b87f22f01e21e236daddbdcffaf62a97f7a4be5e4580224d6291f03aec53d5a5",
+    "runner_sha256": "46ed56fa0b098367bdf27a0447cf04e69d7fc489ba1cedf3e8efbfd900204bda"
+  },
+  "deployment": {
+    "device": {
+      "android_version": "17",
+      "api_level": "37",
+      "build_fingerprint": "google/panther/panther:17/CP3A.261005.002.A1/16269273:user/release-keys",
+      "manufacturer": "Google",
+      "model": "Pixel 7",
+      "product": "panther",
+      "security_patch": "2026-10-05"
+    },
+    "installed_apk_sha256": "d1f4c15ced66c438bbed2efa3b299707e727a682f0140a8c41650d4b809f61cd",
+    "installed_driver_sha256": "6b57dc28caa57a15d4cdef4f7c39da1680a32cb8e990af77a3ad779bf7537808",
+    "installed_package_path": "/data/app/~~AzHPhvYujq0gEF9FCktz6A==/org.parallelmater.gallery-qF_09BqmCMZBJgYaxQxVbw==/base.apk",
+    "local_apk_sha256": "d1f4c15ced66c438bbed2efa3b299707e727a682f0140a8c41650d4b809f61cd",
+    "local_driver_sha256": "6b57dc28caa57a15d4cdef4f7c39da1680a32cb8e990af77a3ad779bf7537808",
+    "package": "org.parallelmater.gallery",
+    "serial": "2B241FDH20060P",
+    "version_code": 2,
+    "version_name": "0.1-vulkan-preview"
+  },
+  "failures": [],
+  "legacy_profile": {
+    "solver_substeps_per_tick": 8,
+    "target_fps": 30
+  },
+  "max_thermal_status": 0,
+  "notes": [
+    "The runner installed the named local APK and byte-compared the installed base APK and bundled Vulkan driver before launching it.",
+    "Every scene and runtime report is bound to a fresh nonce and the APK-embedded revision/dirty-patch/toolchain identity.",
+    "Timestamp queries use the production schedule command buffer; telemetry adds no queue submission or per-dispatch host wait.",
+    "FrameWindow CPU timings and schedule GPU timings cover the same final 60-frame window.",
+    "Workload readback occurs only after freezing and outside the measured window.",
+    "Effective simulation/wall rate is observed FPS divided by the unchanged legacy 30 Hz fixed-step target."
+  ],
+  "passed": true,
+  "run_nonce": "f0ede4449a334bfab47a595f5eb2e0de",
+  "scenes": [
+    {
+      "asset": "RigidBody.glb",
+      "effective_simulation_to_wall_ratio": 0.5603333333333332,
+      "frame_window": {
+        "backend": "vulkan",
+        "bodies": 5,
+        "count": 60,
+        "fps": 16.81,
+        "frames": 119,
+        "mean_ms": 53.552,
+        "median_ms": 52.424,
+        "p95_ms": 59.271,
+        "particles": 0,
+        "physics_ms": 52.364,
+        "present_ms": 0.0,
+        "render_ms": 1.184,
+        "scene": "RigidBody.glb"
+      },
+      "id": "rigid-body",
+      "index": 0,
+      "nonce": "f0ede4449a334bfab47a595f5eb2e0de-rigid-body",
+      "schedule_profile": {
+        "cpu_record_ms_per_tick": {
+          "maximum": 6.826701,
+          "mean": 1.7961316666666667,
+          "minimum": 0.471679,
+          "p50": 1.645752,
+          "p95": 3.467692,
+          "p99": 3.798177
+        },
+        "cpu_submit_to_fence_ms_per_tick": {
+          "maximum": 55.70516,
+          "mean": 48.056359916666665,
+          "minimum": 44.739584,
+          "p50": 47.233683,
+          "p95": 52.181152,
+          "p99": 55.546672
+        },
+        "dispatches_per_tick": {
+          "maximum": 122,
+          "mean": 122.0,
+          "minimum": 122,
+          "p50": 122,
+          "p95": 122,
+          "p99": 122
+        },
+        "gpu_ms_per_tick": {
+          "maximum": 54.162721,
+          "mean": 46.7518318,
+          "minimum": 43.70805,
+          "p50": 45.818686,
+          "p95": 50.297446,
+          "p99": 53.824709
+        },
+        "phases": [
+          {
+            "dispatches": {
+              "maximum": 8,
+              "mean": 8.0,
+              "minimum": 8,
+              "p50": 8,
+              "p95": 8,
+              "p99": 8
+            },
+            "gpu_ms": {
+              "maximum": 25.955486,
+              "mean": 23.0916308,
+              "minimum": 22.001384,
+              "p50": 22.706503,
+              "p95": 24.960369,
+              "p99": 25.392742
+            },
+            "name": "rigid_constraint_solve",
+            "total_occurrences": 480
+          },
+          {
+            "dispatches": {
+              "maximum": 8,
+              "mean": 8.0,
+              "minimum": 8,
+              "p50": 8,
+              "p95": 8,
+              "p99": 8
+            },
+            "gpu_ms": {
+              "maximum": 1.571493,
+              "mean": 1.1063429833333334,
+              "minimum": 0.996786,
+              "p50": 1.076538,
+              "p95": 1.244019,
+              "p99": 1.469238
+            },
+            "name": "rigid_contact_cache_load",
+            "total_occurrences": 480
+          },
+          {
+            "dispatches": {
+              "maximum": 8,
+              "mean": 8.0,
+              "minimum": 8,
+              "p50": 8,
+              "p95": 8,
+              "p99": 8
+            },
+            "gpu_ms": {
+              "maximum": 6.174398,
+              "mean": 4.728523933333333,
+              "minimum": 4.094279,
+              "p50": 4.726115,
+              "p95": 5.43103,
+              "p99": 5.547038
+            },
+            "name": "rigid_contact_cache_save",
+            "total_occurrences": 480
+          },
+          {
+            "dispatches": {
+              "maximum": 24,
+              "mean": 24.0,
+              "minimum": 24,
+              "p50": 24,
+              "p95": 24,
+              "p99": 24
+            },
+            "gpu_ms": {
+              "maximum": 16.174236,
+              "mean": 13.751535100000002,
+              "minimum": 12.78829,
+              "p50": 13.564616,
+              "p95": 14.879395,
+              "p99": 15.951213
+            },
+            "name": "rigid_contact_evaluation",
+            "total_occurrences": 480
+          },
+          {
+            "dispatches": {
+              "maximum": 8,
+              "mean": 8.0,
+              "minimum": 8,
+              "p50": 8,
+              "p95": 8,
+              "p99": 8
+            },
+            "gpu_ms": {
+              "maximum": 0.389608,
+              "mean": 0.27970243333333333,
+              "minimum": 0.257406,
+              "p50": 0.272746,
+              "p95": 0.31429,
+              "p99": 0.371867
+            },
+            "name": "rigid_contact_events",
+            "total_occurrences": 480
+          },
+          {
+            "dispatches": {
+              "maximum": 8,
+              "mean": 8.0,
+              "minimum": 8,
+              "p50": 8,
+              "p95": 8,
+              "p99": 8
+            },
+            "gpu_ms": {
+              "maximum": 2.916219,
+              "mean": 2.3556573666666667,
+              "minimum": 2.159465,
+              "p50": 2.313884,
+              "p95": 2.557983,
+              "p99": 2.745199
+            },
+            "name": "rigid_contact_graph",
+            "total_occurrences": 480
+          },
+          {
+            "dispatches": {
+              "maximum": 1,
+              "mean": 1.0,
+              "minimum": 1,
+              "p50": 1,
+              "p95": 1,
+              "p99": 1
+            },
+            "gpu_ms": {
+              "maximum": 0.004232,
+              "mean": 0.0027797499999999997,
+              "minimum": 0.001953,
+              "p50": 0.002645,
+              "p95": 0.003743,
+              "p99": 0.004191
+            },
+            "name": "rigid_input_clear",
+            "total_occurrences": 60
+          },
+          {
+            "dispatches": {
+              "maximum": 9,
+              "mean": 9.0,
+              "minimum": 9,
+              "p50": 9,
+              "p95": 9,
+              "p99": 9
+            },
+            "gpu_ms": {
+              "maximum": 2.469279,
+              "mean": 0.5016791166666666,
+              "minimum": 0.356283,
+              "p50": 0.465332,
+              "p95": 0.70341,
+              "p99": 0.774048
+            },
+            "name": "rigid_integration",
+            "total_occurrences": 480
+          },
+          {
+            "dispatches": {
+              "maximum": 8,
+              "mean": 8.0,
+              "minimum": 8,
+              "p50": 8,
+              "p95": 8,
+              "p99": 8
+            },
+            "gpu_ms": {
+              "maximum": 0.570882,
+              "mean": 0.48195594999999997,
+              "minimum": 0.443888,
+              "p50": 0.471517,
+              "p95": 0.527751,
+              "p99": 0.547648
+            },
+            "name": "rigid_leaf_pair_generation",
+            "total_occurrences": 480
+          },
+          {
+            "dispatches": {
+              "maximum": 24,
+              "mean": 24.0,
+              "minimum": 24,
+              "p50": 24,
+              "p95": 24,
+              "p99": 24
+            },
+            "gpu_ms": {
+              "maximum": 0.303182,
+              "mean": 0.23546473333333334,
+              "minimum": 0.211263,
+              "p50": 0.23112,
+              "p95": 0.258911,
+              "p99": 0.272135
+            },
+            "name": "rigid_pair_compaction",
+            "total_occurrences": 480
+          },
+          {
+            "dispatches": {
+              "maximum": 8,
+              "mean": 8.0,
+              "minimum": 8,
+              "p50": 8,
+              "p95": 8,
+              "p99": 8
+            },
+            "gpu_ms": {
+              "maximum": 0.230387,
+              "mean": 0.16570368333333332,
+              "minimum": 0.144328,
+              "p50": 0.163493,
+              "p95": 0.18807,
+              "p99": 0.199463
+            },
+            "name": "rigid_pair_filter",
+            "total_occurrences": 480
+          },
+          {
+            "dispatches": {
+              "maximum": 8,
+              "mean": 8.0,
+              "minimum": 8,
+              "p50": 8,
+              "p95": 8,
+              "p99": 8
+            },
+            "gpu_ms": {
+              "maximum": 0.072591,
+              "mean": 0.050356700000000004,
+              "minimum": 0.043864,
+              "p50": 0.049845,
+              "p95": 0.056234,
+              "p99": 0.063802
+            },
+            "name": "rigid_world_bounds",
+            "total_occurrences": 480
+          },
+          {
+            "dispatches": {
+              "maximum": 0,
+              "mean": 0.0,
+              "minimum": 0,
+              "p50": 0,
+              "p95": 0,
+              "p99": 0
+            },
+            "gpu_ms": {
+              "maximum": 0.00061,
+              "mean": 0.0004991833333333333,
+              "minimum": 0.000448,
+              "p50": 0.000488,
+              "p95": 0.00057,
+              "p99": 0.00061
+            },
+            "name": "schedule_tail",
+            "total_occurrences": 60
+          }
+        ],
+        "schedule_count": 60,
+        "submissions_per_tick": {
+          "maximum": 1,
+          "mean": 1.0,
+          "minimum": 1,
+          "p50": 1,
+          "p95": 1,
+          "p99": 1
+        }
+      },
+      "schedule_samples": [
+        {
+          "dispatches": 122,
+          "gpu_ms": 48.221763,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.70691,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.139608,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.56722,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 14.572103,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.282511,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.459635,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002482,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.529785,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.504883,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.242432,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.163818,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.049845,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.582357,
+          "schedule": 61,
+          "submissions": 1,
+          "submit_to_fence_ms": 49.838704,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 43.867718,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.045045,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.022502,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.161214,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 12.874309,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.26237,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.221029,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002686,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.412191,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.451538,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.217041,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.152384,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.044881,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 2.104411,
+          "schedule": 62,
+          "submissions": 1,
+          "submit_to_fence_ms": 44.948934,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 44.987591,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.304973,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.033488,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.712362,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.130941,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.266886,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.202149,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002767,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.419596,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.471069,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.229736,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.163493,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.049642,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.699666,
+          "schedule": 63,
+          "submissions": 1,
+          "submit_to_fence_ms": 45.841146,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.158815,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.43864,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.045329,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.759644,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.035889,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.272746,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.223226,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002279,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.468872,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.467651,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.234904,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.159709,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.049398,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 2.38029,
+          "schedule": 64,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.071533,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 49.400677,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 24.161418,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.17155,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 5.21757,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 14.550863,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.290324,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.542521,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.003215,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.467122,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.507568,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.253215,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.180664,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.054159,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.40979,
+          "schedule": 65,
+          "submissions": 1,
+          "submit_to_fence_ms": 51.66447,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 47.260174,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.386394,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.126668,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.519409,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 14.070191,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.279948,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.417358,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002319,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.522827,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.489624,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.236857,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.159505,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.048503,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.00057,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 6.826701,
+          "schedule": 66,
+          "submissions": 1,
+          "submit_to_fence_ms": 48.290405,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 44.135703,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.072633,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.021891,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.180095,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.086019,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.261841,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.221883,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002441,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.409587,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.457194,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.223104,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.152629,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.045898,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 2.083985,
+          "schedule": 67,
+          "submissions": 1,
+          "submit_to_fence_ms": 45.193767,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 46.116416,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.549521,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.083415,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 5.444092,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.183431,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.264567,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.29126,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.003499,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.356283,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.473877,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.237142,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.176392,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.05249,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.737996,
+          "schedule": 68,
+          "submissions": 1,
+          "submit_to_fence_ms": 47.634847,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.520143,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.078126,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.067993,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.348633,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.114299,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.273438,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.313884,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002563,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.415161,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.4705,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.229614,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.159871,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.045614,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 2.180054,
+          "schedule": 69,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.636394,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.289674,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.363241,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.053914,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.696208,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.332357,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.267782,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.268107,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002197,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.414103,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.467367,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.223714,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.152425,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.047729,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.21167,
+          "schedule": 70,
+          "submissions": 1,
+          "submit_to_fence_ms": 47.02767,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.132692,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.303915,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.047241,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.721192,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.162842,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.269287,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.245972,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002767,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.465169,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.471069,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.231323,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.160767,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.050659,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.579427,
+          "schedule": 71,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.201375,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 44.877321,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.738689,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.03361,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.176107,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 12.78829,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.262817,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.500448,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002563,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.467326,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.468018,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.226807,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.164429,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.047689,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 2.741252,
+          "schedule": 72,
+          "submissions": 1,
+          "submit_to_fence_ms": 45.791137,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 47.465252,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.321534,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.156331,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 5.051148,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.790731,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.280965,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.433879,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002848,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.469116,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.497314,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.242228,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.166667,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.052002,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.655924,
+          "schedule": 73,
+          "submissions": 1,
+          "submit_to_fence_ms": 49.7052,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 49.313153,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 24.402914,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.155802,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.612997,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 14.87382,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.292969,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.482015,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002563,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.516642,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.508789,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.249959,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.16394,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.050293,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 3.51359,
+          "schedule": 74,
+          "submissions": 1,
+          "submit_to_fence_ms": 50.808105,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 43.70805,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.056275,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.996786,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.094279,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 12.863404,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.25826,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.178508,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002441,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.413737,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.443888,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.211263,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.144328,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.044393,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 2.119181,
+          "schedule": 75,
+          "submissions": 1,
+          "submit_to_fence_ms": 44.739584,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.348187,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.354289,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.061157,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.73759,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.356812,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.265259,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.247843,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002563,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.412109,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.463989,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.228678,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.165894,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.051554,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.58488,
+          "schedule": 76,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.243897,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 52.921429,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 25.392742,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.307658,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 5.547038,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 16.174236,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.308512,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.745199,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.003988,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.35848,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.547648,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.272135,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.199463,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.063802,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.230468,
+          "schedule": 77,
+          "submissions": 1,
+          "submit_to_fence_ms": 54.627523,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 44.834067,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.038412,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.019043,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.144613,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.915039,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.261556,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.183024,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002319,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.414185,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.45105,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.215373,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.144613,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.044393,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 0.520833,
+          "schedule": 78,
+          "submissions": 1,
+          "submit_to_fence_ms": 45.715291,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 44.111614,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.210857,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.001302,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.170492,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 12.986166,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.257406,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.18514,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002523,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.414591,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.457682,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.221802,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.157837,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.045329,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 2.165853,
+          "schedule": 79,
+          "submissions": 1,
+          "submit_to_fence_ms": 45.216105,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 48.960654,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 24.302125,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.161255,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 5.262777,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 14.064087,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.287394,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.467367,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002523,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.426432,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.509684,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.248657,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.174276,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.053589,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.572428,
+          "schedule": 80,
+          "submissions": 1,
+          "submit_to_fence_ms": 49.854248,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 47.779949,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.709311,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.122599,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.555054,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 14.197063,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.279256,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.438151,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002441,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.518921,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.499797,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.242269,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.164632,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.050008,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.706055,
+          "schedule": 81,
+          "submissions": 1,
+          "submit_to_fence_ms": 48.795573,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.171063,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.383017,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.053426,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.72461,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.159546,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.265422,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.266642,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002563,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.411458,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.465251,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.225382,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.16451,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.048787,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.125732,
+          "schedule": 82,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.670004,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 47.936484,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.377971,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.14502,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 5.014933,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 14.265992,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.280355,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.426148,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.003581,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.471639,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.482869,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.242676,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.173218,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.051554,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.200887,
+          "schedule": 83,
+          "submissions": 1,
+          "submit_to_fence_ms": 49.528157,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.666098,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.421225,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.036621,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.768677,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.564616,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.265828,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.233317,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002726,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.466187,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.47054,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.222656,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.165243,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.048014,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.661417,
+          "schedule": 84,
+          "submissions": 1,
+          "submit_to_fence_ms": 47.761475,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.305055,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.453004,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.037354,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.719238,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.261597,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.263997,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.205648,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002767,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.455811,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.463542,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.225545,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.165446,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.050659,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.665161,
+          "schedule": 85,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.208781,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 46.375652,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.706503,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.087036,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 5.342529,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.258749,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.277791,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.318441,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002686,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.434814,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.47758,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.243652,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.171346,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.053996,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.645752,
+          "schedule": 86,
+          "submissions": 1,
+          "submit_to_fence_ms": 47.677897,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 47.411012,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.610067,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.101685,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.443522,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 14.136963,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.277384,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.382975,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002523,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.506714,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.495483,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.240804,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.162354,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.05009,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.622111,
+          "schedule": 87,
+          "submissions": 1,
+          "submit_to_fence_ms": 49.028401,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 47.664878,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.999024,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.110636,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.559164,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.936809,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.283773,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.422567,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.003296,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.418986,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.48995,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.23112,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.162109,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.046916,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 2.37736,
+          "schedule": 88,
+          "submissions": 1,
+          "submit_to_fence_ms": 49.1875,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 48.004803,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.920655,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.157756,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.516073,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 14.176514,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.304077,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.493734,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002441,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.495077,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.493205,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.235758,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.159953,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.049072,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 0.507487,
+          "schedule": 89,
+          "submissions": 1,
+          "submit_to_fence_ms": 49.239258,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 49.579469,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 24.474773,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.166178,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 5.24292,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 14.462403,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.289836,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.515137,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.003743,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.422974,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.516357,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.253011,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.178752,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.052938,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.765178,
+          "schedule": 90,
+          "submissions": 1,
+          "submit_to_fence_ms": 51.6733,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 47.58126,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.797486,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.131836,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.563436,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.881307,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.283488,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.452922,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.003092,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.520955,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.493083,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.238688,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.16276,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.051717,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.716512,
+          "schedule": 91,
+          "submissions": 1,
+          "submit_to_fence_ms": 48.703654,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.074586,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.38733,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.049683,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.732178,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.047526,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.264771,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.285848,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.00297,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.411499,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.463257,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.22583,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.154256,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.04895,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 0.503499,
+          "schedule": 92,
+          "submissions": 1,
+          "submit_to_fence_ms": 47.149739,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 47.655926,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.416912,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.146973,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 5.083374,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.827963,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.28186,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.446452,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002604,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.471313,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.498861,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.249471,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.177205,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.052327,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.00061,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.521565,
+          "schedule": 93,
+          "submissions": 1,
+          "submit_to_fence_ms": 48.756754,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.375042,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.515382,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.041138,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.792684,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.167766,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.264771,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.225627,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.003052,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.466349,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.467733,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.224202,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.155721,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.05013,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.722249,
+          "schedule": 94,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.44454,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 46.844321,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.793376,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.077352,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 5.43103,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.289877,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.266357,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.304159,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002116,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.715698,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.487386,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.243693,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.176717,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.05603,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.233032,
+          "schedule": 95,
+          "submissions": 1,
+          "submit_to_fence_ms": 48.068359,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.585817,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.477743,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.053752,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.726115,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.425253,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.26648,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.265055,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002604,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.464966,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.463867,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.229085,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.16215,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.048258,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.528565,
+          "schedule": 96,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.781779,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.2334,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.51469,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.050008,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.674805,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.100342,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.269084,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.251994,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002767,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.468465,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.462321,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.230876,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.15979,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.047811,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.578044,
+          "schedule": 97,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.370931,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 47.501792,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.387452,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.118897,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.963664,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.952149,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.277954,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.402791,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.003337,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.465454,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.479411,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.232666,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.167074,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.050456,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.28951,
+          "schedule": 98,
+          "submissions": 1,
+          "submit_to_fence_ms": 48.647746,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.492637,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.627076,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.049357,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.170166,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.516154,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.266439,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.477498,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002767,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.471354,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.469035,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.226725,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.165771,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.049845,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.968303,
+          "schedule": 99,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.449056,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 46.325115,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.033245,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.071289,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.337402,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.955526,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.272868,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.333455,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.00236,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.414388,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.474162,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.226969,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.155843,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.047078,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.855428,
+          "schedule": 100,
+          "submissions": 1,
+          "submit_to_fence_ms": 47.233683,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.245566,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.363241,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.050212,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.773519,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.232788,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.262573,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.240194,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002767,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.414754,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.463989,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.227091,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.163411,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.050578,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.272339,
+          "schedule": 101,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.901042,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.818686,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.473918,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.042318,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.754151,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.66447,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.268107,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.236979,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002848,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.464884,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.469401,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.226929,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.164632,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.049601,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.601481,
+          "schedule": 102,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.889974,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.216229,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.51351,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.059692,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.751831,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 12.98816,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.268066,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.263753,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.003133,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.464681,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.471517,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.226929,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.156047,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.048462,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.515503,
+          "schedule": 103,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.277588,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 53.824709,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 25.123251,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.571493,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 6.174398,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 15.693889,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.389608,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.916219,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.004232,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.774048,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.570882,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.303182,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.230387,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.072591,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.39978,
+          "schedule": 104,
+          "submissions": 1,
+          "submit_to_fence_ms": 55.546672,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 44.899456,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.179973,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.244019,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.152547,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.450806,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.34375,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.159465,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002563,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.461873,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.46464,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.225749,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.162272,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.05127,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.863647,
+          "schedule": 105,
+          "submissions": 1,
+          "submit_to_fence_ms": 45.805339,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.291465,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.467774,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.029785,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.737061,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.207439,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.261841,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.213176,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002319,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.467489,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.46757,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.22762,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.160848,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.048055,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.601359,
+          "schedule": 106,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.508749,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 49.507814,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.996908,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.169352,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 5.258952,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 14.793986,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.296509,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.48641,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002848,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.485514,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.51888,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.261515,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.180176,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.056234,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.675171,
+          "schedule": 107,
+          "submissions": 1,
+          "submit_to_fence_ms": 50.455445,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 47.57068,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.718588,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.122477,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.521932,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 14.023641,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.280843,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.440999,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002686,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.518921,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.490316,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.241048,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.159953,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.048706,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.00057,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 2.853353,
+          "schedule": 108,
+          "submissions": 1,
+          "submit_to_fence_ms": 48.792277,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 44.302858,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.045289,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.021159,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.11853,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.355428,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.262207,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.222087,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002441,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.408244,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.453654,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.216064,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.15328,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.043864,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.00061,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 2.101847,
+          "schedule": 109,
+          "submissions": 1,
+          "submit_to_fence_ms": 45.422485,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.710735,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.295411,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.05188,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.73405,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.795655,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.268677,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.26062,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.003215,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.406209,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.458862,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.223755,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.162191,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.049683,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.262126,
+          "schedule": 110,
+          "submissions": 1,
+          "submit_to_fence_ms": 47.049927,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.290854,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.401571,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.041545,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.753011,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.230103,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.26416,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.229614,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002645,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.465332,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.461222,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.229329,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.162231,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.04952,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.00057,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.704143,
+          "schedule": 111,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.709229,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 49.166505,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 24.05538,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.469238,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.583008,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 14.79594,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.371867,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.440145,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002889,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.472331,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.506144,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.24703,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.169189,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.052816,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 3.467692,
+          "schedule": 112,
+          "submissions": 1,
+          "submit_to_fence_ms": 50.325846,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.48401,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.321534,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.076538,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.77946,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.131877,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.269206,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.30485,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002523,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.70341,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.457926,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.228353,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.157715,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.050171,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000448,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.104859,
+          "schedule": 113,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.830322,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 45.149049,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.214519,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.044678,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.742676,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.18514,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.271973,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.255046,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.001953,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.531535,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.462158,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.225382,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.164022,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.049398,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.00057,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.642904,
+          "schedule": 114,
+          "submissions": 1,
+          "submit_to_fence_ms": 46.514241,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 47.633872,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.408,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.144572,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 5.021525,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.940105,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.278605,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.443766,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.003499,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.460856,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.47762,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.235107,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.169189,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.050537,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.444417,
+          "schedule": 115,
+          "submissions": 1,
+          "submit_to_fence_ms": 49.007894,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 49.969199,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 24.689454,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.197591,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.807333,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 14.879395,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.300537,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.581624,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.004191,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.524211,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.51884,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.246704,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.168009,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.050741,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.00057,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 2.630696,
+          "schedule": 116,
+          "submissions": 1,
+          "submit_to_fence_ms": 51.555135,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 44.04826,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 22.001384,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.020549,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.133138,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.132325,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.261108,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.220988,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002523,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.404134,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.455241,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.217163,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.15446,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.044759,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 0.471679,
+          "schedule": 117,
+          "submissions": 1,
+          "submit_to_fence_ms": 45.054809,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 46.324342,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 23.077393,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.109701,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.397461,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 13.621664,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.275635,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.397909,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002401,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.51591,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.487752,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.234294,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.156087,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.047648,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.00712,
+          "schedule": 118,
+          "submissions": 1,
+          "submit_to_fence_ms": 47.421387,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 50.297446,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 24.960369,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.199829,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 5.357137,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 14.508138,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.303955,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.488607,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002645,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 0.440796,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.527751,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.258667,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.192098,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.056966,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000488,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 1.255004,
+          "schedule": 119,
+          "submissions": 1,
+          "submit_to_fence_ms": 52.181152,
+          "timestamp_overflow": false
+        },
+        {
+          "dispatches": 122,
+          "gpu_ms": 54.162721,
+          "phases": {
+            "rigid_constraint_solve": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 25.955486,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_load": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 1.198812,
+              "occurrences": 8
+            },
+            "rigid_contact_cache_save": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 4.673462,
+              "occurrences": 8
+            },
+            "rigid_contact_evaluation": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 15.951213,
+              "occurrences": 8
+            },
+            "rigid_contact_events": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.31429,
+              "occurrences": 8
+            },
+            "rigid_contact_graph": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 2.557983,
+              "occurrences": 8
+            },
+            "rigid_input_clear": {
+              "declared_launches": 0,
+              "dispatches": 1,
+              "gpu_ms": 0.002482,
+              "occurrences": 1
+            },
+            "rigid_integration": {
+              "declared_launches": 0,
+              "dispatches": 9,
+              "gpu_ms": 2.469279,
+              "occurrences": 8
+            },
+            "rigid_leaf_pair_generation": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.5389,
+              "occurrences": 8
+            },
+            "rigid_pair_compaction": {
+              "declared_launches": 0,
+              "dispatches": 24,
+              "gpu_ms": 0.258911,
+              "occurrences": 8
+            },
+            "rigid_pair_filter": {
+              "declared_launches": 8,
+              "dispatches": 8,
+              "gpu_ms": 0.18807,
+              "occurrences": 8
+            },
+            "rigid_world_bounds": {
+              "declared_launches": 0,
+              "dispatches": 8,
+              "gpu_ms": 0.053304,
+              "occurrences": 8
+            },
+            "schedule_tail": {
+              "declared_launches": 0,
+              "dispatches": 0,
+              "gpu_ms": 0.000529,
+              "occurrences": 1
+            }
+          },
+          "record_ms": 3.798177,
+          "schedule": 120,
+          "submissions": 1,
+          "submit_to_fence_ms": 55.70516,
+          "timestamp_overflow": false
+        }
+      ],
+      "thermal": {
+        "sensor_statuses": {
+          "BIG": 0,
+          "G3D": 0,
+          "LITTLE": 0,
+          "MID": 0,
+          "TPU": 0,
+          "USB-MINUS-NEUTRAL": 0,
+          "USB-MINUS-USB2": 0,
+          "VIRTUAL-SKIN": 0,
+          "VIRTUAL-SKIN-CHARGE": 0,
+          "VIRTUAL-USB-THROTTLING": 0,
+          "VIRTUAL-USB-UI": 0,
+          "battery": 0,
+          "cellular-emergency": 0,
+          "disp_therm": 0,
+          "gnss_tcxo_therm": 0,
+          "neutral_therm": 0,
+          "qi_therm": 0,
+          "quiet_therm": 0,
+          "usb_pwr_therm": 0,
+          "usb_pwr_therm2": 0
+        },
+        "status": 0,
+        "temperatures_c": {
+          "BIG": 42.000004,
+          "G3D": 42.000004,
+          "LITTLE": 43.000004,
+          "MID": 43.000004,
+          "TPU": 42.000004,
+          "USB-MINUS-NEUTRAL": -1.8700001,
+          "USB-MINUS-USB2": -0.423,
+          "VIRTUAL-SKIN": 30.8512,
+          "VIRTUAL-SKIN-CHARGE": 30.78019,
+          "VIRTUAL-USB-THROTTLING": 0.0,
+          "VIRTUAL-USB-UI": 0.0,
+          "battery": 27.400002,
+          "cellular-emergency": 30.8512,
+          "disp_therm": 29.079,
+          "gnss_tcxo_therm": 31.082,
+          "neutral_therm": 30.526001,
+          "qi_therm": 36.135002,
+          "quiet_therm": 29.301,
+          "usb_pwr_therm": 28.656002,
+          "usb_pwr_therm2": 29.079
+        }
+      },
+      "workload": {
+        "counts": {
+          "fluid": {
+            "capacity": 0,
+            "live": 0
+          },
+          "rigid": {
+            "capacity": 6,
+            "live": 6
+          },
+          "smoke": {
+            "capacity": 0,
+            "live": 0
+          },
+          "soft_body_nodes": {
+            "capacity": 0,
+            "live": 0
+          }
+        },
+        "frame": 151,
+        "nonce": "f0ede4449a334bfab47a595f5eb2e0de-rigid-body",
+        "scene": "RigidBody.glb",
+        "schema": "parallel-mater-android-workload/v1",
+        "substeps_per_tick": 8,
+        "timestep_seconds": 0.0333333
+      }
+    }
+  ],
+  "schedules_per_scene": 60,
+  "schema": "parallel-mater-android-vulkan-legacy-baseline/v2",
+  "source": {
+    "dirty": false,
+    "patch_sha256": "clean",
+    "revision": "9424029633d5b08734391cf8e1b63ba38ef9958f"
+  },
+  "thermal_end": {
+    "sensor_statuses": {
+      "BIG": 0,
+      "G3D": 0,
+      "LITTLE": 0,
+      "MID": 0,
+      "TPU": 0,
+      "USB-MINUS-NEUTRAL": 0,
+      "USB-MINUS-USB2": 0,
+      "VIRTUAL-SKIN": 0,
+      "VIRTUAL-SKIN-CHARGE": 0,
+      "VIRTUAL-USB-THROTTLING": 0,
+      "VIRTUAL-USB-UI": 0,
+      "battery": 0,
+      "cellular-emergency": 0,
+      "disp_therm": 0,
+      "gnss_tcxo_therm": 0,
+      "neutral_therm": 0,
+      "qi_therm": 0,
+      "quiet_therm": 0,
+      "usb_pwr_therm": 0,
+      "usb_pwr_therm2": 0
+    },
+    "status": 0,
+    "temperatures_c": {
+      "BIG": 42.000004,
+      "G3D": 42.000004,
+      "LITTLE": 43.000004,
+      "MID": 43.000004,
+      "TPU": 42.000004,
+      "USB-MINUS-NEUTRAL": -1.8700001,
+      "USB-MINUS-USB2": -0.423,
+      "VIRTUAL-SKIN": 30.8512,
+      "VIRTUAL-SKIN-CHARGE": 30.78019,
+      "VIRTUAL-USB-THROTTLING": 0.0,
+      "VIRTUAL-USB-UI": 0.0,
+      "battery": 27.400002,
+      "cellular-emergency": 30.8512,
+      "disp_therm": 29.079,
+      "gnss_tcxo_therm": 31.082,
+      "neutral_therm": 30.526001,
+      "qi_therm": 36.135002,
+      "quiet_therm": 29.301,
+      "usb_pwr_therm": 28.656002,
+      "usb_pwr_therm2": 29.079
+    }
+  },
+  "thermal_start": {
+    "sensor_statuses": {
+      "BIG": 0,
+      "G3D": 0,
+      "LITTLE": 0,
+      "MID": 0,
+      "TPU": 0,
+      "USB-MINUS-NEUTRAL": 0,
+      "USB-MINUS-USB2": 0,
+      "VIRTUAL-SKIN": 0,
+      "VIRTUAL-SKIN-CHARGE": 0,
+      "VIRTUAL-USB-THROTTLING": 0,
+      "VIRTUAL-USB-UI": 0,
+      "battery": 0,
+      "cellular-emergency": 0,
+      "disp_therm": 0,
+      "gnss_tcxo_therm": 0,
+      "neutral_therm": 0,
+      "qi_therm": 0,
+      "quiet_therm": 0,
+      "usb_pwr_therm": 0,
+      "usb_pwr_therm2": 0
+    },
+    "status": 0,
+    "temperatures_c": {
+      "BIG": 42.000004,
+      "G3D": 34.0,
+      "LITTLE": 45.000004,
+      "MID": 43.000004,
+      "TPU": 35.0,
+      "USB-MINUS-NEUTRAL": -0.64500004,
+      "USB-MINUS-USB2": -0.31100002,
+      "VIRTUAL-SKIN": 28.423002,
+      "VIRTUAL-SKIN-CHARGE": 28.442963,
+      "VIRTUAL-USB-THROTTLING": 0.0,
+      "VIRTUAL-USB-UI": 0.0,
+      "battery": 27.500002,
+      "cellular-emergency": 28.423002,
+      "disp_therm": 28.990002,
+      "gnss_tcxo_therm": 28.856,
+      "neutral_therm": 29.279001,
+      "qi_therm": 30.169,
+      "quiet_therm": 28.389002,
+      "usb_pwr_therm": 28.634,
+      "usb_pwr_therm2": 28.945002
+    }
+  }
+}

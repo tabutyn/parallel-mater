@@ -1,7 +1,7 @@
 {
   "id": "P3-02",
   "title": "Profile and optimize Android Vulkan stepping",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F5-07",
     "F5-15",
@@ -22,16 +22,12 @@
     "On the same Pixel 7 and identical workloads, reduce mean physics time by at least 2x for Rigid Body and Fluid and by at least 1.5x for Smoke Soft Body, without increasing render time by more than 20%, introducing validation/runtime errors, or weakening the existing physical-quality gates.",
     "Re-run the Android Vulkan command/API, asynchronous submission, bounded reset, relevant analytic/reference cases and direct-presentation lifecycle checks; preserve failures independently rather than converting execution or performance into physical qualification."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "e0e9dc5a-5de0-40a9-89ed-ff825897b72a",
-    "owner": "codex-android-vulkan",
-    "machine": "thomas-laptop",
-    "branch": "work/P3-02/thomas-laptop",
-    "claimed_at": "2026-10-24T19:12:56Z",
-    "heartbeat_at": "2026-10-24T19:12:56Z",
-    "expires_at": "2026-10-25T19:12:56Z"
-  },
+  "evidence": [
+    "PASS: physical Pixel 7 120-tick aggregate Rigid Body 53.2045 ms vs 106.607 ms baseline (2.0037x), Fluid 50.743 ms vs 113.340 ms (2.2336x), Smoke Soft Body 301.128 ms vs 600.346 ms (1.9937x); thermal status 0; docs/roadmap/evidence/P3-02-android-vulkan/",
+    "PASS: 25/25 Android Vulkan device invocations, 17/18 independent evaluators, all analytic and adverse lifecycle profiles; explicit CUDA-golden report retained with 16 passes and 14 numerical mismatches; docs/roadmap/evidence/P3-02-android-vulkan/native-capture.json",
+    "PASS: Android Gallery 28/28 scenes, direct presentation, pause/reset, background/foreground, resize, rotation, recovery and teardown; docs/roadmap/evidence/P3-02-android-vulkan/gallery-lifecycle.json"
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -62,6 +58,25 @@
       "at": "2026-10-21T20:07:22Z",
       "reason": "User-directed release: superseded by the F8 single-step 60 Hz redesign. Unfinished experiments and unverified timing comparisons remain preserved on work/P3-02/thomas-laptop; no completion or performance claim. Do not resume the frozen eight-substep optimization; defer this superseded card through a separate planning change.",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "e0e9dc5a-5de0-40a9-89ed-ff825897b72a",
+        "owner": "codex-android-vulkan",
+        "machine": "thomas-laptop",
+        "branch": "work/P3-02/thomas-laptop",
+        "claimed_at": "2026-10-24T19:12:56Z",
+        "heartbeat_at": "2026-10-24T19:12:56Z",
+        "expires_at": "2026-10-25T19:12:56Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-25T06:57:15Z",
+      "reason": "Pixel 7 legacy Vulkan telemetry and measured schedule optimizations completed at unchanged 30 Hz, eight substeps, workloads, equations, and direct presentation",
+      "evidence": [
+        "PASS: physical Pixel 7 120-tick aggregate Rigid Body 53.2045 ms vs 106.607 ms baseline (2.0037x), Fluid 50.743 ms vs 113.340 ms (2.2336x), Smoke Soft Body 301.128 ms vs 600.346 ms (1.9937x); thermal status 0; docs/roadmap/evidence/P3-02-android-vulkan/",
+        "PASS: 25/25 Android Vulkan device invocations, 17/18 independent evaluators, all analytic and adverse lifecycle profiles; explicit CUDA-golden report retained with 16 passes and 14 numerical mismatches; docs/roadmap/evidence/P3-02-android-vulkan/native-capture.json",
+        "PASS: Android Gallery 28/28 scenes, direct presentation, pause/reset, background/foreground, resize, rotation, recovery and teardown; docs/roadmap/evidence/P3-02-android-vulkan/gallery-lifecycle.json"
+      ]
     }
   ]
 }
