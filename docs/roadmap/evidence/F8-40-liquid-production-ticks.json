@@ -1,0 +1,97 @@
+{
+  "schema": "parallel-mater-f8-liquid-production-ticks-evidence/v1",
+  "task": "F8-40",
+  "status": "passed",
+  "recorded_at": "2026-10-25",
+  "branch": "work/F8-40/thomas-laptop-pixel7",
+  "lease_token": "bfc27e47-216b-40f8-954d-5b7012822b4c",
+  "base_revision": "772cc3c91c783e9fdbde1eed7e9728c04aef5f44",
+  "implementation_revision": "43e7442e08435dd5ef7d6ed17760dcbd17cd217b",
+  "implementation": {
+    "public_path": "Liquid-only simulations use the production realtime-single-step scheduler instead of the former blanket PM_ERROR_FEATURE_NOT_PRESENT rejection.",
+    "fixed_tick": "Each successful population tick executes one 1/60 predictor, six density sweeps, one viscosity pass and one commit; there is no hidden substep or double integration.",
+    "common_epoch": "Rigid and liquid leaves occupy disjoint ranges of one common spatial plan. Liquid queries and owner filtering consume its sole published epoch; no solve-time rebuild, refit, sort or second query occurs.",
+    "atomic_state": "Positions, velocities, correction scratch and the time-advance counter are fixed-capacity staged resources. Exact-limit preflight failure publishes neither population and the next tick reuses the same allocations.",
+    "adapters": "CPU, CUDA, Vulkan and Metal dispatch bindings call the same six frozen F8-12 Slang entry points. GPU drivers contain no serial CPU physics fallback."
+  },
+  "public_cases": [
+    "cold one-particle free surface with a second empty population",
+    "unequal four-particle and three-particle populations",
+    "warm follow-up tick through the same allocations",
+    "finite one-step envelope containment and exact public output counts",
+    "one time advance, six density iterations, one index build, one publication and zero intra-tick host readbacks",
+    "one-below workload limit failure with byte-for-byte rollback and capacity reuse",
+    "simulation reset followed by an empty successful tick"
+  ],
+  "qualification": {
+    "liquid_reference_runtime": {
+      "command": "ctest --test-dir /tmp/parallel-mater-f8-40-cpu --output-on-failure -R '^parallel-mater-native-realtime-runtime-tests$'",
+      "result": "PASS 1/1 with Slang CPU liquids enabled; public cold, warm, free-surface, empty, unequal-size, exact telemetry, overflow rollback and reset cases passed"
+    },
+    "canonical_host_suite": {
+      "command": "cmake --build /tmp/parallel-mater-f8-40-host -j4 && ctest --test-dir /tmp/parallel-mater-f8-40-host --output-on-failure",
+      "result": "PASS 104/104 discovered tests; 89 executed pass and 15 explicit unsupported CPU-domain skips"
+    },
+    "cuda_adapter": {
+      "command": "cmake --build /tmp/parallel-mater-f8-40-cuda --target parallel-mater-driver-slang-cuda -j2",
+      "result": "PASS: production CUDA adapter compiled with the new liquid bindings; no CUDA physical device is present on this machine"
+    },
+    "metal_adapter": {
+      "command": "clang++ -std=c++20 -fsyntax-only -DPARALLEL_MATER_DRIVER_IMPLEMENTATION=1 -DPARALLEL_MATER_METAL_DRIVER=1 -Isrc/device/metal_compat -Isrc -Iinclude -I/tmp/parallel-mater-f8-40-host/generated/api src/simulation/metal_fluid_dispatch.cpp",
+      "result": "PASS: Metal liquid dispatch binding is syntactically complete on the available host; physical Metal remains a platform qualification responsibility"
+    },
+    "candidate_guard": {
+      "command": "python3 tools/check_realtime_candidate.py",
+      "result": "PASS: realtime-single-step-v1-3671f18 protected closure and routing are exact"
+    },
+    "roadmap_suite": {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS 87/87"
+    }
+  },
+  "independent_oracles": [
+    {
+      "source": "docs/roadmap/evidence/F8-09-fluid-shared-bvh.json",
+      "result": "Physical RTX generated-Slang self/cross neighbor counts, inactive capacity, candidate overflow, stale identity and one exact epoch through six sweeps passed against brute force"
+    },
+    {
+      "source": "docs/roadmap/evidence/F8-12-liquid-60hz.json",
+      "result": "Physical RTX generated-Slang compression, free-surface loss, closed-envelope containment, viscosity and 720-tick stability passed with one advance and six sweeps"
+    }
+  ],
+  "physical_adapter": {
+    "harness": "python3 scripts/Test-AndroidVulkan.py --serial 2B241FDH20060P --adb /usr/bin/adb --build-directory examples/android/app/.cxx/Debug/1h156r2o/arm64-v8a --output /tmp/F8-40-android-native-43e7442 --timeout 180 --conformance-timeout 420 --native-only",
+    "device": {
+      "manufacturer": "Google",
+      "model": "Pixel 7",
+      "product": "panther",
+      "android_version": "17",
+      "api_level": "37",
+      "security_patch": "2026-10-05"
+    },
+    "adapter": "production Slang Vulkan",
+    "toolchain": {
+      "android_ndk": "29.0.14206865",
+      "slang": "2026.18"
+    },
+    "source_commit": "43e7442e08435dd5ef7d6ed17760dcbd17cd217b",
+    "apk_sha256": "4068c014557e59dd24047a3428b4baf1620cdf13bcb50a157461b0c8427d58c1",
+    "driver_sha256": "7302df8518fc5bd90869b9fb1ae951d8c39f40bc550ac78d834e7dcc08663beb",
+    "capture_sha256": "c1436d758f1e376b2399bd217a070c63fec75d8cfa38eae0c0ee0bda6b628cff",
+    "results_sha256": "56a60519e28783f2a030d3384922abf92d994cf059c661e22298c94925caacba",
+    "realtime_log_sha256": "e97b5d2e7d3bc8fef07063703a5a0aa6ca5ee0ca44d29403bb9603346762dc3c",
+    "liquid_log_sha256": "7497b82068a9808fa74b579f1b1b984cd0e542a5a034eccc1ac0bc56d0c489ae",
+    "native_runs": [
+      "PASS: pm-android-command-tests",
+      "PASS: pm-android-async-tests",
+      "PASS: pm-android-liquid-tests",
+      "PASS: pm-android-realtime-runtime-tests --production"
+    ],
+    "validation_errors": 0
+  },
+  "limits": [
+    "F8-40 qualifies particle-liquid self-dynamics and the liquid-only public lifecycle; it does not advertise cross-population or cross-family coupling.",
+    "Rigid/deformable containment and other liquid coupling modes remain F8-46; source/outflow lifecycle mutation remains F8-48.",
+    "Physical D3D12 and Metal execution are not available on this Linux/Android machine; the common Slang source, CUDA/Vulkan adapters and local Metal binding syntax passed."
+  ]
+}
