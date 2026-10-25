@@ -1,7 +1,7 @@
 {
   "id": "F8-35",
   "title": "Expose executable realtime profile through installed API",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-34"
   ],
@@ -19,6 +19,14 @@
     "Loader, validation, ABI, installed-SDK and legacy omission regressions pass; unsupported domains and adapters remain explicit rather than inheriting profile support."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "c51e6092-c291-4e33-8e77-f4503abdaf11",
+    "owner": "codex-android-overnight",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-35/thomas-laptop",
+    "claimed_at": "2026-10-25T11:37:40Z",
+    "heartbeat_at": "2026-10-25T11:37:40Z",
+    "expires_at": "2026-10-26T11:37:40Z"
+  },
   "history": []
 }
