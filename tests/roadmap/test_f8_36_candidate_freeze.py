@@ -21,8 +21,11 @@ class F836CandidateFreezeTests(unittest.TestCase):
     def setUpClass(cls):
         cls.candidate = json.loads(CANDIDATE_PATH.read_text(encoding="utf-8"))
 
-    def test_replacement_candidate_is_exact(self):
-        self.assertEqual(validate_candidate(), [])
+    def test_rejected_candidate_drift_is_only_the_planned_repair(self):
+        self.assertEqual(set(validate_candidate()), {
+            "adapter_binding closure hash drift",
+            "runtime closure hash drift",
+        })
 
     def test_every_required_protected_drift_is_rejected(self):
         closures = {
@@ -51,6 +54,8 @@ class F836CandidateFreezeTests(unittest.TestCase):
             )
             self.assertIn(ACTIVE_ID, task["scope"])
             self.assertIn("F8-36", task["dependencies"])
+            self.assertIn("F8-38", task["dependencies"])
+            self.assertIn("rejected for qualification", task["scope"])
 
 
 if __name__ == "__main__":

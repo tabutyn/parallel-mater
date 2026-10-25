@@ -193,7 +193,12 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdEndStatisticsQuery(
                 pool->type == PM_QUERY_REALTIME_STEP_STATISTICS
                 ? pool->realtime_statistics[query].step
                 : pool->slots[query].statistics;
-            statistics.stepCount = simulation->submitted_steps;
+            // A realtime statistics query brackets exactly one step.  Its
+            // public count is query-local, not the simulation's lifetime
+            // submission counter (which legacy step statistics retain).
+            statistics.stepCount =
+                pool->type == PM_QUERY_REALTIME_STEP_STATISTICS
+                ? 1U : simulation->submitted_steps;
             statistics.substepsExecuted = simulation->last_substeps;
             statistics.poseIterations = source.rigid_contact_pose_passes;
             statistics.impactIterations = source.rigid_contact_impact_passes;
