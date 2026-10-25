@@ -1,7 +1,7 @@
 {
   "id": "F8-38",
   "title": "Refreeze realtime candidate after telemetry repair",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-37"
   ],
@@ -19,6 +19,14 @@
     "Candidate validation fails on any protected runtime, adapter binding, dispatch, schedule, telemetry, profile or public-oracle drift; F8-99 depends on both repair and refreeze leaves."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "c0f83a75-1735-4412-915d-ad3a4f354939",
+    "owner": "codex-realtime-refreeze",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-38/thomas-laptop",
+    "claimed_at": "2026-10-25T14:27:03Z",
+    "heartbeat_at": "2026-10-25T14:27:03Z",
+    "expires_at": "2026-10-26T14:27:03Z"
+  },
   "history": []
 }
