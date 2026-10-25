@@ -1,7 +1,7 @@
 {
   "id": "F8-22",
   "title": "Freeze the cross-machine candidate and complete kernel coverage",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-01",
     "F8-03",
@@ -22,6 +22,14 @@
     "Document candidate invalidation: later kernel/schedule/physics/profile changes require a new candidate and affected-device reruns, never a union of incompatible green reports."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "bebd9499-0f11-4ecb-a1d1-0644c6bad57b",
+    "owner": "codex-candidate-freeze",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-22/thomas-laptop",
+    "claimed_at": "2026-10-25T09:10:37Z",
+    "heartbeat_at": "2026-10-25T09:10:37Z",
+    "expires_at": "2026-10-26T09:10:37Z"
+  },
   "history": []
 }
