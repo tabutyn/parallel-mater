@@ -1,7 +1,7 @@
 {
   "id": "F8-36",
   "title": "Freeze replacement executable realtime candidate",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-35"
   ],
@@ -19,6 +19,14 @@
     "Candidate validation fails on any protected runtime, adapter binding, dispatch, schedule, telemetry, profile or public-oracle drift; F8-99 depends on every repair/refreeze leaf."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "22291bdd-9a6a-45a8-9059-b481d3399c2a",
+    "owner": "codex-android-overnight",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-36/thomas-laptop",
+    "claimed_at": "2026-10-25T12:47:23Z",
+    "heartbeat_at": "2026-10-25T12:47:23Z",
+    "expires_at": "2026-10-26T12:47:23Z"
+  },
   "history": []
 }
