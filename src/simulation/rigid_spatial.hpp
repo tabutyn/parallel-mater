@@ -141,6 +141,12 @@ struct RigidSpatialWorkBudget {
     append_aligned(result.bounded_pair_scratch_bytes,
                    slots * sizeof(std::uint32_t));
     append_aligned(result.bounded_pair_scratch_bytes, sizeof(std::uint32_t));
+    append_aligned(result.bounded_pair_scratch_bytes,
+                   std::uint64_t{body_count} * sizeof(SpatialAabb));
+    append_aligned(result.bounded_pair_scratch_bytes,
+                   std::uint64_t{body_count} * sizeof(std::uint32_t));
+    append_aligned(result.bounded_pair_scratch_bytes,
+                   std::uint64_t{body_count} * sizeof(std::uint32_t));
     append_aligned(result.bounded_pair_output_bytes,
                    slots * sizeof(std::uint32_t));
     append_aligned(result.bounded_pair_output_bytes, sizeof(std::uint32_t));
