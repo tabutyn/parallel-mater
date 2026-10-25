@@ -145,7 +145,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-20](roadmap/tasks/F8-20.json) | Assemble the one-tick backend-neutral schedule | done | F8-04, F8-17, F8-18, F8-19 | — |
 | [F8-21](roadmap/tasks/F8-21.json) | Add measured dispatch, GPU phase and synchronization budgets | done | F8-01, F8-02, F8-20 | — |
 | [F8-22](roadmap/tasks/F8-22.json) | Freeze the cross-machine candidate and complete kernel coverage | done | F8-01, F8-03, F8-20, F8-21 | — |
-| [F8-23](roadmap/tasks/F8-23.json) | Qualify independent CPU and public-contract cases | leased | F8-22, F8-36, F8-38 | codex-cpu-qualification / thomas-laptop / 2026-10-26T15:05:56Z |
+| [F8-23](roadmap/tasks/F8-23.json) | Qualify independent CPU and public-contract cases | done | F8-22, F8-36, F8-38 | — |
 | [F8-24](roadmap/tasks/F8-24.json) | Qualify the candidate on Linux CUDA devices | waiting on dependencies | F8-22, F8-36, F8-38, F8-52 | — |
 | [F8-25](roadmap/tasks/F8-25.json) | Qualify the candidate on Linux Vulkan devices | waiting on dependencies | F8-22, F8-36, F8-38, F8-52 | — |
 | [F8-26](roadmap/tasks/F8-26.json) | Qualify the candidate on Windows CUDA devices | waiting on dependencies | F8-22, F8-36, F8-38, F8-52 | — |

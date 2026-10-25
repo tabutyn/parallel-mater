@@ -1,7 +1,7 @@
 {
   "id": "F8-23",
   "title": "Qualify independent CPU and public-contract cases",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -20,16 +20,13 @@
     "Report the fixed profile's independent quality assertions and per-tier CPU/GPU/frame p50/p95/p99 budgets, plus cold-start and sustained runs. Never lower counts/tolerances or substitute another device.",
     "Attach reviewable artifacts identifying exact candidate, binary/deployment, device/OS/GPU/driver/toolchain and manifest hashes; preserve failures and create separate fix/requalification leaves instead of declaring partial success."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "451afa67-8a74-4e69-a18b-99eafac39da8",
-    "owner": "codex-cpu-qualification",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-23/thomas-laptop-v3",
-    "claimed_at": "2026-10-25T15:05:56Z",
-    "heartbeat_at": "2026-10-25T15:05:56Z",
-    "expires_at": "2026-10-26T15:05:56Z"
-  },
+  "evidence": [
+    "PASS: docs/roadmap/evidence/F8-23-linux-cpu-qualification.json and F8-23-CPU-QUALIFICATION.json; exact v3 candidate completed 7800/7800 installed-public CPU ticks, p95 0.720287 ms <= 10 ms, 29.1505594x realtime, all 7320 timing samples retained",
+    "PASS: tools/check_sdk_install.py final run 14/14; production driver SHA-256 07435a004f0431da8a324bc1b980bc1a6f44ce0349544149d17df32ab6e054b7; plain and validation execution observations validated",
+    "PASS: build-f8-23-cpu CTest 101/101 with 15 unadvertised CPU-domain fixtures explicitly unsupported; independent realtime oracle unittest 418/418; F8-23 evidence contract 5/5",
+    "PASS: tools/check_realtime_candidate.py exact protected closure; roadmap unittest discovery 87/87; legacy evidence preserved separately and not reused"
+  ],
+  "lease": null,
   "history": [
     {
       "lease": {
@@ -60,6 +57,26 @@
       "at": "2026-10-25T13:44:18Z",
       "reason": "Replacement candidate v2 exact CPU tier fails its first public profile tick with PM_ERROR_CAPACITY_EXCEEDED after 1,421 workgroups and one of eight required iterations; preserve harness/evidence at work/F8-23/thomas-laptop-v2 commit 1c8a551 and add a bounded protected repair/refreeze leaf before requalification.",
       "evidence": []
+    },
+    {
+      "lease": {
+        "token": "451afa67-8a74-4e69-a18b-99eafac39da8",
+        "owner": "codex-cpu-qualification",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-23/thomas-laptop-v3",
+        "claimed_at": "2026-10-25T15:05:56Z",
+        "heartbeat_at": "2026-10-25T15:05:56Z",
+        "expires_at": "2026-10-26T15:05:56Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-25T15:19:37Z",
+      "reason": "Exact frozen candidate v3 passes the registered Linux Slang CPU physical row, installed public API, fixed work, independent oracle, negative, cold-start and sustained timing gates; every unadvertised CPU-domain case remains explicitly unsupported and no GPU or frame-rendering claim is made.",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/F8-23-linux-cpu-qualification.json and F8-23-CPU-QUALIFICATION.json; exact v3 candidate completed 7800/7800 installed-public CPU ticks, p95 0.720287 ms <= 10 ms, 29.1505594x realtime, all 7320 timing samples retained",
+        "PASS: tools/check_sdk_install.py final run 14/14; production driver SHA-256 07435a004f0431da8a324bc1b980bc1a6f44ce0349544149d17df32ab6e054b7; plain and validation execution observations validated",
+        "PASS: build-f8-23-cpu CTest 101/101 with 15 unadvertised CPU-domain fixtures explicitly unsupported; independent realtime oracle unittest 418/418; F8-23 evidence contract 5/5",
+        "PASS: tools/check_realtime_candidate.py exact protected closure; roadmap unittest discovery 87/87; legacy evidence preserved separately and not reused"
+      ]
     }
   ]
 }

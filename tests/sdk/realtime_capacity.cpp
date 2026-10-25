@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
-// Installed-public-SDK regression for the candidate-v2 telemetry overflow.
+// Installed-public-SDK regression and optional long CPU qualification capture.
 #include <parallel_mater/parallel_mater.h>
 
+#include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -10,6 +12,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <iomanip>
 #include <string>
 #include <vector>
 
@@ -23,6 +26,46 @@ namespace {
 constexpr std::uint32_t body_count = 8U;
 constexpr std::uint32_t constraint_count = 8U;
 constexpr std::uint32_t contact_capacity = 2048U;
+constexpr std::uint32_t cold_ticks = 120U;
+constexpr std::uint32_t warmup_ticks = 600U;
+constexpr std::uint32_t measured_ticks = 7200U;
+constexpr double timestep_seconds = 1.0 / 60.0;
+
+struct Summary {
+    double p50_ms{};
+    double p95_ms{};
+    double p99_ms{};
+    double maximum_ms{};
+};
+
+[[nodiscard]] double percentile(std::vector<double> values, double fraction) {
+    std::sort(values.begin(), values.end());
+    const auto rank = std::max<std::size_t>(
+        1U, static_cast<std::size_t>(std::ceil(fraction * values.size())));
+    return values[rank - 1U];
+}
+
+[[nodiscard]] Summary summarize(const std::vector<double> &values) {
+    return {percentile(values, 0.50), percentile(values, 0.95),
+            percentile(values, 0.99),
+            *std::max_element(values.begin(), values.end())};
+}
+
+void write_samples(std::ofstream &output, const std::vector<double> &values) {
+    output << '[';
+    for (std::size_t index = 0; index < values.size(); ++index) {
+        if (index != 0U) output << ',';
+        output << values[index];
+    }
+    output << ']';
+}
+
+void write_summary(std::ofstream &output, const Summary &summary) {
+    output << "{\"p50_ms\":" << summary.p50_ms
+           << ",\"p95_ms\":" << summary.p95_ms
+           << ",\"p99_ms\":" << summary.p99_ms
+           << ",\"maximum_ms\":" << summary.maximum_ms << '}';
+}
 
 [[nodiscard]] bool finite_state(const PmRigidState &state) {
     const auto finite3 = [](const float *value) {
@@ -40,11 +83,13 @@ constexpr std::uint32_t contact_capacity = 2048U;
 } // namespace
 
 int main(int argc, char **argv) {
-    CHECK(argc == 5);
+    CHECK(argc == 5 || argc == 6);
+    const bool qualification = argc == 6;
     const std::string output_path = argv[1];
     const std::string candidate_id = argv[2];
     const std::string candidate_sha256 = argv[3];
     const std::string candidate_revision = argv[4];
+    const std::string driver_sha256 = qualification ? argv[5] : "";
 
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -56,6 +101,8 @@ int main(int argc, char **argv) {
     CHECK(pmEnumeratePhysicalDevices(instance, &physical_count, &physical) ==
           PM_SUCCESS);
     CHECK(physical_count == 1U && physical != nullptr);
+    PmPhysicalDeviceProperties properties{};
+    pmGetPhysicalDeviceProperties(physical, &properties);
 
     const float priority = 1.0F;
     const PmDeviceQueueCreateInfo queue_info{0U, 1U, &priority};
@@ -230,68 +277,151 @@ int main(int argc, char **argv) {
     CHECK(submit_and_wait() == PM_SUCCESS);
     reset();
 
+    // Prove a known-invalid request records and submits no work.
+    const PmStepInfo invalid_step{
+        1.0F / 60.0F, 2U, {0.0F, -9.81F, 0.0F}, 0U};
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+    CHECK(pmCmdStepSimulation(commands, simulation, &invalid_step) ==
+          PM_ERROR_INVALID_ARGUMENT);
+    CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
+    CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
+
     const PmStepInfo step{1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F}, 0U};
     const PmBufferRange output_range{
         output, 0U, body_count * sizeof(PmRigidState)};
-    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
-    CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
-    CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
-    CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
-    CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
-    CHECK(pmCmdCopyRigidStates(commands, simulation, 0U, body_count,
-                               &output_range) == PM_SUCCESS);
-    CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
-    CHECK(submit_and_wait() == PM_SUCCESS);
-
-    PmResult simulation_status = PM_ERROR_INVALID_STATE;
-    CHECK(pmGetSimulationStatus(device, simulation, &simulation_status) ==
-          PM_SUCCESS);
-    CHECK(simulation_status == PM_SUCCESS);
-    PmRealtimeStepStatistics statistics{};
-    CHECK(pmGetQueryPoolResults(device, query, 0U, 1U,
-              sizeof statistics, &statistics, sizeof statistics,
-              PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
-    CHECK(statistics.step.stepCount == 1U);
-    CHECK(statistics.step.substepsExecuted == 1U);
-    CHECK(statistics.step.executionResult == PM_SUCCESS);
-    CHECK(statistics.tick == 1U);
-    CHECK(statistics.total.dispatches == 20U);
-    CHECK(statistics.total.workgroups == 1421U);
-    CHECK(statistics.total.queueSubmissions == 1U);
-    CHECK(statistics.total.intraTickHostReadbacks == 0U);
-    CHECK(statistics.total.spatialIndexBuilds == 1U);
-    CHECK(statistics.total.spatialIndexRefits == 0U);
-    CHECK(statistics.total.spatialIndexPublications == 1U);
-    CHECK(statistics.timeAdvances == 1U);
-    CHECK(statistics.domainIterations[0] == 8U);
     static constexpr std::array<std::uint64_t, PM_REALTIME_WORK_PHASE_COUNT>
         expected_phases{0U, 1U, 1U, 6U, 11U, 0U, 1U};
-    for (std::size_t index = 0; index < expected_phases.size(); ++index)
-        CHECK(statistics.phases[index].dispatches == expected_phases[index]);
-    const auto *states = static_cast<const PmRigidState *>(output_map);
-    for (std::uint32_t index = 0U; index < body_count; ++index)
-        CHECK(finite_state(states[index]));
+    const std::uint32_t total_ticks = qualification
+        ? warmup_ticks + measured_ticks : 1U;
+    std::vector<double> cold_samples;
+    std::vector<double> measured_samples;
+    cold_samples.reserve(cold_ticks);
+    measured_samples.reserve(measured_ticks);
+    std::uint64_t verified_ticks = 0U;
+    bool all_states_finite = true;
+    std::chrono::steady_clock::time_point sustained_start{};
+    std::chrono::steady_clock::time_point sustained_end{};
+    for (std::uint32_t tick = 0U; tick < total_ticks; ++tick) {
+        if (qualification && tick == warmup_ticks)
+            sustained_start = std::chrono::steady_clock::now();
+        const auto started = std::chrono::steady_clock::now();
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
+        CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopyRigidStates(commands, simulation, 0U, body_count,
+                                   &output_range) == PM_SUCCESS);
+        CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        CHECK(submit_and_wait() == PM_SUCCESS);
+        const auto completed = std::chrono::steady_clock::now();
+        if (qualification && tick + 1U == total_ticks)
+            sustained_end = completed;
+        const double milliseconds =
+            std::chrono::duration<double, std::milli>(completed - started).count();
+        if (qualification && tick < cold_ticks)
+            cold_samples.push_back(milliseconds);
+        if (qualification && tick >= warmup_ticks)
+            measured_samples.push_back(milliseconds);
+
+        PmResult simulation_status = PM_ERROR_INVALID_STATE;
+        CHECK(pmGetSimulationStatus(device, simulation, &simulation_status) ==
+              PM_SUCCESS);
+        CHECK(simulation_status == PM_SUCCESS);
+        PmRealtimeStepStatistics statistics{};
+        CHECK(pmGetQueryPoolResults(device, query, 0U, 1U,
+                  sizeof statistics, &statistics, sizeof statistics,
+                  PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+        CHECK(statistics.step.stepCount == 1U);
+        CHECK(statistics.step.substepsExecuted == 1U);
+        CHECK(statistics.step.executionResult == PM_SUCCESS);
+        CHECK(statistics.tick == static_cast<std::uint64_t>(tick) + 1U);
+        CHECK(statistics.total.dispatches == 20U);
+        CHECK(statistics.total.workgroups == 1421U);
+        CHECK(statistics.total.queueSubmissions == 1U);
+        CHECK(statistics.total.intraTickHostReadbacks == 0U);
+        CHECK(statistics.total.spatialIndexBuilds == 1U);
+        CHECK(statistics.total.spatialIndexRefits == 0U);
+        CHECK(statistics.total.spatialIndexPublications == 1U);
+        CHECK(statistics.timeAdvances == 1U);
+        CHECK(statistics.domainIterations[0] == 8U);
+        for (std::size_t index = 0; index < expected_phases.size(); ++index)
+            CHECK(statistics.phases[index].dispatches == expected_phases[index]);
+        const auto *states = static_cast<const PmRigidState *>(output_map);
+        for (std::uint32_t index = 0U; index < body_count; ++index)
+            all_states_finite = all_states_finite && finite_state(states[index]);
+        CHECK(all_states_finite);
+        ++verified_ticks;
+        reset();
+    }
+    CHECK(verified_ticks == total_ticks);
 
     std::ofstream result(output_path, std::ios::binary);
     CHECK(result.good());
-    result << "{\n"
-        "  \"schema\": \"parallel-mater-realtime-capacity-regression/v1\",\n"
+    result << std::setprecision(9) << "{\n"
+        "  \"schema\": \"parallel-mater-realtime-"
+        << (qualification ? "cpu-qualification/v1" : "capacity-regression/v1")
+        << "\",\n"
         "  \"status\": \"passed\",\n"
-        "  \"qualification_claim\": false,\n"
+        "  \"qualification_claim\": " << (qualification ? "true" : "false")
+        << ",\n"
         "  \"source\": \"installed-public-api\",\n"
         "  \"candidate\": {\"id\": \"" << candidate_id
         << "\", \"manifest_sha256\": \"" << candidate_sha256
-        << "\", \"source_revision\": \"" << candidate_revision << "\"},\n"
-        "  \"workload\": {\"rigid_bodies_live\": 8, "
+        << "\", \"source_revision\": \"" << candidate_revision
+        << "\", \"runtime_variant\": \"cpu-runtime\"},\n";
+    if (qualification) {
+        result << "  \"binary\": {\"driver_sha256\": \""
+               << driver_sha256 << "\"},\n"
+               << "  \"device\": {\"name\": \"" << properties.deviceName
+               << "\", \"vendor_id\": " << properties.vendorId
+               << ", \"device_id\": " << properties.deviceId
+               << ", \"driver_version\": " << properties.driverVersion
+               << "},\n";
+    }
+    result << "  \"workload\": {\"tier\": \"cpu-reference-v1\", "
+           "\"id\": \"rigid-brick-oracle\", \"rigid_bodies_live\": 8, "
            "\"rigid_bodies_capacity\": 8, \"constraints_live\": 8, "
            "\"constraints_capacity\": 8, \"contact_capacity\": 2048},\n"
-        "  \"result\": {\"ticks\": 1, \"dispatches\": 20, "
-           "\"workgroups\": 1421, \"rigid_iterations\": 8, "
+        "  \"negative_cases\": {\"invalid_substeps_rejected_synchronously\": true},\n"
+        "  \"result\": {\"ticks\": " << total_ticks
+        << ", \"dispatches_per_tick\": 20, "
+           "\"workgroups_per_tick\": 1421, \"rigid_iterations\": 8, "
            "\"spatial_builds\": 1, \"spatial_publications\": 1, "
            "\"time_advances\": 1, \"queue_submissions\": 1, "
            "\"intra_tick_host_readbacks\": 0, "
-           "\"all_public_states_finite\": true}\n"
-        "}\n";
+           "\"all_public_states_finite\": true}";
+    if (qualification) {
+        CHECK(cold_samples.size() == cold_ticks);
+        CHECK(measured_samples.size() == measured_ticks);
+        const double wall_seconds = std::chrono::duration<double>(
+            sustained_end - sustained_start).count();
+        const double simulated_to_wall_ratio =
+            measured_ticks * timestep_seconds / wall_seconds;
+        const Summary cold_summary = summarize(cold_samples);
+        const Summary sustained_summary = summarize(measured_samples);
+        CHECK(sustained_summary.p95_ms <= 10.0);
+        CHECK(simulated_to_wall_ratio >= 0.99);
+        result << ",\n  \"cold_start\": {\"ticks\": " << cold_ticks
+               << ", \"summary\": ";
+        write_summary(result, cold_summary);
+        result << ", \"host_physics_samples_ms\": ";
+        write_samples(result, cold_samples);
+        result << "},\n  \"sustained\": {\"warmup_ticks\": " << warmup_ticks
+               << ", \"measured_ticks\": " << measured_ticks
+               << ", \"failed_ticks\": 0, \"wall_seconds\": "
+               << wall_seconds << ", \"simulated_to_wall_time_ratio\": "
+               << simulated_to_wall_ratio << ", \"host_physics_summary\": ";
+        write_summary(result, sustained_summary);
+        result << ", \"host_physics_samples_ms\": ";
+        write_samples(result, measured_samples);
+        result << ", \"gpu_timing\": {\"status\": \"unavailable\", "
+                  "\"samples\": []}, \"frame_timing\": {\"status\": "
+                  "\"not-applicable-headless-reference-target\", "
+                  "\"samples\": []}}";
+    }
+    result << "\n}\n";
     CHECK(result.good());
 
     pmDestroyFence(device, fence);
