@@ -67,14 +67,19 @@ void rigid_avbd_solve_color_cooperative(
             for (uint point = bodyLane; point < pointCount;
                  point += kAvbdSmallBodyLanes)
             {
-                AvbdSolveContact contact =
-                    rigid_avbd_load_solve_contact(
+                AvbdSmallSolveContact contact =
+                    rigid_avbd_load_small_solve_contact(
                         manifolds, active, point);
                 float error[3];
-                rigid_avbd_cached_contact_errors(contact, active, point,
+                rigid_avbd_cached_contact_errors(contact.error, active, point,
                     a, b, bodies, error);
-                AvbdContactForce trial =
-                    rigid_avbd_solve_contact_trial(contact, error);
+                AvbdContactForce trial;
+                trial.normal = contact.dual[0].lambda +
+                    contact.dual[0].penalty * error[0];
+                trial.tangent0 = contact.dual[1].lambda +
+                    contact.dual[1].penalty * error[1];
+                trial.tangent1 = contact.dual[2].lambda +
+                    contact.dual[2].penalty * error[2];
                 AvbdContactForce force =
                     avbdProjectContact(trial, friction);
                 AvbdContactForce scales =
@@ -120,11 +125,12 @@ void rigid_avbd_solve_color_cooperative(
                     manifolds, active);
                 for (uint point = 0u; point < pointCount; ++point)
                 {
-                    AvbdSolveContact contact =
-                        rigid_avbd_load_solve_contact(
+                    AvbdSmallSolveContact contact =
+                        rigid_avbd_load_small_solve_contact(
                             manifolds, active, point);
                     float error[3];
-                    rigid_avbd_cached_contact_errors(contact, active, point,
+                    rigid_avbd_cached_contact_errors(contact.error,
+                        active, point,
                         a, b, bodies, error);
                     float trial = contact.dual[0].lambda +
                         contact.dual[0].penalty * error[0];

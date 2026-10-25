@@ -93,9 +93,31 @@ struct AvbdPairCache
     float friction;
 };
 
+struct AvbdSmallSolveContact
+{
+    AvbdDual dual[3];
+    Vec3 error;
+};
+
 groupshared AvbdPairCache rigidAvbdPairs[kAvbdSmallMaximumPairs];
 groupshared AvbdContactJacobianCache rigidAvbdContactJacobians[
     kAvbdSmallMaximumPairs * kAvbdSmallMaximumPoints];
+
+AvbdSmallSolveContact rigid_avbd_load_small_solve_contact(
+    PM_AVBD_MANIFOLD_BUFFER manifolds, uint active, uint point)
+{
+    AvbdSmallSolveContact result;
+    for (uint axis = 0u; axis < 3u; ++axis)
+    {
+        result.dual[axis].lambda = PM_AVBD_MANIFOLD_CONTACT(
+            manifolds, active, point).avbd_dual[axis].lambda;
+        result.dual[axis].penalty = PM_AVBD_MANIFOLD_CONTACT(
+            manifolds, active, point).avbd_dual[axis].penalty;
+    }
+    result.error = PM_AVBD_MANIFOLD_CONTACT(
+        manifolds, active, point).avbd_error;
+    return result;
+}
 
 void rigid_avbd_cache_contact_jacobians(
     PM_AVBD_BUFFER(BodyParameters) parameters,
@@ -150,7 +172,7 @@ void rigid_avbd_cache_contact_jacobians(
     pmGroupBarrier();
 }
 
-void rigid_avbd_cached_contact_errors(AvbdSolveContact contact,
+void rigid_avbd_cached_contact_errors(Vec3 initialError,
     uint active, uint point, uint a, uint b,
     PM_AVBD_BUFFER(AvbdBody) bodies, out float error[3])
 {
@@ -164,7 +186,7 @@ void rigid_avbd_cached_contact_errors(AvbdSolveContact contact,
             multiply(cached.axes[axis], -1.0f), cached.angular_a[axis]);
         AvbdVector6 jacobianB = rigid_avbd_jacobian(
             cached.axes[axis], cached.angular_b[axis]);
-        error[axis] = rigid_avbd_component(contact.error, axis) +
+        error[axis] = rigid_avbd_component(initialError, axis) +
             avbdDot6(jacobianA, displacementA) +
             avbdDot6(jacobianB, displacementB);
     }
