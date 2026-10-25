@@ -1,7 +1,7 @@
 {
   "id": "F8-43",
   "title": "Connect rope operators to production fixed ticks",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-39"
   ],
@@ -18,15 +18,27 @@
     "Pin/endpoint edits, reset, replacement and failed-tick recovery preserve coherent state generations and consume pending input once.",
     "Preserve all already supported rope semantics; missing P-series capsule/pair features are not silently advertised."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "633f1253-b3c8-4875-aed5-fe90155fdb83",
-    "owner": "codex-android-overnight",
-    "machine": "thomas-laptop-pixel7",
-    "branch": "work/F8-43/thomas-laptop-pixel7",
-    "claimed_at": "2026-10-25T19:54:16Z",
-    "heartbeat_at": "2026-10-25T19:54:16Z",
-    "expires_at": "2026-10-26T19:54:16Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F8-43-rope-production-ticks.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "633f1253-b3c8-4875-aed5-fe90155fdb83",
+        "owner": "codex-android-overnight",
+        "machine": "thomas-laptop-pixel7",
+        "branch": "work/F8-43/thomas-laptop-pixel7",
+        "claimed_at": "2026-10-25T19:54:16Z",
+        "heartbeat_at": "2026-10-25T19:54:16Z",
+        "expires_at": "2026-10-26T19:54:16Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-25T20:33:57Z",
+      "reason": "Bound frozen F8-10/F8-15 rope operators to the single production fixed-tick schedule and qualified CUDA/Vulkan hardware.",
+      "evidence": [
+        "docs/roadmap/evidence/F8-43-rope-production-ticks.json"
+      ]
+    }
+  ]
 }

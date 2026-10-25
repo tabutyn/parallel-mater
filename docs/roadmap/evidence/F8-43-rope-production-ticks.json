@@ -1,0 +1,98 @@
+{
+  "schema": "parallel-mater-f8-rope-production-ticks-evidence/v1",
+  "task": "F8-43",
+  "status": "passed",
+  "recorded_at": "2026-10-25",
+  "branch": "work/F8-43/thomas-laptop-pixel7",
+  "lease_token": "633f1253-b3c8-4875-aed5-fe90155fdb83",
+  "base_revision": "94c2ca3ba99055f9761249614b79b1107927a0f0",
+  "implementation_revision": "44cb8f3a3105286445fe2142cc4f7029d47e8fab",
+  "implementation": {
+    "public_path": "Live rope resources execute the production realtime-single-step schedule instead of the former blanket PM_ERROR_FEATURE_NOT_PRESENT rejection.",
+    "fixed_tick": "One 1/60 predictor, one common spatial build/query/publication, eight constraint/apply sweeps, contacts after sweeps 2/4/6/8 and one velocity commit. Legacy maximum_substep_timestep and solver_iterations do not alter the graph.",
+    "common_epoch": "F8-10 swept rope segments occupy reserved ranges of the same published spatial epoch used by rigid, liquid, cloth and soft-body resources; the rope solve performs no rebuild, refit, sort or query.",
+    "attachment": "The frozen F8-15 predictor consumes explicit endpoint targets. The installed production fixture proves an exact static rigid endpoint pin; moving rigid-target generation and reciprocal response remain F8-45.",
+    "collision_consumer": "The four frozen F8-15 contact projections consume a cleared canonical per-node view. Rigid/rope contact generation and reciprocal exchange remain F8-45.",
+    "atomic_state": "Positions and velocities publish only after successful resource, snapshot and spatial commit. Exact-limit failure leaves public bytes unchanged; replacement and reset renew generation/revision identity.",
+    "adapters": "CPU, CUDA, Vulkan and Metal dispatch bindings call the common F8-10/F8-15 Slang entries; no adapter contains private rope equations."
+  },
+  "public_cases": [
+    "cold six-node rope tick with one exact static rigid endpoint pin",
+    "one time advance, eight rope iterations, one index build, one publication and zero intra-tick host readbacks",
+    "finite dynamic state, exact pin preservation and less than 0.03 m absolute stretch error",
+    "one-below workgroup-limit failure with byte-for-byte rollback and capacity reuse",
+    "whole-rope replacement from six nodes to five at a tick boundary",
+    "simulation reset followed by slot rewrite and a successful cold tick"
+  ],
+  "qualification": {
+    "host_suite": {
+      "command": "cmake --build build-f8-23-cpu -j2 && ctest --test-dir build-f8-23-cpu --output-on-failure -j2",
+      "result": "PASS: 102/102 discovered; 87 executed passed and 15 unadvertised CPU-domain tests explicitly skipped"
+    },
+    "protected_closure": {
+      "command": "python3 tools/check_realtime_candidate.py",
+      "result": "PASS: realtime-single-step-v1-3671f18 protected closure and routing are exact"
+    },
+    "public_cuda_runtime": {
+      "command": "PM_DRIVER_FILES=build-f8-22-cuda/Release/manifests/slang-cuda.json PM_LAYER_FILES=build-f8-22-cuda/Release/manifests/validation.json ./build-f8-23-cpu/parallel-mater-native-realtime-runtime-tests --production",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU, compute 8.6, driver 590.44.01",
+      "result": "PASS: production realtime resources are fixed and atomic"
+    },
+    "physical_operator_oracle": {
+      "command": "./build-f8-22-cuda/tests/solver/parallel-mater-rope-realtime-cuda-tests",
+      "source": "docs/roadmap/evidence/F8-15-rope-60hz.json",
+      "device": "NVIDIA GeForce RTX 3050 Ti Laptop GPU, compute 8.6",
+      "result": "PASS: stiff stretch error 0.00000007 m, attachment drift 0, moving-anchor speed 0.60000002 m/s; 3,600 ticks had stretch RMS 0.00638221 m, maximum stretch 0.00927449 m, zero tunneling, final energy 0.00057085 J and p95 0.149504 ms",
+      "binding": "F8-43 changes dispatch adapters and the enclosing production schedule, not the protected F8-15 Slang entries or tolerances. Physical CUDA and Vulkan public fixtures execute those exact entries through production."
+    },
+    "cross_adapter_build": {
+      "command": "cmake --build build-f8-22-cuda -j2",
+      "result": "PASS: CUDA, PTX, Vulkan SPIR-V and Metal artifacts built and validated"
+    },
+    "metal_adapter": {
+      "command": "clang++ -std=c++20 -fsyntax-only -DPARALLEL_MATER_DRIVER_IMPLEMENTATION=1 -DPARALLEL_MATER_METAL_DRIVER=1 -Isrc/device/metal_compat -Isrc -Iinclude -Ibuild-f8-23-cpu/generated/api src/simulation/metal_rope_dispatch.cpp",
+      "result": "PASS"
+    },
+    "conformance_contracts": {
+      "command": "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py' && python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS: 418 conformance tests and 87 roadmap tests"
+    }
+  },
+  "physical_vulkan_adapter": {
+    "build": "ANDROID_HOME=/home/thomas/Android/Sdk ANDROID_SDK_ROOT=/home/thomas/Android/Sdk SLANGC=build-f8-22-cuda/_deps/parallel_mater_slang-src/bin/slangc ./scripts/Build-AndroidGallery.sh -PphysicsBackend=vulkan -Pqualification=true",
+    "harness": "python3 scripts/Test-AndroidVulkan.py --serial 2B241FDH20060P --adb /usr/bin/adb --build-directory examples/android/app/.cxx/Debug/l4n5m1dx/arm64-v8a --output /tmp/F8-43-android-native-44cb8f3 --timeout 180 --conformance-timeout 420 --native-only",
+    "device": {
+      "manufacturer": "Google",
+      "model": "Pixel 7",
+      "product": "panther",
+      "android_version": "17",
+      "api_level": "37",
+      "security_patch": "2026-10-05"
+    },
+    "adapter": "production Slang Vulkan",
+    "toolchain": {
+      "android_ndk": "29.0.14206865",
+      "slang": "2026.18"
+    },
+    "source_commit": "44cb8f3a3105286445fe2142cc4f7029d47e8fab",
+    "apk_sha256": "770a9ff120168e3cfcc3d0f003ec52170526197119de5a30e851681c39ecaeb8",
+    "driver_sha256": "4742b37d251888a1eb170dc4d19b206a696c7e6bf14dc425dd113dfed624a8b7",
+    "capture_sha256": "a839584aff3c62c461c3c15e76a1627e76646220a783d5da840fac094c5b003e",
+    "results_sha256": "56a60519e28783f2a030d3384922abf92d994cf059c661e22298c94925caacba",
+    "realtime_log_sha256": "fc5ae124ea194818a281b5c97e7fb6e149ebe0cffd9f508c6046daed31ce806f",
+    "native_runs": [
+      "PASS: pm-android-command-tests",
+      "PASS: pm-android-async-tests",
+      "PASS: pm-android-liquid-tests",
+      "PASS: pm-android-realtime-runtime-tests --production"
+    ],
+    "trace": "Observed production Vulkan pipelines for rope predict, F8-10 deformable spatial emit, chain constraint, delta apply, contact consumer, velocity commit and public export.",
+    "validation_errors": 0
+  },
+  "limits": [
+    "F8-43 does not bind moving rigid endpoint targets, rigid/rope contact generation or bidirectional response; F8-45 owns those existing interactions.",
+    "The end-to-end production public fixture therefore uses an exact static endpoint target and consumes an empty canonical contact view. Moving-anchor and tunneling quality comes from the immutable F8-15 operator oracle; F8-45 must repeat end-to-end interaction qualification when it populates that view.",
+    "Unsupported P-series capsule and pair interactions remain unadvertised.",
+    "Physical D3D12 and Metal execution were unavailable on this Linux/Android machine; protected common Slang closure, CUDA/Vulkan execution and local Metal binding syntax passed."
+  ]
+}
