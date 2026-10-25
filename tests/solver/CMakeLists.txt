@@ -84,6 +84,16 @@ add_test(NAME parallel-mater-spatial-service-tests
 set_tests_properties(parallel-mater-spatial-service-tests PROPERTIES
     LABELS "spatial;lifecycle;f8")
 
+add_executable(parallel-mater-realtime-schedule-tests
+    realtime_schedule_tests.cpp)
+target_compile_features(parallel-mater-realtime-schedule-tests PRIVATE cxx_std_20)
+target_include_directories(parallel-mater-realtime-schedule-tests
+    PRIVATE ../../src ../../include)
+add_test(NAME parallel-mater-realtime-schedule-tests
+    COMMAND parallel-mater-realtime-schedule-tests)
+set_tests_properties(parallel-mater-realtime-schedule-tests PROPERTIES
+    LABELS "schedule;realtime;spatial;f8")
+
 add_executable(parallel-mater-rigid-spatial-tests
     rigid_spatial_tests.cpp)
 target_compile_features(parallel-mater-rigid-spatial-tests PRIVATE cxx_std_20)
