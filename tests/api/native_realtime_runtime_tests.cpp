@@ -770,6 +770,8 @@ int main(int argc, char **argv) {
         CHECK(rope_statistics.total.spatialIndexBuilds == 1U);
         CHECK(rope_statistics.total.spatialIndexPublications == 1U);
         CHECK(rope_statistics.total.intraTickHostReadbacks == 0U);
+        CHECK(rope_statistics.couplingEdgeCount == 2U);
+        CHECK(rope_statistics.couplingSweeps == 4U);
         const auto *rope_header =
             static_cast<const PmDomainOutputHeader *>(rope_output_map);
         const auto *rope_nodes = reinterpret_cast<const PmRopeNodeState *>(
@@ -846,6 +848,204 @@ int main(int argc, char **argv) {
         rope_header =
             static_cast<const PmDomainOutputHeader *>(rope_output_map);
         CHECK(rope_header->activeCount == 6U);
+    }
+    if (mixed_info.clothCount != 0U && mixed_info.softBodyCount != 0U &&
+        mixed_info.ropeCount != 0U) {
+        PmRigidBodyInfo floor{};
+        floor.active = PM_TRUE;
+        floor.geometry = geometry;
+        floor.motionType = PM_MOTION_STATIC;
+        floor.mass = 1.0F;
+        floor.inertiaDiagonal[0] = floor.inertiaDiagonal[1] =
+            floor.inertiaDiagonal[2] = 1.0F / 6.0F;
+        floor.state.position[1] = -1.0F;
+        floor.state.orientation[3] = 1.0F;
+        floor.maximumLinearSpeed = floor.maximumAngularSpeed = 100.0F;
+        floor.collisionMargin = 0.005F;
+
+        const std::uint32_t cloth_indices[3]{0U, 1U, 2U};
+        const float cloth_inverse_masses[3]{1.0F, 1.0F, 1.0F};
+        const PmFloat3 cloth_vertices[3]{{-0.1F, 1.0F, 0.0F},
+            {0.0F, 1.0F, 0.0F}, {-0.05F, 0.9F, 0.05F}};
+        const PmClothInfo cloth{PM_TRUE, 0U, 3U, cloth_vertices, 3U,
+            cloth_indices, cloth_inverse_masses};
+
+        const PmFloat3 soft_nodes_input[5]{{0.2F, 1.15F, 0.0F},
+            {0.15F, 1.0F, 0.0F}, {0.25F, 1.0F, 0.0F},
+            {0.2F, 1.1F, 0.05F}, {0.2F, 1.1F, -0.05F}};
+        const float soft_inverse_masses[5]{0.0F, 1.0F, 1.0F, 1.0F, 1.0F};
+        std::array<PmSoftBodyBond, 10> soft_bonds{};
+        std::uint32_t soft_bond_count{};
+        for (std::uint32_t first = 0U; first < 5U; ++first)
+            for (std::uint32_t second = first + 1U; second < 5U; ++second) {
+                const float x = soft_nodes_input[first].x -
+                    soft_nodes_input[second].x;
+                const float y = soft_nodes_input[first].y -
+                    soft_nodes_input[second].y;
+                const float z = soft_nodes_input[first].z -
+                    soft_nodes_input[second].z;
+                soft_bonds[soft_bond_count++] = {first, second,
+                    std::sqrt(x * x + y * y + z * z)};
+            }
+        const PmFloat3 soft_surface[4]{soft_nodes_input[1],
+            soft_nodes_input[2], soft_nodes_input[3], soft_nodes_input[4]};
+        const std::uint32_t soft_surface_indices[12]{0U, 2U, 1U,
+            0U, 1U, 3U, 0U, 3U, 2U, 1U, 2U, 3U};
+        std::array<PmSoftBodySurfaceBinding, 4> soft_bindings{};
+        for (std::uint32_t vertex = 0U; vertex < soft_bindings.size(); ++vertex) {
+            soft_bindings[vertex].nodes[0] = vertex + 1U;
+            soft_bindings[vertex].weights[0] = 1.0F;
+        }
+        const PmSoftBodyInfo soft_body{PM_TRUE, 0U, 5U, soft_nodes_input,
+            static_cast<std::uint32_t>(soft_bonds.size()), soft_bonds.data(),
+            soft_inverse_masses, 4U, soft_surface, 12U,
+            soft_surface_indices, soft_bindings.data()};
+
+        const PmFloat3 rope_centerline[2]{cloth_vertices[0], soft_surface[0]};
+        PmRopeInfo rope{};
+        rope.active = PM_TRUE;
+        rope.pointCount = 2U;
+        rope.pCenterline = rope_centerline;
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteRigidBodies(
+            commands, mixed_simulation, 0U, 1U, &floor) == PM_SUCCESS);
+        CHECK(pmCmdWriteCloths(
+            commands, mixed_simulation, 0U, 1U, &cloth) == PM_SUCCESS);
+        CHECK(pmCmdWriteSoftBodies(
+            commands, mixed_simulation, 0U, 1U, &soft_body) == PM_SUCCESS);
+        CHECK(pmCmdWriteRopes(
+            commands, mixed_simulation, 0U, 1U, &rope) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+
+        std::array<PmCouplingStateInfo, 3> couplings{};
+        auto &rope_soft = couplings[0];
+        rope_soft.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        rope_soft.type = PM_COUPLING_ROPE_SOFT_BODY;
+        rope_soft.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+            PM_INTERACTION_MODE_ATTACHMENT_BIT;
+        rope_soft.materialProfile = PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+        rope_soft.parameters.mechanical.contactDistance = 0.02F;
+        rope_soft.parameters.mechanical.friction = 0.2F;
+        rope_soft.parameters.mechanical.twoWay = PM_TRUE;
+        rope_soft.parameters.attachment.supportRadiusScale = 2.0F;
+        rope_soft.parameters.attachment.contactSupportRadiusScale = 1.0F;
+        rope_soft.parameters.attachment.maximumAcceleration = 10.0F;
+        rope_soft.parameters.attachment.attachLast = PM_TRUE;
+        auto &soft_cloth = couplings[1];
+        soft_cloth.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        soft_cloth.type = PM_COUPLING_SOFT_BODY_CLOTH;
+        soft_cloth.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT;
+        soft_cloth.materialProfile = PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+        soft_cloth.parameters.mechanical.contactDistance = 0.02F;
+        soft_cloth.parameters.mechanical.friction = 0.2F;
+        soft_cloth.parameters.mechanical.twoWay = PM_TRUE;
+        auto &rope_cloth = couplings[2];
+        rope_cloth.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        rope_cloth.type = PM_COUPLING_ROPE_CLOTH;
+        rope_cloth.modeFlags = PM_INTERACTION_MODE_ATTACHMENT_BIT;
+        rope_cloth.materialProfile = PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+        rope_cloth.parameters.attachment.firstVertex = 0U;
+        rope_cloth.parameters.attachment.lastVertex = UINT32_MAX;
+        rope_cloth.parameters.attachment.effectiveMass = 1.0F;
+        rope_cloth.parameters.attachment.maximumAcceleration = 10.0F;
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdSetCouplings2(commands, mixed_simulation,
+            static_cast<std::uint32_t>(couplings.size()), couplings.data()) ==
+            PM_SUCCESS);
+        execute(PM_SUCCESS);
+
+        const PmBufferRange cloth_range{cloth_output, 0U, 1024U};
+        const PmBufferRange soft_range{soft_output, 0U, 1024U};
+        const PmBufferRange rope_range{rope_output, 0U, 1024U};
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
+        CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopyClothState(
+            commands, mixed_simulation, 0U, &cloth_range) == PM_SUCCESS);
+        CHECK(pmCmdCopySoftBodyState(
+            commands, mixed_simulation, 0U, &soft_range) == PM_SUCCESS);
+        CHECK(pmCmdCopyRopeState(
+            commands, mixed_simulation, 0U, &rope_range) == PM_SUCCESS);
+        CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        PmRealtimeStepStatistics coupling_statistics{};
+        CHECK(pmGetQueryPoolResults(device, query, 0U, 1U,
+            sizeof coupling_statistics, &coupling_statistics,
+            sizeof coupling_statistics, PM_QUERY_RESULT_WAIT_BIT) ==
+            PM_SUCCESS);
+        CHECK(coupling_statistics.couplingEdgeCount == 7U);
+        CHECK(coupling_statistics.couplingSweeps == 8U);
+        CHECK(coupling_statistics.timeAdvances == 1U);
+        CHECK(coupling_statistics.total.spatialIndexBuilds == 1U);
+        CHECK(coupling_statistics.total.spatialIndexPublications == 1U);
+        CHECK(coupling_statistics.total.intraTickHostReadbacks == 0U);
+        const auto *coupled_cloth_header =
+            static_cast<const PmDomainOutputHeader *>(cloth_output_map);
+        const auto *coupled_cloth =
+            reinterpret_cast<const PmClothVertexState *>(
+                coupled_cloth_header + 1U);
+        const auto *coupled_soft_header =
+            static_cast<const PmDomainOutputHeader *>(soft_output_map);
+        const auto *coupled_soft =
+            reinterpret_cast<const PmSoftBodyNodeState *>(
+                coupled_soft_header + 1U);
+        const auto *coupled_rope_header =
+            static_cast<const PmDomainOutputHeader *>(rope_output_map);
+        const auto *coupled_rope =
+            reinterpret_cast<const PmRopeNodeState *>(
+                coupled_rope_header + 1U);
+        CHECK(coupled_cloth_header->activeCount == 3U);
+        CHECK(coupled_soft_header->activeCount == 5U);
+        CHECK(coupled_rope_header->activeCount != 0U);
+        CHECK(std::isfinite(coupled_cloth[0].position.x));
+        CHECK(std::isfinite(coupled_soft[1].position.x));
+        CHECK(std::isfinite(coupled_rope[0].position.x));
+
+        if (!production) {
+            std::array<std::byte, 1024U> cloth_before_failure{};
+            std::array<std::byte, 1024U> soft_before_failure{};
+            std::array<std::byte, 1024U> rope_before_failure{};
+            std::memcpy(cloth_before_failure.data(), cloth_output_map,
+                        cloth_before_failure.size());
+            std::memcpy(soft_before_failure.data(), soft_output_map,
+                        soft_before_failure.size());
+            std::memcpy(rope_before_failure.data(), rope_output_map,
+                        rope_before_failure.size());
+            CHECK(setenv(
+                "PM_TEST_REALTIME_LIMIT_MINUS_ONE", "workgroups", 1) == 0);
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+            CHECK(pmCmdStepSimulation(
+                commands, mixed_simulation, &step) == PM_SUCCESS);
+            execute(PM_ERROR_CAPACITY_EXCEEDED);
+            CHECK(unsetenv("PM_TEST_REALTIME_LIMIT_MINUS_ONE") == 0);
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdCopyClothState(
+                commands, mixed_simulation, 0U, &cloth_range) == PM_SUCCESS);
+            CHECK(pmCmdCopySoftBodyState(
+                commands, mixed_simulation, 0U, &soft_range) == PM_SUCCESS);
+            CHECK(pmCmdCopyRopeState(
+                commands, mixed_simulation, 0U, &rope_range) == PM_SUCCESS);
+            execute(PM_SUCCESS);
+            CHECK(std::memcmp(cloth_before_failure.data(), cloth_output_map,
+                              cloth_before_failure.size()) == 0);
+            CHECK(std::memcmp(soft_before_failure.data(), soft_output_map,
+                              soft_before_failure.size()) == 0);
+            CHECK(std::memcmp(rope_before_failure.data(), rope_output_map,
+                              rope_before_failure.size()) == 0);
+        }
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdSetCouplings2(
+            commands, mixed_simulation, 0U, nullptr) == PM_SUCCESS);
+        execute(PM_SUCCESS);
     }
     if (mixed_info.smokeCount != 0U) {
         PmSmokeInfo smoke{};

@@ -25,6 +25,10 @@ struct RopeStorage {
     float *realtime_contact_offsets{};
     std::uint8_t *realtime_contact_active{};
     std::uint32_t *realtime_time_advances{};
+    FluidBodyImpulse *realtime_body_impulses{};
+    Vec3 *realtime_rigid_contact_forces{};
+    Vec3 *realtime_body_position_corrections{};
+    std::uint32_t *realtime_count{};
     std::uint32_t realtime_leaf_offset{};
     std::uint32_t realtime_query_offset{};
     std::uint64_t realtime_topology_revision{1U};
@@ -65,6 +69,10 @@ struct RopeStorage {
         release_managed(realtime_contact_offsets);
         release_managed(realtime_contact_active);
         release_managed(realtime_time_advances);
+        release_managed(realtime_body_impulses);
+        release_managed(realtime_rigid_contact_forces);
+        release_managed(realtime_body_position_corrections);
+        release_managed(realtime_count);
     }
     ~RopeStorage() { release(); }
 };

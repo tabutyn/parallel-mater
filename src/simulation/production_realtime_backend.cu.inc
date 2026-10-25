@@ -54,6 +54,66 @@ PmResult native_realtime_spatial_counts(
 }
 
 template <typename State>
+PmResult native_realtime_coupling_counts(
+    const State &state,
+    std::array<std::uint32_t,
+               simulation::realtime_coupling_family_count> &counts) noexcept {
+    counts = {};
+    const auto add = [&](simulation::RealtimeCouplingFamily family,
+                         std::uint32_t amount = 1U) noexcept -> PmResult {
+        auto &count = counts[simulation::realtime_index(family)];
+        if (amount > simulation::rigid_coupling_realtime_maximum_edges - count)
+            return PM_ERROR_CAPACITY_EXCEEDED;
+        count += amount;
+        return PM_SUCCESS;
+    };
+    if (state.rigid_body_count != 0U) {
+        for (const auto &owner : state.cloths)
+            if (owner && owner->alive &&
+                add(simulation::RealtimeCouplingFamily::rigid) != PM_SUCCESS)
+                return PM_ERROR_CAPACITY_EXCEEDED;
+        for (const auto &owner : state.soft_bodies)
+            if (owner && owner->alive &&
+                add(simulation::RealtimeCouplingFamily::rigid) != PM_SUCCESS)
+                return PM_ERROR_CAPACITY_EXCEEDED;
+        for (const auto &owner : state.ropes) {
+            if (!owner || !owner->alive) continue;
+            if (add(simulation::RealtimeCouplingFamily::rigid) != PM_SUCCESS)
+                return PM_ERROR_CAPACITY_EXCEEDED;
+            const auto &options = owner->data.options;
+            const std::uint32_t attachments =
+                std::uint32_t(options.first.enabled) +
+                std::uint32_t(options.last.enabled);
+            if (attachments != 0U &&
+                add(simulation::RealtimeCouplingFamily::rigid,
+                    attachments) != PM_SUCCESS)
+                return PM_ERROR_CAPACITY_EXCEEDED;
+        }
+    }
+    for (const auto &owner : state.soft_cloth_couplings)
+        if (owner && owner->alive && owner->options.enabled &&
+            add(simulation::RealtimeCouplingFamily::deformable_smoke) !=
+                PM_SUCCESS)
+            return PM_ERROR_CAPACITY_EXCEEDED;
+    for (const auto &coupling : state.rope_cloth_couplings)
+        if (coupling.alive && coupling.options.enabled &&
+            add(simulation::RealtimeCouplingFamily::deformable_smoke) !=
+                PM_SUCCESS)
+            return PM_ERROR_CAPACITY_EXCEEDED;
+    for (const auto &owner : state.rope_soft_body_couplings) {
+        if (!owner || !owner->alive || !owner->options.enabled) continue;
+        if (add(simulation::RealtimeCouplingFamily::deformable_smoke) !=
+            PM_SUCCESS)
+            return PM_ERROR_CAPACITY_EXCEEDED;
+        if ((owner->options.attach_first || owner->options.attach_last) &&
+            add(simulation::RealtimeCouplingFamily::deformable_smoke) !=
+                PM_SUCCESS)
+            return PM_ERROR_CAPACITY_EXCEEDED;
+    }
+    return PM_SUCCESS;
+}
+
+template <typename State>
 simulation::RealtimeScheduleScene native_realtime_scene(
     const State &state, const StepOptions &options) noexcept {
     simulation::RealtimeScheduleScene scene{};
@@ -98,6 +158,10 @@ simulation::RealtimeScheduleScene native_realtime_scene(
         state.frame_index % (std::numeric_limits<std::uint32_t>::max() - 1U)) +
         1U;
     scene.render_snapshot = scene.input_snapshot;
+    std::array<std::uint32_t,
+               simulation::realtime_coupling_family_count> coupling_counts{};
+    (void)native_realtime_coupling_counts(state, coupling_counts);
+    scene.coupling_edges = coupling_counts;
     return scene;
 }
 
@@ -143,6 +207,8 @@ PmResult native_realtime_registrations(
             simulation::RealtimeResourcePhase::boundary) |
         simulation::realtime_phase_bit(
             simulation::RealtimeResourcePhase::commit);
+    const std::uint32_t coupling_phase = simulation::realtime_phase_bit(
+        simulation::RealtimeResourcePhase::coupling);
     auto &rigid = result[simulation::realtime_index(
         simulation::RealtimeResourceFamily::rigid)];
     for (std::uint32_t slot = 0U; slot < state.slots.size(); ++slot) {
@@ -151,7 +217,8 @@ PmResult native_realtime_registrations(
         const auto status = add_realtime_registration(
             rigid, slot, owner.generation, 1U,
             common_phases |
-                simulation::realtime_domain_execution_phase_mask);
+                simulation::realtime_domain_execution_phase_mask |
+                coupling_phase);
         if (status != PM_SUCCESS) return status;
     }
 
@@ -184,7 +251,8 @@ PmResult native_realtime_registrations(
                 simulation::RealtimeResourceFamily::cloth)],
             slot, owner->generation, elements,
             common_phases |
-                simulation::realtime_domain_execution_phase_mask);
+                simulation::realtime_domain_execution_phase_mask |
+                coupling_phase);
         if (status != PM_SUCCESS) return status;
     }
     for (std::uint32_t slot = 0U; slot < state.soft_bodies.size(); ++slot) {
@@ -198,7 +266,8 @@ PmResult native_realtime_registrations(
                 simulation::RealtimeResourceFamily::soft_body)],
             slot, owner->generation, elements,
             common_phases |
-                simulation::realtime_domain_execution_phase_mask);
+                simulation::realtime_domain_execution_phase_mask |
+                coupling_phase);
         if (status != PM_SUCCESS) return status;
     }
     for (std::uint32_t slot = 0U; slot < state.ropes.size(); ++slot) {
@@ -211,7 +280,8 @@ PmResult native_realtime_registrations(
                 simulation::RealtimeResourceFamily::rope)],
             slot, owner->generation, elements,
             common_phases |
-                simulation::realtime_domain_execution_phase_mask);
+                simulation::realtime_domain_execution_phase_mask |
+                coupling_phase);
         if (status != PM_SUCCESS) return status;
     }
     for (std::uint32_t slot = 0U; slot < state.smokes.size(); ++slot) {
@@ -243,6 +313,8 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
         simulation::RealtimeTelemetryPhase::candidates)];
     auto &domain = limits.phase_maximum[simulation::realtime_index(
         simulation::RealtimeTelemetryPhase::domain)];
+    auto &coupling = limits.phase_maximum[simulation::realtime_index(
+        simulation::RealtimeTelemetryPhase::coupling)];
     auto &commit = limits.phase_maximum[simulation::realtime_index(
         simulation::RealtimeTelemetryPhase::commit)];
     const auto dispatch = [](simulation::RealtimeWorkCounters &work,
@@ -258,6 +330,15 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
     if (native_realtime_spatial_counts(
             state, staged_leaves, staged_queries) != PM_SUCCESS)
         return limits;
+    std::array<std::uint32_t,
+               simulation::realtime_coupling_family_count> coupling_counts{};
+    if (native_realtime_coupling_counts(state, coupling_counts) != PM_SUCCESS)
+        return limits;
+    const auto rigid_couplings = coupling_counts[simulation::realtime_index(
+        simulation::RealtimeCouplingFamily::rigid)];
+    const auto deformable_couplings = coupling_counts[
+        simulation::realtime_index(
+            simulation::RealtimeCouplingFamily::deformable_smoke)];
     commit.submissions = 1U;
     index.index_publications = 1U;
     if (staged_leaves == 0U) {
@@ -309,8 +390,14 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
             boundary.bytes_moved +=
                 2ULL * owner->vertex_capacity * sizeof(Vec3) +
                 owner->vertex_capacity * sizeof(std::uint8_t) +
-                sizeof(std::uint32_t);
-            boundary.barriers += 4U;
+                sizeof(std::uint32_t) +
+                owner->vertex_capacity * sizeof(Vec3);
+            boundary.barriers += 5U;
+            if (owner->rope_forces != nullptr) {
+                boundary.bytes_moved +=
+                    owner->vertex_capacity * sizeof(Vec3);
+                ++boundary.barriers;
+            }
             dispatch(predict, 1U, vertex_groups);
             dispatch(index, 1U, triangle_groups);
             dispatch(domain,
@@ -334,8 +421,11 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
             boundary.bytes_moved +=
                 2ULL * owner->node_count * sizeof(Vec3) +
                 owner->node_count * sizeof(std::uint8_t) +
-                sizeof(Quaternion) + sizeof(std::uint32_t);
-            boundary.barriers += 5U;
+                sizeof(Quaternion) + sizeof(std::uint32_t) +
+                4ULL * owner->node_count * sizeof(Vec3) +
+                owner->node_count * sizeof(float) +
+                2U * sizeof(std::uint32_t);
+            boundary.barriers += 12U;
             dispatch(predict, 2U, node_groups + surface_groups);
             dispatch(index, 1U, triangle_groups);
             dispatch(domain,
@@ -356,8 +446,9 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                 (std::uint64_t{nodes - 1U} + 127U) / 128U;
             boundary.bytes_moved +=
                 2ULL * nodes * sizeof(Vec3) +
-                nodes * sizeof(std::uint8_t) + sizeof(std::uint32_t);
-            boundary.barriers += 4U;
+                nodes * sizeof(std::uint8_t) +
+                2U * sizeof(std::uint32_t);
+            boundary.barriers += 5U;
             dispatch(predict, 1U, node_groups);
             dispatch(index, 1U, segment_groups);
             dispatch(domain,
@@ -510,6 +601,145 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
         } else {
             commit.bytes_moved += sizeof(std::uint32_t);
             ++commit.barriers;
+        }
+        if (rigid_couplings != 0U || deformable_couplings != 0U) {
+            constexpr std::uint64_t records = 64U;
+            boundary.bytes_moved += records *
+                (6U * sizeof(std::uint32_t) + 2U * sizeof(Vec3) +
+                 3U * sizeof(float) + sizeof(std::uint8_t));
+            boundary.bytes_moved += records *
+                (4U * sizeof(Vec3) + 2U * sizeof(float));
+            boundary.barriers += 18U;
+            if (rigid != 0U) {
+                boundary.bytes_moved += std::uint64_t{rigid} *
+                    (sizeof(std::uint32_t) + sizeof(float));
+                boundary.barriers += 2U;
+            }
+        }
+        if (rigid_couplings != 0U) {
+            const auto body_groups = (rigid + 127U) / 128U;
+            for (const auto &owner : state.cloths) {
+                if (!owner || !owner->alive) continue;
+                const auto vertex_groups =
+                    (std::uint64_t{owner->vertex_count} + 127U) / 128U;
+                const auto triangle_groups =
+                    (std::uint64_t{owner->index_count / 3U} + 127U) / 128U;
+                dispatch(coupling,
+                    5U * simulation::rigid_coupling_realtime_sweeps,
+                    simulation::rigid_coupling_realtime_sweeps *
+                        (2U * vertex_groups + triangle_groups +
+                         2ULL * rigid));
+                coupling.bytes_moved +=
+                    simulation::rigid_coupling_realtime_sweeps *
+                    std::uint64_t{rigid} * sizeof(std::uint32_t);
+                coupling.barriers +=
+                    simulation::rigid_coupling_realtime_sweeps;
+            }
+            for (const auto &owner : state.soft_bodies) {
+                if (!owner || !owner->alive) continue;
+                const auto node_groups =
+                    (std::uint64_t{owner->node_count} + 127U) / 128U;
+                const auto surface_groups =
+                    (std::uint64_t{owner->surface_vertex_count} + 127U) / 128U;
+                dispatch(coupling,
+                    4U * simulation::rigid_coupling_realtime_sweeps,
+                    simulation::rigid_coupling_realtime_sweeps *
+                        (2U * node_groups + rigid + surface_groups));
+                coupling.bytes_moved +=
+                    simulation::rigid_coupling_realtime_sweeps *
+                    std::uint64_t{rigid} * sizeof(std::uint32_t);
+                coupling.barriers +=
+                    simulation::rigid_coupling_realtime_sweeps;
+            }
+            for (const auto &owner : state.ropes) {
+                if (!owner || !owner->alive) continue;
+                const auto node_groups =
+                    (std::uint64_t{owner->data.count} + 127U) / 128U;
+                dispatch(coupling,
+                    2U * simulation::rigid_coupling_realtime_sweeps,
+                    simulation::rigid_coupling_realtime_sweeps *
+                        (node_groups + rigid));
+                coupling.bytes_moved +=
+                    simulation::rigid_coupling_realtime_sweeps *
+                    std::uint64_t{rigid} * sizeof(std::uint32_t);
+                coupling.barriers +=
+                    simulation::rigid_coupling_realtime_sweeps;
+                const auto attachments =
+                    std::uint32_t(owner->data.options.first.enabled) +
+                    std::uint32_t(owner->data.options.last.enabled);
+                dispatch(coupling,
+                    3U * attachments *
+                        simulation::rigid_coupling_realtime_sweeps,
+                    std::uint64_t{attachments} *
+                        simulation::rigid_coupling_realtime_sweeps *
+                        (2U + body_groups));
+            }
+            coupling.numerical_iterations +=
+                simulation::rigid_coupling_realtime_sweeps;
+        }
+        if (deformable_couplings != 0U) {
+            for (const auto &owner : state.soft_cloth_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled)
+                    continue;
+                const auto &body = *state.soft_bodies[
+                    owner->options.soft_body.index];
+                const auto &cloth = *state.cloths[
+                    owner->options.cloth.index];
+                const auto body_groups =
+                    (std::uint64_t{body.node_count} + 127U) / 128U;
+                const auto cloth_groups =
+                    (std::uint64_t{cloth.vertex_count} + 127U) / 128U;
+                const auto triangle_groups =
+                    (std::uint64_t{cloth.index_count / 3U} + 127U) / 128U;
+                dispatch(coupling,
+                    5U * simulation::deformable_smoke_coupling_sweeps,
+                    simulation::deformable_smoke_coupling_sweeps *
+                        (2U * body_groups + 2U * cloth_groups +
+                         triangle_groups));
+                coupling.bytes_moved +=
+                    simulation::deformable_smoke_coupling_sweeps *
+                    std::uint64_t{cloth.vertex_count} * sizeof(std::uint32_t);
+                coupling.barriers +=
+                    simulation::deformable_smoke_coupling_sweeps;
+            }
+            for (const auto &item : state.rope_cloth_couplings) {
+                if (!item.alive || !item.options.enabled) continue;
+                const auto endpoints =
+                    std::uint32_t(item.options.first_vertex != UINT32_MAX) +
+                    std::uint32_t(item.options.last_vertex != UINT32_MAX);
+                dispatch(coupling,
+                    3U * endpoints *
+                        simulation::deformable_smoke_coupling_sweeps,
+                    3ULL * endpoints *
+                        simulation::deformable_smoke_coupling_sweeps);
+            }
+            for (const auto &owner : state.rope_soft_body_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled)
+                    continue;
+                const auto &body = *state.soft_bodies[
+                    owner->options.soft_body.index];
+                const auto records = 2U +
+                    std::uint32_t(owner->options.attach_first) +
+                    std::uint32_t(owner->options.attach_last);
+                const auto node_groups =
+                    (std::uint64_t{body.node_count} + 127U) / 128U;
+                const auto surface_groups =
+                    (std::uint64_t{body.surface_vertex_count} + 127U) / 128U;
+                dispatch(coupling,
+                    7U * records *
+                        simulation::deformable_smoke_coupling_sweeps,
+                    std::uint64_t{records} *
+                        simulation::deformable_smoke_coupling_sweeps *
+                        (5U + node_groups + surface_groups));
+                coupling.bytes_moved += std::uint64_t{records} *
+                    simulation::deformable_smoke_coupling_sweeps *
+                    (sizeof(Vec3) +
+                     std::uint64_t{body.node_count} * sizeof(Vec3));
+                coupling.barriers += records *
+                    simulation::deformable_smoke_coupling_sweeps * 2U;
+            }
+            coupling.numerical_iterations +=
+                simulation::deformable_smoke_coupling_sweeps;
         }
         domain.numerical_iterations =
             (rigid != 0U ? simulation::rigid_realtime_sweeps : 0U) +
@@ -753,6 +983,16 @@ public:
 
     PmResult begin_tick(
         const simulation::RealtimeScheduleScene &scene) noexcept {
+        std::array<std::uint32_t,
+                   simulation::realtime_coupling_family_count>
+            coupling_counts{};
+        auto coupling_result = native_realtime_coupling_counts(
+            state_, coupling_counts);
+        if (coupling_result != PM_SUCCESS) return coupling_result;
+        if (coupling_counts != scene.coupling_edges)
+            return PM_ERROR_INVALID_STATE;
+        coupling_result = stage_coupling_graph(scene);
+        if (coupling_result != PM_SUCCESS) return coupling_result;
         auto count_result = native_realtime_spatial_counts(
             state_, staged_leaves_, staged_queries_);
         if (count_result != PM_SUCCESS) return count_result;
@@ -1095,6 +1335,11 @@ public:
         const simulation::RealtimeScheduleScene &) noexcept {
         auto &boundary_work = work(
             simulation::RealtimeTelemetryPhase::boundary);
+        if (rigid_coupling_count_ != 0U ||
+            deformable_coupling_count_ != 0U) {
+            auto coupling_result = stage_coupling_buffers(boundary_work);
+            if (coupling_result != PM_SUCCESS) return coupling_result;
+        }
         const bool has_particle_smoke = std::any_of(
             state_.smokes.begin(), state_.smokes.end(),
             [](const auto &owner) {
@@ -1167,10 +1412,23 @@ public:
                     cloth.realtime_contact_active, 0,
                     cloth.vertex_capacity * sizeof(std::uint8_t),
                     native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(cloth.soft_body_forces, 0,
+                    cloth.vertex_capacity * sizeof(Vec3), native_.queue());
+            if (result == PM_SUCCESS && cloth.rope_forces != nullptr)
+                result = native_.clear(cloth.rope_forces, 0,
+                    cloth.vertex_capacity * sizeof(Vec3), native_.queue());
             if (result != PM_SUCCESS) return result;
             boundary_work.bytes_moved += 2U * bytes +
                 sizeof(*cloth.realtime_time_advances) +
                 cloth.vertex_capacity * sizeof(std::uint8_t);
+            boundary_work.bytes_moved += cloth.vertex_capacity * sizeof(Vec3);
+            ++boundary_work.barriers;
+            if (cloth.rope_forces != nullptr) {
+                boundary_work.bytes_moved +=
+                    cloth.vertex_capacity * sizeof(Vec3);
+                ++boundary_work.barriers;
+            }
             boundary_work.barriers += 4U;
         }
         for (auto &owner : state_.soft_bodies) {
@@ -1197,12 +1455,37 @@ public:
                 result = native_.clear(
                     body.realtime_shape_orientation, 0,
                     sizeof(*body.realtime_shape_orientation), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(body.contact_momentum_delta, 0,
+                    body.node_count * sizeof(Vec3), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(body.contact_friction_delta, 0,
+                    body.node_count * sizeof(Vec3), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(body.contact_normal_delta, 0,
+                    body.node_count * sizeof(float), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(body.contact_count, 0,
+                    sizeof(*body.contact_count), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(body.dynamic_contact_flag, 0,
+                    sizeof(*body.dynamic_contact_flag), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(body.cloth_forces, 0,
+                    body.node_count * sizeof(Vec3), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(body.rope_forces, 0,
+                    body.node_count * sizeof(Vec3), native_.queue());
             if (result != PM_SUCCESS) return result;
             boundary_work.bytes_moved += 2U * bytes +
                 sizeof(*body.realtime_time_advances) +
                 body.node_count * sizeof(std::uint8_t) +
                 sizeof(*body.realtime_shape_orientation);
-            boundary_work.barriers += 5U;
+            boundary_work.bytes_moved +=
+                4ULL * body.node_count * sizeof(Vec3) +
+                body.node_count * sizeof(float) +
+                2U * sizeof(std::uint32_t);
+            boundary_work.barriers += 12U;
         }
         for (auto &owner : state_.ropes) {
             if (!owner || !owner->alive) continue;
@@ -1225,11 +1508,16 @@ public:
                 result = native_.clear(
                     rope.realtime_contact_active, 0,
                     rope.data.count * sizeof(std::uint8_t), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.copy(rope.realtime_count, &rope.data.count,
+                    sizeof(*rope.realtime_count),
+                    device::CopyDirection::host_to_device, native_.queue());
             if (result != PM_SUCCESS) return result;
             boundary_work.bytes_moved += 2U * bytes +
                 sizeof(*rope.realtime_time_advances) +
                 rope.data.count * sizeof(std::uint8_t);
-            boundary_work.barriers += 4U;
+            boundary_work.bytes_moved += sizeof(*rope.realtime_count);
+            boundary_work.barriers += 5U;
         }
         for (auto &owner : state_.smokes) {
             if (!owner || !owner->alive) continue;
@@ -2452,9 +2740,408 @@ public:
     }
 
     PmResult solve_couplings(
-        simulation::RealtimeCouplingFamily, std::uint32_t, std::uint32_t,
-        const simulation::RealtimeScheduleScene &) noexcept {
-        return PM_ERROR_FEATURE_NOT_PRESENT;
+        simulation::RealtimeCouplingFamily family, std::uint32_t sweep,
+        std::uint32_t edge_count,
+        const simulation::RealtimeScheduleScene &scene) noexcept {
+        if (family == simulation::RealtimeCouplingFamily::liquid)
+            return PM_ERROR_FEATURE_NOT_PRESENT;
+        auto *counters = state_.realtime_spatial.counters(epoch_);
+        if (counters == nullptr) return PM_ERROR_INVALID_STATE;
+        auto &coupling_work = work(
+            simulation::RealtimeTelemetryPhase::coupling);
+        ++coupling_work.numerical_iterations;
+        constexpr std::uint32_t block = 128U;
+
+        if (family == simulation::RealtimeCouplingFamily::rigid) {
+            if (edge_count != rigid_coupling_count_) return PM_ERROR_INVALID_STATE;
+            if (sweep == 0U) {
+                std::uint64_t endpoint_count{};
+                for (const auto &owner : state_.cloths)
+                    if (owner && owner->alive)
+                        endpoint_count += owner->vertex_count;
+                for (const auto &owner : state_.soft_bodies)
+                    if (owner && owner->alive)
+                        endpoint_count += owner->node_count;
+                for (const auto &owner : state_.ropes)
+                    if (owner && owner->alive)
+                        endpoint_count += owner->data.count;
+                if (endpoint_count > std::numeric_limits<std::uint32_t>::max())
+                    return PM_ERROR_CAPACITY_EXCEEDED;
+                simulation::RigidCouplingRealtimeWorkBudget budget{};
+                auto result = simulation::make_rigid_coupling_realtime_work_budget(
+                    std::span<const simulation::RigidCouplingRegistration>(
+                        rigid_couplings_.data(), rigid_coupling_count_),
+                    static_cast<std::uint32_t>(endpoint_count),
+                    state_.rigid_body_count, budget);
+                if (result != PM_SUCCESS) return result;
+                result = rigid_coupling_contract_.begin(epoch_, *counters,
+                    budget,
+                    std::span<const simulation::RigidCouplingRegistration>(
+                        rigid_couplings_.data(), rigid_coupling_count_),
+                    scene.graph_revision);
+                if (result != PM_SUCCESS) return result;
+            }
+            for (std::uint32_t slot = 0U; slot < state_.cloths.size(); ++slot) {
+                auto &owner = state_.cloths[slot];
+                if (!owner || !owner->alive) continue;
+                auto &cloth = *owner;
+                const auto groups =
+                    (cloth.vertex_count + block - 1U) / block;
+                auto result = native_.clear(state_.fluid_body_contact_flags, 0,
+                    state_.rigid_body_count * sizeof(std::uint32_t),
+                    native_.queue());
+                if (result != PM_SUCCESS) return result;
+                native_.collide_deformable_with_rigid_geometry(
+                    groups, block, native_.queue(), cloth.realtime_positions,
+                    cloth.realtime_velocities, cloth.previous,
+                    cloth.inverse_masses, cloth.vertex_count, cloth.thickness,
+                    scene.timestep, state_.parameters,
+                    state_.render_previous_states,
+                    state_.states[output_state_], state_.meshes,
+                    state_.rigid_body_count, cloth.body_impulses,
+                    cloth.rigid_contact_forces, nullptr, nullptr, nullptr,
+                    nullptr, nullptr, nullptr, state_.fluid_body_contact_flags,
+                    false, false, false, false,
+                    cloth.realtime_maximum_speed);
+                native_.reduce_fluid_body_impulses(
+                    state_.rigid_body_count, block, native_.queue(),
+                    cloth.body_impulses, cloth.count, state_.parameters,
+                    state_.states[output_state_],
+                    state_.fluid_body_contact_flags,
+                    state_.rigid_body_count);
+                const auto triangles = cloth.index_count / 3U;
+                native_.update_cloth_surface(
+                    (triangles + block - 1U) / block, block, native_.queue(),
+                    cloth.realtime_positions, cloth.indices,
+                    cloth.realtime_surface_positions, triangles);
+                native_.constrain_rigid_bodies_with_cloth(
+                    state_.rigid_body_count, block, native_.queue(),
+                    cloth.realtime_positions, cloth.realtime_velocities,
+                    cloth.indices, cloth.vertex_sources,
+                    cloth.realtime_surface_positions, cloth.inverse_masses,
+                    cloth.vertex_count, triangles, cloth.thickness,
+                    scene.timestep, cloth.contact_friction, state_.parameters,
+                    state_.render_previous_states,
+                    state_.states[output_state_], state_.meshes, state_.ids,
+                    state_.rigid_body_count, slot, cloth.generation,
+                    nullptr, 0U, nullptr, 0U, cloth.body_corrections);
+                native_.apply_cloth_body_corrections(
+                    groups, block, native_.queue(), cloth.realtime_positions,
+                    cloth.realtime_velocities, cloth.inverse_masses,
+                    cloth.vertex_count, cloth.body_corrections,
+                    state_.rigid_body_count);
+                result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatches(simulation::RealtimeTelemetryPhase::coupling, 5U,
+                    std::uint64_t{groups} * 2U +
+                        (triangles + block - 1U) / block +
+                        2ULL * state_.rigid_body_count);
+                coupling_work.bytes_moved +=
+                    state_.rigid_body_count * sizeof(std::uint32_t);
+                ++coupling_work.barriers;
+            }
+            for (auto &owner : state_.soft_bodies) {
+                if (!owner || !owner->alive) continue;
+                auto &body = *owner;
+                const auto groups = (body.node_count + block - 1U) / block;
+                auto result = native_.clear(state_.fluid_body_contact_flags, 0,
+                    state_.rigid_body_count * sizeof(std::uint32_t),
+                    native_.queue());
+                if (result != PM_SUCCESS) return result;
+                native_.collide_deformable_with_rigid_geometry(
+                    groups, block, native_.queue(), body.realtime_positions,
+                    body.realtime_velocities, body.previous,
+                    body.inverse_masses, body.node_count, body.node_radius,
+                    scene.timestep, state_.parameters,
+                    state_.render_previous_states,
+                    state_.states[output_state_], state_.meshes,
+                    state_.rigid_body_count, body.body_impulses,
+                    body.rigid_contact_forces, body.contact_normals,
+                    body.contact_arms, body.contact_momentum_delta,
+                    body.contact_normal_delta, body.contact_count,
+                    body.dynamic_contact_flag, state_.fluid_body_contact_flags,
+                    true, false, false, false, body.realtime_maximum_speed,
+                    body.body_position_corrections);
+                native_.apply_soft_body_contact_friction(
+                    groups, block, native_.queue(), body.realtime_positions,
+                    body.realtime_velocities, body.inverse_masses,
+                    body.rigid_contact_forces, body.contact_normals,
+                    body.contact_arms, body.body_impulses, state_.parameters,
+                    body.contact_momentum_delta, body.contact_friction_delta,
+                    body.contact_normal_delta, body.contact_count,
+                    body.node_count, body.movable_mass, &options_.gravity.x,
+                    scene.timestep, body.contact_friction,
+                    body.realtime_maximum_speed);
+                native_.reduce_fluid_body_impulses(
+                    state_.rigid_body_count, block, native_.queue(),
+                    body.body_impulses, body.count, state_.parameters,
+                    state_.states[output_state_],
+                    state_.fluid_body_contact_flags,
+                    state_.rigid_body_count, body.body_position_corrections);
+                native_.update_soft_body_surface(
+                    (body.surface_vertex_count + block - 1U) / block,
+                    block, native_.queue(), body.realtime_positions,
+                    body.rest_positions, body.surface_rest_positions,
+                    body.surface_bindings, body.realtime_surface_positions,
+                    body.surface_vertex_count);
+                result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatches(simulation::RealtimeTelemetryPhase::coupling, 4U,
+                    2ULL * groups + state_.rigid_body_count +
+                        (body.surface_vertex_count + block - 1U) / block);
+                coupling_work.bytes_moved +=
+                    state_.rigid_body_count * sizeof(std::uint32_t);
+                ++coupling_work.barriers;
+            }
+            for (auto &owner : state_.ropes) {
+                if (!owner || !owner->alive) continue;
+                auto &rope = *owner;
+                const auto groups =
+                    (rope.data.count + block - 1U) / block;
+                auto result = native_.clear(state_.fluid_body_contact_flags, 0,
+                    state_.rigid_body_count * sizeof(std::uint32_t),
+                    native_.queue());
+                if (result != PM_SUCCESS) return result;
+                native_.collide_deformable_with_rigid_geometry(
+                    groups, block, native_.queue(), rope.realtime_positions,
+                    rope.realtime_velocities,
+                    rope.realtime_previous_positions,
+                    rope.realtime_inverse_masses, rope.data.count,
+                    rope.data.options.radius, scene.timestep,
+                    state_.parameters, state_.render_previous_states,
+                    state_.states[output_state_], state_.meshes,
+                    state_.rigid_body_count, rope.realtime_body_impulses,
+                    rope.realtime_rigid_contact_forces, nullptr, nullptr,
+                    nullptr, nullptr, nullptr, nullptr,
+                    state_.fluid_body_contact_flags, true, false, false,
+                    false, rope.data.options.maximum_speed,
+                    rope.realtime_body_position_corrections);
+                native_.reduce_fluid_body_impulses(
+                    state_.rigid_body_count, block, native_.queue(),
+                    rope.realtime_body_impulses, rope.realtime_count,
+                    state_.parameters, state_.states[output_state_],
+                    state_.fluid_body_contact_flags,
+                    state_.rigid_body_count,
+                    rope.realtime_body_position_corrections);
+                result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatches(simulation::RealtimeTelemetryPhase::coupling, 2U,
+                    groups + state_.rigid_body_count);
+                coupling_work.bytes_moved +=
+                    state_.rigid_body_count * sizeof(std::uint32_t);
+                ++coupling_work.barriers;
+            }
+            std::uint32_t record{};
+            for (auto &owner : state_.ropes) {
+                if (!owner || !owner->alive) continue;
+                auto &rope = *owner;
+                const RopeAttachment attachments[2]{
+                    rope.data.options.first, rope.data.options.last};
+                for (std::uint32_t end = 0U; end < 2U; ++end) {
+                    if (!attachments[end].enabled) continue;
+                    auto result = solve_rigid_rope_attachment(
+                        rope, end, record++, sweep, scene);
+                    if (result != PM_SUCCESS) return result;
+                }
+            }
+            if (record != rigid_attachment_records_)
+                return PM_ERROR_INVALID_STATE;
+            for (std::uint32_t index = 0U;
+                 index < rigid_coupling_count_; ++index) {
+                const auto result = rigid_coupling_contract_.record_edge(
+                    epoch_, *counters, scene.graph_revision,
+                    rigid_couplings_[index]);
+                if (result != PM_SUCCESS) return result;
+            }
+            return sweep + 1U == simulation::rigid_coupling_realtime_sweeps
+                ? rigid_coupling_contract_.finish() : PM_SUCCESS;
+        }
+
+        if (family != simulation::RealtimeCouplingFamily::deformable_smoke ||
+            edge_count != deformable_coupling_count_)
+            return PM_ERROR_INVALID_STATE;
+        if (sweep == 0U) {
+            std::uint64_t endpoints{};
+            for (const auto &owner : state_.cloths)
+                if (owner && owner->alive) endpoints += owner->vertex_count;
+            for (const auto &owner : state_.soft_bodies)
+                if (owner && owner->alive) endpoints += owner->node_count;
+            for (const auto &owner : state_.ropes)
+                if (owner && owner->alive) endpoints += owner->data.count;
+            if (endpoints > std::numeric_limits<std::uint32_t>::max())
+                return PM_ERROR_CAPACITY_EXCEEDED;
+            simulation::DeformableSmokeCouplingWorkBudget budget{};
+            auto result =
+                simulation::make_deformable_smoke_coupling_work_budget(
+                    std::span<const
+                        simulation::DeformableSmokeCouplingRegistration>(
+                            deformable_couplings_.data(),
+                            deformable_coupling_count_),
+                    static_cast<std::uint32_t>(endpoints),
+                    static_cast<std::uint32_t>(endpoints), budget);
+            if (result != PM_SUCCESS) return result;
+            result = deformable_coupling_contract_.begin(epoch_, *counters,
+                budget,
+                std::span<const
+                    simulation::DeformableSmokeCouplingRegistration>(
+                        deformable_couplings_.data(),
+                        deformable_coupling_count_), scene.graph_revision);
+            if (result != PM_SUCCESS) return result;
+        }
+        for (auto &owner : state_.soft_cloth_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            auto &coupling = *owner;
+            auto &body = *state_.soft_bodies[
+                coupling.options.soft_body.index];
+            auto &cloth = *state_.cloths[coupling.options.cloth.index];
+            auto result = native_.clear(coupling.cloth_contact_counts, 0,
+                cloth.vertex_count * sizeof(std::uint32_t), native_.queue());
+            if (result != PM_SUCCESS) return result;
+            const auto body_groups =
+                (body.node_count + block - 1U) / block;
+            const auto cloth_groups =
+                (cloth.vertex_count + block - 1U) / block;
+            const auto cloth_triangles = cloth.index_count / 3U;
+            native_.update_cloth_surface(
+                (cloth_triangles + block - 1U) / block, block,
+                native_.queue(), cloth.realtime_positions, cloth.indices,
+                cloth.realtime_surface_positions, cloth_triangles);
+            native_.update_soft_body_surface(
+                (body.surface_vertex_count + block - 1U) / block, block,
+                native_.queue(), body.realtime_positions,
+                body.rest_positions, body.surface_rest_positions,
+                body.surface_bindings, body.realtime_surface_positions,
+                body.surface_vertex_count);
+            const float distance = coupling.options.contact_distance > 0.0F
+                ? coupling.options.contact_distance
+                : body.node_radius + cloth.thickness;
+            native_.detect_soft_body_cloth_contacts(
+                body_groups, block, native_.queue(),
+                body.realtime_positions, body.previous,
+                body.realtime_velocities, body.inverse_masses,
+                body.node_count, cloth.realtime_positions, cloth.previous,
+                cloth.realtime_velocities, cloth.inverse_masses,
+                cloth.indices, cloth.realtime_surface_positions,
+                cloth_triangles, distance, coupling.options.friction,
+                coupling.contacts, coupling.cloth_contact_counts);
+            native_.apply_soft_body_cloth_contacts_to_soft_body(
+                body_groups, block, native_.queue(),
+                body.realtime_positions, body.realtime_velocities,
+                body.cloth_forces, body.inverse_masses, body.node_count,
+                coupling.contacts, coupling.cloth_contact_counts,
+                scene.timestep, body.realtime_maximum_speed);
+            native_.apply_soft_body_cloth_contacts_to_cloth(
+                cloth_groups, block, native_.queue(),
+                cloth.realtime_positions, cloth.realtime_velocities,
+                cloth.soft_body_forces, cloth.inverse_masses,
+                cloth.vertex_count, coupling.contacts, body.node_count,
+                coupling.cloth_contact_counts, scene.timestep);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatches(simulation::RealtimeTelemetryPhase::coupling, 5U,
+                2ULL * body_groups + 2ULL * cloth_groups +
+                    (cloth_triangles + block - 1U) / block);
+            coupling_work.bytes_moved +=
+                cloth.vertex_count * sizeof(std::uint32_t);
+            ++coupling_work.barriers;
+        }
+        std::uint32_t record = 32U;
+        for (auto &coupling : state_.rope_cloth_couplings) {
+            if (!coupling.alive || !coupling.options.enabled) continue;
+            auto &cloth = *state_.cloths[coupling.options.cloth.index];
+            auto &rope = *state_.ropes[coupling.options.rope.index];
+            for (std::uint32_t end = 0U; end < 2U; ++end) {
+                const auto vertex = end == 0U
+                    ? coupling.options.first_vertex
+                    : coupling.options.last_vertex;
+                if (vertex == UINT32_MAX) continue;
+                auto result = solve_deformable_pair(
+                    {cloth.realtime_positions + vertex,
+                     cloth.previous + vertex,
+                     cloth.realtime_velocities + vertex,
+                     cloth.inverse_masses + vertex,
+                     cloth.realtime_correction_used + vertex,
+                     state_.realtime_coupling_first_generations + record, 1U},
+                    {rope.realtime_positions +
+                         (end == 0U ? 0U : rope.data.count - 1U),
+                     rope.realtime_previous_positions +
+                         (end == 0U ? 0U : rope.data.count - 1U),
+                     rope.realtime_velocities +
+                         (end == 0U ? 0U : rope.data.count - 1U),
+                     rope.realtime_inverse_masses +
+                         (end == 0U ? 0U : rope.data.count - 1U),
+                     rope.realtime_correction_used +
+                         (end == 0U ? 0U : rope.data.count - 1U),
+                     state_.realtime_coupling_second_generations + record, 1U},
+                    record, std::max(cloth.realtime_characteristic_length,
+                        rope.data.options.node_spacing),
+                    std::max(cloth.realtime_maximum_speed,
+                        rope.data.options.maximum_speed), sweep, scene);
+                if (result != PM_SUCCESS) return result;
+                ++record;
+            }
+        }
+        constexpr float zero_offset[3]{};
+        for (auto &owner : state_.rope_soft_body_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            auto &coupling = *owner;
+            auto &body = *state_.soft_bodies[
+                coupling.options.soft_body.index];
+            auto &rope = *state_.ropes[coupling.options.rope.index];
+            for (std::uint32_t end = 0U; end < 2U; ++end) {
+                native_.sample_rope_soft_body_anchor(native_.queue(),
+                    rope.data.soft_anchor_positions,
+                    rope.data.soft_anchor_velocities,
+                    rope.data.soft_anchor_impulses,
+                    rope.data.soft_anchor_inverse_masses, end,
+                    body.realtime_surface_positions,
+                    body.realtime_velocities, body.surface_indices,
+                    body.surface_bindings, coupling.anchor_triangle[end],
+                    &coupling.anchor_weights[end].x, zero_offset);
+                dispatch(simulation::RealtimeTelemetryPhase::coupling, 1U);
+                auto result = solve_soft_rope_pair(
+                    coupling, body, rope, end, record++, sweep, scene);
+                if (result != PM_SUCCESS) return result;
+            }
+        }
+        for (auto &owner : state_.rope_soft_body_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            auto &coupling = *owner;
+            auto &body = *state_.soft_bodies[
+                coupling.options.soft_body.index];
+            auto &rope = *state_.ropes[coupling.options.rope.index];
+            for (std::uint32_t end = 0U; end < 2U; ++end) {
+                if (!(end == 0U ? coupling.options.attach_first
+                                : coupling.options.attach_last))
+                    continue;
+                native_.sample_rope_soft_body_anchor(native_.queue(),
+                    rope.data.soft_anchor_positions,
+                    rope.data.soft_anchor_velocities,
+                    rope.data.soft_anchor_impulses,
+                    rope.data.soft_anchor_inverse_masses, end,
+                    body.realtime_surface_positions,
+                    body.realtime_velocities, body.surface_indices,
+                    body.surface_bindings, coupling.anchor_triangle[end],
+                    &coupling.anchor_weights[end].x,
+                    &coupling.anchor_offset[end].x);
+                dispatch(simulation::RealtimeTelemetryPhase::coupling, 1U);
+                auto result = solve_soft_rope_pair(
+                    coupling, body, rope, end, record++, sweep, scene);
+                if (result != PM_SUCCESS) return result;
+            }
+        }
+        if (record != 32U + deformable_attachment_records_)
+            return PM_ERROR_INVALID_STATE;
+        for (std::uint32_t index = 0U;
+             index < deformable_coupling_count_; ++index) {
+            const auto result = deformable_coupling_contract_.record_edge(
+                epoch_, *counters, scene.graph_revision,
+                deformable_couplings_[index]);
+            if (result != PM_SUCCESS) return result;
+        }
+        return sweep + 1U ==
+                simulation::deformable_smoke_coupling_sweeps
+            ? deformable_coupling_contract_.finish() : PM_SUCCESS;
     }
 
     PmResult commit_tick(
@@ -2711,10 +3398,522 @@ public:
             if (owner && owner->alive) owner->realtime_contract = {};
         for (auto &owner : state_.smokes)
             if (owner && owner->alive) owner->realtime_contract = {};
+        rigid_coupling_contract_ = {};
+        deformable_coupling_contract_ = {};
         return PM_SUCCESS;
     }
 
 private:
+    simulation::RigidCouplingConstraintBuffers rigid_constraints(
+        std::uint32_t record) const noexcept {
+        return {state_.realtime_coupling_first_endpoints + record,
+            state_.realtime_coupling_second_endpoints + record,
+            state_.realtime_coupling_first_generations + record,
+            state_.realtime_coupling_second_generations + record,
+            state_.realtime_coupling_pairs + record,
+            state_.realtime_coupling_modes + record,
+            state_.realtime_coupling_normals + record,
+            state_.realtime_coupling_body_local_points + record,
+            state_.realtime_coupling_contact_distances + record,
+            state_.realtime_coupling_frictions + record,
+            state_.realtime_coupling_responses + record,
+            state_.realtime_coupling_active + record, 1U};
+    }
+
+    simulation::RigidCouplingScratchBuffers rigid_scratch(
+        std::uint32_t record) const noexcept {
+        return {state_.realtime_coupling_first_position_deltas + record,
+            state_.realtime_coupling_second_position_deltas + record,
+            state_.realtime_coupling_first_impulses + record,
+            state_.realtime_coupling_second_impulses + record};
+    }
+
+    PmResult solve_rigid_rope_attachment(RopeStorage &rope,
+        std::uint32_t end, std::uint32_t record, std::uint32_t sweep,
+        const simulation::RealtimeScheduleScene &scene) noexcept {
+        const auto node = end == 0U ? 0U : rope.data.count - 1U;
+        const simulation::RigidCouplingEndpointBuffers endpoints{
+            rope.realtime_positions + node,
+            rope.realtime_previous_positions + node,
+            rope.realtime_velocities + node,
+            rope.realtime_inverse_masses + node,
+            rope.realtime_correction_used + node,
+            state_.realtime_coupling_first_generations + record, 1U};
+        const simulation::RigidCouplingBodyBuffers bodies{
+            state_.parameters, state_.render_previous_states,
+            state_.states[output_state_],
+            state_.realtime_rigid_correction_used,
+            state_.realtime_rigid_generations, state_.rigid_body_count};
+        const auto constraints = rigid_constraints(record);
+        const auto scratch = rigid_scratch(record);
+        native_.project_rigid_couplings(1U, 128U, native_.queue(), endpoints,
+            bodies, constraints, scratch, rope.data.options.node_spacing,
+            rope.data.options.maximum_speed, scene.timestep,
+            simulation::rigid_coupling_realtime_profile_version, sweep,
+            snapshot_.query_status);
+        native_.apply_rigid_coupling_endpoints(1U, 128U, native_.queue(),
+            endpoints, constraints, scratch, rope.data.options.node_spacing,
+            rope.data.options.maximum_speed, scene.timestep,
+            simulation::rigid_coupling_realtime_profile_version, sweep,
+            snapshot_.query_status);
+        native_.apply_rigid_coupling_bodies(
+            (state_.rigid_body_count + 127U) / 128U, 128U,
+            native_.queue(), bodies, constraints, scratch,
+            rope.data.options.node_spacing, scene.timestep,
+            simulation::rigid_coupling_realtime_profile_version, sweep,
+            snapshot_.query_status);
+        const auto result = native_.check_error();
+        if (result == PM_SUCCESS)
+            dispatches(simulation::RealtimeTelemetryPhase::coupling, 3U,
+                2U + (state_.rigid_body_count + 127U) / 128U);
+        return result;
+    }
+
+    simulation::DeformableSmokeCouplingConstraintBuffers
+    deformable_constraints(std::uint32_t record) const noexcept {
+        return {state_.realtime_coupling_first_endpoints + record,
+            state_.realtime_coupling_second_endpoints + record,
+            state_.realtime_coupling_first_generations + record,
+            state_.realtime_coupling_second_generations + record,
+            state_.realtime_coupling_pairs + record,
+            state_.realtime_coupling_modes + record,
+            state_.realtime_coupling_normals + record,
+            state_.realtime_coupling_contact_distances + record,
+            state_.realtime_coupling_frictions + record,
+            state_.realtime_coupling_responses + record,
+            state_.realtime_coupling_active + record, 1U};
+    }
+
+    simulation::DeformableSmokeCouplingScratchBuffers deformable_scratch(
+        std::uint32_t record) const noexcept {
+        return {state_.realtime_coupling_first_position_deltas + record,
+            state_.realtime_coupling_second_position_deltas + record,
+            state_.realtime_coupling_first_impulses + record,
+            state_.realtime_coupling_second_impulses + record};
+    }
+
+    PmResult solve_deformable_pair(
+        const simulation::DeformableSmokeCouplingEndpointBuffers &first,
+        const simulation::DeformableSmokeCouplingEndpointBuffers &second,
+        std::uint32_t record, float characteristic_length,
+        float maximum_speed, std::uint32_t sweep,
+        const simulation::RealtimeScheduleScene &scene) noexcept {
+        const auto constraints = deformable_constraints(record);
+        const auto scratch = deformable_scratch(record);
+        native_.project_deformable_smoke_couplings(
+            1U, 128U, native_.queue(), first, second, constraints, scratch,
+            characteristic_length, maximum_speed, scene.timestep,
+            simulation::deformable_smoke_coupling_profile_version, sweep,
+            snapshot_.query_status);
+        native_.apply_deformable_smoke_coupling_first(
+            1U, 128U, native_.queue(), first, constraints, scratch,
+            characteristic_length, maximum_speed, scene.timestep,
+            simulation::deformable_smoke_coupling_profile_version, sweep,
+            snapshot_.query_status);
+        native_.apply_deformable_smoke_coupling_second(
+            1U, 128U, native_.queue(), second, constraints, scratch,
+            characteristic_length, maximum_speed, scene.timestep,
+            simulation::deformable_smoke_coupling_profile_version, sweep,
+            snapshot_.query_status);
+        const auto result = native_.check_error();
+        if (result == PM_SUCCESS)
+            dispatches(simulation::RealtimeTelemetryPhase::coupling, 3U, 3U);
+        return result;
+    }
+
+    PmResult solve_soft_rope_pair(RopeSoftBodyCouplingStorage &coupling,
+        SoftBodyStorage &body, RopeStorage &rope, std::uint32_t end,
+        std::uint32_t record, std::uint32_t sweep,
+        const simulation::RealtimeScheduleScene &scene) noexcept {
+        const auto node = end == 0U ? 0U : rope.data.count - 1U;
+        const simulation::DeformableSmokeCouplingEndpointBuffers first{
+            rope.data.soft_anchor_positions + end,
+            rope.data.soft_anchor_positions + end,
+            rope.data.soft_anchor_velocities + end,
+            rope.data.soft_anchor_inverse_masses + end,
+            state_.realtime_coupling_first_correction_used + record,
+            state_.realtime_coupling_first_generations + record, 1U};
+        const simulation::DeformableSmokeCouplingEndpointBuffers second{
+            rope.realtime_positions + node,
+            rope.realtime_previous_positions + node,
+            rope.realtime_velocities + node,
+            rope.realtime_inverse_masses + node,
+            rope.realtime_correction_used + node,
+            state_.realtime_coupling_second_generations + record, 1U};
+        auto result = solve_deformable_pair(first, second, record,
+            std::max(body.realtime_characteristic_length,
+                rope.data.options.node_spacing),
+            std::max(body.realtime_maximum_speed,
+                rope.data.options.maximum_speed), sweep, scene);
+        if (result != PM_SUCCESS) return result;
+        result = native_.copy(rope.data.soft_anchor_impulses + end,
+            state_.realtime_coupling_first_impulses + record, sizeof(Vec3),
+            device::CopyDirection::device_to_device, native_.queue());
+        if (result != PM_SUCCESS) return result;
+        result = native_.clear(coupling.node_impulses, 0,
+            body.node_count * sizeof(Vec3), native_.queue());
+        if (result != PM_SUCCESS) return result;
+        native_.scatter_rope_soft_body_anchor(1U, 256U, native_.queue(),
+            rope.data.soft_anchor_positions, rope.data.soft_anchor_impulses,
+            end, body.realtime_positions, body.node_count,
+            coupling.options.anchor_support_radius_scale * body.node_radius,
+            coupling.options.anchor_contact_support_radius_scale *
+                body.node_radius,
+            coupling.contact_count, body.surface_indices,
+            body.surface_bindings, coupling.anchor_triangle[end],
+            &coupling.anchor_weights[end].x, coupling.node_impulses);
+        native_.apply_rope_soft_body_impulses(
+            (body.node_count + 127U) / 128U, 128U, native_.queue(),
+            body.realtime_positions, body.realtime_velocities,
+            body.rope_forces, body.inverse_masses, coupling.node_impulses,
+            body.node_count, coupling.options.maximum_soft_body_acceleration,
+            body.realtime_maximum_speed, scene.timestep,
+            1.0F / scene.timestep);
+        native_.update_soft_body_surface(
+            (body.surface_vertex_count + 127U) / 128U, 128U,
+            native_.queue(), body.realtime_positions, body.rest_positions,
+            body.surface_rest_positions, body.surface_bindings,
+            body.realtime_surface_positions, body.surface_vertex_count);
+        result = native_.check_error();
+        if (result == PM_SUCCESS) {
+            dispatches(simulation::RealtimeTelemetryPhase::coupling, 3U,
+                1U + (body.node_count + 127U) / 128U +
+                    (body.surface_vertex_count + 127U) / 128U);
+            auto &coupling_work = work(
+                simulation::RealtimeTelemetryPhase::coupling);
+            coupling_work.bytes_moved +=
+                sizeof(Vec3) + body.node_count * sizeof(Vec3);
+            coupling_work.barriers += 2U;
+        }
+        return result;
+    }
+
+    PmResult stage_coupling_buffers(
+        simulation::RealtimeWorkCounters &boundary_work) noexcept {
+        for (const auto &slot : state_.slots)
+            if (slot.alive && slot.dense_index < state_.rigid_body_count)
+                state_.realtime_rigid_generations_host[slot.dense_index] =
+                    slot.generation;
+        const auto copy = [&](void *destination, const void *source,
+                              std::size_t bytes) noexcept {
+            const auto result = native_.copy(destination, source, bytes,
+                device::CopyDirection::host_to_device, native_.queue());
+            if (result == PM_SUCCESS) {
+                boundary_work.bytes_moved += bytes;
+                ++boundary_work.barriers;
+            }
+            return result;
+        };
+        if (state_.rigid_body_count != 0U) {
+            const auto bytes = std::size_t(state_.rigid_body_count) *
+                sizeof(std::uint32_t);
+            auto result = copy(state_.realtime_rigid_generations,
+                state_.realtime_rigid_generations_host.data(), bytes);
+            if (result != PM_SUCCESS) return result;
+            result = native_.clear(state_.realtime_rigid_correction_used, 0,
+                std::size_t(state_.rigid_body_count) * sizeof(float),
+                native_.queue());
+            if (result != PM_SUCCESS) return result;
+            boundary_work.bytes_moved +=
+                std::size_t(state_.rigid_body_count) * sizeof(float);
+            ++boundary_work.barriers;
+        }
+#define PM_COPY_COUPLING(member) do { \
+    const auto result = copy(state_.member, state_.member##_host.data(), \
+        sizeof(state_.member##_host)); \
+    if (result != PM_SUCCESS) return result; \
+} while (false)
+        PM_COPY_COUPLING(realtime_coupling_first_endpoints);
+        PM_COPY_COUPLING(realtime_coupling_second_endpoints);
+        PM_COPY_COUPLING(realtime_coupling_first_generations);
+        PM_COPY_COUPLING(realtime_coupling_second_generations);
+        PM_COPY_COUPLING(realtime_coupling_pairs);
+        PM_COPY_COUPLING(realtime_coupling_modes);
+        PM_COPY_COUPLING(realtime_coupling_normals);
+        PM_COPY_COUPLING(realtime_coupling_body_local_points);
+        PM_COPY_COUPLING(realtime_coupling_contact_distances);
+        PM_COPY_COUPLING(realtime_coupling_frictions);
+        PM_COPY_COUPLING(realtime_coupling_responses);
+        PM_COPY_COUPLING(realtime_coupling_active);
+#undef PM_COPY_COUPLING
+        constexpr std::size_t records = 64U;
+        const std::size_t vector_bytes = records * sizeof(Vec3);
+        const std::size_t scalar_bytes = records * sizeof(float);
+        void *vectors[]{state_.realtime_coupling_first_position_deltas,
+            state_.realtime_coupling_second_position_deltas,
+            state_.realtime_coupling_first_impulses,
+            state_.realtime_coupling_second_impulses};
+        for (auto *buffer : vectors) {
+            const auto result = native_.clear(
+                buffer, 0, vector_bytes, native_.queue());
+            if (result != PM_SUCCESS) return result;
+            boundary_work.bytes_moved += vector_bytes;
+            ++boundary_work.barriers;
+        }
+        void *scalars[]{state_.realtime_coupling_first_correction_used,
+            state_.realtime_coupling_second_correction_used};
+        for (auto *buffer : scalars) {
+            const auto result = native_.clear(
+                buffer, 0, scalar_bytes, native_.queue());
+            if (result != PM_SUCCESS) return result;
+            boundary_work.bytes_moved += scalar_bytes;
+            ++boundary_work.barriers;
+        }
+        return PM_SUCCESS;
+    }
+
+    PmResult stage_coupling_graph(
+        const simulation::RealtimeScheduleScene &scene) noexcept {
+        rigid_coupling_count_ = 0U;
+        deformable_coupling_count_ = 0U;
+        rigid_attachment_records_ = 0U;
+        deformable_attachment_records_ = 0U;
+        state_.realtime_coupling_first_endpoints_host.fill(0U);
+        state_.realtime_coupling_second_endpoints_host.fill(0U);
+        state_.realtime_coupling_first_generations_host.fill(0U);
+        state_.realtime_coupling_second_generations_host.fill(0U);
+        state_.realtime_coupling_pairs_host.fill(0U);
+        state_.realtime_coupling_modes_host.fill(0U);
+        state_.realtime_coupling_normals_host.fill({});
+        state_.realtime_coupling_body_local_points_host.fill({});
+        state_.realtime_coupling_contact_distances_host.fill(0.0F);
+        state_.realtime_coupling_frictions_host.fill(0.0F);
+        state_.realtime_coupling_responses_host.fill(0.0F);
+        state_.realtime_coupling_active_host.fill(0U);
+
+        const auto add_rigid = [&](std::uint64_t edge_id,
+                                   simulation::RigidCouplingFamily family,
+                                   simulation::RigidCouplingMode mode,
+                                   std::uint32_t endpoint_generation,
+                                   std::uint32_t rigid_generation,
+                                   std::uint32_t constraints = 1U) noexcept {
+            if (rigid_coupling_count_ >= rigid_couplings_.size())
+                return false;
+            rigid_couplings_[rigid_coupling_count_++] = {edge_id, family,
+                mode, endpoint_generation, rigid_generation, constraints};
+            return true;
+        };
+        const auto graph_generation = static_cast<std::uint32_t>(
+            scene.graph_revision %
+                (std::numeric_limits<std::uint32_t>::max() - 1U)) + 1U;
+        if (state_.rigid_body_count != 0U) {
+            for (std::uint32_t slot = 0U; slot < state_.cloths.size(); ++slot) {
+                const auto &owner = state_.cloths[slot];
+                if (!owner || !owner->alive) continue;
+                if (!add_rigid(0x100000000ULL + slot,
+                        simulation::RigidCouplingFamily::cloth,
+                        simulation::RigidCouplingMode::contact,
+                        owner->generation, graph_generation))
+                    return PM_ERROR_CAPACITY_EXCEEDED;
+            }
+            for (std::uint32_t slot = 0U;
+                 slot < state_.soft_bodies.size(); ++slot) {
+                const auto &owner = state_.soft_bodies[slot];
+                if (!owner || !owner->alive) continue;
+                if (!add_rigid(0x200000000ULL + slot,
+                        simulation::RigidCouplingFamily::soft_body,
+                        simulation::RigidCouplingMode::contact,
+                        owner->generation, graph_generation))
+                    return PM_ERROR_CAPACITY_EXCEEDED;
+            }
+            for (std::uint32_t slot = 0U; slot < state_.ropes.size(); ++slot) {
+                const auto &owner = state_.ropes[slot];
+                if (!owner || !owner->alive) continue;
+                if (!add_rigid(0x300000000ULL + slot,
+                        simulation::RigidCouplingFamily::rope,
+                        simulation::RigidCouplingMode::contact,
+                        owner->generation, graph_generation))
+                    return PM_ERROR_CAPACITY_EXCEEDED;
+            }
+            for (std::uint32_t slot = 0U; slot < state_.ropes.size(); ++slot) {
+                const auto &owner = state_.ropes[slot];
+                if (!owner || !owner->alive) continue;
+                const RopeAttachment attachments[2]{
+                    owner->data.options.first, owner->data.options.last};
+                for (std::uint32_t end = 0U; end < 2U; ++end) {
+                    const auto &attachment = attachments[end];
+                    if (!attachment.enabled ||
+                        attachment.body.index >= state_.slots.size())
+                        continue;
+                    const auto &body_slot = state_.slots[attachment.body.index];
+                    if (!body_slot.alive ||
+                        body_slot.generation != attachment.body.generation ||
+                        body_slot.dense_index >= state_.rigid_body_count)
+                        return PM_ERROR_INVALID_STATE;
+                    if (!add_rigid(0x380000000ULL +
+                            std::uint64_t{slot} * 2U + end,
+                            simulation::RigidCouplingFamily::rope,
+                            simulation::RigidCouplingMode::attachment,
+                            owner->generation, attachment.body.generation))
+                        return PM_ERROR_CAPACITY_EXCEEDED;
+                    const auto record = rigid_attachment_records_++;
+                    state_.realtime_coupling_second_endpoints_host[record] =
+                        body_slot.dense_index;
+                    state_.realtime_coupling_first_generations_host[record] =
+                        owner->generation;
+                    state_.realtime_coupling_second_generations_host[record] =
+                        attachment.body.generation;
+                    state_.realtime_coupling_pairs_host[record] =
+                        static_cast<std::uint32_t>(
+                            simulation::RigidCouplingFamily::rope);
+                    state_.realtime_coupling_modes_host[record] =
+                        static_cast<std::uint32_t>(
+                            simulation::RigidCouplingMode::attachment);
+                    state_.realtime_coupling_body_local_points_host[record] =
+                        attachment.local_anchor;
+                    state_.realtime_coupling_responses_host[record] = 0.995F;
+                    state_.realtime_coupling_active_host[record] = 1U;
+                }
+            }
+        }
+
+        const auto add_deformable = [&](std::uint64_t edge_id,
+                simulation::DeformableSmokeCouplingPair pair,
+                simulation::DeformableSmokeCouplingMode mode,
+                std::uint32_t first_generation,
+                std::uint32_t second_generation,
+                std::uint32_t constraints = 1U) noexcept {
+            if (deformable_coupling_count_ >= deformable_couplings_.size())
+                return false;
+            deformable_couplings_[deformable_coupling_count_++] = {edge_id,
+                pair, mode, first_generation, second_generation, constraints};
+            return true;
+        };
+        for (std::uint32_t slot = 0U;
+             slot < state_.soft_cloth_couplings.size(); ++slot) {
+            const auto &owner = state_.soft_cloth_couplings[slot];
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            const auto &options = owner->options;
+            if (options.cloth.index >= state_.cloths.size() ||
+                options.soft_body.index >= state_.soft_bodies.size() ||
+                !state_.cloths[options.cloth.index] ||
+                !state_.soft_bodies[options.soft_body.index])
+                return PM_ERROR_INVALID_STATE;
+            if (!add_deformable(0x410000000ULL + slot,
+                    simulation::DeformableSmokeCouplingPair::cloth_soft_body,
+                    simulation::DeformableSmokeCouplingMode::contact,
+                    options.cloth.generation,
+                    options.soft_body.generation))
+                return PM_ERROR_CAPACITY_EXCEEDED;
+        }
+        for (std::uint32_t slot = 0U;
+             slot < state_.rope_cloth_couplings.size(); ++slot) {
+            const auto &coupling = state_.rope_cloth_couplings[slot];
+            if (!coupling.alive || !coupling.options.enabled) continue;
+            const auto constraints =
+                std::uint32_t(coupling.options.first_vertex != UINT32_MAX) +
+                std::uint32_t(coupling.options.last_vertex != UINT32_MAX);
+            if (!add_deformable(0x420000000ULL + slot,
+                    simulation::DeformableSmokeCouplingPair::cloth_rope,
+                    simulation::DeformableSmokeCouplingMode::attachment,
+                    coupling.options.cloth.generation,
+                    coupling.options.rope.generation, constraints))
+                return PM_ERROR_CAPACITY_EXCEEDED;
+            for (std::uint32_t end = 0U; end < 2U; ++end) {
+                const auto vertex = end == 0U
+                    ? coupling.options.first_vertex
+                    : coupling.options.last_vertex;
+                if (vertex == UINT32_MAX) continue;
+                const auto record = 32U + deformable_attachment_records_++;
+                if (record >= state_.realtime_coupling_active_host.size())
+                    return PM_ERROR_CAPACITY_EXCEEDED;
+                state_.realtime_coupling_first_generations_host[record] =
+                    coupling.options.cloth.generation;
+                state_.realtime_coupling_second_generations_host[record] =
+                    coupling.options.rope.generation;
+                state_.realtime_coupling_pairs_host[record] =
+                    static_cast<std::uint32_t>(
+                        simulation::DeformableSmokeCouplingPair::cloth_rope);
+                state_.realtime_coupling_modes_host[record] =
+                    static_cast<std::uint32_t>(
+                        simulation::DeformableSmokeCouplingMode::attachment);
+                state_.realtime_coupling_responses_host[record] = 0.995F;
+                state_.realtime_coupling_active_host[record] = 1U;
+            }
+        }
+        for (std::uint32_t slot = 0U;
+             slot < state_.rope_soft_body_couplings.size(); ++slot) {
+            const auto &owner = state_.rope_soft_body_couplings[slot];
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            if (!add_deformable(0x450000000ULL + slot,
+                    simulation::DeformableSmokeCouplingPair::soft_body_rope,
+                    simulation::DeformableSmokeCouplingMode::contact,
+                    owner->options.soft_body.generation,
+                    owner->options.rope.generation, 2U))
+                return PM_ERROR_CAPACITY_EXCEEDED;
+            const auto &rope = *state_.ropes[owner->options.rope.index];
+            for (std::uint32_t end = 0U; end < 2U; ++end) {
+                const auto record = 32U + deformable_attachment_records_++;
+                if (record >= state_.realtime_coupling_active_host.size())
+                    return PM_ERROR_CAPACITY_EXCEEDED;
+                state_.realtime_coupling_first_generations_host[record] =
+                    owner->options.soft_body.generation;
+                state_.realtime_coupling_second_generations_host[record] =
+                    owner->options.rope.generation;
+                state_.realtime_coupling_pairs_host[record] =
+                    static_cast<std::uint32_t>(
+                        simulation::DeformableSmokeCouplingPair::soft_body_rope);
+                state_.realtime_coupling_modes_host[record] =
+                    static_cast<std::uint32_t>(
+                        simulation::DeformableSmokeCouplingMode::contact);
+                state_.realtime_coupling_normals_host[record] = normalized_or(
+                    multiply(owner->anchor_offset[end], -1.0F),
+                    Vec3{0.0F, 1.0F, 0.0F});
+                state_.realtime_coupling_contact_distances_host[record] =
+                    owner->options.contact_distance > 0.0F
+                        ? owner->options.contact_distance
+                        : rope.data.options.radius;
+                state_.realtime_coupling_frictions_host[record] =
+                    owner->options.friction;
+                state_.realtime_coupling_active_host[record] = 1U;
+            }
+        }
+        for (std::uint32_t slot = 0U;
+             slot < state_.rope_soft_body_couplings.size(); ++slot) {
+            const auto &owner = state_.rope_soft_body_couplings[slot];
+            if (!owner || !owner->alive || !owner->options.enabled ||
+                (!owner->options.attach_first &&
+                 !owner->options.attach_last))
+                continue;
+            const auto constraints =
+                std::uint32_t(owner->options.attach_first) +
+                std::uint32_t(owner->options.attach_last);
+            if (!add_deformable(0x458000000ULL + slot,
+                    simulation::DeformableSmokeCouplingPair::soft_body_rope,
+                    simulation::DeformableSmokeCouplingMode::attachment,
+                    owner->options.soft_body.generation,
+                    owner->options.rope.generation, constraints))
+                return PM_ERROR_CAPACITY_EXCEEDED;
+            for (std::uint32_t end = 0U; end < 2U; ++end) {
+                if (!(end == 0U ? owner->options.attach_first
+                                : owner->options.attach_last))
+                    continue;
+                const auto record = 32U + deformable_attachment_records_++;
+                if (record >= state_.realtime_coupling_active_host.size())
+                    return PM_ERROR_CAPACITY_EXCEEDED;
+                state_.realtime_coupling_first_generations_host[record] =
+                    owner->options.soft_body.generation;
+                state_.realtime_coupling_second_generations_host[record] =
+                    owner->options.rope.generation;
+                state_.realtime_coupling_pairs_host[record] =
+                    static_cast<std::uint32_t>(
+                        simulation::DeformableSmokeCouplingPair::soft_body_rope);
+                state_.realtime_coupling_modes_host[record] =
+                    static_cast<std::uint32_t>(
+                        simulation::DeformableSmokeCouplingMode::attachment);
+                state_.realtime_coupling_responses_host[record] = 0.995F;
+                state_.realtime_coupling_active_host[record] = 1U;
+            }
+        }
+        return rigid_coupling_count_ == scene.coupling_edges[
+                   simulation::realtime_index(
+                       simulation::RealtimeCouplingFamily::rigid)] &&
+                deformable_coupling_count_ == scene.coupling_edges[
+                   simulation::realtime_index(
+                       simulation::RealtimeCouplingFamily::deformable_smoke)]
+            ? PM_SUCCESS : PM_ERROR_INVALID_STATE;
+    }
+
     static constexpr simulation::RealtimeTelemetryPhase telemetry_phase(
         simulation::RealtimeSchedulePhase phase) noexcept {
         switch (phase) {
@@ -3158,6 +4357,19 @@ private:
     simulation::ProductionSpatialSnapshot snapshot_{};
     simulation::SpatialEpochToken epoch_{};
     simulation::RigidRealtimeTickContract rigid_contract_{};
+    simulation::RigidCouplingRealtimeTickContract rigid_coupling_contract_{};
+    simulation::DeformableSmokeCouplingTickContract
+        deformable_coupling_contract_{};
+    std::array<simulation::RigidCouplingRegistration,
+               simulation::rigid_coupling_realtime_maximum_edges>
+        rigid_couplings_{};
+    std::array<simulation::DeformableSmokeCouplingRegistration,
+               simulation::deformable_smoke_coupling_maximum_edges>
+        deformable_couplings_{};
+    std::uint32_t rigid_coupling_count_{};
+    std::uint32_t deformable_coupling_count_{};
+    std::uint32_t rigid_attachment_records_{};
+    std::uint32_t deformable_attachment_records_{};
     std::uint32_t output_state_{};
     std::uint64_t pending_contact_epoch_{};
     std::uint32_t staged_leaves_{};

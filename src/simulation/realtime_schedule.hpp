@@ -143,6 +143,8 @@ struct RealtimeScheduleLedger {
     std::array<std::uint32_t, realtime_domain_count> predictions{};
     std::array<std::uint32_t, realtime_domain_count> domain_iterations{};
     std::array<std::uint32_t, realtime_coupling_family_count>
+        coupling_edges{};
+    std::array<std::uint32_t, realtime_coupling_family_count>
         coupling_sweeps{};
     std::uint32_t boundary_passes{};
     std::uint32_t time_advances{};
@@ -188,6 +190,7 @@ static_assert(std::is_trivially_copyable_v<RealtimeScheduleLedger>);
         ledger.intra_tick_host_waits != 0U ||
         ledger.intra_tick_host_readbacks != 0U ||
         ledger.domain_iterations != budget.domain_iterations ||
+        ledger.coupling_edges != scene.coupling_edges ||
         ledger.coupling_sweeps != budget.coupling_sweeps)
         return false;
     for (std::size_t index = 0U; index < realtime_domain_count; ++index) {
@@ -267,6 +270,7 @@ template <typename Backend>
     RealtimeScheduleLedger &ledger) noexcept {
     ledger = {};
     if (!realtime_scene_valid(scene)) return PM_ERROR_INVALID_ARGUMENT;
+    ledger.coupling_edges = scene.coupling_edges;
 
     bool began = false;
     const auto fail = [&](PmResult result) noexcept {

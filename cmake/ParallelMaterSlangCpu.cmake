@@ -33,6 +33,7 @@ set(PARALLEL_MATER_CPU_STUB_SOURCE
     "${PARALLEL_MATER_SLANG_CPU_GENERATED_DIR}/parallel_mater_unadvertised_dispatch.cpp")
 set(PARALLEL_MATER_CPU_STUB_HEADERS
     src/simulation/cloth_dispatch.hpp
+    src/simulation/deformable_smoke_coupling_dispatch.hpp
     src/simulation/fluid_cloth_dispatch.hpp
     src/simulation/fluid_dispatch.hpp
     src/simulation/fluid_rope_dispatch.hpp
@@ -44,6 +45,7 @@ set(PARALLEL_MATER_CPU_STUB_HEADERS
     src/simulation/geometry_soft_body_dispatch.hpp
     src/simulation/rope_coupling_dispatch.hpp
     src/simulation/rope_dispatch.hpp
+    src/simulation/rigid_coupling_dispatch.hpp
     src/simulation/smoke_coupling_dispatch.hpp
     src/simulation/smoke_grid_dispatch.hpp
     src/simulation/soft_body_cloth_dispatch.hpp

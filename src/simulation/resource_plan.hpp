@@ -277,6 +277,44 @@ Status visit_global_storage(State &state, SimulationOptions options, Visitor &vi
             options.realtime_spatial_query_capacity, scratch);
         PM_STORAGE(realtime_smoke_payload_refs,
             options.realtime_spatial_leaf_capacity, scratch);
+        // Rigid and deformable families each admit sixteen graph edges. They
+        // execute sequentially but retain separate immutable records for the
+        // complete tick, so rebinding cannot alias a later family.
+        constexpr std::size_t coupling_records = 64U;
+        PM_STORAGE(realtime_rigid_generations, rigid, persistent);
+        PM_STORAGE(realtime_rigid_correction_used, rigid, scratch);
+        PM_STORAGE(realtime_coupling_first_endpoints,
+            coupling_records, persistent);
+        PM_STORAGE(realtime_coupling_second_endpoints,
+            coupling_records, persistent);
+        PM_STORAGE(realtime_coupling_first_generations,
+            coupling_records, persistent);
+        PM_STORAGE(realtime_coupling_second_generations,
+            coupling_records, persistent);
+        PM_STORAGE(realtime_coupling_pairs, coupling_records, persistent);
+        PM_STORAGE(realtime_coupling_modes, coupling_records, persistent);
+        PM_STORAGE(realtime_coupling_normals, coupling_records, persistent);
+        PM_STORAGE(realtime_coupling_body_local_points,
+            coupling_records, persistent);
+        PM_STORAGE(realtime_coupling_contact_distances,
+            coupling_records, persistent);
+        PM_STORAGE(realtime_coupling_frictions,
+            coupling_records, persistent);
+        PM_STORAGE(realtime_coupling_responses,
+            coupling_records, persistent);
+        PM_STORAGE(realtime_coupling_active, coupling_records, persistent);
+        PM_STORAGE(realtime_coupling_first_position_deltas,
+            coupling_records, scratch);
+        PM_STORAGE(realtime_coupling_second_position_deltas,
+            coupling_records, scratch);
+        PM_STORAGE(realtime_coupling_first_impulses,
+            coupling_records, scratch);
+        PM_STORAGE(realtime_coupling_second_impulses,
+            coupling_records, scratch);
+        PM_STORAGE(realtime_coupling_first_correction_used,
+            coupling_records, scratch);
+        PM_STORAGE(realtime_coupling_second_correction_used,
+            coupling_records, scratch);
     }
     if constexpr (Visitor::materialize)
         for (std::uint32_t i = 0; i < options.triangle_mesh_capacity; ++i) state.meshes[i] = {};
@@ -554,6 +592,10 @@ Status visit_rope_realtime_storage(State &state, std::size_t nodes,
     PM_SCRATCH(realtime_contact_offsets, nodes);
     PM_SCRATCH(realtime_contact_active, nodes);
     PM_SCRATCH(realtime_time_advances, 1U);
+    PM_SCRATCH(realtime_body_impulses, nodes);
+    PM_SCRATCH(realtime_rigid_contact_forces, nodes);
+    PM_SCRATCH(realtime_body_position_corrections, nodes);
+    PM_SCRATCH(realtime_count, 1U);
 #undef PM_SCRATCH
 #undef PM_STORAGE
 #undef PM_STORAGE_KIND

@@ -1508,8 +1508,11 @@ Status SimulationRuntime::add_rope(RopeOptions options, RopeId &output) noexcept
     }
     owner->realtime_anchor_targets[0] = nodes.front();
     owner->realtime_anchor_targets[1] = nodes.back();
-    owner->realtime_anchor_active[0] = options.first.enabled ? 1U : 0U;
-    owner->realtime_anchor_active[1] = options.last.enabled ? 1U : 0U;
+    // Production fixed ticks resolve moving rigid anchors in the reciprocal
+    // F8 coupling phase. Keeping these predictor pins active would use the
+    // creation-time target and then integrate the endpoint twice.
+    owner->realtime_anchor_active[0] = 0U;
+    owner->realtime_anchor_active[1] = 0U;
     *owner->realtime_time_advances = 0U;
     owner->alive=true;output={slot,owner->generation};impl_->ropes[slot]=std::move(owner);++impl_->revision;
     return success();
@@ -1766,7 +1769,6 @@ Status SimulationRuntime::add_rope_soft_body_coupling(RopeSoftBodyCouplingOption
     std::copy(order.begin(),order.end(),owner->order);
     std::copy(parents.begin(),parents.end(),owner->parents);
     for(unsigned end=0;end<2;++end) {
-        if(!(end?options.attach_last:options.attach_first))continue;
         const Vec3 point=rope.positions[end?rope.count-1U:0U];
         float best=FLT_MAX;
         for(unsigned t=0;t<body.surface_index_count/3U;++t) {
