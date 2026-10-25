@@ -163,10 +163,10 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-38](roadmap/tasks/F8-38.json) | Refreeze realtime candidate after telemetry repair | done | F8-37 | — |
 | [F8-39](roadmap/tasks/F8-39.json) | Prepare common storage and atomic staging for all domains | done | F8-38 | — |
 | [F8-40](roadmap/tasks/F8-40.json) | Connect liquid operators to production fixed ticks | done | F8-39 | — |
-| [F8-41](roadmap/tasks/F8-41.json) | Connect cloth operators to production fixed ticks | leased | F8-39 | codex-android-overnight / thomas-laptop-pixel7 / 2026-10-26T18:08:36Z |
-| [F8-42](roadmap/tasks/F8-42.json) | Connect soft-body operators to production fixed ticks | waiting on lock | F8-39 | — |
-| [F8-43](roadmap/tasks/F8-43.json) | Connect rope operators to production fixed ticks | waiting on lock | F8-39 | — |
-| [F8-44](roadmap/tasks/F8-44.json) | Connect both smoke representations to production fixed ticks | waiting on lock | F8-39 | — |
+| [F8-41](roadmap/tasks/F8-41.json) | Connect cloth operators to production fixed ticks | done | F8-39 | — |
+| [F8-42](roadmap/tasks/F8-42.json) | Connect soft-body operators to production fixed ticks | ready | F8-39 | — |
+| [F8-43](roadmap/tasks/F8-43.json) | Connect rope operators to production fixed ticks | ready | F8-39 | — |
+| [F8-44](roadmap/tasks/F8-44.json) | Connect both smoke representations to production fixed ticks | ready | F8-39 | — |
 | [F8-45](roadmap/tasks/F8-45.json) | Connect rigid and deformable interactions to production fixed ticks | waiting on dependencies | F8-41, F8-42, F8-43 | — |
 | [F8-46](roadmap/tasks/F8-46.json) | Connect liquid interactions to production fixed ticks | waiting on dependencies | F8-40, F8-41, F8-42, F8-43, F8-44 | — |
 | [F8-47](roadmap/tasks/F8-47.json) | Connect remaining smoke interactions to production fixed ticks | waiting on dependencies | F8-41, F8-42, F8-43, F8-44 | — |
