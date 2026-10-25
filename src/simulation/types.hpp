@@ -297,6 +297,13 @@ struct SimulationOptions {
     std::uint32_t rope_soft_body_coupling_capacity{1U};
     std::uint32_t rope_cloth_coupling_capacity{1U};
     PhysicsDebugOptions physics_debug{};
+    // Internal fixed-capacity storage for the opt-in realtime profile. Public
+    // creation leaves this disabled until profile negotiation is exposed.
+    bool realtime_spatial_enabled{};
+    std::uint32_t realtime_spatial_leaf_capacity{};
+    std::uint32_t realtime_spatial_query_capacity{};
+    std::uint32_t realtime_spatial_candidates_per_query{};
+    std::uint32_t realtime_spatial_snapshot_count{3U};
 };
 
 enum class PhysicsStepProfile : std::uint32_t {

@@ -1,0 +1,53 @@
+{
+  "schema": "parallel-mater-f8-production-spatial-runtime-evidence/v1",
+  "task": "F8-33",
+  "recorded_at": "2026-10-25",
+  "branch": "work/F8-33/thomas-laptop",
+  "base_revision": "3a5704dac278d7d0fbe8f12bb71f3b658efcd280",
+  "implementation": {
+    "runtime_owner": "SimulationRuntime::Impl::realtime_spatial",
+    "resource_plan": "SimulationOptions opt-in capacities feed make_spatial_service_plan through visit_global_storage; three aligned immutable snapshots plus one reusable scratch plan are allocated from the bound simulation arena",
+    "cpu_execution": "ProductionSpatialRuntime executes stable active-leaf staging, deterministic admission and transfer finalization, one balanced native tree build or topology-preserving refit, bounded canonical queries, validation, publication and commit/abort directly over the Slang CPU adapter's host-native device allocation",
+    "snapshot_policy": "one generation-tagged unpublished slot per tick; one tick-level acquire pins publication through all consumers; commit retires the prior slot only after validation; abort never replaces the prior committed token",
+    "legacy_policy": "realtime_spatial_enabled defaults false and profile enumeration remains disabled, so legacy creation, memory requirements and schedule selection are unchanged"
+  },
+  "production_runtime_cases": [
+    "empty tick publishes once with zero builds and zero refits",
+    "sparse rigid capacity with inactive tombstone and crossing query",
+    "unchanged full identities select exactly one topology-preserving refit",
+    "owner/primitive generation replacement rejects refit and recovers with one build",
+    "one-to-one transfer publishes destination XOR source admission",
+    "leaf-capacity overflow and malformed identity fail before publication",
+    "post-publication identity drift, candidate overflow and envelope escape each reject commit while preserving the prior epoch",
+    "same failed tick number can retry and commit without a second update in either attempt",
+    "epoch counters are read from the production lifecycle and assert build/refit/publication/query/candidate totals"
+  ],
+  "qualification": [
+    {
+      "command": "cmake --build build-sdk-cpu --target parallel-mater-production-spatial-runtime-tests parallel-mater-driver-slang-cpu --parallel 4",
+      "result": "PASS",
+      "toolchain": "CMake 4.1.2; GCC 12.2.0; Slang 2026.18"
+    },
+    {
+      "command": "ctest --test-dir build-sdk-cpu --output-on-failure -j 4",
+      "result": "PASS 100/100 discovered tests; 85 executed pass, 15 explicitly skipped unsupported CPU domain cases",
+      "notes": "Includes production spatial runtime, shared spatial service, rigid spatial, schedule/telemetry and production-driver profile-omission regressions"
+    },
+    {
+      "command": "cmake --build build-f8-22-cuda --target parallel-mater-driver-slang-cuda --parallel 4",
+      "result": "PASS",
+      "notes": "CUDA adapter compiles against the common SimulationRuntime owner and arena plan"
+    },
+    {
+      "command": "cmake --build build-p3-02-vulkan --target parallel-mater-driver-slang-vulkan --parallel 4",
+      "result": "PASS",
+      "notes": "Vulkan adapter compiles against the common SimulationRuntime owner and arena plan"
+    }
+  ],
+  "limits": [
+    "F8-33 does not advertise or accept realtime-single-step-v1 through the public API.",
+    "The Slang CPU adapter's advertised rigid/query subset has native execution; unsupported CPU fluid, deformable and smoke domains remain explicit capability omissions.",
+    "CUDA and Vulkan results here are compile/regression evidence only. F8-34 binds generated GPU dispatches, the full fixed native schedule and telemetry for every compiled adapter.",
+    "No physical quality, frame-time or public installed-SDK qualification is claimed; F8-35, F8-36 and the replacement F8-23--30 leaves own those gates."
+  ]
+}

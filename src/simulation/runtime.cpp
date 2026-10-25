@@ -1278,6 +1278,10 @@ struct SimulationRuntime::Impl {
     std::uint32_t *rigid_contact_count{};
     std::uint32_t rigid_contact_capacity{};
     TriangleMeshResource *meshes{};
+    simulation::SpatialServicePlan realtime_spatial_plan{};
+    simulation::SpatialStorageBlock *realtime_spatial_persistent{};
+    simulation::SpatialStorageBlock *realtime_spatial_scratch{};
+    simulation::ProductionSpatialRuntime realtime_spatial{};
     std::shared_ptr<CompletionState> frame{};
     std::vector<device::Event> timing_events{};
     std::vector<TimingStage> timing_stages{};
@@ -1495,6 +1499,8 @@ struct SimulationRuntime::Impl {
         release_managed(avbd_bodies);
         release_managed(rigid_contact_cache);
         release_managed(rigid_contact_cache_slots);
+        release_managed(realtime_spatial_scratch);
+        release_managed(realtime_spatial_persistent);
         release_managed(states[1]);
         release_managed(debug_applied_forces);
         release_managed(debug_applied_torques);
@@ -1884,6 +1890,20 @@ Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &o
     StorageAllocator allocator;
     Status status = simulation::visit_global_storage(*implementation, options, allocator);
     if (!status) return status;
+    if (options.realtime_spatial_enabled) {
+#if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
+        constexpr bool host_accessible = true;
+#else
+        constexpr bool host_accessible = false;
+#endif
+        error = implementation->realtime_spatial.configure(
+            implementation->realtime_spatial_plan,
+            implementation->realtime_spatial_persistent,
+            implementation->realtime_spatial_scratch, host_accessible);
+        if (error != PM_SUCCESS)
+            return backend_failure(
+                error, "failed to configure realtime spatial runtime");
+    }
     for (std::uint32_t i = 0; i < options.paint_field_capacity; ++i)
         implementation->paint_fields[i] = {};
     for (std::uint32_t i = 0; i < options.paint_rule_capacity; ++i)
