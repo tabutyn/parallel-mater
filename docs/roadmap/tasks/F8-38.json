@@ -9,11 +9,11 @@
     "f8-candidate-freeze"
   ],
   "requires": [
-    "Clean cross-platform build environment and the merged F8-37 native runtime repair"
+    "Clean cross-platform build environment and merged F8-37 repair revision 3671f180ed951d8a62cb34e5ec4ce1dab52cd560"
   ],
-  "scope": "Freeze one immutable replacement candidate from the merged F8-37 repair. Preserve realtime-single-step-v1-dea47c1 and realtime-single-step-v1-fd78fa8 as rejected history, never union their evidence with the new candidate, and prepare exact qualification routing in a planning PR before this task is claimed.",
+  "scope": "Freeze realtime-single-step-v1-3671f18 in conformance/v1/qualification/realtime-candidate-v3.json from exact merged F8-37 repair revision 3671f180ed951d8a62cb34e5ec4ce1dab52cd560 (tree 785513efa475e8b3b1010a79cb2142e33463089a). Preserve realtime-single-step-v1-dea47c1 and realtime-single-step-v1-fd78fa8 as rejected history, never union their evidence with the new candidate, and route F8-23--30 only to this replacement.",
   "acceptance": [
-    "Publish a new immutable candidate identity with exact source, protected runtime/kernel/profile/oracle hashes, native binary hashes and complete canonical kernel-group and runtime-variant coverage.",
+    "Publish immutable candidate realtime-single-step-v1-3671f18 with exact source revision 3671f180ed951d8a62cb34e5ec4ce1dab52cd560, tree 785513efa475e8b3b1010a79cb2142e33463089a, protected runtime/kernel/profile/oracle hashes, native binary hashes and complete canonical kernel-group and runtime-variant coverage.",
     "Cross-platform build/reflection/install gates pass and the installed Slang CPU production driver executes the exact formerly failing eight-body/eight-constraint public workload without a telemetry capacity overflow.",
     "Mark candidate v2 rejected in a separate durable record, invalidate every affected physical row, and require F8-23--30 to report only the single newly frozen candidate.",
     "Candidate validation fails on any protected runtime, adapter binding, dispatch, schedule, telemetry, profile or public-oracle drift; F8-99 depends on both repair and refreeze leaves."
