@@ -1,0 +1,24 @@
+{
+  "id": "F8-42",
+  "title": "Connect soft-body operators to production fixed ticks",
+  "status": "open",
+  "dependencies": [
+    "F8-39"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule"
+  ],
+  "requires": [
+    "Production runtime/toolchain plus applicable physical GPU; cross-platform build evidence"
+  ],
+  "scope": "Bind F8-10/F8-14 soft-body surface, bond, volume and shape operators to the production fixed-tick schedule and common resource epoch. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "Installed public soft-body fixtures execute eight fixed iterations and exactly one integration/publication/commit; no hidden domain substeps or extra index update.",
+    "Run independent bond stretch, volume, shape, inversion and tunneling oracles on the real production path and an applicable physical GPU.",
+    "Cold/rest/impact, topology replacement, sparse capacity, reset and failure rollback exercise staged state and cache generation ownership.",
+    "Public admission and generated dispatch/reflection builds match the implemented domain; standalone-kernel success is insufficient."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

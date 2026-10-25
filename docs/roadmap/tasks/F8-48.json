@@ -1,0 +1,26 @@
+{
+  "id": "F8-48",
+  "title": "Complete source and topology lifecycle in the common tick",
+  "status": "open",
+  "dependencies": [
+    "F8-45",
+    "F8-46",
+    "F8-47"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule"
+  ],
+  "requires": [
+    "Production runtime/toolchain plus applicable physical GPU; cross-platform build evidence"
+  ],
+  "scope": "Integrate emitters, removals, destroyers, phase transfer and topology/kinematic changes with the sole staged tick boundary across completed domain and coupling bindings. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "Sources are admitted before the single index publication; rejected proposals remain observable, and phase transfers discovered in solve apply atomically at the next boundary.",
+    "Destination admission failure preserves source mass/identity; no source-specific rebuild, duplicate advance, missing IDs or dropped pending inputs.",
+    "Exercise spawn/outflow, reset, replacement, topology edits, teleports within the envelope and capacity recovery through public native execution on an applicable GPU.",
+    "Independent mass/thermal and generation-lifetime checks plus cold/sustained mixed-family runs pass with fixed workload counts and no extra iterations."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

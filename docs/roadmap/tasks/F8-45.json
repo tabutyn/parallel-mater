@@ -1,0 +1,26 @@
+{
+  "id": "F8-45",
+  "title": "Connect rigid and deformable interactions to production fixed ticks",
+  "status": "open",
+  "dependencies": [
+    "F8-41",
+    "F8-42",
+    "F8-43"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule"
+  ],
+  "requires": [
+    "Production runtime/toolchain plus applicable physical GPU; cross-platform build evidence"
+  ],
+  "scope": "Bind the existing F8-17 and relevant F8-19 operators for rigid/cloth, rigid/soft-body, rigid/rope, cloth/soft-body, cloth/rope and soft-body/rope to the common production schedule. Cover only modes already in the canonical implemented capability matrix. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "Enumerate exact existing contact/attachment modes from the canonical capability inventory and run every applicable edge through installed public graph creation and native dispatch.",
+    "Both endpoints use one state/spatial epoch, four fixed coupling sweeps and one commit; no duplicate integration, per-edge index rebuild or hidden synchronization.",
+    "Independent contact/attachment, reciprocal impulse and mixed-family quality gates pass on an applicable physical GPU; include three-family graphs and endpoint reversal.",
+    "Rebinding, destruction, stale generations and capacity failure preserve atomic graph/state ownership; unsupported modes remain explicit."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

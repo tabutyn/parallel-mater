@@ -171,8 +171,13 @@ Entirely completed categories are collapsed automatically in the generated index
 Completed F5 is archived out of the live index. Its cards and history stay
 canonical, and a new open/deferred F5 follow-up makes the category visible again;
 never delete completed cards to clean the work queue.
-For F8, follow [the 60 Hz plan](F8-REALTIME-60HZ.md), including the frozen candidate
-revision, complete kernel/device matrix and separate legacy/new quality profiles.
+For F8, follow [the 60 Hz plan](F8-REALTIME-60HZ.md) and the maintainer's
+[single execution path decision](F8-SINGLE-EXECUTION-PATH.md). F8 replaces the
+production architecture; an optional mode or rigid-only public execution path
+cannot close it. Preserve historical legacy quality evidence, but remove the
+legacy production schedule and profile choice before the final candidate freeze.
+Only the complete candidate, its kernel/device matrix and installed Gallery
+behavior can satisfy final qualification.
 
 ## Merge serialization and checks
 

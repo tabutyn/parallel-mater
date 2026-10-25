@@ -1,0 +1,24 @@
+{
+  "id": "F8-44",
+  "title": "Connect both smoke representations to production fixed ticks",
+  "status": "open",
+  "dependencies": [
+    "F8-39"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule"
+  ],
+  "requires": [
+    "Production runtime/toolchain plus applicable physical GPU; cross-platform build evidence"
+  ],
+  "scope": "Bind F8-10/F8-16 particle-smoke and grid-smoke operators to the native fixed-tick schedule, retaining grid stencil operations and common collision/obstacle indexing. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "Installed public clients exercise both supported smoke representations: six particle-pressure iterations or twelve grid-projection iterations, one time advance and one spatial publication.",
+    "Independent divergence, tracer mass, centroid transport, density and speed-overshoot limits pass on applicable physical GPU execution.",
+    "Boundary conditions, sparse fields, topology/resource replacement, cold starts, overflow and rollback use real production state and bounded work.",
+    "No separate smoke timestep, CPU physics fallback for GPU execution, repeated collision index build or weakening of quality tolerances."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

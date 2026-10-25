@@ -1,0 +1,26 @@
+{
+  "id": "F8-53",
+  "title": "Requalify CPU and public contracts on the sole-path candidate",
+  "status": "open",
+  "dependencies": [
+    "F8-23",
+    "F8-52"
+  ],
+  "locks": [
+    "f8-qualification-cpu"
+  ],
+  "requires": [
+    "Host with the independent CPU/reference and installed public SDK test toolchains"
+  ],
+  "scope": "Qualify the final all-supported-domain single-path candidate frozen by F8-52 using independent CPU oracles and installed public-contract execution. F8-23 retains its live interim-candidate scope and evidence; its results cannot qualify the final runtime/API/Gallery. Follow docs/roadmap/F8-SINGLE-EXECUTION-PATH.md. This is qualification, not authority to introduce unreviewed solver fixes.",
+  "acceptance": [
+    "Before claim, a separate coordination PR records the exact F8-52 source, contract, workload and artifact identities in this card. Do not combine evidence from different candidates or assume the CPU backend supports unadvertised GPU modes.",
+    "Run every applicable kernel/variant, domain, coupling, lifecycle and negative case in the final frozen matrix with independent physical assertions. All required rows execute and pass; missing production integration is a failure, not a reduced capability claim.",
+    "Installed public SDK tests use normal creation and stepping with no profile opt-in; verify the sole schedule, one dt=1/60 advance and spatial publication, fixed work budgets and explicit incompatible API/ABI errors.",
+    "Exercise shared Gallery timing and lifecycle tests: high-rate interpolation, low-rate slow-motion, no catch-up, scene reset and background recovery. Record CPU timing distributions and unchanged quality/workload limits.",
+    "Attach durable exact-candidate/device/toolchain/artifact evidence and preserve failures. Add separately leased repair and requalification leaves when needed; unsupported or missing required cases do not count as passes."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

@@ -30,6 +30,10 @@ vendor-neutral conformance are distinct obligations.
   replacing an endpoint must not silently retain stale coupling behavior.
 - Put scheduling, dependency tracking, fixed ticks, resource descriptions, and
   memory planning in a backend-neutral reference runtime.
+- F8 replaces the production simulation architecture for all supported domains
+  and interactions. Ship one fixed-tick schedule and normal public creation,
+  with no legacy/F8 mode choice. Gallery must use it through shared support on
+  every platform. See the [single execution path decision](roadmap/F8-SINGLE-EXECUTION-PATH.md).
 - Keep domain equations, collision, coupling operators, and GPU primitives in
   shared Slang. Reference device adapters provide allocation, binding,
   dispatch, barriers, transfers, synchronization, queries, and native interop.
@@ -142,14 +146,14 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-21](roadmap/tasks/F8-21.json) | Add measured dispatch, GPU phase and synchronization budgets | done | F8-01, F8-02, F8-20 | — |
 | [F8-22](roadmap/tasks/F8-22.json) | Freeze the cross-machine candidate and complete kernel coverage | done | F8-01, F8-03, F8-20, F8-21 | — |
 | [F8-23](roadmap/tasks/F8-23.json) | Qualify independent CPU and public-contract cases | done | F8-22, F8-36, F8-38 | — |
-| [F8-24](roadmap/tasks/F8-24.json) | Qualify the candidate on Linux CUDA devices | ready | F8-22, F8-36, F8-38 | — |
-| [F8-25](roadmap/tasks/F8-25.json) | Qualify the candidate on Linux Vulkan devices | ready | F8-22, F8-36, F8-38 | — |
-| [F8-26](roadmap/tasks/F8-26.json) | Qualify the candidate on Windows CUDA devices | ready | F8-22, F8-36, F8-38 | — |
-| [F8-27](roadmap/tasks/F8-27.json) | Qualify the candidate on Windows D3D12 devices | ready | F8-22, F8-36, F8-38, P1-59 | — |
-| [F8-28](roadmap/tasks/F8-28.json) | Qualify the candidate on macOS Metal devices | ready | F8-22, F8-36, F8-38 | — |
-| [F8-29](roadmap/tasks/F8-29.json) | Qualify the candidate on physical iOS Metal devices | ready | F8-22, F8-36, F8-38 | — |
-| [F8-30](roadmap/tasks/F8-30.json) | Qualify the candidate and sustained performance on Android | ready | F8-02, F8-22, F8-36, F8-38 | — |
-| [F8-31](roadmap/tasks/F8-31.json) | Ship and document the qualified real-time SDK and Gallery profile | waiting on dependencies | F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30 | — |
+| [F8-24](roadmap/tasks/F8-24.json) | Qualify the candidate on Linux CUDA devices | waiting on dependencies | F8-22, F8-36, F8-38, F8-52 | — |
+| [F8-25](roadmap/tasks/F8-25.json) | Qualify the candidate on Linux Vulkan devices | waiting on dependencies | F8-22, F8-36, F8-38, F8-52 | — |
+| [F8-26](roadmap/tasks/F8-26.json) | Qualify the candidate on Windows CUDA devices | waiting on dependencies | F8-22, F8-36, F8-38, F8-52 | — |
+| [F8-27](roadmap/tasks/F8-27.json) | Qualify the candidate on Windows D3D12 devices | waiting on dependencies | F8-22, F8-36, F8-38, P1-59, F8-52 | — |
+| [F8-28](roadmap/tasks/F8-28.json) | Qualify the candidate on macOS Metal devices | waiting on dependencies | F8-22, F8-36, F8-38, F8-52 | — |
+| [F8-29](roadmap/tasks/F8-29.json) | Qualify the candidate on physical iOS Metal devices | waiting on dependencies | F8-22, F8-36, F8-38, F8-52 | — |
+| [F8-30](roadmap/tasks/F8-30.json) | Qualify the candidate and sustained performance on Android | waiting on dependencies | F8-02, F8-22, F8-36, F8-38, F8-52 | — |
+| [F8-31](roadmap/tasks/F8-31.json) | Ship and document the qualified single-path SDK and Gallery | waiting on dependencies | F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30, F8-51, F8-52, F8-53 | — |
 | [F8-32](roadmap/tasks/F8-32.json) | Expose the real-time profile through the registry and SDK | done | F8-00 | — |
 | [F8-33](roadmap/tasks/F8-33.json) | Integrate the shared spatial epoch into production runtime | done | F8-22 | — |
 | [F8-34](roadmap/tasks/F8-34.json) | Bind fixed realtime phases and telemetry to native adapters | done | F8-33 | — |
@@ -157,7 +161,22 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-36](roadmap/tasks/F8-36.json) | Freeze replacement executable realtime candidate | done | F8-35 | — |
 | [F8-37](roadmap/tasks/F8-37.json) | Repair native realtime telemetry envelope | done | F8-36 | — |
 | [F8-38](roadmap/tasks/F8-38.json) | Refreeze realtime candidate after telemetry repair | done | F8-37 | — |
-| [F8-99](roadmap/tasks/F8-99.json) | Review F8 single-step quality, performance and device exit evidence | waiting on dependencies | F8-00, F8-01, F8-02, F8-03, F8-04, F8-05, F8-06, F8-07, F8-08, F8-09, F8-10, F8-11, F8-12, F8-13, F8-14, F8-15, F8-16, F8-17, F8-18, F8-19, F8-20, F8-21, F8-22, F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30, F8-31, F8-32, F8-33, F8-34, F8-35, F8-36, F8-37, F8-38 | — |
+| [F8-39](roadmap/tasks/F8-39.json) | Prepare common storage and atomic staging for all domains | ready | F8-38 | — |
+| [F8-40](roadmap/tasks/F8-40.json) | Connect liquid operators to production fixed ticks | waiting on dependencies | F8-39 | — |
+| [F8-41](roadmap/tasks/F8-41.json) | Connect cloth operators to production fixed ticks | waiting on dependencies | F8-39 | — |
+| [F8-42](roadmap/tasks/F8-42.json) | Connect soft-body operators to production fixed ticks | waiting on dependencies | F8-39 | — |
+| [F8-43](roadmap/tasks/F8-43.json) | Connect rope operators to production fixed ticks | waiting on dependencies | F8-39 | — |
+| [F8-44](roadmap/tasks/F8-44.json) | Connect both smoke representations to production fixed ticks | waiting on dependencies | F8-39 | — |
+| [F8-45](roadmap/tasks/F8-45.json) | Connect rigid and deformable interactions to production fixed ticks | waiting on dependencies | F8-41, F8-42, F8-43 | — |
+| [F8-46](roadmap/tasks/F8-46.json) | Connect liquid interactions to production fixed ticks | waiting on dependencies | F8-40, F8-41, F8-42, F8-43, F8-44 | — |
+| [F8-47](roadmap/tasks/F8-47.json) | Connect remaining smoke interactions to production fixed ticks | waiting on dependencies | F8-41, F8-42, F8-43, F8-44 | — |
+| [F8-48](roadmap/tasks/F8-48.json) | Complete source and topology lifecycle in the common tick | waiting on dependencies | F8-45, F8-46, F8-47 | — |
+| [F8-49](roadmap/tasks/F8-49.json) | Integrate paint, capture and public outputs with the common tick | waiting on dependencies | F8-48 | — |
+| [F8-50](roadmap/tasks/F8-50.json) | Make the fixed-tick runtime the sole public execution path | waiting on dependencies | F8-49 | — |
+| [F8-51](roadmap/tasks/F8-51.json) | Make shared Gallery use the sole fixed-tick architecture | waiting on dependencies | F8-50 | — |
+| [F8-52](roadmap/tasks/F8-52.json) | Freeze the complete single-path SDK and Gallery candidate | waiting on dependencies | F8-51 | — |
+| [F8-53](roadmap/tasks/F8-53.json) | Requalify CPU and public contracts on the sole-path candidate | waiting on dependencies | F8-23, F8-52 | — |
+| [F8-99](roadmap/tasks/F8-99.json) | Review F8 single-step quality, performance and device exit evidence | waiting on dependencies | F8-00, F8-01, F8-02, F8-03, F8-04, F8-05, F8-06, F8-07, F8-08, F8-09, F8-10, F8-11, F8-12, F8-13, F8-14, F8-15, F8-16, F8-17, F8-18, F8-19, F8-20, F8-21, F8-22, F8-23, F8-24, F8-25, F8-26, F8-27, F8-28, F8-29, F8-30, F8-31, F8-32, F8-33, F8-34, F8-35, F8-36, F8-37, F8-38, F8-39, F8-40, F8-41, F8-42, F8-43, F8-44, F8-45, F8-46, F8-47, F8-48, F8-49, F8-50, F8-51, F8-52, F8-53 | — |
 
 ### P1. Deferred domain and interaction coverage
 
