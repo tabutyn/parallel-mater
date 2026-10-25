@@ -1,7 +1,7 @@
 {
   "id": "F8-33",
   "title": "Integrate the shared spatial epoch into production runtime",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-22"
   ],
@@ -18,15 +18,31 @@
     "Native CPU execution covers its required rigid/query subset, while unsupported CPU domains remain explicit; every compiled native adapter still builds against the common runtime and legacy-default regressions remain unchanged.",
     "Tests exercise empty, sparse, crossing, lifecycle, capacity and failure recovery through production runtime seams and verify actual epoch counters rather than a model-only backend."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "74aa424a-fa3b-4090-87e7-a211c1be9665",
-    "owner": "codex-native-spatial",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-33/thomas-laptop",
-    "claimed_at": "2026-10-25T09:53:14Z",
-    "heartbeat_at": "2026-10-25T09:53:14Z",
-    "expires_at": "2026-10-26T09:53:14Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F8-33-production-spatial-runtime.json",
+    "ctest --test-dir build-sdk-cpu --output-on-failure -j 4: PASS 100/100 discovered; 85 executed, 15 explicit skips",
+    "CMake Slang CPU/CUDA/Vulkan production driver builds: PASS"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "74aa424a-fa3b-4090-87e7-a211c1be9665",
+        "owner": "codex-native-spatial",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-33/thomas-laptop",
+        "claimed_at": "2026-10-25T09:53:14Z",
+        "heartbeat_at": "2026-10-25T09:53:14Z",
+        "expires_at": "2026-10-26T09:53:14Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-25T10:07:05Z",
+      "reason": "Integrated fixed shared-spatial snapshots into production runtime ownership with CPU-native build/refit/query, atomic recovery and common-adapter compile coverage.",
+      "evidence": [
+        "docs/roadmap/evidence/F8-33-production-spatial-runtime.json",
+        "ctest --test-dir build-sdk-cpu --output-on-failure -j 4: PASS 100/100 discovered; 85 executed, 15 explicit skips",
+        "CMake Slang CPU/CUDA/Vulkan production driver builds: PASS"
+      ]
+    }
+  ]
 }

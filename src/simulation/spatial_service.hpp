@@ -604,6 +604,16 @@ public:
         return PM_SUCCESS;
     }
 
+    [[nodiscard]] PmResult mark_failed(
+        const SpatialEpochToken &token) noexcept {
+        auto *slot = find(token);
+        if (slot == nullptr || slot->phase != SpatialEpochPhase::published ||
+            staging_ != token.slot)
+            return PM_ERROR_INVALID_STATE;
+        slot->failed = true;
+        return PM_SUCCESS;
+    }
+
     [[nodiscard]] PmResult validate_envelopes(
         const SpatialEpochToken &token,
         std::span<const SpatialAabb> envelopes,
@@ -667,6 +677,16 @@ public:
         const auto *slot = find(token);
         return slot == nullptr || slot->phase == SpatialEpochPhase::free
             ? nullptr : &slot->counters;
+    }
+
+    [[nodiscard]] const SpatialEpochToken *staging_token() const noexcept {
+        return staging_ == spatial_invalid_index
+            ? nullptr : &slots_[staging_].token;
+    }
+
+    [[nodiscard]] const SpatialEpochToken *current_token() const noexcept {
+        return current_ == spatial_invalid_index
+            ? nullptr : &slots_[current_].token;
     }
 
 private:
