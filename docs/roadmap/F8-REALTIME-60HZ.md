@@ -150,6 +150,14 @@ physics-to-wall-clock rate and presentation latency. Record warmup, cold-start,
 p50/p95/p99, workload/capacity, sustained thermals/power state and instrumentation
 overhead. Timer-unavailable is explicit; never substitute CPU time as GPU time.
 
+The [dispatch reduction requirements](F8-DISPATCH-REDUCTION.md) make Metal rigid
+batching (F8-54), shared-BVH coupling searches and batched edges (F8-55), and
+independent installed Mac/iPad Gallery comparisons (F8-56) mandatory before the
+final candidate freeze. A permitted budget computed from the current dispatch
+graph cannot prove improvement. Retain independently reviewed numerical ceilings
+that reject the old scaling, actual native command captures, unchanged workloads
+and physical quality; compare per tick, frame and simulated second.
+
 Android provenance is a prerequisite: the old profiling script's `--apk` path
 recorded a local APK hash without installing or verifying the installed package.
 Local O3/rank-one/cooperative experiment names therefore do not prove those
@@ -182,11 +190,11 @@ An explicitly unsupported mode is not qualified; compile-only is not execution.
 F8-22 froze the original source revision, which F8-23 rejected as non-executable.
 F8-36 froze `realtime-single-step-v1-fd78fa8`, which F8-23 rejected after its
 exact CPU row overflowed the frozen telemetry envelope. F8-38 froze repaired
-replacement `realtime-single-step-v1-3671f18`; the live F8-23 lease qualifies that
-interim candidate without a scope change. None of these freezes establishes the
+replacement `realtime-single-step-v1-3671f18`; F8-23 completed qualification of that
+interim candidate. None of these freezes establishes the
 required single-path, all-domain release. F8-52 must freeze the complete
-runtime/API/Gallery candidate after F8-39--51 and route F8-24--30 and F8-53 to
-its exact identity. F8-53 requalifies the final CPU/public-contract row; interim
+runtime/API/Gallery candidate after F8-39--51 and F8-54--56, then route F8-24--30
+and F8-53 to its exact identity. F8-53 requalifies the final CPU/public-contract row; interim
 F8-23 evidence cannot replace it. Qualification leaves are test/report work, not
 permission for private platform physics. A failure gets a separately leased fix.
 Any later physics/kernel/schedule/profile change invalidates affected candidate
@@ -215,8 +223,9 @@ for the legacy implementation; new equations need new qualification.
 
 F8-99 closes only when the legacy production scheduler and execution-profile
 choice are removed, all supported domains/interactions use the sole shared
-schedule, Gallery uses it by default on all platforms, and all dependencies,
-device rows, quantitative quality and
+schedule, Gallery uses it by default on all platforms, Metal dispatch batching
+and shared-BVH coupling search/batching pass independent reduction gates, and
+all dependencies, device rows, quantitative quality and
 frame budgets pass on the final candidate, the once-per-tick invariants are
 enforced, installed clients interpolate/slow correctly, and remaining unsupported
 features are documented. Failed or missing evidence keeps the gate open.

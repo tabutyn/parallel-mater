@@ -42,6 +42,12 @@ it. Task cards remain the ownership and completion record.
   iPad shells supply input, monotonic timestamps, lifecycle and presentation.
   No user-facing enable switch is required. Correct platform presentation caps
   as part of rollout; the current iPad 30 FPS request cannot demonstrate 60 Hz.
+- The sole schedule must substantially reduce actual native dispatch overhead.
+  F8-54 batches Metal rigid work; F8-55 replaces remaining exhaustive coupling
+  searches with shared-epoch candidates and batches compatible edges. F8-56
+  proves reductions against independent ceilings in installed Mac/iPad Gallery.
+  These are completion gates, as specified in
+  [dispatch reduction requirements](F8-DISPATCH-REDUCTION.md).
 
 "Always" applies to every supported execution and recovery path. It does not
 promise that arbitrary scenes meet 16.67 ms on every device, or make previously
@@ -79,15 +85,18 @@ rewriting their history or treating unsupported results as passes.
    registry/bindings/reference documentation and installed consumer tests.
    F8-51 makes shared Gallery use it with appropriate presentation on every
    platform. These are release requirements, not optional follow-ups.
-4. F8-52 freezes the complete source/API/Gallery candidate and exact evidence
-   inputs. F8-24 through F8-30 qualify that candidate on their registered GPU
+4. F8-54 and F8-55 complete Metal batching and coupling search/batching repairs.
+   After those fixes and F8-51, F8-56 verifies actual dispatch reductions and
+   physical quality on installed Mac/iPad Gallery. F8-52 then freezes the
+   complete source/API/Gallery candidate and independent work-budget inputs.
+   F8-24 through F8-30 qualify that candidate on their registered GPU
    targets; F8-53 supplies final CPU/public-contract qualification. F8-31 packages
    and deploys verified builds; F8-99 audits the sole production path and all
    required results.
 
-F8-38 completed the narrowly scoped rigid-path refreeze. F8-23 has a live owner
-qualifying that interim candidate; its scope, lease, branch and evidence remain
-intact. That candidate cannot satisfy the final single-path release. The unleased
+F8-38 completed the narrowly scoped rigid-path refreeze. F8-23 completed its
+interim qualification; its history and evidence remain intact.
+That candidate cannot satisfy the final single-path release. The unleased
 GPU qualification tasks now also depend on F8-52, and new F8-53 requalifies the
 CPU/public-contract row after the final freeze. Historical candidate references
 remain provenance until F8-52 records the replacement identity; no evidence from
@@ -102,4 +111,5 @@ to make this migration pass.
 Existing branches may temporarily contain migration scaffolding, but "F8 done"
 requires its removal: one public creation path, one production scheduler, no
 legacy selection, complete supported-domain coverage, shared Gallery adoption,
-and matching installed device evidence.
+measured dispatch reduction under independent ceilings, and matching installed
+device evidence.

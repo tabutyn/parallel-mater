@@ -178,6 +178,11 @@ cannot close it. Preserve historical legacy quality evidence, but remove the
 legacy production schedule and profile choice before the final candidate freeze.
 Only the complete candidate, its kernel/device matrix and installed Gallery
 behavior can satisfy final qualification.
+The [dispatch reduction requirements](F8-DISPATCH-REDUCTION.md) also apply:
+F8-54--56 must complete Metal batching, coupling search/batching and independent
+installed Mac/iPad work measurements before F8-52 freezes the final candidate.
+One time advance or one BVH publication alone cannot close these requirements;
+runtime-derived cost allowances are not independent performance acceptance.
 
 ## Merge serialization and checks
 

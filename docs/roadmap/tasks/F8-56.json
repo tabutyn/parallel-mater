@@ -1,0 +1,29 @@
+{
+  "id": "F8-56",
+  "title": "Verify Gallery dispatch reductions on Mac and iPad",
+  "status": "open",
+  "dependencies": [
+    "F8-51",
+    "F8-54",
+    "F8-55"
+  ],
+  "locks": [
+    "f8-dispatch-reduction-evidence",
+    "gallery-platform-rollout"
+  ],
+  "requires": [
+    "Physical macOS Apple GPU and paired unlocked iPad with signing, native dispatch capture and Gallery deployment toolchains"
+  ],
+  "scope": "Establish independent dispatch/work regression gates and capture matched before/after public SDK and installed Mac/iPad Gallery evidence before the final candidate freeze. Fewer time advances or one spatial publication alone cannot satisfy the dispatch-reduction claim. Follow docs/roadmap/F8-DISPATCH-REDUCTION.md and docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "Retain reviewed numerical dispatch, barrier and candidate-work ceilings for fixed workload tiers outside runtime-derived admission limits. Regressing to the pre-fix per-body/per-edge dispatch loops or brute-force searches must fail; tests cannot auto-regenerate expected ceilings from current implementation counters.",
+    "Capture identical scene assets, live/reserved counts, material inputs, presentation settings and documented cold/warm/sustained windows on each physical device. Include rigid scaling through the declared desktop 386-body fixture, liquid, soft-body/cloth and mixed coupling coverage; compare the legacy Gallery baseline and pre-fix F8 where applicable without combining mismatched devices or workloads.",
+    "Measure actual issued native dispatches, workgroups, barriers, index builds/publications, time advances and solver/coupling iterations; reconcile them with public statistics. Count indirect/no-op commands and separate instrumentation, rendering and screenshot work. Reject unobserved counters or a declared one-build ledger as substitutes for captured execution.",
+    "Report dispatch reduction against the frozen acceptance ceilings plus physics/frame CPU/GPU p50/p95/p99, simulated-time/wall-time ratio, thermals and independent stability/quality results. Report per tick, per rendered frame and per simulated second so the legacy timestep difference or overload slow motion cannot masquerade as a speedup.",
+    "Verify installed Mac Dock and iPad app revision/backend/binary identities and ordinary startup on the sole schedule. Both physical devices must run; unavailable hardware, failed quality, missed ceilings or reduced workloads keep this task incomplete.",
+    "Attach durable baseline and post-fix traces, evaluator inputs/results and exact source/artifact/toolchain identities. F8-52 freezes the tested source closure and budget artifact; protected drift requires fresh affected captures, and F8-28/F8-29 still qualify the exact final candidate."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

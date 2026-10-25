@@ -1,0 +1,26 @@
+{
+  "id": "F8-54",
+  "title": "Batch Metal rigid solver dispatches",
+  "status": "open",
+  "dependencies": [
+    "F8-34",
+    "F8-45"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule"
+  ],
+  "requires": [
+    "macOS with the production Metal toolchain and a physical Apple GPU; access to iPad Metal validation for platform qualification"
+  ],
+  "scope": "Replace the Metal fixed-tick rigid solver's body-count-sized color dispatch loop with bounded batched device work. Retain shared Slang equations, the sole production schedule, eight algebraic sweeps and one time advance. Follow docs/roadmap/F8-DISPATCH-REDUCTION.md and docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "Before changing dispatch encoding, record numerical launch ceilings for fixed 8/64/128/386-body fixtures and sparse-capacity cases in an independently reviewed test artifact. The ceilings must reject the audited 8*(body_count+1)+6 solve graph (including 1038 launches at 128 bodies and 3102 at 386); do not derive acceptance limits from the implementation being tested.",
+    "Batch work over actual active bodies/constraints without reserving a host dispatch for every possible body/color in every sweep. Empty colors must not create thousands of issued no-op commands; moving the same loop to an indirect command buffer alone does not establish reduction.",
+    "Retain one 1/60 advance, one dynamic BVH build/publication, eight rigid sweeps, generation-safe reset/rollback and correct device dependencies. No phase-local host count readback, global GPU wait, serial CPU physics, hidden substep, reduced workload or weakened physical tolerance may replace batching.",
+    "Measure actual native compute dispatches including no-op/indirect commands, workgroups, barriers and CPU/GPU time through the public production path on a physical Apple GPU. Compare identical inputs with the retained pre-fix revision; preserve independent rigid contact/joint, cold-start and sustained quality checks.",
+    "Portable regression tests reject the original per-body launch scaling and reconcile scheduler statistics with adapter-issued counts. Cross-adapter compilation and the shared solver tests pass; installed Mac/iPad Gallery comparison is completed by F8-56."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}

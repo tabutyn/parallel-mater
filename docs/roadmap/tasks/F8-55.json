@@ -1,0 +1,27 @@
+{
+  "id": "F8-55",
+  "title": "Use shared BVH candidates and batch coupling work",
+  "status": "open",
+  "dependencies": [
+    "F8-45",
+    "F8-46",
+    "F8-47"
+  ],
+  "locks": [
+    "f8-native-realtime-schedule"
+  ],
+  "requires": [
+    "Production shared runtime/Slang toolchain and an applicable physical GPU; cross-adapter build coverage"
+  ],
+  "scope": "Audit every currently supported production coupling consumer, replace remaining all-endpoint/all-triangle searches with complete candidates from the single published dynamic BVH, and batch compatible edge/endpoint dispatches. Include the soft-body/cloth full-triangle scan and per-record attachment kernels identified at 75584181. Follow docs/roadmap/F8-DISPATCH-REDUCTION.md and docs/roadmap/F8-SINGLE-EXECUTION-PATH.md.",
+  "acceptance": [
+    "Map each supported pair/mode to its production search, candidate buffers and dispatch graph. Mechanical/proximity interactions consume generation-tagged common-epoch candidates; explicit attachments use their known endpoint identities, and regular-grid stencil operations retain their documented grid algorithm without an unnecessary BVH query.",
+    "Remove unconditional per-node scans of every opposing triangle/body and full candidate regeneration in each solve sweep. Candidate completeness follows the full-tick swept/correction envelope and passes independent brute-force oracle checks for thin crossings, sparse resources, mixed families and topology/endpoint replacement.",
+    "Batch compatible graph edges/attachment records so adding same-mode edges increases device work rather than reproducing a host kernel sequence per record. Record independent numerical dispatch and candidate/narrow-phase work ceilings for fixed sparse/dense scaling fixtures before optimization; include negative controls that reject the audited brute-force/per-record implementation.",
+    "Reuse one dynamic spatial build/publication through four fixed coupling sweeps; preserve documented one-way/two-way semantics, reciprocal exchange, physical accuracy limits and atomic overflow/failure recovery. No per-edge index, routine host readback/global wait, silent truncation or second timestep is permitted.",
+    "Run installed public-API interaction fixtures and actual native work counters on an applicable physical GPU, preserving inputs and quality oracles. Build all applicable adapters; F8-56 and final device qualification retain full Gallery and physical platform obligations."
+  ],
+  "evidence": [],
+  "lease": null,
+  "history": []
+}
