@@ -50,5 +50,6 @@ The first CTest selects the production Slang CPU manifest and confirms zero
 profiles. The second selects the mock driver and is contract-only. This failure
 is preserved instead of being relabeled as unsupported success. F8-33--36 own
 production spatial integration, native schedule/telemetry binding, truthful
-public exposure and a replacement freeze. F8-23--30 must qualify only
-`realtime-single-step-v1-fd78fa8` from F8-36.
+public exposure and its first replacement freeze. That replacement later failed
+the exact CPU row and is also rejected. F8-23--30 must qualify only
+`realtime-single-step-v1-3671f18` from F8-38.

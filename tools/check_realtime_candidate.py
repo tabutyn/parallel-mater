@@ -14,13 +14,19 @@ from typing import Any, Mapping
 
 ROOT = Path(__file__).resolve().parents[1]
 CANDIDATE_PATH = (
-    ROOT / "conformance/v1/qualification/realtime-candidate-v2.json"
+    ROOT / "conformance/v1/qualification/realtime-candidate-v3.json"
 )
-REJECTION_PATH = (
+V1_REJECTION_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v1-rejection.json"
 )
-OLD_CANDIDATE_PATH = (
+V2_REJECTION_PATH = (
+    ROOT / "conformance/v1/qualification/realtime-candidate-v2-rejection.json"
+)
+V1_CANDIDATE_PATH = (
     ROOT / "conformance/v1/qualification/realtime-candidate-v1.json"
+)
+V2_CANDIDATE_PATH = (
+    ROOT / "conformance/v1/qualification/realtime-candidate-v2.json"
 )
 INVENTORY_PATH = (
     ROOT / "conformance/v1/qualification/kernel-device-obligations-v1.json"
@@ -30,10 +36,16 @@ ORACLE_PATH = ROOT / "conformance/v1/realtime/oracle-suite-v1.json"
 MANIFEST_PATH = ROOT / "cmake/SlangKernelManifest.cmake"
 TASK_DIR = ROOT / "docs/roadmap/tasks"
 
-ACTIVE_ID = "realtime-single-step-v1-fd78fa8"
-REJECTED_ID = "realtime-single-step-v1-dea47c1"
-OLD_MANIFEST_SHA256 = (
+ACTIVE_ID = "realtime-single-step-v1-3671f18"
+ACTIVE_SOURCE_REVISION = "3671f180ed951d8a62cb34e5ec4ce1dab52cd560"
+ACTIVE_SOURCE_TREE = "785513efa475e8b3b1010a79cb2142e33463089a"
+V1_REJECTED_ID = "realtime-single-step-v1-dea47c1"
+V2_REJECTED_ID = "realtime-single-step-v1-fd78fa8"
+V1_MANIFEST_SHA256 = (
     "c25c010be3a0e908537e3c6542c1759b28b10cfb4a4169b51bb2834233411d43"
+)
+V2_MANIFEST_SHA256 = (
+    "f4f1c7807dd50b07857c568b9df3e8e2ccd6fd3870907238dc9dcfab45b493af"
 )
 REQUIRED_CLOSURES = {
     "kernel",
@@ -97,12 +109,15 @@ def validate_candidate(
 ) -> list[str]:
     """Return every freeze violation; an empty list means the candidate is valid."""
     candidate_path = root / CANDIDATE_PATH.relative_to(ROOT)
-    rejection_path = root / REJECTION_PATH.relative_to(ROOT)
-    old_candidate_path = root / OLD_CANDIDATE_PATH.relative_to(ROOT)
+    v1_rejection_path = root / V1_REJECTION_PATH.relative_to(ROOT)
+    v2_rejection_path = root / V2_REJECTION_PATH.relative_to(ROOT)
+    v1_candidate_path = root / V1_CANDIDATE_PATH.relative_to(ROOT)
+    v2_candidate_path = root / V2_CANDIDATE_PATH.relative_to(ROOT)
     inventory = load_json(root / INVENTORY_PATH.relative_to(ROOT))
     profile = load_json(root / PROFILE_PATH.relative_to(ROOT))
     oracle = load_json(root / ORACLE_PATH.relative_to(ROOT))
-    rejection = load_json(rejection_path)
+    v1_rejection = load_json(v1_rejection_path)
+    v2_rejection = load_json(v2_rejection_path)
     if candidate is None:
         candidate = load_json(candidate_path)
 
@@ -111,14 +126,18 @@ def validate_candidate(
             "candidate schema is not v2")
     _expect(errors, candidate.get("id") == ACTIVE_ID,
             "active candidate id changed")
-    _expect(errors, candidate.get("task") == "F8-36",
-            "candidate freeze task is not F8-36")
+    _expect(errors, candidate.get("task") == "F8-38",
+            "candidate freeze task is not F8-38")
     _expect(errors, candidate.get("status") == "frozen-awaiting-physical-qualification",
             "candidate status is not frozen")
     source = candidate.get("source", {})
     for key in ("revision", "tree"):
         _expect(errors, bool(re.fullmatch(r"[0-9a-f]{40}", str(source.get(key, "")))),
                 f"source {key} is not an exact Git identity")
+    _expect(errors, source.get("revision") == ACTIVE_SOURCE_REVISION,
+            "active source revision drift")
+    _expect(errors, source.get("tree") == ACTIVE_SOURCE_TREE,
+            "active source tree drift")
 
     closures = {
         item.get("category"): item
@@ -285,33 +304,71 @@ def validate_candidate(
         _expect(errors, bool(re.fullmatch(r"[0-9a-f]{64}",
                                           str(installed.get(key, "")))),
                 f"installed public profile lacks {key}")
+    capacity = installed.get("exact_capacity_regression", {})
+    _expect(errors, capacity.get("status") == "passed",
+            "installed exact-capacity regression did not pass")
+    _expect(errors, capacity.get("workload") == {
+        "rigid_bodies_live": 8,
+        "rigid_bodies_capacity": 8,
+        "constraints_live": 8,
+        "constraints_capacity": 8,
+        "contact_capacity": 2048,
+    }, "installed exact-capacity workload drift")
+    _expect(errors, capacity.get("work") == {
+        "dispatches": 20,
+        "workgroups": 1421,
+        "rigid_iterations": 8,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "time_advances": 1,
+        "queue_submissions": 1,
+        "intra_tick_host_readbacks": 0,
+    }, "installed exact-capacity work accounting drift")
+    _expect(errors, bool(re.fullmatch(r"[0-9a-f]{64}",
+                                      str(capacity.get("observation_sha256", "")))),
+            "installed exact-capacity observation lacks SHA-256")
 
-    _expect(errors, file_sha256(old_candidate_path) == OLD_MANIFEST_SHA256,
+    supersedes = candidate.get("supersedes", {})
+    _expect(errors, supersedes.get("candidate_id") == V2_REJECTED_ID and
+            supersedes.get("manifest_sha256") == V2_MANIFEST_SHA256,
+            "candidate does not supersede exact v2 identity")
+    _expect(errors, file_sha256(v1_candidate_path) == V1_MANIFEST_SHA256,
             "rejected v1 candidate manifest changed")
-    _expect(errors, rejection.get("candidate_id") == REJECTED_ID,
-            "rejection record names the wrong candidate")
-    _expect(errors, rejection.get("candidate_manifest_sha256") ==
-            OLD_MANIFEST_SHA256,
-            "rejection record lost the v1 manifest identity")
-    _expect(errors, rejection.get("status") == "rejected-non-executable",
+    _expect(errors, file_sha256(v2_candidate_path) == V2_MANIFEST_SHA256,
+            "rejected v2 candidate manifest changed")
+    _expect(errors, v1_rejection.get("candidate_id") == V1_REJECTED_ID and
+            v1_rejection.get("candidate_manifest_sha256") == V1_MANIFEST_SHA256,
+            "v1 rejection record lost its candidate identity")
+    _expect(errors, v1_rejection.get("status") == "rejected-non-executable",
             "v1 candidate is not durably rejected")
-    _expect(errors, rejection.get("evidence_union_allowed") is False,
-            "rejection record permits evidence union")
-    replacement = rejection.get("replacement", {})
-    _expect(errors, replacement.get("candidate_id") == ACTIVE_ID,
-            "rejection record routes to the wrong replacement")
-    _expect(errors, replacement.get("candidate_manifest_sha256") ==
+    v1_replacement = v1_rejection.get("replacement", {})
+    _expect(errors, v1_replacement.get("candidate_id") == V2_REJECTED_ID and
+            v1_replacement.get("candidate_manifest_sha256") == V2_MANIFEST_SHA256,
+            "v1 rejection history no longer routes to exact v2")
+    _expect(errors, v2_rejection.get("candidate_id") == V2_REJECTED_ID and
+            v2_rejection.get("candidate_manifest_sha256") == V2_MANIFEST_SHA256,
+            "v2 rejection record lost its candidate identity")
+    _expect(errors,
+            v2_rejection.get("status") == "rejected-telemetry-capacity-overflow",
+            "v2 candidate is not durably rejected")
+    v2_replacement = v2_rejection.get("replacement", {})
+    _expect(errors, v2_replacement.get("candidate_id") == ACTIVE_ID and
+            v2_replacement.get("candidate_manifest_sha256") ==
             file_sha256(candidate_path),
-            "rejection record replacement manifest hash drift")
-    invalidated = {
-        item["target"]: item
-        for item in rejection.get("invalidated_physical_rows", [])
-    }
-    _expect(errors, set(invalidated) == set(inventory_targets),
-            "rejection record does not invalidate every physical row")
-    for target_id, item in invalidated.items():
-        _expect(errors, item.get("status") == "invalidated-requalify-replacement",
-                f"rejected row {target_id} is not invalidated")
+            "v2 rejection record routes to the wrong replacement")
+    for label, rejection in (("v1", v1_rejection), ("v2", v2_rejection)):
+        _expect(errors, rejection.get("evidence_union_allowed") is False,
+                f"{label} rejection record permits evidence union")
+        invalidated = {
+            item["target"]: item
+            for item in rejection.get("invalidated_physical_rows", [])
+        }
+        _expect(errors, set(invalidated) == set(inventory_targets),
+                f"{label} rejection does not invalidate every physical row")
+        for target_id, item in invalidated.items():
+            _expect(errors,
+                    item.get("status") == "invalidated-requalify-replacement",
+                    f"{label} rejected row {target_id} is not invalidated")
 
     routing = candidate.get("qualification_routing", {})
     _expect(errors, set(routing.get("tasks", [])) == QUALIFICATION_TASKS,
@@ -324,15 +381,21 @@ def validate_candidate(
         task = load_json(root / TASK_DIR.relative_to(ROOT) / f"{task_id}.json")
         _expect(errors, "F8-36" in task.get("dependencies", []),
                 f"{task_id} does not depend on F8-36")
+        _expect(errors, "F8-38" in task.get("dependencies", []),
+                f"{task_id} does not depend on F8-38")
         scope = task.get("scope", "")
         _expect(errors, ACTIVE_ID in scope,
                 f"{task_id} does not route to the exact replacement")
-        _expect(errors, REJECTED_ID not in scope,
-                f"{task_id} still routes to the rejected candidate")
+        _expect(errors, V1_REJECTED_ID not in scope,
+                f"{task_id} routes to rejected v1")
+        _expect(errors, V2_REJECTED_ID in scope and
+                "rejected for qualification" in scope,
+                f"{task_id} does not preserve v2 rejection routing")
     exit_dependencies = set(load_json(
         root / TASK_DIR.relative_to(ROOT) / "F8-99.json"
     ).get("dependencies", []))
-    _expect(errors, QUALIFICATION_TASKS | {"F8-33", "F8-34", "F8-35", "F8-36"}
+    _expect(errors, QUALIFICATION_TASKS |
+            {"F8-33", "F8-34", "F8-35", "F8-36", "F8-37", "F8-38"}
             <= exit_dependencies,
             "F8-99 lacks a repair, refreeze or qualification dependency")
     return errors

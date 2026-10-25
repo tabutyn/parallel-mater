@@ -80,16 +80,18 @@ rewriting their history or treating unsupported results as passes.
    F8-51 makes shared Gallery use it with appropriate presentation on every
    platform. These are release requirements, not optional follow-ups.
 4. F8-52 freezes the complete source/API/Gallery candidate and exact evidence
-   inputs. F8-23 through F8-30 then qualify that candidate on their registered
-   targets. F8-31 packages and deploys verified builds; F8-99 audits the sole
-   production path and all required results.
+   inputs. F8-24 through F8-30 qualify that candidate on their registered GPU
+   targets; F8-53 supplies final CPU/public-contract qualification. F8-31 packages
+   and deploys verified builds; F8-99 audits the sole production path and all
+   required results.
 
-F8-38 has an existing live owner and a narrowly scoped rigid-path refreeze.
-Its lease, branch and evidence remain intact. That candidate is useful interim
-evidence but cannot satisfy the final single-path release. Qualification tasks
-now also depend on F8-52. Their historical candidate references remain provenance
-until F8-52 records the replacement identity; no evidence from different
-candidates may be combined into a pass.
+F8-38 completed the narrowly scoped rigid-path refreeze. F8-23 has a live owner
+qualifying that interim candidate; its scope, lease, branch and evidence remain
+intact. That candidate cannot satisfy the final single-path release. The unleased
+GPU qualification tasks now also depend on F8-52, and new F8-53 requalifies the
+CPU/public-contract row after the final freeze. Historical candidate references
+remain provenance until F8-52 records the replacement identity; no evidence from
+different candidates may be combined into a pass.
 
 The frozen `realtime-profile-v1.json` and earlier candidate records remain
 unchanged historical inputs during this planning correction. F8-50 updates the

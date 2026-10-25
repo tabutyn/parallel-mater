@@ -1,0 +1,177 @@
+{
+  "schema": "parallel-mater-realtime-candidate/v2",
+  "id": "realtime-single-step-v1-3671f18",
+  "task": "F8-38",
+  "frozen_at": "2026-10-25",
+  "status": "frozen-awaiting-physical-qualification",
+  "lease_token": "c0f83a75-1735-4412-915d-ad3a4f354939",
+  "supersedes": {
+    "candidate_id": "realtime-single-step-v1-fd78fa8",
+    "manifest": "conformance/v1/qualification/realtime-candidate-v2.json",
+    "manifest_sha256": "f4f1c7807dd50b07857c568b9df3e8e2ccd6fd3870907238dc9dcfab45b493af",
+    "rejection_record": "conformance/v1/qualification/realtime-candidate-v2-rejection.json"
+  },
+  "source": {
+    "revision": "3671f180ed951d8a62cb34e5ec4ce1dab52cd560",
+    "tree": "785513efa475e8b3b1010a79cb2142e33463089a",
+    "definition": "The executable implementation is the merged F8-37 repair. Its merge commit and green F8-37 pull-request head have the same tree; F8-38 adds the immutable freeze, rejection, validation, installed regression evidence and the active-candidate default in the public oracle without changing runtime, kernel, profile or API behavior.",
+    "hash_method": "SHA-256 over sorted repository-relative path + NUL + file bytes + NUL",
+    "protected_closures": [
+      {
+        "category": "kernel",
+        "patterns": ["cmake/SlangKernelManifest.cmake", "src/slang/**/*.slang"],
+        "file_count": 39,
+        "sha256": "dd23174e4ace56067257446a16b14466066f77b2d29ddd1c4ca7f8bdef8e3bf2"
+      },
+      {
+        "category": "runtime",
+        "patterns": [
+          "src/simulation/runtime.cpp",
+          "src/simulation/runtime.hpp",
+          "src/simulation/runtime_*.cu.inc",
+          "src/simulation/production_*.cu.inc",
+          "src/simulation/production_spatial_runtime.hpp",
+          "src/simulation/resource_plan.hpp",
+          "src/simulation/spatial_service.hpp",
+          "src/simulation/rigid_spatial.hpp",
+          "src/simulation/types.hpp",
+          "src/simulation/primitives.hpp",
+          "src/simulation/primitives.cu",
+          "src/simulation/cpu_primitives.cpp",
+          "src/simulation/metal_primitives.cpp"
+        ],
+        "file_count": 17,
+        "sha256": "c2e07b9f00eeb4b428610f76ebc2629b9fafad4d916825cc48c1ebfc9f33bc0b"
+      },
+      {
+        "category": "adapter_binding",
+        "patterns": [
+          "include/parallel_mater/parallel_mater.h",
+          "registry/pm.xml",
+          "src/api/commands.cpp",
+          "src/api/instance.cpp",
+          "src/api/internal.hpp",
+          "src/api/queries.cpp",
+          "src/api/resources.cpp",
+          "src/layers/validation.cpp"
+        ],
+        "file_count": 8,
+        "sha256": "46107f17d2f9772175684f244d1b96d097d4136b9f599fd386137fce59af150d"
+      },
+      {
+        "category": "dispatch",
+        "patterns": ["src/device/**/*", "src/driver/*/schedule_context.*", "src/simulation/*dispatch*", "src/simulation/native_schedule_backend.cu.inc"],
+        "file_count": 104,
+        "sha256": "15930916e0b0f9d588c0267dd89162be8223d44c56ca39e6550ae43ca9256fda"
+      },
+      {
+        "category": "schedule",
+        "patterns": ["src/simulation/realtime_schedule.hpp", "src/simulation/runtime_schedule.cu.inc", "src/simulation/native_schedule_backend.cu.inc"],
+        "file_count": 3,
+        "sha256": "9023c3ca413ce39203d307845743696296ddcab4d2d9f352ff7ec1cd8d964b1b"
+      },
+      {
+        "category": "telemetry",
+        "patterns": ["src/simulation/realtime_telemetry.hpp", "src/simulation/runtime_diagnostics.cu.inc"],
+        "file_count": 2,
+        "sha256": "a4940cff8657e4f4bbd45cb9abab4bc4566486d523c04776c87877edd931763f"
+      },
+      {
+        "category": "profile",
+        "patterns": ["conformance/v1/qualification/realtime-profile-v1.json", "conformance/v1/qualification/capability-obligations-v1.json", "conformance/v1/qualification/kernel-device-obligations-v1.json"],
+        "file_count": 3,
+        "sha256": "dd0e8beea70031006525dabf9fb8421f3848b58b2da6a65ae2681ce7d8f7a75e"
+      },
+      {
+        "category": "public_oracle",
+        "patterns": ["conformance/v1/realtime/oracle-suite-v1.json", "conformance/v1/realtime_oracle.py", "conformance/v1/tests/test_realtime_oracle.py", "tests/sdk/realtime_profile.c"],
+        "file_count": 4,
+        "sha256": "0e2c7413836247a5a82d1e417cfd2040bd6e7c0515dbf92b5707ab2ee234e0bc"
+      }
+    ]
+  },
+  "profile": {
+    "id": "realtime-single-step-v1",
+    "semantic_name": "realtime-single-step",
+    "version": {"major": 1, "minor": 0},
+    "timestep": "1/60",
+    "workload_tolerance_budget_manifest": "conformance/v1/qualification/realtime-profile-v1.json",
+    "telemetry_schema_version": 1,
+    "schedule_profile_version": 1,
+    "schedule_budget_version": 1
+  },
+  "kernel_coverage": {
+    "canonical_module_count": 26,
+    "canonical_entry_count": 225,
+    "kernel_group_count": 32,
+    "group_coverage": "complete",
+    "coverage_gaps": [],
+    "auxiliary_runtime_case": "f8-paint-contact-stamping"
+  },
+  "runtime_variants": [
+    {"id": "cuda-runtime", "f8_execution_test": "f8-kernel-entrypoint-execution/cuda", "applicable_targets": ["linux-rtx3050ti-slang-cuda", "windows-gtx1080-slang-cuda"], "qualification_owners": ["F8-24", "F8-26"], "status": "awaiting-physical-qualification"},
+    {"id": "vulkan-runtime", "f8_execution_test": "f8-kernel-entrypoint-execution/vulkan", "applicable_targets": ["android-pixel7-slang-vulkan", "linux-rtx3050ti-slang-vulkan"], "qualification_owners": ["F8-25", "F8-30"], "status": "awaiting-physical-qualification"},
+    {"id": "d3d12-runtime", "f8_execution_test": "f8-kernel-entrypoint-execution/d3d12", "applicable_targets": ["windows-gtx1080-slang-d3d12"], "qualification_owners": ["F8-27"], "status": "awaiting-physical-qualification"},
+    {"id": "metal-runtime", "f8_execution_test": "f8-kernel-entrypoint-execution/metal", "applicable_targets": ["ipados-m1-slang-metal", "macos-m4-slang-metal"], "qualification_owners": ["F8-28", "F8-29"], "status": "awaiting-physical-qualification"},
+    {"id": "cpu-runtime", "f8_execution_test": "f8-kernel-entrypoint-execution/cpu", "applicable_targets": ["linux-thomas-laptop-slang-cpu"], "qualification_owners": ["F8-23"], "status": "awaiting-physical-qualification"}
+  ],
+  "compile_only_variants": [
+    {"id": "cuda-source-mirror", "qualification_allowed": false},
+    {"id": "ptx-mirror", "qualification_allowed": false},
+    {"id": "spirv-mirror", "qualification_allowed": false}
+  ],
+  "native_binaries": [
+    {"id": "local-linux-installed-slang-cpu-driver", "runtime_variant": "cpu-runtime", "path": "build-f8-23-cpu/libparallel_mater_driver_slang_cpu.so", "sha256": "07435a004f0431da8a324bc1b980bc1a6f44ce0349544149d17df32ab6e054b7", "provenance": "F8-38 installed exact-capacity execution; Debian 12 x86_64; GCC 12.2.0; Slang 2026.18"},
+    {"id": "ci-linux-installed-slang-cpu-driver", "runtime_variant": "cpu-runtime", "path": "lib/libparallel_mater_driver_slang_cpu.so", "sha256": "c52a270bb21c0b0a3d6caf420b8bcfceed4e1c271d837afe4f887c84160eb57a", "provenance": "GitHub Actions run 40200762911 artifact 12601848350 reproducibility manifest"},
+    {"id": "local-linux-slang-cuda-driver", "runtime_variant": "cuda-runtime", "path": "build-f8-22-cuda/libparallel_mater_driver_slang_cuda.so", "sha256": "3fdc67b9311dca39da181d3d7ca5826261c1cb56be1eb2c92d946bff8e691303", "provenance": "Debian 12 x86_64; GCC 12.2.0; CUDA 13.1.80; Slang 2026.18"},
+    {"id": "local-linux-slang-vulkan-driver", "runtime_variant": "vulkan-runtime", "path": "build-p3-02-vulkan/libparallel_mater_driver_slang_vulkan.so", "sha256": "89b3b4ec2bd1fe5ccd1489bccbd03705b073e1158a63079d2a2b14fd1911ffb3", "provenance": "Debian 12 x86_64; GCC 12.2.0; Slang 2026.18"},
+    {"id": "ci-android-vulkan-apk", "runtime_variant": "vulkan-runtime", "path": "app-debug.apk", "sha256": "510f22431b4f2fb9c935459cde874e389e6f81b45911eaa5ec3e45c87559b545", "provenance": "GitHub Actions run 40200762911 artifact 12601174837"},
+    {"id": "ci-ipados-parallel-mater", "runtime_variant": "metal-runtime", "path": "Frameworks/ParallelMater.framework/ParallelMater", "sha256": "aa625e7108230d8c78d2f41bf9189b425a1ce113d9c5dd19a80550e8807d727e", "provenance": "GitHub Actions run 40200762911 artifact 12602115202"},
+    {"id": "ci-ipados-parallel-mater-metal", "runtime_variant": "metal-runtime", "path": "Frameworks/ParallelMaterMetal.framework/ParallelMaterMetal", "sha256": "63b96dd549e442838c9b25915351ebe57fe778dfadd11c42f9bb0eaa5ee255a3", "provenance": "GitHub Actions run 40200762911 artifact 12602115202"}
+  ],
+  "compile_evidence": {
+    "qualification_claim": false,
+    "rule": "Compilation, reflection, packaging and hosted execution are build evidence only. Compile-only mirrors and hosted runners qualify no physical row.",
+    "github_actions": {
+      "workflow": "CI",
+      "run_id": 40200762911,
+      "run_url": "https://github.com/tabutyn/parallel-mater/actions/runs/40200762911",
+      "result": "success",
+      "head_revision": "b098e953561292e5ca869f391ff372650e412e8c",
+      "checkout_merge_revision": "8e2c4e7d75549440eb9992881773276896ffe7b3",
+      "artifacts": [
+        {"name": "sdk-install-contracts", "id": 12601848350, "archive_sha256": "b420d146c6077cbc9a805f70bbb3d4bd27e0a62a97e51391e77c98881d707ec6", "file_count": 76, "extracted_tree_sha256": "7a2ddf4782fd9cacb0f59a66d40f3bdc744bba0088c054c010ed4ac6584d2ee6"},
+        {"name": "sdk-install-contracts-macos-arm64", "id": 12602261060, "archive_sha256": "e070246d1409e7dc94a95b05c3d068363567586633b874accb393923c42bf37e", "file_count": 68, "extracted_tree_sha256": "ff84e5d09ae078ec3b1fd1c96e74064c84888e4f0c178efde7306875c94641b6"},
+        {"name": "sdk-install-contracts-windows-x64", "id": 12601294084, "archive_sha256": "6083629c67e5202276156691b952b233a278b89b9eb15347869d00b09505e8c1", "file_count": 68, "extracted_tree_sha256": "9fb077dfde2fd14b14bd52df7e2f27dfb8ffbb72740bb8de418db1add736e32b"},
+        {"name": "shader-portability-ubuntu-latest", "id": 12601589364, "archive_sha256": "71a2067dc1733f7d9e843421a5391eddffc3cec6381a6872ccf7e01bb7e741c6", "file_count": 283, "extracted_tree_sha256": "e77acbfa5ed82faf1ec83b8c97f54b91bf131a9af00843b271b12a407bd89a4a"},
+        {"name": "shader-portability-windows-latest", "id": 12602471031, "archive_sha256": "8dcc14815ff354e5f8d5ce58f152de33c20ff38076e479eebdeeb9393357d5a4", "file_count": 510, "extracted_tree_sha256": "d180f661efe5706bb57b178319ec17161afb3cdab87779170abe24429e26f557"},
+        {"name": "shader-portability-macos-26", "id": 12601118416, "archive_sha256": "36428cb6d57dae79451c731274664b7aa09ca97a4ddc48b6e007c8c2fc7be014", "file_count": 283, "extracted_tree_sha256": "4ca9529aa76acf42f7d9cc990be7f2b98c4810b31888e45230ad4475eb44d767"},
+        {"name": "android-vulkan-preview", "id": 12601174837, "archive_sha256": "2f01b5b52de88ac091beba45ebe274067ea76291ac0ff85f6574aa13f2551ab8", "file_count": 1, "extracted_tree_sha256": "0799aa74caac27e219223acac54becfafa789352cc6646cdc788e31ac28f60cd"},
+        {"name": "ipad-unsigned-preview", "id": 12602115202, "archive_sha256": "117868e65b2dadb58188685446e95faaffd0ae2488102a1eedf7904cee69d47f", "file_count": 506, "extracted_tree_sha256": "f2829964c7159cd348ac136e87c05c0b9d26a4586c2f0d66004aadc1e6fe4de1"}
+      ]
+    }
+  },
+  "execution_evidence": "docs/roadmap/evidence/F8-38-INSTALLED-CPU.json",
+  "physical_targets": [
+    {"id": "windows-gtx1080-slang-cuda", "variant": "cuda-runtime", "qualification_owner": "F8-26", "status": "pending"},
+    {"id": "windows-gtx1080-slang-d3d12", "variant": "d3d12-runtime", "qualification_owner": "F8-27", "status": "pending"},
+    {"id": "linux-thomas-laptop-slang-cpu", "variant": "cpu-runtime", "qualification_owner": "F8-23", "status": "pending"},
+    {"id": "linux-rtx3050ti-slang-cuda", "variant": "cuda-runtime", "qualification_owner": "F8-24", "status": "pending"},
+    {"id": "linux-rtx3050ti-slang-vulkan", "variant": "vulkan-runtime", "qualification_owner": "F8-25", "status": "pending"},
+    {"id": "macos-m4-slang-metal", "variant": "metal-runtime", "qualification_owner": "F8-28", "status": "pending"},
+    {"id": "ipados-m1-slang-metal", "variant": "metal-runtime", "qualification_owner": "F8-29", "status": "pending"},
+    {"id": "android-pixel7-slang-vulkan", "variant": "vulkan-runtime", "qualification_owner": "F8-30", "status": "pending"}
+  ],
+  "qualification_routing": {
+    "tasks": ["F8-23", "F8-24", "F8-25", "F8-26", "F8-27", "F8-28", "F8-29", "F8-30"],
+    "accepted_candidate": "realtime-single-step-v1-3671f18",
+    "evidence_union_allowed": false,
+    "rule": "Every physical row must name this exact candidate id, source revision, candidate manifest hash and protected closure hashes. Evidence from either rejected predecessor is invalid and cannot be unioned."
+  },
+  "invalidation": {
+    "policy": "Evidence from different candidates is never unioned. Any protected closure drift freezes a new candidate identity and reruns every affected physical row.",
+    "triggers": ["kernel source or entry manifest", "runtime physics or spatial implementation", "native adapter binding", "native dispatch path", "realtime schedule or work budget", "telemetry accounting", "profile workload, tolerance, quality or performance budget", "public oracle or execution-case contract"],
+    "completed_row_rule": "Preserve superseded evidence as history and create a bounded repair/refreeze/requalification leaf; add every leaf to F8-99.",
+    "exit_rule": "F8-99 accepts only complete rows naming one exact non-rejected candidate and its protected hashes."
+  }
+}

@@ -15,7 +15,7 @@
   "acceptance": [
     "Audit installed public creation/step and Gallery paths for all baseline supported domains/interactions and auxiliary features; fail on any remaining legacy choice, blanket integration rejection or private-test-only coverage.",
     "Freeze source, API/ABI, kernel/adapter/runtime/oracle/contract, workload and application artifact identities after F8-39--51; preserve interim candidate records as historical evidence without rewriting their hashes.",
-    "Through a coordination PR, route unleased F8-23--30 cards to the exact new candidate before they are claimed; their F8-52 dependency remains in place. Completion cannot redefine other cards or active leases.",
+    "Through a coordination PR, route unleased F8-24--30 and F8-53 cards to the exact new candidate before they are claimed; their F8-52 dependency remains in place. Preserve the live F8-23 interim qualification and its evidence; F8-53 supplies final CPU/public-contract requalification. Completion cannot redefine other cards or active leases.",
     "Candidate validation rejects protected drift and evidence union across revisions. Retain independent oracles and unchanged workload/quality/performance gates; collect installed-consumer preflight evidence.",
     "Device/API capability manifests accurately retain the baseline supported surface; missing runtime work must create a prerequisite repair task rather than shrinking the qualification matrix."
   ],

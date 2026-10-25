@@ -20,7 +20,7 @@ the exact embedded source revision, production driver SHA-256
 `4a457b2288c3fe4474a73acc0f602b0eda7bb7153dbcdee3c7f66e9646622a47`
 and the installed qualification harness.
 
-This is a required-row failure, not partial qualification. F8-23 must stay
-open. F8-37 must repair the protected telemetry or schedule envelope, and
-F8-38 must freeze a new immutable candidate and route every affected device
-qualification task to it before F8-23 can be claimed again.
+This is a required-row failure, not partial qualification. F8-37 repaired the
+protected telemetry envelope and F8-38 froze
+`realtime-single-step-v1-3671f18`; every affected device qualification task is
+routed only to that candidate before F8-23 may be claimed again.

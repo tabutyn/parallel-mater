@@ -1,0 +1,34 @@
+{
+  "schema": "parallel-mater-realtime-candidate-rejection/v1",
+  "candidate_id": "realtime-single-step-v1-fd78fa8",
+  "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v2.json",
+  "candidate_manifest_sha256": "f4f1c7807dd50b07857c568b9df3e8e2ccd6fd3870907238dc9dcfab45b493af",
+  "status": "rejected-telemetry-capacity-overflow",
+  "rejected_at": "2026-10-25",
+  "rejection_task": "F8-23",
+  "repair_task": "F8-37",
+  "freeze_task": "F8-38",
+  "evidence": "docs/roadmap/evidence/F8-23-CANDIDATE-V2-CPU-FAILURE.json",
+  "reasons": [
+    "The exact required eight-body/eight-constraint/contact-capacity-2048 installed CPU row returned PM_ERROR_CAPACITY_EXCEEDED on its first tick.",
+    "The frozen native telemetry ceiling admitted only one of eight required rigid contact/joint sweeps after 20 dispatches and 1,421 workgroups."
+  ],
+  "replacement": {
+    "candidate_id": "realtime-single-step-v1-3671f18",
+    "candidate_manifest": "conformance/v1/qualification/realtime-candidate-v3.json",
+    "candidate_manifest_sha256": "d6d84f85a87af71fcdb0ee5c335f6c3979a741a151b3fbb4151096dd588d4a04",
+    "freeze_task": "F8-38"
+  },
+  "evidence_union_allowed": false,
+  "invalidated_physical_rows": [
+    {"target": "windows-gtx1080-slang-cuda", "qualification_owner": "F8-26", "status": "invalidated-requalify-replacement"},
+    {"target": "windows-gtx1080-slang-d3d12", "qualification_owner": "F8-27", "status": "invalidated-requalify-replacement"},
+    {"target": "linux-thomas-laptop-slang-cpu", "qualification_owner": "F8-23", "status": "invalidated-requalify-replacement"},
+    {"target": "linux-rtx3050ti-slang-cuda", "qualification_owner": "F8-24", "status": "invalidated-requalify-replacement"},
+    {"target": "linux-rtx3050ti-slang-vulkan", "qualification_owner": "F8-25", "status": "invalidated-requalify-replacement"},
+    {"target": "macos-m4-slang-metal", "qualification_owner": "F8-28", "status": "invalidated-requalify-replacement"},
+    {"target": "ipados-m1-slang-metal", "qualification_owner": "F8-29", "status": "invalidated-requalify-replacement"},
+    {"target": "android-pixel7-slang-vulkan", "qualification_owner": "F8-30", "status": "invalidated-requalify-replacement"}
+  ],
+  "qualification_rule": "No physical qualification report may name or reuse this rejected candidate. F8-23 through F8-30 must execute only realtime-single-step-v1-3671f18 from F8-38."
+}

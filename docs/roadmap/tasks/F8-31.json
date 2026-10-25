@@ -1,6 +1,6 @@
 {
   "id": "F8-31",
-  "title": "Ship and document the qualified real-time SDK and Gallery profile",
+  "title": "Ship and document the qualified single-path SDK and Gallery",
   "status": "open",
   "dependencies": [
     "F8-23",
@@ -12,7 +12,8 @@
     "F8-29",
     "F8-30",
     "F8-51",
-    "F8-52"
+    "F8-52",
+    "F8-53"
   ],
   "locks": [
     "sdk-realtime-profile-release"

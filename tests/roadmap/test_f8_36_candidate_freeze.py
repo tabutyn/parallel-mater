@@ -21,11 +21,8 @@ class F836CandidateFreezeTests(unittest.TestCase):
     def setUpClass(cls):
         cls.candidate = json.loads(CANDIDATE_PATH.read_text(encoding="utf-8"))
 
-    def test_rejected_candidate_drift_is_only_the_planned_repair(self):
-        self.assertEqual(set(validate_candidate()), {
-            "adapter_binding closure hash drift",
-            "runtime closure hash drift",
-        })
+    def test_repaired_candidate_is_frozen_without_drift(self):
+        self.assertEqual(validate_candidate(), [])
 
     def test_every_required_protected_drift_is_rejected(self):
         closures = {
@@ -42,6 +39,14 @@ class F836CandidateFreezeTests(unittest.TestCase):
                         break
                 errors = validate_candidate(tampered)
                 self.assertIn(f"{category} closure hash drift", errors)
+
+    def test_source_identity_drift_is_rejected(self):
+        tampered = copy.deepcopy(self.candidate)
+        tampered["source"]["revision"] = "0" * 40
+        tampered["source"]["tree"] = "0" * 40
+        errors = validate_candidate(tampered)
+        self.assertIn("active source revision drift", errors)
+        self.assertIn("active source tree drift", errors)
 
     def test_only_replacement_can_receive_qualification_evidence(self):
         routing = self.candidate["qualification_routing"]

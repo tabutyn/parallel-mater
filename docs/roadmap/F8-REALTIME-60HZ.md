@@ -164,7 +164,7 @@ which uninstalled optimization did or did not work.
 |---|---|---|
 | Any host | F8-00 contract, F8-01 inventory, F8-05 design; independent planning leaves | Reviewed contracts and exact obligations, not performance claims |
 | Shared-runtime/GPU development | F8-03–21, F8-32–35 and F8-39–50, dependency-ordered | Shared kernels and full public production execution, fixed-step tests, scheduling and dispatch budgets |
-| Linux CPU/CUDA/Vulkan | F8-23/24/25 | Independent oracle plus physical GPU runs for each registered device |
+| Linux CPU/CUDA/Vulkan | F8-53/24/25 (F8-23 interim) | Independent oracle plus physical GPU runs for each registered device |
 | Windows CUDA/D3D12 | F8-26/27 | Same candidate/workloads on both drivers; honor P1-59 ownership |
 | macOS/iOS Metal | F8-28/29 | macOS and physical iOS/iPadOS runs, not simulator substitution |
 | Android Vulkan | F8-02 and F8-30 | Verified installed build; Pixel 7 first plus every other registered target |
@@ -180,11 +180,14 @@ including spatial primitives, paint/auxiliary kernels and every advertised mode.
 An explicitly unsupported mode is not qualified; compile-only is not execution.
 
 F8-22 froze the original source revision, which F8-23 rejected as non-executable.
-F8-36 froze replacement `realtime-single-step-v1-fd78fa8`, which also failed.
-F8-38 owns the subsequent rigid-path telemetry refreeze. These are interim
-candidate records; none establishes the required single-path, all-domain
-release. F8-52 must freeze the complete runtime/API/Gallery candidate after
-F8-39--51 and route F8-23--30 to its exact identity. Qualification leaves are test/report work, not
+F8-36 froze `realtime-single-step-v1-fd78fa8`, which F8-23 rejected after its
+exact CPU row overflowed the frozen telemetry envelope. F8-38 froze repaired
+replacement `realtime-single-step-v1-3671f18`; the live F8-23 lease qualifies that
+interim candidate without a scope change. None of these freezes establishes the
+required single-path, all-domain release. F8-52 must freeze the complete
+runtime/API/Gallery candidate after F8-39--51 and route F8-24--30 and F8-53 to
+its exact identity. F8-53 requalifies the final CPU/public-contract row; interim
+F8-23 evidence cannot replace it. Qualification leaves are test/report work, not
 permission for private platform physics. A failure gets a separately leased fix.
 Any later physics/kernel/schedule/profile change invalidates affected candidate
 rows. Freeze a new candidate and rerun affected rows (new follow-up cards if an
