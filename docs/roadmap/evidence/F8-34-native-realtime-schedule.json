@@ -4,7 +4,10 @@
   "recorded_at": "2026-10-25",
   "branch": "work/F8-34/thomas-laptop",
   "base_revision": "f4b6ee208bdbd143e35ddf2365800bdc33082ef4",
-  "implementation_revision": "81fcf7e5daf08faeb9e2d29ec29d5972dee96526",
+  "implementation_revisions": [
+    "81fcf7e5daf08faeb9e2d29ec29d5972dee96526",
+    "1d273c4f4d914b47dee08424630f6e478683ec1f"
+  ],
   "implementation": {
     "schedule_authority": "SimulationRuntime routes the internal realtime-single-step-v1 profile through assemble_realtime_tick_measured; the legacy-default path remains unchanged and the public profile remains unadvertised.",
     "eligible_runtime_scope": "The production binding accepts the rigid/query native subset established by F8-33. Live fluid, deformable, smoke or coupling domains fail explicitly before tick assembly rather than silently entering a partial schedule.",
@@ -20,7 +23,7 @@
     "zero limits for dispatches, workgroups, bytes, index builds, index publications, numerical iterations, barriers and submissions each fail before commit",
     "zero domain-dispatch and commit-submission limits each fail before commit",
     "repeated rejected ticks preserve the clock, current-state selection and pending impulse; the next valid tick consumes the impulse and advances exactly once",
-    "telemetry begin-capture failure invokes abort and leaves no active transaction"
+    "phase and total mandatory minima are rejected by production preflight before a telemetry or schedule transaction begins"
   ],
   "qualification": [
     {
@@ -31,6 +34,11 @@
       "command": "ctest --test-dir build-sdk-cpu --output-on-failure -j4",
       "result": "PASS 101/101 discovered tests; 86 executed pass and 15 explicit unsupported CPU-domain skips",
       "notes": "Includes native runtime atomicity, every fixed telemetry-limit injection, schedule/oracle, generated API, reflected ABI and legacy behavior regressions."
+    },
+    {
+      "command": "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'",
+      "result": "PASS 78/78",
+      "notes": "Includes the frozen F8-22 realtime candidate source hashes."
     },
     {
       "command": "cmake --build build-f8-22-cuda --target parallel-mater-driver-slang-cuda -j2",
