@@ -1,7 +1,7 @@
 {
   "id": "F8-23",
   "title": "Qualify independent CPU and public-contract cases",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-22",
     "F8-36",
@@ -21,7 +21,15 @@
     "Attach reviewable artifacts identifying exact candidate, binary/deployment, device/OS/GPU/driver/toolchain and manifest hashes; preserve failures and create separate fix/requalification leaves instead of declaring partial success."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "451afa67-8a74-4e69-a18b-99eafac39da8",
+    "owner": "codex-cpu-qualification",
+    "machine": "thomas-laptop",
+    "branch": "work/F8-23/thomas-laptop-v3",
+    "claimed_at": "2026-10-25T15:05:56Z",
+    "heartbeat_at": "2026-10-25T15:05:56Z",
+    "expires_at": "2026-10-26T15:05:56Z"
+  },
   "history": [
     {
       "lease": {
