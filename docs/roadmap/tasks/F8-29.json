@@ -12,7 +12,7 @@
   "requires": [
     "Every registered physical iOS/iPadOS target and deployment/signing toolchain"
   ],
-  "scope": "Execute and report the frozen F8-22 candidate: Each registered iPhone/iPad Metal tuple; simulator or macOS execution does not substitute. This is qualification, not authority to introduce unreviewed solver fixes. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
+  "scope": "Execute and report only replacement candidate realtime-single-step-v1-fd78fa8 from F8-36; rejected candidate evidence is invalid and cannot be unioned: Each registered iPhone/iPad Metal tuple; simulator or macOS execution does not substitute. This is qualification, not authority to introduce unreviewed solver fixes. Follow docs/roadmap/F8-REALTIME-60HZ.md; preserve legacy-profile evidence and do not expand advertised interaction modes.",
   "acceptance": [
     "Run every applicable kernel/variant, domain, coupling, lifecycle and negative case in the frozen matrix; record unsupported and missing cases explicitly. All required rows must execute and pass.",
     "Prove one dt=1/60 advance and one spatial publication per tick; verify high-rate interpolation, low-rate slow-motion, no catch-up and fixed dispatch/iteration/synchronization budgets.",
