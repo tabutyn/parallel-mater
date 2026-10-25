@@ -1,7 +1,7 @@
 {
   "id": "F8-46",
   "title": "Connect liquid interactions to production fixed ticks",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-40",
     "F8-41",
@@ -23,6 +23,14 @@
     "Do not advertise unfinished P-series interactions, remove existing supported GPU capabilities to pass, or substitute CPU/private-kernel execution for public GPU evidence."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "90dbfeb4-e900-43c6-8901-e51f113b7b49",
+    "owner": "codex-android-overnight",
+    "machine": "thomas-laptop-pixel7",
+    "branch": "work/F8-46/thomas-laptop-pixel7",
+    "claimed_at": "2026-10-25T22:50:30Z",
+    "heartbeat_at": "2026-10-25T22:50:30Z",
+    "expires_at": "2026-10-26T22:50:30Z"
+  },
   "history": []
 }
