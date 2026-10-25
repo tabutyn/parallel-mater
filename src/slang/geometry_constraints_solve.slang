@@ -58,11 +58,11 @@ void rigid_avbd_solve_color_cooperative(
         for (uint active = bodies[bodyIndex].contact_head;
              active != kInvalidDense;)
         {
-            uint a = pairs[active] / count;
-            uint b = pairs[active] % count;
+            AvbdPairCache pair = rigidAvbdPairs[active];
+            uint a = pair.a;
+            uint b = pair.b;
             bool first = bodyIndex == a;
-            float friction = sqrt(
-                parameters[a].friction * parameters[b].friction);
+            float friction = pair.friction;
             uint pointCount = PM_AVBD_MANIFOLD_COUNT(manifolds, active);
             for (uint point = bodyLane; point < pointCount;
                  point += kAvbdSmallBodyLanes)
@@ -112,8 +112,9 @@ void rigid_avbd_solve_color_cooperative(
             for (uint active = bodies[bodyIndex].contact_head;
                  active != kInvalidDense;)
             {
-                uint a = pairs[active] / count;
-                uint b = pairs[active] % count;
+                AvbdPairCache pair = rigidAvbdPairs[active];
+                uint a = pair.a;
+                uint b = pair.b;
                 bool first = bodyIndex == a;
                 uint pointCount = PM_AVBD_MANIFOLD_COUNT(
                     manifolds, active);
@@ -778,7 +779,7 @@ void solve_avbd_kernel(
     PM_D3D12_DISPATCH_PROLOGUE();
 #if PM_AVBD_SMALL_MODULE
     rigid_avbd_cache_contact_jacobians(
-        manifolds, pairs, pair_count, count, bodies);
+        parameters, manifolds, pairs, pair_count, count, bodies);
 #endif
     uint phaseCount = schedule[0].offsets[0] ==
         kRigidRealtimeProfileVersion ? 1u : 2u;

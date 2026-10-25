@@ -86,10 +86,19 @@ struct AvbdContactJacobianCache
     Vec3 angular_b[3];
 };
 
+struct AvbdPairCache
+{
+    uint a;
+    uint b;
+    float friction;
+};
+
+groupshared AvbdPairCache rigidAvbdPairs[kAvbdSmallMaximumPairs];
 groupshared AvbdContactJacobianCache rigidAvbdContactJacobians[
     kAvbdSmallMaximumPairs * kAvbdSmallMaximumPoints];
 
 void rigid_avbd_cache_contact_jacobians(
+    PM_AVBD_BUFFER(BodyParameters) parameters,
     PM_AVBD_MANIFOLD_BUFFER manifolds, PM_AVBD_BUFFER(uint) pairs,
     PM_AVBD_BUFFER(uint) pair_count, uint count,
     PM_AVBD_BUFFER(AvbdBody) bodies)
@@ -100,6 +109,8 @@ void rigid_avbd_cache_contact_jacobians(
     {
         uint a = pairs[active] / count;
         uint b = pairs[active] % count;
+        rigidAvbdPairs[active] = AvbdPairCache(
+            a, b, sqrt(parameters[a].friction * parameters[b].friction));
         uint pointCount = PM_AVBD_MANIFOLD_COUNT(manifolds, active);
         for (uint point = 0u; point < pointCount; ++point)
         {
