@@ -1,0 +1,129 @@
+{
+  "schema": "parallel-mater-f8-realtime-schedule-evidence/v1",
+  "task": "F8-20",
+  "recorded_at": "2026-10-25",
+  "branch": "work/F8-20/thomas-laptop",
+  "base_commit": "44bd81bbd92ecf3119baa3fccd9893e57742a0a8",
+  "implementation_commit": "436f06d9bcd288bd81cc119961586bcebcd1bd7c",
+  "lease_token": "4f99d1b4-3d34-4a61-a7a3-3d821c783809",
+  "profile": {
+    "name": "realtime-single-step",
+    "version": "1.0",
+    "timestep_seconds_binary32": 0.01666666753590107,
+    "substeps": 1,
+    "time_advances": 1,
+    "spatial_updates_minimum": 0,
+    "spatial_updates_maximum": 1,
+    "spatial_publications": 1,
+    "intra_tick_host_waits": 0,
+    "intra_tick_host_readbacks": 0,
+    "commits": 1
+  },
+  "fixed_budgets": {
+    "domain_iterations": {
+      "rigid": 8,
+      "fluid": 6,
+      "cloth": 8,
+      "soft_body": 8,
+      "rope": 8,
+      "particle_smoke": 6,
+      "grid_smoke": 12
+    },
+    "coupling_sweeps": {
+      "rigid": 4,
+      "liquid": 4,
+      "deformable_smoke": 4
+    },
+    "coupling_dispatch_policy": "one batched family visit per sweep; never one time subdivision or spatial update per edge",
+    "active_count_residency": "backend GPU buffers; schedule sees domain presence and registered edge counts only",
+    "steady_state_allocation": "none; fixed-size trivially copyable scene, budget, ledger, event, and snapshot records"
+  },
+  "phase_order": [
+    "boundary",
+    "predict",
+    "spatial_update",
+    "spatial_publish",
+    "domain_solve",
+    "coupling_solve",
+    "commit"
+  ],
+  "integration_cases": {
+    "empty": "PASS: one boundary/time advance, zero updates, one empty publication, one commit",
+    "single_domain": "PASS: rigid, fluid, cloth, soft body, rope, particle smoke, and grid smoke independently",
+    "mixed": "PASS: all six domains plus rigid, liquid, and deformable/smoke coupling families",
+    "atomic_failure": "PASS: begin failure needs no abort; solve failure aborts and records zero commits",
+    "snapshot_ownership": "PASS: abort preserves completed input and render generations; commit rotates render ownership",
+    "negative_controls": "PASS: zero tick/revision/snapshot, hidden substep, missing active-scene update, and excess edge count rejected"
+  },
+  "qualification": [
+    {
+      "command": "cmake -S tests/solver -B /tmp/parallel-mater-f8-20-tests -DCMAKE_BUILD_TYPE=Release && cmake --build /tmp/parallel-mater-f8-20-tests --parallel 2 && ctest --test-dir /tmp/parallel-mater-f8-20-tests --output-on-failure",
+      "result": "PASS 28/28",
+      "notes": "host solver, spatial, domain, coupling, architecture, lifecycle, and schedule suite"
+    },
+    {
+      "command": "cmake --build build-p3-02-vulkan --parallel 2",
+      "result": "PASS 274 targets",
+      "notes": "production Vulkan driver plus shared Slang modules, Gallery, API, and solver targets"
+    },
+    {
+      "command": "ctest --test-dir build-p3-02-vulkan -R 'realtime|spatial' --output-on-failure",
+      "result": "PASS 17, SKIP 1",
+      "notes": "all runnable realtime/spatial tests passed; local Vulkan reference test skipped because laptop exposed no Vulkan physical device"
+    },
+    {
+      "command": "Android NDK standalone solver build; adb checksum and execution",
+      "result": "PASS",
+      "notes": "Pixel 7 AArch64 binary checksum matched host; one atomic bounded tick cases and sustained window passed"
+    },
+    {
+      "command": "python3 scripts/Test-AndroidVulkan.py --serial 2B241FDH20060P --adb /usr/bin/adb --build-directory examples/android/app/.cxx/Debug/1q1l3i6d/arm64-v8a --output out/android/F8-20-public-api-23e7ea6-20261025 --timeout 180 --conformance-timeout 420",
+      "result": "PASS 25/25 native device invocations; 17/18 independent evaluators",
+      "notes": "provenance-bound legacy/public-API regression only; known CUDA-golden numerical mismatch retained"
+    }
+  ],
+  "physical_device": {
+    "manufacturer": "Google",
+    "model": "Pixel 7",
+    "product": "panther",
+    "android_version": "17",
+    "security_patch": "2026-10-05",
+    "gpu": "Mali-G710",
+    "vulkan_api_version": "1.4.343",
+    "vulkan_driver": "v1.r54p3-00eac0.1848e3b066182d5bb5a345ab256f13ee",
+    "ndk": "29.0.14206865",
+    "slang": "2026.18"
+  },
+  "physical_scheduler_window": {
+    "source_commit": "436f06d9bcd288bd81cc119961586bcebcd1bd7c",
+    "binary_sha256": "3ea32e5290a810928e96e373ef862b7050a1aea98b6679186d1f2103fd5ca43f",
+    "warmup_ticks": 600,
+    "measured_ticks": 7200,
+    "timestep_seconds_binary32": 0.01666666753590107,
+    "wall_seconds": 0.003437866,
+    "simulated_to_wall_ratio": 34905.3744,
+    "scope": "host orchestration and contract accounting on physical device; not GPU physics timing"
+  },
+  "public_api_regression": {
+    "source_commit": "23e7ea6c05d1e6e1b237b3a458d5c0d27f6d7d74",
+    "capture": "out/android/F8-20-public-api-23e7ea6-20261025/capture.json",
+    "native_runs": 25,
+    "native_passed": 25,
+    "independent_evaluators": 18,
+    "independent_passed": 17,
+    "execution_profile": "legacy-default",
+    "reason": "prove schedule addition did not change legacy behavior; never count as realtime qualification"
+  },
+  "legacy_profile": {
+    "reference_schedule": "unchanged",
+    "equations_and_tolerances": "unchanged",
+    "goldens": "unchanged",
+    "new_schedule_selected_implicitly": false
+  },
+  "remaining_boundary": {
+    "public_realtime_profile": "unadvertised until native phase adapters and actual emitted-work telemetry land",
+    "owner": "F8-21",
+    "candidate_freeze": "F8-22",
+    "device_qualification": "F8-23 through F8-30"
+  }
+}

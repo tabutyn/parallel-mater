@@ -359,6 +359,7 @@ add_library(
     src/simulation/runtime_rigid.cu.inc
     src/simulation/runtime_schedule.cu.inc
     src/simulation/reference_schedule.hpp
+    src/simulation/realtime_schedule.hpp
     src/simulation/native_schedule_backend.cu.inc
     src/simulation/runtime_diagnostics.cu.inc
     src/simulation/geometry_storage.hpp
