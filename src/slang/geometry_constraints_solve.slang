@@ -844,4 +844,21 @@ void solve_avbd_kernel(
             rigid_avbd_barrier();
         }
     }
+#if PM_AVBD_SMALL_MODULE
+    // The small Vulkan adapter owns the complete solve in this dispatch, so
+    // fold the otherwise separate post-solve speed-limit launch into its tail.
+    // This is the same clamp applied by pm_clamp_rigid_speeds.
+    uint lane = pmThreadIndex();
+    uint stride = pmGroupSize().x;
+    for (uint bodyIndex = lane; bodyIndex < count; bodyIndex += stride)
+    {
+        if (parameters[bodyIndex].motion != MotionType.dynamic) continue;
+        RigidBodyState state = states[bodyIndex];
+        state.linear_velocity = clamp_length(state.linear_velocity,
+            parameters[bodyIndex].maximum_linear_speed);
+        state.angular_velocity = clamp_length(state.angular_velocity,
+            parameters[bodyIndex].maximum_angular_speed);
+        states[bodyIndex] = state;
+    }
+#endif
 }

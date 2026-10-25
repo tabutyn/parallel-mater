@@ -9,6 +9,20 @@ struct NativeScheduleBackend {
 #else
     static constexpr bool supports_masked_subgroup_barriers = false;
 #endif
+    static constexpr bool geometry_constraints_inline_speed_clamp(
+        std::uint32_t body_count, std::uint32_t constraint_capacity,
+        std::uint32_t grid_blocks) noexcept {
+#if defined(PARALLEL_MATER_VULKAN_DRIVER)
+        return constraint_capacity == 0U && grid_blocks == 1U &&
+            body_count <= k_small_rigid_leaf_body_capacity &&
+            body_count != 4U;
+#else
+        (void)body_count;
+        (void)constraint_capacity;
+        (void)grid_blocks;
+        return false;
+#endif
+    }
     auto queue() const noexcept { return execution; }
     static auto success_code() noexcept { return PM_SUCCESS; }
     static Status failure(PmResult error, const char *message) noexcept {

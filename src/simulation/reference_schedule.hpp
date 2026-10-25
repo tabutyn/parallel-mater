@@ -1650,11 +1650,13 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
         if (!status) return status;
         const unsigned avbd_grid = std::min(impl_->rigid_contact_grid_limit,
             std::max(1U, (impl_->rigid_body_count + 31U) / 32U));
+        const auto rigid_constraint_capacity = impl_->rigid_constraint_count
+            ? impl_->options.rigid_constraint_capacity : 0U;
         error = backend.prepare_geometry_constraints(stream,
             impl_->parameters, impl_->states[impl_->current_state], impl_->states[output_state],
             impl_->rigid_body_count, impl_->rigid_manifolds, impl_->rigid_active_pairs,
             impl_->rigid_active_pair_count, impl_->rigid_constraints,
-            impl_->rigid_constraint_count ? impl_->options.rigid_constraint_capacity : 0U,
+            rigid_constraint_capacity,
             impl_->ids, impl_->avbd_bodies, impl_->rigid_contact_schedule,
             substep_timestep, options.gravity, options.rigid_contact_iterations,
             options.rigid_contact_pass_limit,
@@ -1667,20 +1669,24 @@ Status schedule_frame(State &state, Backend &backend, StepOptions options) noexc
             impl_->parameters, impl_->states[impl_->current_state], impl_->states[output_state],
             impl_->rigid_body_count, impl_->rigid_manifolds, impl_->rigid_active_pairs,
             impl_->rigid_active_pair_count, impl_->rigid_constraints,
-            impl_->rigid_constraint_count ? impl_->options.rigid_constraint_capacity : 0U,
+            rigid_constraint_capacity,
             impl_->avbd_bodies, impl_->rigid_contact_schedule, substep_timestep,
             avbd_grid);
         if (error != backend.success_code()) return backend.failure(error, "launch AVBD vertex solve");
         status = record_profile_stage("rigid_constraint_solve", 1U);
         if (!status) return status;
-        error = backend.clamp_rigid_speeds(
-            block_count, block_size, stream,
-            impl_->parameters, impl_->states[output_state],
-            impl_->rigid_body_count);
-        if (error != backend.success_code())
-            return backend.failure(error, "rigid speed clamp launch failed");
-        status = record_profile_stage("rigid_speed_clamp", 1U);
-        if (!status) return status;
+        if (!backend.geometry_constraints_inline_speed_clamp(
+                impl_->rigid_body_count, rigid_constraint_capacity,
+                avbd_grid)) {
+            error = backend.clamp_rigid_speeds(
+                block_count, block_size, stream,
+                impl_->parameters, impl_->states[output_state],
+                impl_->rigid_body_count);
+            if (error != backend.success_code())
+                return backend.failure(error, "rigid speed clamp launch failed");
+            status = record_profile_stage("rigid_speed_clamp", 1U);
+            if (!status) return status;
+        }
         error = backend.save_rigid_contact_cache(
             contact_block_count, block_size, stream,
             impl_->rigid_manifolds, impl_->rigid_active_pairs, impl_->rigid_active_pair_count,
