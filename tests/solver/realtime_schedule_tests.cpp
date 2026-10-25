@@ -2,6 +2,7 @@
 #include "simulation/realtime_schedule.hpp"
 
 #include <array>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 
@@ -221,6 +222,31 @@ void invalid_scene_rejected_before_recording() {
           PM_ERROR_INVALID_ARGUMENT);
 }
 
+void sustained_allocation_free_window() {
+    auto input = scene();
+    input.domains = {true, true, true, true, true, true};
+    input.coupling_edges = {4U, 4U, 4U};
+    RecordingBackend backend{};
+    RealtimeScheduleLedger ledger{};
+    const auto tick = [&] {
+        backend.event_count = 0U;
+        backend.calls = 0U;
+        backend.aborts = 0U;
+        CHECK(assemble_realtime_tick(backend, input, ledger) == PM_SUCCESS);
+    };
+    for (std::uint32_t warmup = 0U; warmup < 600U; ++warmup) tick();
+    const auto start = std::chrono::steady_clock::now();
+    for (std::uint32_t measured = 0U; measured < 7'200U; ++measured) tick();
+    const auto seconds = std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - start).count();
+    const double simulated_seconds = 7'200.0 / 60.0;
+    const double simulated_to_wall = simulated_seconds / seconds;
+    CHECK(simulated_to_wall >= 0.99);
+    std::printf("F8_SCHEDULE_ORCHESTRATION ticks=7200 dt=%.9g "
+                "wall_seconds=%.9g simulated_to_wall=%.9g\n",
+                input.timestep, seconds, simulated_to_wall);
+}
+
 } // namespace
 
 int main() {
@@ -230,5 +256,6 @@ int main() {
     failure_is_atomic();
     snapshot_ownership();
     invalid_scene_rejected_before_recording();
+    sustained_allocation_free_window();
     std::puts("PASS: realtime schedule assembles one atomic bounded tick");
 }
