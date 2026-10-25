@@ -67,6 +67,42 @@ PmResult native_realtime_coupling_counts(
         count += amount;
         return PM_SUCCESS;
     };
+    const auto add_liquid = [&](std::uint32_t amount = 1U) noexcept {
+        return add(simulation::RealtimeCouplingFamily::liquid, amount);
+    };
+    for (const auto &owner : state.fluid_pair_couplings) {
+        if (!owner || !owner->alive || !owner->options.enabled) continue;
+        if (owner->options.material_profile !=
+            FluidPairMaterialProfile::equal)
+            return PM_ERROR_FEATURE_NOT_PRESENT;
+        if (add_liquid(3U) != PM_SUCCESS)
+            return PM_ERROR_CAPACITY_EXCEEDED;
+    }
+    if (state.rigid_body_count != 0U) {
+        for (const auto &owner : state.fluids) {
+            if (!owner || !owner->alive) continue;
+            if (add_liquid(2U) != PM_SUCCESS)
+                return PM_ERROR_CAPACITY_EXCEEDED;
+        }
+    }
+    for (const auto &coupling : state.fluid_cloth_couplings) {
+        if (!coupling.alive || !coupling.options.enabled) continue;
+        const auto modes = std::uint32_t(coupling.options.contact) +
+            std::uint32_t(coupling.options.containment);
+        if (modes != 0U && add_liquid(modes) != PM_SUCCESS)
+            return PM_ERROR_CAPACITY_EXCEEDED;
+    }
+    for (const auto &owner : state.fluid_soft_couplings)
+        if (owner && owner->alive && owner->options.enabled &&
+            add_liquid() != PM_SUCCESS)
+            return PM_ERROR_CAPACITY_EXCEEDED;
+    for (const auto &owner : state.fluid_rope_couplings)
+        if (owner && owner->alive && owner->options.enabled &&
+            add_liquid() != PM_SUCCESS)
+            return PM_ERROR_CAPACITY_EXCEEDED;
+    for (const auto &owner : state.fluid_smoke_couplings)
+        if (owner && owner->alive && add_liquid(2U) != PM_SUCCESS)
+            return PM_ERROR_CAPACITY_EXCEEDED;
     if (state.rigid_body_count != 0U) {
         for (const auto &owner : state.cloths)
             if (owner && owner->alive &&
@@ -334,6 +370,8 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                simulation::realtime_coupling_family_count> coupling_counts{};
     if (native_realtime_coupling_counts(state, coupling_counts) != PM_SUCCESS)
         return limits;
+    const auto liquid_couplings = coupling_counts[simulation::realtime_index(
+        simulation::RealtimeCouplingFamily::liquid)];
     const auto rigid_couplings = coupling_counts[simulation::realtime_index(
         simulation::RealtimeCouplingFamily::rigid)];
     const auto deformable_couplings = coupling_counts[
@@ -615,6 +653,110 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                     (sizeof(std::uint32_t) + sizeof(float));
                 boundary.barriers += 2U;
             }
+        }
+        if (liquid_couplings != 0U) {
+            constexpr std::uint64_t sweeps =
+                simulation::liquid_coupling_realtime_sweeps;
+            for (const auto &owner : state.fluid_pair_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled)
+                    continue;
+                const auto groups =
+                    (std::uint64_t{owner->index.total_capacity} + 127U) /
+                    128U;
+                dispatch(coupling, 2U + 2U * sweeps,
+                    2U * groups + 2U * sweeps * groups);
+            }
+            if (rigid != 0U) {
+                const auto body_groups =
+                    (std::uint64_t{rigid} + 127U) / 128U;
+                const auto body_words =
+                    (std::uint64_t{state.options.rigid_body_capacity} + 63U) /
+                    64U;
+                dispatch(coupling, 2U * sweeps,
+                    2U * sweeps * body_groups);
+                coupling.bytes_moved += sweeps *
+                    (NativeScheduleBackend::fluid_body_buckets + 1ULL) *
+                    body_words * sizeof(unsigned long long);
+                coupling.barriers += 2U * sweeps;
+                for (const auto &owner : state.fluids) {
+                    if (!owner || !owner->alive) continue;
+                    const auto groups =
+                        (std::uint64_t{owner->options.capacity} + 127U) /
+                        128U;
+                    dispatch(coupling, 3U * sweeps,
+                        sweeps * (2U * groups + rigid));
+                    coupling.bytes_moved += sweeps * std::uint64_t{rigid} *
+                        sizeof(std::uint32_t);
+                    coupling.barriers += sweeps;
+                }
+            }
+            for (const auto &item : state.fluid_cloth_couplings) {
+                if (!item.alive || !item.options.enabled) continue;
+                const auto &fluid = *state.fluids[item.options.fluid.index];
+                const auto &cloth = *state.cloths[item.options.cloth.index];
+                const auto fluid_groups =
+                    (std::uint64_t{fluid.options.capacity} + 127U) / 128U;
+                const auto cloth_groups =
+                    (std::uint64_t{cloth.vertex_count} + 127U) / 128U;
+                if (item.options.contact) {
+                    dispatch(coupling, 2U * sweeps,
+                        sweeps * (fluid_groups + cloth_groups));
+                    coupling.bytes_moved += sweeps * cloth.vertex_count *
+                        sizeof(Vec3);
+                    coupling.barriers += sweeps;
+                }
+                if (item.options.containment)
+                    dispatch(coupling, sweeps, sweeps * fluid_groups);
+            }
+            for (const auto &owner : state.fluid_rope_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled)
+                    continue;
+                const auto &fluid = *state.fluids[owner->options.fluid.index];
+                const auto &rope = *state.ropes[owner->options.rope.index];
+                const auto fluid_groups =
+                    (std::uint64_t{fluid.options.capacity} + 127U) / 128U;
+                const auto rope_groups =
+                    (std::uint64_t{rope.data.count} + 127U) / 128U;
+                dispatch(coupling, 2U * sweeps,
+                    sweeps * (fluid_groups + rope_groups));
+                coupling.bytes_moved += sweeps *
+                    (sizeof(std::uint32_t) + sizeof(float));
+                coupling.barriers += 2U * sweeps;
+            }
+            for (const auto &owner : state.fluid_soft_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled)
+                    continue;
+                const auto &fluid = *state.fluids[owner->options.fluid.index];
+                const auto &body =
+                    *state.soft_bodies[owner->options.soft_body.index];
+                const auto fluid_groups =
+                    (std::uint64_t{fluid.options.capacity} + 127U) / 128U;
+                const auto node_groups =
+                    (std::uint64_t{body.node_count} + 127U) / 128U;
+                const auto surface_groups =
+                    (std::uint64_t{body.surface_vertex_count} + 127U) / 128U;
+                const auto tree_groups =
+                    (std::uint64_t{owner->tree_count} + 127U) / 128U;
+                dispatch(coupling, 5U * sweeps, sweeps *
+                    (2U * fluid_groups + node_groups + surface_groups +
+                     tree_groups));
+                coupling.bytes_moved += sweeps *
+                    (std::uint64_t{body.node_count} *
+                         (sizeof(std::uint32_t) + 2U * sizeof(Vec3)) +
+                     std::uint64_t{owner->tree_count} *
+                         sizeof(std::uint32_t));
+                coupling.barriers += 4U * sweeps;
+            }
+            for (const auto &owner : state.fluid_smoke_couplings) {
+                if (!owner || !owner->alive) continue;
+                const auto &fluid = *state.fluids[owner->options.fluid.index];
+                const auto groups =
+                    (std::uint64_t{fluid.options.capacity} + 127U) / 128U;
+                dispatch(coupling, 2U * sweeps, 2U * sweeps * groups);
+                coupling.bytes_moved += sweeps * sizeof(*owner->converted);
+                coupling.barriers += sweeps;
+            }
+            coupling.numerical_iterations += sweeps;
         }
         if (rigid_couplings != 0U) {
             const auto body_groups = (rigid + 127U) / 128U;
@@ -2744,7 +2886,7 @@ public:
         std::uint32_t edge_count,
         const simulation::RealtimeScheduleScene &scene) noexcept {
         if (family == simulation::RealtimeCouplingFamily::liquid)
-            return PM_ERROR_FEATURE_NOT_PRESENT;
+            return solve_liquid_couplings(sweep, edge_count, scene);
         auto *counters = state_.realtime_spatial.counters(epoch_);
         if (counters == nullptr) return PM_ERROR_INVALID_STATE;
         auto &coupling_work = work(
@@ -3398,12 +3540,480 @@ public:
             if (owner && owner->alive) owner->realtime_contract = {};
         for (auto &owner : state_.smokes)
             if (owner && owner->alive) owner->realtime_contract = {};
+        for (auto &owner : state_.fluids)
+            if (owner && owner->alive) owner->realtime_contract = {};
+        liquid_coupling_contract_ = {};
         rigid_coupling_contract_ = {};
         deformable_coupling_contract_ = {};
         return PM_SUCCESS;
     }
 
 private:
+    PmResult solve_liquid_couplings(
+        std::uint32_t sweep, std::uint32_t edge_count,
+        const simulation::RealtimeScheduleScene &scene) noexcept {
+        if (edge_count != liquid_coupling_count_)
+            return PM_ERROR_INVALID_STATE;
+        auto *counters = state_.realtime_spatial.counters(epoch_);
+        if (counters == nullptr) return PM_ERROR_INVALID_STATE;
+        auto &coupling_work = work(
+            simulation::RealtimeTelemetryPhase::coupling);
+        ++coupling_work.numerical_iterations;
+        constexpr std::uint32_t block = 128U;
+        if (sweep == 0U) {
+            std::uint64_t liquid_particles{};
+            std::uint64_t partner_endpoints = state_.rigid_body_count;
+            for (const auto &owner : state_.fluids)
+                if (owner && owner->alive)
+                    liquid_particles += owner->options.capacity;
+            for (const auto &owner : state_.cloths)
+                if (owner && owner->alive)
+                    partner_endpoints += owner->vertex_count;
+            for (const auto &owner : state_.soft_bodies)
+                if (owner && owner->alive)
+                    partner_endpoints += owner->node_count;
+            for (const auto &owner : state_.ropes)
+                if (owner && owner->alive)
+                    partner_endpoints += owner->data.count;
+            for (const auto &owner : state_.smokes)
+                if (owner && owner->alive)
+                    partner_endpoints += owner->options.capacity;
+            if (liquid_particles > std::numeric_limits<std::uint32_t>::max() ||
+                partner_endpoints > std::numeric_limits<std::uint32_t>::max())
+                return PM_ERROR_CAPACITY_EXCEEDED;
+            simulation::LiquidCouplingRealtimeWorkBudget budget{};
+            auto result = simulation::make_liquid_coupling_realtime_work_budget(
+                std::span<const simulation::LiquidCouplingRegistration>(
+                    liquid_couplings_.data(), liquid_coupling_count_),
+                static_cast<std::uint32_t>(liquid_particles),
+                static_cast<std::uint32_t>(partner_endpoints), budget);
+            if (result != PM_SUCCESS) return result;
+            result = liquid_coupling_contract_.begin(epoch_, *counters,
+                budget,
+                std::span<const simulation::LiquidCouplingRegistration>(
+                    liquid_couplings_.data(), liquid_coupling_count_),
+                scene.graph_revision);
+            if (result != PM_SUCCESS) return result;
+        }
+
+        for (auto &owner : state_.fluid_pair_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            auto &pair = *owner;
+            auto &first = *state_.fluids[pair.options.first.index];
+            auto &second = *state_.fluids[pair.options.second.index];
+            const auto pair_groups =
+                (pair.index.total_capacity + block - 1U) / block;
+            if (sweep == 0U) {
+                native_.fluid_pair_cell_keys(pair_groups, block,
+                    native_.queue(), first.next_positions, first.count,
+                    first.options.capacity, second.next_positions,
+                    second.count, second.options.capacity,
+                    1.0F / first.options.support_radius,
+                    pair.index.keys[0], pair.index.identities[0]);
+                auto result = native_.radix_sort_pairs_u64_u32(
+                    native_.queue(), pair.index.keys[0], pair.index.keys[1],
+                    pair.index.identities[0], pair.index.identities[1],
+                    pair.index.total_capacity, pair.index.sort_workspace,
+                    pair.index.sort_workspace_size);
+                if (result != PM_SUCCESS) return result;
+                dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                    2U, 2U * pair_groups);
+            }
+            auto constants = native_.fluid_constants(first.options,
+                options_.gravity, scene.timestep, first.options.capacity);
+            const float response_step = scene.timestep /
+                static_cast<float>(simulation::liquid_coupling_realtime_sweeps);
+            constants.repulsion *= response_step;
+            constants.viscosity *= response_step;
+            constants.normal_damping *= response_step;
+            native_.fluid_pair_pressure_contact(pair_groups, block,
+                native_.queue(), first.next_positions,
+                first.next_velocities, first.count, first.options.capacity,
+                first.realtime_velocity_deltas, second.next_positions,
+                second.next_velocities, second.count,
+                second.options.capacity, second.realtime_velocity_deltas,
+                pair.index.keys[1], pair.index.identities[1],
+                pair.index.total_capacity, constants);
+            native_.fluid_pair_viscosity(pair_groups, block, native_.queue(),
+                first.next_positions, first.next_velocities, first.count,
+                first.options.capacity, first.realtime_velocity_deltas,
+                second.next_positions, second.next_velocities, second.count,
+                second.options.capacity, second.realtime_velocity_deltas,
+                pair.index.keys[1], pair.index.identities[1],
+                pair.index.total_capacity, constants);
+            auto result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                2U, 2U * pair_groups);
+        }
+
+        if (state_.rigid_body_count != 0U) {
+            const auto body_groups =
+                (state_.rigid_body_count + block - 1U) / block;
+            native_.calculate_fluid_body_bounds(body_groups, block,
+                native_.queue(), state_.parameters,
+                state_.render_previous_states, state_.states[output_state_],
+                state_.meshes, state_.rigid_body_count,
+                state_.fluid_body_bounds);
+            auto result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatch(simulation::RealtimeTelemetryPhase::coupling,
+                body_groups);
+            const auto body_words =
+                (state_.options.rigid_body_capacity + 63U) / 64U;
+            result = native_.clear(state_.fluid_body_masks, 0,
+                NativeScheduleBackend::fluid_body_buckets * body_words *
+                    sizeof(unsigned long long), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(state_.fluid_global_body_masks, 0,
+                    body_words * sizeof(unsigned long long), native_.queue());
+            if (result != PM_SUCCESS) return result;
+            coupling_work.bytes_moved +=
+                (NativeScheduleBackend::fluid_body_buckets + 1ULL) *
+                body_words * sizeof(unsigned long long);
+            coupling_work.barriers += 2U;
+            native_.index_fluid_body_cells(body_groups, block, native_.queue(),
+                state_.parameters, state_.fluid_body_bounds,
+                state_.rigid_body_count, body_words, 0.0F,
+                state_.fluid_body_masks, state_.fluid_global_body_masks);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatch(simulation::RealtimeTelemetryPhase::coupling,
+                body_groups);
+            for (std::uint32_t slot = 0U;
+                 slot < state_.fluids.size(); ++slot) {
+                auto &owner = state_.fluids[slot];
+                if (!owner || !owner->alive) continue;
+                auto &fluid = *owner;
+                const auto groups =
+                    (fluid.options.capacity + block - 1U) / block;
+                result = native_.clear(state_.fluid_body_contact_flags, 0,
+                    state_.rigid_body_count * sizeof(std::uint32_t),
+                    native_.queue());
+                if (result != PM_SUCCESS) return result;
+                const float diameter = 2.0F * fluid.options.particle_radius;
+                const float particle_mass = fluid.options.rest_density *
+                    (fluid.options.rest_particle_volume > 0.0F
+                        ? fluid.options.rest_particle_volume
+                        : diameter * diameter * diameter);
+                native_.detect_fluid_moving_contacts(groups, block,
+                    native_.queue(), fluid.next_positions, fluid.previous,
+                    fluid.count, fluid.options.particle_radius,
+                    state_.parameters, state_.render_previous_states,
+                    state_.states[output_state_], state_.meshes,
+                    state_.fluid_body_bounds, state_.rigid_body_count,
+                    state_.fluid_body_masks, state_.fluid_global_body_masks,
+                    body_words, sweep == 0U, fluid.moving_contacts,
+                    state_.fluid_body_contact_flags);
+                native_.resolve_fluid_moving_contacts(groups, block,
+                    native_.queue(), fluid.next_positions,
+                    fluid.next_velocities, fluid.next_foam, fluid.count,
+                    fluid.options.particle_radius, particle_mass,
+                    scene.timestep /
+                        simulation::liquid_coupling_realtime_sweeps,
+                    fluid.options.maximum_speed,
+                    state_.parameters, state_.states[output_state_],
+                    state_.meshes, fluid.moving_contacts,
+                    state_.fluid_body_contact_flags, fluid.body_impulses,
+                    false, fluid.contact_samples, fluid.contact_flags, slot,
+                    fluid.generation, state_.ids, false, state_.paint_fields,
+                    state_.options.paint_field_capacity, state_.paint_rules,
+                    state_.options.paint_rule_capacity);
+                native_.reduce_fluid_body_impulses(
+                    state_.rigid_body_count, block, native_.queue(),
+                    fluid.body_impulses, fluid.count, state_.parameters,
+                    state_.states[output_state_],
+                    state_.fluid_body_contact_flags,
+                    state_.rigid_body_count);
+                result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                    3U, 2ULL * groups + state_.rigid_body_count);
+                coupling_work.bytes_moved +=
+                    state_.rigid_body_count * sizeof(std::uint32_t);
+                ++coupling_work.barriers;
+            }
+        }
+
+        for (auto &coupling : state_.fluid_cloth_couplings) {
+            if (!coupling.alive || !coupling.options.enabled) continue;
+            auto &fluid = *state_.fluids[coupling.options.fluid.index];
+            auto &cloth = *state_.cloths[coupling.options.cloth.index];
+            const auto fluid_groups =
+                (fluid.options.capacity + block - 1U) / block;
+            const auto cloth_groups =
+                (cloth.vertex_count + block - 1U) / block;
+            auto result = PM_SUCCESS;
+            if (coupling.options.contact) {
+                result = native_.clear(cloth.fluid_forces, 0,
+                    cloth.vertex_count * sizeof(Vec3), native_.queue());
+                if (result != PM_SUCCESS) return result;
+                const float diameter = 2.0F * fluid.options.particle_radius;
+                const float particle_mass = fluid.options.rest_density *
+                    (fluid.options.rest_particle_volume > 0.0F
+                        ? fluid.options.rest_particle_volume
+                        : diameter * diameter * diameter);
+                const float contact = coupling.options.contact_distance > 0.0F
+                    ? coupling.options.contact_distance
+                    : fluid.options.particle_radius + cloth.thickness;
+                const float radius = coupling.options.interaction_radius > 0.0F
+                    ? coupling.options.interaction_radius
+                    : fluid.options.support_radius;
+                const float response_step = scene.timestep /
+                    static_cast<float>(simulation::liquid_coupling_realtime_sweeps);
+                native_.apply_fluid_cloth_forces(fluid_groups, block,
+                    native_.queue(), fluid.next_positions,
+                    fluid.next_velocities, fluid.count,
+                    fluid.realtime_velocity_deltas, fluid.foam_source,
+                    particle_mass, cloth.realtime_positions,
+                    cloth.realtime_velocities, cloth.indices,
+                    cloth.index_count / 3U, cloth.orientation,
+                    simulation::FluidClothDispatchOptions{contact, radius,
+                        coupling.options.stiffness * response_step,
+                        coupling.options.damping * response_step,
+                        coupling.options.tangential_drag * response_step,
+                        coupling.options.maximum_force * response_step},
+                    cloth.fluid_forces);
+                native_.apply_fluid_forces_to_cloth(cloth_groups, block,
+                    native_.queue(), cloth.realtime_positions,
+                    cloth.realtime_velocities, cloth.inverse_masses,
+                    cloth.fluid_forces, cloth.vertex_count, 1.0F);
+                result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                    2U, fluid_groups + cloth_groups);
+                coupling_work.bytes_moved +=
+                    cloth.vertex_count * sizeof(Vec3);
+                ++coupling_work.barriers;
+            }
+            if (coupling.options.containment) {
+                const float contact = coupling.options.contact_distance > 0.0F
+                    ? coupling.options.contact_distance
+                    : fluid.options.particle_radius + cloth.thickness;
+                native_.project_fluid_inside_cloth(fluid_groups, block,
+                    native_.queue(), fluid.next_positions,
+                    fluid.next_velocities, fluid.count, contact,
+                    cloth.realtime_positions, cloth.realtime_velocities,
+                    cloth.indices, cloth.index_count / 3U,
+                    cloth.orientation);
+                result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatch(simulation::RealtimeTelemetryPhase::coupling,
+                    fluid_groups);
+            }
+        }
+
+        for (auto &owner : state_.fluid_rope_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            auto &coupling = *owner;
+            auto &fluid = *state_.fluids[coupling.options.fluid.index];
+            auto &rope = *state_.ropes[coupling.options.rope.index];
+            const auto fluid_groups =
+                (fluid.options.capacity + block - 1U) / block;
+            const auto rope_groups =
+                (rope.data.count + block - 1U) / block;
+            auto result = native_.clear(coupling.contact_count, 0,
+                sizeof(*coupling.contact_count), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(coupling.maximum_penetration, 0,
+                    sizeof(*coupling.maximum_penetration), native_.queue());
+            if (result != PM_SUCCESS) return result;
+            const float diameter = 2.0F * fluid.options.particle_radius;
+            const float particle_mass = fluid.options.rest_density *
+                (fluid.options.rest_particle_volume > 0.0F
+                    ? fluid.options.rest_particle_volume
+                    : diameter * diameter * diameter);
+            const float distance = coupling.options.contact_distance > 0.0F
+                ? coupling.options.contact_distance
+                : fluid.options.particle_radius + rope.data.options.radius;
+            native_.detect_fluid_rope_contacts(fluid_groups, block,
+                native_.queue(), fluid.next_positions,
+                fluid.next_velocities, fluid.count, particle_mass,
+                rope.realtime_positions, rope.realtime_velocities,
+                rope.data.count, distance, coupling.options.friction,
+                coupling.contribution_nodes, coupling.contribution_impulses,
+                coupling.contact_count, coupling.maximum_penetration, true);
+            native_.apply_fluid_rope_impulses(rope_groups, block,
+                native_.queue(), rope.realtime_velocities,
+                rope.data.fluid_contact_forces, rope.data.count,
+                rope.data.options.mass, rope.data.options.maximum_speed,
+                rope.data.options.first.enabled,
+                rope.data.options.last.enabled, fluid.count,
+                coupling.contribution_nodes, coupling.contribution_impulses,
+                coupling.options.maximum_rope_acceleration,
+                scene.timestep /
+                    simulation::liquid_coupling_realtime_sweeps,
+                1.0F / scene.timestep);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                2U, fluid_groups + rope_groups);
+            coupling_work.bytes_moved += sizeof(std::uint32_t) + sizeof(float);
+            coupling_work.barriers += 2U;
+        }
+
+        for (auto &owner : state_.fluid_soft_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            auto &coupling = *owner;
+            auto &fluid = *state_.fluids[coupling.options.fluid.index];
+            auto &body = *state_.soft_bodies[
+                coupling.options.soft_body.index];
+            const auto fluid_groups =
+                (fluid.options.capacity + block - 1U) / block;
+            const auto node_groups =
+                (body.node_count + block - 1U) / block;
+            const auto surface_groups =
+                (body.surface_vertex_count + block - 1U) / block;
+            auto result = native_.clear(coupling.counts, 0,
+                body.node_count * sizeof(std::uint32_t), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(coupling.position_deltas, 0,
+                    body.node_count * sizeof(Vec3), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(coupling.impulses, 0,
+                    body.node_count * sizeof(Vec3), native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(coupling.ready, 0,
+                    coupling.tree_count * sizeof(std::uint32_t),
+                    native_.queue());
+            if (result != PM_SUCCESS) return result;
+            native_.refit_fluid_soft_surface(
+                (coupling.tree_count + block - 1U) / block, block,
+                native_.queue(), body.realtime_surface_positions,
+                coupling.previous_surface, body.surface_indices,
+                coupling.triangle_order, coupling.tree, coupling.parents,
+                coupling.ready, coupling.tree_count, coupling.bounds);
+            const float distance = coupling.options.contact_distance > 0.0F
+                ? coupling.options.contact_distance
+                : fluid.options.particle_radius;
+            native_.detect_fluid_soft_contacts(fluid_groups, block,
+                native_.queue(), fluid.next_positions, fluid.previous,
+                fluid.next_velocities, fluid.count,
+                body.realtime_surface_positions, coupling.previous_surface,
+                body.surface_indices, body.surface_index_count,
+                body.surface_bindings, body.realtime_velocities,
+                coupling.orientation, distance, coupling.bounds,
+                sweep == 0U, coupling.tree, coupling.triangle_order,
+                coupling.contacts, coupling.counts, coupling.contact_count,
+                coupling.maximum_penetration);
+            const float diameter = 2.0F * fluid.options.particle_radius;
+            const float particle_mass = fluid.options.rest_density *
+                (fluid.options.rest_particle_volume > 0.0F
+                    ? fluid.options.rest_particle_volume
+                    : diameter * diameter * diameter);
+            native_.solve_fluid_soft_contacts(fluid_groups, block,
+                native_.queue(), fluid.next_positions,
+                fluid.next_velocities, fluid.realtime_velocity_deltas,
+                fluid.next_foam, fluid.count, coupling.contacts,
+                coupling.counts, body.inverse_masses,
+                body.realtime_velocities, body.realtime_maximum_speed,
+                1.0F / particle_mass, coupling.options.friction,
+                0.2F * body.node_radius,
+                1.0F,
+                coupling.position_deltas, coupling.impulses);
+            native_.apply_fluid_soft_contacts(node_groups, block,
+                native_.queue(), body.realtime_positions,
+                body.realtime_velocities, body.inverse_masses,
+                coupling.position_deltas, coupling.impulses,
+                body.fluid_forces, body.node_count, 1.0F / scene.timestep);
+            native_.update_soft_body_surface(surface_groups, block,
+                native_.queue(), body.realtime_positions,
+                body.rest_positions, body.surface_rest_positions,
+                body.surface_bindings, body.realtime_surface_positions,
+                body.surface_vertex_count);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                5U, 2ULL * fluid_groups + node_groups + surface_groups +
+                    (coupling.tree_count + block - 1U) / block);
+            coupling_work.bytes_moved +=
+                body.node_count *
+                    (sizeof(std::uint32_t) + 2U * sizeof(Vec3)) +
+                coupling.tree_count * sizeof(std::uint32_t);
+            coupling_work.barriers += 4U;
+        }
+
+        for (auto &owner : state_.fluid_smoke_couplings) {
+            if (!owner || !owner->alive) continue;
+            auto &coupling = *owner;
+            auto &fluid = *state_.fluids[coupling.options.fluid.index];
+            auto &smoke = *state_.smokes[coupling.options.smoke.index];
+            const auto groups =
+                (fluid.options.capacity + block - 1U) / block;
+            simulation::FluidSmokeDispatchOptions dispatch{};
+            dispatch.smoke = native_.smoke_dispatch_options(smoke.options);
+            dispatch.heater_center[0] = coupling.options.heater.center.x;
+            dispatch.heater_center[1] = coupling.options.heater.center.y;
+            dispatch.heater_center[2] = coupling.options.heater.center.z;
+            dispatch.heater_orientation[0] =
+                coupling.options.heater.orientation.x;
+            dispatch.heater_orientation[1] =
+                coupling.options.heater.orientation.y;
+            dispatch.heater_orientation[2] =
+                coupling.options.heater.orientation.z;
+            dispatch.heater_orientation[3] =
+                coupling.options.heater.orientation.w;
+            dispatch.heater_half_extents[0] =
+                coupling.options.heater.half_extents.x;
+            dispatch.heater_half_extents[1] =
+                coupling.options.heater.half_extents.y;
+            dispatch.heater_temperature = coupling.options.heater_temperature;
+            dispatch.boiling_temperature =
+                std::numeric_limits<float>::max();
+            dispatch.heat_transfer_rate = coupling.options.heat_transfer_rate;
+            dispatch.wind_drag = coupling.options.wind_drag;
+            dispatch.steam_rise_speed = coupling.options.steam_rise_speed;
+            const float dt = scene.timestep /
+                simulation::liquid_coupling_realtime_sweeps;
+            if (smoke.options.grid_resolution == 0U) {
+                native_.drag_fluid_with_smoke_particles(groups, block,
+                    native_.queue(), fluid.next_positions,
+                    fluid.realtime_velocity_deltas, fluid.count, dispatch,
+                    smoke.realtime_positions, smoke.realtime_velocities,
+                    smoke.keys[1], smoke.indices[1], dt);
+            } else {
+                auto grid = native_.smoke_dispatch_grid(smoke.grid);
+                for (std::uint32_t axis = 0U; axis < 3U; ++axis)
+                    grid.face_velocity[axis] =
+                        smoke.grid.face_velocity[axis][1];
+                native_.drag_fluid_with_smoke_grid(groups, block,
+                    native_.queue(), fluid.next_positions,
+                    fluid.realtime_velocity_deltas, fluid.count, dispatch,
+                    grid, dt);
+            }
+            auto result = native_.clear(coupling.converted, 0,
+                sizeof(*coupling.converted), native_.queue());
+            if (result != PM_SUCCESS) return result;
+            const float gravity[3]{
+                options_.gravity.x, options_.gravity.y, options_.gravity.z};
+            native_.exchange_fluid_with_smoke(groups, block, native_.queue(),
+                fluid.next_positions, fluid.realtime_velocity_deltas,
+                fluid.temperatures, fluid.count,
+                fluid.options.particle_radius, dispatch,
+                smoke.realtime_positions, smoke.realtime_velocities,
+                smoke.realtime_ages, smoke.realtime_thermal_lift,
+                smoke.realtime_number_densities, smoke.realtime_pressures,
+                smoke.realtime_vorticities, smoke.realtime_pending_next_slot,
+                coupling.converted, fluid.keep, dt, gravity);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                2U, 2U * groups);
+            coupling_work.bytes_moved += sizeof(*coupling.converted);
+            ++coupling_work.barriers;
+        }
+
+        for (std::uint32_t index = 0U;
+             index < liquid_coupling_count_; ++index) {
+            const auto result = liquid_coupling_contract_.record_edge(
+                epoch_, *counters, scene.graph_revision,
+                liquid_couplings_[index]);
+            if (result != PM_SUCCESS) return result;
+        }
+        return sweep + 1U == simulation::liquid_coupling_realtime_sweeps
+            ? liquid_coupling_contract_.finish() : PM_SUCCESS;
+    }
+
     simulation::RigidCouplingConstraintBuffers rigid_constraints(
         std::uint32_t record) const noexcept {
         return {state_.realtime_coupling_first_endpoints + record,
@@ -3664,6 +4274,7 @@ private:
 
     PmResult stage_coupling_graph(
         const simulation::RealtimeScheduleScene &scene) noexcept {
+        liquid_coupling_count_ = 0U;
         rigid_coupling_count_ = 0U;
         deformable_coupling_count_ = 0U;
         rigid_attachment_records_ = 0U;
@@ -3696,6 +4307,187 @@ private:
         const auto graph_generation = static_cast<std::uint32_t>(
             scene.graph_revision %
                 (std::numeric_limits<std::uint32_t>::max() - 1U)) + 1U;
+
+        const auto add_liquid = [&](std::uint64_t edge_id,
+                simulation::LiquidCouplingFamily family,
+                simulation::LiquidCouplingMode mode,
+                std::uint32_t liquid_generation,
+                std::uint32_t partner_generation) noexcept {
+            if (liquid_coupling_count_ >= liquid_couplings_.size())
+                return false;
+            liquid_couplings_[liquid_coupling_count_++] = {edge_id, family,
+                mode, liquid_generation, partner_generation, 1U};
+            return true;
+        };
+        constexpr simulation::LiquidCouplingMode liquid_modes[]{
+            simulation::LiquidCouplingMode::contact,
+            simulation::LiquidCouplingMode::pressure,
+            simulation::LiquidCouplingMode::viscosity};
+        for (const auto mode : liquid_modes) {
+            for (std::uint32_t slot = 0U;
+                 slot < state_.fluid_pair_couplings.size(); ++slot) {
+                const auto &owner = state_.fluid_pair_couplings[slot];
+                if (!owner || !owner->alive || !owner->options.enabled)
+                    continue;
+                if (owner->options.material_profile !=
+                    FluidPairMaterialProfile::equal)
+                    return PM_ERROR_FEATURE_NOT_PRESENT;
+                const auto &options = owner->options;
+                if (options.first.index >= state_.fluids.size() ||
+                    options.second.index >= state_.fluids.size() ||
+                    !state_.fluids[options.first.index] ||
+                    !state_.fluids[options.second.index] ||
+                    !state_.fluids[options.first.index]->alive ||
+                    !state_.fluids[options.second.index]->alive ||
+                    state_.fluids[options.first.index]->generation !=
+                        options.first.generation ||
+                    state_.fluids[options.second.index]->generation !=
+                        options.second.generation)
+                    return PM_ERROR_INVALID_STATE;
+                if (!add_liquid(0x510000000ULL +
+                        std::uint64_t{static_cast<std::uint32_t>(mode)} *
+                            0x100000ULL + slot,
+                        simulation::LiquidCouplingFamily::liquid, mode,
+                        options.first.generation,
+                        options.second.generation))
+                    return PM_ERROR_CAPACITY_EXCEEDED;
+            }
+        }
+        if (state_.rigid_body_count != 0U) {
+            constexpr simulation::LiquidCouplingMode rigid_modes[]{
+                simulation::LiquidCouplingMode::contact,
+                simulation::LiquidCouplingMode::containment};
+            for (const auto mode : rigid_modes) {
+                for (std::uint32_t slot = 0U;
+                     slot < state_.fluids.size(); ++slot) {
+                    const auto &owner = state_.fluids[slot];
+                    if (!owner || !owner->alive) continue;
+                    if (!add_liquid(0x520000000ULL +
+                            std::uint64_t{
+                                static_cast<std::uint32_t>(mode)} *
+                                0x100000ULL + slot,
+                            simulation::LiquidCouplingFamily::rigid, mode,
+                            owner->generation, graph_generation))
+                        return PM_ERROR_CAPACITY_EXCEEDED;
+                }
+            }
+        }
+        constexpr simulation::LiquidCouplingMode cloth_modes[]{
+            simulation::LiquidCouplingMode::contact,
+            simulation::LiquidCouplingMode::containment};
+        for (const auto mode : cloth_modes) {
+            for (std::uint32_t slot = 0U;
+                 slot < state_.fluid_cloth_couplings.size(); ++slot) {
+                const auto &coupling = state_.fluid_cloth_couplings[slot];
+                if (!coupling.alive || !coupling.options.enabled ||
+                    (mode == simulation::LiquidCouplingMode::contact
+                        ? !coupling.options.contact
+                        : !coupling.options.containment))
+                    continue;
+                const auto &options = coupling.options;
+                if (options.fluid.index >= state_.fluids.size() ||
+                    options.cloth.index >= state_.cloths.size() ||
+                    !state_.fluids[options.fluid.index] ||
+                    !state_.cloths[options.cloth.index] ||
+                    !state_.fluids[options.fluid.index]->alive ||
+                    !state_.cloths[options.cloth.index]->alive ||
+                    state_.fluids[options.fluid.index]->generation !=
+                        options.fluid.generation ||
+                    state_.cloths[options.cloth.index]->generation !=
+                        options.cloth.generation)
+                    return PM_ERROR_INVALID_STATE;
+                if (!add_liquid(0x530000000ULL +
+                        std::uint64_t{static_cast<std::uint32_t>(mode)} *
+                            0x100000ULL + slot,
+                        simulation::LiquidCouplingFamily::cloth, mode,
+                        options.fluid.generation,
+                        options.cloth.generation))
+                    return PM_ERROR_CAPACITY_EXCEEDED;
+            }
+        }
+        for (std::uint32_t slot = 0U;
+             slot < state_.fluid_soft_couplings.size(); ++slot) {
+            const auto &owner = state_.fluid_soft_couplings[slot];
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            const auto &options = owner->options;
+            if (options.fluid.index >= state_.fluids.size() ||
+                options.soft_body.index >= state_.soft_bodies.size() ||
+                !state_.fluids[options.fluid.index] ||
+                !state_.soft_bodies[options.soft_body.index] ||
+                !state_.fluids[options.fluid.index]->alive ||
+                !state_.soft_bodies[options.soft_body.index]->alive ||
+                state_.fluids[options.fluid.index]->generation !=
+                    options.fluid.generation ||
+                state_.soft_bodies[options.soft_body.index]->generation !=
+                    options.soft_body.generation)
+                return PM_ERROR_INVALID_STATE;
+            if (!add_liquid(0x540000000ULL + slot,
+                    simulation::LiquidCouplingFamily::soft_body,
+                    simulation::LiquidCouplingMode::contact,
+                    options.fluid.generation, options.soft_body.generation))
+                return PM_ERROR_CAPACITY_EXCEEDED;
+        }
+        for (std::uint32_t slot = 0U;
+             slot < state_.fluid_rope_couplings.size(); ++slot) {
+            const auto &owner = state_.fluid_rope_couplings[slot];
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            const auto &options = owner->options;
+            if (options.fluid.index >= state_.fluids.size() ||
+                options.rope.index >= state_.ropes.size() ||
+                !state_.fluids[options.fluid.index] ||
+                !state_.ropes[options.rope.index] ||
+                !state_.fluids[options.fluid.index]->alive ||
+                !state_.ropes[options.rope.index]->alive ||
+                state_.fluids[options.fluid.index]->generation !=
+                    options.fluid.generation ||
+                state_.ropes[options.rope.index]->generation !=
+                    options.rope.generation)
+                return PM_ERROR_INVALID_STATE;
+            if (!add_liquid(0x550000000ULL + slot,
+                    simulation::LiquidCouplingFamily::rope,
+                    simulation::LiquidCouplingMode::contact,
+                    options.fluid.generation, options.rope.generation))
+                return PM_ERROR_CAPACITY_EXCEEDED;
+        }
+        constexpr simulation::LiquidCouplingMode smoke_modes[]{
+            simulation::LiquidCouplingMode::drag,
+            simulation::LiquidCouplingMode::thermal};
+        constexpr simulation::LiquidCouplingFamily smoke_families[]{
+            simulation::LiquidCouplingFamily::smoke_particle,
+            simulation::LiquidCouplingFamily::smoke_grid};
+        for (const auto family : smoke_families) {
+            for (const auto mode : smoke_modes) {
+                for (std::uint32_t slot = 0U;
+                     slot < state_.fluid_smoke_couplings.size(); ++slot) {
+                    const auto &owner = state_.fluid_smoke_couplings[slot];
+                    if (!owner || !owner->alive) continue;
+                    const auto &options = owner->options;
+                    if (options.fluid.index >= state_.fluids.size() ||
+                        options.smoke.index >= state_.smokes.size() ||
+                        !state_.fluids[options.fluid.index] ||
+                        !state_.smokes[options.smoke.index] ||
+                        !state_.fluids[options.fluid.index]->alive ||
+                        !state_.smokes[options.smoke.index]->alive ||
+                        state_.fluids[options.fluid.index]->generation !=
+                            options.fluid.generation ||
+                        state_.smokes[options.smoke.index]->generation !=
+                            options.smoke.generation)
+                        return PM_ERROR_INVALID_STATE;
+                    const auto actual_family =
+                        state_.smokes[options.smoke.index]
+                        ->options.grid_resolution == 0U
+                            ? simulation::LiquidCouplingFamily::smoke_particle
+                            : simulation::LiquidCouplingFamily::smoke_grid;
+                    if (actual_family != family) continue;
+                    if (!add_liquid(0x560000000ULL +
+                            std::uint64_t{static_cast<std::uint32_t>(mode)} *
+                                0x100000ULL + slot,
+                            family, mode, options.fluid.generation,
+                            options.smoke.generation))
+                        return PM_ERROR_CAPACITY_EXCEEDED;
+                }
+            }
+        }
         if (state_.rigid_body_count != 0U) {
             for (std::uint32_t slot = 0U; slot < state_.cloths.size(); ++slot) {
                 const auto &owner = state_.cloths[slot];
@@ -3905,7 +4697,10 @@ private:
                 state_.realtime_coupling_active_host[record] = 1U;
             }
         }
-        return rigid_coupling_count_ == scene.coupling_edges[
+        return liquid_coupling_count_ == scene.coupling_edges[
+                   simulation::realtime_index(
+                       simulation::RealtimeCouplingFamily::liquid)] &&
+                rigid_coupling_count_ == scene.coupling_edges[
                    simulation::realtime_index(
                        simulation::RealtimeCouplingFamily::rigid)] &&
                 deformable_coupling_count_ == scene.coupling_edges[
@@ -4357,15 +5152,21 @@ private:
     simulation::ProductionSpatialSnapshot snapshot_{};
     simulation::SpatialEpochToken epoch_{};
     simulation::RigidRealtimeTickContract rigid_contract_{};
+    simulation::LiquidCouplingRealtimeTickContract
+        liquid_coupling_contract_{};
     simulation::RigidCouplingRealtimeTickContract rigid_coupling_contract_{};
     simulation::DeformableSmokeCouplingTickContract
         deformable_coupling_contract_{};
     std::array<simulation::RigidCouplingRegistration,
                simulation::rigid_coupling_realtime_maximum_edges>
         rigid_couplings_{};
+    std::array<simulation::LiquidCouplingRegistration,
+               simulation::liquid_coupling_realtime_maximum_edges>
+        liquid_couplings_{};
     std::array<simulation::DeformableSmokeCouplingRegistration,
                simulation::deformable_smoke_coupling_maximum_edges>
         deformable_couplings_{};
+    std::uint32_t liquid_coupling_count_{};
     std::uint32_t rigid_coupling_count_{};
     std::uint32_t deformable_coupling_count_{};
     std::uint32_t rigid_attachment_records_{};

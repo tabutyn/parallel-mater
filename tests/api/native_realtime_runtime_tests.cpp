@@ -850,7 +850,8 @@ int main(int argc, char **argv) {
         CHECK(rope_header->activeCount == 6U);
     }
     if (mixed_info.clothCount != 0U && mixed_info.softBodyCount != 0U &&
-        mixed_info.ropeCount != 0U) {
+        mixed_info.ropeCount != 0U && mixed_info.fluidCount == 2U &&
+        mixed_info.smokeCount != 0U) {
         PmRigidBodyInfo floor{};
         floor.active = PM_TRUE;
         floor.geometry = geometry;
@@ -907,6 +908,32 @@ int main(int argc, char **argv) {
         rope.pointCount = 2U;
         rope.pCenterline = rope_centerline;
 
+        auto *coupled_particles = reinterpret_cast<PmParticleState *>(
+            static_cast<std::byte *>(source_map) + 256U);
+        for (std::uint32_t index = 0U; index < 7U; ++index) {
+            coupled_particles[index] = {};
+            coupled_particles[index].position[0] =
+                -0.075F + static_cast<float>(index % 4U) * 0.05F;
+            coupled_particles[index].position[1] =
+                0.95F + static_cast<float>(index / 4U) * 0.05F;
+        }
+        const PmBufferView first_liquid{
+            {source, 256U, 4U * sizeof(PmParticleState)},
+            PM_FORMAT_PARTICLE_STATE, 4U, sizeof(PmParticleState)};
+        const PmBufferView second_liquid{
+            {source, 256U + 4U * sizeof(PmParticleState),
+             3U * sizeof(PmParticleState)},
+            PM_FORMAT_PARTICLE_STATE, 3U, sizeof(PmParticleState)};
+        PmSmokeInfo smoke{};
+        smoke.active = PM_TRUE;
+        smoke.particleCapacity = smoke_capacity.particleCapacity;
+        smoke.emitterCenter = {0.0F, 1.0F, 0.0F};
+        smoke.emitterHalfExtents = {0.1F, 0.1F};
+        smoke.particlesPerSecond = 120.0F;
+        smoke.lifetime = 2.0F;
+        smoke.gridMinimum = {-1.0F, 0.0F, -1.0F};
+        smoke.gridEdgeLength = 2.0F;
+
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
         CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
         CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
@@ -918,9 +945,15 @@ int main(int argc, char **argv) {
             commands, mixed_simulation, 0U, 1U, &soft_body) == PM_SUCCESS);
         CHECK(pmCmdWriteRopes(
             commands, mixed_simulation, 0U, 1U, &rope) == PM_SUCCESS);
+        CHECK(pmCmdSetFluidParticles(commands, mixed_simulation, 0U,
+                                     &first_liquid) == PM_SUCCESS);
+        CHECK(pmCmdSetFluidParticles(commands, mixed_simulation, 1U,
+                                     &second_liquid) == PM_SUCCESS);
+        CHECK(pmCmdWriteSmoke(
+            commands, mixed_simulation, 0U, 1U, &smoke) == PM_SUCCESS);
         execute(PM_SUCCESS);
 
-        std::array<PmCouplingStateInfo, 3> couplings{};
+        std::array<PmCouplingStateInfo, 9> couplings{};
         auto &rope_soft = couplings[0];
         rope_soft.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
         rope_soft.type = PM_COUPLING_ROPE_SOFT_BODY;
@@ -951,6 +984,73 @@ int main(int argc, char **argv) {
         rope_cloth.parameters.attachment.lastVertex = UINT32_MAX;
         rope_cloth.parameters.attachment.effectiveMass = 1.0F;
         rope_cloth.parameters.attachment.maximumAcceleration = 10.0F;
+        auto &liquid_rigid = couplings[3];
+        liquid_rigid.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        liquid_rigid.type = PM_COUPLING_LIQUID_RIGID;
+        liquid_rigid.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+            PM_INTERACTION_MODE_CONTAINMENT_BIT;
+        liquid_rigid.materialProfile =
+            PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+        liquid_rigid.parameters.mechanical.contactDistance = 0.02F;
+        liquid_rigid.parameters.mechanical.friction = 0.2F;
+        liquid_rigid.parameters.mechanical.maximumAcceleration = 10.0F;
+        liquid_rigid.parameters.mechanical.twoWay = PM_TRUE;
+        auto &liquid_pair = couplings[4];
+        liquid_pair.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        liquid_pair.type = PM_COUPLING_LIQUID_LIQUID;
+        liquid_pair.first = 0U;
+        liquid_pair.second = 1U;
+        liquid_pair.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+            PM_INTERACTION_MODE_PRESSURE_BIT |
+            PM_INTERACTION_MODE_VISCOSITY_BIT;
+        liquid_pair.materialProfile = PM_INTERACTION_MATERIAL_EQUAL;
+        liquid_pair.parameters.mechanical.twoWay = PM_TRUE;
+        auto &liquid_cloth = couplings[5];
+        liquid_cloth.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        liquid_cloth.type = PM_COUPLING_LIQUID_CLOTH;
+        liquid_cloth.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+            PM_INTERACTION_MODE_CONTAINMENT_BIT;
+        liquid_cloth.materialProfile =
+            PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+        liquid_cloth.parameters.mechanical.contactDistance = 0.02F;
+        liquid_cloth.parameters.mechanical.stiffness = 100.0F;
+        liquid_cloth.parameters.mechanical.damping = 1.0F;
+        liquid_cloth.parameters.mechanical.tangentialDrag = 0.2F;
+        liquid_cloth.parameters.mechanical.maximumForce = 10.0F;
+        liquid_cloth.parameters.mechanical.twoWay = PM_TRUE;
+        auto &liquid_rope = couplings[6];
+        liquid_rope.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        liquid_rope.type = PM_COUPLING_LIQUID_ROPE;
+        liquid_rope.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT;
+        liquid_rope.materialProfile =
+            PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+        liquid_rope.parameters.mechanical.contactDistance = 0.02F;
+        liquid_rope.parameters.mechanical.friction = 0.2F;
+        liquid_rope.parameters.mechanical.maximumAcceleration = 10.0F;
+        liquid_rope.parameters.mechanical.twoWay = PM_TRUE;
+        auto &liquid_soft = couplings[7];
+        liquid_soft.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        liquid_soft.type = PM_COUPLING_LIQUID_SOFT_BODY;
+        liquid_soft.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT;
+        liquid_soft.materialProfile =
+            PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
+        liquid_soft.parameters.mechanical.contactDistance = 0.02F;
+        liquid_soft.parameters.mechanical.friction = 0.2F;
+        liquid_soft.parameters.mechanical.twoWay = PM_TRUE;
+        auto &liquid_smoke = couplings[8];
+        liquid_smoke.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        liquid_smoke.type = PM_COUPLING_LIQUID_SMOKE;
+        liquid_smoke.modeFlags = PM_INTERACTION_MODE_DRAG_BIT |
+            PM_INTERACTION_MODE_THERMAL_BIT | PM_INTERACTION_MODE_PHASE_BIT;
+        liquid_smoke.materialProfile = PM_INTERACTION_MATERIAL_SMOKE_PARTICLE;
+        liquid_smoke.parameters.thermal.heaterOrientation[3] = 1.0F;
+        liquid_smoke.parameters.thermal.heaterHalfExtents[0] = 0.1F;
+        liquid_smoke.parameters.thermal.heaterHalfExtents[1] = 0.1F;
+        liquid_smoke.parameters.thermal.heaterTemperature = 120.0F;
+        liquid_smoke.parameters.thermal.boilingTemperature = 100.0F;
+        liquid_smoke.parameters.thermal.heatTransferRate = 0.2F;
+        liquid_smoke.parameters.thermal.windDrag = 0.1F;
+        liquid_smoke.parameters.thermal.steamRiseSpeed = 1.0F;
 
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
         CHECK(pmCmdSetCouplings2(commands, mixed_simulation,
@@ -961,6 +1061,9 @@ int main(int argc, char **argv) {
         const PmBufferRange cloth_range{cloth_output, 0U, 1024U};
         const PmBufferRange soft_range{soft_output, 0U, 1024U};
         const PmBufferRange rope_range{rope_output, 0U, 1024U};
+        const PmBufferRange first_fluid_range{fluid_output, 0U, 512U};
+        const PmBufferRange second_fluid_range{fluid_output, 512U, 512U};
+        const PmBufferRange smoke_range{smoke_output, 0U, 4096U};
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
         CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
         CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
@@ -973,6 +1076,12 @@ int main(int argc, char **argv) {
             commands, mixed_simulation, 0U, &soft_range) == PM_SUCCESS);
         CHECK(pmCmdCopyRopeState(
             commands, mixed_simulation, 0U, &rope_range) == PM_SUCCESS);
+        CHECK(pmCmdCopyFluidParticles(commands, mixed_simulation, 0U,
+                                      &first_fluid_range) == PM_SUCCESS);
+        CHECK(pmCmdCopyFluidParticles(commands, mixed_simulation, 1U,
+                                      &second_fluid_range) == PM_SUCCESS);
+        CHECK(pmCmdCopySmokeState(
+            commands, mixed_simulation, 0U, &smoke_range) == PM_SUCCESS);
         CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
         execute(PM_SUCCESS);
         PmRealtimeStepStatistics coupling_statistics{};
@@ -980,8 +1089,8 @@ int main(int argc, char **argv) {
             sizeof coupling_statistics, &coupling_statistics,
             sizeof coupling_statistics, PM_QUERY_RESULT_WAIT_BIT) ==
             PM_SUCCESS);
-        CHECK(coupling_statistics.couplingEdgeCount == 7U);
-        CHECK(coupling_statistics.couplingSweeps == 8U);
+        CHECK(coupling_statistics.couplingEdgeCount == 20U);
+        CHECK(coupling_statistics.couplingSweeps == 12U);
         CHECK(coupling_statistics.timeAdvances == 1U);
         CHECK(coupling_statistics.total.spatialIndexBuilds == 1U);
         CHECK(coupling_statistics.total.spatialIndexPublications == 1U);
@@ -1007,17 +1116,29 @@ int main(int argc, char **argv) {
         CHECK(std::isfinite(coupled_cloth[0].position.x));
         CHECK(std::isfinite(coupled_soft[1].position.x));
         CHECK(std::isfinite(coupled_rope[0].position.x));
+        const auto *coupled_fluid_header =
+            static_cast<const PmDomainOutputHeader *>(fluid_output_map);
+        const auto *coupled_smoke_header =
+            static_cast<const PmDomainOutputHeader *>(smoke_output_map);
+        CHECK(coupled_fluid_header->activeCount == 4U);
+        CHECK(coupled_smoke_header->activeCount != 0U);
 
         if (!production) {
             std::array<std::byte, 1024U> cloth_before_failure{};
             std::array<std::byte, 1024U> soft_before_failure{};
             std::array<std::byte, 1024U> rope_before_failure{};
+            std::array<std::byte, 1024U> fluid_before_failure{};
+            std::array<std::byte, 4096U> smoke_before_failure{};
             std::memcpy(cloth_before_failure.data(), cloth_output_map,
                         cloth_before_failure.size());
             std::memcpy(soft_before_failure.data(), soft_output_map,
                         soft_before_failure.size());
             std::memcpy(rope_before_failure.data(), rope_output_map,
                         rope_before_failure.size());
+            std::memcpy(fluid_before_failure.data(), fluid_output_map,
+                        fluid_before_failure.size());
+            std::memcpy(smoke_before_failure.data(), smoke_output_map,
+                        smoke_before_failure.size());
             CHECK(setenv(
                 "PM_TEST_REALTIME_LIMIT_MINUS_ONE", "workgroups", 1) == 0);
             CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
@@ -1033,6 +1154,12 @@ int main(int argc, char **argv) {
                 commands, mixed_simulation, 0U, &soft_range) == PM_SUCCESS);
             CHECK(pmCmdCopyRopeState(
                 commands, mixed_simulation, 0U, &rope_range) == PM_SUCCESS);
+            CHECK(pmCmdCopyFluidParticles(commands, mixed_simulation, 0U,
+                                          &first_fluid_range) == PM_SUCCESS);
+            CHECK(pmCmdCopyFluidParticles(commands, mixed_simulation, 1U,
+                                          &second_fluid_range) == PM_SUCCESS);
+            CHECK(pmCmdCopySmokeState(
+                commands, mixed_simulation, 0U, &smoke_range) == PM_SUCCESS);
             execute(PM_SUCCESS);
             CHECK(std::memcmp(cloth_before_failure.data(), cloth_output_map,
                               cloth_before_failure.size()) == 0);
@@ -1040,6 +1167,10 @@ int main(int argc, char **argv) {
                               soft_before_failure.size()) == 0);
             CHECK(std::memcmp(rope_before_failure.data(), rope_output_map,
                               rope_before_failure.size()) == 0);
+            CHECK(std::memcmp(fluid_before_failure.data(), fluid_output_map,
+                              fluid_before_failure.size()) == 0);
+            CHECK(std::memcmp(smoke_before_failure.data(), smoke_output_map,
+                              smoke_before_failure.size()) == 0);
         }
 
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
