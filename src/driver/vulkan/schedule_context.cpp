@@ -573,13 +573,16 @@ struct ScheduleContext::Impl {
     }
     void begin_barrier() {
         VkMemoryBarrier barrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-        barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+        barrier.srcAccessMask =
+            VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_HOST_WRITE_BIT;
         barrier.dstAccessMask =
             VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT |
             VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT |
             VK_ACCESS_TRANSFER_WRITE_BIT;
         vkCmdPipelineBarrier(
-            commands, VK_PIPELINE_STAGE_HOST_BIT,
+            commands,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
+                VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_HOST_BIT,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
             0, 1, &barrier, 0, nullptr, 0, nullptr);
     }
