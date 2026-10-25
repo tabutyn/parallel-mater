@@ -373,6 +373,43 @@ Status SimulationRuntime::add_smoke(SmokeOptions options, SmokeId &output) noexc
         StorageAllocator allocator;
         status = simulation::visit_smoke_grid_storage(grid, allocator);
         if (!status) return status;
+        std::vector<float> density_rate(grid.cell_count, 0.0F);
+        std::vector<float> temperature_rate(grid.cell_count, 0.0F);
+        std::vector<std::uint32_t> source_cells;
+        source_cells.reserve(grid.cell_count);
+        for (std::uint32_t cell = 0U; cell < grid.cell_count; ++cell) {
+            const std::uint32_t x = cell % grid.resolution;
+            const std::uint32_t y = cell / grid.resolution % grid.height;
+            const std::uint32_t z = cell / (grid.resolution * grid.height);
+            const Vec3 point{grid.minimum.x + (float(x) + 0.5F) * grid.spacing,
+                grid.minimum.y + (float(y) + 0.5F) * grid.spacing,
+                grid.minimum.z + (float(z) + 0.5F) * grid.spacing};
+            if (std::abs(point.x - options.emitter_center.x) <=
+                    1.5F * grid.spacing &&
+                std::abs(point.y - options.emitter_center.y) <=
+                    options.emitter_half_extents.x + 0.5F * grid.spacing &&
+                std::abs(point.z - options.emitter_center.z) <=
+                    options.emitter_half_extents.y + 0.5F * grid.spacing)
+                source_cells.push_back(cell);
+        }
+        if (!source_cells.empty()) {
+            const float rate = options.particles_per_second /
+                float(source_cells.size());
+            for (const std::uint32_t cell : source_cells) {
+                density_rate[cell] = rate;
+                temperature_rate[cell] = rate * options.buoyancy;
+            }
+        }
+        PmResult grid_error = copy_bytes_wait(grid.realtime_density_rate,
+            density_rate.data(), grid.cell_count * sizeof(float),
+            device::CopyDirection::host_to_device, impl_->execution);
+        if (grid_error == PM_SUCCESS)
+            grid_error = copy_bytes_wait(grid.realtime_temperature_rate,
+                temperature_rate.data(), grid.cell_count * sizeof(float),
+                device::CopyDirection::host_to_device, impl_->execution);
+        if (grid_error != PM_SUCCESS)
+            return backend_failure(grid_error,
+                "smoke grid source initialization failed");
         const auto blocks = (grid.cell_count + 255U) / 256U;
         const float wind[3]{options.wind.x, options.wind.y, options.wind.z};
         simulation::initialize_smoke_grid_cells(
@@ -408,7 +445,7 @@ Status SimulationRuntime::add_smoke(SmokeOptions options, SmokeId &output) noexc
             clear_bytes(level.residual, 0,
                 level.cell_count * sizeof(float), impl_->execution);
         }
-        PmResult grid_error = impl_->execution.services->last_error(false);
+        grid_error = impl_->execution.services->last_error(false);
         if (grid_error != PM_SUCCESS)
             return backend_failure(grid_error, "smoke grid initialization failed");
         grid_error = wait_queue(impl_->execution);
@@ -418,6 +455,19 @@ Status SimulationRuntime::add_smoke(SmokeOptions options, SmokeId &output) noexc
     StorageAllocator allocator;
     status = simulation::visit_smoke_particles_storage(*smoke, options.capacity, allocator);
     if (!status) return status;
+    std::vector<std::uint32_t> stable_ids(options.capacity);
+    std::iota(stable_ids.begin(), stable_ids.end(), 0U);
+    PmResult realtime_error = copy_bytes_wait(smoke->realtime_stable_ids,
+        stable_ids.data(), options.capacity * sizeof(std::uint32_t),
+        device::CopyDirection::host_to_device, impl_->execution);
+    const std::uint32_t empty_count = 0U;
+    if (realtime_error == PM_SUCCESS)
+        realtime_error = copy_bytes_wait(smoke->realtime_count, &empty_count,
+            sizeof(empty_count), device::CopyDirection::host_to_device,
+            impl_->execution);
+    if (realtime_error != PM_SUCCESS)
+        return backend_failure(realtime_error,
+            "smoke realtime initialization failed");
     smoke->alive = true;
     output = {slot, smoke->generation};
     impl_->smokes[slot] = std::move(smoke);

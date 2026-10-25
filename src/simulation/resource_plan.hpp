@@ -632,12 +632,19 @@ Status visit_smoke_grid_storage(State &state, Visitor &visit) noexcept {
     PM_STORAGE(velocity, state.cell_count);
     PM_STORAGE(density, state.cell_count);
     PM_STORAGE(temperature, state.cell_count);
+    PM_STORAGE(realtime_density[0], state.cell_count);
+    PM_STORAGE(realtime_density[1], state.cell_count);
+    PM_STORAGE(realtime_temperature[0], state.cell_count);
+    PM_STORAGE(realtime_temperature[1], state.cell_count);
+    PM_STORAGE(realtime_density_rate, state.cell_count);
+    PM_STORAGE(realtime_temperature_rate, state.cell_count);
     PM_STORAGE(density_accumulator, state.cell_count);
     PM_STORAGE(temperature_accumulator, state.cell_count);
     PM_STORAGE(pressure[0], state.cell_count);
     PM_STORAGE(pressure[1], state.cell_count);
     PM_STORAGE(divergence, state.cell_count);
     PM_STORAGE(residual, state.cell_count);
+    PM_STORAGE(realtime_divergence, state.cell_count);
     PM_STORAGE(vorticity, state.cell_count);
     PM_STORAGE(strain, state.cell_count);
     PM_STORAGE(subgrid_force, state.cell_count);
@@ -648,6 +655,7 @@ Status visit_smoke_grid_storage(State &state, Visitor &visit) noexcept {
     for (unsigned axis = 0; axis < 3; ++axis) {
         PM_STORAGE(face_velocity[axis][0], state.face_count[axis]);
         PM_STORAGE(face_velocity[axis][1], state.face_count[axis]);
+        PM_STORAGE(realtime_face_velocity[axis], state.face_count[axis]);
         PM_STORAGE(face_reverse[axis], state.face_count[axis]);
         PM_STORAGE(face_open[axis], state.face_count[axis]);
         PM_STORAGE(face_wall_velocity[axis], state.face_count[axis]);
@@ -687,6 +695,22 @@ Status visit_smoke_particles_storage(State &state, std::uint32_t capacity, Visit
     PM_STORAGE(indices[0], capacity, persistent);
     PM_STORAGE(indices[1], capacity, persistent);
     PM_STORAGE(rigid_impulses, capacity, persistent);
+    PM_STORAGE(realtime_positions, capacity, persistent);
+    PM_STORAGE(realtime_previous_positions, capacity, persistent);
+    PM_STORAGE(realtime_velocities, capacity, persistent);
+    PM_STORAGE(realtime_vorticities, capacity, persistent);
+    PM_STORAGE(realtime_ages, capacity, persistent);
+    PM_STORAGE(realtime_thermal_lift, capacity, persistent);
+    PM_STORAGE(realtime_number_densities, capacity, persistent);
+    PM_STORAGE(realtime_pressures, capacity, persistent);
+    PM_STORAGE(realtime_stable_ids, capacity, persistent);
+    PM_STORAGE(realtime_count, 1U, persistent);
+    PM_STORAGE(realtime_position_deltas, capacity, scratch);
+    PM_STORAGE(realtime_accumulated_corrections, capacity, scratch);
+    PM_STORAGE(realtime_candidate_counts, capacity, scratch);
+    PM_STORAGE(realtime_candidate_indices,
+        static_cast<std::size_t>(capacity) * 64U, scratch);
+    PM_STORAGE(realtime_time_advances, 1U, scratch);
     state.sort_workspace_size = radix_sort_scratch_bytes(capacity);
     PM_STORAGE(sort_workspace, state.sort_workspace_size, scratch);
 #undef PM_STORAGE

@@ -2,6 +2,10 @@
 // Included by runtime.cpp after NativeScheduleBackend is defined.
 namespace {
 
+inline constexpr std::uint32_t smoke_realtime_owner_tag = 0x80000000U;
+inline constexpr std::uint32_t smoke_realtime_spatial_mask = 1U << 4U;
+inline constexpr std::uint32_t smoke_realtime_candidates_per_particle = 64U;
+
 template <typename T>
 T *realtime_range(void *base,
                   simulation::SpatialBufferRange range) noexcept {
@@ -38,6 +42,12 @@ PmResult native_realtime_spatial_counts(
         if (total > std::numeric_limits<std::uint32_t>::max())
             return PM_ERROR_CAPACITY_EXCEEDED;
     }
+    for (const auto &owner : state.smokes) {
+        if (!owner || !owner->alive) continue;
+        total += owner->options.capacity;
+        if (total > std::numeric_limits<std::uint32_t>::max())
+            return PM_ERROR_CAPACITY_EXCEEDED;
+    }
     leaves = static_cast<std::uint32_t>(total);
     queries = leaves;
     return PM_SUCCESS;
@@ -67,6 +77,13 @@ simulation::RealtimeScheduleScene native_realtime_scene(
         simulation::RealtimeDomain::smoke)] = std::any_of(
             state.smokes.begin(), state.smokes.end(),
             [](const auto &owner) { return owner && owner->alive; });
+    for (const auto &owner : state.smokes) {
+        if (!owner || !owner->alive) continue;
+        scene.smoke_representation = owner->options.grid_resolution == 0U
+            ? simulation::SmokeRealtimeRepresentation::particles
+            : simulation::SmokeRealtimeRepresentation::grid;
+        break;
+    }
     scene.spatial_update = std::any_of(
         scene.domains.begin(), scene.domains.end(),
         [](bool present) { return present; })
@@ -143,7 +160,8 @@ PmResult native_realtime_registrations(
                          std::uint64_t elements) noexcept {
         return add_realtime_registration(
             result[simulation::realtime_index(family)], slot, generation,
-            elements, common_phases);
+            elements, common_phases |
+                simulation::realtime_domain_execution_phase_mask);
     };
     for (std::uint32_t slot = 0U; slot < state.fluids.size(); ++slot) {
         const auto &owner = state.fluids[slot];
@@ -351,6 +369,49 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                          simulation::rope_realtime_contact_passes));
             dispatch(commit, 1U, node_groups);
         }
+        for (const auto &owner : state.smokes) {
+            if (!owner || !owner->alive) continue;
+            const auto particle_groups =
+                (std::uint64_t{owner->options.capacity} + 127U) / 128U;
+            const auto particle_bytes =
+                std::uint64_t{owner->options.capacity};
+            boundary.bytes_moved +=
+                particle_bytes * (4U * sizeof(Vec3) + 4U * sizeof(float)) +
+                2U * sizeof(std::uint32_t);
+            boundary.barriers += 10U;
+            dispatch(index, 1U, particle_groups);
+            dispatch(candidates, 1U, particle_groups);
+            if (owner->options.grid_resolution == 0U) {
+                dispatch(predict, 2U, 2U * particle_groups);
+                dispatch(domain,
+                    3U * simulation::smoke_realtime_particle_sweeps,
+                    3U * simulation::smoke_realtime_particle_sweeps *
+                        particle_groups);
+                dispatch(commit, 1U, particle_groups);
+            } else {
+                const auto &grid = owner->grid;
+                const auto cell_groups =
+                    (std::uint64_t{grid.cell_count} + 127U) / 128U;
+                std::uint64_t face_groups = 0U;
+                std::uint64_t face_bytes = 0U;
+                for (std::uint32_t axis = 0U; axis < 3U; ++axis) {
+                    face_groups +=
+                        (std::uint64_t{grid.face_count[axis]} + 127U) / 128U;
+                    face_bytes += std::uint64_t{grid.face_count[axis]} *
+                        sizeof(float);
+                }
+                boundary.bytes_moved +=
+                    2ULL * grid.cell_count * sizeof(float) + face_bytes;
+                boundary.barriers += 5U;
+                dispatch(predict, 14U, 5U * cell_groups +
+                    3U * face_groups);
+                dispatch(domain,
+                    simulation::smoke_realtime_grid_pressure_cycles,
+                    simulation::smoke_realtime_grid_pressure_cycles *
+                        cell_groups);
+                dispatch(commit, 4U, face_groups + particle_groups);
+            }
+        }
         index.index_builds = 1U;
 #if !defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
         const auto spatial = simulation::spatial_build_dispatch_budget(
@@ -433,7 +494,17 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                 ? simulation::soft_body_realtime_constraint_sweeps : 0U) +
             (std::any_of(state.ropes.begin(), state.ropes.end(),
                 [](const auto &owner) { return owner && owner->alive; })
-                ? simulation::rope_realtime_constraint_sweeps : 0U);
+                ? simulation::rope_realtime_constraint_sweeps : 0U) +
+            (std::any_of(state.smokes.begin(), state.smokes.end(),
+                [](const auto &owner) { return owner && owner->alive; })
+                ? (std::any_of(state.smokes.begin(), state.smokes.end(),
+                       [](const auto &owner) {
+                           return owner && owner->alive &&
+                               owner->options.grid_resolution != 0U;
+                       })
+                       ? simulation::smoke_realtime_grid_pressure_cycles
+                       : simulation::smoke_realtime_particle_sweeps)
+                : 0U);
     }
     for (const auto &phase : limits.phase_maximum)
         (void)simulation::realtime_telemetry_detail::add(
@@ -481,13 +552,25 @@ simulation::RealtimeWorkCounters native_realtime_minimum(
     const bool soft = std::any_of(
         state.soft_bodies.begin(), state.soft_bodies.end(),
         [](const auto &owner) { return owner && owner->alive; });
-    const bool domain = rigid || fluid || cloth || soft;
+    const bool rope = std::any_of(
+        state.ropes.begin(), state.ropes.end(),
+        [](const auto &owner) { return owner && owner->alive; });
+    const bool smoke = std::any_of(
+        state.smokes.begin(), state.smokes.end(),
+        [](const auto &owner) { return owner && owner->alive; });
+    const bool grid_smoke = std::any_of(
+        state.smokes.begin(), state.smokes.end(), [](const auto &owner) {
+            return owner && owner->alive &&
+                owner->options.grid_resolution != 0U;
+        });
+    const bool domain = rigid || fluid || cloth || soft || rope || smoke;
     return {
         .dispatches = domain ? 1U : 0U,
         .workgroups = domain ? 1U : 0U,
         .bytes_moved = rigid
             ? std::uint64_t{state.rigid_body_count} * sizeof(RigidBodyState)
-            : ((fluid || cloth || soft) ? sizeof(Vec3) : 0U),
+            : ((fluid || cloth || soft || rope || smoke)
+                   ? sizeof(Vec3) : 0U),
         .index_builds = domain ? 1U : 0U,
         .index_refits = 0U,
         .index_publications = 1U,
@@ -496,9 +579,17 @@ simulation::RealtimeWorkCounters native_realtime_minimum(
                 (fluid ? simulation::fluid_realtime_density_sweeps : 0U) +
                 (cloth ? simulation::cloth_realtime_constraint_sweeps : 0U) +
                 (soft ? simulation::soft_body_realtime_constraint_sweeps : 0U)
+                + (rope ? simulation::rope_realtime_constraint_sweeps : 0U)
+                + (smoke ? (grid_smoke
+                    ? simulation::smoke_realtime_grid_pressure_cycles
+                    : simulation::smoke_realtime_particle_sweeps) : 0U)
             : (fluid ? simulation::fluid_realtime_density_sweeps : 0U) +
                 (cloth ? simulation::cloth_realtime_constraint_sweeps : 0U) +
-                (soft ? simulation::soft_body_realtime_constraint_sweeps : 0U),
+                (soft ? simulation::soft_body_realtime_constraint_sweeps : 0U) +
+                (rope ? simulation::rope_realtime_constraint_sweeps : 0U) +
+                (smoke ? (grid_smoke
+                    ? simulation::smoke_realtime_grid_pressure_cycles
+                    : simulation::smoke_realtime_particle_sweeps) : 0U),
         .barriers = domain ? 1U : 0U,
         .submissions = 1U,
         .readbacks = 0U,
@@ -520,7 +611,18 @@ native_realtime_phase_minimum(const State &state) noexcept {
     const bool soft = std::any_of(
         state.soft_bodies.begin(), state.soft_bodies.end(),
         [](const auto &owner) { return owner && owner->alive; });
-    const bool any_domain = rigid || fluid || cloth || soft;
+    const bool rope = std::any_of(
+        state.ropes.begin(), state.ropes.end(),
+        [](const auto &owner) { return owner && owner->alive; });
+    const bool smoke = std::any_of(
+        state.smokes.begin(), state.smokes.end(),
+        [](const auto &owner) { return owner && owner->alive; });
+    const bool grid_smoke = std::any_of(
+        state.smokes.begin(), state.smokes.end(), [](const auto &owner) {
+            return owner && owner->alive &&
+                owner->options.grid_resolution != 0U;
+        });
+    const bool any_domain = rigid || fluid || cloth || soft || rope || smoke;
     auto &index = minimum[simulation::realtime_index(
         simulation::RealtimeTelemetryPhase::index)];
     index.index_publications = 1U;
@@ -534,13 +636,17 @@ native_realtime_phase_minimum(const State &state) noexcept {
             (rigid ? simulation::rigid_realtime_sweeps : 0U) +
             (fluid ? simulation::fluid_realtime_density_sweeps : 0U) +
             (cloth ? simulation::cloth_realtime_constraint_sweeps : 0U) +
-            (soft ? simulation::soft_body_realtime_constraint_sweeps : 0U);
+            (soft ? simulation::soft_body_realtime_constraint_sweeps : 0U) +
+            (rope ? simulation::rope_realtime_constraint_sweeps : 0U) +
+            (smoke ? (grid_smoke
+                ? simulation::smoke_realtime_grid_pressure_cycles
+                : simulation::smoke_realtime_particle_sweeps) : 0U);
         domain.barriers = 1U;
     }
     auto &commit = minimum[simulation::realtime_index(
         simulation::RealtimeTelemetryPhase::commit)];
     commit.submissions = 1U;
-    if (rigid || fluid || cloth || soft) {
+    if (any_domain) {
         commit.dispatches = 1U;
         commit.workgroups = 1U;
     }
@@ -548,7 +654,7 @@ native_realtime_phase_minimum(const State &state) noexcept {
         commit.bytes_moved = sizeof(std::uint32_t);
         ++commit.barriers;
     }
-    if (rigid || fluid || cloth || soft) ++commit.barriers;
+    if (any_domain) ++commit.barriers;
     return minimum;
 }
 
@@ -627,7 +733,11 @@ public:
                  state_.options.realtime_spatial_leaf_capacity ||
             staged_queries_ >
                  state_.options.realtime_spatial_query_capacity ||
-            state_.options.realtime_spatial_candidates_per_query == 0U)
+            state_.options.realtime_spatial_candidates_per_query == 0U ||
+            (scene.domains[simulation::realtime_index(
+                 simulation::RealtimeDomain::smoke)] &&
+             state_.options.realtime_spatial_candidates_per_query <
+                 smoke_realtime_candidates_per_particle))
             return PM_ERROR_FEATURE_NOT_PRESENT;
         std::uint32_t fluid_offset = state_.rigid_body_count;
         for (auto &owner : state_.fluids) {
@@ -715,7 +825,108 @@ public:
             rope.realtime_query_offset = rope_offset;
             rope_offset += nodes - 1U;
         }
-        if (rope_offset != staged_leaves_)
+        std::uint32_t smoke_offset = rope_offset;
+        for (auto &owner : state_.smokes) {
+            if (!owner || !owner->alive) continue;
+            auto &smoke = *owner;
+            const auto representation = smoke.options.grid_resolution == 0U
+                ? simulation::SmokeRealtimeRepresentation::particles
+                : simulation::SmokeRealtimeRepresentation::grid;
+            if (representation != scene.smoke_representation)
+                return PM_ERROR_FEATURE_NOT_PRESENT;
+            const float characteristic = representation ==
+                    simulation::SmokeRealtimeRepresentation::particles
+                ? 3.0F * smoke.options.particle_radius
+                : smoke.grid.spacing;
+            const float viscosity = representation ==
+                    simulation::SmokeRealtimeRepresentation::particles
+                ? smoke.options.viscosity
+                : smoke.options.grid_kinematic_viscosity;
+            simulation::SmokeRealtimeInput material{};
+            material.representation = representation;
+            material.characteristic_length = characteristic;
+            material.maximum_speed = smoke.options.maximum_speed;
+            material.acceleration_displacement = smoke.options.buoyancy *
+                scene.timestep * scene.timestep;
+            material.solver_correction = representation ==
+                    simulation::SmokeRealtimeRepresentation::particles
+                ? simulation::smoke_realtime_maximum_correction_fraction *
+                    characteristic
+                : 0.0F;
+            material.response = smoke.options.response;
+            material.pressure_stiffness = smoke.options.pressure_stiffness;
+            material.viscosity = viscosity;
+            material.grid_resolution = smoke.options.grid_resolution;
+            material.grid_vertical_resolution =
+                smoke.options.grid_vertical_resolution;
+            const auto validate_coordinate = [&](float coordinate) noexcept {
+                material.world_coordinate = coordinate;
+                return simulation::validate_smoke_realtime_input(material);
+            };
+            auto validation = validate_coordinate(
+                smoke.options.emitter_center.x);
+            if (validation == PM_SUCCESS)
+                validation = validate_coordinate(
+                    smoke.options.emitter_center.y);
+            if (validation == PM_SUCCESS)
+                validation = validate_coordinate(
+                    smoke.options.emitter_center.z);
+            if (representation ==
+                    simulation::SmokeRealtimeRepresentation::grid) {
+                const Vec3 maximum{
+                    smoke.grid.minimum.x +
+                        smoke.grid.spacing * float(smoke.grid.resolution),
+                    smoke.grid.minimum.y +
+                        smoke.grid.spacing * float(smoke.grid.height),
+                    smoke.grid.minimum.z +
+                        smoke.grid.spacing * float(smoke.grid.resolution)};
+                if (validation == PM_SUCCESS)
+                    validation = validate_coordinate(smoke.grid.minimum.x);
+                if (validation == PM_SUCCESS)
+                    validation = validate_coordinate(smoke.grid.minimum.y);
+                if (validation == PM_SUCCESS)
+                    validation = validate_coordinate(smoke.grid.minimum.z);
+                if (validation == PM_SUCCESS)
+                    validation = validate_coordinate(maximum.x);
+                if (validation == PM_SUCCESS)
+                    validation = validate_coordinate(maximum.y);
+                if (validation == PM_SUCCESS)
+                    validation = validate_coordinate(maximum.z);
+                if (smoke.options.grid_pressure_iterations !=
+                    simulation::smoke_realtime_grid_pressure_cycles)
+                    validation = PM_ERROR_INVALID_ARGUMENT;
+            }
+            if (validation != PM_SUCCESS) return validation;
+            smoke.realtime_leaf_offset = smoke_offset;
+            smoke.realtime_query_offset = smoke_offset;
+            smoke_offset += smoke.options.capacity;
+
+            smoke.realtime_pending_count = smoke.count;
+            smoke.realtime_pending_next_slot = smoke.next_slot;
+            smoke.realtime_pending_emitted = smoke.emitted;
+            smoke.realtime_pending_emit_count = 0U;
+            smoke.realtime_pending_emission_fraction =
+                smoke.emission_fraction;
+            smoke.realtime_pending_time = float(std::fmod(
+                double(smoke.time) + double(scene.timestep), 1000.0));
+            if (representation ==
+                simulation::SmokeRealtimeRepresentation::particles) {
+                const double exact = double(smoke.emission_fraction) +
+                    double(smoke.options.particles_per_second) *
+                        scene.timestep;
+                const auto requested = static_cast<std::uint32_t>(std::min(
+                    std::floor(exact), double(smoke.options.capacity)));
+                smoke.realtime_pending_emit_count = requested;
+                smoke.realtime_pending_emission_fraction =
+                    float(exact - std::floor(exact));
+                smoke.realtime_pending_next_slot =
+                    (smoke.next_slot + requested) % smoke.options.capacity;
+                smoke.realtime_pending_count = std::min(
+                    smoke.options.capacity, smoke.count + requested);
+                smoke.realtime_pending_emitted = smoke.emitted + requested;
+            }
+        }
+        if (smoke_offset != staged_leaves_)
             return PM_ERROR_INVALID_STATE;
         std::array<simulation::RealtimeResourceRegistration,
                    simulation::realtime_resource_family_count>
@@ -934,6 +1145,93 @@ public:
                 rope.data.count * sizeof(std::uint8_t);
             boundary_work.barriers += 4U;
         }
+        for (auto &owner : state_.smokes) {
+            if (!owner || !owner->alive) continue;
+            auto &smoke = *owner;
+            const auto vector_bytes =
+                std::size_t(smoke.options.capacity) * sizeof(Vec3);
+            const auto scalar_bytes =
+                std::size_t(smoke.options.capacity) * sizeof(float);
+            auto result = native_.copy(
+                smoke.realtime_positions, smoke.positions, vector_bytes,
+                device::CopyDirection::device_to_device, native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.copy(smoke.realtime_previous_positions,
+                    smoke.previous_positions, vector_bytes,
+                    device::CopyDirection::device_to_device,
+                    native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.copy(smoke.realtime_velocities,
+                    smoke.velocities, vector_bytes,
+                    device::CopyDirection::device_to_device,
+                    native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.copy(smoke.realtime_vorticities,
+                    smoke.vorticities, vector_bytes,
+                    device::CopyDirection::device_to_device,
+                    native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.copy(smoke.realtime_ages, smoke.ages,
+                    scalar_bytes, device::CopyDirection::device_to_device,
+                    native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.copy(smoke.realtime_thermal_lift,
+                    smoke.thermal_lift, scalar_bytes,
+                    device::CopyDirection::device_to_device,
+                    native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.copy(smoke.realtime_number_densities,
+                    smoke.number_densities, scalar_bytes,
+                    device::CopyDirection::device_to_device,
+                    native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.copy(smoke.realtime_pressures,
+                    smoke.pressures, scalar_bytes,
+                    device::CopyDirection::device_to_device,
+                    native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.copy(smoke.realtime_count,
+                    &smoke.realtime_pending_count,
+                    sizeof(*smoke.realtime_count),
+                    device::CopyDirection::host_to_device,
+                    native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.clear(smoke.realtime_time_advances, 0,
+                    sizeof(*smoke.realtime_time_advances), native_.queue());
+            if (result != PM_SUCCESS) return result;
+            boundary_work.bytes_moved += 4U * vector_bytes +
+                4U * scalar_bytes + 2U * sizeof(std::uint32_t);
+            boundary_work.barriers += 10U;
+
+            if (smoke.options.grid_resolution == 0U) continue;
+            auto &grid = smoke.grid;
+            const auto cell_bytes =
+                std::size_t(grid.cell_count) * sizeof(float);
+            result = native_.copy(grid.realtime_density[0], grid.density,
+                cell_bytes, device::CopyDirection::device_to_device,
+                native_.queue());
+            if (result == PM_SUCCESS)
+                result = native_.copy(grid.realtime_temperature[0],
+                    grid.temperature, cell_bytes,
+                    device::CopyDirection::device_to_device,
+                    native_.queue());
+            std::uint64_t moved = 2U * cell_bytes;
+            std::uint32_t barriers = 2U;
+            for (std::uint32_t axis = 0U;
+                 result == PM_SUCCESS && axis < 3U; ++axis) {
+                const auto face_bytes =
+                    std::size_t(grid.face_count[axis]) * sizeof(float);
+                result = native_.copy(grid.face_velocity[axis][1],
+                    grid.face_velocity[axis][0], face_bytes,
+                    device::CopyDirection::device_to_device,
+                    native_.queue());
+                moved += face_bytes;
+                ++barriers;
+            }
+            if (result != PM_SUCCESS) return result;
+            boundary_work.bytes_moved += moved;
+            boundary_work.barriers += barriers;
+        }
         return PM_SUCCESS;
     }
 
@@ -1046,6 +1344,141 @@ public:
                 if (result != PM_SUCCESS) return result;
                 dispatch(simulation::RealtimeTelemetryPhase::predict,
                          groups);
+            }
+            return PM_SUCCESS;
+        }
+        if (domain == simulation::RealtimeDomain::smoke) {
+            for (auto &owner : state_.smokes) {
+                if (!owner || !owner->alive) continue;
+                auto &smoke = *owner;
+                const auto options = native_.smoke_domain_options(
+                    smoke.options);
+                const auto particle_groups =
+                    (smoke.options.capacity + block - 1U) / block;
+                if (smoke.options.grid_resolution == 0U) {
+                    const auto emit_groups = std::max(1U,
+                        (smoke.realtime_pending_emit_count + block - 1U) /
+                            block);
+                    native_.emit_smoke_realtime_particles(
+                        emit_groups, block, native_.queue(),
+                        smoke.realtime_positions,
+                        smoke.realtime_previous_positions,
+                        smoke.realtime_velocities, smoke.realtime_ages,
+                        smoke.realtime_thermal_lift,
+                        smoke.realtime_number_densities,
+                        smoke.realtime_pressures, options, smoke.next_slot,
+                        smoke.realtime_pending_emit_count, smoke.emitted,
+                        scene.timestep,
+                        simulation::smoke_realtime_profile_version,
+                        snapshot_.query_status);
+                    native_.predict_smoke_realtime_particles(
+                        particle_groups, block, native_.queue(),
+                        smoke.realtime_positions,
+                        smoke.realtime_previous_positions,
+                        smoke.realtime_velocities, smoke.realtime_ages,
+                        smoke.realtime_thermal_lift,
+                        smoke.realtime_pending_count, options,
+                        &options_.gravity.x, scene.timestep,
+                        simulation::smoke_realtime_profile_version,
+                        smoke.realtime_accumulated_corrections,
+                        smoke.realtime_time_advances,
+                        snapshot_.query_status);
+                    const auto result = native_.check_error();
+                    if (result != PM_SUCCESS) return result;
+                    dispatches(simulation::RealtimeTelemetryPhase::predict,
+                        2U, std::uint64_t{emit_groups} + particle_groups);
+                    continue;
+                }
+
+                auto &grid = smoke.grid;
+                const auto cell_groups =
+                    (grid.cell_count + block - 1U) / block;
+                auto current = native_.smoke_dispatch_grid(grid);
+                current.density = grid.realtime_density[0];
+                current.pressure = grid.pressure[1];
+                for (std::uint32_t axis = 0U; axis < 3U; ++axis)
+                    current.face_velocity[axis] =
+                        grid.face_velocity[axis][1];
+                native_.begin_smoke_grid_realtime(
+                    cell_groups, block, native_.queue(), current, options,
+                    scene.timestep,
+                    simulation::smoke_realtime_profile_version,
+                    grid.pressure[1], grid.realtime_divergence,
+                    smoke.realtime_time_advances, snapshot_.query_status);
+                native_.apply_smoke_grid_realtime_source(
+                    cell_groups, block, native_.queue(), current, options,
+                    grid.realtime_density_rate,
+                    grid.realtime_temperature_rate,
+                    grid.realtime_density[0],
+                    grid.realtime_temperature[0], scene.timestep,
+                    simulation::smoke_realtime_profile_version,
+                    snapshot_.query_status);
+                native_.advect_smoke_grid_realtime_scalar(
+                    cell_groups, block, native_.queue(), current, options,
+                    grid.realtime_density[0], grid.realtime_density[1],
+                    scene.timestep,
+                    simulation::smoke_realtime_profile_version,
+                    snapshot_.query_status);
+                native_.advect_smoke_grid_realtime_scalar(
+                    cell_groups, block, native_.queue(), current, options,
+                    grid.realtime_temperature[0],
+                    grid.realtime_temperature[1], scene.timestep,
+                    simulation::smoke_realtime_profile_version,
+                    snapshot_.query_status);
+                std::uint64_t face_groups = 0U;
+                for (std::uint32_t axis = 0U; axis < 3U; ++axis) {
+                    const auto groups =
+                        (grid.face_count[axis] + block - 1U) / block;
+                    face_groups += groups;
+                    native_.advect_smoke_grid_realtime_face(
+                        groups, block, native_.queue(), int(axis), current,
+                        options, grid.face_velocity[axis][1],
+                        grid.realtime_face_velocity[axis], scene.timestep,
+                        simulation::smoke_realtime_profile_version,
+                        snapshot_.query_status);
+                }
+                auto advected = current;
+                advected.density = grid.realtime_density[1];
+                for (std::uint32_t axis = 0U; axis < 3U; ++axis)
+                    advected.face_velocity[axis] =
+                        grid.realtime_face_velocity[axis];
+                for (std::uint32_t axis = 0U; axis < 3U; ++axis) {
+                    const auto groups =
+                        (grid.face_count[axis] + block - 1U) / block;
+                    native_.apply_smoke_grid_realtime_face_forces(
+                        groups, block, native_.queue(), int(axis), advected,
+                        options, grid.realtime_face_velocity[axis],
+                        grid.face_velocity[axis][1], grid.face_open[axis],
+                        grid.face_wall_velocity[axis], grid.strain,
+                        grid.subgrid_force, grid.realtime_temperature[1],
+                        scene.timestep, &options_.gravity.x,
+                        simulation::smoke_realtime_profile_version,
+                        snapshot_.query_status);
+                }
+                auto forced = advected;
+                for (std::uint32_t axis = 0U; axis < 3U; ++axis)
+                    forced.face_velocity[axis] =
+                        grid.face_velocity[axis][1];
+                for (std::uint32_t axis = 0U; axis < 3U; ++axis) {
+                    const auto groups =
+                        (grid.face_count[axis] + block - 1U) / block;
+                    native_.apply_smoke_grid_realtime_boundaries(
+                        groups, block, native_.queue(), int(axis), forced,
+                        options, grid.face_velocity[axis][1],
+                        grid.face_open[axis],
+                        grid.face_wall_velocity[axis], scene.timestep,
+                        simulation::smoke_realtime_profile_version,
+                        snapshot_.query_status);
+                }
+                native_.calculate_smoke_grid_realtime_divergence(
+                    cell_groups, block, native_.queue(), forced, options,
+                    grid.realtime_divergence, scene.timestep,
+                    simulation::smoke_realtime_profile_version,
+                    snapshot_.query_status);
+                const auto result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatches(simulation::RealtimeTelemetryPhase::predict,
+                    14U, 5ULL * cell_groups + 3ULL * face_groups);
             }
             return PM_SUCCESS;
         }
@@ -1251,6 +1684,45 @@ public:
             dispatch(simulation::RealtimeTelemetryPhase::index,
                      rope_groups);
         }
+        for (std::uint32_t slot = 0U; slot < state_.smokes.size(); ++slot) {
+            auto &owner = state_.smokes[slot];
+            if (!owner || !owner->alive) continue;
+            auto &smoke = *owner;
+            const auto smoke_groups =
+                (smoke.options.capacity + block - 1U) / block;
+            const float support = smoke.options.grid_resolution == 0U
+                ? 3.0F * smoke.options.particle_radius
+                : smoke.grid.spacing;
+            const float smoke_correction[3]{
+                simulation::smoke_realtime_maximum_correction_fraction *
+                    support,
+                simulation::smoke_realtime_maximum_correction_fraction *
+                    support,
+                simulation::smoke_realtime_maximum_correction_fraction *
+                    support};
+            native_.emit_fluid_spatial_particles(
+                smoke_groups, block, native_.queue(), smoke.positions,
+                smoke.realtime_positions, smoke.realtime_stable_ids,
+                smoke.realtime_count, smoke.options.capacity,
+                slot | smoke_realtime_owner_tag, smoke.generation,
+                static_cast<std::uint32_t>(
+                    scene.graph_revision %
+                    (std::numeric_limits<std::uint32_t>::max() - 1U)) + 1U,
+                smoke.realtime_leaf_offset,
+                state_.realtime_spatial_plan.leaf_capacity,
+                smoke.realtime_query_offset,
+                state_.realtime_spatial_plan.query_capacity,
+                smoke.realtime_leaf_offset, smoke_realtime_spatial_mask,
+                smoke_realtime_spatial_mask, 0.0F, support,
+                path_deviation, smoke_correction, 1.0e-5F,
+                snapshot_.metadata, snapshot_.bounds,
+                snapshot_.build_flags, query_bounds, query_masks, excluded,
+                query_leaf_sources, snapshot_.query_status);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatch(simulation::RealtimeTelemetryPhase::index,
+                     smoke_groups);
+        }
 #if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
         result = state_.realtime_spatial.update(
             simulation::SpatialUpdateKind::build);
@@ -1377,6 +1849,34 @@ public:
                 candidates_per_query, filtered_counts + query_offset,
                 filtered_sources +
                     std::size_t(query_offset) * candidates_per_query,
+                snapshot_.query_status);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatch(simulation::RealtimeTelemetryPhase::candidates,
+                     groups);
+        }
+        for (std::uint32_t slot = 0U; slot < state_.smokes.size(); ++slot) {
+            auto &owner = state_.smokes[slot];
+            if (!owner || !owner->alive) continue;
+            auto &smoke = *owner;
+            const auto groups =
+                (smoke.options.capacity + block - 1U) / block;
+            const auto query_offset = smoke.realtime_query_offset;
+            native_.filter_fluid_spatial_candidates(
+                groups, block, native_.queue(), snapshot_.metadata,
+                snapshot_.admission,
+                state_.realtime_spatial_plan.leaf_capacity,
+                query_leaf_sources + query_offset, smoke.options.capacity,
+                slot | smoke_realtime_owner_tag, smoke.generation,
+                smoke.realtime_stable_ids, smoke.realtime_count,
+                smoke.options.capacity, slot | smoke_realtime_owner_tag,
+                smoke.generation, smoke.realtime_stable_ids,
+                smoke.realtime_count, smoke.options.capacity,
+                snapshot_.query_counts + query_offset,
+                snapshot_.query_candidates +
+                    std::size_t(query_offset) * candidates_per_query,
+                candidates_per_query, smoke.realtime_candidate_counts,
+                smoke.realtime_candidate_indices,
                 snapshot_.query_status);
             result = native_.check_error();
             if (result != PM_SUCCESS) return result;
@@ -1771,6 +2271,8 @@ public:
             }
             return PM_SUCCESS;
         }
+        if (domain == simulation::RealtimeDomain::smoke)
+            return solve_smoke_domain(iteration, scene);
         if (domain != simulation::RealtimeDomain::rigid)
             return PM_ERROR_FEATURE_NOT_PRESENT;
         ++work(simulation::RealtimeTelemetryPhase::domain)
@@ -1899,6 +2401,60 @@ public:
             result = native_.check_error();
             if (result != PM_SUCCESS) return result;
         }
+        for (auto &owner : state_.smokes) {
+            if (!owner || !owner->alive) continue;
+            auto &smoke = *owner;
+            const auto groups =
+                (smoke.options.capacity + block - 1U) / block;
+            const auto smoke_options = native_.smoke_domain_options(
+                smoke.options);
+            if (smoke.options.grid_resolution == 0U) {
+                native_.commit_smoke_realtime_particles(
+                    groups, block, native_.queue(),
+                    smoke.realtime_positions,
+                    smoke.realtime_previous_positions,
+                    smoke.realtime_velocities, smoke.realtime_ages,
+                    smoke.realtime_thermal_lift,
+                    smoke.realtime_pending_count, smoke_options,
+                    scene.timestep,
+                    simulation::smoke_realtime_profile_version,
+                    snapshot_.query_status);
+            } else {
+                auto &grid = smoke.grid;
+                auto field = native_.smoke_dispatch_grid(grid);
+                field.density = grid.realtime_density[1];
+                field.pressure = grid.pressure[1];
+                for (std::uint32_t axis = 0U; axis < 3U; ++axis)
+                    field.face_velocity[axis] =
+                        grid.face_velocity[axis][1];
+                for (std::uint32_t axis = 0U; axis < 3U; ++axis) {
+                    const auto face_groups =
+                        (grid.face_count[axis] + block - 1U) / block;
+                    native_.project_smoke_grid_realtime_face(
+                        face_groups, block, native_.queue(), int(axis),
+                        field, smoke_options, grid.pressure[1],
+                        grid.face_velocity[axis][1], grid.face_open[axis],
+                        grid.face_wall_velocity[axis], scene.timestep,
+                        simulation::smoke_realtime_profile_version,
+                        snapshot_.query_status);
+                }
+                native_.trace_smoke_grid_realtime_particles(
+                    groups, block, native_.queue(),
+                    smoke.realtime_positions,
+                    smoke.realtime_previous_positions,
+                    smoke.realtime_velocities, smoke.realtime_ages,
+                    smoke.realtime_thermal_lift,
+                    smoke.realtime_number_densities,
+                    smoke.realtime_pressures,
+                    smoke.realtime_vorticities,
+                    smoke.realtime_pending_count, smoke_options, field,
+                    scene.timestep,
+                    simulation::smoke_realtime_profile_version,
+                    snapshot_.query_status);
+            }
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+        }
         if (state_.rigid_body_count != 0U) {
             const auto groups =
                 (state_.rigid_body_count + block - 1U) / block;
@@ -1947,6 +2503,37 @@ public:
             std::swap(owner->data.positions, owner->realtime_positions);
             std::swap(owner->data.velocities, owner->realtime_velocities);
         }
+        for (auto &owner : state_.smokes) {
+            if (!owner || !owner->alive) continue;
+            auto &smoke = *owner;
+            std::swap(smoke.positions, smoke.realtime_positions);
+            std::swap(smoke.previous_positions,
+                      smoke.realtime_previous_positions);
+            std::swap(smoke.velocities, smoke.realtime_velocities);
+            std::swap(smoke.vorticities, smoke.realtime_vorticities);
+            std::swap(smoke.ages, smoke.realtime_ages);
+            std::swap(smoke.thermal_lift, smoke.realtime_thermal_lift);
+            std::swap(smoke.number_densities,
+                      smoke.realtime_number_densities);
+            std::swap(smoke.pressures, smoke.realtime_pressures);
+            if (smoke.options.grid_resolution != 0U) {
+                auto &grid = smoke.grid;
+                std::swap(grid.density, grid.realtime_density[1]);
+                std::swap(grid.temperature, grid.realtime_temperature[1]);
+                std::swap(grid.pressure[0], grid.pressure[1]);
+                std::swap(grid.divergence, grid.realtime_divergence);
+                for (std::uint32_t axis = 0U; axis < 3U; ++axis)
+                    std::swap(grid.face_velocity[axis][0],
+                              grid.face_velocity[axis][1]);
+            }
+            smoke.count = smoke.realtime_pending_count;
+            smoke.next_slot = smoke.realtime_pending_next_slot;
+            smoke.emitted = smoke.realtime_pending_emitted;
+            smoke.emission_fraction =
+                smoke.realtime_pending_emission_fraction;
+            smoke.time = smoke.realtime_pending_time;
+            smoke.index_dirty = true;
+        }
         ++state_.frame_index;
         ++state_.revision;
         state_.rigid_contact_revision = state_.revision;
@@ -1965,6 +2552,8 @@ public:
         for (auto &owner : state_.soft_bodies)
             if (owner && owner->alive) owner->realtime_contract = {};
         for (auto &owner : state_.ropes)
+            if (owner && owner->alive) owner->realtime_contract = {};
+        for (auto &owner : state_.smokes)
             if (owner && owner->alive) owner->realtime_contract = {};
         return PM_SUCCESS;
     }
@@ -2069,6 +2658,139 @@ private:
                 (owner->data.count + 127U) / 128U;
             dispatch(simulation::RealtimeTelemetryPhase::commit, groups);
         }
+        for (const auto &owner : state_.smokes) {
+            if (!owner || !owner->alive) continue;
+            const auto groups =
+                (owner->options.capacity + 127U) / 128U;
+            if (owner->options.grid_resolution == 0U) {
+                dispatch(simulation::RealtimeTelemetryPhase::commit,
+                         groups);
+                continue;
+            }
+            std::uint64_t face_groups = 0U;
+            for (std::uint32_t axis = 0U; axis < 3U; ++axis)
+                face_groups +=
+                    (std::uint64_t{owner->grid.face_count[axis]} + 127U) /
+                    128U;
+            dispatches(simulation::RealtimeTelemetryPhase::commit, 4U,
+                       face_groups + groups);
+        }
+    }
+
+    PmResult solve_smoke_domain(
+        std::uint32_t iteration,
+        const simulation::RealtimeScheduleScene &scene) noexcept {
+        ++work(simulation::RealtimeTelemetryPhase::domain)
+              .numerical_iterations;
+        const auto *counters = state_.realtime_spatial.counters(epoch_);
+        if (counters == nullptr) return PM_ERROR_INVALID_STATE;
+        constexpr std::uint32_t block = 128U;
+        for (auto &owner : state_.smokes) {
+            if (!owner || !owner->alive) continue;
+            auto &smoke = *owner;
+            const auto options = native_.smoke_domain_options(smoke.options);
+            if (iteration == 0U) {
+                const auto budget = smoke.options.grid_resolution == 0U
+                    ? simulation::smoke_realtime_particle_work_budget(
+                          smoke.realtime_pending_count,
+                          smoke.options.capacity,
+                          smoke_realtime_candidates_per_particle)
+                    : simulation::smoke_realtime_grid_work_budget(
+                          smoke.realtime_pending_count,
+                          smoke.options.capacity, smoke.grid.resolution,
+                          smoke.grid.height);
+                auto result = smoke.realtime_contract.begin(
+                    epoch_, *counters, budget);
+                if (result != PM_SUCCESS) return result;
+                result = smoke.realtime_contract.record_advance(
+                    scene.timestep, scene.substeps);
+                if (result != PM_SUCCESS) return result;
+            }
+            if (smoke.options.grid_resolution == 0U) {
+                const auto groups =
+                    (smoke.options.capacity + block - 1U) / block;
+                native_.solve_smoke_realtime_density_pressure(
+                    groups, block, native_.queue(),
+                    smoke.realtime_positions, smoke.realtime_ages,
+                    smoke.realtime_pending_count, options,
+                    smoke.realtime_candidate_counts,
+                    smoke.realtime_candidate_indices,
+                    smoke_realtime_candidates_per_particle,
+                    scene.timestep,
+                    simulation::smoke_realtime_profile_version,
+                    smoke.realtime_number_densities,
+                    smoke.realtime_pressures, snapshot_.query_status);
+                native_.solve_smoke_realtime_position_delta(
+                    groups, block, native_.queue(),
+                    smoke.realtime_positions, smoke.realtime_velocities,
+                    smoke.realtime_ages, smoke.realtime_pending_count,
+                    options, smoke.realtime_candidate_counts,
+                    smoke.realtime_candidate_indices,
+                    smoke_realtime_candidates_per_particle,
+                    smoke.realtime_number_densities,
+                    smoke.realtime_pressures,
+                    smoke.realtime_accumulated_corrections,
+                    smoke.realtime_position_deltas, scene.timestep,
+                    simulation::smoke_realtime_profile_version,
+                    snapshot_.query_status);
+                native_.apply_smoke_realtime_position_delta(
+                    groups, block, native_.queue(),
+                    smoke.realtime_positions,
+                    smoke.realtime_position_deltas,
+                    smoke.realtime_accumulated_corrections,
+                    smoke.realtime_ages, smoke.realtime_pending_count,
+                    options, scene.timestep,
+                    simulation::smoke_realtime_profile_version,
+                    snapshot_.query_status);
+                auto result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatches(simulation::RealtimeTelemetryPhase::domain, 3U,
+                           3ULL * groups);
+                result = smoke.realtime_contract.record_spatial_pass(
+                    epoch_, *counters);
+                if (result != PM_SUCCESS) return result;
+            } else {
+                auto &grid = smoke.grid;
+                const auto groups =
+                    (grid.cell_count + block - 1U) / block;
+                auto field = native_.smoke_dispatch_grid(grid);
+                field.density = grid.realtime_density[1];
+                field.pressure = grid.pressure[1];
+                for (std::uint32_t axis = 0U; axis < 3U; ++axis)
+                    field.face_velocity[axis] =
+                        grid.face_velocity[axis][1];
+                const float *pressure = (iteration & 1U) == 0U
+                    ? grid.pressure[1] : grid.residual;
+                float *next = (iteration & 1U) == 0U
+                    ? grid.residual : grid.pressure[1];
+                native_.solve_smoke_grid_realtime_pressure_cycle(
+                    groups, block, native_.queue(), field, options,
+                    grid.realtime_divergence, pressure, next,
+                    grid.face_open[0], grid.face_open[1],
+                    grid.face_open[2], scene.timestep,
+                    simulation::smoke_realtime_profile_version,
+                    snapshot_.query_status);
+                auto result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatch(simulation::RealtimeTelemetryPhase::domain,
+                         groups);
+                if (iteration == 0U) {
+                    result = smoke.realtime_contract.record_spatial_pass(
+                        epoch_, *counters);
+                    if (result != PM_SUCCESS) return result;
+                }
+            }
+            auto result = smoke.realtime_contract.record_iteration();
+            if (result != PM_SUCCESS) return result;
+            const auto expected = smoke.options.grid_resolution == 0U
+                ? simulation::smoke_realtime_particle_sweeps
+                : simulation::smoke_realtime_grid_pressure_cycles;
+            if (iteration + 1U == expected) {
+                result = smoke.realtime_contract.finish();
+                if (result != PM_SUCCESS) return result;
+            }
+        }
+        return PM_SUCCESS;
     }
 
     PmResult emit_rigid_solve(

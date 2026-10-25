@@ -34,6 +34,7 @@
 #include "simulation/fluid_realtime.hpp"
 #include "simulation/rigid_realtime.hpp"
 #include "simulation/soft_body_realtime.hpp"
+#include "simulation/smoke_realtime.hpp"
 
 #include <algorithm>
 #include <array>

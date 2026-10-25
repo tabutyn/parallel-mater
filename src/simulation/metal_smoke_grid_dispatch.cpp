@@ -10,6 +10,131 @@ using metal_bindings::vector;
 using metal_bindings::smoke_options;
 } // namespace
 
+void begin_smoke_grid_realtime(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, float timestep,
+    std::uint32_t profile_version, float *pressure, float *divergence,
+    std::uint32_t *time_advances, std::uint32_t *status) noexcept {
+    (void)metal::launch(stream, "smoke_realtime_grid_begin", grid,
+        metal::grid_record(field), smoke_options(options), timestep,
+        profile_version, pressure, divergence, time_advances, status);
+}
+
+void apply_smoke_grid_realtime_source(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, const float *density_rate,
+    const float *temperature_rate, float *density, float *temperature,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    (void)metal::launch(stream, "smoke_realtime_grid_source", grid,
+        metal::grid_record(field), smoke_options(options), density_rate,
+        temperature_rate, density, temperature, timestep, profile_version,
+        status);
+}
+
+void advect_smoke_grid_realtime_scalar(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, const float *source,
+    float *destination, float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    (void)metal::launch(stream, "smoke_realtime_grid_advect_scalar", grid,
+        metal::grid_record(field), smoke_options(options), source,
+        destination, timestep, profile_version, status);
+}
+
+void advect_smoke_grid_realtime_face(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, int axis,
+    const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, const float *source,
+    float *destination, float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    (void)metal::launch(stream, "smoke_realtime_grid_advect_face", grid,
+        axis, metal::grid_record(field), smoke_options(options), source,
+        destination, timestep, profile_version, status);
+}
+
+void apply_smoke_grid_realtime_face_forces(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, int axis,
+    const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, const float *source,
+    float *destination, const float *open, const float *wall,
+    const float *strain, const void *subgrid, const float *temperature,
+    float timestep, const float gravity[3], std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    (void)metal::launch(stream, "smoke_realtime_grid_face_forces", grid,
+        axis, metal::grid_record(field), smoke_options(options), source,
+        destination, open, wall, strain, subgrid, temperature, timestep,
+        vector(gravity), profile_version, status);
+}
+
+void apply_smoke_grid_realtime_boundaries(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, int axis,
+    const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, float *values,
+    const float *open, const float *wall, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept {
+    (void)metal::launch(stream, "smoke_realtime_grid_boundaries", grid,
+        axis, metal::grid_record(field), smoke_options(options), values,
+        open, wall, timestep, profile_version, status);
+}
+
+void calculate_smoke_grid_realtime_divergence(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, float *divergence,
+    float timestep, std::uint32_t profile_version,
+    std::uint32_t *status) noexcept {
+    (void)metal::launch(stream, "smoke_realtime_grid_divergence", grid,
+        metal::grid_record(field), smoke_options(options), divergence,
+        timestep, profile_version, status);
+}
+
+void solve_smoke_grid_realtime_pressure_cycle(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, const float *rhs,
+    const float *pressure, float *next, const float *open_x,
+    const float *open_y, const float *open_z, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept {
+    (void)metal::launch(stream, "smoke_realtime_grid_pressure_cycle", grid,
+        metal::grid_record(field), smoke_options(options), rhs, pressure,
+        next, open_x, open_y, open_z, timestep, profile_version, status);
+}
+
+void project_smoke_grid_realtime_face(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, int axis,
+    const SmokeGridDispatchField &field,
+    const SmokeDomainDispatchOptions &options, const float *pressure,
+    float *velocity, const float *open, const float *wall, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept {
+    (void)metal::launch(stream, "smoke_realtime_grid_project_face", grid,
+        axis, metal::grid_record(field), smoke_options(options), pressure,
+        velocity, open, wall, timestep, profile_version, status);
+}
+
+void trace_smoke_grid_realtime_particles(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, void *positions,
+    void *previous_positions, void *velocities, float *ages,
+    float *thermal_lift, float *number_densities, float *pressures,
+    void *vorticities, std::uint32_t count,
+    const SmokeDomainDispatchOptions &options,
+    const SmokeGridDispatchField &field, float timestep,
+    std::uint32_t profile_version, std::uint32_t *status) noexcept {
+    (void)metal::launch(stream, "smoke_realtime_grid_trace", grid,
+        positions, previous_positions, velocities, ages, thermal_lift,
+        number_densities, pressures, vorticities, count,
+        smoke_options(options), metal::grid_record(field), timestep,
+        profile_version, status);
+}
+
 void initialize_smoke_grid_cells(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *velocity,
     float *density, float *temperature, float *pressure, float *divergence,

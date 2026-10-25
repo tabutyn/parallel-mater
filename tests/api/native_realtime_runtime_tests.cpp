@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
     };
 
     void *source_map{}, *output_map{}, *fluid_output_map{}, *cloth_output_map{},
-        *soft_output_map{}, *rope_output_map{};
+        *soft_output_map{}, *rope_output_map{}, *smoke_output_map{};
     const auto source = buffer(512U, &source_map);
     const auto output = buffer(
         body_count * sizeof(PmRigidState), &output_map);
@@ -81,6 +81,7 @@ int main(int argc, char **argv) {
     const auto cloth_output = buffer(1024U, &cloth_output_map);
     const auto soft_output = buffer(1024U, &soft_output_map);
     const auto rope_output = buffer(1024U, &rope_output_map);
+    const auto smoke_output = buffer(4096U, &smoke_output_map);
     const float vertices[8][3] = {
         {-0.5F,-0.5F,-0.5F},{0.5F,-0.5F,-0.5F},
         {0.5F,0.5F,-0.5F},{-0.5F,0.5F,-0.5F},
@@ -130,7 +131,7 @@ int main(int argc, char **argv) {
     const PmClothCapacity cloth_capacity{3U, 3U, 3U};
     const PmRopeCapacity rope_capacity{6U};
     const PmSoftBodyCapacity soft_capacity{8U, 16U, 8U, 18U};
-    const PmSmokeCapacity smoke_capacity{4U, 8U};
+    const PmSmokeCapacity smoke_capacity{32U, 16U * 8U * 16U};
     PmSimulationCreateInfo mixed_info = simulation_info;
     mixed_info.rigidBodyCapacity = 1U;
     mixed_info.constraintCapacity = 0U;
@@ -200,6 +201,23 @@ int main(int argc, char **argv) {
     soft_material.constraintVelocityResponse = 1.0F;
     soft_material.maximumSpeed = 2.9F;
     soft_material.solverIterations = 8U;
+    PmSmokeMaterialState particle_smoke_material{};
+    particle_smoke_material.particleRadius = 0.05F;
+    particle_smoke_material.buoyancy = 0.2F;
+    particle_smoke_material.response = 1.0F;
+    particle_smoke_material.restNumberDensity = 12.0F;
+    particle_smoke_material.pressureStiffness = 2.0F;
+    particle_smoke_material.viscosity = 0.1F;
+    particle_smoke_material.maximumSpeed = 2.0F;
+    PmSmokeMaterialState grid_smoke_material = particle_smoke_material;
+    grid_smoke_material.gridResolution = 16U;
+    grid_smoke_material.gridVerticalResolution = 8U;
+    grid_smoke_material.gridPressureIterations = 12U;
+    grid_smoke_material.gridKinematicViscosity = 0.01F;
+    grid_smoke_material.gridLesCoefficient = 0.1F;
+    grid_smoke_material.gridPressureTolerance = 0.001F;
+    const std::array smoke_materials{
+        particle_smoke_material, grid_smoke_material};
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
     pipeline_info.pRigidState = &rigid_solver;
@@ -212,6 +230,9 @@ int main(int argc, char **argv) {
     pipeline_info.pRopeMaterials = &rope_material;
     pipeline_info.softBodyMaterialCount = mixed_info.softBodyCount;
     pipeline_info.pSoftBodyMaterials = &soft_material;
+    pipeline_info.smokeMaterialCount = mixed_info.smokeCount == 0U
+        ? 0U : static_cast<std::uint32_t>(smoke_materials.size());
+    pipeline_info.pSmokeMaterials = smoke_materials.data();
     PmPhysicsPipeline pipeline{};
     CHECK(pmCreatePhysicsPipeline(device, &pipeline_info, &pipeline) ==
           PM_SUCCESS);
@@ -826,6 +847,130 @@ int main(int argc, char **argv) {
             static_cast<const PmDomainOutputHeader *>(rope_output_map);
         CHECK(rope_header->activeCount == 6U);
     }
+    if (mixed_info.smokeCount != 0U) {
+        PmSmokeInfo smoke{};
+        smoke.active = PM_TRUE;
+        smoke.particleCapacity = smoke_capacity.particleCapacity;
+        smoke.emitterCenter = {0.0F, 0.0F, 0.0F};
+        smoke.emitterHalfExtents = {0.5F, 0.5F};
+        smoke.initialVelocity = {0.5F, 0.0F, 0.0F};
+        smoke.wind = smoke.initialVelocity;
+        smoke.particlesPerSecond = 120.0F;
+        smoke.lifetime = 2.0F;
+        smoke.gridMinimum = {-4.0F, -2.0F, -4.0F};
+        smoke.gridEdgeLength = 8.0F;
+        const PmBufferRange smoke_range{smoke_output, 0U, 4096U};
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteSmoke(
+            commands, mixed_simulation, 0U, 1U, &smoke) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
+        CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopySmokeState(
+            commands, mixed_simulation, 0U, &smoke_range) == PM_SUCCESS);
+        CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        PmRealtimeStepStatistics particle_smoke_statistics{};
+        CHECK(pmGetQueryPoolResults(
+            device, query, 0U, 1U, sizeof particle_smoke_statistics,
+            &particle_smoke_statistics, sizeof particle_smoke_statistics,
+            PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+        CHECK(particle_smoke_statistics.timeAdvances == 1U);
+        CHECK(particle_smoke_statistics.domainIterations[5] == 6U);
+        CHECK(particle_smoke_statistics.total.spatialIndexBuilds == 1U);
+        CHECK(particle_smoke_statistics.total.spatialIndexPublications == 1U);
+        CHECK(particle_smoke_statistics.total.intraTickHostReadbacks == 0U);
+        const auto *smoke_header =
+            static_cast<const PmDomainOutputHeader *>(smoke_output_map);
+        const auto *smoke_particles =
+            reinterpret_cast<const PmSmokeParticleState *>(smoke_header + 1U);
+        CHECK(smoke_header->activeCount == 2U);
+        for (std::uint32_t particle = 0U;
+             particle < smoke_header->activeCount; ++particle) {
+            const auto &state = smoke_particles[particle];
+            const float speed = std::sqrt(
+                state.velocity.x * state.velocity.x +
+                state.velocity.y * state.velocity.y +
+                state.velocity.z * state.velocity.z);
+            CHECK(std::isfinite(state.position.x));
+            CHECK(std::isfinite(state.position.y));
+            CHECK(std::isfinite(state.position.z));
+            CHECK(std::isfinite(state.numberDensity));
+            CHECK(std::isfinite(state.pressure));
+            CHECK(state.age == 1.0F / 60.0F);
+            CHECK(speed <= particle_smoke_material.maximumSpeed + 1.0e-4F);
+        }
+
+        if (!production) {
+            std::array<std::byte, 4096U> smoke_before_failure{};
+            std::memcpy(smoke_before_failure.data(), smoke_output_map,
+                        smoke_before_failure.size());
+            CHECK(setenv(
+                "PM_TEST_REALTIME_LIMIT_MINUS_ONE", "workgroups", 1) == 0);
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+            CHECK(pmCmdStepSimulation(
+                commands, mixed_simulation, &step) == PM_SUCCESS);
+            execute(PM_ERROR_CAPACITY_EXCEEDED);
+            CHECK(unsetenv("PM_TEST_REALTIME_LIMIT_MINUS_ONE") == 0);
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdCopySmokeState(
+                commands, mixed_simulation, 0U, &smoke_range) == PM_SUCCESS);
+            execute(PM_SUCCESS);
+            CHECK(std::memcmp(smoke_before_failure.data(), smoke_output_map,
+                              smoke_before_failure.size()) == 0);
+        }
+
+        smoke.materialIndex = 1U;
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
+        CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteSmoke(
+            commands, mixed_simulation, 0U, 1U, &smoke) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopySmokeState(
+            commands, mixed_simulation, 0U, &smoke_range) == PM_SUCCESS);
+        CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        PmRealtimeStepStatistics grid_smoke_statistics{};
+        CHECK(pmGetQueryPoolResults(
+            device, query, 0U, 1U, sizeof grid_smoke_statistics,
+            &grid_smoke_statistics, sizeof grid_smoke_statistics,
+            PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+        CHECK(grid_smoke_statistics.timeAdvances == 1U);
+        CHECK(grid_smoke_statistics.domainIterations[5] == 12U);
+        CHECK(grid_smoke_statistics.total.spatialIndexBuilds == 1U);
+        CHECK(grid_smoke_statistics.total.spatialIndexPublications == 1U);
+        CHECK(grid_smoke_statistics.total.intraTickHostReadbacks == 0U);
+        smoke_header =
+            static_cast<const PmDomainOutputHeader *>(smoke_output_map);
+        CHECK(smoke_header->activeCount == 0U);
+
+        smoke.materialIndex = 0U;
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteSmoke(
+            commands, mixed_simulation, 0U, 1U, &smoke) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdCopySmokeState(
+            commands, mixed_simulation, 0U, &smoke_range) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        smoke_header =
+            static_cast<const PmDomainOutputHeader *>(smoke_output_map);
+        CHECK(smoke_header->activeCount == 2U);
+    }
     pmDestroySimulation(device, mixed_simulation);
 
     std::array<PmRigidBodyInfo, body_count> bodies{};
@@ -999,6 +1144,7 @@ int main(int argc, char **argv) {
     pmDestroyBuffer(device, cloth_output);
     pmDestroyBuffer(device, soft_output);
     pmDestroyBuffer(device, rope_output);
+    pmDestroyBuffer(device, smoke_output);
     pmDestroyBuffer(device, source);
     for (auto allocation : memory) pmFreeMemory(device, allocation);
     pmDestroyDevice(device);
