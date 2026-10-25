@@ -3,7 +3,7 @@
 
 The module consumes public result data and immutable qualification contracts.  It
 does not call driver-private code and does not claim that a runtime implements the
-profile.  Physical-driver qualification is intentionally left to F8-23--F8-30.
+profile.  Physical-driver qualification remains owned by later F8 tasks.
 """
 
 from __future__ import annotations
@@ -28,6 +28,9 @@ CAPABILITY_PATH = (
     ROOT / "conformance/v1/qualification/capability-obligations-v1.json"
 )
 SUITE_PATH = ROOT / "conformance/v1/realtime/oracle-suite-v1.json"
+CANDIDATE_PATH = (
+    ROOT / "conformance/v1/qualification/realtime-candidate-v1.json"
+)
 
 CAPABILITY_FIELDS = (
     "first_family",
@@ -577,6 +580,8 @@ def validate_public_observation(
     inventory: Mapping[str, Any],
     obligations: Mapping[str, Any],
     suite: Mapping[str, Any],
+    candidate: Mapping[str, Any],
+    candidate_sha256: str,
 ) -> list[Failure]:
     """Validate one future runtime result without accepting private telemetry."""
 
@@ -610,6 +615,27 @@ def validate_public_observation(
             profile, expected_profile,
         ))
 
+    candidate_input = observation.get("candidate", {})
+    variants = {
+        item.get("id") for item in candidate.get("runtime_variants", [])
+        if isinstance(item, dict)
+    }
+    expected_candidate = {
+        "manifest_role": "qualification-input",
+        "execution_identity_claimed": False,
+        "id": candidate.get("id"),
+        "manifest_sha256": candidate_sha256,
+        "source_revision": candidate.get("source", {}).get("revision"),
+        "runtime_variant": candidate_input.get("runtime_variant"),
+    }
+    if (candidate_input != expected_candidate or
+            candidate_input.get("runtime_variant") not in variants):
+        failures.append(Failure(
+            "observation.candidate",
+            "candidate manifest inputs are not exact",
+            candidate_input, expected_candidate,
+        ))
+
     plan = derived_case_plan(contract, inventory, obligations, suite)
     cases = {
         case["id"]: case
@@ -622,14 +648,21 @@ def validate_public_observation(
         failures.append(Failure(
             "observation.case-id", "case is not in the derived F8 registry", case_id
         ))
+    elif (case["kind"] == "backend" and
+          candidate_input.get("runtime_variant") != case["variant"]):
+        failures.append(Failure(
+            "observation.candidate-runtime",
+            "candidate runtime variant does not match the backend case",
+            candidate_input.get("runtime_variant"), case["variant"],
+        ))
 
-    allowed_calls = set(suite["public_api"]["operation_sequence"])
+    required_calls = suite["public_api"]["operation_sequence"]
     calls = observation.get("public_api_calls")
-    if (not isinstance(calls, list) or not calls
-            or any(call not in allowed_calls for call in calls)):
+    if calls != required_calls:
         failures.append(Failure(
             "observation.public-api-calls",
-            "call trace is empty or contains a non-contract operation", calls,
+            "call trace does not match the frozen installed-API sequence",
+            calls, required_calls,
         ))
 
     timestep = (
@@ -661,6 +694,41 @@ def validate_public_observation(
                     "realtime profile requires exactly one substep",
                     substeps, 1,
                 ))
+
+    if observation.get("simulation_status") != "PM_SUCCESS":
+        failures.append(Failure(
+            "observation.simulation-status",
+            "completed public simulation status is required",
+            observation.get("simulation_status"), "PM_SUCCESS",
+        ))
+    statistics = observation.get("statistics", {})
+    expected_statistics = {
+        "step_count": len(steps) if isinstance(steps, list) else 0,
+        "substeps_executed": len(steps) if isinstance(steps, list) else 0,
+        "execution_result": "PM_SUCCESS",
+        "telemetry_schema_version": 1,
+        "profile_version": 1,
+        "budget_version": 1,
+    }
+    if statistics != expected_statistics:
+        failures.append(Failure(
+            "observation.statistics",
+            "public step and telemetry statistics are not exact",
+            statistics, expected_statistics,
+        ))
+    public_state = observation.get("copied_public_state", {})
+    vectors = [public_state.get("position"),
+               public_state.get("linear_velocity")]
+    if (public_state.get("body_count") != 1 or any(
+            not isinstance(vector, list) or len(vector) != 3 or any(
+                isinstance(value, bool) or not isinstance(value, (int, float))
+                or not math.isfinite(value) for value in vector)
+            for vector in vectors)):
+        failures.append(Failure(
+            "observation.copied-public-state",
+            "one finite rigid state copied through the public API is required",
+            public_state,
+        ))
 
     if case is not None:
         specs = case_limit_specs(case, contract)
@@ -1140,9 +1208,30 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check-contract", action="store_true",
                         help="validate the F8-03 oracle contract")
+    parser.add_argument("--validate-observation", type=Path,
+                        help="validate an installed public-API observation")
+    parser.add_argument("--candidate-manifest", type=Path,
+                        default=CANDIDATE_PATH,
+                        help="candidate manifest named by the observation")
     args = parser.parse_args()
-    if not args.check_contract:
-        parser.error("--check-contract is required")
+    if args.check_contract == bool(args.validate_observation):
+        parser.error("select exactly one of --check-contract or "
+                     "--validate-observation")
+    if args.validate_observation:
+        candidate_bytes = args.candidate_manifest.read_bytes()
+        candidate = json.loads(candidate_bytes)
+        contract, inventory, obligations, suite = load_contracts()
+        observation = load_json(args.validate_observation)
+        failures = validate_public_observation(
+            observation, contract, inventory, obligations, suite, candidate,
+            hashlib.sha256(candidate_bytes).hexdigest(),
+        )
+        if failures:
+            for failure in failures:
+                print(f"FAIL {failure.assertion}: {failure.message}")
+            return 1
+        print("PASS: installed public realtime observation")
+        return 0
     failures = check_contract()
     if failures:
         for failure in failures:

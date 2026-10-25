@@ -108,6 +108,7 @@ struct CommandBuffer {
     bool statistics_open{};
     PmQueryPool statistics_pool{};
     std::uint32_t statistics_query{};
+    std::uint32_t statistics_step_count{};
     PmSimulation statistics_simulation{};
     std::unordered_set<PmBuffer> buffers;
     std::unordered_set<PmGeometry> geometries;
@@ -284,6 +285,7 @@ void clear_dependencies(CommandBuffer &buffer) {
     buffer.statistics_open = false;
     buffer.statistics_pool = nullptr;
     buffer.statistics_query = 0U;
+    buffer.statistics_step_count = 0U;
     buffer.statistics_simulation = nullptr;
     buffer.buffers.clear();
     buffer.geometries.clear();
@@ -1343,6 +1345,15 @@ PmResult validate(const PmLayerArgs_pmCmdStepSimulation &a) {
     if (tracking_available && tracked->realtime_single_step &&
         (!realtime_timestep(a.pStep->timestep) || a.pStep->substeps != 1U))
         return PM_ERROR_INVALID_ARGUMENT;
+    if (tracking_available) {
+        const auto *commands = command_buffer(a.commandBuffer);
+        const auto *pool = commands && commands->statistics_open
+            ? query_pool(commands->device, commands->statistics_pool) : nullptr;
+        if (pool && pool->type == PM_QUERY_REALTIME_STEP_STATISTICS &&
+            (!tracked->realtime_single_step ||
+             commands->statistics_step_count != 0U))
+            return PM_ERROR_INVALID_ARGUMENT;
+    }
     return !tracking_available || bound_pipeline(a.commandBuffer)
         ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT;
 }
@@ -1350,8 +1361,10 @@ void record(const PmLayerArgs_pmCmdStepSimulation &a) {
     record_simulation_dependency(a.commandBuffer, a.simulation);
     record_material_dependency(a.commandBuffer);
     if (auto *commands = command_buffer(a.commandBuffer);
-        commands && commands->statistics_open)
+        commands && commands->statistics_open) {
         commands->statistics_simulation = a.simulation;
+        ++commands->statistics_step_count;
+    }
 }
 PmResult validate(const PmLayerArgs_pmCmdWriteCloths &a) {
     Simulation *tracked{};
@@ -1610,13 +1623,22 @@ void record(const PmLayerArgs_pmCmdPipelineBarrier &a) {
 }
 
 PmResult validate(const PmLayerArgs_pmCreateQueryPool &a) {
-    return a.pInfo && a.pPool &&
-        a.pInfo->sType == PM_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO &&
-        !a.pInfo->pNext && a.pInfo->queryCount &&
-        a.pInfo->queryCount <= 65536U &&
-        (a.pInfo->queryType == PM_QUERY_TIMESTAMP ||
-         a.pInfo->queryType == PM_QUERY_STEP_STATISTICS)
-        ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT;
+    if (!a.pInfo || !a.pPool ||
+        a.pInfo->sType != PM_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO ||
+        a.pInfo->pNext || !a.pInfo->queryCount ||
+        a.pInfo->queryCount > 65536U ||
+        (a.pInfo->queryType != PM_QUERY_TIMESTAMP &&
+         a.pInfo->queryType != PM_QUERY_STEP_STATISTICS &&
+         a.pInfo->queryType != PM_QUERY_REALTIME_STEP_STATISTICS))
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (a.pInfo->queryType == PM_QUERY_REALTIME_STEP_STATISTICS &&
+        tracking_available) {
+        const auto found = devices.find(a.device);
+        if (found == devices.end()) return PM_ERROR_INVALID_ARGUMENT;
+        if (!found->second.simulation_profile_extension)
+            return PM_ERROR_EXTENSION_NOT_PRESENT;
+    }
+    return PM_SUCCESS;
 }
 void record(const PmLayerArgs_pmCreateQueryPool &a) {
     if (!a.pPool || !*a.pPool) return;
@@ -1692,7 +1714,8 @@ PmResult validate(const PmLayerArgs_pmCmdBeginStatisticsQuery &a) {
     if (!tracking_available) return PM_SUCCESS;
     const auto *commands = command_buffer(a.commandBuffer);
     const auto *pool = commands ? query_pool(commands->device, a.pool) : nullptr;
-    if (!pool || pool->type != PM_QUERY_STEP_STATISTICS ||
+    if (!pool || (pool->type != PM_QUERY_STEP_STATISTICS &&
+                  pool->type != PM_QUERY_REALTIME_STEP_STATISTICS) ||
         a.query >= pool->slots.size())
         return PM_ERROR_INVALID_ARGUMENT;
     if (commands->statistics_open ||
@@ -1706,6 +1729,7 @@ void record(const PmLayerArgs_pmCmdBeginStatisticsQuery &a) {
         commands->statistics_open = true;
         commands->statistics_pool = a.pool;
         commands->statistics_query = a.query;
+        commands->statistics_step_count = 0U;
         commands->statistics_simulation = nullptr;
         commands->query_pools.insert(a.pool);
     }
@@ -1715,19 +1739,23 @@ PmResult validate(const PmLayerArgs_pmCmdEndStatisticsQuery &a) {
     if (!tracking_available) return PM_SUCCESS;
     const auto *commands = command_buffer(a.commandBuffer);
     const auto *pool = commands ? query_pool(commands->device, a.pool) : nullptr;
-    if (!pool || pool->type != PM_QUERY_STEP_STATISTICS ||
+    if (!pool || (pool->type != PM_QUERY_STEP_STATISTICS &&
+                  pool->type != PM_QUERY_REALTIME_STEP_STATISTICS) ||
         a.query >= pool->slots.size())
         return PM_ERROR_INVALID_ARGUMENT;
     return commands->statistics_open &&
             commands->statistics_pool == a.pool &&
             commands->statistics_query == a.query &&
-            commands->statistics_simulation
+            commands->statistics_simulation &&
+            (pool->type != PM_QUERY_REALTIME_STEP_STATISTICS ||
+             commands->statistics_step_count == 1U)
         ? PM_SUCCESS : PM_ERROR_INVALID_STATE;
 }
 void record(const PmLayerArgs_pmCmdEndStatisticsQuery &a) {
     if (auto *commands = command_buffer(a.commandBuffer)) {
         commands->statistics_open = false;
         commands->statistics_pool = nullptr;
+        commands->statistics_step_count = 0U;
         commands->statistics_simulation = nullptr;
         commands->query_operations.push_back(
             {a.pool, a.query, 1U, QueryState::written});

@@ -58,6 +58,9 @@ class RealtimeOracleContractTests(unittest.TestCase):
     def setUpClass(cls):
         (cls.contract, cls.inventory, cls.obligations,
          cls.suite) = oracle.load_contracts()
+        cls.candidate_bytes = oracle.CANDIDATE_PATH.read_bytes()
+        cls.candidate = json.loads(cls.candidate_bytes)
+        cls.candidate_sha256 = hashlib.sha256(cls.candidate_bytes).hexdigest()
 
     def test_oracle_contract_is_self_consistent(self):
         self.assertEqual(oracle.check_contract(), [])
@@ -215,15 +218,31 @@ class RealtimeOracleContractTests(unittest.TestCase):
                 "name": "realtime-single-step",
                 "version": {"major": 1, "minor": 0},
             },
+            "candidate": {
+                "manifest_role": "qualification-input",
+                "execution_identity_claimed": False,
+                "id": self.candidate["id"],
+                "manifest_sha256": self.candidate_sha256,
+                "source_revision": self.candidate["source"]["revision"],
+                "runtime_variant": "cpu-runtime",
+            },
             "case_id": case["id"],
-            "public_api_calls": [
-                "pmEnumerateExecutionProfiles",
-                "pmCreateDevice",
-                "pmCreateSimulation",
-                "pmCmdStepSimulation",
-                "pmGetSimulationStatus",
-            ],
+            "public_api_calls": self.suite["public_api"]["operation_sequence"],
             "steps": [{"timestep_seconds": 1.0 / 60.0, "substeps": 1}],
+            "simulation_status": "PM_SUCCESS",
+            "statistics": {
+                "step_count": 1,
+                "substeps_executed": 1,
+                "execution_result": "PM_SUCCESS",
+                "telemetry_schema_version": 1,
+                "profile_version": 1,
+                "budget_version": 1,
+            },
+            "copied_public_state": {
+                "body_count": 1,
+                "position": [0.0, 1.0, 0.0],
+                "linear_velocity": [0.0, -0.1, 0.0],
+            },
             "measurements": {
                 spec.assertion: oracle.passing_value(spec) for spec in specs
             },
@@ -232,7 +251,8 @@ class RealtimeOracleContractTests(unittest.TestCase):
         self.assertEqual(
             oracle.validate_public_observation(
                 observation, self.contract, self.inventory,
-                self.obligations, self.suite,
+                self.obligations, self.suite, self.candidate,
+                self.candidate_sha256,
             ),
             [],
         )
@@ -253,7 +273,8 @@ class RealtimeOracleContractTests(unittest.TestCase):
         for control in controls:
             self.assertTrue(oracle.validate_public_observation(
                 control, self.contract, self.inventory,
-                self.obligations, self.suite,
+                self.obligations, self.suite, self.candidate,
+                self.candidate_sha256,
             ))
 
     def test_frozen_workload_counts_are_exact(self):

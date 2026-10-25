@@ -17,9 +17,25 @@ def compiler_metadata(build_dir):
     """Read the compiler identity CMake used for the SDK under test."""
     compiler_files = sorted(
         (build_dir / "CMakeFiles").glob("*/CMakeCXXCompiler.cmake"))
+    cache_values = {}
+    for line in (build_dir / "CMakeCache.txt").read_text(
+            encoding="utf-8").splitlines():
+        match = re.match(
+            r"^CMAKE_CACHE_(MAJOR|MINOR|PATCH)_VERSION:INTERNAL=(.*)$",
+            line,
+        )
+        if match:
+            cache_values[match.group(1)] = match.group(2)
+    if all(part in cache_values for part in ("MAJOR", "MINOR", "PATCH")):
+        version = ".".join(cache_values[part]
+                           for part in ("MAJOR", "MINOR", "PATCH"))
+        current = build_dir / "CMakeFiles" / version / "CMakeCXXCompiler.cmake"
+        if current.is_file():
+            compiler_files = [current]
     if len(compiler_files) != 1:
         raise RuntimeError(
-            f"expected one CMake C++ compiler record, found {len(compiler_files)}")
+            "could not identify the active CMake C++ compiler record; found "
+            f"{len(compiler_files)}")
     values = {}
     pattern = re.compile(r'^set\((CMAKE_CXX_COMPILER(?:_[A-Z_]+)?) "(.*)"\)$')
     for line in compiler_files[0].read_text(encoding="utf-8").splitlines():
@@ -169,13 +185,41 @@ def main():
                      root / "examples/sdk/devices.c"):
             shutil.copy2(path, source / path.name)
         build = output / "external-build"
+        observations = output / "realtime-observations"
+        observations.mkdir()
+        candidate_path = (
+            root / "conformance/v1/qualification/realtime-candidate-v1.json")
+        candidate_bytes = candidate_path.read_bytes()
+        candidate = json.loads(candidate_bytes)
+        installed_cpu_manifest = (
+            sdk / "share/parallel-mater/drivers.d/parallel_mater_slang_cpu.json")
+        if not installed_cpu_manifest.is_file():
+            raise RuntimeError(
+                "installed Slang CPU production driver manifest is missing")
         run("consumer-configure", ["cmake", "-S", source, "-B", build,
             *generator, f"-DCMAKE_BUILD_TYPE={args.config}",
-            f"-DCMAKE_PREFIX_PATH={sdk}"])
+            f"-DCMAKE_PREFIX_PATH={sdk}",
+            f"-DPM_REALTIME_DRIVER_MANIFEST={installed_cpu_manifest}",
+            f"-DPM_REALTIME_OBSERVATION_DIR={observations}",
+            f"-DPM_REALTIME_CANDIDATE_ID={candidate['id']}",
+            "-DPM_REALTIME_CANDIDATE_SHA256=" +
+                hashlib.sha256(candidate_bytes).hexdigest(),
+            "-DPM_REALTIME_CANDIDATE_REVISION=" +
+                candidate["source"]["revision"]])
         run("consumer-build", ["cmake", "--build", build, "--config", args.config,
                                "--parallel", "1"])
         run("consumer-tests", ["ctest", "--test-dir", build, "--output-on-failure",
                                 "--no-tests=error", "-C", args.config, "-j1"])
+        for mode in ("plain", "validation"):
+            run("realtime-observation-" + mode,
+                [sys.executable, root / "conformance/v1/realtime_oracle.py",
+                 "--validate-observation", observations / (mode + ".json"),
+                 "--candidate-manifest", candidate_path])
+        report["realtime_observations"] = {
+            mode: hashlib.sha256(
+                (observations / (mode + ".json")).read_bytes()).hexdigest()
+            for mode in ("plain", "validation")
+        }
         for version in ("0.1", "0.3"):
             run("reject-version-" + version, ["cmake", "-S", source, "-B",
                 output / ("version-" + version), *generator,

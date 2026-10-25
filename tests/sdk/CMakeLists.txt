@@ -4,6 +4,15 @@ cmake_minimum_required(VERSION 3.25)
 project(ParallelMaterExternalSdkGate LANGUAGES C CXX)
 include(CTest)
 set(PM_REQUIRED_VERSION 0.2 CACHE STRING "Requested SDK compatibility line")
+set(PM_REALTIME_DRIVER_MANIFEST "" CACHE FILEPATH
+    "Installed production driver manifest used by the realtime SDK gate")
+set(PM_REALTIME_OBSERVATION_DIR "" CACHE PATH
+    "Directory receiving installed public realtime observations")
+set(PM_REALTIME_CANDIDATE_ID "" CACHE STRING "Exact candidate manifest id")
+set(PM_REALTIME_CANDIDATE_SHA256 "" CACHE STRING
+    "Exact candidate manifest SHA-256")
+set(PM_REALTIME_CANDIDATE_REVISION "" CACHE STRING
+    "Exact candidate source revision")
 find_package(ParallelMater ${PM_REQUIRED_VERSION} CONFIG REQUIRED
     COMPONENTS loader scene preparation validation)
 add_library(external-mock SHARED mock_driver.cpp)
@@ -80,9 +89,13 @@ foreach(consumer c-consumer diagnostics-consumer cpp-consumer scene-consumer)
 endforeach()
 foreach(mode IN ITEMS plain validation)
     add_test(NAME realtime-profile-${mode}
-        COMMAND realtime-profile-consumer ${mode})
+        COMMAND realtime-profile-consumer ${mode}
+            "${PM_REALTIME_OBSERVATION_DIR}/${mode}.json"
+            "${PM_REALTIME_CANDIDATE_ID}"
+            "${PM_REALTIME_CANDIDATE_SHA256}"
+            "${PM_REALTIME_CANDIDATE_REVISION}")
     set_tests_properties(realtime-profile-${mode} PROPERTIES ENVIRONMENT
-        "PM_DRIVER_FILES=$<TARGET_FILE_DIR:external-mock>/mock.json")
+        "PM_DRIVER_FILES=${PM_REALTIME_DRIVER_MANIFEST}")
 endforeach()
 add_test(NAME legacy-0-2-consumer COMMAND legacy-0-2-consumer)
 set_tests_properties(legacy-0-2-consumer PROPERTIES ENVIRONMENT

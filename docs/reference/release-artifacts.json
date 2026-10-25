@@ -2,7 +2,7 @@
   "schema": "parallel-mater-reference-artifacts/v1",
   "registry": {
     "path": "registry/pm.xml",
-    "sha256": "d2eeafa838267aab72684355ac129e4776da422a3c8ab728115f155d16472f5f"
+    "sha256": "2e221632660dced87fa1069fdff5fedb8f78e09a18f2ae3488e413ba7b15285f"
   },
   "toolchain": {
     "lock": "tools/reference/toolchain.json",
@@ -25,44 +25,44 @@
   },
   "artifacts": {
     "docs/reference/api/parallel_mater.h": {
-      "sha256": "604d008bd82873d3ca0fd942b046ef0f971e3025e5138c46586377f1991fed5c",
-      "size": 70384
+      "sha256": "a3db625574fb32f6c66bc99fc9d683ace4d6a80937cf69481b07d1997f387d44",
+      "size": 71729
     },
     "docs/reference/api/interop_vulkan.h": {
-      "sha256": "2dc9d2aef439bb2954582004c6e685887a1df9f6498f2608cb300f5eeaf936e9",
+      "sha256": "f69815893c13d759b760570c17dfa9db5c62c62523eb6c872c610e0d202ea445",
       "size": 2865
     },
     "include/parallel_mater/parallel_mater.h": {
-      "sha256": "604d008bd82873d3ca0fd942b046ef0f971e3025e5138c46586377f1991fed5c",
-      "size": 70384
+      "sha256": "a3db625574fb32f6c66bc99fc9d683ace4d6a80937cf69481b07d1997f387d44",
+      "size": 71729
     },
     "include/parallel_mater/interop_vulkan.h": {
-      "sha256": "2dc9d2aef439bb2954582004c6e685887a1df9f6498f2608cb300f5eeaf936e9",
+      "sha256": "f69815893c13d759b760570c17dfa9db5c62c62523eb6c872c610e0d202ea445",
       "size": 2865
     },
     "docs/reference/api-coverage.json": {
-      "sha256": "b554d3574710272e7b20c5e8371708de4e95f64795aee8beecccea21a5ffcb58",
-      "size": 48561
+      "sha256": "7b32ff6035794ed14965bc90e04ba19d24947cc2579a05586714626433fd312d",
+      "size": 48877
     },
     "docs/reference/parallel-mater-specification.md": {
-      "sha256": "83d56e60585d4d8aea8cd07fe0d6d5e1885d1f355f930291081f8495d4f0d9ef",
-      "size": 132891
+      "sha256": "2e541accc1acea1f7c96d7abc4e6789f7bfd21938f2cc2fca1da8ed5705d4243",
+      "size": 135036
     },
     "docs/reference/parallel-mater-specification.pdf": {
-      "sha256": "70485f51418ead48ed0a79b7d6c49d7b57d7cc31d994c9f90628248e454a3cf0",
-      "size": 267736
+      "sha256": "a7675c397e91df7fe8224a9b1cffd6d0f687a68851381ecff0ad445ef5ad5842",
+      "size": 270258
     },
     "docs/reference/parallel-mater-specification.layout.json": {
-      "sha256": "8cc231bd9fd037becf11e3744f918206f9647ed4cd42c95e7a2208cc6a3347e6",
-      "size": 18400
+      "sha256": "8a4d30a57f43c7de3777206191d656e9af051627e6cf2fe59af1fa1929982d99",
+      "size": 18533
     },
     "docs/reference/parallel-mater-reference.pdf": {
-      "sha256": "ffc10e8f4eac4f6645f9988fe4929e19bbe76d350f92aca4ee74d92aa8bf6c20",
-      "size": 555143
+      "sha256": "97d03e7363d397804dc5a7f6bdc337b52b4397e77c8ce543d54e1c90bed4e98e",
+      "size": 557162
     },
     "docs/reference/parallel-mater-reference.layout.json": {
-      "sha256": "4700a0c7c39bc4579998a059fb18395cb27bca0bc4c7e733c7b66528b844c976",
-      "size": 215489
+      "sha256": "9e4e104fc501d7f909a3989d6e709834397b589d810d638f327b0d09998efeaf",
+      "size": 215530
     }
   },
   "known_nondeterminism": []

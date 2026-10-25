@@ -1,7 +1,7 @@
 {
   "registry": {
     "path": "registry/pm.xml",
-    "sha256": "d2eeafa838267aab72684355ac129e4776da422a3c8ab728115f155d16472f5f"
+    "sha256": "2e221632660dced87fa1069fdff5fedb8f78e09a18f2ae3488e413ba7b15285f"
   },
   "contract": "Parallel Mater command API 0.2",
   "implementation": "src/loader public entry points routed to installable drivers",
@@ -1652,6 +1652,21 @@
       "name": "PmQueryType",
       "section": "15.1",
       "card": "query_pool"
+    },
+    {
+      "name": "PmRealtimeStepStatistics",
+      "section": "15.3",
+      "card": "step_stats"
+    },
+    {
+      "name": "PmRealtimeWorkPhase",
+      "section": "15.3",
+      "card": "step_stats"
+    },
+    {
+      "name": "PmRealtimeWorkStatistics",
+      "section": "15.3",
+      "card": "step_stats"
     },
     {
       "name": "PmStepStatistics",

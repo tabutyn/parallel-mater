@@ -554,10 +554,18 @@ pmEnumerateExecutionProfiles(
     PmExecutionProfileProperties *properties) {
     if (physical == nullptr || count == nullptr)
         return PM_ERROR_INVALID_ARGUMENT;
-    // F8-06--21 enable this record only after the complete schedule and
-    // equations are implemented. Qualification remains separate evidence.
-    (void)properties;
-    *count = 0U;
+    if (properties == nullptr) {
+        *count = 1U;
+        return PM_SUCCESS;
+    }
+    if (*count == 0U) return PM_INCOMPLETE;
+    properties[0] = {};
+    std::strncpy(properties[0].profileName,
+                 PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP,
+                 sizeof properties[0].profileName - 1U);
+    properties[0].versionMajor = 1U;
+    properties[0].versionMinor = 0U;
+    *count = 1U;
     return PM_SUCCESS;
 }
 

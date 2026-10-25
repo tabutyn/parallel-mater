@@ -81,13 +81,8 @@ struct StructureHeader {
         return PM_ERROR_FEATURE_NOT_PRESENT;
     if (request->versionMajor != 1U || request->versionMinor != 0U)
         return PM_ERROR_INCOMPATIBLE_VERSION;
-#if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
     profile = PmSimulationExecutionProfile::realtime_single_step;
     return PM_SUCCESS;
-#else
-    // Production advertisement remains gated on the F8-35 qualification task.
-    return PM_ERROR_FEATURE_NOT_PRESENT;
-#endif
 }
 
 [[nodiscard]] bool finite(const PmRigidState &state) noexcept {
@@ -150,7 +145,8 @@ struct StructureHeader {
 }
 
 [[nodiscard]] parallel_mater::SimulationOptions simulation_options(
-    const PmSimulationCreateInfo &info) noexcept {
+    const PmSimulationCreateInfo &info,
+    PmSimulationExecutionProfile profile) noexcept {
     parallel_mater::SimulationOptions options{};
     options.rigid_body_capacity = std::max(1U, info.rigidBodyCapacity);
     options.rigid_constraint_capacity = std::max(1U, info.constraintCapacity);
@@ -181,22 +177,23 @@ struct StructureHeader {
     options.rope_cloth_coupling_capacity = coupling_capacity;
     options.physics_debug.frame_capacity = info.debugFrameCapacity;
     options.rigid_sleeping = false;
-#if defined(PARALLEL_MATER_TEST_FAILURE_DRIVER)
-    options.realtime_spatial_enabled = true;
-    options.realtime_spatial_leaf_capacity = options.rigid_body_capacity;
-    options.realtime_spatial_query_capacity = options.rigid_body_capacity;
-    options.realtime_spatial_candidates_per_query =
-        options.rigid_body_capacity;
-#endif
+    if (profile == PmSimulationExecutionProfile::realtime_single_step) {
+        options.realtime_spatial_enabled = true;
+        options.realtime_spatial_leaf_capacity = options.rigid_body_capacity;
+        options.realtime_spatial_query_capacity = options.rigid_body_capacity;
+        options.realtime_spatial_candidates_per_query =
+            options.rigid_body_capacity;
+    }
     return options;
 }
 
 [[nodiscard]] bool simulation_requirements(
     const PmSimulationCreateInfo &info,
+    PmSimulationExecutionProfile profile,
     PmSimulationMemoryRequirements &output) noexcept {
     parallel_mater::simulation::StorageRequirements base{};
     if (!parallel_mater::SimulationRuntime::base_memory_requirements(
-            simulation_options(info), base)) return false;
+            simulation_options(info, profile), base)) return false;
     PmDeviceSize persistent = base.persistent;
     PmDeviceSize scratch = base.scratch;
     const PmDeviceSize rigid = info.rigidBodyCapacity;
@@ -498,17 +495,27 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
          info->pPaintFieldCapacities == nullptr) ||
         static_cast<std::uint64_t>(info->rigidBodyCapacity) +
                 info->paintFieldCount >
-            std::numeric_limits<std::uint32_t>::max() ||
-        (info->rigidBodyCapacity != 0U && device->enabled.rigidBodies == PM_FALSE) ||
-        (info->constraintCapacity != 0U &&
-         device->enabled.rigidConstraints == PM_FALSE) ||
-        (info->fluidCount != 0U && device->enabled.particleLiquids == PM_FALSE))
+            std::numeric_limits<std::uint32_t>::max())
         return PM_ERROR_INVALID_ARGUMENT;
     PmSimulationExecutionProfile execution_profile{};
     const PmResult profile_result = select_execution_profile(
         device, info->pNext, execution_profile);
     if (profile_result != PM_SUCCESS) return profile_result;
-    if ((info->clothCount != 0U && device->enabled.cloth == PM_FALSE) ||
+    if (execution_profile == PmSimulationExecutionProfile::realtime_single_step &&
+        (info->fluidCount != 0U || info->clothCount != 0U ||
+         info->ropeCount != 0U || info->softBodyCount != 0U ||
+         info->smokeCount != 0U || info->couplingCapacity != 0U ||
+         info->emitterCapacity != 0U || info->destroyerCapacity != 0U ||
+         info->paintFieldCount != 0U || info->paintRuleCapacity != 0U ||
+         info->debugFrameCapacity != 0U))
+        return PM_ERROR_FEATURE_NOT_PRESENT;
+    if ((info->rigidBodyCapacity != 0U &&
+         device->enabled.rigidBodies == PM_FALSE) ||
+        (info->constraintCapacity != 0U &&
+         device->enabled.rigidConstraints == PM_FALSE) ||
+        (info->fluidCount != 0U &&
+         device->enabled.particleLiquids == PM_FALSE) ||
+        (info->clothCount != 0U && device->enabled.cloth == PM_FALSE) ||
         (info->ropeCount != 0U && device->enabled.rope == PM_FALSE) ||
         (info->softBodyCount != 0U && device->enabled.softBodies == PM_FALSE) ||
         (info->smokeCount != 0U && device->enabled.smoke == PM_FALSE) ||
@@ -550,7 +557,8 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
             return PM_ERROR_INVALID_ARGUMENT;
     }
     PmSimulationMemoryRequirements memory_requirements{};
-    if (!simulation_requirements(*info, memory_requirements))
+    if (!simulation_requirements(*info, execution_profile,
+                                 memory_requirements))
         return PM_ERROR_INVALID_ARGUMENT;
     auto *created = parallel_mater::api::make_object<PmSimulation_T>(device);
     if (created == nullptr) return PM_ERROR_OUT_OF_HOST_MEMORY;
@@ -615,7 +623,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
         parallel_mater::api::destroy_object(device, created);
         return PM_ERROR_OUT_OF_HOST_MEMORY;
     }
-    created->simulation_options = simulation_options(*info);
+    created->simulation_options = simulation_options(*info, execution_profile);
     *simulation = created;
     return PM_SUCCESS;
 }
@@ -1186,11 +1194,16 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdStepSimulation(
             PmSimulationExecutionProfile::realtime_single_step &&
         (!realtime_timestep(step->timestep) || step->substeps != 1U))
         return PM_ERROR_INVALID_ARGUMENT;
+    if (command_buffer->statistics_open &&
+        command_buffer->statistics_pool->type ==
+            PM_QUERY_REALTIME_STEP_STATISTICS &&
+        (simulation->execution_profile !=
+             PmSimulationExecutionProfile::realtime_single_step ||
+         command_buffer->statistics_step_count != 0U))
+        return PM_ERROR_INVALID_ARGUMENT;
     const PmStepInfo copied = *step;
     const PmPhysicsPipeline pipeline = command_buffer->bound_pipeline;
-    if (command_buffer->statistics_open)
-        command_buffer->statistics_simulation = simulation;
-    return parallel_mater::api::record_simulation(
+    const PmResult recorded = parallel_mater::api::record_simulation(
         command_buffer, simulation, [simulation, copied, pipeline](
                             parallel_mater::device::Services &services) noexcept {
             const parallel_mater::device::ExecutionQueue queue = parallel_mater::device::execution_queue(services);
@@ -1228,6 +1241,11 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdStepSimulation(
             }
             return result;
         });
+    if (recorded == PM_SUCCESS && command_buffer->statistics_open) {
+        command_buffer->statistics_simulation = simulation;
+        ++command_buffer->statistics_step_count;
+    }
+    return recorded;
 }
 
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdCopyRigidStates(

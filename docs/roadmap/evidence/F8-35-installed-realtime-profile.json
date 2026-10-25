@@ -1,0 +1,91 @@
+{
+  "schema": "parallel-mater-f8-installed-realtime-profile-evidence/v1",
+  "task": "F8-35",
+  "recorded_at": "2026-10-25",
+  "branch": "work/F8-35/thomas-laptop",
+  "base_revision": "d861aa4036e75d16ac28c5d5c406a0e85dbb01b3",
+  "lease_token": "c51e6092-c291-4e33-8e77-f4503abdaf11",
+  "implementation": {
+    "profile": "Production drivers enumerate realtime-single-step 1.0. A device with PM_EXT_simulation_profile accepts only the immutable profile name/version/chain and the fixed 1/60 second, one-substep step contract; rejected requests never fall back to legacy execution.",
+    "eligibility": "Current executable production scope is rigid/query simulations. Fluid, cloth, rope, soft-body, smoke, coupling, emitter, destroyer, paint and debug capacities return PM_ERROR_FEATURE_NOT_PRESENT before allocation. Interaction capability advertisement is unchanged.",
+    "public_observation": "PM_QUERY_REALTIME_STEP_STATISTICS exposes the legacy step result plus versioned per-tick totals, seven ordered phase records, time advances, six domain iteration totals and coupling work. The query encloses exactly one realtime profile step.",
+    "installed_consumer": "An out-of-tree C consumer loads the relocated SDK and production Slang CPU manifest, builds geometry and one dynamic rigid body, submits one profiled tick, waits on its fence, reads simulation status and realtime statistics, copies public rigid state, and emits JSON with validation disabled and enabled.",
+    "oracle": "realtime_oracle.py requires the exact installed-public-api source marker, profile, candidate-manifest input, public operation sequence, successful status, step/version counters, finite copied state and complete per-tick work counters. Mock execution and driver-private state are rejected.",
+    "candidate_boundary": "realtime-single-step-v1-dea47c1 remains rejected history and is named only as a qualification-input manifest. Observations set execution_identity_claimed=false. F8-36 owns the single replacement executable candidate identity."
+  },
+  "installed_sdk_evidence": {
+    "command": "python3 tools/check_sdk_install.py --build-dir build-sdk-cpu --output /tmp/f8-35-sdk-evidence-6",
+    "result": "PASS",
+    "checks": [
+      "relocated install",
+      "external C/C++ consumer configure, build and 21 tests",
+      "plain installed public realtime observation and independent oracle",
+      "validation-enabled installed public realtime observation and independent oracle",
+      "SDK 0.1 and 0.3 version rejection",
+      "installed conformance configure, build and input hashes",
+      "installed runner input hashes",
+      "unsupported case and missing-driver controls"
+    ],
+    "source_revision": "d861aa4036e75d16ac28c5d5c406a0e85dbb01b3",
+    "source_dirty": true,
+    "driver_sha256": "4a457b2288c3fe4474a73acc0f602b0eda7bb7153dbcdee3c7f66e9646622a47",
+    "observations": {
+      "plain_sha256": "4126d71e875744bac94082d765a966c6c463c82ed20d6b04c0811a1ff6cf9dad",
+      "validation_sha256": "b6e34f21960c18720bc431d4335dcc1e3b44a4736c5debef2c146d7e2757f75d",
+      "candidate_manifest_sha256": "c25c010be3a0e908537e3c6542c1759b28b10cfb4a4169b51bb2834233411d43",
+      "tick": {
+        "dispatches": 18,
+        "phase_dispatches": [0, 1, 1, 5, 10, 0, 1],
+        "workgroups": 18,
+        "barriers": 20,
+        "queue_submissions": 1,
+        "intra_tick_host_readbacks": 0,
+        "bytes_moved": 60,
+        "spatial_index_updates": 1,
+        "spatial_index_publications": 1,
+        "time_advances": 1,
+        "rigid_iterations": 8,
+        "coupling_edges": 0,
+        "coupling_sweeps": 0
+      },
+      "copied_body": {
+        "position_y": 1.99727499,
+        "linear_velocity_y": -0.15532501
+      }
+    }
+  },
+  "qualification": [
+    {
+      "command": "ctest --test-dir build-sdk-cpu --output-on-failure",
+      "result": "PASS 101/101 discovered tests; 86 executed pass and 15 explicit unsupported CPU-domain skips"
+    },
+    {
+      "command": "python3 -m unittest conformance.v1.tests.test_realtime_oracle && python3 conformance/v1/realtime_oracle.py --check-contract",
+      "result": "PASS 21/21 and 243 named limits, 49 capability cases, 14 workloads, 5 adapters"
+    },
+    {
+      "command": "/tmp/f8-35-python-3.13.15/python/bin/python3 tools/reference/bootstrap.py --build --check --skip-vulkan-header",
+      "result": "PASS deterministic 10-artifact regeneration, 6 C11/C++17 ABI probes, 122 declaration checks and 56-page specification"
+    },
+    {
+      "command": "cmake --build build-f8-22-cuda --parallel 4",
+      "result": "PASS 245/245 incremental edges",
+      "notes": "Common production API/runtime and CUDA adapter compile. Physical profile reference test explicitly skipped because no CUDA device is available."
+    },
+    {
+      "command": "cmake --build build-p3-02-vulkan --parallel 4",
+      "result": "PASS 232/232 incremental edges",
+      "notes": "Common production API/runtime and Vulkan adapter compile. Physical profile reference test explicitly skipped because no Parallel Mater Vulkan device is exposed."
+    },
+    {
+      "command": "python3 tools/roadmap.py check",
+      "result": "PASS 255 task cards, dependencies, locks, history and generated roadmap"
+    }
+  ],
+  "limits": [
+    "This is installed-public-API execution evidence on the Slang CPU production driver, not physical GPU/device qualification or frame-time evidence.",
+    "CUDA and Vulkan adapters compiled on this host but their physical profile reference tests skipped explicitly; D3D12 and Metal toolchains are unavailable here.",
+    "The rejected F8-22 candidate is not revived or qualified. F8-36 must publish one replacement identity before F8-23--30 qualification can proceed.",
+    "Only rigid/query realtime simulations are advertised as executable; unsupported domains remain explicit and advertised interaction capabilities are unchanged."
+  ]
+}

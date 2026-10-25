@@ -1714,7 +1714,8 @@ PmResult pmGetVulkanSemaphoreEXT(
     <card key="query_pool" section="queries" extension="false" emit-header="true">
       <types>typedef enum PmQueryType {
     PM_QUERY_TIMESTAMP = 0,
-    PM_QUERY_STEP_STATISTICS = 1
+    PM_QUERY_STEP_STATISTICS = 1,
+    PM_QUERY_REALTIME_STEP_STATISTICS = 2
 } PmQueryType;
 typedef struct PmQueryPoolCreateInfo {
     PmStructureType sType;
@@ -1753,7 +1754,48 @@ PmResult pmCmdResetQueryPool(
     uint64_t overflowCount;
     int32_t executionResult;
     uint32_t earlyExitCount;
-} PmStepStatistics;</types>
+} PmStepStatistics;
+
+enum {
+    PM_REALTIME_WORK_PHASE_COUNT = 7,
+    PM_REALTIME_DOMAIN_COUNT = 6
+};
+typedef enum PmRealtimeWorkPhase {
+    PM_REALTIME_WORK_PHASE_BOUNDARY = 0,
+    PM_REALTIME_WORK_PHASE_PREDICT = 1,
+    PM_REALTIME_WORK_PHASE_INDEX = 2,
+    PM_REALTIME_WORK_PHASE_CANDIDATES = 3,
+    PM_REALTIME_WORK_PHASE_DOMAIN = 4,
+    PM_REALTIME_WORK_PHASE_COUPLING = 5,
+    PM_REALTIME_WORK_PHASE_COMMIT = 6
+} PmRealtimeWorkPhase;
+typedef struct PmRealtimeWorkStatistics {
+    uint64_t dispatches;
+    uint64_t workgroups;
+    uint64_t bytesMoved;
+    uint64_t spatialIndexBuilds;
+    uint64_t spatialIndexRefits;
+    uint64_t spatialIndexPublications;
+    uint64_t numericalIterations;
+    uint64_t barriers;
+    uint64_t queueSubmissions;
+    uint64_t intraTickHostReadbacks;
+    uint64_t intraTickHostWaits;
+} PmRealtimeWorkStatistics;
+typedef struct PmRealtimeStepStatistics {
+    PmStepStatistics step;
+    uint32_t schemaVersion;
+    uint32_t profileVersion;
+    uint32_t budgetVersion;
+    uint32_t phaseCount;
+    uint64_t tick;
+    PmRealtimeWorkStatistics total;
+    PmRealtimeWorkStatistics phases[PM_REALTIME_WORK_PHASE_COUNT];
+    uint64_t timeAdvances;
+    uint64_t domainIterations[PM_REALTIME_DOMAIN_COUNT];
+    uint64_t couplingEdgeCount;
+    uint64_t couplingSweeps;
+} PmRealtimeStepStatistics;</types>
       <commands>PmResult pmCmdBeginStatisticsQuery(
     PmCommandBuffer commandBuffer,
     PmQueryPool pool, uint32_t query);
