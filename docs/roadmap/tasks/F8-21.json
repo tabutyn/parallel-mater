@@ -1,7 +1,7 @@
 {
   "id": "F8-21",
   "title": "Add measured dispatch, GPU phase and synchronization budgets",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-01",
     "F8-02",
@@ -21,15 +21,29 @@
     "Machine-readable reports include source/artifact/deployment identity, workload counts, profile/budget versions, warmup, p50/p95/p99, thermals and simulation-to-wall-clock ratio.",
     "Negative tests catch extra iterations/rebuilds and budget regressions; disabling telemetry removes mandatory query/readback overhead."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "7822c0f1-ed1a-4099-bdec-0476553c58a8",
-    "owner": "codex-android-vulkan",
-    "machine": "thomas-laptop",
-    "branch": "work/F8-21/thomas-laptop",
-    "claimed_at": "2026-10-25T08:27:11Z",
-    "heartbeat_at": "2026-10-25T08:27:11Z",
-    "expires_at": "2026-10-26T08:27:11Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/F8-21-REALTIME-TELEMETRY.md",
+    "docs/roadmap/evidence/F8-21-realtime-telemetry.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "7822c0f1-ed1a-4099-bdec-0476553c58a8",
+        "owner": "codex-android-vulkan",
+        "machine": "thomas-laptop",
+        "branch": "work/F8-21/thomas-laptop",
+        "claimed_at": "2026-10-25T08:27:11Z",
+        "heartbeat_at": "2026-10-25T08:27:11Z",
+        "expires_at": "2026-10-26T08:27:11Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-25T08:46:19Z",
+      "reason": "Landed bounded per-phase work/timing telemetry, Vulkan emitted-work profiling, regression controls, and provenance-bound Pixel 7 evidence.",
+      "evidence": [
+        "docs/roadmap/F8-21-REALTIME-TELEMETRY.md",
+        "docs/roadmap/evidence/F8-21-realtime-telemetry.json"
+      ]
+    }
+  ]
 }

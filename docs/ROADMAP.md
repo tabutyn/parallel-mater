@@ -139,8 +139,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-18](roadmap/tasks/F8-18.json) | Integrate liquid cross-system couplings into the single-step solve | done | F8-09, F8-10, F8-11, F8-12, F8-13, F8-14, F8-15, F8-16 | — |
 | [F8-19](roadmap/tasks/F8-19.json) | Integrate remaining deformable and smoke coupling operators | done | F8-10, F8-13, F8-14, F8-15, F8-16 | — |
 | [F8-20](roadmap/tasks/F8-20.json) | Assemble the one-tick backend-neutral schedule | done | F8-04, F8-17, F8-18, F8-19 | — |
-| [F8-21](roadmap/tasks/F8-21.json) | Add measured dispatch, GPU phase and synchronization budgets | leased | F8-01, F8-02, F8-20 | codex-android-vulkan / thomas-laptop / 2026-10-26T08:27:11Z |
-| [F8-22](roadmap/tasks/F8-22.json) | Freeze the cross-machine candidate and complete kernel coverage | waiting on dependencies | F8-01, F8-03, F8-20, F8-21 | — |
+| [F8-21](roadmap/tasks/F8-21.json) | Add measured dispatch, GPU phase and synchronization budgets | done | F8-01, F8-02, F8-20 | — |
+| [F8-22](roadmap/tasks/F8-22.json) | Freeze the cross-machine candidate and complete kernel coverage | ready | F8-01, F8-03, F8-20, F8-21 | — |
 | [F8-23](roadmap/tasks/F8-23.json) | Qualify independent CPU and public-contract cases | waiting on dependencies | F8-22 | — |
 | [F8-24](roadmap/tasks/F8-24.json) | Qualify the candidate on Linux CUDA devices | waiting on dependencies | F8-22 | — |
 | [F8-25](roadmap/tasks/F8-25.json) | Qualify the candidate on Linux Vulkan devices | waiting on dependencies | F8-22 | — |
