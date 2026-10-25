@@ -76,6 +76,19 @@ bool requirements_supported(std::uint32_t requirements,
 
 bool driver_supports_interaction(
     const PmInteractionCapabilityKey &key) noexcept {
+#if defined(PARALLEL_MATER_METAL_DRIVER)
+    if (key.firstFamily == PM_INTERACTION_FAMILY_ROPE &&
+        key.secondFamily == PM_INTERACTION_FAMILY_ROPE &&
+        key.scope == PM_INTERACTION_SCOPE_SELF &&
+        key.mode == PM_INTERACTION_MODE_CONTACT &&
+        key.direction == PM_INTERACTION_DIRECTION_BIDIRECTIONAL &&
+        key.materialProfile == PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE) {
+        // P1-31 requires the expanded sampled-node audit on every advertising
+        // driver. Metal retains rope support but withdraws this record until a
+        // current rope-self-contact-v2 device capture passes.
+        return false;
+    }
+#endif
     if (key.materialProfile == PM_INTERACTION_MATERIAL_MISCIBLE) {
 #if defined(PARALLEL_MATER_TEST_RESOURCE_DRIVER) || \
     defined(PARALLEL_MATER_QUALIFIED_MISCIBLE_FLUID)
@@ -110,7 +123,7 @@ bool valid_interaction_key(const PmInteractionCapabilityKey &key) noexcept {
         key.direction < PM_INTERACTION_DIRECTION_BIDIRECTIONAL ||
         key.direction > PM_INTERACTION_DIRECTION_EXTERNAL_TO_SECOND ||
         key.materialProfile < PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE ||
-        key.materialProfile > PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID)
+        key.materialProfile > PM_INTERACTION_MATERIAL_ROPE_CAPSULE)
         return false;
     return key.scope == PM_INTERACTION_SCOPE_DISTINCT_FAMILY
         ? first < second : first == second;
@@ -182,9 +195,11 @@ PmPhysicalDeviceFeatures supported_features() noexcept {
     // Private host fixture: exercise resource lifetime without claiming
     // production Slang CPU simulation support for these domains.
     features.particleLiquids = PM_TRUE;
+    features.liquidRigidCoupling = PM_TRUE;
     features.liquidLiquidCoupling = PM_TRUE;
     features.particleEmitters = PM_TRUE;
     features.cloth = PM_TRUE;
+    features.softBodies = PM_TRUE;
     features.paint = PM_TRUE;
 #endif
 #if defined(PARALLEL_MATER_QUALIFIED_EQUAL_FLUID)
@@ -289,8 +304,10 @@ PFN_pmVoidFunction lookup_proc(const char *value) noexcept {
     PM_LOOKUP(pmCmdSetCouplings);
     PM_LOOKUP(pmCmdSetCouplings2);
     PM_LOOKUP(pmCmdWriteCloths);
+    PM_LOOKUP(pmCmdWriteCloths2);
     PM_LOOKUP(pmCmdWriteRopes);
     PM_LOOKUP(pmCmdWriteSoftBodies);
+    PM_LOOKUP(pmCmdWriteSoftBodies2);
     PM_LOOKUP(pmCmdWriteSmoke);
     PM_LOOKUP(pmCmdWriteParticleEmitters);
     PM_LOOKUP(pmCmdWriteParticleDestroyers);

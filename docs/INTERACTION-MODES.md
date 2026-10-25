@@ -116,9 +116,10 @@ Cloth contact has two distinct future capability identities. Self-contact uses
 to one live cloth slot; it consumes no graph edge. Contact between two live
 cloth slots uses `(cloth, cloth, separate-system, contact, bidirectional,
 endpoint-native)` and a canonical graph edge with `first < second`. API 0.2
-advertises neither identity and has no cloth-cloth edge type. Current drivers
-must omit both records and reject any extension request with
-`PM_ERROR_FEATURE_NOT_PRESENT` without mutating the live graph. The
+exposes both exact identities, the typed self-contact control and the canonical
+cloth pair edge, but advertises neither capability. Current drivers omit both
+records and reject enabled controls and edge requests with
+`PM_ERROR_FEATURE_NOT_PRESENT` without mutating live state or the graph. The
 `same-domain` scope remains unsupported because the API has no aggregate cloth
 domain distinct from its separately owned slots.
 
@@ -205,13 +206,16 @@ must not drop a subset of contacts. Empty live cloths are no-ops. Removing an
 inter-system edge isolates the sheets on the next step, and endpoint
 replacement observes the normal generation and rollback rules.
 
-Before either capability is enabled, a versioned typed API extension must
-separately opt a cloth into intrinsic self-contact and represent a cloth-cloth
-graph edge. Implementation leaves add broad-phase/narrow-phase data, the
-shared Slang contact/friction operators and portable scheduling. A final
-public-API qualification leaf advertises each exact scope only on drivers that
-pass folded-self, two-sheet, high-speed, friction, momentum, topology-change,
-capacity and lifecycle cases.
+`PmClothStateInfo` chains `PmClothSelfContactState` to opt one cloth into
+intrinsic contact; `PM_COUPLING_CLOTH_CLOTH` represents a canonical
+`first < second` graph edge through `PmCouplingStateInfo`. Enabled self-contact
+validates finite vertices, nonnegative inverse masses and distinct, in-range,
+nondegenerate, nonduplicated triangles before feature availability. Invalid,
+duplicate or reversed requests cannot replace usable state. Separate leaves
+add bounded broad-phase/narrow-phase data, shared Slang contact/friction
+operators, portable scheduling and public-API qualification. Advertisement is
+per scope and driver after folded-self, two-sheet, high-speed, friction,
+momentum, topology-change, capacity and lifecycle cases pass.
 
 ## Soft-body surface-contact scopes
 
@@ -220,8 +224,9 @@ uses `(soft body, soft body, self, contact, bidirectional, endpoint-native)`
 within one live soft-body slot. Contact between two separately owned soft-body
 slots uses `(soft body, soft body, separate-system, contact, bidirectional,
 endpoint-native)` and a canonical graph edge with `first < second`. API 0.2
-advertises neither identity and has no soft-body/soft-body edge. Drivers omit
-both records and reject extension requests with
+exposes both exact identities, the typed self-contact control and the canonical
+soft-body pair edge, but advertises neither capability. Drivers omit both
+records and reject enabled controls and edge requests with
 `PM_ERROR_FEATURE_NOT_PRESENT` without changing the live graph. There is no
 aggregate soft-body domain, so `same-domain` remains unsupported.
 
@@ -314,8 +319,11 @@ dropping is forbidden. Empty live bodies are no-ops. Graph removal isolates
 distinct bodies on the next step, while replacement/reset follow normal
 generation and rollback rules.
 
-A versioned typed extension must opt a body into self-contact and represent a
-soft-body/soft-body graph edge before support is enabled. Separate leaves add
+`PmSoftBodyStateInfo` chains `PmSoftBodySelfContactState` to opt one body into
+intrinsic contact; `PM_COUPLING_SOFT_BODY_SOFT_BODY` represents a canonical
+`first < second` graph edge through `PmCouplingStateInfo`. The control validates
+the closed bound-surface topology before feature availability, and invalid,
+duplicate or reversed requests cannot replace usable state. Separate leaves add
 bounded surface candidate generation, shared Slang self and inter-system
 operators, portable scheduling and public-API qualification. Advertisement is
 per scope and driver after closed-surface, folded-self, two-volume, high-speed,
@@ -331,15 +339,18 @@ not claim continuous segment collision, protection from two segments crossing
 between nodes, high-speed continuous detection or self-friction. The current
 capability record must be qualified against this exact sampled-node behavior or
 withdrawn; it cannot be cited as evidence for the stronger profile below.
+CUDA, D3D12 and Vulkan advertise this record after passing the expanded
+`rope-self-contact-v2` audit. Metal retains general rope support but does not
+advertise this record until equivalent current device evidence exists.
 
-Complete rope contact uses the future `rope-capsule` material profile. Each
+Complete rope contact uses the reserved `rope-capsule` material profile. Each
 centreline edge from node `i` to `i + 1` is a swept capsule with the endpoint
 material radius. Intrinsic self-contact has identity
 `(rope, rope, self, contact, bidirectional, rope-capsule)` and consumes no graph
 edge. Contact between different live rope slots uses
 `(rope, rope, separate-system, contact, bidirectional, rope-capsule)` and a
-canonical edge with `first < second`. API 0.2 advertises neither capsule
-identity and has no rope-rope edge; requests must fail with
+canonical `PM_COUPLING_ROPE_ROPE` edge with `first < second`. API 0.2
+advertises neither capsule identity; well-formed requests must fail with
 `PM_ERROR_FEATURE_NOT_PRESENT` without mutating the graph. `same-domain`
 remains unsupported because each rope slot is independently owned.
 
@@ -391,13 +402,14 @@ and becomes tangentially neutral when `mu = 0`.
 Attachment is independent from contact. The initial rope-rope attachment joins
 one selected endpoint (`first` or `last`) of each rope as a point constraint;
 arbitrary interior knots, sliding rings, splices and orientation constraints
-are unsupported. The future typed edge state contains the two endpoint
-selectors, nonnegative compliance in m/N, nonnegative damping in N*s/m, a
-nonnegative capture distance in m and a nonnegative breaking impulse threshold
-in N*s. Zero compliance is rigid, and a zero breaking threshold is
-unbreakable. The attachment target is coincident at creation; creation fails
-rather than teleporting endpoints whose initial gap exceeds the capture
-distance.
+are unsupported. `PmRopeAttachmentState` contains `firstEndpoint` and
+`secondEndpoint` selectors plus nonnegative compliance in m/N, damping in
+N*s/m, capture distance in m and breaking impulse threshold in N*s. Every
+numeric parameter is finite. Zero compliance is rigid, and a zero breaking
+threshold is unbreakable. Attachment mode requires exactly one such state on
+`PmCouplingStateInfo::pNext`; the state is invalid without attachment mode.
+The attachment target is coincident at creation; creation fails rather than
+teleporting endpoints whose initial gap exceeds the capture distance.
 
 An unbroken attachment keeps endpoint separation below
 `max(1e-5 m, 0.02 * min(nodeSpacing_a, nodeSpacing_b))` after each completed
@@ -417,8 +429,8 @@ invalidates the affected output and permits retry; silently dropping contacts
 or attachments is forbidden. Empty ropes, endpoint replacement, removal and
 reset follow normal generation and rollback rules.
 
-A future API leaf adds the capsule profile, rope-pair edge and typed endpoint
-attachment state. Separate implementation leaves cover bounded segment
+P1-32 reserves the capsule profile, rope-pair edge and typed endpoint
+attachment state without advertising them. Separate implementation leaves cover bounded segment
 generation, capsule self-contact, inter-system contact, attachments and
 portable scheduling. Qualification first audits the legacy node-only record,
 then advertises capsule contact and attachment per driver only after crossing,
@@ -611,7 +623,7 @@ The initial profiles are:
 | `miscible` | Different Newtonian fluid materials share a mechanical neighborhood without a material interface. | Typed mechanical request exists; all drivers remain unadvertised pending implementation and qualification. |
 | `immiscible-interface` | Different Newtonian fluids retain a material boundary with defined pressure, shear and capillary behavior. | Typed mechanical and capillary request exists; all drivers remain unadvertised pending implementation and qualification. |
 | `thermal-phase` | Reserved for a future material-changing thermal or phase law. Thermal exchange that retains both materials uses the mechanical material profile plus the `thermal` mode. | Unsupported; F2-11 does not define phase transfer. |
-| `rope-capsule` | Rope centreline segments are swept capsules; contact covers their full length rather than sampled nodes only. | Future profile specified by F2-14; unsupported in API 0.2. |
+| `rope-capsule` | Rope centreline segments are swept capsules; contact covers their full length rather than sampled nodes only. | Reserved by API 0.2; unadvertised until the implementation and qualification leaves pass. |
 
 A driver must expose the supported smoke representation and fluid material
 profile. Reporting only `domainCouplings`, or only a pair, is insufficient.

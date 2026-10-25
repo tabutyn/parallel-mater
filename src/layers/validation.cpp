@@ -1375,6 +1375,28 @@ void record(const PmLayerArgs_pmCmdWriteCloths &a) {
     record_simulation_dependency(a.commandBuffer, a.simulation);
     record_material_dependency(a.commandBuffer);
 }
+PmResult validate(const PmLayerArgs_pmCmdWriteCloths2 &a) {
+    Simulation *tracked{};
+    if (!a.count || !a.pCloths ||
+        validate_simulation_command(a.commandBuffer, a.simulation,
+                                    &tracked) != PM_SUCCESS)
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (!tracking_available) return PM_SUCCESS;
+    const auto *materials = bound_pipeline(a.commandBuffer);
+    if (!materials || a.firstCloth > tracked->cloth_count ||
+        a.count > tracked->cloth_count - a.firstCloth)
+        return PM_ERROR_INVALID_ARGUMENT;
+    for (std::uint32_t index = 0U; index < a.count; ++index)
+        if (a.pCloths[index].active == PM_TRUE &&
+            a.pCloths[index].materialIndex >=
+                materials->cloth_material_count)
+            return PM_ERROR_INVALID_ARGUMENT;
+    return PM_SUCCESS;
+}
+void record(const PmLayerArgs_pmCmdWriteCloths2 &a) {
+    record_simulation_dependency(a.commandBuffer, a.simulation);
+    record_material_dependency(a.commandBuffer);
+}
 PmResult validate(const PmLayerArgs_pmCmdWriteRopes &a) {
     Simulation *tracked{};
     if (!a.count || !a.pRopes ||
@@ -1415,6 +1437,28 @@ PmResult validate(const PmLayerArgs_pmCmdWriteSoftBodies &a) {
     return PM_SUCCESS;
 }
 void record(const PmLayerArgs_pmCmdWriteSoftBodies &a) {
+    record_simulation_dependency(a.commandBuffer, a.simulation);
+    record_material_dependency(a.commandBuffer);
+}
+PmResult validate(const PmLayerArgs_pmCmdWriteSoftBodies2 &a) {
+    Simulation *tracked{};
+    if (!a.count || !a.pSoftBodies ||
+        validate_simulation_command(a.commandBuffer, a.simulation,
+                                    &tracked) != PM_SUCCESS)
+        return PM_ERROR_INVALID_ARGUMENT;
+    if (!tracking_available) return PM_SUCCESS;
+    const auto *materials = bound_pipeline(a.commandBuffer);
+    if (!materials || a.firstSoftBody > tracked->soft_body_count ||
+        a.count > tracked->soft_body_count - a.firstSoftBody)
+        return PM_ERROR_INVALID_ARGUMENT;
+    for (std::uint32_t index = 0U; index < a.count; ++index)
+        if (a.pSoftBodies[index].active == PM_TRUE &&
+            a.pSoftBodies[index].materialIndex >=
+                materials->soft_body_material_count)
+            return PM_ERROR_INVALID_ARGUMENT;
+    return PM_SUCCESS;
+}
+void record(const PmLayerArgs_pmCmdWriteSoftBodies2 &a) {
     record_simulation_dependency(a.commandBuffer, a.simulation);
     record_material_dependency(a.commandBuffer);
 }

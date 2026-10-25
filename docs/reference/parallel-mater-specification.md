@@ -1,4 +1,4 @@
-<!-- Generated from registry/pm.xml sha256:a9d8f5ed8c0a1a075c3f0ac50dbe9914db9a3dcf1abae2524a4a5fd97fc1344d -->
+<!-- Generated from registry/pm.xml sha256:d2eeafa838267aab72684355ac129e4776da422a3c8ab728115f155d16472f5f -->
 
 # Parallel Mater 0.2 — API Specification
 
@@ -1178,7 +1178,8 @@ typedef enum PmInteractionMaterialProfile {
     PM_INTERACTION_MATERIAL_MISCIBLE = 4,
     PM_INTERACTION_MATERIAL_IMMISCIBLE_INTERFACE = 5,
     PM_INTERACTION_MATERIAL_THERMAL_PHASE = 6,
-    PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID = 7
+    PM_INTERACTION_MATERIAL_SMOKE_PARTICLE_GRID = 7,
+    PM_INTERACTION_MATERIAL_ROPE_CAPSULE = 8
 } PmInteractionMaterialProfile;
 typedef enum PmCouplingType {
     PM_COUPLING_LIQUID_RIGID = 0,
@@ -1194,7 +1195,10 @@ typedef enum PmCouplingType {
     PM_COUPLING_SMOKE_CLOTH = 10,
     PM_COUPLING_SMOKE_ROPE = 11,
     PM_COUPLING_SMOKE_SOFT_BODY = 12,
-    PM_COUPLING_SMOKE_SMOKE = 13
+    PM_COUPLING_SMOKE_SMOKE = 13,
+    PM_COUPLING_SOFT_BODY_SOFT_BODY = 14,
+    PM_COUPLING_CLOTH_CLOTH = 15,
+    PM_COUPLING_ROPE_ROPE = 16
 } PmCouplingType;
 typedef struct PmMechanicalCouplingState {
     float contactDistance;
@@ -1267,6 +1271,20 @@ typedef struct PmFluidInterfaceState {
     const void* pNext;
     float surfaceTension;
 } PmFluidInterfaceState;
+typedef enum PmRopeEndpoint {
+    PM_ROPE_ENDPOINT_FIRST = 0,
+    PM_ROPE_ENDPOINT_LAST = 1
+} PmRopeEndpoint;
+typedef struct PmRopeAttachmentState {
+    PmStructureType sType;
+    const void* pNext;
+    PmRopeEndpoint firstEndpoint;
+    PmRopeEndpoint secondEndpoint;
+    float compliance;
+    float damping;
+    float captureDistance;
+    float breakingImpulseThreshold;
+} PmRopeAttachmentState;
 ```
 
 ```c
@@ -1278,9 +1296,11 @@ PmResult pmCmdSetCouplings2(PmCommandBuffer commandBuffer,
     const PmCouplingStateInfo *pCouplings);
 ```
 
-first and second are stable domain slots; PM_INVALID_INDEX names all rigid bodies. SMOKE_SMOKE requires first < second: SMOKE_PARTICLE/GRID select PRESSURE|VISCOSITY|THERMAL; SMOKE_PARTICLE_GRID selects DRAG|THERMAL. Modes are independent and unadvertised. Other bundles are fixed; invalid bits are errors.
+first and second are stable domain slots; PM_INVALID_INDEX names all rigid bodies. SMOKE_SMOKE requires first < second: SMOKE_PARTICLE/GRID select PRESSURE|VISCOSITY|THERMAL; SMOKE_PARTICLE_GRID selects DRAG|THERMAL. ROPE_ROPE also requires first < second and the ROPE_CAPSULE profile; CONTACT and ATTACHMENT are independently selectable and remain unadvertised. Other bundles are fixed; invalid bits are errors.
 
 PmCouplingState is the API 0.2 descriptor. PmCouplingStateInfo is an ABI-compatible extensible path: sType identifies that exact structure and pNext is NULL except for separately permitted typed state. A LIQUID_LIQUID edge using MISCIBLE or IMMISCIBLE_INTERFACE must chain exactly one PmFluidPairMaterialState. Its material indices must equal first and second, so the edge consumes the two endpoint PmLiquidMaterialState records without copying, averaging or silently changing ownership. MISCIBLE requests contact, pressure and viscosity as one mechanical bundle. IMMISCIBLE_INTERFACE also chains exactly one PmFluidInterfaceState and requests contact, pressure and interface. surfaceTension is finite and nonnegative in N/m; zero disables capillary traction while retaining the material boundary. The interface normal points from the first fluid endpoint to the second, so positive curvature obeys pressure_first - pressure_second = surfaceTension * (1 / R1 + 1 / R2). Interfacial viscosity remains a separate capability. Both different-material profiles remain unsupported until their operator and qualification leaves complete. A well-formed request therefore returns FEATURE_NOT_PRESENT, while missing, mismatched, duplicate, unknown, profile-inapplicable or nonfinite typed state returns INVALID_ARGUMENT and cannot replace a live graph.
+
+A ROPE_ROPE edge requesting ATTACHMENT must use PmCouplingStateInfo and chain exactly one PmRopeAttachmentState. firstEndpoint and secondEndpoint select FIRST or LAST on their corresponding canonical rope slots. compliance in m/N, damping in N·s/m, captureDistance in m and breakingImpulseThreshold in N·s are finite and nonnegative. Zero compliance is rigid and zero breaking impulse is unbreakable. The typed state is invalid without ATTACHMENT, and ATTACHMENT without it is invalid. Contact-only rope-capsule edges have no typed state. Every well-formed rope-pair request returns FEATURE_NOT_PRESENT until later operator and qualification tasks advertise its exact mode; no rope-capsule capability is implied by the legacy node-only self-contact record.
 
 Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings and pmCmdSetCouplings2 copy a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. The complete replacement is validated before live edges are removed. If installation then fails, the previous usable graph is restored. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph.
 
@@ -1458,6 +1478,22 @@ typedef struct PmClothInfo {
     const uint32_t* pTriangleIndices;
     const float* pInverseMasses;
 } PmClothInfo;
+typedef struct PmClothStateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    PmBool32 active;
+    uint32_t materialIndex;
+    uint32_t vertexCount;
+    const PmFloat3* pVertices;
+    uint32_t triangleIndexCount;
+    const uint32_t* pTriangleIndices;
+    const float* pInverseMasses;
+} PmClothStateInfo;
+typedef struct PmClothSelfContactState {
+    PmStructureType sType;
+    const void* pNext;
+    PmBool32 enabled;
+} PmClothSelfContactState;
 typedef struct PmClothVertexState {
     PmFloat3 position;
     PmFloat3 velocity;
@@ -1472,6 +1508,9 @@ typedef struct PmClothVertexState {
 PmResult pmCmdWriteCloths(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t firstCloth,
     uint32_t count, const PmClothInfo* pCloths);
+PmResult pmCmdWriteCloths2(PmCommandBuffer commandBuffer,
+    PmSimulation simulation, uint32_t firstCloth,
+    uint32_t count, const PmClothStateInfo* pCloths);
 PmResult pmCmdCopyClothState(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t clothIndex,
     const PmBufferRange* pDestination);
@@ -1479,6 +1518,10 @@ PmResult pmCmdCopyClothSurface(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t clothIndex,
     const PmBufferRange* pDestination);
 ```
+
+PmClothInfo is the API 0.2 descriptor. PmClothStateInfo is the ABI-compatible extensible write path and copies the same resource data. Its pNext is NULL unless intrinsic surface self-contact is requested by chaining exactly one PmClothSelfContactState. enabled is PM_FALSE or PM_TRUE; PM_FALSE preserves ordinary cloth behavior and PM_TRUE requests the exact (cloth, cloth, self, contact, bidirectional, endpoint-native) capability. Unknown or nested state is invalid. Enabled self-contact requires finite vertices and nonnegative inverse masses plus distinct, in-range, nondegenerate, nonduplicated triangles. Invalid topology returns INVALID_ARGUMENT before any write is recorded. A valid enabled request returns FEATURE_NOT_PRESENT until its operator and driver qualification tasks advertise the capability, without replacing live state.
+
+A separate-system contact edge uses PM_COUPLING_CLOTH_CLOTH through PmCouplingStateInfo with first < second, CONTACT and ENDPOINT_NATIVE. It consumes simulation coupling capacity and requests the exact separate-system capability. Duplicate or reversed endpoints are invalid; a well-formed edge remains FEATURE_NOT_PRESENT until advertised. Intrinsic self-contact consumes no graph edge, and neither request implies attachment, containment or one-sided collision.
 
 <a id="spec-rope_resources"></a>
 
@@ -1536,6 +1579,27 @@ typedef struct PmSoftBodyInfo {
     const uint32_t* pSurfaceTriangleIndices;
     const PmSoftBodySurfaceBinding* pSurfaceBindings;
 } PmSoftBodyInfo;
+typedef struct PmSoftBodyStateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    PmBool32 active;
+    uint32_t materialIndex;
+    uint32_t nodeCount;
+    const PmFloat3* pNodes;
+    uint32_t bondCount;
+    const PmSoftBodyBond* pBonds;
+    const float* pInverseMasses;
+    uint32_t surfaceVertexCount;
+    const PmFloat3* pSurfaceVertices;
+    uint32_t surfaceTriangleIndexCount;
+    const uint32_t* pSurfaceTriangleIndices;
+    const PmSoftBodySurfaceBinding* pSurfaceBindings;
+} PmSoftBodyStateInfo;
+typedef struct PmSoftBodySelfContactState {
+    PmStructureType sType;
+    const void* pNext;
+    PmBool32 enabled;
+} PmSoftBodySelfContactState;
 typedef struct PmSoftBodyNodeState {
     PmFloat3 position;
     PmFloat3 velocity;
@@ -1550,6 +1614,9 @@ typedef struct PmSoftBodyNodeState {
 PmResult pmCmdWriteSoftBodies(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t firstSoftBody,
     uint32_t count, const PmSoftBodyInfo* pSoftBodies);
+PmResult pmCmdWriteSoftBodies2(PmCommandBuffer commandBuffer,
+    PmSimulation simulation, uint32_t firstSoftBody,
+    uint32_t count, const PmSoftBodyStateInfo* pSoftBodies);
 PmResult pmCmdCopySoftBodyState(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t softBodyIndex,
     const PmBufferRange* pDestination);
@@ -1557,6 +1624,10 @@ PmResult pmCmdCopySoftBodySurface(PmCommandBuffer commandBuffer,
     PmSimulation simulation, uint32_t softBodyIndex,
     const PmBufferRange* pDestination);
 ```
+
+PmSoftBodyInfo is the API 0.2 descriptor. PmSoftBodyStateInfo is the ABI-compatible extensible write path and copies the same resource data. Its pNext is NULL unless intrinsic surface self-contact is requested by chaining exactly one PmSoftBodySelfContactState. enabled is PM_FALSE or PM_TRUE; PM_FALSE preserves ordinary soft-body behavior and PM_TRUE requests the exact (soft body, soft body, self, contact, bidirectional, endpoint-native) capability. Unknown or nested state is invalid. The self-contact request requires a finite, consistently wound, closed two-manifold surface with distinct, nondegenerate triangle vertices and valid normalized bindings. Invalid topology returns INVALID_ARGUMENT before any write is recorded. A valid enabled request returns FEATURE_NOT_PRESENT until its operator and driver qualification tasks advertise the capability, without replacing live state.
+
+A separate-system surface-contact edge uses PM_COUPLING_SOFT_BODY_SOFT_BODY through PmCouplingStateInfo with first < second, CONTACT and ENDPOINT_NATIVE. It consumes simulation coupling capacity and requests the exact separate-system capability. Duplicate or reversed endpoints are invalid; a well-formed edge remains FEATURE_NOT_PRESENT until advertised. Intrinsic self-contact consumes no graph edge, and neither request implies attachment, containment or volume inversion prevention.
 
 <a id="spec-smoke_resources"></a>
 
@@ -2861,6 +2932,11 @@ typedef enum PmStructureType {
     PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_COUPLING_STATE_INFO = 17,
     PM_STRUCTURE_TYPE_FLUID_INTERFACE_STATE = 18,
     PM_STRUCTURE_TYPE_SIMULATION_PROFILE_CREATE_INFO = 19,
+    PM_STRUCTURE_TYPE_SOFT_BODY_STATE_INFO = 20,
+    PM_STRUCTURE_TYPE_SOFT_BODY_SELF_CONTACT_STATE = 21,
+    PM_STRUCTURE_TYPE_CLOTH_STATE_INFO = 22,
+    PM_STRUCTURE_TYPE_CLOTH_SELF_CONTACT_STATE = 23,
+    PM_STRUCTURE_TYPE_ROPE_ATTACHMENT_STATE = 24,
 } PmStructureType;
 ```
 
@@ -2896,6 +2972,8 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmClothCapacity | [7.1](#spec-simulation_create) |
 | PmClothInfo | [10.2](#spec-cloth_resources) |
 | PmClothMaterialState | [9.4](#spec-domain_materials) |
+| PmClothSelfContactState | [10.2](#spec-cloth_resources) |
+| PmClothStateInfo | [10.2](#spec-cloth_resources) |
 | PmClothVertexState | [10.2](#spec-cloth_resources) |
 | pmCmdApplyRigidInputs | [7.5](#spec-body_inputs) |
 | pmCmdBeginStatisticsQuery | [15.3](#spec-step_stats) |
@@ -2927,6 +3005,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmCmdSetRigidStates | [7.5](#spec-body_inputs) |
 | pmCmdStepSimulation | [11.5](#spec-step) |
 | pmCmdWriteCloths | [10.2](#spec-cloth_resources) |
+| pmCmdWriteCloths2 | [10.2](#spec-cloth_resources) |
 | pmCmdWritePaintFields | [10.7](#spec-paint_resources) |
 | pmCmdWritePaintRules | [10.7](#spec-paint_resources) |
 | pmCmdWriteParticleDestroyers | [10.6](#spec-emitters) |
@@ -2936,6 +3015,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmCmdWriteRopes | [10.3](#spec-rope_resources) |
 | pmCmdWriteSmoke | [10.5](#spec-smoke_resources) |
 | pmCmdWriteSoftBodies | [10.4](#spec-soft_body_resources) |
+| pmCmdWriteSoftBodies2 | [10.4](#spec-soft_body_resources) |
 | pmCmdWriteTimestamp | [15.2](#spec-timestamps) |
 | PmCommandBuffer | [18.1](#spec-base_types) |
 | PmCommandBufferBeginInfo | [11.2](#spec-command_buffers) |
@@ -3105,7 +3185,9 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmRigidSolverState | [9.1](#spec-rigid_solver) |
 | PmRigidState | [7.3](#spec-rigid_state) |
 | PmRopeAttachment | [10.3](#spec-rope_resources) |
+| PmRopeAttachmentState | [9.3](#spec-coupling) |
 | PmRopeCapacity | [7.1](#spec-simulation_create) |
+| PmRopeEndpoint | [9.3](#spec-coupling) |
 | PmRopeInfo | [10.3](#spec-rope_resources) |
 | PmRopeMaterialState | [9.4](#spec-domain_materials) |
 | PmRopeNodeState | [10.3](#spec-rope_resources) |
@@ -3127,6 +3209,8 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmSoftBodyInfo | [10.4](#spec-soft_body_resources) |
 | PmSoftBodyMaterialState | [9.4](#spec-domain_materials) |
 | PmSoftBodyNodeState | [10.4](#spec-soft_body_resources) |
+| PmSoftBodySelfContactState | [10.4](#spec-soft_body_resources) |
+| PmSoftBodyStateInfo | [10.4](#spec-soft_body_resources) |
 | PmSoftBodySurfaceBinding | [10.1](#spec-domain_records) |
 | PmStageFlags | [18.1](#spec-base_types) |
 | PmStepInfo | [11.5](#spec-step) |

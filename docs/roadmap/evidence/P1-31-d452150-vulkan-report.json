@@ -1,0 +1,63 @@
+{
+  "claim": "sampled-nodes-only",
+  "driver": {
+    "device": "NVIDIA GeForce GTX 1080",
+    "device_id": 7040,
+    "driver_version": "2442166272",
+    "name": "slang-vulkan",
+    "vendor_id": 4318
+  },
+  "failure_count": 0,
+  "failures": [],
+  "fixture_count": 3,
+  "observations": {
+    "exact-capacity-256-node-rope": {
+      "angular_impulse_activity_kg_m2_s": null,
+      "angular_momentum_residual_kg_m2_s": null,
+      "checkpoint_count": 2,
+      "linear_impulse_activity_kg_m_s": null,
+      "linear_momentum_residual_kg_m_s": null,
+      "maximum_node_speed_m_s": 0.0,
+      "maximum_position_magnitude_m": 5.099999904632568,
+      "minimum_eligible_contact_separation_m": null,
+      "minimum_eligible_initial_separation_m": null,
+      "overlapping_eligible_pair_count": 0,
+      "sampled_node_count": 256,
+      "target_separation_m": null
+    },
+    "fixed-endpoint-folded-six-node": {
+      "angular_impulse_activity_kg_m2_s": null,
+      "angular_momentum_residual_kg_m2_s": null,
+      "checkpoint_count": 3,
+      "linear_impulse_activity_kg_m_s": null,
+      "linear_momentum_residual_kg_m_s": null,
+      "maximum_node_speed_m_s": 10.051927610476358,
+      "maximum_position_magnitude_m": 0.1875312908282455,
+      "minimum_eligible_contact_separation_m": 0.11999999561774952,
+      "minimum_eligible_initial_separation_m": 0.019999995827674866,
+      "overlapping_eligible_pair_count": 2,
+      "sampled_node_count": 6,
+      "target_separation_m": 0.12
+    },
+    "free-folded-four-node-long-run": {
+      "angular_impulse_activity_kg_m2_s": 0.040384173348765214,
+      "angular_momentum_residual_kg_m2_s": 0.0001987296751571289,
+      "checkpoint_count": 4,
+      "linear_impulse_activity_kg_m_s": 1.3637057233589729,
+      "linear_momentum_residual_kg_m_s": 7.932681833307467e-08,
+      "maximum_node_speed_m_s": 6.453602275000999,
+      "maximum_position_magnitude_m": 0.1302171427524404,
+      "minimum_eligible_contact_separation_m": 0.11999999507617162,
+      "minimum_eligible_initial_separation_m": 0.019999999552965164,
+      "overlapping_eligible_pair_count": 1,
+      "sampled_node_count": 4,
+      "target_separation_m": 0.12
+    }
+  },
+  "passed": true,
+  "profile_id": "rope-self-contact-v2",
+  "profile_sha256": "8860ec9a5ba0e79dc4b917eabaad88d99fb77b0d17b8575d650f43143d17b408",
+  "sample_count": 9,
+  "schema": "parallel-mater-conformance-quality-report/v1",
+  "scope": "analytic_invariants"
+}

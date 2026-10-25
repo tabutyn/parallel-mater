@@ -1,7 +1,7 @@
 {
   "registry": {
     "path": "registry/pm.xml",
-    "sha256": "a9d8f5ed8c0a1a075c3f0ac50dbe9914db9a3dcf1abae2524a4a5fd97fc1344d"
+    "sha256": "d2eeafa838267aab72684355ac129e4776da422a3c8ab728115f155d16472f5f"
   },
   "contract": "Parallel Mater command API 0.2",
   "implementation": "src/loader public entry points routed to installable drivers",
@@ -387,6 +387,14 @@
       "status": "driver-routed"
     },
     {
+      "name": "pmCmdWriteCloths2",
+      "section": "10.2",
+      "card": "cloth_resources",
+      "header": "parallel_mater.h",
+      "source": "generated/api/loader_forward.inc",
+      "status": "driver-routed"
+    },
+    {
       "name": "pmCmdCopyClothState",
       "section": "10.2",
       "card": "cloth_resources",
@@ -420,6 +428,14 @@
     },
     {
       "name": "pmCmdWriteSoftBodies",
+      "section": "10.4",
+      "card": "soft_body_resources",
+      "header": "parallel_mater.h",
+      "source": "generated/api/loader_forward.inc",
+      "status": "driver-routed"
+    },
+    {
+      "name": "pmCmdWriteSoftBodies2",
       "section": "10.4",
       "card": "soft_body_resources",
       "header": "parallel_mater.h",
@@ -1318,6 +1334,16 @@
       "card": "coupling"
     },
     {
+      "name": "PmRopeAttachmentState",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
+      "name": "PmRopeEndpoint",
+      "section": "9.3",
+      "card": "coupling"
+    },
+    {
       "name": "PmSmokeCouplingState",
       "section": "9.3",
       "card": "coupling"
@@ -1388,6 +1414,16 @@
       "card": "cloth_resources"
     },
     {
+      "name": "PmClothSelfContactState",
+      "section": "10.2",
+      "card": "cloth_resources"
+    },
+    {
+      "name": "PmClothStateInfo",
+      "section": "10.2",
+      "card": "cloth_resources"
+    },
+    {
       "name": "PmClothVertexState",
       "section": "10.2",
       "card": "cloth_resources"
@@ -1414,6 +1450,16 @@
     },
     {
       "name": "PmSoftBodyNodeState",
+      "section": "10.4",
+      "card": "soft_body_resources"
+    },
+    {
+      "name": "PmSoftBodySelfContactState",
+      "section": "10.4",
+      "card": "soft_body_resources"
+    },
+    {
+      "name": "PmSoftBodyStateInfo",
       "section": "10.4",
       "card": "soft_body_resources"
     },
@@ -1791,11 +1837,13 @@
     "PFN_pmCreatePhysicsPipeline",
     "PFN_pmDestroyPhysicsPipeline",
     "PFN_pmCmdWriteCloths",
+    "PFN_pmCmdWriteCloths2",
     "PFN_pmCmdCopyClothState",
     "PFN_pmCmdCopyClothSurface",
     "PFN_pmCmdWriteRopes",
     "PFN_pmCmdCopyRopeState",
     "PFN_pmCmdWriteSoftBodies",
+    "PFN_pmCmdWriteSoftBodies2",
     "PFN_pmCmdCopySoftBodyState",
     "PFN_pmCmdCopySoftBodySurface",
     "PFN_pmCmdWriteSmoke",

@@ -29,6 +29,8 @@ FLUID_SELF_VISCOSITY_PROFILE_PATH = (
     ROOT / "quality" / "fluid-self-viscosity-v1.json")
 ROPE_SELF_CONTACT_PROFILE_PATH = (
     ROOT / "quality" / "rope-self-contact-v1.json")
+ROPE_SELF_CONTACT_AUDIT_PROFILE_PATH = (
+    ROOT / "quality" / "rope-self-contact-v2.json")
 SMOKE_SELF_VISCOSITY_PROFILE_PATH = (
     ROOT / "quality" / "smoke-self-viscosity-v1.json")
 
@@ -835,6 +837,168 @@ class RopeSelfContactQualityTests(unittest.TestCase):
         result = self.valid_result()
         result["execution_status"] = "failed"
         self.assert_rejected(result, "must be completed")
+
+
+class RopeSelfContactAuditQualityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.profile = json.loads(
+            ROPE_SELF_CONTACT_AUDIT_PROFILE_PATH.read_text(encoding="utf-8"))
+        cls.digest = quality.profile_sha256(
+            ROPE_SELF_CONTACT_AUDIT_PROFILE_PATH)
+
+    @staticmethod
+    def node(index: int, position: list[float],
+             velocity: list[float]) -> dict:
+        return {
+            "index": index,
+            "position_m": position,
+            "velocity_m_s": velocity,
+        }
+
+    @staticmethod
+    def centerline(definition: dict) -> list[list[float]]:
+        explicit = definition.get("initial_centerline_m")
+        if explicit is not None:
+            return copy.deepcopy(explicit)
+        line = definition["initial_line"]
+        return [[line["origin_m"][axis] +
+                 line["increment_m"][axis] * index
+                 for axis in range(3)]
+                for index in range(line["count"])]
+
+    def valid_result(self) -> dict:
+        fixtures = []
+        for definition in self.profile["fixtures"]:
+            fixture = copy.deepcopy(definition)
+            fixture.pop("checks")
+            fixture.pop("initial_line", None)
+            centerline = self.centerline(definition)
+            fixture["initial_centerline_m"] = copy.deepcopy(centerline)
+            fixture["initial_nodes"] = [
+                self.node(index, copy.deepcopy(position), [0.0, 0.0, 0.0])
+                for index, position in enumerate(centerline)
+            ]
+            if definition["id"] == "free-folded-four-node-long-run":
+                final_positions = [
+                    [-0.05, 0.0, 0.0],
+                    [0.1, 0.0, 0.0],
+                    [0.06, 0.091651514, 0.0],
+                    [0.07, 0.0, 0.0],
+                ]
+                final_velocities = [
+                    [-5.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [5.0, 0.0, 0.0],
+                ]
+            elif definition["id"] == "fixed-endpoint-folded-six-node":
+                final_positions = [
+                    [-0.1, 0.0, 0.0],
+                    [-0.05, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [0.06, 0.091651514, 0.0],
+                    [0.07, 0.0, 0.0],
+                    [0.12, 0.0, 0.0],
+                ]
+                final_velocities = [
+                    [0.0, 0.0, 0.0],
+                    [-5.0, 0.0, 0.0],
+                    [-10.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [5.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                ]
+            else:
+                final_positions = centerline
+                final_velocities = [[0.0, 0.0, 0.0] for _ in centerline]
+            fixture["checkpoints"] = [
+                {
+                    "step": step,
+                    "nodes": [
+                        self.node(index, copy.deepcopy(position),
+                                  copy.deepcopy(final_velocities[index]))
+                        for index, position in enumerate(final_positions)
+                    ],
+                }
+                for step in definition["checkpoint_steps"]
+            ]
+            fixtures.append(fixture)
+        return {
+            "schema": quality.RESULT_SCHEMA,
+            "profile_id": self.profile["id"],
+            "profile_sha256": self.digest,
+            "execution_status": "completed",
+            "driver": {"name": "test-driver", "device": "test-device"},
+            "claim": "sampled-nodes-only",
+            "fixtures": fixtures,
+        }
+
+    def evaluate(self, result: dict) -> dict:
+        return quality.evaluate(self.profile, result, self.digest)
+
+    def assert_rejected(self, result: dict, message: str) -> None:
+        report = self.evaluate(result)
+        self.assertFalse(report["passed"])
+        self.assertTrue(any(message in failure["message"]
+                            for failure in report["failures"]), report)
+
+    def fixture(self, result: dict, identity: str) -> dict:
+        return next(item for item in result["fixtures"]
+                    if item["id"] == identity)
+
+    def test_complete_node_only_audit_matrix_passes(self):
+        report = self.evaluate(self.valid_result())
+        self.assertTrue(report["passed"], report)
+        self.assertEqual(report["fixture_count"], 3)
+        self.assertEqual(report["sample_count"], 9)
+        self.assertEqual(report["claim"], "sampled-nodes-only")
+
+    def test_separation_and_exclusion_fail_independently(self):
+        result = self.valid_result()
+        free = self.fixture(result, "free-folded-four-node-long-run")
+        free["checkpoints"][0]["nodes"][3]["position_m"] = [0.02, 0.0, 0.0]
+        self.assert_rejected(result, "nonadjacent sampled nodes remain inside")
+
+        result = self.valid_result()
+        free = self.fixture(result, "free-folded-four-node-long-run")
+        free["checkpoints"][0]["nodes"][3]["position_m"] = [0.3, 0.0, 0.0]
+        self.assert_rejected(result,
+                             "topology-neighbor probe was separated")
+
+    def test_fixed_endpoint_and_capacity_failures_are_detected(self):
+        result = self.valid_result()
+        fixed = self.fixture(result, "fixed-endpoint-folded-six-node")
+        fixed["checkpoints"][1]["nodes"][0]["position_m"][1] = 0.01
+        self.assert_rejected(result, "fixed endpoint moved")
+
+        result = self.valid_result()
+        capacity = self.fixture(result, "exact-capacity-256-node-rope")
+        capacity["initial_nodes"].pop()
+        self.assert_rejected(result, "exact-capacity rope is not fully populated")
+
+    def test_momentum_long_run_and_claim_are_required(self):
+        result = self.valid_result()
+        free = self.fixture(result, "free-folded-four-node-long-run")
+        free["checkpoints"][0]["nodes"][3]["velocity_m_s"][0] = 4.0
+        self.assert_rejected(result,
+                             "net internal linear impulse exceeds profile")
+
+        result = self.valid_result()
+        free = self.fixture(result, "free-folded-four-node-long-run")
+        free["checkpoints"][0]["nodes"][0]["velocity_m_s"] = [0.0, 1.0, 0.0]
+        free["checkpoints"][0]["nodes"][3]["velocity_m_s"] = [0.0, -1.0, 0.0]
+        self.assert_rejected(result,
+                             "net internal angular impulse exceeds profile")
+
+        result = self.valid_result()
+        free = self.fixture(result, "free-folded-four-node-long-run")
+        free["checkpoints"].pop()
+        self.assert_rejected(result, "long-run final checkpoint is missing")
+
+        result = self.valid_result()
+        result["claim"] = "capsule-contact"
+        self.assert_rejected(result, "must label the claim node-only")
 
 
 class RigidAttachmentQualityTests(unittest.TestCase):

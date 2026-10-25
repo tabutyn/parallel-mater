@@ -137,8 +137,8 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-16](roadmap/tasks/F8-16.json) | Stabilize smoke transport and projection at one 60 Hz step | done | F8-00, F8-03, F8-10 | — |
 | [F8-17](roadmap/tasks/F8-17.json) | Integrate rigid two-way couplings into the single-step solve | done | F8-08, F8-10, F8-11, F8-13, F8-14, F8-15, F8-16 | — |
 | [F8-18](roadmap/tasks/F8-18.json) | Integrate liquid cross-system couplings into the single-step solve | done | F8-09, F8-10, F8-11, F8-12, F8-13, F8-14, F8-15, F8-16 | — |
-| [F8-19](roadmap/tasks/F8-19.json) | Integrate remaining deformable and smoke coupling operators | ready | F8-10, F8-13, F8-14, F8-15, F8-16 | — |
-| [F8-20](roadmap/tasks/F8-20.json) | Assemble the one-tick backend-neutral schedule | waiting on dependencies | F8-04, F8-17, F8-18, F8-19 | — |
+| [F8-19](roadmap/tasks/F8-19.json) | Integrate remaining deformable and smoke coupling operators | done | F8-10, F8-13, F8-14, F8-15, F8-16 | — |
+| [F8-20](roadmap/tasks/F8-20.json) | Assemble the one-tick backend-neutral schedule | waiting on lock | F8-04, F8-17, F8-18, F8-19 | — |
 | [F8-21](roadmap/tasks/F8-21.json) | Add measured dispatch, GPU phase and synchronization budgets | waiting on dependencies | F8-01, F8-02, F8-20 | — |
 | [F8-22](roadmap/tasks/F8-22.json) | Freeze the cross-machine candidate and complete kernel coverage | waiting on dependencies | F8-01, F8-03, F8-20, F8-21 | — |
 | [F8-23](roadmap/tasks/F8-23.json) | Qualify independent CPU and public-contract cases | waiting on dependencies | F8-22 | — |
@@ -168,27 +168,27 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [P1-09](roadmap/tasks/P1-09.json) | Qualify and advertise miscible fluids | deferred | P1-08, F5-02, F5-03 | — |
 | [P1-10](roadmap/tasks/P1-10.json) | Reconstruct immiscible fluid interfaces | done | P1-05, P1-56 | — |
 | [P1-11](roadmap/tasks/P1-11.json) | Apply immiscible pressure and capillarity | done | P1-10 | — |
-| [P1-12](roadmap/tasks/P1-12.json) | Apply immiscible interfacial viscosity | leased | P1-11 | codex-immiscible-viscosity / thomas-laptop / 2026-10-19T23:40:06Z |
+| [P1-12](roadmap/tasks/P1-12.json) | Apply immiscible interfacial viscosity | done | P1-11 | — |
 | [P1-13](roadmap/tasks/P1-13.json) | Schedule immiscible fluid pair graphs | deferred | P1-12 | — |
 | [P1-14](roadmap/tasks/P1-14.json) | Qualify and advertise immiscible fluids | deferred | P1-13, F5-02, F5-03 | — |
 | [P1-15](roadmap/tasks/P1-15.json) | Add fluid caloric material state | deferred | P1-04 | — |
 | [P1-16](roadmap/tasks/P1-16.json) | Exchange conservative fluid heat | deferred | P1-05, P1-15 | — |
 | [P1-17](roadmap/tasks/P1-17.json) | Schedule fluid thermal pair graphs | deferred | P1-08, P1-13, P1-16, P1-57 | — |
 | [P1-18](roadmap/tasks/P1-18.json) | Qualify and advertise fluid heat exchange | deferred | P1-17, F5-02, F5-03 | — |
-| [P1-19](roadmap/tasks/P1-19.json) | Expose cloth contact scopes and controls | waiting on lock | P1-02 | — |
+| [P1-19](roadmap/tasks/P1-19.json) | Expose cloth contact scopes and controls | done | P1-02 | — |
 | [P1-20](roadmap/tasks/P1-20.json) | Build bounded cloth contact generation | deferred | P1-19 | — |
 | [P1-21](roadmap/tasks/P1-21.json) | Solve cloth self-contact and friction | deferred | P1-20 | — |
 | [P1-22](roadmap/tasks/P1-22.json) | Solve contact between cloth systems | deferred | P1-20 | — |
 | [P1-23](roadmap/tasks/P1-23.json) | Schedule cloth contact scopes | deferred | P1-21, P1-22 | — |
 | [P1-24](roadmap/tasks/P1-24.json) | Qualify and advertise cloth contact | deferred | P1-23, F5-02, F5-03 | — |
-| [P1-25](roadmap/tasks/P1-25.json) | Expose soft-body contact scopes | leased | P1-02 | codex-macos-p125 / Thomass-MacBook-Air / 2026-10-25T18:32:33Z |
+| [P1-25](roadmap/tasks/P1-25.json) | Expose soft-body contact scopes | done | P1-02 | — |
 | [P1-26](roadmap/tasks/P1-26.json) | Build bounded soft-surface contacts | deferred | P1-25 | — |
 | [P1-27](roadmap/tasks/P1-27.json) | Solve soft-body self-contact | deferred | P1-26 | — |
 | [P1-28](roadmap/tasks/P1-28.json) | Solve contact between soft bodies | deferred | P1-26 | — |
 | [P1-29](roadmap/tasks/P1-29.json) | Schedule soft-body contact scopes | deferred | P1-27, P1-28 | — |
 | [P1-30](roadmap/tasks/P1-30.json) | Qualify and advertise soft-body contact | deferred | P1-29, F5-02, F5-03 | — |
-| [P1-31](roadmap/tasks/P1-31.json) | Audit sampled-node rope self-contact | leased | P1-02, F5-02 | codex-rope-audit / windows-gtx1080 / 2026-10-25T18:35:29Z |
-| [P1-32](roadmap/tasks/P1-32.json) | Expose rope capsule pairs and attachments | waiting on lock | P1-02 | — |
+| [P1-31](roadmap/tasks/P1-31.json) | Audit sampled-node rope self-contact | done | P1-02, F5-02 | — |
+| [P1-32](roadmap/tasks/P1-32.json) | Expose rope capsule pairs and attachments | done | P1-02 | — |
 | [P1-33](roadmap/tasks/P1-33.json) | Build bounded rope segment contacts | deferred | P1-32 | — |
 | [P1-34](roadmap/tasks/P1-34.json) | Solve rope capsule self-contact | deferred | P1-33 | — |
 | [P1-35](roadmap/tasks/P1-35.json) | Solve contact between rope systems | deferred | P1-33 | — |

@@ -177,7 +177,7 @@
       "public_case_sets": [],
       "existing_execution_tests": ["parallel-mater-<backend>-fluid-pair-quality-tests"],
       "f8_public_cases": ["f8-fluid-pair-miscible"],
-      "implementation_owners": ["F8-18"]
+      "implementation_owners": ["P1-12", "F8-18"]
     },
     {
       "id": "fluid-pair-immiscible",
@@ -185,14 +185,16 @@
       "entries": [
         "fluid_reconstruct_immiscible_interface_normals",
         "fluid_reconstruct_immiscible_interface_curvature",
-        "fluid_apply_immiscible_pair_pressure_capillarity"
+        "fluid_apply_immiscible_pair_pressure_capillarity",
+        "fluid_apply_immiscible_pair_viscosity"
       ],
       "domains": ["FLUID"],
-      "advertised_modes": ["CONTACT", "PRESSURE"],
+      "advertised_modes": ["CONTACT", "PRESSURE", "VISCOSITY"],
       "public_case_sets": [],
       "existing_execution_tests": [
         "parallel-mater-fluid-interface-reconstruction-tests",
-        "parallel-mater-fluid-immiscible-pressure-capillarity-tests"
+        "parallel-mater-fluid-immiscible-pressure-capillarity-tests",
+        "parallel-mater-fluid-immiscible-viscosity-tests"
       ],
       "f8_public_cases": ["f8-fluid-pair-immiscible"],
       "implementation_owners": ["F8-18"]
@@ -588,6 +590,20 @@
       "public_case_sets": ["fluid", "rigid", "cloth", "soft-body", "rope", "smoke"],
       "existing_execution_tests": ["parallel-mater-liquid-coupling-realtime-tests", "parallel-mater-liquid-coupling-realtime-cuda-tests"],
       "implementation_owners": ["F8-18"]
+    },
+    {
+      "id": "deformable-smoke-realtime-coupling",
+      "module": "deformable_smoke_coupling",
+      "entries": [
+        "deformable_smoke_coupling_project",
+        "deformable_smoke_coupling_apply_first",
+        "deformable_smoke_coupling_apply_second"
+      ],
+      "domains": ["CLOTH", "SOFT_BODY", "ROPE", "SMOKE", "SPATIAL_INDEX"],
+      "advertised_modes": ["ATTACHMENT", "CONTACT", "DRAG"],
+      "public_case_sets": ["cloth", "soft-body", "rope", "smoke"],
+      "existing_execution_tests": ["parallel-mater-deform-coupling-tests", "parallel-mater-deform-coupling-cuda-tests"],
+      "implementation_owners": ["F8-19"]
     },
     {
       "id": "rope-core",

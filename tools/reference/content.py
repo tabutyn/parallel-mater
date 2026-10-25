@@ -651,7 +651,10 @@ SECTIONS += [
                 PM_COUPLING_SMOKE_CLOTH = 10,
                 PM_COUPLING_SMOKE_ROPE = 11,
                 PM_COUPLING_SMOKE_SOFT_BODY = 12,
-                PM_COUPLING_SMOKE_SMOKE = 13
+                PM_COUPLING_SMOKE_SMOKE = 13,
+                PM_COUPLING_SOFT_BODY_SOFT_BODY = 14,
+                PM_COUPLING_CLOTH_CLOTH = 15,
+                PM_COUPLING_ROPE_ROPE = 16
             } PmCouplingType;
             typedef struct PmMechanicalCouplingState {
                 float contactDistance;
@@ -724,6 +727,20 @@ SECTIONS += [
                 const void* pNext;
                 float surfaceTension;
             } PmFluidInterfaceState;
+            typedef enum PmRopeEndpoint {
+                PM_ROPE_ENDPOINT_FIRST = 0,
+                PM_ROPE_ENDPOINT_LAST = 1
+            } PmRopeEndpoint;
+            typedef struct PmRopeAttachmentState {
+                PmStructureType sType;
+                const void* pNext;
+                PmRopeEndpoint firstEndpoint;
+                PmRopeEndpoint secondEndpoint;
+                float compliance;
+                float damping;
+                float captureDistance;
+                float breakingImpulseThreshold;
+            } PmRopeAttachmentState;
         """, functions="""
             PmResult pmCmdSetCouplings(PmCommandBuffer commandBuffer,
                 PmSimulation simulation, uint32_t couplingCount,
@@ -731,7 +748,7 @@ SECTIONS += [
             PmResult pmCmdSetCouplings2(PmCommandBuffer commandBuffer,
                 PmSimulation simulation, uint32_t couplingCount,
                 const PmCouplingStateInfo* pCouplings);
-        """, text="first and second are stable domain slots; PM_INVALID_INDEX names all rigid bodies. SMOKE_SMOKE requires first &lt; second: SMOKE_PARTICLE/GRID select PRESSURE|VISCOSITY|THERMAL; SMOKE_PARTICLE_GRID selects DRAG|THERMAL. Modes are independent and unadvertised. Other bundles are fixed; invalid bits are errors.<br/><br/>PmCouplingState is the API 0.2 descriptor. PmCouplingStateInfo is an ABI-compatible extensible path: sType identifies that exact structure and pNext is NULL except for separately permitted typed state. A LIQUID_LIQUID edge using MISCIBLE or IMMISCIBLE_INTERFACE must chain exactly one PmFluidPairMaterialState. Its material indices must equal first and second, so the edge consumes the two endpoint PmLiquidMaterialState records without copying, averaging or silently changing ownership. MISCIBLE requests contact, pressure and viscosity as one mechanical bundle. IMMISCIBLE_INTERFACE also chains exactly one PmFluidInterfaceState and requests contact, pressure and interface. surfaceTension is finite and nonnegative in N/m; zero disables capillary traction while retaining the material boundary. The interface normal points from the first fluid endpoint to the second, so positive curvature obeys pressure_first - pressure_second = surfaceTension * (1 / R1 + 1 / R2). Interfacial viscosity remains a separate capability. Both different-material profiles remain unsupported until their operator and qualification leaves complete. A well-formed request therefore returns FEATURE_NOT_PRESENT, while missing, mismatched, duplicate, unknown, profile-inapplicable or nonfinite typed state returns INVALID_ARGUMENT and cannot replace a live graph.<br/><br/>Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings and pmCmdSetCouplings2 copy a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. The complete replacement is validated before live edges are removed. If installation then fails, the previous usable graph is restored. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph.<br/><br/>Coupling units are: contact distance and heater geometry in m; stiffness in N/m; damping and tangential drag in N·s/m; maximum force in N; acceleration limits in m/s²; surface tension in N/m; wind drag and heat-transfer rate in s⁻¹; air density in kg/m³; effective mass in kg; steam rise speed in m/s; heater and boiling temperatures in °C. Friction, drag coefficient and radius scales are dimensionless.<br/><br/>The reference mechanical contact pairs currently require twoWay = PM_TRUE; one-way requests return FEATURE_NOT_PRESENT. API 0.2 directions are fixed by coupling type and checked through the exact capability records. Liquid/cloth derives interaction radius from liquid supportRadius; maximumAcceleration must be zero for this pair. Collision, attachment, drag, containment, pressure, viscosity, interface, thermal and phase behavior are independent capabilities; a driver must not infer one from another or from the broad domainCouplings bit."),
+        """, text="first and second are stable domain slots; PM_INVALID_INDEX names all rigid bodies. SMOKE_SMOKE requires first &lt; second: SMOKE_PARTICLE/GRID select PRESSURE|VISCOSITY|THERMAL; SMOKE_PARTICLE_GRID selects DRAG|THERMAL. ROPE_ROPE also requires first &lt; second and the ROPE_CAPSULE profile; CONTACT and ATTACHMENT are independently selectable and remain unadvertised. Other bundles are fixed; invalid bits are errors.<br/><br/>PmCouplingState is the API 0.2 descriptor. PmCouplingStateInfo is an ABI-compatible extensible path: sType identifies that exact structure and pNext is NULL except for separately permitted typed state. A LIQUID_LIQUID edge using MISCIBLE or IMMISCIBLE_INTERFACE must chain exactly one PmFluidPairMaterialState. Its material indices must equal first and second, so the edge consumes the two endpoint PmLiquidMaterialState records without copying, averaging or silently changing ownership. MISCIBLE requests contact, pressure and viscosity as one mechanical bundle. IMMISCIBLE_INTERFACE also chains exactly one PmFluidInterfaceState and requests contact, pressure and interface. surfaceTension is finite and nonnegative in N/m; zero disables capillary traction while retaining the material boundary. The interface normal points from the first fluid endpoint to the second, so positive curvature obeys pressure_first - pressure_second = surfaceTension * (1 / R1 + 1 / R2). Interfacial viscosity remains a separate capability. Both different-material profiles remain unsupported until their operator and qualification leaves complete. A well-formed request therefore returns FEATURE_NOT_PRESENT, while missing, mismatched, duplicate, unknown, profile-inapplicable or nonfinite typed state returns INVALID_ARGUMENT and cannot replace a live graph.<br/><br/>A ROPE_ROPE edge requesting ATTACHMENT must use PmCouplingStateInfo and chain exactly one PmRopeAttachmentState. firstEndpoint and secondEndpoint select FIRST or LAST on their corresponding canonical rope slots. compliance in m/N, damping in N·s/m, captureDistance in m and breakingImpulseThreshold in N·s are finite and nonnegative. Zero compliance is rigid and zero breaking impulse is unbreakable. The typed state is invalid without ATTACHMENT, and ATTACHMENT without it is invalid. Contact-only rope-capsule edges have no typed state. Every well-formed rope-pair request returns FEATURE_NOT_PRESENT until later operator and qualification tasks advertise its exact mode; no rope-capsule capability is implied by the legacy node-only self-contact record.<br/><br/>Each coupling type reads its applicable parameter groups. Duplicate endpoint pairs are invalid. pmCmdSetCouplings and pmCmdSetCouplings2 copy a complete simulation-owned edge list; count must fit couplingCapacity and count zero removes explicit edges. The override persists across pipeline binds and endpoint replacement until reset. Without an override, the bound pipeline supplies the edge list. Endpoint slots are resolved at execution; retired generations are never retained. The complete replacement is validated before live edges are removed. If installation then fails, the previous usable graph is restored. Intrinsic rigid/liquid contact remains part of the reference solver even with an empty explicit graph.<br/><br/>Coupling units are: contact distance and heater geometry in m; stiffness in N/m; damping and tangential drag in N·s/m; maximum force in N; acceleration limits in m/s²; surface tension in N/m; wind drag and heat-transfer rate in s⁻¹; air density in kg/m³; effective mass in kg; steam rise speed in m/s; heater and boiling temperatures in °C. Friction, drag coefficient and radius scales are dimensionless.<br/><br/>The reference mechanical contact pairs currently require twoWay = PM_TRUE; one-way requests return FEATURE_NOT_PRESENT. API 0.2 directions are fixed by coupling type and checked through the exact capability records. Liquid/cloth derives interaction radius from liquid supportRadius; maximumAcceleration must be zero for this pair. Collision, attachment, drag, containment, pressure, viscosity, interface, thermal and phase behavior are independent capabilities; a driver must not infer one from another or from the broad domainCouplings bit."),
         c("domain_materials", "Deformable, rope & smoke materials", types="""
             typedef struct PmClothMaterialState {
                 float vertexMass;
@@ -858,6 +875,22 @@ SECTIONS += [
                 const uint32_t* pTriangleIndices;
                 const float* pInverseMasses;
             } PmClothInfo;
+            typedef struct PmClothStateInfo {
+                PmStructureType sType;
+                const void* pNext;
+                PmBool32 active;
+                uint32_t materialIndex;
+                uint32_t vertexCount;
+                const PmFloat3* pVertices;
+                uint32_t triangleIndexCount;
+                const uint32_t* pTriangleIndices;
+                const float* pInverseMasses;
+            } PmClothStateInfo;
+            typedef struct PmClothSelfContactState {
+                PmStructureType sType;
+                const void* pNext;
+                PmBool32 enabled;
+            } PmClothSelfContactState;
             typedef struct PmClothVertexState {
                 PmFloat3 position;
                 PmFloat3 velocity;
@@ -870,13 +903,16 @@ SECTIONS += [
             PmResult pmCmdWriteCloths(PmCommandBuffer commandBuffer,
                 PmSimulation simulation, uint32_t firstCloth,
                 uint32_t count, const PmClothInfo* pCloths);
+            PmResult pmCmdWriteCloths2(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t firstCloth,
+                uint32_t count, const PmClothStateInfo* pCloths);
             PmResult pmCmdCopyClothState(PmCommandBuffer commandBuffer,
                 PmSimulation simulation, uint32_t clothIndex,
                 const PmBufferRange* pDestination);
             PmResult pmCmdCopyClothSurface(PmCommandBuffer commandBuffer,
                 PmSimulation simulation, uint32_t clothIndex,
                 const PmBufferRange* pDestination);
-        """),
+        """, text="PmClothInfo is the API 0.2 descriptor. PmClothStateInfo is the ABI-compatible extensible write path and copies the same resource data. Its pNext is NULL unless intrinsic surface self-contact is requested by chaining exactly one PmClothSelfContactState. enabled is PM_FALSE or PM_TRUE; PM_FALSE preserves ordinary cloth behavior and PM_TRUE requests the exact (cloth, cloth, self, contact, bidirectional, endpoint-native) capability. Unknown or nested state is invalid. Enabled self-contact requires finite vertices and nonnegative inverse masses plus distinct, in-range, nondegenerate, nonduplicated triangles. Invalid topology returns INVALID_ARGUMENT before any write is recorded. A valid enabled request returns FEATURE_NOT_PRESENT until its operator and driver qualification tasks advertise the capability, without replacing live state.<br/><br/>A separate-system contact edge uses PM_COUPLING_CLOTH_CLOTH through PmCouplingStateInfo with first &lt; second, CONTACT and ENDPOINT_NATIVE. It consumes simulation coupling capacity and requests the exact separate-system capability. Duplicate or reversed endpoints are invalid; a well-formed edge remains FEATURE_NOT_PRESENT until advertised. Intrinsic self-contact consumes no graph edge, and neither request implies attachment, containment or one-sided collision."),
         c("rope_resources", "Rope resources", types="""
             typedef struct PmRopeAttachment {
                 uint32_t rigidBodyIndex;
@@ -922,6 +958,27 @@ SECTIONS += [
                 const uint32_t* pSurfaceTriangleIndices;
                 const PmSoftBodySurfaceBinding* pSurfaceBindings;
             } PmSoftBodyInfo;
+            typedef struct PmSoftBodyStateInfo {
+                PmStructureType sType;
+                const void* pNext;
+                PmBool32 active;
+                uint32_t materialIndex;
+                uint32_t nodeCount;
+                const PmFloat3* pNodes;
+                uint32_t bondCount;
+                const PmSoftBodyBond* pBonds;
+                const float* pInverseMasses;
+                uint32_t surfaceVertexCount;
+                const PmFloat3* pSurfaceVertices;
+                uint32_t surfaceTriangleIndexCount;
+                const uint32_t* pSurfaceTriangleIndices;
+                const PmSoftBodySurfaceBinding* pSurfaceBindings;
+            } PmSoftBodyStateInfo;
+            typedef struct PmSoftBodySelfContactState {
+                PmStructureType sType;
+                const void* pNext;
+                PmBool32 enabled;
+            } PmSoftBodySelfContactState;
             typedef struct PmSoftBodyNodeState {
                 PmFloat3 position;
                 PmFloat3 velocity;
@@ -934,13 +991,16 @@ SECTIONS += [
             PmResult pmCmdWriteSoftBodies(PmCommandBuffer commandBuffer,
                 PmSimulation simulation, uint32_t firstSoftBody,
                 uint32_t count, const PmSoftBodyInfo* pSoftBodies);
+            PmResult pmCmdWriteSoftBodies2(PmCommandBuffer commandBuffer,
+                PmSimulation simulation, uint32_t firstSoftBody,
+                uint32_t count, const PmSoftBodyStateInfo* pSoftBodies);
             PmResult pmCmdCopySoftBodyState(PmCommandBuffer commandBuffer,
                 PmSimulation simulation, uint32_t softBodyIndex,
                 const PmBufferRange* pDestination);
             PmResult pmCmdCopySoftBodySurface(PmCommandBuffer commandBuffer,
                 PmSimulation simulation, uint32_t softBodyIndex,
                 const PmBufferRange* pDestination);
-        """),
+        """, text="PmSoftBodyInfo is the API 0.2 descriptor. PmSoftBodyStateInfo is the ABI-compatible extensible write path and copies the same resource data. Its pNext is NULL unless intrinsic surface self-contact is requested by chaining exactly one PmSoftBodySelfContactState. enabled is PM_FALSE or PM_TRUE; PM_FALSE preserves ordinary soft-body behavior and PM_TRUE requests the exact (soft body, soft body, self, contact, bidirectional, endpoint-native) capability. Unknown or nested state is invalid. The self-contact request requires a finite, consistently wound, closed two-manifold surface with distinct, nondegenerate triangle vertices and valid normalized bindings. Invalid topology returns INVALID_ARGUMENT before any write is recorded. A valid enabled request returns FEATURE_NOT_PRESENT until its operator and driver qualification tasks advertise the capability, without replacing live state.<br/><br/>A separate-system surface-contact edge uses PM_COUPLING_SOFT_BODY_SOFT_BODY through PmCouplingStateInfo with first &lt; second, CONTACT and ENDPOINT_NATIVE. It consumes simulation coupling capacity and requests the exact separate-system capability. Duplicate or reversed endpoints are invalid; a well-formed edge remains FEATURE_NOT_PRESENT until advertised. Intrinsic self-contact consumes no graph edge, and neither request implies attachment, containment or volume inversion prevention."),
         c("smoke_resources", "Smoke resources", types="""
             typedef struct PmSmokeInfo {
                 PmBool32 active;

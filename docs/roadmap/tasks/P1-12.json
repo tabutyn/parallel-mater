@@ -1,7 +1,7 @@
 {
   "id": "P1-12",
   "title": "Apply immiscible interfacial viscosity",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "P1-11"
   ],
@@ -16,15 +16,46 @@
     "Shear fixtures conserve momentum, dissipate kinetic energy and preserve the normal no-mixing condition.",
     "Zero-viscosity and endpoint-order limits pass across unequal density and mass ratios."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "6ddd4c75-f52b-45eb-8a64-f816d54cef29",
-    "owner": "codex-immiscible-viscosity",
-    "machine": "thomas-laptop",
-    "branch": "work/P1-12/thomas-laptop",
-    "claimed_at": "2026-10-18T23:40:06Z",
-    "heartbeat_at": "2026-10-18T23:40:06Z",
-    "expires_at": "2026-10-19T23:40:06Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: shared Slang CPU analytic, conservation, dissipation, normal no-mixing, zero-viscosity, endpoint-reversal and unequal mass/density sweeps; docs/roadmap/evidence/P1-12-immiscible-viscosity.json.",
+    "PASS: physical Apple M4 validated 227 native Metal pipelines and argument layouts; CUDA and Vulkan SPIR-V mirrors compiled.",
+    "PASS: standard SDK CI 68/68; generated API, kernel inventory, DirectCompute bindings and conformance checks passed."
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "6ddd4c75-f52b-45eb-8a64-f816d54cef29",
+        "owner": "codex-immiscible-viscosity",
+        "machine": "thomas-laptop",
+        "branch": "work/P1-12/thomas-laptop",
+        "claimed_at": "2026-10-18T23:40:06Z",
+        "heartbeat_at": "2026-10-18T23:40:06Z",
+        "expires_at": "2026-10-19T23:40:06Z"
+      },
+      "outcome": "reclaimed",
+      "at": "2026-10-24T22:51:06Z",
+      "reason": "Prior thomas-laptop lease expired; inspected retained work/P1-12/thomas-laptop implementation and adopting its existing scope",
+      "evidence": []
+    },
+    {
+      "lease": {
+        "token": "954c256a-8404-4301-8e15-76f23e37a8ed",
+        "owner": "codex-macos-physics",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/P1-12/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-24T22:51:06Z",
+        "heartbeat_at": "2026-10-24T22:51:06Z",
+        "expires_at": "2026-10-25T22:51:06Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-24T23:02:24Z",
+      "reason": "Implemented optional harmonic tangential traction for retained immiscible interfaces in shared Slang without capability advertisement",
+      "evidence": [
+        "PASS: shared Slang CPU analytic, conservation, dissipation, normal no-mixing, zero-viscosity, endpoint-reversal and unequal mass/density sweeps; docs/roadmap/evidence/P1-12-immiscible-viscosity.json.",
+        "PASS: physical Apple M4 validated 227 native Metal pipelines and argument layouts; CUDA and Vulkan SPIR-V mirrors compiled.",
+        "PASS: standard SDK CI 68/68; generated API, kernel inventory, DirectCompute bindings and conformance checks passed."
+      ]
+    }
+  ]
 }

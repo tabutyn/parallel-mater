@@ -29,6 +29,7 @@ set(PARALLEL_MATER_SLANG_KERNEL_MODULES
     geometry_soft_body
     rigid_coupling
     liquid_coupling
+    deformable_smoke_coupling
     smoke_grid
     rope)
 
@@ -46,6 +47,7 @@ set(PARALLEL_MATER_SLANG_fluid_ENTRIES
     fluid_reconstruct_immiscible_interface_normals
     fluid_reconstruct_immiscible_interface_curvature
     fluid_apply_immiscible_pair_pressure_capillarity
+    fluid_apply_immiscible_pair_viscosity
     fluid_emit_spatial_particles fluid_emit_spatial_source_proposals
     fluid_apply_spatial_source_admission
     fluid_filter_spatial_candidates fluid_count_spatial_neighbors
@@ -183,6 +185,10 @@ set(PARALLEL_MATER_SLANG_rigid_coupling_ENTRIES
 set(PARALLEL_MATER_SLANG_liquid_coupling_ENTRIES
     liquid_coupling_project liquid_coupling_apply_particles
     liquid_coupling_apply_partners)
+set(PARALLEL_MATER_SLANG_deformable_smoke_coupling_ENTRIES
+    deformable_smoke_coupling_project
+    deformable_smoke_coupling_apply_first
+    deformable_smoke_coupling_apply_second)
 set(PARALLEL_MATER_SLANG_smoke_grid_ENTRIES
     smoke_grid_initialize_cells
     smoke_grid_initialize_faces
