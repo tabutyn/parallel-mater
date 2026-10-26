@@ -21,7 +21,9 @@ int main() {
     SceneDefinition freefall;
     freefall.fluid_options.capacity = 130;
     freefall.fluid_options.velocity_damping = 0;
-    freefall.fluid_options.maximum_speed = 100;
+    freefall.fluid_options.maximum_speed = 2.5F;
+    freefall.fluid_options.rest_particle_volume =
+        0.045F * 0.045F * 0.045F;
     for (int i = 0; i < 130; ++i)
         freefall.initial_particles.push_back({.position = {float(i), 10, 0}});
     CommandScene simulation;
