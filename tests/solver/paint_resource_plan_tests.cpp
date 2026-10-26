@@ -54,8 +54,9 @@ int main() {
     CHECK(allocated.pixel_capacity == 15U);
     CHECK(aligned(allocated.uvs));
     CHECK(aligned(allocated.pixels));
+    CHECK(aligned(allocated.rollback_pixels));
     CHECK(arena.persistent_used() ==
-          7U * sizeof(Vec2) + 15U * sizeof(std::uint32_t));
+          7U * sizeof(Vec2) + 30U * sizeof(std::uint32_t));
     CHECK(arena.persistent_used() <= requirements.persistent);
     CHECK(arena.scratch_used() == 0U);
 

@@ -1319,6 +1319,7 @@ struct SimulationRuntime::Impl {
     std::vector<DestroyPlaneSlot> destroy_planes{};
     PaintFieldResource *paint_fields{};
     PaintRuleResource *paint_rules{};
+    std::vector<std::uint32_t *> paint_rollback_pixels{};
     std::uint32_t paint_rule_count{};
     std::uint32_t *fluid_neighbor_overflow{};
     std::uint32_t *fluid_maximum_neighbor_count{};
@@ -1604,6 +1605,7 @@ struct SimulationRuntime::Impl {
                  index < options.paint_field_capacity; ++index) {
                 release_managed(paint_fields[index].uvs);
                 release_managed(paint_fields[index].pixels);
+                release_managed(paint_rollback_pixels[index]);
             }
         }
         release_managed(paint_fields);
@@ -2066,6 +2068,8 @@ Status SimulationRuntime::create(SimulationOptions options, SimulationRuntime &o
             options.soft_body_cloth_coupling_capacity);
         implementation->particle_sources.resize(options.particle_source_capacity);
         implementation->destroy_planes.resize(options.particle_destroy_plane_capacity);
+        implementation->paint_rollback_pixels.resize(
+            options.paint_field_capacity);
         implementation->debug_frames.resize(
             options.physics_debug.frame_capacity);
         implementation->realtime_smoke_payload_refs_host.resize(

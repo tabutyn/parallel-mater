@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include <parallel_mater/parallel_mater.h>
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstddef>
@@ -20,9 +21,11 @@ int main(int argc, char **argv) {
         std::strcmp(argv[1], "--production-smoke-couplings") == 0;
     const bool lifecycle_only = argc == 2 &&
         std::strcmp(argv[1], "--production-lifecycle") == 0;
+    const bool auxiliary_only = argc == 2 &&
+        std::strcmp(argv[1], "--production-auxiliary") == 0;
     const bool production = argc == 2 &&
         (std::strcmp(argv[1], "--production") == 0 ||
-         smoke_couplings_only || lifecycle_only);
+         smoke_couplings_only || lifecycle_only || auxiliary_only);
     CHECK(argc == 1 || production);
     constexpr std::uint32_t body_count = 8U;
     constexpr std::uint32_t constraint_count = 8U;
@@ -62,8 +65,10 @@ int main(int argc, char **argv) {
         memory.push_back(result);
         return result;
     };
-    const auto buffer = [&](PmDeviceSize size, void **mapped) {
+    const auto buffer = [&](PmDeviceSize size, void **mapped,
+                            PmDeviceMemory *backing = nullptr) {
         const auto allocation = allocate(size);
+        if (backing != nullptr) *backing = allocation;
         PmBufferCreateInfo info{};
         info.sType = PM_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         info.size = size;
@@ -78,8 +83,10 @@ int main(int argc, char **argv) {
     };
 
     void *source_map{}, *output_map{}, *fluid_output_map{}, *cloth_output_map{},
-        *soft_output_map{}, *rope_output_map{}, *smoke_output_map{};
-    const auto source = buffer(512U, &source_map);
+        *soft_output_map{}, *rope_output_map{}, *smoke_output_map{},
+        *auxiliary_output_map{};
+    PmDeviceMemory source_memory{}, auxiliary_output_memory{};
+    const auto source = buffer(512U, &source_map, &source_memory);
     const auto output = buffer(
         body_count * sizeof(PmRigidState), &output_map);
     const auto fluid_output = buffer(1024U, &fluid_output_map);
@@ -87,6 +94,8 @@ int main(int argc, char **argv) {
     const auto soft_output = buffer(1024U, &soft_output_map);
     const auto rope_output = buffer(1024U, &rope_output_map);
     const auto smoke_output = buffer(4096U, &smoke_output_map);
+    const auto auxiliary_output = buffer(
+        262144U, &auxiliary_output_map, &auxiliary_output_memory);
     const float vertices[8][3] = {
         {-0.5F,-0.5F,-0.5F},{0.5F,-0.5F,-0.5F},
         {0.5F,0.5F,-0.5F},{-0.5F,0.5F,-0.5F},
@@ -98,6 +107,10 @@ int main(int argc, char **argv) {
     std::memcpy(source_map, vertices, sizeof vertices);
     std::memcpy(static_cast<std::byte *>(source_map) + sizeof vertices,
                 indices, sizeof indices);
+    const PmMappedMemoryRange initial_source_range{
+        source_memory, 0U, 512U};
+    CHECK(pmFlushMappedMemoryRanges(
+        device, 1U, &initial_source_range) == PM_SUCCESS);
     PmGeometryCreateInfo geometry_info{};
     geometry_info.sType = PM_STRUCTURE_TYPE_GEOMETRY_CREATE_INFO;
     geometry_info.vertices = {{source, 0U, sizeof vertices},
@@ -137,8 +150,9 @@ int main(int argc, char **argv) {
     const PmRopeCapacity rope_capacity{6U};
     const PmSoftBodyCapacity soft_capacity{8U, 16U, 8U, 18U};
     const PmSmokeCapacity smoke_capacity{32U, 16U * 8U * 16U};
+    const PmPaintFieldCapacity paint_capacity{8U, 4U, 4U};
     PmSimulationCreateInfo mixed_info = simulation_info;
-    mixed_info.rigidBodyCapacity = 1U;
+    mixed_info.rigidBodyCapacity = 2U;
     mixed_info.constraintCapacity = 0U;
     mixed_info.fluidCount = device_info.enabledFeatures.particleLiquids
         ? static_cast<std::uint32_t>(fluid_capacities.size()) : 0U;
@@ -155,6 +169,12 @@ int main(int argc, char **argv) {
     mixed_info.emitterCapacity = device_info.enabledFeatures.particleLiquids;
     mixed_info.destroyerCapacity =
         device_info.enabledFeatures.particleLiquids;
+    mixed_info.paintFieldCount =
+        production && device_info.enabledFeatures.paint ? 1U : 0U;
+    mixed_info.pPaintFieldCapacities = &paint_capacity;
+    mixed_info.paintRuleCapacity = mixed_info.paintFieldCount;
+    mixed_info.debugFrameCapacity =
+        production && device_info.enabledFeatures.debugData ? 2U : 0U;
     PmSimulation mixed_simulation{};
     CHECK(pmCreateSimulation(device, &mixed_info, &mixed_simulation) ==
           PM_SUCCESS);
@@ -284,6 +304,28 @@ int main(int argc, char **argv) {
         CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
         CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
     };
+    const auto cleanup = [&](bool destroy_mixed_simulation) {
+        pmDestroyFence(device, fence);
+        pmFreeCommandBuffers(device, pool, 1U, &commands);
+        pmDestroyCommandPool(device, pool);
+        pmDestroyQueryPool(device, query);
+        pmDestroyPhysicsPipeline(device, pipeline);
+        if (destroy_mixed_simulation)
+            pmDestroySimulation(device, mixed_simulation);
+        pmDestroySimulation(device, simulation);
+        pmDestroyGeometry(device, geometry);
+        pmDestroyBuffer(device, output);
+        pmDestroyBuffer(device, fluid_output);
+        pmDestroyBuffer(device, cloth_output);
+        pmDestroyBuffer(device, soft_output);
+        pmDestroyBuffer(device, rope_output);
+        pmDestroyBuffer(device, smoke_output);
+        pmDestroyBuffer(device, auxiliary_output);
+        pmDestroyBuffer(device, source);
+        for (auto allocation : memory) pmFreeMemory(device, allocation);
+        pmDestroyDevice(device);
+        pmDestroyInstance(instance);
+    };
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
     CHECK(pmCmdBuildGeometry(commands, geometry) == PM_SUCCESS);
     execute(PM_SUCCESS);
@@ -298,6 +340,263 @@ int main(int argc, char **argv) {
     CHECK(pmCmdStepSimulation(
         commands, mixed_simulation, &step) == PM_SUCCESS);
     execute(PM_SUCCESS);
+
+    if (production && mixed_info.fluidCount != 0U &&
+        mixed_info.clothCount != 0U &&
+        mixed_info.paintFieldCount != 0U &&
+        mixed_info.debugFrameCapacity != 0U) {
+        execution_label = "paint debug and public output tick";
+        std::array<PmRigidBodyInfo, 2U> auxiliary_bodies{};
+        auto &body = auxiliary_bodies[0];
+        body.active = PM_TRUE;
+        body.geometry = geometry;
+        body.motionType = PM_MOTION_DYNAMIC;
+        body.mass = 1.0F;
+        body.inertiaDiagonal[0] = body.inertiaDiagonal[1] =
+            body.inertiaDiagonal[2] = 1.0F / 6.0F;
+        body.state.position[2] = 0.2F;
+        body.state.orientation[3] = 1.0F;
+        body.friction = 0.5F;
+        body.maximumLinearSpeed = body.maximumAngularSpeed = 100.0F;
+        body.collisionMargin = 0.005F;
+        auxiliary_bodies[1] = body;
+        auxiliary_bodies[1].motionType = PM_MOTION_STATIC;
+        auxiliary_bodies[1].state.position[0] = 0.75F;
+        auto *particle = reinterpret_cast<PmParticleState *>(
+            static_cast<std::byte *>(source_map) + 256U);
+        *particle = {};
+        particle->position[0] = 0.24F;
+        particle->position[1] = 0.0F;
+        particle->position[2] = 0.2F;
+        particle->velocity[1] = -0.25F;
+        const PmMappedMemoryRange particle_source_range{
+            source_memory, 256U, sizeof(PmParticleState)};
+        CHECK(pmFlushMappedMemoryRanges(
+            device, 1U, &particle_source_range) == PM_SUCCESS);
+        const PmBufferView particle_input{
+            {source, 256U, sizeof(PmParticleState)},
+            PM_FORMAT_PARTICLE_STATE, 1U, sizeof(PmParticleState)};
+        const PmBufferView empty_input{
+            {source, 384U, 0U}, PM_FORMAT_PARTICLE_STATE, 0U,
+            sizeof(PmParticleState)};
+        const std::array<PmFloat2, 8U> paint_uvs{{
+            {0.0F, 0.0F}, {1.0F, 0.0F}, {1.0F, 1.0F}, {0.0F, 1.0F},
+            {0.0F, 0.0F}, {1.0F, 0.0F}, {1.0F, 1.0F}, {0.0F, 1.0F}}};
+        const std::array<PmFloat3, 3U> paint_cloth_vertices{{
+            {-0.1F, 0.0F, 0.0F}, {0.1F, 0.0F, 0.0F},
+            {0.0F, 0.1F, 0.0F}}};
+        const std::array<std::uint32_t, 3U> paint_cloth_indices{
+            0U, 1U, 2U};
+        const std::array<float, 3U> paint_cloth_masses{1.0F, 1.0F, 1.0F};
+        const PmClothInfo paint_cloth{
+            PM_TRUE, 0U,
+            static_cast<std::uint32_t>(paint_cloth_vertices.size()),
+            paint_cloth_vertices.data(),
+            static_cast<std::uint32_t>(paint_cloth_indices.size()),
+            paint_cloth_indices.data(), paint_cloth_masses.data()};
+        PmPaintFieldInfo paint_field{};
+        paint_field.active = PM_TRUE;
+        paint_field.targetType = PM_PAINT_TARGET_RIGID;
+        paint_field.targetIndex = 0U;
+        paint_field.geometry = geometry;
+        paint_field.vertexCount =
+            static_cast<std::uint32_t>(paint_uvs.size());
+        paint_field.pVertexUvs = paint_uvs.data();
+        paint_field.width = paint_capacity.width;
+        paint_field.height = paint_capacity.height;
+        PmPaintRuleInfo paint_rule{};
+        paint_rule.active = PM_TRUE;
+        paint_rule.sourceType = PM_PAINT_SOURCE_LIQUID;
+        paint_rule.sourceIndex = 0U;
+        paint_rule.targetFieldIndex = 0U;
+        paint_rule.reach = 0.05F;
+        paint_rule.brushRadius = 1.0F;
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        PmBufferMemoryBarrier particle_visibility{};
+        particle_visibility.memory = {
+            PM_STAGE_HOST_BIT, PM_ACCESS_HOST_WRITE_BIT,
+            PM_STAGE_UPDATE_BIT, PM_ACCESS_READ_BIT};
+        particle_visibility.range = {
+            source, 256U, sizeof(PmParticleState)};
+        particle_visibility.srcQueueFamilyIndex = PM_QUEUE_FAMILY_IGNORED;
+        particle_visibility.dstQueueFamilyIndex = PM_QUEUE_FAMILY_IGNORED;
+        CHECK(pmCmdPipelineBarrier(
+            commands, 0U, nullptr, 1U, &particle_visibility) == PM_SUCCESS);
+        CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteRigidBodies(
+            commands, mixed_simulation, 0U,
+            static_cast<std::uint32_t>(auxiliary_bodies.size()),
+            auxiliary_bodies.data()) == PM_SUCCESS);
+        CHECK(pmCmdSetFluidParticles(
+            commands, mixed_simulation, 0U, &particle_input) == PM_SUCCESS);
+        CHECK(pmCmdSetFluidParticles(
+            commands, mixed_simulation, 1U, &empty_input) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        execution_label = "paint debug cloth setup";
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteCloths(
+            commands, mixed_simulation, 0U, 1U, &paint_cloth) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        execution_label = "paint field and rule setup";
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdWritePaintFields(
+            commands, mixed_simulation, 0U, 1U, &paint_field) == PM_SUCCESS);
+        CHECK(pmCmdWritePaintRules(
+            commands, mixed_simulation, 0U, 1U, &paint_rule) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+
+        const PmBufferRange rigid_range{
+            auxiliary_output, 0U, 2U * sizeof(PmRigidState)};
+        const PmBufferRange fluid_range{auxiliary_output, 256U, 1024U};
+        const PmBufferRange paint_range{auxiliary_output, 2048U, 256U};
+        const PmBufferRange contact_range{
+            auxiliary_output, 4096U, 131072U};
+        const PmBufferRange debug_range{
+            auxiliary_output, 139264U, 32768U};
+        const PmBufferRange hit_box_range{
+            auxiliary_output, 180224U, 4096U};
+        PmRigidInput input{};
+        input.bodyIndex = 0U;
+        input.force[0] = 4.0F;
+        PmHitBox hit_box{};
+        hit_box.orientation[3] = 1.0F;
+        hit_box.halfExtents[0] = hit_box.halfExtents[1] =
+            hit_box.halfExtents[2] = 2.0F;
+        auto diagnostic_step = step;
+        diagnostic_step.flags = PM_STEP_COLLECT_CONTACT_EVENTS_BIT;
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
+        CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdApplyRigidInputs(
+            commands, mixed_simulation, 1U, &input) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &diagnostic_step) == PM_SUCCESS);
+        CHECK(pmCmdCopyRigidStates(
+            commands, mixed_simulation, 0U, 2U, &rigid_range) == PM_SUCCESS);
+        CHECK(pmCmdCopyFluidParticles(
+            commands, mixed_simulation, 0U, &fluid_range) == PM_SUCCESS);
+        CHECK(pmCmdCopyPaintField(
+            commands, mixed_simulation, 0U, &paint_range) == PM_SUCCESS);
+        CHECK(pmCmdCopyContactEvents(
+            commands, mixed_simulation, &contact_range) == PM_SUCCESS);
+        CHECK(pmCmdCopyDebugData(
+            commands, mixed_simulation, &debug_range) == PM_SUCCESS);
+        CHECK(pmCmdQueryHitBox(
+            commands, mixed_simulation, &hit_box, &hit_box_range) ==
+            PM_SUCCESS);
+        CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        const PmMappedMemoryRange auxiliary_output_range{
+            auxiliary_output_memory, 0U, 262144U};
+        CHECK(pmInvalidateMappedMemoryRanges(
+            device, 1U, &auxiliary_output_range) == PM_SUCCESS);
+
+        PmRealtimeStepStatistics auxiliary_statistics{};
+        CHECK(pmGetQueryPoolResults(device, query, 0U, 1U,
+            sizeof auxiliary_statistics, &auxiliary_statistics,
+            sizeof auxiliary_statistics, PM_QUERY_RESULT_WAIT_BIT) ==
+            PM_SUCCESS);
+        CHECK(auxiliary_statistics.timeAdvances == 1U);
+        CHECK(auxiliary_statistics.domainIterations[0] == 8U);
+        CHECK(auxiliary_statistics.domainIterations[1] == 6U);
+        CHECK(auxiliary_statistics.total.spatialIndexBuilds == 1U);
+        CHECK(auxiliary_statistics.total.spatialIndexPublications == 1U);
+        CHECK(auxiliary_statistics.total.intraTickHostReadbacks == 0U);
+
+        const auto *fluid_header = reinterpret_cast<
+            const PmDomainOutputHeader *>(
+                static_cast<const std::byte *>(auxiliary_output_map) +
+                fluid_range.offset);
+        const auto *fluid_particles = reinterpret_cast<
+            const PmFluidParticleOutput *>(fluid_header + 1U);
+        const auto *paint_header = reinterpret_cast<
+            const PmDomainOutputHeader *>(
+                static_cast<const std::byte *>(auxiliary_output_map) +
+                paint_range.offset);
+        const auto *paint_pixels = reinterpret_cast<const std::uint32_t *>(
+            paint_header + 1U);
+        const auto *contact_header = reinterpret_cast<
+            const PmDomainOutputHeader *>(
+                static_cast<const std::byte *>(auxiliary_output_map) +
+                contact_range.offset);
+        const auto *contact_records = reinterpret_cast<const PmContactEvent *>(
+            contact_header + 1U);
+        const auto *debug_header = reinterpret_cast<
+            const PmDomainOutputHeader *>(
+                static_cast<const std::byte *>(auxiliary_output_map) +
+                debug_range.offset);
+        const auto *debug_records = reinterpret_cast<const PmDebugRecord *>(
+            debug_header + 1U);
+        const auto *hit_box_header = reinterpret_cast<
+            const PmHitBoxOutputHeader *>(
+                static_cast<const std::byte *>(auxiliary_output_map) +
+                hit_box_range.offset);
+        CHECK(fluid_header->activeCount == 1U);
+        CHECK(paint_header->activeCount ==
+              paint_capacity.width * paint_capacity.height);
+        CHECK(paint_header->capacity == paint_header->activeCount);
+        CHECK(fluid_header->revision == paint_header->revision);
+        CHECK(contact_header->activeCount != 0U);
+        CHECK(contact_header->revision == debug_header->revision);
+        CHECK(hit_box_header->rigidBodyCount == 2U);
+        CHECK(hit_box_header->particleCount == 1U);
+        CHECK(std::any_of(paint_pixels,
+            paint_pixels + paint_header->activeCount,
+            [](std::uint32_t pixel) { return pixel != 0U; }));
+        CHECK(std::any_of(contact_records,
+            contact_records + contact_header->activeCount,
+            [](const PmContactEvent &event) {
+                return event.type == PM_CONTACT_LIQUID_RIGID;
+            }));
+        const PmDebugRecord *rigid_debug{};
+        const PmDebugRecord *liquid_debug{};
+        for (std::uint32_t index = 0U;
+             index < debug_header->activeCount; ++index) {
+            if (debug_records[index].type == PM_DEBUG_RIGID &&
+                debug_records[index].objectIndex == input.bodyIndex)
+                rigid_debug = &debug_records[index];
+            if (debug_records[index].type == PM_DEBUG_LIQUID)
+                liquid_debug = &debug_records[index];
+        }
+        CHECK(rigid_debug != nullptr);
+        CHECK(liquid_debug != nullptr);
+        CHECK(std::abs(rigid_debug->force.x - input.force[0]) < 1.0e-6F);
+        CHECK(std::abs(liquid_debug->position.x -
+                       fluid_particles[0].position[0]) < 1.0e-6F);
+        CHECK(std::abs(liquid_debug->position.y -
+                       fluid_particles[0].position[1]) < 1.0e-6F);
+        CHECK(std::abs(liquid_debug->position.z -
+                       fluid_particles[0].position[2]) < 1.0e-6F);
+
+        execution_label = "paint clear and reset lifetime";
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdClearPaintFields(
+            commands, mixed_simulation, 0U, 1U) == PM_SUCCESS);
+        CHECK(pmCmdCopyPaintField(
+            commands, mixed_simulation, 0U, &paint_range) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        CHECK(pmInvalidateMappedMemoryRanges(
+            device, 1U, &auxiliary_output_range) == PM_SUCCESS);
+        CHECK(std::all_of(paint_pixels,
+            paint_pixels + paint_header->activeCount,
+            [](std::uint32_t pixel) { return pixel == 0U; }));
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
+        CHECK(pmCmdCopyPaintField(
+            commands, mixed_simulation, 0U, &paint_range) == PM_SUCCESS);
+        execute(PM_ERROR_INVALID_STATE);
+    } else if (auxiliary_only) {
+        std::puts("SKIP: production auxiliary features unavailable");
+    }
+    if (auxiliary_only) {
+        cleanup(true);
+        std::puts("PASS: production auxiliary outputs share one committed tick");
+        return 0;
+    }
     if (mixed_info.fluidCount != 0U) {
         auto *particle = reinterpret_cast<PmParticleState *>(
             static_cast<std::byte *>(source_map) + 256U);
@@ -1907,25 +2206,11 @@ int main(int argc, char **argv) {
     if (!production) CHECK(total_x_velocity > 0.5F);
     }
 
-    pmDestroyFence(device, fence);
-    pmFreeCommandBuffers(device, pool, 1U, &commands);
-    pmDestroyCommandPool(device, pool);
-    pmDestroyQueryPool(device, query);
-    pmDestroyPhysicsPipeline(device, pipeline);
-    pmDestroySimulation(device, simulation);
-    pmDestroyGeometry(device, geometry);
-    pmDestroyBuffer(device, output);
-    pmDestroyBuffer(device, fluid_output);
-    pmDestroyBuffer(device, cloth_output);
-    pmDestroyBuffer(device, soft_output);
-    pmDestroyBuffer(device, rope_output);
-    pmDestroyBuffer(device, smoke_output);
-    pmDestroyBuffer(device, source);
-    for (auto allocation : memory) pmFreeMemory(device, allocation);
-    pmDestroyDevice(device);
-    pmDestroyInstance(instance);
+    cleanup(false);
     std::puts(lifecycle_only
         ? "PASS: production lifecycle uses one atomic fixed tick"
+        : auxiliary_only
+        ? "PASS: production auxiliary outputs share one committed tick"
         : smoke_couplings_only
         ? "PASS: production smoke couplings use fixed atomic ticks"
         : production

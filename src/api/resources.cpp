@@ -595,10 +595,6 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
     const PmResult profile_result = select_execution_profile(
         device, info->pNext, execution_profile);
     if (profile_result != PM_SUCCESS) return profile_result;
-    if (execution_profile == PmSimulationExecutionProfile::realtime_single_step &&
-        (info->paintFieldCount != 0U || info->paintRuleCapacity != 0U ||
-         info->debugFrameCapacity != 0U))
-        return PM_ERROR_FEATURE_NOT_PRESENT;
     if ((info->rigidBodyCapacity != 0U &&
          device->enabled.rigidBodies == PM_FALSE) ||
         (info->constraintCapacity != 0U &&
@@ -612,7 +608,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
         (info->emitterCapacity != 0U &&
          device->enabled.particleEmitters == PM_FALSE) ||
         ((info->paintFieldCount != 0U || info->paintRuleCapacity != 0U) &&
-         device->enabled.paint == PM_FALSE))
+         device->enabled.paint == PM_FALSE) ||
+        (info->debugFrameCapacity != 0U &&
+         device->enabled.debugData == PM_FALSE))
         return PM_ERROR_INVALID_ARGUMENT;
     for (std::uint32_t index = 0U; index < info->fluidCount; ++index)
         if (info->pFluidCapacities[index].particleCapacity == 0U ||

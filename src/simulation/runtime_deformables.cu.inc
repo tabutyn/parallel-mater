@@ -387,11 +387,13 @@ Status SimulationRuntime::add_paint_field(PaintFieldOptions options,
         simulation::PaintStoragePlan plan{};
         ~PaintStorageOwner() {
             release_managed(plan.pixels);
+            release_managed(plan.rollback_pixels);
             release_managed(plan.uvs);
         }
         void disarm() noexcept {
             plan.uvs = nullptr;
             plan.pixels = nullptr;
+            plan.rollback_pixels = nullptr;
         }
     } owned;
     StorageAllocator allocator;
@@ -416,6 +418,7 @@ Status SimulationRuntime::add_paint_field(PaintFieldOptions options,
     field.options = options;
     field.uvs = owned.plan.uvs;
     field.pixels = owned.plan.pixels;
+    impl_->paint_rollback_pixels[slot] = owned.plan.rollback_pixels;
     field.alive = true;
     output = {slot, field.generation};
     ++impl_->revision;
@@ -439,6 +442,8 @@ Status SimulationRuntime::remove_paint_field(PaintFieldId id) noexcept {
     PaintFieldResource &field = impl_->paint_fields[id.index];
     release_managed(field.pixels);
     release_managed(field.uvs);
+    release_managed(impl_->paint_rollback_pixels[id.index]);
+    impl_->paint_rollback_pixels[id.index] = nullptr;
     field.alive = false;
     ++field.generation;
     if (field.generation == 0U) field.generation = 1U;
