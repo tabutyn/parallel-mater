@@ -160,6 +160,15 @@
       "skipped_for_unadvertised_cpu_domains": 15,
       "result": "PASS"
     },
+    "installed_sdk_contract": {
+      "command": "python3 tools/check_sdk_install.py --build-dir build-sdk-cpu --output <fresh-directory> --require-realtime-driver",
+      "public_observations": [
+        "plain",
+        "validation"
+      ],
+      "packaging_and_external_consumer_checks": "PASS",
+      "result": "PASS"
+    },
     "ipad_device_compile": {
       "configure": "cmake --preset ipad-ci",
       "build": "cmake --build --preset ipad-ci",
