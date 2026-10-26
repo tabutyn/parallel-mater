@@ -867,6 +867,7 @@ Status SimulationRuntime::add_smoke_rigid_coupling(
                                 "smoke rigid coupling allocation failed"); }
     coupling->generation = impl_->smoke_rigid_couplings[slot].generation();
     coupling->options = options;
+    coupling->mesh = impl_->parameters[dense].mesh;
     coupling->alive = true;
     output = {slot, coupling->generation};
     impl_->smoke_rigid_couplings[slot] = std::move(coupling);

@@ -953,7 +953,7 @@ int main(int argc, char **argv) {
             commands, mixed_simulation, 0U, 1U, &smoke) == PM_SUCCESS);
         execute(PM_SUCCESS);
 
-        std::array<PmCouplingStateInfo, 9> couplings{};
+        std::array<PmCouplingStateInfo, 13> couplings{};
         auto &rope_soft = couplings[0];
         rope_soft.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
         rope_soft.type = PM_COUPLING_ROPE_SOFT_BODY;
@@ -1051,6 +1051,47 @@ int main(int argc, char **argv) {
         liquid_smoke.parameters.thermal.heatTransferRate = 0.2F;
         liquid_smoke.parameters.thermal.windDrag = 0.1F;
         liquid_smoke.parameters.thermal.steamRiseSpeed = 1.0F;
+        auto &smoke_rigid = couplings[9];
+        smoke_rigid.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        smoke_rigid.type = PM_COUPLING_SMOKE_RIGID;
+        smoke_rigid.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+            PM_INTERACTION_MODE_DRAG_BIT;
+        smoke_rigid.materialProfile =
+            PM_INTERACTION_MATERIAL_SMOKE_PARTICLE;
+        smoke_rigid.parameters.smoke.airDensity = 1.5F;
+        smoke_rigid.parameters.smoke.dragCoefficient = 2.0F;
+        smoke_rigid.parameters.smoke.contactDistance = 0.04F;
+        smoke_rigid.parameters.smoke.tracerContact = PM_TRUE;
+        auto &smoke_cloth = couplings[10];
+        smoke_cloth.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        smoke_cloth.type = PM_COUPLING_SMOKE_CLOTH;
+        smoke_cloth.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+            PM_INTERACTION_MODE_DRAG_BIT;
+        smoke_cloth.materialProfile =
+            PM_INTERACTION_MATERIAL_SMOKE_PARTICLE;
+        smoke_cloth.parameters.smoke.windDrag = 1.0F;
+        smoke_cloth.parameters.smoke.maximumWindAcceleration = 10.0F;
+        smoke_cloth.parameters.smoke.contactDistance = 0.04F;
+        auto &smoke_rope = couplings[11];
+        smoke_rope.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        smoke_rope.type = PM_COUPLING_SMOKE_ROPE;
+        smoke_rope.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+            PM_INTERACTION_MODE_DRAG_BIT;
+        smoke_rope.materialProfile =
+            PM_INTERACTION_MATERIAL_SMOKE_PARTICLE;
+        smoke_rope.parameters.smoke.windDrag = 1.0F;
+        smoke_rope.parameters.smoke.maximumWindAcceleration = 10.0F;
+        smoke_rope.parameters.smoke.contactDistance = 0.04F;
+        auto &smoke_soft = couplings[12];
+        smoke_soft.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        smoke_soft.type = PM_COUPLING_SMOKE_SOFT_BODY;
+        smoke_soft.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+            PM_INTERACTION_MODE_DRAG_BIT;
+        smoke_soft.materialProfile =
+            PM_INTERACTION_MATERIAL_SMOKE_PARTICLE;
+        smoke_soft.parameters.smoke.windDrag = 1.0F;
+        smoke_soft.parameters.smoke.maximumWindAcceleration = 10.0F;
+        smoke_soft.parameters.smoke.contactDistance = 0.04F;
 
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
         CHECK(pmCmdSetCouplings2(commands, mixed_simulation,
@@ -1089,7 +1130,7 @@ int main(int argc, char **argv) {
             sizeof coupling_statistics, &coupling_statistics,
             sizeof coupling_statistics, PM_QUERY_RESULT_WAIT_BIT) ==
             PM_SUCCESS);
-        CHECK(coupling_statistics.couplingEdgeCount == 20U);
+        CHECK(coupling_statistics.couplingEdgeCount == 28U);
         CHECK(coupling_statistics.couplingSweeps == 12U);
         CHECK(coupling_statistics.timeAdvances == 1U);
         CHECK(coupling_statistics.total.spatialIndexBuilds == 1U);
@@ -1120,8 +1161,12 @@ int main(int argc, char **argv) {
             static_cast<const PmDomainOutputHeader *>(fluid_output_map);
         const auto *coupled_smoke_header =
             static_cast<const PmDomainOutputHeader *>(smoke_output_map);
+        const auto *coupled_smoke =
+            reinterpret_cast<const PmSmokeParticleState *>(
+                coupled_smoke_header + 1U);
         CHECK(coupled_fluid_header->activeCount == 4U);
         CHECK(coupled_smoke_header->activeCount != 0U);
+        CHECK(std::isfinite(coupled_smoke[0].position.x));
 
         if (!production) {
             std::array<std::byte, 1024U> cloth_before_failure{};
@@ -1172,6 +1217,45 @@ int main(int argc, char **argv) {
             CHECK(std::memcmp(smoke_before_failure.data(), smoke_output_map,
                               smoke_before_failure.size()) == 0);
         }
+
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdSetCouplings2(
+            commands, mixed_simulation, 0U, nullptr) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        smoke.materialIndex = 1U;
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteSmoke(
+            commands, mixed_simulation, 0U, 1U, &smoke) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        std::array<PmCouplingStateInfo, 4> grid_smoke_couplings{
+            smoke_rigid, smoke_cloth, smoke_rope, smoke_soft};
+        for (auto &coupling : grid_smoke_couplings)
+            coupling.materialProfile = PM_INTERACTION_MATERIAL_SMOKE_GRID;
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdSetCouplings2(commands, mixed_simulation,
+            static_cast<std::uint32_t>(grid_smoke_couplings.size()),
+            grid_smoke_couplings.data()) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
+        CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        PmRealtimeStepStatistics grid_coupling_statistics{};
+        CHECK(pmGetQueryPoolResults(device, query, 0U, 1U,
+            sizeof grid_coupling_statistics, &grid_coupling_statistics,
+            sizeof grid_coupling_statistics, PM_QUERY_RESULT_WAIT_BIT) ==
+            PM_SUCCESS);
+        CHECK(grid_coupling_statistics.couplingEdgeCount == 11U);
+        CHECK(grid_coupling_statistics.couplingSweeps == 8U);
+        CHECK(grid_coupling_statistics.timeAdvances == 1U);
+        CHECK(grid_coupling_statistics.total.spatialIndexBuilds == 1U);
+        CHECK(grid_coupling_statistics.total.spatialIndexPublications == 1U);
+        CHECK(grid_coupling_statistics.total.intraTickHostReadbacks == 0U);
 
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
         CHECK(pmCmdSetCouplings2(

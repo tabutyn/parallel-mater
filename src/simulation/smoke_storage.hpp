@@ -212,6 +212,7 @@ using SmokeRopeCouplingSlot =
 
 struct SmokeRigidCouplingSlot {
     SmokeRigidCouplingOptions options{};
+    TriangleMeshId mesh{};
     std::uint32_t generation{1U};
     bool alive{};
 };
