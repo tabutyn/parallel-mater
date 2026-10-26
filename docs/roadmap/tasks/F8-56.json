@@ -5,7 +5,8 @@
   "dependencies": [
     "F8-51",
     "F8-54",
-    "F8-55"
+    "F8-55",
+    "F8-57"
   ],
   "locks": [
     "f8-dispatch-reduction-evidence",
