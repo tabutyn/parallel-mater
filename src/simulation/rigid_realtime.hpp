@@ -113,6 +113,18 @@ struct RigidRealtimeWorkBudget {
     std::size_t persistent_bytes{};
 };
 
+[[nodiscard]] constexpr std::uint32_t
+rigid_realtime_cooperative_solve_dispatches(
+    std::uint32_t body_count) noexcept {
+    return body_count == 0U ? 0U : 1U;
+}
+
+[[nodiscard]] constexpr std::uint64_t
+rigid_realtime_cooperative_solve_workgroups(
+    std::uint32_t body_count) noexcept {
+    return body_count == 0U ? 0U : 1U;
+}
+
 [[nodiscard]] constexpr RigidRealtimeWorkBudget rigid_realtime_work_budget(
     std::uint32_t body_count, std::uint32_t contact_count,
     std::uint32_t joint_count, std::uint32_t color_count,
@@ -124,7 +136,8 @@ struct RigidRealtimeWorkBudget {
     result.color_count = color_count;
     result.algebraic_sweeps = rigid_realtime_sweeps;
     result.time_advances = 1U;
-    result.cooperative_dispatches = body_count == 0U ? 0U : 2U;
+    result.cooperative_dispatches = body_count == 0U ? 0U :
+        1U + rigid_realtime_cooperative_solve_dispatches(body_count);
     // prepare + eight (one dispatch per color + dual advance) + six final
     // pose stages. Realtime v1 has no second impact phase.
     result.staged_dispatches = body_count == 0U ? 0U :

@@ -810,6 +810,29 @@ for forbidden in ("avbd_cuda.slang", "cuda_common.slang", "fluid_shared.slang"):
     if (ROOT / "src" / "slang" / forbidden).exists():
         failures.append(f"src/slang/{forbidden}: forbidden transitional module")
 
+metal_avbd = (ROOT / "src" / "simulation" /
+              "metal_geometry_constraints_dispatch.cpp").read_text(
+                  encoding="utf-8")
+fixed_realtime = metal_avbd.split(
+    "PmResult solve_geometry_constraints_fixed_realtime(", 1)
+if len(fixed_realtime) != 2:
+    failures.append(
+        "metal_geometry_constraints_dispatch.cpp: fixed realtime entry missing"
+    )
+else:
+    fixed_realtime = fixed_realtime[1]
+    if '"solve_avbd_kernel"' not in fixed_realtime:
+        failures.append(
+            "metal_geometry_constraints_dispatch.cpp: fixed realtime solve "
+            "does not use the shared cooperative Slang kernel"
+        )
+    for forbidden in ("encode_avbd_schedule", '"solve_avbd_stage_kernel"'):
+        if forbidden in fixed_realtime:
+            failures.append(
+                "metal_geometry_constraints_dispatch.cpp: fixed realtime "
+                f"body-sized staged dispatch remains: {forbidden}"
+            )
+
 if failures:
     print("\n".join(failures), file=sys.stderr)
     raise SystemExit(1)
