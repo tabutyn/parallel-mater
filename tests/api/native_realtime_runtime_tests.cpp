@@ -16,8 +16,11 @@
 } } while (false)
 
 int main(int argc, char **argv) {
+    const bool smoke_couplings_only = argc == 2 &&
+        std::strcmp(argv[1], "--production-smoke-couplings") == 0;
     const bool production = argc == 2 &&
-        std::strcmp(argv[1], "--production") == 0;
+        (std::strcmp(argv[1], "--production") == 0 ||
+         smoke_couplings_only);
     CHECK(argc == 1 || production);
     constexpr std::uint32_t body_count = 8U;
     constexpr std::uint32_t constraint_count = 8U;
@@ -286,7 +289,7 @@ int main(int argc, char **argv) {
     CHECK(pmCmdStepSimulation(
         commands, mixed_simulation, &step) == PM_SUCCESS);
     execute(PM_SUCCESS);
-    if (mixed_info.fluidCount != 0U) {
+    if (!smoke_couplings_only && mixed_info.fluidCount != 0U) {
         auto *particle = reinterpret_cast<PmParticleState *>(
             static_cast<std::byte *>(source_map) + 256U);
         *particle = {};
@@ -428,7 +431,7 @@ int main(int argc, char **argv) {
         execute(PM_SUCCESS);
 
     }
-    if (mixed_info.clothCount != 0U) {
+    if (!smoke_couplings_only && mixed_info.clothCount != 0U) {
         const std::uint32_t cloth_indices[3]{0U, 1U, 2U};
         const float pinned_masses[3]{0.0F, 0.0F, 1.0F};
         const PmFloat3 hanging_vertices[3]{
@@ -567,7 +570,7 @@ int main(int argc, char **argv) {
             static_cast<const PmDomainOutputHeader *>(cloth_output_map);
         CHECK(cloth_header->activeCount == 3U);
     }
-    if (mixed_info.softBodyCount != 0U) {
+    if (!smoke_couplings_only && mixed_info.softBodyCount != 0U) {
         const PmFloat3 nodes[5]{
             {0.0F, 1.2F, 0.0F}, {-0.05F, 1.0F, 0.0F},
             {0.05F, 1.0F, 0.0F}, {0.0F, 1.1F, 0.05F},
@@ -720,7 +723,7 @@ int main(int argc, char **argv) {
             static_cast<const PmDomainOutputHeader *>(soft_output_map);
         CHECK(soft_header->activeCount == 5U);
     }
-    if (mixed_info.ropeCount != 0U) {
+    if (!smoke_couplings_only && mixed_info.ropeCount != 0U) {
         PmRigidBodyInfo anchor{};
         anchor.active = PM_TRUE;
         anchor.geometry = geometry;
@@ -1262,7 +1265,7 @@ int main(int argc, char **argv) {
             commands, mixed_simulation, 0U, nullptr) == PM_SUCCESS);
         execute(PM_SUCCESS);
     }
-    if (mixed_info.smokeCount != 0U) {
+    if (!smoke_couplings_only && mixed_info.smokeCount != 0U) {
         PmSmokeInfo smoke{};
         smoke.active = PM_TRUE;
         smoke.particleCapacity = smoke_capacity.particleCapacity;
@@ -1388,6 +1391,7 @@ int main(int argc, char **argv) {
     }
     pmDestroySimulation(device, mixed_simulation);
 
+    if (!smoke_couplings_only) {
     std::array<PmRigidBodyInfo, body_count> bodies{};
     std::array<PmRigidConstraintInfo, constraint_count> constraints{};
     for (std::uint32_t index = 0U; index < body_count; ++index) {
@@ -1546,6 +1550,7 @@ int main(int argc, char **argv) {
     for (std::uint32_t index = 0U; index < body_count; ++index)
         total_x_velocity += states[index].linearVelocity[0];
     if (!production) CHECK(total_x_velocity > 0.5F);
+    }
 
     pmDestroyFence(device, fence);
     pmFreeCommandBuffers(device, pool, 1U, &commands);
@@ -1564,7 +1569,9 @@ int main(int argc, char **argv) {
     for (auto allocation : memory) pmFreeMemory(device, allocation);
     pmDestroyDevice(device);
     pmDestroyInstance(instance);
-    std::puts(production
-        ? "PASS: production realtime resources are fixed and atomic"
-        : "PASS: native CPU realtime schedule is fixed and atomic");
+    std::puts(smoke_couplings_only
+        ? "PASS: production smoke couplings use fixed atomic ticks"
+        : production
+            ? "PASS: production realtime resources are fixed and atomic"
+            : "PASS: native CPU realtime schedule is fixed and atomic");
 }
