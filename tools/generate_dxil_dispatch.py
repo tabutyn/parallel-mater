@@ -31,6 +31,9 @@ def split_arguments(text):
 
 def unwrap(expression):
     expression = expression.strip()
+    mutable = re.fullmatch(r'mutable_pointer\s*\((.*)\)', expression, re.S)
+    if mutable:
+        return unwrap(mutable[1])
     cast = re.fullmatch(r'(?:as|const_cast|reinterpret_cast)<[^<>]+>\s*\((.*)\)',
                         expression, re.S)
     if cast:
