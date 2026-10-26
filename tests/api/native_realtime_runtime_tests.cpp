@@ -284,11 +284,13 @@ int main(int argc, char **argv) {
     CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
     execute(PM_SUCCESS);
 
-    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
-    CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
-    CHECK(pmCmdStepSimulation(
-        commands, mixed_simulation, &step) == PM_SUCCESS);
-    execute(PM_SUCCESS);
+    if (!smoke_couplings_only) {
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+    }
     if (!smoke_couplings_only && mixed_info.fluidCount != 0U) {
         auto *particle = reinterpret_cast<PmParticleState *>(
             static_cast<std::byte *>(source_map) + 256U);
