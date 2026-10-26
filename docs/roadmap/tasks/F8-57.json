@@ -1,0 +1,32 @@
+{
+  "id": "F8-57",
+  "title": "Keep installed macOS Gallery synchronized",
+  "status": "leased",
+  "dependencies": [
+    "F8-51"
+  ],
+  "locks": [
+    "gallery-platform-rollout"
+  ],
+  "requires": [
+    "macOS with the Metal toolchain, application deployment access and the canonical Gallery Dock item"
+  ],
+  "scope": "Repair the Gallery delivery regression that allows a successful standard macOS Metal build to leave an older Dock application installed. Make the documented development preset atomically deploy and verify the exact build while preserving explicit non-installing CI and packaging builds. This task changes build, deployment, tests and instructions only; it does not change physics, scheduling, rendering or qualification claims.",
+  "acceptance": [
+    "The documented macos-metal-preview configure/build commands automatically refresh /Applications/ParallelMater Gallery.app and the canonical Dock item; shared platform presets and explicit CI/package builds remain non-installing.",
+    "Build identity is regenerated from current revision and worktree state on every build, not only at configure time. Deployment fails on missing or mismatched schema, revision artifact, backend, execution contract or installed identity.",
+    "Deployment verifies the installed code signature and exact Dock path. Legacy Metal Gallery entries are removed, and unavailable or failed Dock repair is a build failure rather than a warning that leaves an ambiguous launcher.",
+    "Portable guards cover preset opt-in and clean/dirty build-time identity regeneration. A clean standard Metal preset build on the physical Mac completes automatic deployment, and the installed app passes a six-frame native Metal smoke with matching revision/backend identity."
+  ],
+  "evidence": [],
+  "lease": {
+    "token": "5477c425-968d-4260-99da-89632edf999b",
+    "owner": "codex-macos-gallery-delivery",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-57/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-26T12:45:39Z",
+    "heartbeat_at": "2026-10-26T12:45:39Z",
+    "expires_at": "2026-10-27T12:45:39Z"
+  },
+  "history": []
+}
