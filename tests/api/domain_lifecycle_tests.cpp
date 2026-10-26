@@ -137,7 +137,7 @@ int main() {
     PmSimulation small{};
     PM_CHECK(pmCreateSimulation(context.device, &small_create, &small) == PM_SUCCESS);
     context.begin();
-    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, pipeline) == PM_SUCCESS);
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, fracture_pipeline) == PM_SUCCESS);
     PM_CHECK(pmCmdWriteCloths(context.commands, small, 0, 1, &cloth) == PM_ERROR_CAPACITY_EXCEEDED);
     PM_CHECK(context.submit() == PM_SUCCESS);
     pmDestroySimulation(context.device, small);
