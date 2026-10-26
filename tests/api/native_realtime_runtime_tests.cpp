@@ -32,6 +32,12 @@ int unsetenv(const char *name) {
 } } while (false)
 
 int main(int argc, char **argv) {
+    const bool trace_enabled = std::getenv("PM_TEST_TRACE") != nullptr;
+    const auto trace_checkpoint = [&](const char *label) {
+        if (!trace_enabled) return;
+        std::fprintf(stderr, "checkpoint=%s\n", label);
+        std::fflush(stderr);
+    };
     const bool couplings_only = argc == 2 &&
         std::strcmp(argv[1], "--production-couplings") == 0;
     const bool smoke_couplings_only = argc == 2 &&
@@ -52,6 +58,7 @@ int main(int argc, char **argv) {
     instance_info.apiVersion = PM_API_VERSION_0_3;
     PmInstance instance{};
     CHECK(pmCreateInstance(&instance_info, nullptr, &instance) == PM_SUCCESS);
+    trace_checkpoint("instance-created");
     std::uint32_t physical_count{};
     CHECK(pmEnumeratePhysicalDevices(instance, &physical_count, nullptr) ==
           PM_SUCCESS);
@@ -64,6 +71,7 @@ int main(int argc, char **argv) {
     CHECK(pmEnumeratePhysicalDevices(
         instance, &physical_count, physicals.data()) == PM_SUCCESS);
     const PmPhysicalDevice physical = physicals.front();
+    trace_checkpoint("physical-device-selected");
 
     const float priority = 1.0F;
     const PmDeviceQueueCreateInfo queue_info{0U, 1U, &priority};
@@ -74,6 +82,7 @@ int main(int argc, char **argv) {
     pmGetPhysicalDeviceFeatures(physical, &device_info.enabledFeatures);
     PmDevice device{};
     CHECK(pmCreateDevice(physical, &device_info, &device) == PM_SUCCESS);
+    trace_checkpoint("device-created");
     PmQueue queue{};
     pmGetDeviceQueue(device, 0U, 0U, &queue);
 
@@ -119,6 +128,7 @@ int main(int argc, char **argv) {
     const auto smoke_output = buffer(4096U, &smoke_output_map);
     const auto auxiliary_output = buffer(
         262144U, &auxiliary_output_map, &auxiliary_output_memory);
+    trace_checkpoint("buffers-created");
     const float vertices[8][3] = {
         {-0.5F,-0.5F,-0.5F},{0.5F,-0.5F,-0.5F},
         {0.5F,0.5F,-0.5F},{-0.5F,0.5F,-0.5F},
@@ -146,6 +156,7 @@ int main(int argc, char **argv) {
     pmGetGeometryMemoryRequirements(device, geometry, &geometry_memory);
     CHECK(pmBindGeometryMemory(
         device, geometry, allocate(geometry_memory.size), 0U) == PM_SUCCESS);
+    trace_checkpoint("geometry-created");
 
     PmSimulationCreateInfo simulation_info{};
     simulation_info.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
@@ -206,6 +217,7 @@ int main(int argc, char **argv) {
         allocate(mixed_requirements.scratch.size), 0U};
     CHECK(pmBindSimulationMemory(
         device, mixed_simulation, &mixed_binding) == PM_SUCCESS);
+    trace_checkpoint("simulations-created");
 
     PmRigidSolverState rigid_solver{};
     rigid_solver.rigidIterations = 8U;
@@ -283,6 +295,7 @@ int main(int argc, char **argv) {
     PmPhysicsPipeline pipeline{};
     CHECK(pmCreatePhysicsPipeline(device, &pipeline_info, &pipeline) ==
           PM_SUCCESS);
+    trace_checkpoint("pipeline-created");
     PmQueryPoolCreateInfo query_info{};
     query_info.sType = PM_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
     query_info.queryType = PM_QUERY_REALTIME_STEP_STATISTICS;
@@ -298,6 +311,7 @@ int main(int argc, char **argv) {
     CHECK(pmAllocateCommandBuffers(device, pool, 1U, &commands) == PM_SUCCESS);
     PmFence fence{};
     CHECK(pmCreateFence(device, 0U, &fence) == PM_SUCCESS);
+    trace_checkpoint("command-objects-created");
     PmCommandBufferBeginInfo begin{};
     begin.sType = PM_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     PmSubmitInfo submit{};
@@ -309,7 +323,7 @@ int main(int argc, char **argv) {
     const char *execution_label = "setup";
     const auto execute = [&](PmResult expected) {
         ++execution_index;
-        if (std::getenv("PM_TEST_TRACE") != nullptr) {
+        if (trace_enabled) {
             std::fprintf(stderr, "execution=%u label=%s begin\n",
                 execution_index, execution_label);
             std::fflush(stderr);
@@ -326,6 +340,11 @@ int main(int argc, char **argv) {
         CHECK(waited == expected);
         CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
         CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
+        if (trace_enabled) {
+            std::fprintf(stderr, "execution=%u label=%s end\n",
+                execution_index, execution_label);
+            std::fflush(stderr);
+        }
     };
     const auto cleanup = [&](bool destroy_mixed_simulation) {
         pmDestroyFence(device, fence);
