@@ -33,7 +33,6 @@ struct GallerySessionConfig {
     bool prime_scene{true};
     std::function<bool(GalleryContext, const SceneDefinition &, std::string &)>
         validate_scene;
-    GalleryFrameProfile frame_profile{GalleryFrameProfile::legacy_v1};
 };
 
 struct GallerySceneParameters {
@@ -169,9 +168,6 @@ public:
     }
     [[nodiscard]] std::uint32_t frame_substeps() const noexcept {
         return frame_policy_.substeps();
-    }
-    [[nodiscard]] GalleryFrameProfile frame_profile() const noexcept {
-        return frame_policy_.profile();
     }
     GalleryWorkloadLimits limits;
     unsigned width{}, height{};

@@ -34,10 +34,26 @@ class AndroidDeploymentTests(unittest.TestCase):
                   "patch_sha256": "clean"}
         runtime = {"nonce": "old", "revision": source["revision"],
                    "backend": "vulkan", "presentation": "vulkan-direct",
+                   "execution_contract": MODULE.EXECUTION_CONTRACT,
                    "build": {"source_revision": source["revision"],
                              "source_dirty": False,
-                             "source_patch_sha256": "clean"}}
+                             "source_patch_sha256": "clean",
+                             "execution_contract": MODULE.EXECUTION_CONTRACT}}
         with self.assertRaisesRegex(MODULE.DeploymentError, "nonce"):
+            MODULE.verify_runtime_identity(runtime, "fresh", source)
+
+    def test_wrong_execution_contract_is_rejected(self):
+        source = {"revision": "a" * 40, "dirty": False,
+                  "patch_sha256": "clean"}
+        runtime = {"nonce": "fresh", "revision": source["revision"],
+                   "backend": "vulkan", "presentation": "vulkan-direct",
+                   "execution_contract": "legacy-v1",
+                   "build": {"source_revision": source["revision"],
+                             "source_dirty": False,
+                             "source_patch_sha256": "clean",
+                             "execution_contract": MODULE.EXECUTION_CONTRACT}}
+        with self.assertRaisesRegex(MODULE.DeploymentError,
+                                    "native_execution_contract"):
             MODULE.verify_runtime_identity(runtime, "fresh", source)
 
     def test_dirty_identity_covers_untracked_bytes(self):

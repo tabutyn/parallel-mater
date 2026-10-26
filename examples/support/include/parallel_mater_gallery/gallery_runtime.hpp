@@ -24,7 +24,7 @@ namespace parallel_mater::gallery {
 
 struct GalleryStepOptions {
     float timestep{1.0F / 60.0F};
-    std::uint32_t substeps{4U};
+    std::uint32_t substeps{1U};
     Vec3 gravity{0.0F, -9.81F, 0.0F};
     bool collect_rigid_contacts{};
     bool collect_fluid_contacts{};

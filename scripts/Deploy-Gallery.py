@@ -19,6 +19,7 @@ from mobile_gallery_report import validate_mobile_gallery_report  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BUNDLE = "com.ballrollergames.parallelmater.gallery"
+EXECUTION_CONTRACT = "fixed-tick-60hz-v1"
 
 
 def run(*args, **kwargs):
@@ -34,6 +35,9 @@ def build_info(app, platform, allow_dirty=False):
         raise RuntimeError("Built revision differs from HEAD; rebuild before deployment")
     if not allow_dirty and (info["dirty"] or dirty):
         raise RuntimeError("Release deployment requires a clean commit and clean rebuild (--allow-dirty is preview-only)")
+    if info.get("schema_version") != 2 or \
+            info.get("execution_contract") != EXECUTION_CONTRACT:
+        raise RuntimeError("Expected the sole fixed-tick Gallery contract")
     if info["backend"] != "metal" or info["release_channel"] != "development-preview":
         raise RuntimeError("Expected explicitly labeled Metal development preview")
     run("codesign", "--verify", "--deep", "--strict", app)
@@ -82,6 +86,8 @@ def validate_physics_qualification(report, nonce, revision, binary_identity):
         raise RuntimeError("Physics qualification report is stale")
     if report.get("revision") != revision:
         raise RuntimeError("Physics qualification revision differs from the installed app")
+    if report.get("execution_contract") != EXECUTION_CONTRACT:
+        raise RuntimeError("Physics qualification used the wrong execution contract")
     if report.get("completed") is not True:
         raise RuntimeError("Physics qualification report is partial")
     if report.get("backend") != "slang-metal":
@@ -209,7 +215,9 @@ def main():
         result = run(installed / "Contents/MacOS/ParallelMater Gallery", "--constraint-point",
                      "--backend", "metal", "--frames", "6", "--interactive-smoke", args.output.resolve() / "macos-smoke.ppm", capture_output=True)
         (args.output / "macos-smoke.log").write_text(result.stdout + result.stderr)
-        if f"Build revision: {info['revision']}" not in result.stdout or "renderer=metal-direct-fenced" not in result.stdout:
+        if (f"Build revision: {info['revision']}" not in result.stdout or
+                f"Execution contract: {EXECUTION_CONTRACT}" not in result.stdout or
+                "renderer=metal-direct-fenced" not in result.stdout):
             raise RuntimeError("Installed Mac runtime did not prove the expected revision and direct Metal renderer")
         print("Installed bundle and native smoke verified:", info)
         run("open", "-a", installed)
@@ -226,7 +234,9 @@ def main():
         with tempfile.TemporaryDirectory(prefix="pm-gallery-verify-") as tmp:
             directory = pathlib.Path(tmp)
             runtime = wait_report(args.device, "runtime-info.json", nonce, directory, lambda r: True, 120)
-            if runtime["revision"] != info["revision"] or runtime["backend"] != info["backend"]:
+            if (runtime["revision"] != info["revision"] or
+                    runtime["backend"] != info["backend"] or
+                    runtime.get("execution_contract") != info["execution_contract"]):
                 raise RuntimeError("Installed runtime does not match built revision/backend")
             if args.qualify:
                 report = wait_report(args.device, "smoke-report.json", nonce, directory,

@@ -76,6 +76,7 @@ std::string MobileGalleryQualificationReport::json() const {
            << ",\"revision\":" << json_string(revision)
            << ",\"platform\":" << json_string(platform)
            << ",\"backend\":" << json_string(backend)
+           << ",\"execution_contract\":" << json_string(execution_contract)
            << ",\"device\":" << json_string(device)
            << ",\"renderer\":{\"kind\":" << json_string(renderer)
            << ",\"readback\":" << json_string(readback) << '}'
@@ -149,6 +150,7 @@ MobileGalleryQualificationReport qualify_mobile_gallery(
         .revision = std::string(identity.build_revision),
         .platform = std::string(identity.platform),
         .backend = std::string(identity.backend),
+        .execution_contract = std::string(identity.execution_contract),
         .device = std::string(identity.device),
         .renderer = identity.renderer == GalleryRendererKind::native_gpu
             ? "native-gpu" : "software-image",

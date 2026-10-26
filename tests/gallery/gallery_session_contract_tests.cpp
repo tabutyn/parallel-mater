@@ -20,6 +20,10 @@ void require(bool condition, const char *message) {
 
 int main() {
     try {
+        const gallery::GalleryStepOptions default_step;
+        require(default_step.timestep == 1.0F / 60.0F &&
+                    default_step.substeps == 1U,
+                "Gallery scene creation retained a hidden legacy step");
         require(gallery::gallery_backend_label("vulkan") == "Vulkan" &&
                     gallery::gallery_backend_label("cuda") == "CUDA" &&
                     gallery::gallery_backend_label("d3d12") == "Direct3D 12" &&
@@ -49,6 +53,8 @@ int main() {
             const auto startup = session.presentation();
             require(startup.platform == "ContractTest" &&
                         startup.backend == PM_GALLERY_SESSION_TEST_BACKEND &&
+                        startup.execution_contract ==
+                            gallery::gallery_execution_contract &&
                         !startup.device.empty() && startup.ready &&
                         startup.scene_id == "rigid-body" &&
                         !startup.scene_summary.empty() &&
@@ -128,7 +134,7 @@ int main() {
             auto timestamp = FrameClock::time_point{};
             const auto interval = std::chrono::duration_cast<FrameClock::duration>(
                 std::chrono::duration<double>(
-                    1.0 / static_cast<double>(session.limits.target_fps)));
+                    1.0 / gallery::GalleryFramePolicy::default_target_fps));
             session.frame_at(timestamp);
             require(session.frames == 0U && session.timing.latest() &&
                         session.timing.latest()->physics_steps == 0U,
@@ -329,6 +335,8 @@ int main() {
             .revision = "contract-revision",
             .platform = "ContractTest",
             .backend = PM_GALLERY_SESSION_TEST_BACKEND,
+            .execution_contract =
+                std::string(gallery::gallery_execution_contract),
             .device = "contract-device",
             .renderer = "software-image",
             .readback = "host-frame",

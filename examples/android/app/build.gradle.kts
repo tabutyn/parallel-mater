@@ -28,6 +28,7 @@ android {
         versionCode = 2
         versionName = "0.1-$physicsBackend-preview"
         buildConfigField("String", "PHYSICS_BACKEND", "\"$physicsBackend\"")
+        buildConfigField("String", "EXECUTION_CONTRACT", "\"fixed-tick-60hz-v1\"")
         buildConfigField("String", "SOURCE_REVISION", "\"${sourceRevision.orNull ?: "unknown"}\"")
         buildConfigField("boolean", "SOURCE_DIRTY", sourceDirty.toString())
         buildConfigField("String", "SOURCE_PATCH_SHA256", "\"$sourcePatchSha256\"")

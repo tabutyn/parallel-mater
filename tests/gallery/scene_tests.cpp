@@ -316,7 +316,7 @@ int main() {
     check(simulation.set_kinematic_target(
               instance.rigid_bodies[1], cube_target, error),
           error.empty() ? "set authored cube target" : error.c_str());
-    check(simulation.step(1.0F / 60.0F, 4U,
+    check(simulation.step(1.0F / 60.0F, 1U,
                           {4.905F, -8.495709F, 0.0F}, frame, error, true),
           error.empty() ? "step authored scene" : error.c_str());
     if (frame.rigid_states.size() == 5U) {
@@ -350,7 +350,7 @@ int main() {
     hopper_target.orientation = rotation_z(0.0F);
     check(dump_simulation.set_kinematic_target(
               dump_instance.rigid_bodies[0], hopper_target, error) &&
-              dump_simulation.step(1.0F / 60.0F, 4U,
+              dump_simulation.step(1.0F / 60.0F, 1U,
                                    {0.0F, -9.81F, 0.0F}, dump_frame,
                                    error, true),
           error.empty() ? "step DUMP command scene" : error.c_str());
@@ -359,6 +359,8 @@ int main() {
 
     fluid_scene.fluid_options.capacity =
         std::max<std::uint32_t>(fluid_scene.fluid_options.capacity, 100U);
+    check(apply_gallery_fixed_tick_material_contract(fluid_scene, error),
+          error.empty() ? "apply fixed-tick Fluid materials" : error.c_str());
     CommandScene fluid_simulation;
     CommandSceneInstance fluid_instance;
     CommandSceneFrame fluid_frame;
@@ -370,7 +372,7 @@ int main() {
     bool fluid_stepped = true;
     for (int index = 0; index < 30 && fluid_stepped; ++index)
         fluid_stepped = fluid_simulation.step(
-            1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F},
+            1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F},
             fluid_frame, error);
     check(fluid_stepped,
           error.empty() ? "step authored Fluid command scene" : error.c_str());

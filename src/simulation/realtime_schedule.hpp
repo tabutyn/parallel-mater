@@ -173,8 +173,14 @@ static_assert(std::is_trivially_copyable_v<RealtimeScheduleLedger>);
     for (const bool present : scene.domains) has_domain |= present;
     if (has_domain && scene.spatial_update == RealtimeSpatialUpdate::none)
         return false;
-    for (const auto edges : scene.coupling_edges)
-        if (edges > rigid_coupling_realtime_maximum_edges) return false;
+    if (scene.coupling_edges[realtime_index(RealtimeCouplingFamily::liquid)] >
+            liquid_coupling_realtime_maximum_edges ||
+        scene.coupling_edges[realtime_index(RealtimeCouplingFamily::rigid)] >
+            rigid_coupling_realtime_maximum_edges ||
+        scene.coupling_edges[realtime_index(
+            RealtimeCouplingFamily::deformable_smoke)] >
+            deformable_smoke_coupling_maximum_edges)
+        return false;
     return true;
 }
 

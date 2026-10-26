@@ -18,7 +18,7 @@ inline constexpr std::uint32_t deformable_smoke_coupling_profile_version = 1U;
 inline constexpr std::uint32_t deformable_smoke_coupling_sweeps = 4U;
 inline constexpr std::uint32_t
     deformable_smoke_coupling_dispatches_per_sweep = 3U;
-inline constexpr std::uint32_t deformable_smoke_coupling_maximum_edges = 16U;
+inline constexpr std::uint32_t deformable_smoke_coupling_maximum_edges = 64U;
 inline constexpr float deformable_smoke_coupling_timestep = 1.0F / 60.0F;
 inline constexpr std::uint32_t deformable_smoke_coupling_status_invalid_profile =
     1U << 28U;

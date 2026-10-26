@@ -343,6 +343,13 @@ constexpr void visit_gallery_interaction_requirements(
             item.unavailable_reason +=
                 "Missing backend interactions: " + missing_interactions;
         }
+        if (!gallery_fixed_tick_supported(item.scene.context)) {
+            item.available = false;
+            if (!item.unavailable_reason.empty())
+                item.unavailable_reason += "; ";
+            item.unavailable_reason +=
+                "Unsupported by fixed-tick-60hz-v1: cloth fracture";
+        }
     }
     return result;
 }

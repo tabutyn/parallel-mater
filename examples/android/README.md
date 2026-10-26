@@ -45,18 +45,20 @@ Fluid capacity is applied before simulation allocation. The shared scene builder
 samples the authored initial population down to capacity, and emitters retain
 that capacity. Lower counts change the physical amount and sampling of liquid;
 this is not a quality-equivalent benchmark against the full desktop workload.
-Solver timestep, material parameters and contact iteration quality are retained.
-The default `legacy-v1` Gallery clock advances fixed 1/target_fps steps with
-approximately 240 solver substeps/second. Slow display frames may catch up by at
-most four steps and only within the shared 8 ms physics-work budget; excess
-whole steps are discarded so rendering and input cannot accumulate an unbounded
-queue. The explicitly selected `realtime-single-step-v1` client clock instead
-uses one `dt=1/60` tick and one substep per callback, never catches up, and runs
-at half simulation speed under sustained 30 Hz overload. Runtime support is
-still negotiated separately; the new clock is not a silent default.
-Pause, backgrounding, surface loss, and profile changes reset elapsed time. The
+Workload reduction does not independently change the fixed timestep or contact
+iteration quality.
+The sole `fixed-tick-60hz-v1` Gallery clock uses one `dt=1/60` tick and one
+substep per callback. It never catches up or enlarges the timestep, so sustained
+30 Hz overload runs at half simulation speed. Workload `target_fps` remains a
+qualification target and does not select cadence. Pause, backgrounding, surface
+loss, and workload changes reset elapsed time. The
 UI schedules one worker frame from display callbacks; it does not implement a
 second target-FPS clock.
+
+The shared scene configuration bounds authored material values for this one
+fixed tick before public resource creation. Cloth Tear and Soft Body Cloth stay
+in the picker but report that fixed-tick cloth fracture is unavailable; Gallery
+does not silently disable tearing or retry them on another physics path.
 
 ## Build and install
 
@@ -145,15 +147,15 @@ means that every scene sustained both windows with direct presentation and no
 thermal throttling or process/validation errors. Reported FPS remains an
 observation; the profile's target update rate is not treated as achieved.
 
-Reports use `parallel-mater-mobile-gallery-qualification/v1` and include the
+Reports use `parallel-mater-mobile-gallery-qualification/v2` and include the
 compiled identity, renderer/readback mode, common lifecycle and control checks,
-failures, all scenes, and a fresh nonce; old or platform-specific reports cannot
-satisfy a new run. Android adds direct-presentation, surface-generation,
-background, resize, rotation, process-log and teardown checks. Display size and
-rotation settings are restored even when a check fails. The same C++ scenario
-and fields run on iPad. This does not replace the native API suites below or
-qualify thermal/physical accuracy. Release APKs ignore diagnostic intents and
-do not write these reports.
+execution contract, failures, all scenes, and a fresh nonce; old or
+platform-specific reports cannot satisfy a new run. Android adds
+direct-presentation, surface-generation, background, resize, rotation,
+process-log and teardown checks. Display size and rotation settings are restored
+even when a check fails. The same C++ scenario and fields run on iPad. This does
+not replace the native API suites below or qualify thermal/physical accuracy.
+Release APKs ignore diagnostic intents and do not write these reports.
 
 Build existing public-API tests as Android executables alongside the APK:
 
