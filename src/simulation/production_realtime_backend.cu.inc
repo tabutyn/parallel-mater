@@ -18,9 +18,20 @@ PmResult native_realtime_spatial_counts(
     const State &state, std::uint32_t &leaves,
     std::uint32_t &queries) noexcept {
     std::uint64_t total = state.rigid_body_count;
-    for (const auto &owner : state.fluids) {
+    for (std::uint32_t slot = 0U; slot < state.fluids.size(); ++slot) {
+        const auto &owner = state.fluids[slot];
         if (!owner || !owner->alive) continue;
         total += owner->options.capacity;
+        std::uint64_t proposals{};
+        const FluidId fluid_id{slot, owner->generation};
+        for (const auto &source : state.particle_sources) {
+            if (!source.alive || !source.options.enabled || !source.data ||
+                !(source.options.fluid == fluid_id))
+                continue;
+            proposals = std::min<std::uint64_t>(owner->options.capacity,
+                proposals + source.data->count);
+        }
+        total += proposals;
         if (total > std::numeric_limits<std::uint32_t>::max())
             return PM_ERROR_CAPACITY_EXCEEDED;
     }
@@ -419,22 +430,73 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
             dispatch(predict, 1U, body_groups);
             dispatch(index, 1U, body_groups);
         }
-        for (const auto &owner : state.fluids) {
+        for (std::uint32_t slot = 0U; slot < state.fluids.size(); ++slot) {
+            const auto &owner = state.fluids[slot];
             if (!owner || !owner->alive) continue;
-            const auto groups =
+            const auto particle_groups =
                 (std::uint64_t{owner->options.capacity} + 127U) / 128U;
+            const FluidId fluid_id{slot, owner->generation};
+            std::uint32_t proposals{};
+            for (const auto &source : state.particle_sources) {
+                if (!source.alive || !source.options.enabled || !source.data ||
+                    !(source.options.fluid == fluid_id) ||
+                    proposals == owner->options.capacity)
+                    continue;
+                const auto amount = std::min(source.data->count,
+                    owner->options.capacity - proposals);
+                if (amount == 0U) continue;
+                proposals += amount;
+                dispatch(index, 1U,
+                    (std::uint64_t{amount} + 127U) / 128U);
+                dispatch(index, 1U, 1U);
+            }
+            const auto query_groups =
+                (std::uint64_t{owner->options.capacity} + proposals + 127U) /
+                128U;
+            std::uint32_t destroyers{};
+            for (const auto &destroyer : state.destroy_planes)
+                destroyers += std::uint32_t(destroyer.alive &&
+                    destroyer.options.enabled &&
+                    destroyer.options.fluid == fluid_id);
+            bool phase_coupled = false;
+            bool pending_phase = false;
+            for (const auto &coupling : state.fluid_smoke_couplings) {
+                if (!coupling || !coupling->alive ||
+                    !(coupling->options.fluid == fluid_id))
+                    continue;
+                phase_coupled = true;
+                pending_phase = pending_phase ||
+                    coupling->realtime_pending_phase_count != 0U;
+            }
             boundary.bytes_moved +=
                 2ULL * owner->options.capacity * sizeof(Vec3) +
-                sizeof(std::uint32_t);
-            boundary.barriers += 3U;
-            dispatch(predict, 1U, groups);
-            dispatch(index, 1U, groups);
-            dispatch(candidates, 1U, groups);
+                std::uint64_t{owner->options.capacity} *
+                    (sizeof(std::uint32_t) + 2U * sizeof(float)) +
+                2U * sizeof(std::uint32_t) +
+                (phase_coupled ? owner->options.capacity : 0U);
+            const bool may_compact = destroyers != 0U || pending_phase;
+            boundary.barriers += (may_compact ? 2U : 7U) +
+                std::uint32_t(phase_coupled);
+            if (phase_coupled)
+                dispatch(boundary, 1U, particle_groups);
+            if (may_compact) {
+                dispatch(boundary, destroyers,
+                    std::uint64_t{destroyers} * particle_groups);
+                dispatch(boundary, 4U,
+                    3U * ((std::uint64_t{owner->options.capacity} + 255U) /
+                              256U) +
+                        1U + particle_groups);
+            }
+            dispatch(predict, 1U, particle_groups);
+            dispatch(index, 1U, particle_groups);
+            dispatch(candidates, 1U, query_groups);
             dispatch(domain,
                 3U * simulation::fluid_realtime_density_sweeps + 1U,
-                groups *
+                query_groups *
                     (3U * simulation::fluid_realtime_density_sweeps + 1U));
-            dispatch(commit, 1U, groups);
+            dispatch(commit, 1U, particle_groups);
+            commit.bytes_moved += sizeof(std::uint32_t);
+            ++commit.barriers;
         }
         for (const auto &owner : state.cloths) {
             if (!owner || !owner->alive) continue;
@@ -586,6 +648,15 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                         cell_groups);
                 dispatch(commit, 4U, face_groups + particle_groups);
             }
+        }
+        for (const auto &coupling : state.fluid_smoke_couplings) {
+            if (!coupling || !coupling->alive ||
+                coupling->realtime_pending_phase_count == 0U)
+                continue;
+            boundary.bytes_moved +=
+                std::uint64_t{coupling->realtime_pending_phase_count} *
+                (4U * sizeof(Vec3) + 4U * sizeof(float));
+            boundary.barriers += 16U;
         }
         index.index_builds = 1U;
 #if !defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
@@ -1273,10 +1344,22 @@ public:
              state_.options.realtime_spatial_candidates_per_query <
                  smoke_realtime_candidates_per_particle))
             return PM_ERROR_FEATURE_NOT_PRESENT;
-        std::uint32_t fluid_offset = state_.rigid_body_count;
-        for (auto &owner : state_.fluids) {
+        for (auto &source : state_.particle_sources) {
+            source.realtime_proposal_offset = 0U;
+            source.realtime_proposal_count = 0U;
+            source.realtime_first_stable_id = 0U;
+        }
+        for (auto &owner : state_.fluid_smoke_couplings) {
             if (!owner || !owner->alive) continue;
-            const auto &fluid = *owner;
+            owner->realtime_phase_apply_count = 0U;
+            owner->realtime_phase_first_slot = 0U;
+            owner->realtime_phase_discovery = false;
+        }
+        std::uint32_t fluid_offset = state_.rigid_body_count;
+        for (std::uint32_t slot = 0U; slot < state_.fluids.size(); ++slot) {
+            auto &owner = state_.fluids[slot];
+            if (!owner || !owner->alive) continue;
+            auto &fluid = *owner;
             const auto material = simulation::validate_fluid_realtime_input({
                 0.0F, fluid.options.support_radius,
                 fluid.options.particle_radius, fluid.options.rest_density,
@@ -1293,6 +1376,31 @@ public:
             owner->realtime_leaf_offset = fluid_offset;
             owner->realtime_query_offset = fluid_offset;
             fluid_offset += owner->options.capacity;
+            std::uint32_t proposal_count{};
+            const FluidId fluid_id{slot, fluid.generation};
+            for (auto &source : state_.particle_sources) {
+                if (!source.alive || !source.options.enabled ||
+                    !source.data || !(source.options.fluid == fluid_id) ||
+                    proposal_count == fluid.options.capacity)
+                    continue;
+                const auto amount = std::min(
+                    source.data->count,
+                    fluid.options.capacity - proposal_count);
+                if (amount == 0U) continue;
+                if (fluid.next_id >
+                    std::numeric_limits<std::uint32_t>::max() -
+                        proposal_count - amount)
+                    return PM_ERROR_CAPACITY_EXCEEDED;
+                source.realtime_proposal_offset = fluid_offset;
+                source.realtime_proposal_count = amount;
+                source.realtime_first_stable_id =
+                    fluid.next_id + proposal_count;
+                fluid_offset += amount;
+                proposal_count += amount;
+            }
+            fluid.realtime_query_count =
+                fluid.options.capacity + proposal_count;
+            fluid.realtime_pending_next_id = fluid.next_id + proposal_count;
         }
         std::uint32_t cloth_offset = fluid_offset;
         for (auto &owner : state_.cloths) {
@@ -1360,7 +1468,9 @@ public:
             rope_offset += nodes - 1U;
         }
         std::uint32_t smoke_offset = rope_offset;
-        for (auto &owner : state_.smokes) {
+        for (std::uint32_t smoke_slot = 0U;
+             smoke_slot < state_.smokes.size(); ++smoke_slot) {
+            auto &owner = state_.smokes[smoke_slot];
             if (!owner || !owner->alive) continue;
             auto &smoke = *owner;
             const auto representation = smoke.options.grid_resolution == 0U
@@ -1459,6 +1569,71 @@ public:
                     smoke.options.capacity, smoke.count + requested);
                 smoke.realtime_pending_emitted = smoke.emitted + requested;
             }
+        }
+        bool phase_admission = true;
+        bool has_pending_phase = false;
+        for (const auto &owner : state_.fluid_smoke_couplings) {
+            if (!owner || !owner->alive ||
+                owner->realtime_pending_phase_count == 0U)
+                continue;
+            has_pending_phase = true;
+            const auto &coupling = *owner;
+            if (coupling.options.fluid.index >= state_.fluids.size() ||
+                coupling.options.smoke.index >= state_.smokes.size()) {
+                phase_admission = false;
+                continue;
+            }
+            const auto &fluid =
+                state_.fluids[coupling.options.fluid.index];
+            const auto &smoke =
+                state_.smokes[coupling.options.smoke.index];
+            if (!fluid || !fluid->alive || !smoke || !smoke->alive ||
+                fluid->generation !=
+                    coupling.realtime_phase_source_generation ||
+                smoke->generation !=
+                    coupling.realtime_phase_destination_generation) {
+                phase_admission = false;
+                continue;
+            }
+            std::uint64_t destination_total{};
+            for (const auto &candidate : state_.fluid_smoke_couplings) {
+                if (!candidate || !candidate->alive ||
+                    candidate->realtime_pending_phase_count == 0U ||
+                    !(candidate->options.smoke == coupling.options.smoke))
+                    continue;
+                destination_total +=
+                    candidate->realtime_pending_phase_count;
+            }
+            if (std::uint64_t{smoke->realtime_pending_count} +
+                    destination_total >
+                smoke->options.capacity)
+                phase_admission = false;
+        }
+        if (has_pending_phase && phase_admission) {
+            for (auto &owner : state_.fluid_smoke_couplings) {
+                if (!owner || !owner->alive ||
+                    owner->realtime_pending_phase_count == 0U)
+                    continue;
+                auto &smoke =
+                    *state_.smokes[owner->options.smoke.index];
+                owner->realtime_phase_apply_count =
+                    owner->realtime_pending_phase_count;
+                owner->realtime_phase_first_slot =
+                    smoke.realtime_pending_next_slot;
+                smoke.realtime_pending_next_slot =
+                    (smoke.realtime_pending_next_slot +
+                        owner->realtime_phase_apply_count) %
+                    smoke.options.capacity;
+                smoke.realtime_pending_count +=
+                    owner->realtime_phase_apply_count;
+                smoke.realtime_pending_emitted +=
+                    owner->realtime_phase_apply_count;
+            }
+        }
+        for (auto &owner : state_.fluid_smoke_couplings) {
+            if (!owner || !owner->alive) continue;
+            owner->realtime_phase_discovery =
+                !has_pending_phase || phase_admission;
         }
         if (smoke_offset != staged_leaves_)
             return PM_ERROR_INVALID_STATE;
@@ -1634,26 +1809,120 @@ public:
             boundary_work.bytes_moved += bytes;
             ++boundary_work.barriers;
         }
-        for (auto &owner : state_.fluids) {
+        for (std::uint32_t slot = 0U; slot < state_.fluids.size(); ++slot) {
+            auto &owner = state_.fluids[slot];
             if (!owner || !owner->alive) continue;
             auto &fluid = *owner;
             const auto bytes = std::size_t(fluid.options.capacity) *
                 sizeof(Vec3);
-            auto result = native_.copy(
-                fluid.next_positions, fluid.positions, bytes,
+            auto result = native_.copy(fluid.realtime_count, fluid.count,
+                sizeof(*fluid.realtime_count),
                 device::CopyDirection::device_to_device, native_.queue());
+            const FluidId fluid_id{slot, fluid.generation};
+            bool compact = false;
+            bool blocked_phase = false;
+            bool discover_phase = false;
+            for (const auto &coupling : state_.fluid_smoke_couplings) {
+                if (!coupling || !coupling->alive ||
+                    !(coupling->options.fluid == fluid_id))
+                    continue;
+                compact = compact ||
+                    coupling->realtime_phase_apply_count != 0U;
+                blocked_phase = blocked_phase ||
+                    (coupling->realtime_pending_phase_count != 0U &&
+                     coupling->realtime_phase_apply_count == 0U);
+                discover_phase = discover_phase ||
+                    coupling->realtime_phase_discovery;
+            }
+            for (const auto &destroyer : state_.destroy_planes) {
+                if (!destroyer.alive || !destroyer.options.enabled ||
+                    !(destroyer.options.fluid == fluid_id) || blocked_phase)
+                    continue;
+                native_.mark_fluid_destroy_flags(
+                    (fluid.options.capacity + 127U) / 128U, 128U,
+                    native_.queue(), fluid.positions, fluid.previous,
+                    fluid.count, fluid.options.capacity,
+                    &destroyer.options, compact, fluid.keep);
+                compact = true;
+                if ((result = native_.check_error()) != PM_SUCCESS)
+                    return result;
+                dispatch(simulation::RealtimeTelemetryPhase::boundary,
+                    (fluid.options.capacity + 127U) / 128U);
+            }
+            if (result == PM_SUCCESS && compact)
+                result = native_.compact_flagged_indices(
+                    native_.queue(), fluid.keep, fluid.options.capacity,
+                    fluid.selected, fluid.realtime_count,
+                    fluid.select_workspace, fluid.select_workspace_size);
+            if (result == PM_SUCCESS && compact) {
+                native_.gather_fluid(
+                    (fluid.options.capacity + 127U) / 128U, 128U,
+                    native_.queue(), fluid.positions, fluid.velocities,
+                    fluid.ids, fluid.foam, fluid.temperatures,
+                    fluid.contact_samples, fluid.contact_flags, false,
+                    fluid.selected, fluid.realtime_count,
+                    fluid.options.capacity, fluid.next_positions,
+                    fluid.next_velocities, fluid.next_ids, fluid.next_foam,
+                    fluid.next_temperatures, fluid.next_contact_samples,
+                    fluid.next_contact_flags);
+                result = native_.check_error();
+                if (result == PM_SUCCESS)
+                    dispatches(simulation::RealtimeTelemetryPhase::boundary,
+                        4U, 3U * ((fluid.options.capacity + 255U) / 256U) +
+                            1U +
+                            (fluid.options.capacity + 127U) / 128U);
+            }
+            const auto copy_if_uncompacted = [&](void *destination,
+                    const void *source, std::size_t size) noexcept {
+                return compact || result != PM_SUCCESS ? result :
+                    native_.copy(destination, source, size,
+                        device::CopyDirection::device_to_device,
+                        native_.queue());
+            };
             if (result == PM_SUCCESS)
-                result = native_.copy(
-                    fluid.next_velocities, fluid.velocities, bytes,
-                    device::CopyDirection::device_to_device, native_.queue());
+                result = copy_if_uncompacted(
+                    fluid.next_positions, fluid.positions, bytes);
+            if (result == PM_SUCCESS)
+                result = copy_if_uncompacted(
+                    fluid.next_velocities, fluid.velocities, bytes);
+            const auto scalar_bytes =
+                std::size_t(fluid.options.capacity) * sizeof(float);
+            const auto id_bytes = std::size_t(fluid.options.capacity) *
+                sizeof(std::uint32_t);
+            if (result == PM_SUCCESS)
+                result = copy_if_uncompacted(
+                    fluid.next_ids, fluid.ids, id_bytes);
+            if (result == PM_SUCCESS)
+                result = copy_if_uncompacted(
+                    fluid.next_foam, fluid.foam, scalar_bytes);
+            if (result == PM_SUCCESS)
+                result = copy_if_uncompacted(fluid.next_temperatures,
+                    fluid.temperatures, scalar_bytes);
             if (result == PM_SUCCESS)
                 result = native_.clear(
                     fluid.realtime_time_advances, 0,
                     sizeof(*fluid.realtime_time_advances), native_.queue());
+            if (result == PM_SUCCESS && discover_phase)
+                result = native_.clear(fluid.keep, 1,
+                    fluid.options.capacity * sizeof(*fluid.keep),
+                    native_.queue());
+            if (result == PM_SUCCESS && discover_phase) {
+                native_.clear_inactive_fluid_keep(
+                    (fluid.options.capacity + 127U) / 128U, 128U,
+                    native_.queue(), fluid.keep, fluid.realtime_count,
+                    fluid.options.capacity);
+                result = native_.check_error();
+                if (result == PM_SUCCESS)
+                    dispatch(simulation::RealtimeTelemetryPhase::boundary,
+                        (fluid.options.capacity + 127U) / 128U);
+            }
             if (result != PM_SUCCESS) return result;
-            boundary_work.bytes_moved += 2U * bytes +
-                sizeof(*fluid.realtime_time_advances);
-            boundary_work.barriers += 3U;
+            boundary_work.bytes_moved += sizeof(*fluid.realtime_count) +
+                2U * bytes + id_bytes + 2U * scalar_bytes +
+                sizeof(*fluid.realtime_time_advances) +
+                (discover_phase ? fluid.options.capacity : 0U);
+            boundary_work.barriers += (compact ? 2U : 7U) +
+                std::uint32_t(discover_phase);
         }
         for (auto &owner : state_.cloths) {
             if (!owner || !owner->alive) continue;
@@ -1784,7 +2053,9 @@ public:
             boundary_work.bytes_moved += sizeof(*rope.realtime_count);
             boundary_work.barriers += 5U;
         }
-        for (auto &owner : state_.smokes) {
+        for (std::uint32_t smoke_slot = 0U;
+             smoke_slot < state_.smokes.size(); ++smoke_slot) {
+            auto &owner = state_.smokes[smoke_slot];
             if (!owner || !owner->alive) continue;
             auto &smoke = *owner;
             const auto vector_bytes =
@@ -1828,6 +2099,64 @@ public:
                     smoke.pressures, scalar_bytes,
                     device::CopyDirection::device_to_device,
                     native_.queue());
+            for (const auto &coupling : state_.fluid_smoke_couplings) {
+                if (result != PM_SUCCESS || !coupling ||
+                    !coupling->alive ||
+                    coupling->realtime_phase_apply_count == 0U ||
+                    !(coupling->options.smoke == SmokeId{
+                        smoke_slot, smoke.generation}))
+                    continue;
+                const auto amount = coupling->realtime_phase_apply_count;
+                const auto first = coupling->realtime_phase_first_slot;
+                const auto leading = std::min(
+                    amount, smoke.options.capacity - first);
+                const auto trailing = amount - leading;
+                const auto copy_phase = [&](auto *destination,
+                                            const auto *source) noexcept {
+                    using Value = std::remove_pointer_t<
+                        decltype(destination)>;
+                    auto copied = native_.copy(destination + first, source,
+                        std::size_t(leading) * sizeof(Value),
+                        device::CopyDirection::device_to_device,
+                        native_.queue());
+                    if (copied == PM_SUCCESS && trailing != 0U)
+                        copied = native_.copy(destination, source + leading,
+                            std::size_t(trailing) * sizeof(Value),
+                            device::CopyDirection::device_to_device,
+                            native_.queue());
+                    return copied;
+                };
+                result = copy_phase(smoke.realtime_positions,
+                    coupling->realtime_phase_positions);
+                if (result == PM_SUCCESS)
+                    result = copy_phase(smoke.realtime_previous_positions,
+                        coupling->realtime_phase_positions);
+                if (result == PM_SUCCESS)
+                    result = copy_phase(smoke.realtime_velocities,
+                        coupling->realtime_phase_velocities);
+                if (result == PM_SUCCESS)
+                    result = copy_phase(smoke.realtime_vorticities,
+                        coupling->realtime_phase_vorticities);
+                if (result == PM_SUCCESS)
+                    result = copy_phase(smoke.realtime_ages,
+                        coupling->realtime_phase_ages);
+                if (result == PM_SUCCESS)
+                    result = copy_phase(smoke.realtime_thermal_lift,
+                        coupling->realtime_phase_thermal_lift);
+                if (result == PM_SUCCESS)
+                    result = copy_phase(smoke.realtime_number_densities,
+                        coupling->realtime_phase_densities);
+                if (result == PM_SUCCESS)
+                    result = copy_phase(smoke.realtime_pressures,
+                        coupling->realtime_phase_pressures);
+                if (result == PM_SUCCESS) {
+                    boundary_work.bytes_moved +=
+                        std::uint64_t{amount} *
+                        (4U * sizeof(Vec3) + 4U * sizeof(float));
+                    boundary_work.barriers +=
+                        8U * (trailing == 0U ? 1U : 2U);
+                }
+            }
             if (result == PM_SUCCESS)
                 result = native_.copy(smoke.realtime_count,
                     &smoke.realtime_pending_count,
@@ -1903,7 +2232,8 @@ public:
                     fluid.options.capacity);
                 native_.predict_fluid_realtime(
                     groups, block, native_.queue(), fluid.next_positions,
-                    fluid.next_velocities, fluid.previous, fluid.count,
+                    fluid.next_velocities, fluid.previous,
+                    fluid.realtime_count,
                     fluid.options.capacity, constants, &options_.gravity.x,
                     scene.timestep,
                     simulation::fluid_realtime_profile_version,
@@ -2189,6 +2519,13 @@ public:
             auto &fluid = *owner;
             const auto fluid_groups =
                 (fluid.options.capacity + block - 1U) / block;
+            float source_spacing{};
+            const FluidId fluid_id{slot, fluid.generation};
+            for (const auto &source : state_.particle_sources)
+                if (source.alive && source.options.enabled && source.data &&
+                    source.options.fluid == fluid_id)
+                    source_spacing = std::max(
+                        source_spacing, source.data->spacing);
             const float fluid_correction[3]{
                 simulation::fluid_realtime_maximum_correction_fraction *
                     fluid.options.support_radius,
@@ -2197,8 +2534,8 @@ public:
                 simulation::fluid_realtime_maximum_correction_fraction *
                     fluid.options.support_radius};
             native_.emit_fluid_spatial_particles(
-                fluid_groups, block, native_.queue(), fluid.positions,
-                fluid.next_positions, fluid.ids, fluid.count,
+                fluid_groups, block, native_.queue(), fluid.previous,
+                fluid.next_positions, fluid.next_ids, fluid.realtime_count,
                 fluid.options.capacity, slot, fluid.generation,
                 static_cast<std::uint32_t>(
                     scene.graph_revision %
@@ -2209,7 +2546,8 @@ public:
                 state_.realtime_spatial_plan.query_capacity,
                 fluid.realtime_leaf_offset,
                 simulation::fluid_spatial_query_mask,
-                simulation::fluid_spatial_query_mask, 0.0F,
+                simulation::fluid_spatial_query_mask,
+                0.5F * source_spacing,
                 fluid.options.support_radius, path_deviation,
                 fluid_correction, 1.0e-5F, snapshot_.metadata,
                 snapshot_.bounds, snapshot_.build_flags, query_bounds,
@@ -2219,6 +2557,41 @@ public:
             if (result != PM_SUCCESS) return result;
             dispatch(simulation::RealtimeTelemetryPhase::index,
                      fluid_groups);
+            for (const auto &source : state_.particle_sources) {
+                if (!source.alive || !source.options.enabled ||
+                    !source.data || !(source.options.fluid == fluid_id) ||
+                    source.realtime_proposal_count == 0U)
+                    continue;
+                const auto proposal_groups =
+                    (source.realtime_proposal_count + block - 1U) / block;
+                native_.emit_fluid_spatial_source_proposals(
+                    proposal_groups, block, native_.queue(),
+                    source.data->points, source.realtime_proposal_count,
+                    source.data->spacing, fluid.realtime_count,
+                    fluid.options.capacity,
+                    source.realtime_first_stable_id, slot,
+                    fluid.generation,
+                    static_cast<std::uint32_t>(
+                        scene.graph_revision %
+                        (std::numeric_limits<std::uint32_t>::max() - 1U)) +
+                        1U,
+                    source.realtime_proposal_offset,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    source.realtime_proposal_offset,
+                    state_.realtime_spatial_plan.query_capacity,
+                    source.realtime_proposal_offset,
+                    simulation::fluid_spatial_query_mask,
+                    simulation::fluid_spatial_query_mask,
+                    fluid.options.support_radius, path_deviation,
+                    fluid_correction, 1.0e-5F, snapshot_.metadata,
+                    snapshot_.bounds, snapshot_.build_flags, query_bounds,
+                    query_masks, excluded, query_leaf_sources,
+                    snapshot_.query_status);
+                result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatch(simulation::RealtimeTelemetryPhase::index,
+                    proposal_groups);
+            }
         }
         auto *deformable_query_leaf_sources = deformable_spatial<
             std::uint32_t>(state_.realtime_deformable_spatial_plan
@@ -2411,6 +2784,37 @@ public:
             ++index_work.barriers;
         }
 #endif
+        for (std::uint32_t slot = 0U; slot < state_.fluids.size(); ++slot) {
+            auto &owner = state_.fluids[slot];
+            if (!owner || !owner->alive) continue;
+            auto &fluid = *owner;
+            const FluidId fluid_id{slot, fluid.generation};
+            for (auto &source : state_.particle_sources) {
+                if (!source.alive || !source.options.enabled ||
+                    !source.data || !(source.options.fluid == fluid_id) ||
+                    source.realtime_proposal_count == 0U)
+                    continue;
+                native_.apply_fluid_spatial_source_admission(
+                    native_.queue(), source.data->points,
+                    source.realtime_proposal_count,
+                    &source.options.initial_velocity.x,
+                    source.options.initial_temperature,
+                    source.realtime_proposal_offset,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    source.realtime_proposal_offset,
+                    state_.realtime_spatial_plan.query_capacity,
+                    snapshot_.metadata, snapshot_.admission, query_masks,
+                    fluid.next_positions, fluid.next_velocities,
+                    fluid.next_ids, fluid.next_foam,
+                    fluid.next_temperatures, fluid.realtime_count,
+                    fluid.options.capacity, source.data->accepted,
+                    source.data->rejected, source.data->capacity_misses,
+                    snapshot_.query_status);
+                result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatch(simulation::RealtimeTelemetryPhase::index, 1U);
+            }
+        }
         ++work(simulation::RealtimeTelemetryPhase::index).index_builds;
         return PM_SUCCESS;
     }
@@ -2487,16 +2891,18 @@ public:
             if (!owner || !owner->alive) continue;
             auto &fluid = *owner;
             const auto groups =
-                (fluid.options.capacity + block - 1U) / block;
+                (fluid.realtime_query_count + block - 1U) / block;
             const auto query_offset = fluid.realtime_query_offset;
             native_.filter_fluid_spatial_candidates(
                 groups, block, native_.queue(), snapshot_.metadata,
                 snapshot_.admission,
                 state_.realtime_spatial_plan.leaf_capacity,
-                query_leaf_sources + query_offset, fluid.options.capacity,
-                slot, fluid.generation, fluid.ids, fluid.count,
-                fluid.options.capacity, slot, fluid.generation, fluid.ids,
-                fluid.count, fluid.options.capacity,
+                query_leaf_sources + query_offset,
+                fluid.realtime_query_count, slot, fluid.generation,
+                fluid.next_ids, fluid.realtime_count,
+                fluid.options.capacity, slot, fluid.generation,
+                fluid.next_ids, fluid.realtime_count,
+                fluid.options.capacity,
                 snapshot_.query_counts + query_offset,
                 snapshot_.query_candidates +
                     std::size_t(query_offset) * candidates_per_query,
@@ -2624,7 +3030,7 @@ public:
                 if (!owner || !owner->alive) continue;
                 auto &fluid = *owner;
                 const auto groups =
-                    (fluid.options.capacity + block - 1U) / block;
+                    (fluid.realtime_query_count + block - 1U) / block;
                 const auto query_offset = fluid.realtime_query_offset;
                 auto *local_query_sources =
                     query_leaf_sources + query_offset;
@@ -2637,7 +3043,8 @@ public:
                     fluid.options.capacity);
                 if (iteration == 0U) {
                     const auto budget = simulation::fluid_realtime_work_budget(
-                        fluid.options.capacity, fluid.options.capacity,
+                        fluid.realtime_query_count,
+                        fluid.options.capacity,
                         candidates_per_query);
                     auto result = fluid.realtime_contract.begin(
                         epoch_, *counters, budget);
@@ -2650,8 +3057,8 @@ public:
                     groups, block, native_.queue(), snapshot_.metadata,
                     snapshot_.admission,
                     state_.realtime_spatial_plan.leaf_capacity,
-                    local_query_sources, fluid.options.capacity,
-                    fluid.next_positions, fluid.count,
+                    local_query_sources, fluid.realtime_query_count,
+                    fluid.next_positions, fluid.realtime_count,
                     fluid.options.capacity, local_filtered_counts,
                     local_filtered_sources, candidates_per_query, constants,
                     scene.timestep,
@@ -2664,8 +3071,8 @@ public:
                         groups, block, native_.queue(), snapshot_.metadata,
                         snapshot_.admission,
                         state_.realtime_spatial_plan.leaf_capacity,
-                        local_query_sources, fluid.options.capacity,
-                        fluid.next_positions, fluid.count,
+                        local_query_sources, fluid.realtime_query_count,
+                        fluid.next_positions, fluid.realtime_count,
                         fluid.options.capacity, local_filtered_counts,
                         local_filtered_sources, candidates_per_query,
                         constants, scene.timestep,
@@ -2680,7 +3087,8 @@ public:
                     native_.apply_fluid_realtime_position_delta(
                         groups, block, native_.queue(), fluid.next_positions,
                         fluid.realtime_position_deltas,
-                        fluid.realtime_accumulated_corrections, fluid.count,
+                        fluid.realtime_accumulated_corrections,
+                        fluid.realtime_count,
                         fluid.options.capacity, scene.timestep,
                         simulation::fluid_realtime_profile_version, constants,
                         snapshot_.query_status);
@@ -2698,9 +3106,9 @@ public:
                         groups, block, native_.queue(), snapshot_.metadata,
                         snapshot_.admission,
                         state_.realtime_spatial_plan.leaf_capacity,
-                        local_query_sources, fluid.options.capacity,
+                        local_query_sources, fluid.realtime_query_count,
                         fluid.next_positions, fluid.next_velocities,
-                        fluid.count, fluid.options.capacity,
+                        fluid.realtime_count, fluid.options.capacity,
                         local_filtered_counts, local_filtered_sources,
                         candidates_per_query, constants, scene.timestep,
                         simulation::fluid_realtime_profile_version,
@@ -3444,7 +3852,7 @@ public:
             native_.commit_fluid_realtime(
                 groups, block, native_.queue(), fluid.next_positions,
                 fluid.previous, fluid.next_velocities,
-                fluid.realtime_velocity_deltas, fluid.count,
+                fluid.realtime_velocity_deltas, fluid.realtime_count,
                 fluid.options.capacity, constants, scene.timestep,
                 simulation::fluid_realtime_profile_version,
                 snapshot_.query_status);
@@ -3597,6 +4005,17 @@ public:
                 sizeof(*state_.rigid_contact_count), native_.queue());
             if (result != PM_SUCCESS) return result;
         }
+        for (auto &owner : state_.fluids) {
+            if (!owner || !owner->alive) continue;
+            result = native_.copy(owner->count, owner->realtime_count,
+                sizeof(*owner->count),
+                device::CopyDirection::device_to_device, native_.queue());
+            if (result != PM_SUCCESS) return result;
+            auto &commit_work = work(
+                simulation::RealtimeTelemetryPhase::commit);
+            commit_work.bytes_moved += sizeof(*owner->count);
+            ++commit_work.barriers;
+        }
         const auto spatial_result = state_.realtime_spatial.commit(epoch_);
         if (spatial_result != PM_SUCCESS) return spatial_result;
         const auto snapshot_result = state_.realtime_snapshots.commit();
@@ -3611,6 +4030,10 @@ public:
             if (!owner || !owner->alive) continue;
             std::swap(owner->positions, owner->next_positions);
             std::swap(owner->velocities, owner->next_velocities);
+            std::swap(owner->ids, owner->next_ids);
+            std::swap(owner->foam, owner->next_foam);
+            std::swap(owner->temperatures, owner->next_temperatures);
+            owner->next_id = owner->realtime_pending_next_id;
         }
         for (auto &owner : state_.cloths) {
             if (!owner || !owner->alive) continue;
@@ -3662,6 +4085,14 @@ public:
                 smoke.realtime_pending_emission_fraction;
             smoke.time = smoke.realtime_pending_time;
             smoke.index_dirty = true;
+        }
+        for (auto &owner : state_.fluid_smoke_couplings) {
+            if (!owner || !owner->alive ||
+                owner->realtime_phase_apply_count == 0U)
+                continue;
+            state_.boiled_particle_count +=
+                owner->realtime_phase_apply_count;
+            owner->realtime_pending_phase_count = 0U;
         }
         ++state_.frame_index;
         ++state_.revision;
@@ -3749,9 +4180,10 @@ private:
                 (pair.index.total_capacity + block - 1U) / block;
             if (sweep == 0U) {
                 native_.fluid_pair_cell_keys(pair_groups, block,
-                    native_.queue(), first.next_positions, first.count,
+                    native_.queue(), first.next_positions,
+                    first.realtime_count,
                     first.options.capacity, second.next_positions,
-                    second.count, second.options.capacity,
+                    second.realtime_count, second.options.capacity,
                     1.0F / first.options.support_radius,
                     pair.index.keys[0], pair.index.identities[0]);
                 auto result = native_.radix_sort_pairs_u64_u32(
@@ -3772,16 +4204,19 @@ private:
             constants.normal_damping *= response_step;
             native_.fluid_pair_pressure_contact(pair_groups, block,
                 native_.queue(), first.next_positions,
-                first.next_velocities, first.count, first.options.capacity,
+                first.next_velocities, first.realtime_count,
+                first.options.capacity,
                 first.realtime_velocity_deltas, second.next_positions,
-                second.next_velocities, second.count,
+                second.next_velocities, second.realtime_count,
                 second.options.capacity, second.realtime_velocity_deltas,
                 pair.index.keys[1], pair.index.identities[1],
                 pair.index.total_capacity, constants);
             native_.fluid_pair_viscosity(pair_groups, block, native_.queue(),
-                first.next_positions, first.next_velocities, first.count,
+                first.next_positions, first.next_velocities,
+                first.realtime_count,
                 first.options.capacity, first.realtime_velocity_deltas,
-                second.next_positions, second.next_velocities, second.count,
+                second.next_positions, second.next_velocities,
+                second.realtime_count,
                 second.options.capacity, second.realtime_velocity_deltas,
                 pair.index.keys[1], pair.index.identities[1],
                 pair.index.total_capacity, constants);
@@ -3842,7 +4277,7 @@ private:
                         : diameter * diameter * diameter);
                 native_.detect_fluid_moving_contacts(groups, block,
                     native_.queue(), fluid.next_positions, fluid.previous,
-                    fluid.count, fluid.options.particle_radius,
+                    fluid.realtime_count, fluid.options.particle_radius,
                     state_.parameters, state_.render_previous_states,
                     state_.states[output_state_], state_.meshes,
                     state_.fluid_body_bounds, state_.rigid_body_count,
@@ -3851,7 +4286,8 @@ private:
                     state_.fluid_body_contact_flags);
                 native_.resolve_fluid_moving_contacts(groups, block,
                     native_.queue(), fluid.next_positions,
-                    fluid.next_velocities, fluid.next_foam, fluid.count,
+                    fluid.next_velocities, fluid.next_foam,
+                    fluid.realtime_count,
                     fluid.options.particle_radius, particle_mass,
                     scene.timestep /
                         simulation::liquid_coupling_realtime_sweeps,
@@ -3865,7 +4301,8 @@ private:
                     state_.options.paint_rule_capacity);
                 native_.reduce_fluid_body_impulses(
                     state_.rigid_body_count, block, native_.queue(),
-                    fluid.body_impulses, fluid.count, state_.parameters,
+                    fluid.body_impulses, fluid.realtime_count,
+                    state_.parameters,
                     state_.states[output_state_],
                     state_.fluid_body_contact_flags,
                     state_.rigid_body_count);
@@ -3907,7 +4344,7 @@ private:
                     static_cast<float>(simulation::liquid_coupling_realtime_sweeps);
                 native_.apply_fluid_cloth_forces(fluid_groups, block,
                     native_.queue(), fluid.next_positions,
-                    fluid.next_velocities, fluid.count,
+                    fluid.next_velocities, fluid.realtime_count,
                     fluid.realtime_velocity_deltas, fluid.foam_source,
                     particle_mass, cloth.realtime_positions,
                     cloth.realtime_velocities, cloth.indices,
@@ -3936,7 +4373,7 @@ private:
                     : fluid.options.particle_radius + cloth.thickness;
                 native_.project_fluid_inside_cloth(fluid_groups, block,
                     native_.queue(), fluid.next_positions,
-                    fluid.next_velocities, fluid.count, contact,
+                    fluid.next_velocities, fluid.realtime_count, contact,
                     cloth.realtime_positions, cloth.realtime_velocities,
                     cloth.indices, cloth.index_count / 3U,
                     cloth.orientation);
@@ -3972,7 +4409,7 @@ private:
                 : fluid.options.particle_radius + rope.data.options.radius;
             native_.detect_fluid_rope_contacts(fluid_groups, block,
                 native_.queue(), fluid.next_positions,
-                fluid.next_velocities, fluid.count, particle_mass,
+                fluid.next_velocities, fluid.realtime_count, particle_mass,
                 rope.realtime_positions, rope.realtime_velocities,
                 rope.data.count, distance, coupling.options.friction,
                 coupling.contribution_nodes, coupling.contribution_impulses,
@@ -3982,7 +4419,7 @@ private:
                 rope.data.fluid_contact_forces, rope.data.count,
                 rope.data.options.mass, rope.data.options.maximum_speed,
                 rope.data.options.first.enabled,
-                rope.data.options.last.enabled, fluid.count,
+                rope.data.options.last.enabled, fluid.realtime_count,
                 coupling.contribution_nodes, coupling.contribution_impulses,
                 coupling.options.maximum_rope_acceleration,
                 scene.timestep /
@@ -4032,7 +4469,7 @@ private:
                 : fluid.options.particle_radius;
             native_.detect_fluid_soft_contacts(fluid_groups, block,
                 native_.queue(), fluid.next_positions, fluid.previous,
-                fluid.next_velocities, fluid.count,
+                fluid.next_velocities, fluid.realtime_count,
                 body.realtime_surface_positions, coupling.previous_surface,
                 body.surface_indices, body.surface_index_count,
                 body.surface_bindings, body.realtime_velocities,
@@ -4048,7 +4485,7 @@ private:
             native_.solve_fluid_soft_contacts(fluid_groups, block,
                 native_.queue(), fluid.next_positions,
                 fluid.next_velocities, fluid.realtime_velocity_deltas,
-                fluid.next_foam, fluid.count, coupling.contacts,
+                fluid.next_foam, fluid.realtime_count, coupling.contacts,
                 coupling.counts, body.inverse_masses,
                 body.realtime_velocities, body.realtime_maximum_speed,
                 1.0F / particle_mass, coupling.options.friction,
@@ -4102,8 +4539,13 @@ private:
             dispatch.heater_half_extents[1] =
                 coupling.options.heater.half_extents.y;
             dispatch.heater_temperature = coupling.options.heater_temperature;
-            dispatch.boiling_temperature =
-                std::numeric_limits<float>::max();
+            const bool discover_phase =
+                sweep + 1U ==
+                    simulation::liquid_coupling_realtime_sweeps &&
+                coupling.realtime_phase_discovery;
+            dispatch.boiling_temperature = discover_phase
+                ? coupling.options.boiling_temperature
+                : std::numeric_limits<float>::max();
             dispatch.heat_transfer_rate = coupling.options.heat_transfer_rate;
             dispatch.wind_drag = coupling.options.wind_drag;
             dispatch.steam_rise_speed = coupling.options.steam_rise_speed;
@@ -4112,7 +4554,8 @@ private:
             if (smoke.options.grid_resolution == 0U) {
                 native_.drag_fluid_with_smoke_particles(groups, block,
                     native_.queue(), fluid.next_positions,
-                    fluid.realtime_velocity_deltas, fluid.count, dispatch,
+                    fluid.realtime_velocity_deltas,
+                    fluid.realtime_count, dispatch,
                     smoke.realtime_positions, smoke.realtime_velocities,
                     smoke.keys[1], smoke.indices[1], dt);
             } else {
@@ -4122,7 +4565,8 @@ private:
                         smoke.grid.face_velocity[axis][1];
                 native_.drag_fluid_with_smoke_grid(groups, block,
                     native_.queue(), fluid.next_positions,
-                    fluid.realtime_velocity_deltas, fluid.count, dispatch,
+                    fluid.realtime_velocity_deltas,
+                    fluid.realtime_count, dispatch,
                     grid, dt);
             }
             auto result = native_.clear(coupling.converted, 0,
@@ -4130,14 +4574,19 @@ private:
             if (result != PM_SUCCESS) return result;
             const float gravity[3]{
                 options_.gravity.x, options_.gravity.y, options_.gravity.z};
+            dispatch.smoke.capacity = fluid.options.capacity;
             native_.exchange_fluid_with_smoke(groups, block, native_.queue(),
                 fluid.next_positions, fluid.realtime_velocity_deltas,
-                fluid.temperatures, fluid.count,
+                fluid.next_temperatures, fluid.realtime_count,
                 fluid.options.particle_radius, dispatch,
-                smoke.realtime_positions, smoke.realtime_velocities,
-                smoke.realtime_ages, smoke.realtime_thermal_lift,
-                smoke.realtime_number_densities, smoke.realtime_pressures,
-                smoke.realtime_vorticities, smoke.realtime_pending_next_slot,
+                coupling.realtime_phase_positions,
+                coupling.realtime_phase_velocities,
+                coupling.realtime_phase_ages,
+                coupling.realtime_phase_thermal_lift,
+                coupling.realtime_phase_densities,
+                coupling.realtime_phase_pressures,
+                coupling.realtime_phase_vorticities,
+                std::numeric_limits<std::uint32_t>::max(),
                 coupling.converted, fluid.keep, dt, gravity);
             result = native_.check_error();
             if (result != PM_SUCCESS) return result;

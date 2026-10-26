@@ -179,11 +179,16 @@ int main() {
     simulation_info.smokeCount = 0U;
     simulation_info.emitterCapacity = 1U;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
+          (features.particleEmitters
+               ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT));
+    if (simulation != nullptr) pmDestroySimulation(device, simulation);
+    simulation = nullptr;
     simulation_info.emitterCapacity = 0U;
     simulation_info.destroyerCapacity = 1U;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
+          PM_SUCCESS);
+    pmDestroySimulation(device, simulation);
+    simulation = nullptr;
     simulation_info.destroyerCapacity = 0U;
     const PmPaintFieldCapacity paint{1U, 1U, 1U};
     simulation_info.paintFieldCount = 1U;

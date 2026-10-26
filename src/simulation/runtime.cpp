@@ -53,6 +53,7 @@
 #include <memory>
 #include <new>
 #include <numeric>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -1081,6 +1082,7 @@ struct FluidStorage {
     Vec3 *realtime_accumulated_corrections{};
     Vec3 *realtime_position_deltas{};
     Vec3 *realtime_velocity_deltas{};
+    std::uint32_t *realtime_count{};
     std::uint32_t *realtime_time_advances{};
     std::uint8_t *sort_workspace{};
     std::size_t sort_workspace_size{};
@@ -1097,6 +1099,8 @@ struct FluidStorage {
     bool frame_spawned{};
     std::uint32_t realtime_leaf_offset{};
     std::uint32_t realtime_query_offset{};
+    std::uint32_t realtime_query_count{};
+    std::uint32_t realtime_pending_next_id{};
     simulation::FluidRealtimeTickContract realtime_contract{};
 
     ~FluidStorage() {
@@ -1132,6 +1136,7 @@ struct FluidStorage {
         release_managed(realtime_accumulated_corrections);
         release_managed(realtime_position_deltas);
         release_managed(realtime_velocity_deltas);
+        release_managed(realtime_count);
         release_managed(realtime_time_advances);
         release_managed(sort_workspace);
         release_managed(select_workspace);
@@ -1141,12 +1146,16 @@ struct FluidStorage {
 struct ParticleSourceData {
     Vec3 *points{};
     std::uint8_t *vacant{};
+    std::uint32_t *accepted{};
+    std::uint32_t *rejected{};
     std::uint32_t *capacity_misses{};
     std::uint32_t count{};
     float spacing{};
     ~ParticleSourceData() {
         release_managed(points);
         release_managed(vacant);
+        release_managed(accepted);
+        release_managed(rejected);
         release_managed(capacity_misses);
     }
 };
@@ -1155,6 +1164,9 @@ struct ParticleSourceSlot {
     ParticleSourceOptions options{};
     std::uint32_t generation{1U};
     std::unique_ptr<ParticleSourceData> data{};
+    std::uint32_t realtime_proposal_offset{};
+    std::uint32_t realtime_proposal_count{};
+    std::uint32_t realtime_first_stable_id{};
     bool alive{};
 };
 
@@ -1702,6 +1714,50 @@ struct SimulationRuntime::Impl {
         return success();
     }
 
+    [[nodiscard]] Status finalize_realtime_lifecycle() noexcept {
+        for (auto &source : particle_sources) {
+            if (!source.alive || !source.data ||
+                source.realtime_proposal_count == 0U)
+                continue;
+            std::uint32_t accepted{}, rejected{}, capacity_misses{};
+            auto status = read_device_u32(execution, source.data->accepted,
+                accepted, "realtime source acceptance readback failed");
+            if (!status) return status;
+            status = read_device_u32(execution, source.data->rejected,
+                rejected, "realtime source rejection readback failed");
+            if (!status) return status;
+            status = read_device_u32(execution,
+                source.data->capacity_misses, capacity_misses,
+                "realtime source capacity readback failed");
+            if (!status) return status;
+            emitted_particle_count += accepted;
+            spawn_capacity_miss_count +=
+                std::uint64_t{rejected} + capacity_misses;
+            if (source.options.fluid.index < fluids.size()) {
+                auto &fluid = fluids[source.options.fluid.index];
+                if (fluid && fluid->alive &&
+                    fluid->generation == source.options.fluid.generation)
+                    fluid->emitted_count += accepted;
+            }
+        }
+        for (auto &owner : fluid_smoke_couplings) {
+            if (!owner || !owner->alive ||
+                !owner->realtime_phase_discovery)
+                continue;
+            std::uint32_t converted{};
+            auto status = read_device_u32(execution, owner->converted,
+                converted, "realtime phase proposal readback failed");
+            if (!status) return status;
+            if (converted == 0U) continue;
+            owner->realtime_pending_phase_count = converted;
+            owner->realtime_phase_source_generation =
+                owner->options.fluid.generation;
+            owner->realtime_phase_destination_generation =
+                owner->options.smoke.generation;
+        }
+        return success();
+    }
+
     [[nodiscard]] Status validate_handle(RigidBodyId id,
                                          std::uint32_t &dense) const noexcept {
         if (id.index >= slots.size()) {
@@ -1883,12 +1939,13 @@ Status SimulationRuntime::coupling_memory_requirements(const simulation::Couplin
     simulation::StorageRequirements &output) noexcept {
     output = {};
     simulation::StoragePlanner fluid_pair, fluid_soft, rope_soft, fluid_rope,
-        soft_cloth, smoke;
+        soft_cloth, smoke, fluid_smoke;
     simulation::FluidPairNeighborIndexPlan fp;
     FluidSoftCouplingStorage fs;
     RopeSoftBodyCouplingStorage rs;
     FluidRopeCouplingStorage fr;
     SoftClothCouplingStorage sc;
+    FluidSmokeCouplingStorage fsm;
     const auto triangles = limits.soft_indices / 3;
     const auto tree_nodes = 2 * triangles; // Binary BVH has at most 2T-1 nodes.
     Status status;
@@ -1905,14 +1962,17 @@ Status SimulationRuntime::coupling_memory_requirements(const simulation::Couplin
         !(status = simulation::visit_rope_soft_tree_storage(rs, tree_nodes, triangles, rope_soft)) ||
         !(status = simulation::visit_rope_soft_data_storage(rs, limits.soft_nodes, limits.soft_vertices, rope_soft)) ||
         !(status = simulation::visit_fluid_rope_storage(fr, limits.fluid_particles, fluid_rope)) ||
-        !(status = simulation::visit_soft_cloth_storage(sc, limits.soft_nodes, limits.cloth_vertices, soft_cloth)))
+        !(status = simulation::visit_soft_cloth_storage(sc, limits.soft_nodes, limits.cloth_vertices, soft_cloth)) ||
+        !(status = simulation::visit_fluid_smoke_storage(
+            fsm, limits.fluid_particles, fluid_smoke)))
         return status;
     Vec3 *bounds = nullptr;
     std::uint32_t *converted = nullptr;
     if (!(status = smoke(bounds, 2, simulation::MemoryClass::persistent)) ||
         !(status = smoke(converted, 1, simulation::MemoryClass::persistent))) return status;
     for (const auto *plan : {&fluid_pair, &fluid_soft, &rope_soft,
-                             &fluid_rope, &soft_cloth, &smoke})
+                             &fluid_rope, &soft_cloth, &smoke,
+                             &fluid_smoke})
         output.persistent = std::max(output.persistent, plan->requirements.persistent);
     output.scratch = fluid_pair.requirements.scratch;
     return {};
