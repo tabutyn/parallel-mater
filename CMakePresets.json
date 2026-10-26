@@ -77,7 +77,8 @@
       "cacheVariables": {
         "BUILD_TESTING": "ON",
         "PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW": "ON",
-        "PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER": "ON"
+        "PARALLEL_MATER_BUILD_SLANG_CPU_DRIVER": "ON",
+        "PARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY": "ON"
       }
     },
     {

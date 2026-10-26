@@ -88,6 +88,7 @@ add_custom_target(refresh-macos-gallery-runtime ALL
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/GalleryBuildInfo.cmake")
 if(TARGET parallel-mater-driver-slang-metal)
+    set(PARALLEL_MATER_MACOS_GALLERY_BACKEND metal)
     parallel_mater_gallery_build_info(parallel-mater-gallery metal)
     add_dependencies(parallel-mater-gallery parallel-mater-driver-slang-metal)
     target_compile_definitions(parallel-mater-gallery-application PRIVATE PARALLEL_MATER_METAL_PREVIEW=1)
@@ -106,6 +107,7 @@ if(TARGET parallel-mater-driver-slang-metal)
             "$<TARGET_BUNDLE_CONTENT_DIR:parallel-mater-gallery>/Resources/drivers.d/slang-metal.json"
         VERBATIM)
 elseif(TARGET parallel-mater-driver-slang-cpu)
+    set(PARALLEL_MATER_MACOS_GALLERY_BACKEND slang-cpu)
     parallel_mater_gallery_build_info(parallel-mater-gallery slang-cpu)
     add_dependencies(refresh-macos-gallery-runtime parallel-mater-driver-slang-cpu)
     add_custom_command(TARGET refresh-macos-gallery-runtime POST_BUILD
@@ -142,6 +144,7 @@ add_custom_target(deploy-macos-gallery ${PARALLEL_MATER_MACOS_DEPLOY_KIND}
     COMMAND ${CMAKE_COMMAND}
         -DSOURCE_APP=$<TARGET_BUNDLE_DIR:parallel-mater-gallery>
         -DDESTINATION_APP=${PARALLEL_MATER_MACOS_GALLERY_DEPLOY_DIRECTORY}/ParallelMater\ Gallery.app
+        -DEXPECTED_BACKEND=${PARALLEL_MATER_MACOS_GALLERY_BACKEND}
         -DUPDATE_DOCK=ON
         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/DeployMacOSBundle.cmake
     DEPENDS refresh-macos-gallery-runtime

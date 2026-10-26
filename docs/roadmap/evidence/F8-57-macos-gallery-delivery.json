@@ -1,0 +1,53 @@
+{
+  "schema": "parallel-mater-f8-macos-gallery-delivery/v1",
+  "task": "F8-57",
+  "status": "passed",
+  "recorded_at": "2026-10-26",
+  "branch": "work/F8-57/Thomass-MacBook-Air",
+  "lease_token": "5477c425-968d-4260-99da-89632edf999b",
+  "implementation_revision": "8a180fdd2a856f65a09f26f7a2ed9eb8bdf0f7ff",
+  "machine": {
+    "name": "Thomass-MacBook-Air",
+    "gpu": "Apple M4",
+    "os": "macOS 26.5.2 (25F84)",
+    "cmake": "4.3.4",
+    "metal_compiler": "Apple metal 32023.883"
+  },
+  "portable_guards": {
+    "command": "python3 tests/gallery/deployment_tests.py",
+    "result": "PASS: 10/10 deployment tests, including preset opt-in and post-configure clean/dirty identity regeneration"
+  },
+  "focused_ctest": {
+    "command": "ctest --test-dir build-macos-metal-preview --output-on-failure -R 'parallel-mater-(macos-gallery-signature|gallery-deployment-tests)'",
+    "result": "PASS: 2/2 signature and deployment tests"
+  },
+  "standard_build": {
+    "configure": "cmake --preset macos-metal-preview",
+    "build": "cmake --build --preset macos-metal-preview",
+    "auto_deploy_cache": true,
+    "result": "PASS: default build ran deploy-macos-gallery without an explicit deploy target"
+  },
+  "installed_application": {
+    "path": "/Applications/ParallelMater Gallery.app",
+    "revision": "8a180fdd2a856f65a09f26f7a2ed9eb8bdf0f7ff",
+    "dirty": false,
+    "backend": "metal",
+    "execution_contract": "fixed-tick-60hz-v1",
+    "build_info_sha256": "8cfaa0b4ca834a22c4fdd5677fc8ca4cc1b5cd06471bf683d253954e8586c7b8",
+    "executable_sha256": "84fafba82a1f68fcbb0e1174dbb46ccf5571d6a6bbd3b037c57b9f3ba070d23e",
+    "driver_sha256": "d2fc74951b5ad83e7f19f3d9413b1437bfb4e22badc94a2d28aacd5804dd9ec1",
+    "signature": "PASS: codesign --verify --deep --strict",
+    "dock": "PASS: dockutil found the exact /Applications path at persistent-apps slot 16"
+  },
+  "native_metal_smoke": {
+    "command": "'/Applications/ParallelMater Gallery.app/Contents/MacOS/ParallelMater Gallery' --constraint-point --backend metal --frames 6 --interactive-smoke <output.ppm>",
+    "renderer": "metal-direct-fenced",
+    "frames": 6,
+    "output_sha256": "5323039e4288ec4424e4ce2f1cb180d30b332df01f18bd6077e120d3d60cf7ae",
+    "result": "PASS"
+  },
+  "limits": [
+    "This task proves deterministic Mac build-to-Dock delivery, not physics quality or sustained performance.",
+    "CI and packaging remain intentionally non-installing when PARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY is explicitly OFF."
+  ]
+}
