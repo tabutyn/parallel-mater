@@ -280,7 +280,7 @@ All 20 domain cases also pass at those step counts with Metal API and shader
 validation enabled, alongside the five public native API fixtures and renderer
 regressions (7/7 selected CTest tests, including the scene matrix).
 
-Build, test and explicitly deploy the preview on macOS:
+Build, automatically deploy, and test the preview on macOS:
 
 ```sh
 cmake -S . -B build-macos-metal-preview \
@@ -290,18 +290,20 @@ cmake -S . -B build-macos-metal-preview \
   -DPARALLEL_MATER_BUILD_GALLERY=ON \
   -DPARALLEL_MATER_BUILD_SLANG_CPU_DRIVER=ON \
   -DPARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW=ON \
-  -DPARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY=OFF
+  -DPARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY=ON
 cmake --build build-macos-metal-preview --parallel 6
 ctest --test-dir build-macos-metal-preview --output-on-failure
-cmake --build build-macos-metal-preview --target deploy-macos-gallery
 ```
 
 The CPU-driver option supplies test comparisons, not an installed fallback.
 Normal full builds refresh bundled runtime libraries even when only the driver
-changes; the deploy target also refreshes them before atomically replacing and
-signing `/Applications/ParallelMater Gallery.app`. Quit an already-running
-Gallery before reopening it to load the new driver. Disable auto-deploy in
-older CPU build directories so they cannot silently replace the preview.
+changes. The standard `macos-metal-preview` preset enables auto-deploy: each
+successful build refreshes the runtime, atomically replaces and verifies
+`/Applications/ParallelMater Gallery.app`, and repairs the Dock item before the
+build succeeds. Build identity is regenerated on every build rather than only
+when CMake configures. Set `PARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY=OFF` only
+for CI, packaging, or an intentionally non-installing build. Keep auto-deploy
+disabled in older CPU build directories so they cannot replace the preview.
 
 ## Shared Gallery delivery and GPU graphics (2026-10-16)
 

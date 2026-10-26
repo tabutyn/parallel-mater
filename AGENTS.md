@@ -23,3 +23,19 @@ Task cards in `docs/roadmap/tasks/` are canonical; the roadmap index is generate
 
 The initial lease-workflow bootstrap has no pre-existing task to claim. Once
 merged, all roadmap implementation follows the lease protocol above.
+
+## macOS Gallery delivery
+
+- The documented `macos-metal-preview` preset is continuously deploying. A
+  successful build must atomically replace `/Applications/ParallelMater
+  Gallery.app`, verify the installed signature and build identity, and make the
+  canonical Dock item point to that path.
+- After committed Gallery, driver, shader, or shared-runtime changes pass on a
+  Mac, run `cmake --preset macos-metal-preview` and
+  `cmake --build --preset macos-metal-preview`. Do not report the Dock app as
+  current based only on a build-tree bundle.
+- Confirm the installed `Contents/Resources/build-info.json` revision and
+  backend match the commit and driver being delivered. Build identity is a
+  build-time artifact; configure-time metadata is not sufficient evidence.
+- CI, packaging, and intentionally non-installing builds must explicitly set
+  `PARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY=OFF`.

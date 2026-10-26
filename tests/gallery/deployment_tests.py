@@ -3,6 +3,7 @@
 import importlib.util
 import json
 import pathlib
+import subprocess
 import tempfile
 import types
 import unittest
@@ -11,9 +12,57 @@ from unittest.mock import patch
 spec = importlib.util.spec_from_file_location("deploy", pathlib.Path(__file__).resolve().parents[2] / "scripts/Deploy-Gallery.py")
 deploy = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(deploy)
+REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 class DeploymentTests(unittest.TestCase):
+    def test_macos_preview_deploys_but_shared_preview_base_does_not(self):
+        presets = json.loads((REPOSITORY_ROOT / "CMakePresets.json").read_text())
+        configure = {preset["name"]: preset for preset in presets["configurePresets"]}
+        self.assertEqual(configure["gallery-preview-base"]["cacheVariables"]
+                         ["PARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY"], "OFF")
+        self.assertEqual(configure["macos-metal-preview"]["cacheVariables"]
+                         ["PARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY"], "ON")
+
+    def test_gallery_build_identity_is_regenerated_from_worktree_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            source = root / "source"
+            source.mkdir()
+            logo = source / "logo.png"
+            tracked = source / "tracked.txt"
+            logo.write_bytes(b"logo")
+            tracked.write_text("clean\n")
+
+            def run(*arguments, cwd=source):
+                return subprocess.run(arguments, cwd=cwd, check=True,
+                                      capture_output=True, text=True)
+
+            run("git", "init", "--quiet")
+            run("git", "add", "logo.png", "tracked.txt")
+            run("git", "-c", "user.name=Parallel Mater Tests",
+                "-c", "user.email=tests@parallel-mater.invalid",
+                "commit", "--quiet", "-m", "fixture")
+            revision = run("git", "rev-parse", "HEAD").stdout.strip()
+            output = root / "build-info.json"
+            command = (
+                "cmake", f"-DSOURCE_DIR={source}", f"-DOUTPUT={output}",
+                "-DBACKEND=metal", f"-DLOGO_PATH={logo}", "-P",
+                str(REPOSITORY_ROOT / "cmake/GenerateGalleryBuildInfo.cmake"))
+
+            run(*command, cwd=root)
+            clean = json.loads(output.read_text())
+            self.assertEqual(clean["revision"], revision)
+            self.assertFalse(clean["dirty"])
+            self.assertEqual(clean["backend"], "metal")
+            self.assertEqual(clean["execution_contract"], deploy.EXECUTION_CONTRACT)
+
+            tracked.write_text("dirty\n")
+            run(*command, cwd=root)
+            dirty = json.loads(output.read_text())
+            self.assertEqual(dirty["revision"], revision)
+            self.assertTrue(dirty["dirty"])
+
     def physics_report(self):
         artifacts = [
             {"path": f"physics-qualification/cases/case-{index}.json",
