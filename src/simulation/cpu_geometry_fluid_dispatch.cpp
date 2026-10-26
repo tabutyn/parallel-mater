@@ -80,24 +80,41 @@ void detect_fluid_moving_contacts(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue, const void *positions,
     const void *previous, const std::uint32_t *count, float radius,
     const void *body_parameters, const void *previous_states,
-    const void *current_states, const void *meshes, const void *bounds,
-    std::uint32_t body_count, const void *masks,
-    const void *global_masks, std::uint32_t words,
+    const void *current_states, const void *meshes, const void *body_ids,
+    std::uint32_t body_count, std::uint32_t body_topology_revision,
+    const void *spatial_metadata, const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
     bool first_iteration, void *contacts, std::uint32_t *contact_counts) noexcept {
-    EntryPointParams_3 args{
-        const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
-        const_cast<Vec3_0 *>(as<Vec3_0>(previous)),
-        const_cast<std::uint32_t *>(count), radius,
-        const_cast<BodyParameters_0 *>(as<BodyParameters_0>(body_parameters)),
-        const_cast<RigidBodyState_0 *>(as<RigidBodyState_0>(previous_states)),
-        const_cast<RigidBodyState_0 *>(as<RigidBodyState_0>(current_states)),
-        const_cast<TriangleMeshResource_0 *>(
-            as<TriangleMeshResource_0>(meshes)),
-        const_cast<WorldAabb_0 *>(as<WorldAabb_0>(bounds)), body_count,
-        const_cast<std::uint64_t *>(as<std::uint64_t>(masks)),
-        const_cast<std::uint64_t *>(as<std::uint64_t>(global_masks)),
-        words, first_iteration,
-        as<FluidMovingContact_0>(contacts), contact_counts};
+    EntryPointParams_3 args{};
+    args.positions_1 = const_cast<Vec3_0 *>(as<Vec3_0>(positions));
+    args.previous_2 = const_cast<Vec3_0 *>(as<Vec3_0>(previous));
+    args.count_2 = const_cast<std::uint32_t *>(count);
+    args.radius_1 = radius;
+    args.parameters_3 =
+        const_cast<BodyParameters_0 *>(as<BodyParameters_0>(body_parameters));
+    args.previous_states_0 =
+        const_cast<RigidBodyState_0 *>(as<RigidBodyState_0>(previous_states));
+    args.states_1 =
+        const_cast<RigidBodyState_0 *>(as<RigidBodyState_0>(current_states));
+    args.meshes_2 = const_cast<TriangleMeshResource_0 *>(
+        as<TriangleMeshResource_0>(meshes));
+    args.body_ids_1 = const_cast<RigidBodyId_0 *>(as<RigidBodyId_0>(body_ids));
+    args.body_count_1 = body_count;
+    args.body_topology_revision_0 = body_topology_revision;
+    args.spatial_metadata_0 = const_cast<CouplingSpatialLeafMetadata_0 *>(
+        as<CouplingSpatialLeafMetadata_0>(spatial_metadata));
+    args.spatial_admission_0 = const_cast<std::uint8_t *>(spatial_admission);
+    args.spatial_leaf_capacity_0 = spatial_leaf_capacity;
+    args.candidate_counts_0 = const_cast<std::uint32_t *>(candidate_counts);
+    args.candidate_sources_0 = const_cast<std::uint32_t *>(candidate_sources);
+    args.candidates_per_query_0 = candidates_per_query;
+    args.spatial_status_0 = spatial_status;
+    args.first_iteration_0 = first_iteration;
+    args.contacts_0 = as<FluidMovingContact_0>(contacts);
+    args.contact_counts_0 = contact_counts;
     device::dispatch_cpu(grid, block, fluid_detect_moving_contacts_Thread, &args);
 }
 

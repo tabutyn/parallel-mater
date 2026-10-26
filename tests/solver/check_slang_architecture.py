@@ -462,6 +462,24 @@ if "std::uint32_t mesh_index, std::uint32_t body_index" not in smoke_grid_dispat
         "does not expose the translated body_index mesh bound"
     )
 
+# The optional Slang/CPU liquid path includes this handwritten adapter. Keep it
+# synchronized with the generated shared-BVH entry-point ABI used by Android.
+cpu_geometry_fluid = (
+    ROOT / "src/simulation/cpu_geometry_fluid_dispatch.cpp"
+).read_text(encoding="utf-8")
+for required in (
+    "const void *current_states, const void *meshes, const void *body_ids",
+    "std::uint32_t body_count, std::uint32_t body_topology_revision",
+    "args.spatial_metadata_0",
+    "args.candidate_sources_0",
+    "args.spatial_status_0",
+):
+    if required not in cpu_geometry_fluid:
+        failures.append(
+            "src/simulation/cpu_geometry_fluid_dispatch.cpp: fluid moving "
+            f"contact wrapper missing shared-BVH ABI contract {required}"
+        )
+
 for retired_production_call in (
     "calculate_fluid_body_bounds(",
     "index_fluid_body_cells(",
