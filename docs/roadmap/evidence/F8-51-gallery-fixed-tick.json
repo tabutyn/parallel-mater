@@ -6,7 +6,7 @@
   "branch": "work/F8-51/thomas-laptop-pixel7",
   "lease_token": "dbfca484-3f4c-4ee8-a3e4-7dc7d49af17a",
   "base_revision": "9cd97200fd9d0bfda93306571744fc1e0cdc0680",
-  "implementation_revision": "1eef2cf53da4448ebeb63c1bfeef838adff77c32",
+  "implementation_revision": "4f833f0011e44ce864ff122f5de2de6d0839af9c",
   "implementation": {
     "single_gallery_path": "Desktop, Android and iPad shells now create scenes through the shared GallerySession fixed-tick path. Gallery workload/profile selection and the legacy/F8 clock switch were removed; the runtime reports fixed-tick-60hz-v1.",
     "fixed_tick_policy": "Interactive callbacks submit at most one 1/60-second, one-substep tick. Excess elapsed work and stalls are discarded instead of caught up; 30 Hz is reported as half-speed, and 90/120/144 Hz renders interpolate between ticks.",
@@ -56,9 +56,9 @@
     },
     "android_build": {
       "command": "ANDROID_HOME=/home/thomas/Android/Sdk ./scripts/Build-AndroidGallery.sh -PphysicsBackend=vulkan -Pqualification=true",
-      "result": "PASS: arm64-v8a debug qualification APK built from clean revision 1eef2cf53da4448ebeb63c1bfeef838adff77c32",
-      "apk_bytes": 8547252,
-      "apk_sha256": "0bb2d8f4fd85763891571f30dfa9dc60017ede6cfd1c5fd4e1c63625fb2a0b81",
+      "result": "PASS: arm64-v8a debug qualification APK built from clean revision 4f833f0011e44ce864ff122f5de2de6d0839af9c",
+      "apk_bytes": 8547217,
+      "apk_sha256": "5f242b9e148894bc7f00a7e4a73ee8531f079e8b3b52fc9a771b14ffdda4931b",
       "toolchain": {
         "android_gradle_plugin": "9.0.1",
         "gradle": "9.1.0",
@@ -69,10 +69,10 @@
       }
     },
     "physical_android_gallery": {
-      "command": "python3 scripts/Test-AndroidGallery.py --serial 2B241FDH20060P --adb /home/thomas/Android/Sdk/platform-tools/adb --frames 3 --timeout 1800 --output out/android/F8-51-gallery-pixel7-1eef2cf",
+      "command": "python3 scripts/Test-AndroidGallery.py --serial 2B241FDH20060P --adb /home/thomas/Android/Sdk/platform-tools/adb --frames 3 --timeout 1800 --output out/android/F8-51-gallery-pixel7-4f833f0",
       "device": "Google Pixel 7 (panther), Mali-G710, Android 17/API 37, security patch 2026-10-05",
       "result": "PASS: 28 catalog scenes (26 supported), direct Vulkan presentation, pause/reset, background/foreground, resize, rotation and teardown",
-      "source_revision": "1eef2cf53da4448ebeb63c1bfeef838adff77c32",
+      "source_revision": "4f833f0011e44ce864ff122f5de2de6d0839af9c",
       "backend": "vulkan",
       "execution_contract": "fixed-tick-60hz-v1",
       "supported_scenes_passed": 26,
@@ -80,10 +80,10 @@
         "cloth-tear: fixed-tick cloth fracture is not implemented",
         "soft-body-cloth: fixed-tick cloth fracture is not implemented"
       ],
-      "qualification_report_sha256": "9507696e6a14fd2e4e2fcb0087d213910ec2077cf7cf9bd4c310fe4a179d2724",
-      "lifecycle_report_sha256": "c80dd8109074663e9748a5aee63771f1dcdf5211761e25fac32e14cdc7778ca2",
-      "surface_lifecycle_report_sha256": "f4a0b80d759402b1de5f8c26da455211e1fce7079eecf25c216ac7f4493860be",
-      "device_log_sha256": "3368e88689315f5858920c438a2b42c2f2f1d5e66f52448cef2cfe68212d4ff4"
+      "qualification_report_sha256": "70a48a25a00421d5c06e3de2c296f46931e1734c231e08997351c3ec6e0e4f73",
+      "lifecycle_report_sha256": "63344e260dd4a1939f5bfc9522921db320198cfce679868ffa9873033ab6c9e6",
+      "surface_lifecycle_report_sha256": "3db058ef194386706acde86f914b0bc9b6378b0e4a69e6c3819e08e98dc50cbd",
+      "device_log_sha256": "5086a8341f819bf370c2cc0d14160c6f219b9b4f16fcd73d5571277574f93ede"
     }
   },
   "limits": [
