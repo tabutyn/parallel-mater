@@ -43,6 +43,8 @@ def main():
     parser.add_argument("--conformance-timeout", type=int, default=3600)
     parser.add_argument("--native-only", action="store_true",
                         help="Run required native adapter tests and capture provenance")
+    parser.add_argument("--realtime-smoke-couplings-only", action="store_true",
+                        help="Run the realtime test's focused production smoke path")
     parser.add_argument("--prepare-only", action="store_true",
                         help="Stage and verify the device payload without using adb")
     args = parser.parse_args()
@@ -161,8 +163,10 @@ def main():
         return record, stdout
 
     for name in tests:
-        arguments = ("--production",) \
-            if name == "pm-android-realtime-runtime-tests" else ()
+        arguments = ()
+        if name == "pm-android-realtime-runtime-tests":
+            arguments = ("--production-smoke-couplings",) \
+                if args.realtime_smoke_couplings_only else ("--production",)
         run_device(name, arguments, required=True)
 
     if args.native_only:

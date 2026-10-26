@@ -53,6 +53,16 @@ class DxilBindingGeneratorTest(unittest.TestCase):
                 'Vec3_0{gravity[0], gravity[1], gravity[2]}'),
             'Vec3{gravity[0], gravity[1], gravity[2]}')
 
+    def test_cuda_mutable_pointer_wrapper_is_removed(self):
+        self.assertEqual(
+            generate_dxil_dispatch.unwrap(
+                'mutable_pointer(as<Vec3_0>(first.previous_positions))'),
+            'first.previous_positions')
+        self.assertEqual(
+            generate_dxil_dispatch.unwrap(
+                'mutable_pointer(constraints.first_endpoints)'),
+            'constraints.first_endpoints')
+
     def test_embedded_library_emits_reflected_symbolic_layout(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

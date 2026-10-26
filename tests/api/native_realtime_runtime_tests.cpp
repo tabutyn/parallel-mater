@@ -16,8 +16,11 @@
 } } while (false)
 
 int main(int argc, char **argv) {
+    const bool smoke_couplings_only = argc == 2 &&
+        std::strcmp(argv[1], "--production-smoke-couplings") == 0;
     const bool production = argc == 2 &&
-        std::strcmp(argv[1], "--production") == 0;
+        (std::strcmp(argv[1], "--production") == 0 ||
+         smoke_couplings_only);
     CHECK(argc == 1 || production);
     constexpr std::uint32_t body_count = 8U;
     constexpr std::uint32_t constraint_count = 8U;
@@ -146,6 +149,7 @@ int main(int argc, char **argv) {
     mixed_info.pSoftBodyCapacities = &soft_capacity;
     mixed_info.smokeCount = device_info.enabledFeatures.smoke;
     mixed_info.pSmokeCapacities = &smoke_capacity;
+    mixed_info.couplingCapacity = 13U;
     PmSimulation mixed_simulation{};
     CHECK(pmCreateSimulation(device, &mixed_info, &mixed_simulation) ==
           PM_SUCCESS);
@@ -259,6 +263,7 @@ int main(int argc, char **argv) {
     submit.pCommandBuffers = &commands;
 
     std::uint32_t execution_index{};
+    const char *execution_label = "setup";
     const auto execute = [&](PmResult expected) {
         ++execution_index;
         CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
@@ -266,8 +271,10 @@ int main(int argc, char **argv) {
         const auto waited = pmWaitForFences(
             device, 1U, &fence, PM_TRUE, PM_TIMEOUT_INFINITE);
         if (waited != expected)
-            std::fprintf(stderr, "execution=%u waited=%d expected=%d\n",
-                         execution_index, int(waited), int(expected));
+            std::fprintf(stderr,
+                "execution=%u label=%s waited=%d expected=%d\n",
+                execution_index, execution_label, int(waited),
+                int(expected));
         CHECK(waited == expected);
         CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
         CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
@@ -777,23 +784,25 @@ int main(int argc, char **argv) {
         const auto *rope_nodes = reinterpret_cast<const PmRopeNodeState *>(
             rope_header + 1U);
         CHECK(rope_header->activeCount == 6U);
-        CHECK(rope_nodes[0].position.x == centerline[0].x);
-        CHECK(rope_nodes[0].position.y == centerline[0].y);
-        CHECK(rope_nodes[0].position.z == centerline[0].z);
-        CHECK(rope_nodes[0].velocity.x == 0.0F);
-        CHECK(rope_nodes[0].velocity.y == 0.0F);
-        CHECK(rope_nodes[0].velocity.z == 0.0F);
-        for (std::uint32_t node = 1U; node < 6U; ++node) {
-            CHECK(std::isfinite(rope_nodes[node].position.x));
-            CHECK(std::isfinite(rope_nodes[node].position.y));
-            CHECK(std::isfinite(rope_nodes[node].velocity.y));
-            const auto &first_node = rope_nodes[node - 1U].position;
-            const auto &second_node = rope_nodes[node].position;
-            const float x = first_node.x - second_node.x;
-            const float y = first_node.y - second_node.y;
-            const float z = first_node.z - second_node.z;
-            CHECK(std::abs(std::sqrt(x * x + y * y + z * z) - 0.1F) <
-                  0.03F);
+        if (!smoke_couplings_only) {
+            CHECK(rope_nodes[0].position.x == centerline[0].x);
+            CHECK(rope_nodes[0].position.y == centerline[0].y);
+            CHECK(rope_nodes[0].position.z == centerline[0].z);
+            CHECK(rope_nodes[0].velocity.x == 0.0F);
+            CHECK(rope_nodes[0].velocity.y == 0.0F);
+            CHECK(rope_nodes[0].velocity.z == 0.0F);
+            for (std::uint32_t node = 1U; node < 6U; ++node) {
+                CHECK(std::isfinite(rope_nodes[node].position.x));
+                CHECK(std::isfinite(rope_nodes[node].position.y));
+                CHECK(std::isfinite(rope_nodes[node].velocity.y));
+                const auto &first_node = rope_nodes[node - 1U].position;
+                const auto &second_node = rope_nodes[node].position;
+                const float x = first_node.x - second_node.x;
+                const float y = first_node.y - second_node.y;
+                const float z = first_node.z - second_node.z;
+                CHECK(std::abs(
+                    std::sqrt(x * x + y * y + z * z) - 0.1F) < 0.03F);
+            }
         }
 
         if (!production) {
@@ -871,7 +880,7 @@ int main(int argc, char **argv) {
         const PmClothInfo cloth{PM_TRUE, 0U, 3U, cloth_vertices, 3U,
             cloth_indices, cloth_inverse_masses};
 
-        const PmFloat3 soft_nodes_input[5]{{0.2F, 1.15F, 0.0F},
+        const PmFloat3 soft_nodes_input[5]{{0.2F, 1.2F, 0.0F},
             {0.15F, 1.0F, 0.0F}, {0.25F, 1.0F, 0.0F},
             {0.2F, 1.1F, 0.05F}, {0.2F, 1.1F, -0.05F}};
         const float soft_inverse_masses[5]{0.0F, 1.0F, 1.0F, 1.0F, 1.0F};
@@ -934,26 +943,43 @@ int main(int argc, char **argv) {
         smoke.gridMinimum = {-1.0F, 0.0F, -1.0F};
         smoke.gridEdgeLength = 2.0F;
 
+        execution_label = "reset mixed smoke setup";
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
         CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
-        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
-        CHECK(pmCmdWriteRigidBodies(
-            commands, mixed_simulation, 0U, 1U, &floor) == PM_SUCCESS);
-        CHECK(pmCmdWriteCloths(
-            commands, mixed_simulation, 0U, 1U, &cloth) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        const auto begin_smoke_setup_write = [&](const char *label) {
+            execution_label = label;
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        };
+        begin_smoke_setup_write("write mixed soft body");
         CHECK(pmCmdWriteSoftBodies(
             commands, mixed_simulation, 0U, 1U, &soft_body) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        begin_smoke_setup_write("write mixed cloth");
+        CHECK(pmCmdWriteCloths(
+            commands, mixed_simulation, 0U, 1U, &cloth) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        begin_smoke_setup_write("write mixed rope");
         CHECK(pmCmdWriteRopes(
             commands, mixed_simulation, 0U, 1U, &rope) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        begin_smoke_setup_write("write mixed rigid");
+        CHECK(pmCmdWriteRigidBodies(
+            commands, mixed_simulation, 0U, 1U, &floor) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        begin_smoke_setup_write("write mixed liquids");
         CHECK(pmCmdSetFluidParticles(commands, mixed_simulation, 0U,
                                      &first_liquid) == PM_SUCCESS);
         CHECK(pmCmdSetFluidParticles(commands, mixed_simulation, 1U,
                                      &second_liquid) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        begin_smoke_setup_write("write mixed smoke");
         CHECK(pmCmdWriteSmoke(
             commands, mixed_simulation, 0U, 1U, &smoke) == PM_SUCCESS);
         execute(PM_SUCCESS);
 
-        std::array<PmCouplingStateInfo, 9> couplings{};
+        std::array<PmCouplingStateInfo, 13> couplings{};
         auto &rope_soft = couplings[0];
         rope_soft.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
         rope_soft.type = PM_COUPLING_ROPE_SOFT_BODY;
@@ -1051,13 +1077,59 @@ int main(int argc, char **argv) {
         liquid_smoke.parameters.thermal.heatTransferRate = 0.2F;
         liquid_smoke.parameters.thermal.windDrag = 0.1F;
         liquid_smoke.parameters.thermal.steamRiseSpeed = 1.0F;
+        auto &smoke_rigid = couplings[9];
+        smoke_rigid.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        smoke_rigid.type = PM_COUPLING_SMOKE_RIGID;
+        smoke_rigid.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+            PM_INTERACTION_MODE_DRAG_BIT;
+        smoke_rigid.materialProfile =
+            PM_INTERACTION_MATERIAL_SMOKE_PARTICLE;
+        smoke_rigid.parameters.smoke.airDensity = 1.5F;
+        smoke_rigid.parameters.smoke.dragCoefficient = 2.0F;
+        smoke_rigid.parameters.smoke.contactDistance = 0.04F;
+        smoke_rigid.parameters.smoke.tracerContact = PM_TRUE;
+        auto &smoke_cloth = couplings[10];
+        smoke_cloth.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        smoke_cloth.type = PM_COUPLING_SMOKE_CLOTH;
+        smoke_cloth.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+            PM_INTERACTION_MODE_DRAG_BIT;
+        smoke_cloth.materialProfile =
+            PM_INTERACTION_MATERIAL_SMOKE_PARTICLE;
+        smoke_cloth.parameters.smoke.windDrag = 1.0F;
+        smoke_cloth.parameters.smoke.maximumWindAcceleration = 10.0F;
+        smoke_cloth.parameters.smoke.contactDistance = 0.04F;
+        auto &smoke_rope = couplings[11];
+        smoke_rope.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        smoke_rope.type = PM_COUPLING_SMOKE_ROPE;
+        smoke_rope.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+            PM_INTERACTION_MODE_DRAG_BIT;
+        smoke_rope.materialProfile =
+            PM_INTERACTION_MATERIAL_SMOKE_PARTICLE;
+        smoke_rope.parameters.smoke.windDrag = 1.0F;
+        smoke_rope.parameters.smoke.maximumWindAcceleration = 10.0F;
+        smoke_rope.parameters.smoke.contactDistance = 0.04F;
+        auto &smoke_soft = couplings[12];
+        smoke_soft.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        smoke_soft.type = PM_COUPLING_SMOKE_SOFT_BODY;
+        smoke_soft.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
+            PM_INTERACTION_MODE_DRAG_BIT;
+        smoke_soft.materialProfile =
+            PM_INTERACTION_MATERIAL_SMOKE_PARTICLE;
+        smoke_soft.parameters.smoke.windDrag = 1.0F;
+        smoke_soft.parameters.smoke.maximumWindAcceleration = 10.0F;
+        smoke_soft.parameters.smoke.contactDistance = 0.04F;
 
+        execution_label = "install particle smoke couplings";
+        const std::uint32_t installed_coupling_count = smoke_couplings_only
+            ? 4U : static_cast<std::uint32_t>(couplings.size());
+        const PmCouplingStateInfo *installed_couplings = smoke_couplings_only
+            ? couplings.data() + 9U : couplings.data();
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
         CHECK(pmCmdSetCouplings2(commands, mixed_simulation,
-            static_cast<std::uint32_t>(couplings.size()), couplings.data()) ==
-            PM_SUCCESS);
+            installed_coupling_count, installed_couplings) == PM_SUCCESS);
         execute(PM_SUCCESS);
 
+        execution_label = "particle smoke coupling tick";
         const PmBufferRange cloth_range{cloth_output, 0U, 1024U};
         const PmBufferRange soft_range{soft_output, 0U, 1024U};
         const PmBufferRange rope_range{rope_output, 0U, 1024U};
@@ -1089,7 +1161,8 @@ int main(int argc, char **argv) {
             sizeof coupling_statistics, &coupling_statistics,
             sizeof coupling_statistics, PM_QUERY_RESULT_WAIT_BIT) ==
             PM_SUCCESS);
-        CHECK(coupling_statistics.couplingEdgeCount == 20U);
+        CHECK(coupling_statistics.couplingEdgeCount ==
+            (smoke_couplings_only ? 15U : 28U));
         CHECK(coupling_statistics.couplingSweeps == 12U);
         CHECK(coupling_statistics.timeAdvances == 1U);
         CHECK(coupling_statistics.total.spatialIndexBuilds == 1U);
@@ -1120,8 +1193,12 @@ int main(int argc, char **argv) {
             static_cast<const PmDomainOutputHeader *>(fluid_output_map);
         const auto *coupled_smoke_header =
             static_cast<const PmDomainOutputHeader *>(smoke_output_map);
+        const auto *coupled_smoke =
+            reinterpret_cast<const PmSmokeParticleState *>(
+                coupled_smoke_header + 1U);
         CHECK(coupled_fluid_header->activeCount == 4U);
         CHECK(coupled_smoke_header->activeCount != 0U);
+        CHECK(std::isfinite(coupled_smoke[0].position.x));
 
         if (!production) {
             std::array<std::byte, 1024U> cloth_before_failure{};
@@ -1173,12 +1250,57 @@ int main(int argc, char **argv) {
                               smoke_before_failure.size()) == 0);
         }
 
+        execution_label = "clear particle smoke couplings";
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdSetCouplings2(
+            commands, mixed_simulation, 0U, nullptr) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        execution_label = "replace smoke with grid";
+        smoke.materialIndex = 1U;
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteSmoke(
+            commands, mixed_simulation, 0U, 1U, &smoke) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        execution_label = "install grid smoke couplings";
+        std::array<PmCouplingStateInfo, 4> grid_smoke_couplings{
+            smoke_rigid, smoke_cloth, smoke_rope, smoke_soft};
+        for (auto &coupling : grid_smoke_couplings)
+            coupling.materialProfile = PM_INTERACTION_MATERIAL_SMOKE_GRID;
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdSetCouplings2(commands, mixed_simulation,
+            static_cast<std::uint32_t>(grid_smoke_couplings.size()),
+            grid_smoke_couplings.data()) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        execution_label = "grid smoke coupling tick";
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
+        CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdStepSimulation(
+            commands, mixed_simulation, &step) == PM_SUCCESS);
+        CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        PmRealtimeStepStatistics grid_coupling_statistics{};
+        CHECK(pmGetQueryPoolResults(device, query, 0U, 1U,
+            sizeof grid_coupling_statistics, &grid_coupling_statistics,
+            sizeof grid_coupling_statistics, PM_QUERY_RESULT_WAIT_BIT) ==
+            PM_SUCCESS);
+        CHECK(grid_coupling_statistics.couplingEdgeCount ==
+            (smoke_couplings_only ? 15U : 11U));
+        CHECK(grid_coupling_statistics.couplingSweeps ==
+            (smoke_couplings_only ? 12U : 8U));
+        CHECK(grid_coupling_statistics.timeAdvances == 1U);
+        CHECK(grid_coupling_statistics.total.spatialIndexBuilds == 1U);
+        CHECK(grid_coupling_statistics.total.spatialIndexPublications == 1U);
+        CHECK(grid_coupling_statistics.total.intraTickHostReadbacks == 0U);
+
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
         CHECK(pmCmdSetCouplings2(
             commands, mixed_simulation, 0U, nullptr) == PM_SUCCESS);
         execute(PM_SUCCESS);
     }
-    if (mixed_info.smokeCount != 0U) {
+    if (!smoke_couplings_only && mixed_info.smokeCount != 0U) {
         PmSmokeInfo smoke{};
         smoke.active = PM_TRUE;
         smoke.particleCapacity = smoke_capacity.particleCapacity;
@@ -1304,6 +1426,7 @@ int main(int argc, char **argv) {
     }
     pmDestroySimulation(device, mixed_simulation);
 
+    if (!smoke_couplings_only) {
     std::array<PmRigidBodyInfo, body_count> bodies{};
     std::array<PmRigidConstraintInfo, constraint_count> constraints{};
     for (std::uint32_t index = 0U; index < body_count; ++index) {
@@ -1462,6 +1585,7 @@ int main(int argc, char **argv) {
     for (std::uint32_t index = 0U; index < body_count; ++index)
         total_x_velocity += states[index].linearVelocity[0];
     if (!production) CHECK(total_x_velocity > 0.5F);
+    }
 
     pmDestroyFence(device, fence);
     pmFreeCommandBuffers(device, pool, 1U, &commands);
@@ -1480,7 +1604,9 @@ int main(int argc, char **argv) {
     for (auto allocation : memory) pmFreeMemory(device, allocation);
     pmDestroyDevice(device);
     pmDestroyInstance(instance);
-    std::puts(production
-        ? "PASS: production realtime resources are fixed and atomic"
-        : "PASS: native CPU realtime schedule is fixed and atomic");
+    std::puts(smoke_couplings_only
+        ? "PASS: production smoke couplings use fixed atomic ticks"
+        : production
+            ? "PASS: production realtime resources are fixed and atomic"
+            : "PASS: native CPU realtime schedule is fixed and atomic");
 }

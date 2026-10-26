@@ -1,0 +1,139 @@
+{
+  "schema": "parallel-mater-f8-smoke-couplings-production-ticks-evidence/v1",
+  "task": "F8-47",
+  "status": "passed",
+  "recorded_at": "2026-10-25",
+  "branch": "work/F8-47/thomas-laptop-pixel7",
+  "lease_token": "9fc21c5f-52bd-479d-9200-d33295302b47",
+  "base_revision": "58ac8957652defcf37cfecc01f8035bf8553bb7d",
+  "implementation_revision": "f1586b713ad494f6534eb8513b7986213e9e6a62",
+  "implemented_modes": [
+    "particle-smoke/rigid contact and reciprocal impulse",
+    "particle-smoke/rigid drag",
+    "grid-smoke/rigid contact",
+    "grid-smoke/rigid drag",
+    "particle-smoke/cloth contact and one-way drag",
+    "grid-smoke/cloth contact and one-way drag",
+    "particle-smoke/soft-body contact and one-way drag",
+    "grid-smoke/soft-body contact and one-way drag",
+    "particle-smoke/rope contact and one-way drag",
+    "grid-smoke/rope contact and one-way drag"
+  ],
+  "implementation": {
+    "public_graph": "PmCouplingStateInfo installs the smoke/rigid, smoke/cloth, smoke/soft-body and smoke/rope edges in a realtime simulation with fixed couplingCapacity.",
+    "fixed_tick": "Every active smoke mode executes four canonical dt/4 sweeps after domain finalization and before the one atomic public/state swap.",
+    "common_epoch": "Particle-smoke deformable drag emits and radix-sorts one cell index before its four sweeps; later visits reuse it and publish no second spatial epoch.",
+    "direction": "Rigid contact applies accumulated reciprocal impulse. Deformable contact mutates smoke and deformable drag mutates the deformable endpoint, matching the advertised one-way capabilities rather than claiming reciprocal exchange.",
+    "atomic_state": "Capacity, graph revision, endpoint generation and rigid mesh identity are validated before mutation. Telemetry is reserved on sweep zero; abort leaves every participating public output unchanged.",
+    "profile_admission": "Realtime simulations accept declared couplingCapacity while still rejecting unimplemented emitter, destroyer, paint and debug-frame capacities.",
+    "no_fallback": "All physical execution uses common production Slang dispatch bindings; no Android-local equation or host fallback was added."
+  },
+  "physical_kernel_trace": [
+    "geometry_smoke/smoke_rigid_contact",
+    "geometry_smoke/smoke_apply_rigid_impulses",
+    "smoke_grid/smoke_grid_rigid_force",
+    "cloth_smoke/smoke_cloth_contact",
+    "cloth_smoke/smoke_cloth_wind",
+    "smoke_grid/smoke_grid_cloth_force",
+    "smoke_grid/smoke_grid_apply_cloth_force",
+    "soft_body_smoke/smoke_soft_body_contact",
+    "soft_body_smoke/smoke_soft_body_wind",
+    "smoke_grid/smoke_grid_soft_body_force",
+    "rope_smoke/smoke_rope_contact",
+    "rope_smoke/smoke_rope_wind",
+    "geometry_smoke/smoke_emit_cells",
+    "primitives/pm_radix_histogram_u64",
+    "primitives/pm_radix_prefix_u32",
+    "primitives/pm_radix_scatter_u64_u32"
+  ],
+  "public_cases": [
+    "four public smoke edges cover rigid, cloth, soft body and rope against particle smoke",
+    "complete graph removal and endpoint-preserving particle-to-grid replacement exercise all four grid-smoke pairs",
+    "both representations report 15 active mode records, 12 family sweeps, one time advance, one spatial index build, one publication and zero intra-tick readbacks",
+    "finite active output is copied from cloth, soft-body, rope, liquid and smoke endpoints",
+    "one-below workgroup capacity failure preserves all five public output ranges byte-for-byte",
+    "reset, graph replacement and post-failure graph removal succeed without double integration"
+  ],
+  "qualification": {
+    "host_suite": {
+      "command": "ctest --test-dir build-sdk-cpu --output-on-failure -j2",
+      "result": "PASS: 102/102 discovered; 87 executed passed and 15 unadvertised CPU-domain tests explicitly skipped"
+    },
+    "failure_injection_cpu": {
+      "command": "PM_DRIVER_FILES=build-sdk-cpu/Release/manifests/test-slang-cpu-resources.json PM_LAYER_FILES=build-sdk-cpu/Release/manifests/validation.json ./build-sdk-cpu/parallel-mater-native-realtime-runtime-tests",
+      "result": "PASS: native CPU realtime schedule is fixed and atomic"
+    },
+    "production_cpu": {
+      "commands": [
+        "PM_DRIVER_FILES=build-sdk-cpu/Release/manifests/slang-cpu.json ./build-sdk-cpu/parallel-mater-native-realtime-runtime-tests --production",
+        "PM_DRIVER_FILES=build-sdk-cpu/Release/manifests/slang-cpu.json ./build-sdk-cpu/parallel-mater-native-realtime-runtime-tests --production-smoke-couplings"
+      ],
+      "result": "PASS: full production resources and focused smoke couplings are fixed and atomic"
+    },
+    "physical_android_vulkan": {
+      "command": "python3 scripts/Test-AndroidVulkan.py --serial 2B241FDH20060P --adb /home/thomas/Android/Sdk/platform-tools/adb --build-directory examples/android/app/.cxx/Debug/4b2z552i/arm64-v8a --output out/android/F8-47-final --native-only --realtime-smoke-couplings-only",
+      "device": "Google Pixel 7 (panther), Mali-G710, Android 17/API 37, security patch 2026-10-05",
+      "result": "PASS: command, async, liquid and production-smoke-couplings native tests; no Validation Error or VUID",
+      "source_commit": "f1586b713ad494f6534eb8513b7986213e9e6a62",
+      "apk_sha256": "288ee236a835ba68ce650f20a73ee277ba339c626130bcd4000604a0c092b53d",
+      "driver_sha256": "c072da9c7af5a7ab3a121765ff49241641a3681b030165c64e26dd46d23d4075",
+      "toolchain": {
+        "android_ndk": "29.0.14206865",
+        "slang": "2026.18"
+      }
+    },
+    "physical_quality": {
+      "profiles": [
+        "smoke-rigid-contact-v1",
+        "smoke-rigid-drag-v1",
+        "cloth-smoke-contact-v1",
+        "smoke-cloth-drag-v1",
+        "soft-smoke-contact-v1",
+        "smoke-soft-drag-v1",
+        "rope-smoke-contact-v1",
+        "smoke-rope-drag-v1"
+      ],
+      "device": "Pixel 7 Mali-G710 through slang-vulkan",
+      "result": "PASS: 30 analytic-invariant samples, zero failures, frozen profiles and tolerances unchanged"
+    },
+    "physical_lifecycle": {
+      "profiles": [
+        "smoke-rigid-contact-lifecycle-v1",
+        "smoke-rigid-drag-lifecycle-v1",
+        "cloth-smoke-contact-lifecycle-v1",
+        "smoke-cloth-grid-drag-lifecycle-v1",
+        "soft-smoke-contact-lifecycle-v1",
+        "smoke-soft-drag-lifecycle-v1",
+        "rope-smoke-contact-lifecycle-v1",
+        "smoke-rope-drag-lifecycle-v1"
+      ],
+      "device": "Pixel 7 Mali-G710 through slang-vulkan",
+      "result": "PASS: 13 cases, 65 checkpoints, zero failures"
+    },
+    "protected_closure": {
+      "command": "python3 tools/check_realtime_candidate.py",
+      "result": "PASS: realtime-single-step-v1-3671f18 protected closure and routing are exact"
+    },
+    "cross_adapter_builds": {
+      "commands": [
+        "cmake --build build-sdk-cpu --target parallel-mater-native-realtime-runtime-tests parallel-mater-realtime-profile-reference-tests -j2",
+        "cmake --build build-f8-22-cuda --target parallel-mater-driver-slang-cuda -j2",
+        "cmake --build build-p3-02-vulkan --target parallel-mater-driver-slang-vulkan -j2",
+        "ANDROID_HOME=/home/thomas/Android/Sdk ./scripts/Build-AndroidGallery.sh -PphysicsBackend=vulkan -Pqualification=true"
+      ],
+      "result": "PASS: CPU, CUDA, desktop Vulkan and Android arm64-v8a Vulkan builds completed"
+    },
+    "contracts": {
+      "commands": [
+        "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+        "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'"
+      ],
+      "result": "PASS: 418 conformance tests and 87 roadmap tests"
+    }
+  },
+  "limits": [
+    "Liquid/smoke binding remains the independently completed F8-46 path; smoke/smoke modes are unavailable and not claimed.",
+    "The focused native runtime establishes installed-API integration and fixed counters; the independent frozen quality and lifecycle executors establish analytic and mutation invariants on the same physical build.",
+    "Physical D3D12 and Metal execution were unavailable on this Linux host; common Slang routing, CPU/CUDA/Vulkan compilation and physical Android Vulkan execution passed."
+  ]
+}

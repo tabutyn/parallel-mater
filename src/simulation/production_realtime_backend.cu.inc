@@ -103,6 +103,10 @@ PmResult native_realtime_coupling_counts(
     for (const auto &owner : state.fluid_smoke_couplings)
         if (owner && owner->alive && add_liquid(2U) != PM_SUCCESS)
             return PM_ERROR_CAPACITY_EXCEEDED;
+    for (const auto &owner : state.smoke_rigid_couplings)
+        if (owner && owner->alive && owner->options.enabled &&
+            add(simulation::RealtimeCouplingFamily::rigid, 2U) != PM_SUCCESS)
+            return PM_ERROR_CAPACITY_EXCEEDED;
     if (state.rigid_body_count != 0U) {
         for (const auto &owner : state.cloths)
             if (owner && owner->alive &&
@@ -146,6 +150,19 @@ PmResult native_realtime_coupling_counts(
                 PM_SUCCESS)
             return PM_ERROR_CAPACITY_EXCEEDED;
     }
+    const auto add_smoke_deformable = [&](const auto &couplings) noexcept {
+        for (const auto &owner : couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            if (add(simulation::RealtimeCouplingFamily::deformable_smoke,
+                    2U) != PM_SUCCESS)
+                return PM_ERROR_CAPACITY_EXCEEDED;
+        }
+        return PM_SUCCESS;
+    };
+    if (add_smoke_deformable(state.smoke_cloth_couplings) != PM_SUCCESS ||
+        add_smoke_deformable(state.smoke_soft_body_couplings) != PM_SUCCESS ||
+        add_smoke_deformable(state.smoke_rope_couplings) != PM_SUCCESS)
+        return PM_ERROR_CAPACITY_EXCEEDED;
     return PM_SUCCESS;
 }
 
@@ -816,6 +833,22 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                         simulation::rigid_coupling_realtime_sweeps *
                         (2U + body_groups));
             }
+            constexpr std::uint64_t sweeps =
+                simulation::rigid_coupling_realtime_sweeps;
+            for (const auto &owner : state.smoke_rigid_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled)
+                    continue;
+                const auto &smoke = *state.smokes[
+                    owner->options.smoke.index];
+                const auto particle_groups =
+                    (std::uint64_t{smoke.options.capacity} + 127U) / 128U;
+                if (owner->options.tracer_contact)
+                    dispatch(coupling, sweeps, sweeps * particle_groups);
+                if (owner->options.air_density > 0.0F &&
+                    (smoke.options.grid_resolution != 0U ||
+                     owner->options.tracer_contact))
+                    dispatch(coupling, sweeps, sweeps);
+            }
             coupling.numerical_iterations +=
                 simulation::rigid_coupling_realtime_sweeps;
         }
@@ -879,6 +912,96 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                      std::uint64_t{body.node_count} * sizeof(Vec3));
                 coupling.barriers += records *
                     simulation::deformable_smoke_coupling_sweeps * 2U;
+            }
+            constexpr std::uint64_t sweeps =
+                simulation::deformable_smoke_coupling_sweeps;
+            for (std::uint32_t smoke_slot = 0U;
+                 smoke_slot < state.smokes.size(); ++smoke_slot) {
+                const auto &smoke = state.smokes[smoke_slot];
+                if (!smoke || !smoke->alive ||
+                    smoke->options.grid_resolution != 0U)
+                    continue;
+                const auto references_smoke = [smoke_slot](
+                        const auto &owner) noexcept {
+                    return owner && owner->alive && owner->options.enabled &&
+                        owner->options.smoke.index == smoke_slot;
+                };
+                if (std::any_of(state.smoke_cloth_couplings.begin(),
+                                state.smoke_cloth_couplings.end(),
+                                references_smoke) ||
+                    std::any_of(state.smoke_soft_body_couplings.begin(),
+                                state.smoke_soft_body_couplings.end(),
+                                references_smoke) ||
+                    std::any_of(state.smoke_rope_couplings.begin(),
+                                state.smoke_rope_couplings.end(),
+                                references_smoke)) {
+                    const auto groups =
+                        (std::uint64_t{smoke->options.capacity} + 127U) /
+                        128U;
+                    dispatch(coupling, 2U, 2U * groups);
+                }
+            }
+            for (const auto &owner : state.smoke_cloth_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled)
+                    continue;
+                const auto &smoke = *state.smokes[
+                    owner->options.smoke.index];
+                const auto &cloth = *state.cloths[
+                    owner->options.cloth.index];
+                const auto smoke_groups =
+                    (std::uint64_t{smoke.options.capacity} + 127U) / 128U;
+                const auto vertex_groups =
+                    (std::uint64_t{cloth.vertex_count} + 127U) / 128U;
+                const auto triangle_groups =
+                    (std::uint64_t{cloth.index_count / 3U} + 127U) / 128U;
+                dispatch(coupling, 1U + sweeps, 1U + sweeps * smoke_groups);
+                if (smoke.options.grid_resolution == 0U) {
+                    dispatch(coupling, sweeps, sweeps * vertex_groups);
+                } else {
+                    dispatch(coupling, 2U * sweeps,
+                        sweeps * (triangle_groups + vertex_groups));
+                    coupling.bytes_moved += sweeps * cloth.vertex_count *
+                        sizeof(Vec3);
+                    coupling.barriers += sweeps;
+                }
+            }
+            for (const auto &owner : state.smoke_soft_body_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled)
+                    continue;
+                const auto &smoke = *state.smokes[
+                    owner->options.smoke.index];
+                const auto &body = *state.soft_bodies[
+                    owner->options.soft_body.index];
+                const auto smoke_groups =
+                    (std::uint64_t{smoke.options.capacity} + 127U) / 128U;
+                const auto node_groups =
+                    (std::uint64_t{body.node_count} + 127U) / 128U;
+                const auto triangle_groups =
+                    (std::uint64_t{body.surface_index_count / 3U} + 127U) /
+                    128U;
+                dispatch(coupling, 1U + sweeps,
+                    1U + sweeps * smoke_groups);
+                if (smoke.options.grid_resolution == 0U) {
+                    dispatch(coupling, sweeps, sweeps * node_groups);
+                } else {
+                    dispatch(coupling, sweeps, sweeps * triangle_groups);
+                    coupling.bytes_moved += sweeps * body.node_count *
+                        sizeof(Vec3);
+                    coupling.barriers += sweeps;
+                }
+            }
+            for (const auto &owner : state.smoke_rope_couplings) {
+                if (!owner || !owner->alive || !owner->options.enabled)
+                    continue;
+                const auto &smoke = *state.smokes[
+                    owner->options.smoke.index];
+                const auto &rope = *state.ropes[owner->options.rope.index];
+                const auto smoke_groups =
+                    (std::uint64_t{smoke.options.capacity} + 127U) / 128U;
+                const auto node_groups =
+                    (std::uint64_t{rope.data.count} + 127U) / 128U;
+                dispatch(coupling, 1U + sweeps, 1U + sweeps * smoke_groups);
+                dispatch(coupling, sweeps, sweeps * node_groups);
             }
             coupling.numerical_iterations +=
                 simulation::deformable_smoke_coupling_sweeps;
@@ -2907,6 +3030,9 @@ public:
                 for (const auto &owner : state_.ropes)
                     if (owner && owner->alive)
                         endpoint_count += owner->data.count;
+                for (const auto &owner : state_.smokes)
+                    if (owner && owner->alive)
+                        endpoint_count += owner->options.capacity;
                 if (endpoint_count > std::numeric_limits<std::uint32_t>::max())
                     return PM_ERROR_CAPACITY_EXCEEDED;
                 simulation::RigidCouplingRealtimeWorkBudget budget{};
@@ -2922,6 +3048,7 @@ public:
                         rigid_couplings_.data(), rigid_coupling_count_),
                     scene.graph_revision);
                 if (result != PM_SUCCESS) return result;
+                stage_smoke_rigid_measurement();
             }
             for (std::uint32_t slot = 0U; slot < state_.cloths.size(); ++slot) {
                 auto &owner = state_.cloths[slot];
@@ -3103,14 +3230,28 @@ public:
             edge_count != deformable_coupling_count_)
             return PM_ERROR_INVALID_STATE;
         if (sweep == 0U) {
-            std::uint64_t endpoints{};
+            std::uint64_t first_endpoints{};
+            std::uint64_t second_endpoints{};
             for (const auto &owner : state_.cloths)
-                if (owner && owner->alive) endpoints += owner->vertex_count;
+                if (owner && owner->alive) {
+                    first_endpoints += owner->vertex_count;
+                    second_endpoints += owner->vertex_count;
+                }
             for (const auto &owner : state_.soft_bodies)
-                if (owner && owner->alive) endpoints += owner->node_count;
+                if (owner && owner->alive) {
+                    first_endpoints += owner->node_count;
+                    second_endpoints += owner->node_count;
+                }
             for (const auto &owner : state_.ropes)
-                if (owner && owner->alive) endpoints += owner->data.count;
-            if (endpoints > std::numeric_limits<std::uint32_t>::max())
+                if (owner && owner->alive) {
+                    first_endpoints += owner->data.count;
+                    second_endpoints += owner->data.count;
+                }
+            for (const auto &owner : state_.smokes)
+                if (owner && owner->alive)
+                    second_endpoints += owner->options.capacity;
+            if (first_endpoints > std::numeric_limits<std::uint32_t>::max() ||
+                second_endpoints > std::numeric_limits<std::uint32_t>::max())
                 return PM_ERROR_CAPACITY_EXCEEDED;
             simulation::DeformableSmokeCouplingWorkBudget budget{};
             auto result =
@@ -3119,8 +3260,8 @@ public:
                         simulation::DeformableSmokeCouplingRegistration>(
                             deformable_couplings_.data(),
                             deformable_coupling_count_),
-                    static_cast<std::uint32_t>(endpoints),
-                    static_cast<std::uint32_t>(endpoints), budget);
+                    static_cast<std::uint32_t>(first_endpoints),
+                    static_cast<std::uint32_t>(second_endpoints), budget);
             if (result != PM_SUCCESS) return result;
             result = deformable_coupling_contract_.begin(epoch_, *counters,
                 budget,
@@ -3129,6 +3270,7 @@ public:
                         deformable_couplings_.data(),
                         deformable_coupling_count_), scene.graph_revision);
             if (result != PM_SUCCESS) return result;
+            stage_smoke_deformable_measurement();
         }
         for (auto &owner : state_.soft_cloth_couplings) {
             if (!owner || !owner->alive || !owner->options.enabled) continue;
@@ -3440,6 +3582,8 @@ public:
             result = native_.check_error();
             if (result != PM_SUCCESS) return result;
         }
+        result = apply_smoke_couplings(scene);
+        if (result != PM_SUCCESS) return result;
         if (state_.rigid_body_count != 0U) {
             const auto groups =
                 (state_.rigid_body_count + block - 1U) / block;
@@ -4198,6 +4342,565 @@ private:
         return result;
     }
 
+    void stage_smoke_rigid_measurement() noexcept {
+        constexpr std::uint64_t sweeps =
+            simulation::rigid_coupling_realtime_sweeps;
+        for (const auto &owner : state_.smoke_rigid_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            const auto &smoke = *state_.smokes[owner->options.smoke.index];
+            const auto particle_groups =
+                (std::uint64_t{smoke.options.capacity} + 127U) / 128U;
+            if (owner->options.tracer_contact)
+                dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                    sweeps, sweeps * particle_groups);
+            if (owner->options.air_density > 0.0F &&
+                (smoke.options.grid_resolution != 0U ||
+                 owner->options.tracer_contact))
+                dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                    sweeps, sweeps);
+        }
+    }
+
+    void stage_smoke_deformable_measurement() noexcept {
+        auto &coupling = work(simulation::RealtimeTelemetryPhase::coupling);
+        constexpr std::uint64_t sweeps =
+            simulation::deformable_smoke_coupling_sweeps;
+        for (std::uint32_t smoke_slot = 0U;
+             smoke_slot < state_.smokes.size(); ++smoke_slot) {
+            const auto &smoke = state_.smokes[smoke_slot];
+            if (!smoke || !smoke->alive ||
+                smoke->options.grid_resolution != 0U)
+                continue;
+            const auto references_smoke = [smoke_slot](
+                    const auto &owner) noexcept {
+                return owner && owner->alive && owner->options.enabled &&
+                    owner->options.smoke.index == smoke_slot;
+            };
+            if (std::any_of(state_.smoke_cloth_couplings.begin(),
+                            state_.smoke_cloth_couplings.end(),
+                            references_smoke) ||
+                std::any_of(state_.smoke_soft_body_couplings.begin(),
+                            state_.smoke_soft_body_couplings.end(),
+                            references_smoke) ||
+                std::any_of(state_.smoke_rope_couplings.begin(),
+                            state_.smoke_rope_couplings.end(),
+                            references_smoke)) {
+                const auto groups =
+                    (std::uint64_t{smoke->options.capacity} + 127U) / 128U;
+                dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                    2U, 2U * groups);
+            }
+        }
+        for (const auto &owner : state_.smoke_cloth_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            const auto &smoke = *state_.smokes[owner->options.smoke.index];
+            const auto &cloth = *state_.cloths[owner->options.cloth.index];
+            const auto smoke_groups =
+                (std::uint64_t{smoke.options.capacity} + 127U) / 128U;
+            const auto vertex_groups =
+                (std::uint64_t{cloth.vertex_count} + 127U) / 128U;
+            const auto triangle_groups =
+                (std::uint64_t{cloth.index_count / 3U} + 127U) / 128U;
+            dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                1U + sweeps, 1U + sweeps * smoke_groups);
+            if (smoke.options.grid_resolution == 0U) {
+                dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                    sweeps, sweeps * vertex_groups);
+            } else {
+                dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                    2U * sweeps,
+                    sweeps * (triangle_groups + vertex_groups));
+                coupling.bytes_moved += sweeps * cloth.vertex_count *
+                    sizeof(Vec3);
+                coupling.barriers += sweeps;
+            }
+        }
+        for (const auto &owner : state_.smoke_soft_body_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            const auto &smoke = *state_.smokes[owner->options.smoke.index];
+            const auto &body =
+                *state_.soft_bodies[owner->options.soft_body.index];
+            const auto smoke_groups =
+                (std::uint64_t{smoke.options.capacity} + 127U) / 128U;
+            const auto node_groups =
+                (std::uint64_t{body.node_count} + 127U) / 128U;
+            const auto triangle_groups =
+                (std::uint64_t{body.surface_index_count / 3U} + 127U) /
+                128U;
+            dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                1U + sweeps, 1U + sweeps * smoke_groups);
+            if (smoke.options.grid_resolution == 0U) {
+                dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                    sweeps, sweeps * node_groups);
+            } else {
+                dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                    sweeps, sweeps * triangle_groups);
+                coupling.bytes_moved += sweeps * body.node_count *
+                    sizeof(Vec3);
+                coupling.barriers += sweeps;
+            }
+        }
+        for (const auto &owner : state_.smoke_rope_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            const auto &smoke = *state_.smokes[owner->options.smoke.index];
+            const auto &rope = *state_.ropes[owner->options.rope.index];
+            const auto smoke_groups =
+                (std::uint64_t{smoke.options.capacity} + 127U) / 128U;
+            const auto node_groups =
+                (std::uint64_t{rope.data.count} + 127U) / 128U;
+            dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                1U + sweeps, 1U + sweeps * smoke_groups);
+            dispatches(simulation::RealtimeTelemetryPhase::coupling,
+                sweeps, sweeps * node_groups);
+        }
+    }
+
+    [[nodiscard]] bool smoke_has_deformable_coupling(
+        std::uint32_t smoke_slot) const noexcept {
+        const auto references_smoke = [smoke_slot](
+                const auto &owner) noexcept {
+            return owner && owner->alive && owner->options.enabled &&
+                owner->options.smoke.index == smoke_slot;
+        };
+        return std::any_of(state_.smoke_cloth_couplings.begin(),
+                           state_.smoke_cloth_couplings.end(),
+                           references_smoke) ||
+            std::any_of(state_.smoke_soft_body_couplings.begin(),
+                        state_.smoke_soft_body_couplings.end(),
+                        references_smoke) ||
+            std::any_of(state_.smoke_rope_couplings.begin(),
+                        state_.smoke_rope_couplings.end(),
+                        references_smoke);
+    }
+
+    simulation::SmokeGridDispatchField staged_smoke_grid(
+        SmokeStorage &smoke) noexcept {
+        auto field = native_.smoke_dispatch_grid(smoke.grid);
+        if (smoke.options.grid_resolution == 0U) return field;
+        field.density = smoke.grid.realtime_density[1];
+        field.pressure = smoke.grid.pressure[1];
+        for (std::uint32_t axis = 0U; axis < 3U; ++axis)
+            field.face_velocity[axis] =
+                smoke.grid.face_velocity[axis][1];
+        return field;
+    }
+
+    PmResult index_smoke_for_deformable_drag() noexcept {
+        constexpr std::uint32_t block = 128U;
+        for (std::uint32_t slot = 0U; slot < state_.smokes.size(); ++slot) {
+            auto &owner = state_.smokes[slot];
+            if (!owner || !owner->alive ||
+                owner->options.grid_resolution != 0U ||
+                !smoke_has_deformable_coupling(slot))
+                continue;
+            auto &smoke = *owner;
+            const auto groups =
+                (smoke.options.capacity + block - 1U) / block;
+            native_.index_smoke_particles(
+                groups, block, native_.queue(), smoke.realtime_positions,
+                smoke.realtime_ages, smoke.realtime_pending_count,
+                native_.smoke_domain_options(smoke.options), smoke.keys[0],
+                smoke.indices[0]);
+            auto result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            result = native_.radix_sort_pairs_u64_u32(
+                native_.queue(), smoke.keys[0], smoke.keys[1],
+                smoke.indices[0], smoke.indices[1], smoke.options.capacity,
+                smoke.sort_workspace, smoke.sort_workspace_size);
+            if (result != PM_SUCCESS) return result;
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+        }
+        return PM_SUCCESS;
+    }
+
+    PmResult apply_smoke_rigid_couplings(
+        const simulation::RealtimeScheduleScene &scene) noexcept {
+        constexpr std::uint32_t block = 128U;
+        const float dt = scene.timestep /
+            static_cast<float>(simulation::rigid_coupling_realtime_sweeps);
+        constexpr simulation::RigidCouplingFamily families[]{
+            simulation::RigidCouplingFamily::smoke_particle,
+            simulation::RigidCouplingFamily::smoke_grid};
+        constexpr simulation::RigidCouplingMode modes[]{
+            simulation::RigidCouplingMode::contact,
+            simulation::RigidCouplingMode::drag};
+        for (std::uint32_t sweep = 0U;
+             sweep < simulation::rigid_coupling_realtime_sweeps; ++sweep) {
+            for (const auto family : families) {
+                for (const auto mode : modes) {
+                    for (auto &owner : state_.smoke_rigid_couplings) {
+                        if (!owner || !owner->alive ||
+                            !owner->options.enabled)
+                            continue;
+                        auto &coupling = *owner;
+                        auto &smoke = *state_.smokes[
+                            coupling.options.smoke.index];
+                        const bool grid =
+                            smoke.options.grid_resolution != 0U;
+                        const auto actual_family = grid
+                            ? simulation::RigidCouplingFamily::smoke_grid
+                            : simulation::RigidCouplingFamily::smoke_particle;
+                        if (family != actual_family) continue;
+                        const auto &body_slot =
+                            state_.slots[coupling.options.body.index];
+                        const auto body = body_slot.dense_index;
+                        const auto field = staged_smoke_grid(smoke);
+                        if (mode == simulation::RigidCouplingMode::contact) {
+                            if (!coupling.options.tracer_contact) continue;
+                            const auto groups =
+                                (smoke.options.capacity + block - 1U) /
+                                block;
+                            const float clearance =
+                                coupling.options.contact_distance > 0.0F
+                                ? coupling.options.contact_distance
+                                : smoke.options.particle_radius;
+                            const float diameter =
+                                2.0F * smoke.options.particle_radius;
+                            const float particle_mass = grid ? 0.0F :
+                                coupling.options.air_density * diameter *
+                                    diameter * diameter;
+                            native_.collide_smoke_with_rigid_body(
+                                groups, block, native_.queue(),
+                                smoke.realtime_positions,
+                                smoke.realtime_previous_positions,
+                                smoke.realtime_velocities,
+                                smoke.realtime_ages,
+                                smoke.realtime_pressures,
+                                smoke.realtime_pending_count,
+                                smoke.options.lifetime,
+                                state_.meshes + coupling.mesh.index,
+                                state_.states[output_state_],
+                                state_.render_previous_states, body,
+                                clearance, particle_mass,
+                                coupling.options.drag_coefficient,
+                                smoke.options.pressure_stiffness, dt,
+                                smoke.options.maximum_speed, field,
+                                smoke.rigid_impulses);
+                        } else if (grid &&
+                                   coupling.options.air_density > 0.0F) {
+                            native_.apply_smoke_grid_force_to_rigid_body(
+                                1U, block, native_.queue(),
+                                state_.meshes + coupling.mesh.index, body,
+                                state_.parameters,
+                                state_.states[output_state_], field,
+                                coupling.options.air_density,
+                                coupling.options.drag_coefficient,
+                                smoke.options.rest_number_density,
+                                smoke.options.grid_kinematic_viscosity,
+                                smoke.options.grid_les_coefficient, dt);
+                        } else if (!grid &&
+                                   coupling.options.air_density > 0.0F &&
+                                   coupling.options.tracer_contact) {
+                            native_.apply_smoke_rigid_body_impulses(
+                                1U, block, native_.queue(),
+                                smoke.rigid_impulses,
+                                smoke.realtime_pending_count, body,
+                                state_.parameters,
+                                state_.states[output_state_]);
+                        }
+                    }
+                }
+            }
+        }
+        return native_.check_error();
+    }
+
+    PmResult prepare_smoke_deformable_contacts() noexcept {
+        for (auto &owner : state_.smoke_cloth_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            auto &coupling = *owner;
+            auto &cloth = *state_.cloths[coupling.options.cloth.index];
+            native_.calculate_smoke_deformable_bounds(
+                1U, 1U, native_.queue(), cloth.realtime_positions,
+                cloth.vertex_count, coupling.minimum, coupling.maximum);
+        }
+        for (auto &owner : state_.smoke_soft_body_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            auto &coupling = *owner;
+            auto &body = *state_.soft_bodies[
+                coupling.options.soft_body.index];
+            native_.calculate_smoke_deformable_bounds(
+                1U, 1U, native_.queue(), body.realtime_surface_positions,
+                body.surface_vertex_count, coupling.minimum,
+                coupling.maximum);
+        }
+        for (auto &owner : state_.smoke_rope_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            auto &coupling = *owner;
+            auto &rope = *state_.ropes[coupling.options.rope.index];
+            native_.calculate_smoke_deformable_bounds(
+                1U, 1U, native_.queue(), rope.realtime_positions,
+                rope.data.count, coupling.minimum, coupling.maximum);
+        }
+        return native_.check_error();
+    }
+
+    PmResult apply_smoke_cloth_couplings(
+        simulation::DeformableSmokeCouplingPair pair,
+        simulation::DeformableSmokeCouplingMode mode,
+        float dt) noexcept {
+        constexpr std::uint32_t block = 128U;
+        for (auto &owner : state_.smoke_cloth_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            auto &coupling = *owner;
+            auto &smoke = *state_.smokes[coupling.options.smoke.index];
+            const bool grid = smoke.options.grid_resolution != 0U;
+            const auto actual_pair = grid
+                ? simulation::DeformableSmokeCouplingPair::cloth_smoke_grid
+                : simulation::DeformableSmokeCouplingPair::
+                      cloth_smoke_particle;
+            if (pair != actual_pair) continue;
+            auto &cloth = *state_.cloths[coupling.options.cloth.index];
+            const auto field = staged_smoke_grid(smoke);
+            if (mode ==
+                simulation::DeformableSmokeCouplingMode::contact) {
+                const auto groups =
+                    (smoke.options.capacity + block - 1U) / block;
+                const float clearance =
+                    coupling.options.contact_distance > 0.0F
+                    ? coupling.options.contact_distance
+                    : smoke.options.particle_radius + cloth.thickness;
+                native_.collide_smoke_with_cloth(
+                    groups, block, native_.queue(),
+                    smoke.realtime_positions,
+                    smoke.realtime_previous_positions,
+                    smoke.realtime_velocities, smoke.realtime_ages,
+                    smoke.realtime_pressures, smoke.realtime_pending_count,
+                    native_.smoke_dispatch_options(smoke.options),
+                    cloth.realtime_positions, cloth.realtime_velocities,
+                    cloth.indices, cloth.index_count, coupling.minimum,
+                    coupling.maximum, clearance, field);
+            } else if (!grid) {
+                const auto groups =
+                    (cloth.vertex_count + block - 1U) / block;
+                native_.apply_smoke_wind_to_cloth(
+                    groups, block, native_.queue(),
+                    cloth.realtime_positions, cloth.realtime_velocities,
+                    cloth.inverse_masses, cloth.vertex_count,
+                    native_.smoke_dispatch_options(smoke.options),
+                    smoke.realtime_positions, smoke.realtime_velocities,
+                    smoke.keys[1], smoke.indices[1], field,
+                    coupling.options.wind_drag,
+                    coupling.options.maximum_wind_acceleration, dt);
+            } else {
+                auto result = native_.clear(
+                    cloth.smoke_forces, 0,
+                    cloth.vertex_count * sizeof(Vec3), native_.queue());
+                if (result != PM_SUCCESS) return result;
+                const auto triangles = cloth.index_count / 3U;
+                native_.accumulate_smoke_grid_force_on_cloth(
+                    (triangles + block - 1U) / block, block,
+                    native_.queue(), cloth.realtime_positions,
+                    cloth.realtime_velocities, cloth.inverse_masses,
+                    cloth.indices, cloth.index_count, field,
+                    coupling.options.wind_drag,
+                    smoke.options.rest_number_density,
+                    smoke.options.grid_kinematic_viscosity,
+                    smoke.options.grid_les_coefficient,
+                    cloth.smoke_forces);
+                native_.apply_smoke_grid_force_to_cloth(
+                    (cloth.vertex_count + block - 1U) / block, block,
+                    native_.queue(), cloth.realtime_velocities,
+                    cloth.inverse_masses, cloth.smoke_forces,
+                    cloth.vertex_count,
+                    coupling.options.maximum_wind_acceleration, dt);
+            }
+        }
+        return native_.check_error();
+    }
+
+    PmResult apply_smoke_soft_body_couplings(
+        simulation::DeformableSmokeCouplingPair pair,
+        simulation::DeformableSmokeCouplingMode mode,
+        float dt) noexcept {
+        constexpr std::uint32_t block = 128U;
+        for (auto &owner : state_.smoke_soft_body_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            auto &coupling = *owner;
+            auto &smoke = *state_.smokes[coupling.options.smoke.index];
+            const bool grid = smoke.options.grid_resolution != 0U;
+            const auto actual_pair = grid
+                ? simulation::DeformableSmokeCouplingPair::
+                      soft_body_smoke_grid
+                : simulation::DeformableSmokeCouplingPair::
+                      soft_body_smoke_particle;
+            if (pair != actual_pair) continue;
+            auto &body = *state_.soft_bodies[
+                coupling.options.soft_body.index];
+            const auto field = staged_smoke_grid(smoke);
+            if (mode ==
+                simulation::DeformableSmokeCouplingMode::contact) {
+                const auto groups =
+                    (smoke.options.capacity + block - 1U) / block;
+                const float clearance =
+                    coupling.options.contact_distance > 0.0F
+                    ? coupling.options.contact_distance
+                    : smoke.options.particle_radius + body.node_radius;
+                native_.collide_smoke_with_soft_body(
+                    groups, block, native_.queue(),
+                    smoke.realtime_positions,
+                    smoke.realtime_previous_positions,
+                    smoke.realtime_velocities, smoke.realtime_ages,
+                    smoke.realtime_pending_count,
+                    native_.smoke_dispatch_options(smoke.options),
+                    body.realtime_surface_positions,
+                    body.surface_bindings, body.surface_indices,
+                    body.surface_index_count, body.realtime_velocities,
+                    coupling.minimum, coupling.maximum, clearance, field);
+            } else if (!grid) {
+                const auto groups =
+                    (body.node_count + block - 1U) / block;
+                native_.apply_smoke_wind_to_soft_body(
+                    groups, block, native_.queue(),
+                    body.realtime_positions, body.realtime_velocities,
+                    body.inverse_masses, body.node_count,
+                    native_.smoke_dispatch_options(smoke.options),
+                    smoke.realtime_positions, smoke.realtime_velocities,
+                    smoke.keys[1], smoke.indices[1], field,
+                    coupling.options.wind_drag,
+                    coupling.options.maximum_wind_acceleration, dt,
+                    body.realtime_maximum_speed);
+            } else {
+                auto result = native_.copy(
+                    body.velocity_scratch, body.realtime_velocities,
+                    body.node_count * sizeof(Vec3),
+                    device::CopyDirection::device_to_device,
+                    native_.queue());
+                if (result != PM_SUCCESS) return result;
+                native_.apply_smoke_grid_force_to_soft_body(
+                    (body.surface_index_count / 3U + block - 1U) / block,
+                    block, native_.queue(),
+                    body.realtime_surface_positions, body.surface_indices,
+                    body.surface_index_count, body.surface_bindings,
+                    body.velocity_scratch, body.realtime_velocities,
+                    body.inverse_masses, field,
+                    coupling.options.wind_drag,
+                    smoke.options.rest_number_density,
+                    smoke.options.grid_kinematic_viscosity,
+                    smoke.options.grid_les_coefficient,
+                    coupling.options.maximum_wind_acceleration, dt);
+            }
+        }
+        return native_.check_error();
+    }
+
+    PmResult apply_smoke_rope_couplings(
+        simulation::DeformableSmokeCouplingPair pair,
+        simulation::DeformableSmokeCouplingMode mode,
+        float dt) noexcept {
+        constexpr std::uint32_t block = 128U;
+        for (auto &owner : state_.smoke_rope_couplings) {
+            if (!owner || !owner->alive || !owner->options.enabled) continue;
+            auto &coupling = *owner;
+            auto &smoke = *state_.smokes[coupling.options.smoke.index];
+            const bool grid = smoke.options.grid_resolution != 0U;
+            const auto actual_pair = grid
+                ? simulation::DeformableSmokeCouplingPair::rope_smoke_grid
+                : simulation::DeformableSmokeCouplingPair::
+                      rope_smoke_particle;
+            if (pair != actual_pair) continue;
+            auto &rope = *state_.ropes[coupling.options.rope.index];
+            const auto field = staged_smoke_grid(smoke);
+            if (mode ==
+                simulation::DeformableSmokeCouplingMode::contact) {
+                const auto groups =
+                    (smoke.options.capacity + block - 1U) / block;
+                const float clearance =
+                    coupling.options.contact_distance > 0.0F
+                    ? coupling.options.contact_distance
+                    : smoke.options.particle_radius +
+                          rope.data.options.radius;
+                native_.collide_smoke_with_rope(
+                    groups, block, native_.queue(),
+                    smoke.realtime_positions,
+                    smoke.realtime_previous_positions,
+                    smoke.realtime_velocities, smoke.realtime_ages,
+                    smoke.realtime_pending_count,
+                    native_.smoke_dispatch_options(smoke.options),
+                    rope.realtime_positions, rope.realtime_velocities,
+                    rope.data.count, coupling.minimum, coupling.maximum,
+                    clearance);
+            } else {
+                const auto groups =
+                    (rope.data.count + block - 1U) / block;
+                native_.apply_smoke_wind_to_rope(
+                    groups, block, native_.queue(),
+                    rope.realtime_positions, rope.realtime_velocities,
+                    rope.data.count, rope.data.options.maximum_speed,
+                    rope.data.options.first.enabled,
+                    rope.data.options.last.enabled, rope.data.soft_first,
+                    rope.data.soft_last,
+                    native_.smoke_dispatch_options(smoke.options),
+                    smoke.realtime_positions, smoke.realtime_velocities,
+                    smoke.keys[1], smoke.indices[1], field,
+                    coupling.options.wind_drag,
+                    coupling.options.maximum_wind_acceleration, dt);
+            }
+        }
+        return native_.check_error();
+    }
+
+    PmResult apply_smoke_deformable_couplings(
+        const simulation::RealtimeScheduleScene &scene) noexcept {
+        auto result = prepare_smoke_deformable_contacts();
+        if (result != PM_SUCCESS) return result;
+        result = index_smoke_for_deformable_drag();
+        if (result != PM_SUCCESS) return result;
+        const float dt = scene.timestep / static_cast<float>(
+            simulation::deformable_smoke_coupling_sweeps);
+        constexpr simulation::DeformableSmokeCouplingMode modes[]{
+            simulation::DeformableSmokeCouplingMode::contact,
+            simulation::DeformableSmokeCouplingMode::drag};
+        constexpr simulation::DeformableSmokeCouplingPair cloth_pairs[]{
+            simulation::DeformableSmokeCouplingPair::cloth_smoke_particle,
+            simulation::DeformableSmokeCouplingPair::cloth_smoke_grid};
+        constexpr simulation::DeformableSmokeCouplingPair soft_pairs[]{
+            simulation::DeformableSmokeCouplingPair::
+                soft_body_smoke_particle,
+            simulation::DeformableSmokeCouplingPair::soft_body_smoke_grid};
+        constexpr simulation::DeformableSmokeCouplingPair rope_pairs[]{
+            simulation::DeformableSmokeCouplingPair::rope_smoke_particle,
+            simulation::DeformableSmokeCouplingPair::rope_smoke_grid};
+        for (std::uint32_t sweep = 0U;
+             sweep < simulation::deformable_smoke_coupling_sweeps; ++sweep) {
+            for (const auto pair : cloth_pairs)
+                for (const auto mode : modes) {
+                    result = apply_smoke_cloth_couplings(pair, mode, dt);
+                    if (result != PM_SUCCESS) return result;
+                }
+            for (const auto pair : soft_pairs)
+                for (const auto mode : modes) {
+                    result = apply_smoke_soft_body_couplings(pair, mode, dt);
+                    if (result != PM_SUCCESS) return result;
+                }
+            for (const auto pair : rope_pairs)
+                for (const auto mode : modes) {
+                    result = apply_smoke_rope_couplings(pair, mode, dt);
+                    if (result != PM_SUCCESS) return result;
+                }
+        }
+        return PM_SUCCESS;
+    }
+
+    PmResult apply_smoke_couplings(
+        const simulation::RealtimeScheduleScene &scene) noexcept {
+        if (std::any_of(state_.smoke_rigid_couplings.begin(),
+                        state_.smoke_rigid_couplings.end(),
+                        [](const auto &owner) {
+                            return owner && owner->alive &&
+                                owner->options.enabled;
+                        })) {
+            const auto result = apply_smoke_rigid_couplings(scene);
+            if (result != PM_SUCCESS) return result;
+        }
+        if (deformable_coupling_count_ != 0U) {
+            const auto result = apply_smoke_deformable_couplings(scene);
+            if (result != PM_SUCCESS) return result;
+        }
+        return PM_SUCCESS;
+    }
+
     PmResult stage_coupling_buffers(
         simulation::RealtimeWorkCounters &boundary_work) noexcept {
         for (const auto &slot : state_.slots)
@@ -4557,6 +5260,60 @@ private:
                     state_.realtime_coupling_active_host[record] = 1U;
                 }
             }
+            constexpr simulation::RigidCouplingFamily smoke_families[]{
+                simulation::RigidCouplingFamily::smoke_particle,
+                simulation::RigidCouplingFamily::smoke_grid};
+            constexpr simulation::RigidCouplingMode smoke_modes[]{
+                simulation::RigidCouplingMode::contact,
+                simulation::RigidCouplingMode::drag};
+            for (const auto family : smoke_families) {
+                for (const auto mode : smoke_modes) {
+                    for (std::uint32_t slot = 0U;
+                         slot < state_.smoke_rigid_couplings.size(); ++slot) {
+                        const auto &owner =
+                            state_.smoke_rigid_couplings[slot];
+                        if (!owner || !owner->alive ||
+                            !owner->options.enabled)
+                            continue;
+                        const auto &options = owner->options;
+                        if (options.smoke.index >= state_.smokes.size() ||
+                            !state_.smokes[options.smoke.index] ||
+                            !state_.smokes[options.smoke.index]->alive ||
+                            state_.smokes[options.smoke.index]->generation !=
+                                options.smoke.generation ||
+                            options.body.index >= state_.slots.size())
+                            return PM_ERROR_INVALID_STATE;
+                        const auto &body_slot =
+                            state_.slots[options.body.index];
+                        if (!body_slot.alive ||
+                            body_slot.generation != options.body.generation ||
+                            body_slot.dense_index >= state_.rigid_body_count ||
+                            owner->mesh.index >=
+                                state_.options.triangle_mesh_capacity ||
+                            !state_.meshes[owner->mesh.index].alive ||
+                            state_.meshes[owner->mesh.index].generation !=
+                                owner->mesh.generation)
+                            return PM_ERROR_INVALID_STATE;
+                        const auto actual_family =
+                            state_.smokes[options.smoke.index]
+                                    ->options.grid_resolution == 0U
+                                ? simulation::RigidCouplingFamily::
+                                      smoke_particle
+                                : simulation::RigidCouplingFamily::smoke_grid;
+                        if (actual_family != family) continue;
+                        if (!add_rigid(0x400000000ULL +
+                                std::uint64_t{
+                                    static_cast<std::uint32_t>(family)} *
+                                    0x1000000ULL +
+                                std::uint64_t{
+                                    static_cast<std::uint32_t>(mode)} *
+                                    0x100000ULL + slot,
+                                family, mode, options.smoke.generation,
+                                options.body.generation))
+                            return PM_ERROR_CAPACITY_EXCEEDED;
+                    }
+                }
+            }
         }
 
         const auto add_deformable = [&](std::uint64_t edge_id,
@@ -4621,6 +5378,55 @@ private:
                         simulation::DeformableSmokeCouplingMode::attachment);
                 state_.realtime_coupling_responses_host[record] = 0.995F;
                 state_.realtime_coupling_active_host[record] = 1U;
+            }
+        }
+        constexpr simulation::DeformableSmokeCouplingPair
+            cloth_smoke_pairs[]{
+                simulation::DeformableSmokeCouplingPair::
+                    cloth_smoke_particle,
+                simulation::DeformableSmokeCouplingPair::cloth_smoke_grid};
+        constexpr simulation::DeformableSmokeCouplingMode
+            deformable_smoke_modes[]{
+            simulation::DeformableSmokeCouplingMode::contact,
+            simulation::DeformableSmokeCouplingMode::drag};
+        for (const auto pair : cloth_smoke_pairs) {
+            for (const auto mode : deformable_smoke_modes) {
+                for (std::uint32_t slot = 0U;
+                     slot < state_.smoke_cloth_couplings.size(); ++slot) {
+                    const auto &owner = state_.smoke_cloth_couplings[slot];
+                    if (!owner || !owner->alive || !owner->options.enabled)
+                        continue;
+                    const auto &options = owner->options;
+                    if (options.smoke.index >= state_.smokes.size() ||
+                        options.cloth.index >= state_.cloths.size() ||
+                        !state_.smokes[options.smoke.index] ||
+                        !state_.cloths[options.cloth.index] ||
+                        !state_.smokes[options.smoke.index]->alive ||
+                        !state_.cloths[options.cloth.index]->alive ||
+                        state_.smokes[options.smoke.index]->generation !=
+                            options.smoke.generation ||
+                        state_.cloths[options.cloth.index]->generation !=
+                            options.cloth.generation)
+                        return PM_ERROR_INVALID_STATE;
+                    const auto actual_pair =
+                        state_.smokes[options.smoke.index]
+                                ->options.grid_resolution == 0U
+                            ? simulation::DeformableSmokeCouplingPair::
+                                  cloth_smoke_particle
+                            : simulation::DeformableSmokeCouplingPair::
+                                  cloth_smoke_grid;
+                    if (actual_pair != pair) continue;
+                    if (!add_deformable(0x430000000ULL +
+                            std::uint64_t{
+                                static_cast<std::uint32_t>(pair)} *
+                                0x1000000ULL +
+                            std::uint64_t{
+                                static_cast<std::uint32_t>(mode)} *
+                                0x100000ULL + slot,
+                            pair, mode, options.cloth.generation,
+                            options.smoke.generation))
+                        return PM_ERROR_CAPACITY_EXCEEDED;
+                }
             }
         }
         for (std::uint32_t slot = 0U;
@@ -4695,6 +5501,98 @@ private:
                         simulation::DeformableSmokeCouplingMode::attachment);
                 state_.realtime_coupling_responses_host[record] = 0.995F;
                 state_.realtime_coupling_active_host[record] = 1U;
+            }
+        }
+        constexpr simulation::DeformableSmokeCouplingPair
+            soft_smoke_pairs[]{
+                simulation::DeformableSmokeCouplingPair::
+                    soft_body_smoke_particle,
+                simulation::DeformableSmokeCouplingPair::
+                    soft_body_smoke_grid};
+        for (const auto pair : soft_smoke_pairs) {
+            for (const auto mode : deformable_smoke_modes) {
+                for (std::uint32_t slot = 0U;
+                     slot < state_.smoke_soft_body_couplings.size(); ++slot) {
+                    const auto &owner =
+                        state_.smoke_soft_body_couplings[slot];
+                    if (!owner || !owner->alive || !owner->options.enabled)
+                        continue;
+                    const auto &options = owner->options;
+                    if (options.smoke.index >= state_.smokes.size() ||
+                        options.soft_body.index >= state_.soft_bodies.size() ||
+                        !state_.smokes[options.smoke.index] ||
+                        !state_.soft_bodies[options.soft_body.index] ||
+                        !state_.smokes[options.smoke.index]->alive ||
+                        !state_.soft_bodies[options.soft_body.index]->alive ||
+                        state_.smokes[options.smoke.index]->generation !=
+                            options.smoke.generation ||
+                        state_.soft_bodies[options.soft_body.index]
+                                ->generation != options.soft_body.generation)
+                        return PM_ERROR_INVALID_STATE;
+                    const auto actual_pair =
+                        state_.smokes[options.smoke.index]
+                                ->options.grid_resolution == 0U
+                            ? simulation::DeformableSmokeCouplingPair::
+                                  soft_body_smoke_particle
+                            : simulation::DeformableSmokeCouplingPair::
+                                  soft_body_smoke_grid;
+                    if (actual_pair != pair) continue;
+                    if (!add_deformable(0x460000000ULL +
+                            std::uint64_t{
+                                static_cast<std::uint32_t>(pair)} *
+                                0x1000000ULL +
+                            std::uint64_t{
+                                static_cast<std::uint32_t>(mode)} *
+                                0x100000ULL + slot,
+                            pair, mode, options.soft_body.generation,
+                            options.smoke.generation))
+                        return PM_ERROR_CAPACITY_EXCEEDED;
+                }
+            }
+        }
+        constexpr simulation::DeformableSmokeCouplingPair
+            rope_smoke_pairs[]{
+                simulation::DeformableSmokeCouplingPair::
+                    rope_smoke_particle,
+                simulation::DeformableSmokeCouplingPair::rope_smoke_grid};
+        for (const auto pair : rope_smoke_pairs) {
+            for (const auto mode : deformable_smoke_modes) {
+                for (std::uint32_t slot = 0U;
+                     slot < state_.smoke_rope_couplings.size(); ++slot) {
+                    const auto &owner = state_.smoke_rope_couplings[slot];
+                    if (!owner || !owner->alive || !owner->options.enabled)
+                        continue;
+                    const auto &options = owner->options;
+                    if (options.smoke.index >= state_.smokes.size() ||
+                        options.rope.index >= state_.ropes.size() ||
+                        !state_.smokes[options.smoke.index] ||
+                        !state_.ropes[options.rope.index] ||
+                        !state_.smokes[options.smoke.index]->alive ||
+                        !state_.ropes[options.rope.index]->alive ||
+                        state_.smokes[options.smoke.index]->generation !=
+                            options.smoke.generation ||
+                        state_.ropes[options.rope.index]->generation !=
+                            options.rope.generation)
+                        return PM_ERROR_INVALID_STATE;
+                    const auto actual_pair =
+                        state_.smokes[options.smoke.index]
+                                ->options.grid_resolution == 0U
+                            ? simulation::DeformableSmokeCouplingPair::
+                                  rope_smoke_particle
+                            : simulation::DeformableSmokeCouplingPair::
+                                  rope_smoke_grid;
+                    if (actual_pair != pair) continue;
+                    if (!add_deformable(0x480000000ULL +
+                            std::uint64_t{
+                                static_cast<std::uint32_t>(pair)} *
+                                0x1000000ULL +
+                            std::uint64_t{
+                                static_cast<std::uint32_t>(mode)} *
+                                0x100000ULL + slot,
+                            pair, mode, options.rope.generation,
+                            options.smoke.generation))
+                        return PM_ERROR_CAPACITY_EXCEEDED;
+                }
             }
         }
         return liquid_coupling_count_ == scene.coupling_edges[
