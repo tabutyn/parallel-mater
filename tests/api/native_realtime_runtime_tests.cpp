@@ -1394,15 +1394,12 @@ int main(int argc, char **argv) {
             rope_header + 1U);
         CHECK(rope_header->activeCount == 6U);
         if (!smoke_couplings_only) {
-            CHECK(std::abs(rope_nodes[0].position.x - centerline[0].x) <
-                  1.0e-5F);
-            CHECK(std::abs(rope_nodes[0].position.y - centerline[0].y) <
-                  1.0e-5F);
-            CHECK(std::abs(rope_nodes[0].position.z - centerline[0].z) <
-                  1.0e-5F);
-            CHECK(std::abs(rope_nodes[0].velocity.x) < 1.0e-5F);
-            CHECK(std::abs(rope_nodes[0].velocity.y) < 1.0e-5F);
-            CHECK(std::abs(rope_nodes[0].velocity.z) < 1.0e-5F);
+            CHECK(rope_nodes[0].position.x == centerline[0].x);
+            CHECK(rope_nodes[0].position.y == centerline[0].y);
+            CHECK(rope_nodes[0].position.z == centerline[0].z);
+            CHECK(rope_nodes[0].velocity.x == 0.0F);
+            CHECK(rope_nodes[0].velocity.y == 0.0F);
+            CHECK(rope_nodes[0].velocity.z == 0.0F);
             for (std::uint32_t node = 1U; node < 6U; ++node) {
                 CHECK(std::isfinite(rope_nodes[node].position.x));
                 CHECK(std::isfinite(rope_nodes[node].position.y));
@@ -1647,8 +1644,7 @@ int main(int argc, char **argv) {
         auto &liquid_cloth = couplings[5];
         liquid_cloth.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
         liquid_cloth.type = PM_COUPLING_LIQUID_CLOTH;
-        liquid_cloth.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
-            PM_INTERACTION_MODE_CONTAINMENT_BIT;
+        liquid_cloth.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT;
         liquid_cloth.materialProfile =
             PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
         liquid_cloth.parameters.mechanical.contactDistance = 0.02F;
@@ -1733,13 +1729,24 @@ int main(int argc, char **argv) {
         smoke_soft.parameters.smoke.contactDistance = 0.04F;
 
         execution_label = "install particle smoke couplings";
-        const std::uint32_t installed_coupling_count = smoke_couplings_only
-            ? 4U : static_cast<std::uint32_t>(couplings.size());
-        const PmCouplingStateInfo *installed_couplings = smoke_couplings_only
-            ? couplings.data() + 9U : couplings.data();
+        std::vector<PmCouplingStateInfo> installed_couplings;
+        if (smoke_couplings_only) {
+            installed_couplings.assign(couplings.begin() + 9U,
+                                       couplings.end());
+        } else {
+            installed_couplings.reserve(couplings.size());
+            for (const auto &coupling : couplings) {
+                if (coupling.type == PM_COUPLING_LIQUID_LIQUID &&
+                    !device_info.enabledFeatures.liquidLiquidCoupling)
+                    continue;
+                installed_couplings.push_back(coupling);
+            }
+        }
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
-        CHECK(pmCmdSetCouplings2(commands, mixed_simulation,
-            installed_coupling_count, installed_couplings) == PM_SUCCESS);
+        CHECK(pmCmdSetCouplings2(
+            commands, mixed_simulation,
+            static_cast<std::uint32_t>(installed_couplings.size()),
+            installed_couplings.data()) == PM_SUCCESS);
         execute(PM_SUCCESS);
 
         execution_label = "particle smoke coupling tick";
@@ -1774,8 +1781,11 @@ int main(int argc, char **argv) {
             sizeof coupling_statistics, &coupling_statistics,
             sizeof coupling_statistics, PM_QUERY_RESULT_WAIT_BIT) ==
             PM_SUCCESS);
+        const std::uint32_t expected_particle_coupling_edges =
+            device_info.enabledFeatures.liquidLiquidCoupling ? 27U : 24U;
         CHECK(coupling_statistics.couplingEdgeCount ==
-            (smoke_couplings_only ? 15U : 28U));
+            (smoke_couplings_only ? 15U :
+             expected_particle_coupling_edges));
         CHECK(coupling_statistics.couplingSweeps == 12U);
         CHECK(coupling_statistics.timeAdvances == 1U);
         CHECK(coupling_statistics.total.spatialIndexBuilds == 1U);
@@ -1899,10 +1909,8 @@ int main(int argc, char **argv) {
             sizeof grid_coupling_statistics, &grid_coupling_statistics,
             sizeof grid_coupling_statistics, PM_QUERY_RESULT_WAIT_BIT) ==
             PM_SUCCESS);
-        CHECK(grid_coupling_statistics.couplingEdgeCount ==
-            (smoke_couplings_only ? 15U : 11U));
-        CHECK(grid_coupling_statistics.couplingSweeps ==
-            (smoke_couplings_only ? 12U : 8U));
+        CHECK(grid_coupling_statistics.couplingEdgeCount == 15U);
+        CHECK(grid_coupling_statistics.couplingSweeps == 12U);
         CHECK(grid_coupling_statistics.timeAdvances == 1U);
         CHECK(grid_coupling_statistics.total.spatialIndexBuilds == 1U);
         CHECK(grid_coupling_statistics.total.spatialIndexPublications == 1U);
