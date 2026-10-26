@@ -1258,7 +1258,7 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
             parallel-mater-slang-d3d12-realtime-tests PROPERTIES
             TIMEOUT 300 LABELS "api;d3d12;gpu;realtime;f8"
             ENVIRONMENT
-                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json")
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json;PM_TEST_TRACE=1")
     endif()
 endif()
 if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)
