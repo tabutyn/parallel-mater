@@ -274,7 +274,7 @@ void apply_smoke_grid_force_to_cloth(
 
 void apply_smoke_grid_force_to_rigid_body(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *meshes,
-    std::uint32_t mesh_index, std::uint32_t body,
+    std::uint32_t mesh_index, std::uint32_t body_index,
     const void *body_parameters, void *body_states,
     const SmokeGridDispatchField &field, float air_density,
     float drag_coefficient, float density_scale, float kinematic_viscosity,

@@ -1311,7 +1311,7 @@ void smoke_grid_raster_soft(
 [numthreads(PM_THREADS(128), 1, 1)]
 void smoke_grid_rigid_force(
     uniform PMBuffer<TriangleMeshResource> meshes, uniform uint mesh_index,
-    uniform uint body,
+    uniform uint body_index,
     uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<RigidBodyState> states,
     uniform SmokeGridField grid, uniform float air_density,
     uniform float drag_coefficient, uniform float density_scale,
@@ -1323,7 +1323,7 @@ void smoke_grid_rigid_force(
     uint lane = pmGroupThreadIndex().x;
     Vec3 localLinear = {};
     Vec3 localAngular = {};
-    RigidBodyState state = states[body];
+    RigidBodyState state = states[body_index];
     for (uint triangle = lane; triangle < mesh.index_count / 3u;
          triangle += pmGroupSize().x)
     {
@@ -1386,9 +1386,10 @@ void smoke_grid_rigid_force(
         }
         pmGroupBarrier();
     }
-    if (lane != 0u || parameters[body].motion != MotionType.dynamic) return;
+    if (lane != 0u ||
+        parameters[body_index].motion != MotionType.dynamic) return;
     RigidBodyState next = state;
-    BodyParameters settings = parameters[body];
+    BodyParameters settings = parameters[body_index];
     next.linear_velocity = clamp_length(add(next.linear_velocity, multiply(
         smoke_grid_rigid_linear[0], dt * settings.inverse_mass)),
         settings.maximum_linear_speed);
@@ -1396,7 +1397,7 @@ void smoke_grid_rigid_force(
         inverse_inertia_world(settings, next,
             multiply(smoke_grid_rigid_angular[0], dt))),
         settings.maximum_angular_speed);
-    states[body] = next;
+    states[body_index] = next;
 }
 
 // realtime-single-step v1 grid smoke uses bounded semi-Lagrangian transport,

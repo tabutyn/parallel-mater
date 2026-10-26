@@ -443,6 +443,25 @@ for required in ("fluid_soft_nearest_shared", "candidate_counts", "candidate_sou
             f"src/slang/fluid_soft_body.slang:fluid_soft_detect: missing {required}"
         )
 
+# Vulkan and D3D12 translate mesh tables from the reflected body-index bound.
+# Keep this name explicit so smoke-grid rigid force cannot regress to an
+# unbounded host mesh translation.
+smoke_grid_rigid = shader_entry(
+    "src/slang/smoke_grid.slang", "smoke_grid_rigid_force")
+for required in ("uniform uint body_index", "PMBuffer<BodyParameters> parameters"):
+    if required not in smoke_grid_rigid:
+        failures.append(
+            "src/slang/smoke_grid.slang:smoke_grid_rigid_force: missing "
+            f"translated mesh bound {required}"
+        )
+smoke_grid_dispatch = (ROOT / "src/simulation/smoke_grid_dispatch.cu").read_text(
+    encoding="utf-8")
+if "std::uint32_t mesh_index, std::uint32_t body_index" not in smoke_grid_dispatch:
+    failures.append(
+        "src/simulation/smoke_grid_dispatch.cu: smoke-grid rigid wrapper "
+        "does not expose the translated body_index mesh bound"
+    )
+
 for retired_production_call in (
     "calculate_fluid_body_bounds(",
     "index_fluid_body_cells(",
