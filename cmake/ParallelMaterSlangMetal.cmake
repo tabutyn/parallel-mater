@@ -70,4 +70,20 @@ if(BUILD_TESTING)
     add_test(NAME parallel-mater-slang-metal-async-tests COMMAND parallel-mater-slang-metal-async-tests)
     set_tests_properties(parallel-mater-slang-metal-async-tests PROPERTIES TIMEOUT 120
         ENVIRONMENT "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-metal.json")
+    add_executable(parallel-mater-slang-metal-realtime-tests
+        tests/api/native_realtime_runtime_tests.cpp)
+    target_compile_features(parallel-mater-slang-metal-realtime-tests
+        PRIVATE cxx_std_20)
+    target_compile_definitions(parallel-mater-slang-metal-realtime-tests
+        PRIVATE PM_TEST_METAL_AVBD_BATCHING=1)
+    target_link_libraries(parallel-mater-slang-metal-realtime-tests
+        PRIVATE parallel-mater)
+    add_dependencies(parallel-mater-slang-metal-realtime-tests
+        parallel-mater-driver-slang-metal)
+    add_test(NAME parallel-mater-slang-metal-realtime-tests
+        COMMAND parallel-mater-slang-metal-realtime-tests --production)
+    set_tests_properties(parallel-mater-slang-metal-realtime-tests PROPERTIES
+        TIMEOUT 300 LABELS "api;metal;gpu;realtime;f8"
+        ENVIRONMENT
+            "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-metal.json")
 endif()

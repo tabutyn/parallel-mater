@@ -2137,6 +2137,21 @@ int main(int argc, char **argv) {
     CHECK(statistics.domainIterations[0] == 8U);
     CHECK(statistics.couplingEdgeCount == 0U);
     CHECK(statistics.couplingSweeps == 0U);
+#if defined(PM_TEST_METAL_AVBD_BATCHING)
+    std::printf(
+        "F8_METAL_REALTIME_WORK total_dispatches=%llu total_workgroups=%llu "
+        "domain_dispatches=%llu domain_workgroups=%llu barriers=%llu "
+        "time_advances=%llu rigid_iterations=%llu\n",
+        static_cast<unsigned long long>(statistics.total.dispatches),
+        static_cast<unsigned long long>(statistics.total.workgroups),
+        static_cast<unsigned long long>(
+            statistics.phases[PM_REALTIME_WORK_PHASE_DOMAIN].dispatches),
+        static_cast<unsigned long long>(
+            statistics.phases[PM_REALTIME_WORK_PHASE_DOMAIN].workgroups),
+        static_cast<unsigned long long>(statistics.total.barriers),
+        static_cast<unsigned long long>(statistics.timeAdvances),
+        static_cast<unsigned long long>(statistics.domainIterations[0]));
+#endif
     std::uint64_t phase_dispatches{};
     for (std::uint32_t index = 0U;
          index < PM_REALTIME_WORK_PHASE_COUNT; ++index)
