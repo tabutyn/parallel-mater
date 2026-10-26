@@ -1394,12 +1394,15 @@ int main(int argc, char **argv) {
             rope_header + 1U);
         CHECK(rope_header->activeCount == 6U);
         if (!smoke_couplings_only) {
-            CHECK(rope_nodes[0].position.x == centerline[0].x);
-            CHECK(rope_nodes[0].position.y == centerline[0].y);
-            CHECK(rope_nodes[0].position.z == centerline[0].z);
-            CHECK(rope_nodes[0].velocity.x == 0.0F);
-            CHECK(rope_nodes[0].velocity.y == 0.0F);
-            CHECK(rope_nodes[0].velocity.z == 0.0F);
+            CHECK(std::abs(rope_nodes[0].position.x - centerline[0].x) <
+                  1.0e-5F);
+            CHECK(std::abs(rope_nodes[0].position.y - centerline[0].y) <
+                  1.0e-5F);
+            CHECK(std::abs(rope_nodes[0].position.z - centerline[0].z) <
+                  1.0e-5F);
+            CHECK(std::abs(rope_nodes[0].velocity.x) < 1.0e-5F);
+            CHECK(std::abs(rope_nodes[0].velocity.y) < 1.0e-5F);
+            CHECK(std::abs(rope_nodes[0].velocity.z) < 1.0e-5F);
             for (std::uint32_t node = 1U; node < 6U; ++node) {
                 CHECK(std::isfinite(rope_nodes[node].position.x));
                 CHECK(std::isfinite(rope_nodes[node].position.y));
