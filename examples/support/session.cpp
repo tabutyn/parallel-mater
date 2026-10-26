@@ -43,7 +43,6 @@ GallerySession::GallerySession(GallerySessionConfig config) : config_(std::move(
         if (!profile) throw std::runtime_error("Gallery workload profile missing");
         limits = *profile;
     }
-    frame_policy_.apply_workload(&limits, config_.frame_profile);
     parameters_.bricks = config_.bricks.value_or(
         BrickSceneConfig{limits.brick_count, 1.0F, 1U});
     parameters_.dump_spheres = config_.dump_spheres != 0U
@@ -118,6 +117,8 @@ void GallerySession::select(unsigned index) {
                 scene, parameters.dump_spheres, failure)) return false;
         scene.smoke_options.capacity = std::min(
             scene.smoke_options.capacity, selected_limits.smoke_particles);
+        if (!apply_gallery_fixed_tick_material_contract(scene, failure))
+            return false;
         return !validate || validate(context, scene, failure);
     };
     const bool gpu_rendering = config_.gpu_rendering;
@@ -590,15 +591,12 @@ GalleryPresentationState GallerySession::presentation() const {
         .controls = controls,
         .count_kind = selected.scene.count_kind,
         .workload_profile = limits.name,
-        .frame_profile = gallery_frame_profile_name(frame_policy_.profile()),
+        .execution_contract = gallery_execution_contract,
         .fluid_particle_limit = limits.fluid_particles,
         .coupled_body_limit = limits.coupled_bodies,
         .width = width,
         .height = height,
-        .target_updates_per_second =
-            frame_policy_.profile() ==
-                    GalleryFrameProfile::realtime_single_step_v1
-                ? GalleryFramePolicy::default_target_fps : limits.target_fps,
+        .target_updates_per_second = GalleryFramePolicy::default_target_fps,
         .particle_count = particle_count(),
         .moving_body_count = moving_bodies(),
         .host_work_frames_per_second = timing.fps(),
@@ -608,10 +606,7 @@ GalleryPresentationState GallerySession::presentation() const {
         .interpolation_history_valid =
             frame_policy_.interpolation_history_valid(),
         .presentation_latency_ticks =
-            frame_policy_.profile() ==
-                    GalleryFrameProfile::realtime_single_step_v1 &&
-                    frame_policy_.interpolation_history_valid()
-                ? 1U : 0U,
+            frame_policy_.interpolation_history_valid() ? 1U : 0U,
         .latest_timing = timing.latest(),
         .build_revision = PM_GALLERY_BUILD_REVISION,
     };

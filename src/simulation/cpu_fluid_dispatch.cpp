@@ -677,6 +677,8 @@ void solve_fluid_realtime_density(
     std::uint32_t candidates_per_query,
     const FluidDispatchConstants &values, float timestep,
     std::uint32_t profile_version, float *densities, float *lambdas,
+    std::uint32_t record_neighbors, std::uint32_t *neighbor_overflow,
+    std::uint32_t *maximum_neighbor_count,
     std::uint32_t *status) noexcept {
     EntryPointParams_26 args{
         const_cast<FluidSpatialLeafMetadata_0 *>(
@@ -688,6 +690,7 @@ void solve_fluid_realtime_density(
         const_cast<std::uint32_t *>(filtered_counts),
         const_cast<std::uint32_t *>(filtered_sources), candidates_per_query,
         constants(values), timestep, profile_version, densities, lambdas,
+        record_neighbors, neighbor_overflow, maximum_neighbor_count,
         status};
     device::dispatch_cpu(
         grid, block, fluid_realtime_density_lambda_Thread, &args);

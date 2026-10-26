@@ -93,7 +93,8 @@ void trace_smoke_grid_realtime_particles(
     device::ExecutionQueue stream, void *positions,
     void *previous_positions, void *velocities, float *ages,
     float *thermal_lift, float *number_densities, float *pressures,
-    void *vorticities, std::uint32_t count,
+    void *vorticities, std::uint32_t count, std::uint32_t first_emit_slot,
+    std::uint32_t emit_count, std::uint64_t first_emit_serial,
     const SmokeDomainDispatchOptions &options,
     const SmokeGridDispatchField &field, float timestep,
     std::uint32_t profile_version, std::uint32_t *status) noexcept;

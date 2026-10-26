@@ -46,7 +46,7 @@ struct GalleryPresentationState {
     GalleryCountKind count_kind{GalleryCountKind::none};
 
     std::string_view workload_profile;
-    std::string_view frame_profile;
+    std::string_view execution_contract;
     std::uint32_t fluid_particle_limit{};
     std::uint32_t coupled_body_limit{};
     unsigned width{};

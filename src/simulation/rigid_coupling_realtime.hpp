@@ -18,7 +18,7 @@ inline constexpr std::uint32_t rigid_coupling_realtime_profile_version = 1U;
 inline constexpr std::uint32_t rigid_coupling_realtime_sweeps = 4U;
 inline constexpr std::uint32_t rigid_coupling_realtime_dispatches_per_sweep =
     3U;
-inline constexpr std::uint32_t rigid_coupling_realtime_maximum_edges = 16U;
+inline constexpr std::uint32_t rigid_coupling_realtime_maximum_edges = 64U;
 inline constexpr float rigid_coupling_realtime_timestep = 1.0F / 60.0F;
 inline constexpr std::uint32_t rigid_coupling_realtime_status_invalid_profile =
     1U << 17U;

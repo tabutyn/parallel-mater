@@ -76,7 +76,7 @@ std::string details_text(
          << "\nRenderer: " << renderer_label(state)
          << "\nReadback: " << readback_label(state.readback)
          << "\n\nProfile: " << state.workload_profile
-         << " · clock " << state.frame_profile
+         << " · execution " << state.execution_contract
          << "\n" << state.fluid_particle_limit << " liquid particles · "
          << state.coupled_body_limit << " coupled bodies"
          << "\n" << state.width << " × " << state.height << " · target "
@@ -342,7 +342,12 @@ UIImage *frame_image(const GallerySession &session) {
     [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(foreground)
         name:UIApplicationDidBecomeActiveNotification object:nil];
     _display = [CADisplayLink displayLinkWithTarget:self selector:@selector(tick:)];
-    _display.preferredFrameRateRange = CAFrameRateRangeMake(15, 30, 30);
+    const NSInteger displayMaximum =
+        std::max<NSInteger>(1, UIScreen.mainScreen.maximumFramesPerSecond);
+    const NSInteger displayPreferred = std::min<NSInteger>(60, displayMaximum);
+    const NSInteger displayMinimum = std::min<NSInteger>(30, displayPreferred);
+    _display.preferredFrameRateRange = CAFrameRateRangeMake(
+        displayMinimum, displayMaximum, displayPreferred);
     [_display addToRunLoop:NSRunLoop.mainRunLoop forMode:NSRunLoopCommonModes];
     dispatch_async(_worker, ^{
         @autoreleasepool {
@@ -526,6 +531,7 @@ UIImage *frame_image(const GallerySession &session) {
         const auto view = _session->presentation();
         write_report(@"runtime-info.json", @{
             @"revision":text(view.build_revision), @"backend":text(view.backend),
+            @"execution_contract":text(view.execution_contract),
             @"pid":@(getpid()),
             @"device":text(view.device), @"nonce":argument(@"--deployment-nonce") ?: @"",
             @"backgrounds":@(_backgrounds), @"foregrounds":@(_foregrounds),
@@ -600,6 +606,8 @@ UIImage *frame_image(const GallerySession &session) {
         @"nonce":nonce,
         @"revision":text(GallerySession::build_revision()),
         @"backend":@"slang-metal",
+        @"execution_contract":text(
+            parallel_mater::gallery::gallery_execution_contract),
         @"completed":@NO,
         @"artifacts":artifacts
     } mutableCopy];

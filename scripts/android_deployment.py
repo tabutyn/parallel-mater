@@ -16,6 +16,7 @@ import zipfile
 PACKAGE = "org.parallelmater.gallery"
 DRIVER_MEMBER = "lib/arm64-v8a/libparallel_mater_driver_slang_vulkan.so"
 PIXEL_7 = {"manufacturer": "Google", "model": "Pixel 7", "product": "panther"}
+EXECUTION_CONTRACT = "fixed-tick-60hz-v1"
 
 
 class DeploymentError(RuntimeError):
@@ -127,11 +128,14 @@ def verify_runtime_identity(runtime, nonce, source):
         "source_revision": source["revision"],
         "source_dirty": source["dirty"],
         "source_patch_sha256": source["patch_sha256"],
+        "execution_contract": EXECUTION_CONTRACT,
     }
     mismatches = [name for name, value in expected.items()
                   if build.get(name) != value]
     if runtime.get("revision") != source["revision"]:
         mismatches.append("native_revision")
+    if runtime.get("execution_contract") != EXECUTION_CONTRACT:
+        mismatches.append("native_execution_contract")
     if mismatches:
         raise DeploymentError(
             "runtime build identity mismatch: " + ", ".join(mismatches))

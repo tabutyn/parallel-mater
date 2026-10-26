@@ -186,14 +186,16 @@ void trace_smoke_grid_realtime_particles(
     device::ExecutionQueue stream, void *positions,
     void *previous_positions, void *velocities, float *ages,
     float *thermal_lift, float *number_densities, float *pressures,
-    void *vorticities, std::uint32_t count,
+    void *vorticities, std::uint32_t count, std::uint32_t first_emit_slot,
+    std::uint32_t emit_count, std::uint64_t first_emit_serial,
     const SmokeDomainDispatchOptions &options,
     const SmokeGridDispatchField &field, float timestep,
     std::uint32_t profile_version, std::uint32_t *status) noexcept {
     smoke_realtime_grid_trace<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions), as<Vec3_0>(previous_positions),
         as<Vec3_0>(velocities), ages, thermal_lift, number_densities,
-        pressures, as<Vec3_0>(vorticities), count, smoke_options(options),
+        pressures, as<Vec3_0>(vorticities), count, first_emit_slot,
+        emit_count, first_emit_serial, smoke_options(options),
         grid_field(field), timestep, profile_version, status);
 }
 

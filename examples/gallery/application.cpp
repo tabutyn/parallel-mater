@@ -561,6 +561,7 @@ static int run_gallery_application(
               << desktop_action_help(scene_catalog[startup.selection].scene)
               << '\n';
     std::cout << "Build revision: " << startup.build_revision << '\n';
+    std::cout << "Execution contract: " << startup.execution_contract << '\n';
     std::uint32_t dump_spheres = options.dump_spheres;
     std::uint32_t fluid_particles = options.fluid_particles;
     std::optional<CalibrationResult> last_calibration;

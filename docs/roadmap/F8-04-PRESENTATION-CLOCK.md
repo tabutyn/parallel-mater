@@ -1,13 +1,10 @@
 # F8-04: fixed-tick presentation clock
 
-Status: implemented client clock scaffolding for the explicit
-`realtime-single-step-v1` Gallery frame profile. This clock profile does not by
-itself advertise solver execution support or select the API simulation profile;
-those remain negotiated by the F8 runtime work. `legacy-v1` remains the current
-code default. The [single execution path decision](F8-SINGLE-EXECUTION-PATH.md)
-requires F8-51 to remove this selection and make the fixed-tick clock normal
-Gallery behavior after the production runtime migration in F8-50. The default
-described here is an implementation gap, not the intended released behavior.
+Status: implemented as the sole Gallery execution contract,
+`fixed-tick-60hz-v1`. The [single execution path
+decision](F8-SINGLE-EXECUTION-PATH.md) removed the former legacy/profile
+selection after the production runtime migration in F8-50. Workload profiles
+still select resource budgets, but cannot change physics cadence.
 
 ## Tick clock
 
@@ -19,11 +16,9 @@ display advances 30 ticks, or 0.5 simulated seconds, per wall-clock second.
 Displays above 60 Hz issue zero-tick callbacks between tick boundaries.
 
 A backwards clock, pause, disabled simulation, reset, scene replacement,
-background/foreground transition, or workload/profile change clears presentation
-debt. An elapsed interval above 250 ms is a stall: it submits no tick, reports
-the discarded debt, and publishes alpha zero. The legacy profile retains its
-existing target-rate timestep, approximately 240 substeps/second, four-step
-catch-up limit, and alpha behavior under its existing name.
+background/foreground transition, or workload change clears presentation debt.
+An elapsed interval above 250 ms is a stall: it submits no tick, reports the
+discarded debt, and publishes alpha zero.
 
 The frame plan is captured once before the tick decision. Because a real-time
 callback admits at most one tick, controls, camera-derived gravity and kinematic
@@ -59,11 +54,11 @@ previous/current reset pair identical without a CPU copy or physics readback.
 
 ## Reporting and performance meaning
 
-`GalleryPresentationState` reports the frame-profile name, interpolation alpha,
-presentation latency, and cumulative simulated-seconds/active-wall-seconds ratio
-for the current clock epoch. Pausing, backgrounding, reset, scene replacement,
-or profile change starts a new epoch. Active stalls remain wall time, so their
-slowdown remains visible.
+`GalleryPresentationState` reports the execution-contract name, interpolation
+alpha, presentation latency, and cumulative
+simulated-seconds/active-wall-seconds ratio for the current clock epoch.
+Pausing, backgrounding, reset, scene replacement, or workload change starts a
+new epoch. Active stalls remain wall time, so their slowdown remains visible.
 
 Host work frames/second and simulation/wall rate are different measurements.
 A 30 Hz overloaded run correctly reports about `0.5`; it cannot satisfy a 60 Hz
@@ -74,7 +69,8 @@ physics performance gate merely because the display continues presenting.
 `parallel-mater-gallery-frame-policy-tests` covers 30/60/90/120/144 Hz, jitter,
 stall, pause/background/resume, one-tick admission, fixed `dt`, one substep,
 alpha and simulation/wall reporting. The session-clock contract verifies the
-same profile reaches the shared input/kinematic path only once per callback.
+same fixed contract reaches the shared input/kinematic path only once per
+callback.
 `parallel-mater-gallery-presentation-interpolation-tests` covers orientation,
 stable-ID birth/removal, topology changes and reset snapshots. The GPU renderer
 contract verifies unavailable previous output snaps to current without readback.

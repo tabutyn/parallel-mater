@@ -37,6 +37,7 @@ class DeploymentTests(unittest.TestCase):
             "schema": "parallel-mater-ipados-qualification-run/v1",
             "report_kind": "public-api-conformance", "gallery_scene_sweep": False,
             "nonce": "fresh", "revision": "revision", "backend": "slang-metal",
+            "execution_contract": deploy.EXECUTION_CONTRACT,
             "completed": True, "binary_identity": {"app_executable_sha256": "1" * 64,
                                                      "driver_sha256": "2" * 64},
             "trajectory": {"case_count": 30, "completed": 30, "unsupported": 0, "failed": 0},
@@ -114,7 +115,10 @@ class DeploymentTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             app = pathlib.Path(tmp)
             (app / "Assets.car").touch()
-            info = dict(revision="current", dirty=False, backend="metal", release_channel="development-preview")
+            info = dict(schema_version=2, revision="current", dirty=False,
+                        backend="metal",
+                        execution_contract=deploy.EXECUTION_CONTRACT,
+                        release_channel="development-preview")
             def check(changes="", allow_dirty=False):
                 (app / "build-info.json").write_text(json.dumps(info))
                 def run(*args, **kwargs):

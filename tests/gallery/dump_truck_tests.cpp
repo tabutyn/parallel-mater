@@ -129,7 +129,7 @@ int main(int argc, char **argv) try {
             check(bed.advance(simulation, scene, instance, 1.0F / 60.0F,
                               error),
                   error.c_str());
-            check(simulation.step(1.0F / 60.0F, 8U,
+            check(simulation.step(1.0F / 60.0F, 1U,
                                   {0.0F, -9.81F, 0.0F}, frame, error),
                   error.c_str());
             const auto truck = rigid_state(frame.rigid_states[chassis]);

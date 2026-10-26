@@ -94,6 +94,8 @@ struct Fixture {
     unsigned *filtered_sources{};
     unsigned *count{};
     unsigned *time_advances{};
+    unsigned *neighbor_overflow{};
+    unsigned *maximum_neighbor_count{};
     unsigned *status{};
 
     Fixture(unsigned capacity_value, unsigned candidate_capacity)
@@ -115,6 +117,8 @@ struct Fixture {
           filtered_sources(managed<unsigned>(candidate_slots)),
           count(managed<unsigned>(1U)),
           time_advances(managed<unsigned>(1U)),
+          neighbor_overflow(managed<unsigned>(1U)),
+          maximum_neighbor_count(managed<unsigned>(1U)),
           status(managed<unsigned>(1U)) {
         for (unsigned index = 0U; index < capacity; ++index) {
             metadata[index].identity = {fluid_spatial_family, 7U, 3U, 11U,
@@ -127,11 +131,11 @@ struct Fixture {
     }
 
     ~Fixture() {
-        for (void *pointer : std::array<void *, 17>{positions, velocities,
+        for (void *pointer : std::array<void *, 19>{positions, velocities,
                  previous, accumulated, position_deltas, velocity_deltas,
                  densities, lambdas, metadata, admission, query_sources,
                  filtered_counts, filtered_sources, count, time_advances,
-                 status, nullptr})
+                 neighbor_overflow, maximum_neighbor_count, status, nullptr})
             if (pointer != nullptr) cudaFree(pointer);
     }
 
@@ -139,7 +143,8 @@ struct Fixture {
         return positions && velocities && previous && accumulated &&
             position_deltas && velocity_deltas && densities && lambdas &&
             metadata && admission && query_sources && filtered_counts &&
-            filtered_sources && count && time_advances && status;
+            filtered_sources && count && time_advances && neighbor_overflow &&
+            maximum_neighbor_count && status;
     }
 
     void configure_candidates(unsigned live, bool complete = true) {
@@ -174,6 +179,8 @@ struct Fixture {
                 }
         configure_candidates(live);
         *time_advances = 0U;
+        *neighbor_overflow = 0U;
+        *maximum_neighbor_count = 0U;
         *status = 0U;
     }
 
@@ -196,6 +203,8 @@ struct Fixture {
                 reinterpret_cast<Vec3_0 *>(positions), count, capacity,
                 filtered_counts, filtered_sources, candidates_per_query,
                 options, fluid_realtime_timestep, profile, densities, lambdas,
+                sweep == 0U ? 1U : 0U, neighbor_overflow,
+                maximum_neighbor_count,
                 status);
             fluid_realtime_position_delta<<<blocks, threads>>>(
                 reinterpret_cast<FluidSpatialLeafMetadata_0 *>(metadata),

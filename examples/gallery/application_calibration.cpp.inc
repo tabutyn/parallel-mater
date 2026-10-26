@@ -88,7 +88,7 @@ bool run_calibration_trial(const Options &base, const BrickSceneConfig &config,
         error = failure.what();
         return false;
     }
-    const StepOptions step{.timestep = k_timestep, .substeps = 4U,
+    const StepOptions step{.timestep = k_timestep, .substeps = 1U,
                            .gravity = {0.0F, -k_gravity, 0.0F}};
     for (std::uint32_t frame = 0U; frame < 30U; ++frame) {
         if (!session->diagnostic_step({}, step, error)) {

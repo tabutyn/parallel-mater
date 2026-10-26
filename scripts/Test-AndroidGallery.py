@@ -46,10 +46,11 @@ def main():
         raise RuntimeError(f"Timeout waiting for {name}; use a new debug APK and unlock the device")
 
     def direct(report):
-        return (report.get("backend") != "vulkan" or
+        return (report.get("execution_contract") == "fixed-tick-60hz-v1" and
+                (report.get("backend") != "vulkan" or
                 (report.get("presentation") == "vulkan-direct" and
                  report.get("ordinary_readback_pixels") == 0 and
-                 report.get("software_presentations") == 0))
+                 report.get("software_presentations") == 0)))
 
     activity = package + "/.GalleryActivity"
     adb("logcat", "-c")

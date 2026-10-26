@@ -172,9 +172,15 @@ int main() {
         full.smoke = full.domainCouplings = full.paint = PM_TRUE;
     const auto interactions = all_interactions();
     const GalleryCatalog complete = make_gallery_catalog(&full, interactions);
-    for (const auto &item : complete)
-        if (!item.available || !item.unavailable_reason.empty())
-            throw std::runtime_error("Fully capable backend lost a scene");
+    for (const auto &item : complete) {
+        const bool supported = gallery_fixed_tick_supported(item.scene.context);
+        if (item.available != supported ||
+            (supported && !item.unavailable_reason.empty()) ||
+            (!supported && item.unavailable_reason.find(
+                "fixed-tick-60hz-v1") == std::string::npos))
+            throw std::runtime_error(
+                "Catalog fixed-tick scene availability is inaccurate");
+    }
 
     auto partial_rope = interactions;
     std::erase_if(partial_rope, [](const PmInteractionCapability &candidate) {

@@ -1,7 +1,7 @@
 {
   "id": "F8-51",
   "title": "Make shared Gallery use the sole fixed-tick architecture",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-50"
   ],
@@ -21,15 +21,29 @@
     "Build all platform shells; execute public Gallery smoke tests for mixed domains, diagnostics and render output on available hardware, with missing physical targets reserved for F8-23--30 rather than called passes.",
     "Bind app revision/backend/artifact identity to deployment tooling so F8-31 can install and verify the exact qualified candidate on Dock/mobile launchers."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "dbfca484-3f4c-4ee8-a3e4-7dc7d49af17a",
-    "owner": "codex-gallery-pixel7",
-    "machine": "thomas-laptop-pixel7",
-    "branch": "work/F8-51/thomas-laptop-pixel7",
-    "claimed_at": "2026-10-26T05:33:41Z",
-    "heartbeat_at": "2026-10-26T05:33:41Z",
-    "expires_at": "2026-10-27T05:33:41Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F8-51-gallery-fixed-tick.json",
+    "PASS: Pixel 7 Vulkan Gallery qualification at clean revision 1eef2cf53da4448ebeb63c1bfeef838adff77c32; 26 supported scenes, direct presentation and lifecycle checks"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "dbfca484-3f4c-4ee8-a3e4-7dc7d49af17a",
+        "owner": "codex-gallery-pixel7",
+        "machine": "thomas-laptop-pixel7",
+        "branch": "work/F8-51/thomas-laptop-pixel7",
+        "claimed_at": "2026-10-26T05:33:41Z",
+        "heartbeat_at": "2026-10-26T05:33:41Z",
+        "expires_at": "2026-10-27T05:33:41Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-26T07:39:03Z",
+      "reason": "Shared desktop, Android and iPad Gallery paths now use the sole fixed-tick schedule; physical Pixel 7 Vulkan catalog and lifecycle qualification passed",
+      "evidence": [
+        "docs/roadmap/evidence/F8-51-gallery-fixed-tick.json",
+        "PASS: Pixel 7 Vulkan Gallery qualification at clean revision 1eef2cf53da4448ebeb63c1bfeef838adff77c32; 26 supported scenes, direct presentation and lifecycle checks"
+      ]
+    }
+  ]
 }

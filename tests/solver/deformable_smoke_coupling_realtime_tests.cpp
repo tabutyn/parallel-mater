@@ -135,7 +135,7 @@ void test_bounded_work() {
         CHECK(budget.operators[index].constraint_visits == 4U);
     }
 
-    std::array<DeformableSmokeCouplingRegistration, 17> too_many{};
+    std::array<DeformableSmokeCouplingRegistration, 65> too_many{};
     too_many.fill(registrations.front());
     CHECK(make_deformable_smoke_coupling_work_budget(
         too_many, 1U, 1U, budget) == PM_ERROR_CAPACITY_EXCEEDED);

@@ -13,6 +13,20 @@ import graphics_resources;
 groupshared Vec3 smoke_grid_rigid_linear[128];
 groupshared Vec3 smoke_grid_rigid_angular[128];
 
+uint smoke_grid_hash(uint value)
+{
+    value ^= value >> 16u;
+    value *= 0x7feb352du;
+    value ^= value >> 15u;
+    value *= 0x846ca68bu;
+    return value ^ (value >> 16u);
+}
+
+float smoke_grid_random(uint seed)
+{
+    return float(smoke_grid_hash(seed) & 0x00ffffffu) / 16777216.0f;
+}
+
 public uint smoke_grid_index(int x, int y, int z, int n, int height)
 {
     return uint(x + n * (y + height * z));
@@ -1872,6 +1886,8 @@ void smoke_realtime_grid_trace(
     uniform PMBuffer<float> number_densities,
     uniform PMBuffer<float> pressures,
     uniform PMBuffer<Vec3> particle_vorticities, uniform uint count,
+    uniform uint first_emit_slot, uniform uint emit_count,
+    uniform uint64_t first_emit_serial,
     uniform SmokeOptions options, uniform SmokeGridField grid,
     uniform float dt, uniform uint profile_version,
     uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
@@ -1886,8 +1902,29 @@ void smoke_realtime_grid_trace(
                 grid, status);
         return;
     }
-    if (particle >= count || particle >= options.capacity ||
-        ages[particle] >= options.lifetime) return;
+    if (particle >= count || particle >= options.capacity) return;
+    uint emitOffset = particle >= first_emit_slot
+        ? particle - first_emit_slot
+        : options.capacity - first_emit_slot + particle;
+    if (emitOffset < emit_count)
+    {
+        uint serial = uint(first_emit_serial + uint64_t(emitOffset));
+        float y = 2.0f * smoke_grid_random(serial ^ 0x132aef41u) - 1.0f;
+        float z = 2.0f * smoke_grid_random(serial ^ 0xa385c9d3u) - 1.0f;
+        positions[particle] = add(options.emitter_center, {
+            0.0f, y * options.emitter_half_extents.x,
+            z * options.emitter_half_extents.y});
+        previous_positions[particle] = positions[particle];
+        velocities[particle] = clamp_length(
+            options.initial_velocity, options.maximum_speed);
+        ages[particle] = 0.0f;
+        thermal_lift[particle] = 0.0f;
+        number_densities[particle] = 1.0f;
+        pressures[particle] = 0.0f;
+        particle_vorticities[particle] = {};
+        return;
+    }
+    if (ages[particle] >= options.lifetime) return;
     Vec3 point = positions[particle];
     previous_positions[particle] = point;
     Vec3 velocity = velocities[particle];

@@ -1,6 +1,7 @@
 """Validation for the shared Android/iOS Gallery qualification report."""
 
-SCHEMA = "parallel-mater-mobile-gallery-qualification/v1"
+SCHEMA = "parallel-mater-mobile-gallery-qualification/v2"
+EXECUTION_CONTRACT = "fixed-tick-60hz-v1"
 
 LIFECYCLE_CHECKS = {
     "attach",
@@ -44,6 +45,8 @@ def validate_mobile_gallery_report(report, nonce=None, expected_scenes=28):
     for field in ("revision", "platform", "backend", "device"):
         if not isinstance(report.get(field), str) or not report[field]:
             raise RuntimeError(f"Mobile Gallery report has no {field}")
+    if report.get("execution_contract") != EXECUTION_CONTRACT:
+        raise RuntimeError("Mobile Gallery report has the wrong execution contract")
     renderer = report.get("renderer")
     if (not isinstance(renderer, dict) or
             renderer.get("kind") not in {"native-gpu", "software-image"} or

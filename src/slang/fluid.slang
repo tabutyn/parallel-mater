@@ -1068,6 +1068,9 @@ void fluid_realtime_density_lambda(
     uniform float dt, uniform uint profile_version,
     uniform PMBuffer<float> densities,
     uniform PMBuffer<float> lambdas,
+    uniform uint record_neighbors,
+    uniform PMBuffer<uint> neighbor_overflow,
+    uniform PMBuffer<uint> maximum_neighbor_count,
     uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
@@ -1105,6 +1108,7 @@ void fluid_realtime_density_lambda(
         0.0f, options.support_radius);
     Vec3 selfGradient = Vec3(0.0f);
     float gradientSquared = 0.0f;
+    uint neighbors = 0u;
     uint base = query * candidates_per_query;
     Vec3 position = positions[particle];
     for (uint candidate = 0u; candidate < candidateCount; ++candidate)
@@ -1125,6 +1129,7 @@ void fluid_realtime_density_lambda(
         float squared = length_squared(delta);
         if (squared >= options.support_radius * options.support_radius)
             continue;
+        ++neighbors;
         density += mass * fluid_density_kernel(
             squared, options.support_radius);
         Vec3 gradient = multiply(fluid_realtime_density_gradient(
@@ -1134,6 +1139,12 @@ void fluid_realtime_density_lambda(
         gradientSquared += length_squared(gradient);
     }
     gradientSquared += length_squared(selfGradient);
+    if (record_neighbors != 0u)
+    {
+        pmAtomicMax(maximum_neighbor_count, neighbors);
+        if (neighbors > options.maximum_neighbors)
+            pmAtomicAdd(neighbor_overflow, 1u);
+    }
     float constraint = max(density / options.rest_density - 1.0f, 0.0f);
     float regularization = 1.0e-6f /
         (options.support_radius * options.support_radius);

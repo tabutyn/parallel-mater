@@ -30,9 +30,8 @@ std::pair<std::uint32_t, std::uint32_t> run_frame(
     return {policy.frame_steps(), policy.dropped_steps()};
 }
 
-void validate_realtime_rate(unsigned display_hz, unsigned seconds) {
-    Policy policy(nullptr,
-        parallel_mater::gallery::GalleryFrameProfile::realtime_single_step_v1);
+void validate_fixed_rate(unsigned display_hz, unsigned seconds) {
+    Policy policy;
     policy.reset(at(0.0));
     std::uint64_t ticks = 0U;
     bool saw_interpolated_render = false;
@@ -40,7 +39,7 @@ void validate_realtime_rate(unsigned display_hz, unsigned seconds) {
         const auto result = run_frame(
             policy, at(static_cast<double>(frame) / display_hz));
         require(result.first <= 1U,
-                "Real-time callback submitted more than one tick");
+                "Display callback submitted more than one fixed tick");
         ticks += result.first;
         saw_interpolated_render |= result.first == 0U &&
             policy.interpolation_alpha() > 0.0F &&
@@ -51,7 +50,7 @@ void validate_realtime_rate(unsigned display_hz, unsigned seconds) {
     }
     const std::uint64_t expected = std::min(display_hz, 60U) * seconds;
     require(ticks >= expected - 1U && ticks <= expected,
-            "Display-rate trace produced the wrong real-time tick count");
+            "Display-rate trace produced the wrong fixed-tick count");
     if (display_hz > 60U)
         require(saw_interpolated_render,
                 "High-refresh trace did not render between ticks");
@@ -66,6 +65,9 @@ void validate_realtime_rate(unsigned display_hz, unsigned seconds) {
 int main() {
     try {
         Policy policy;
+        require(policy.timestep() == 1.0F / 60.0F &&
+                    policy.substeps() == 1U && policy.target_fps() == 60U,
+                "Gallery did not expose the sole fixed-tick contract");
         policy.reset(at(0.0));
         require(run_frame(policy, at(1.0 / 120.0)).first == 0U,
                 "A partial fixed step advanced physics");
@@ -73,13 +75,13 @@ int main() {
                 "A complete fixed step did not advance physics");
 
         policy.reset(at(0.0));
-        const auto catch_up = run_frame(policy, at(3.0 / 60.0));
-        require(catch_up.first == 3U && catch_up.second == 0U,
-                "Fast work did not use bounded catch-up");
+        const auto overloaded = run_frame(policy, at(3.0 / 60.0));
+        require(overloaded.first == 1U && overloaded.second >= 1U,
+                "Overload caught up more than one fixed tick");
 
         policy.reset(at(0.0));
         policy.begin_frame(at(4.0 / 60.0));
-        require(policy.can_step(), "First slow catch-up step was not admitted");
+        require(policy.can_step(), "First overloaded step was not admitted");
         policy.record_step(0.044);
         require(!policy.can_step(), "Slow physics multiplied its stall");
         policy.finish_frame();
@@ -88,10 +90,10 @@ int main() {
 
         policy.reset(at(0.0));
         const auto stalled = run_frame(policy, at(5.0));
-        require(stalled.first == Policy::maximum_catch_up_steps,
-                "Long stall escaped the catch-up step cap");
+        require(stalled.first == 0U,
+                "Long stall submitted a fixed tick");
         require(stalled.second > 0U,
-                "Long stall did not report discarded clamped work");
+                "Long stall did not report discarded work");
 
         policy.set_paused(true);
         require(run_frame(policy, at(10.0)).first == 0U,
@@ -109,29 +111,13 @@ int main() {
         require(run_frame(policy, at(40.0)).first == 0U,
                 "Foreground clock caught up background time");
 
-        parallel_mater::gallery::GalleryWorkloadLimits mobile;
-        mobile.target_fps = 30U;
-        policy.apply_workload(&mobile);
-        require(policy.target_fps() == 30U && policy.substeps() == 8U,
-                "Profile cadence was not admitted");
-        require(run_frame(policy, at(50.0)).first == 0U,
-                "Profile change retained an old clock baseline");
-        require(run_frame(policy, at(50.0) + policy.fixed_step_duration()).first == 1U,
-                "Profile cadence did not drive its fixed step");
-
         policy.reset(at(60.0));
         require(run_frame(policy, at(61.0), 0.001, false).first == 0U,
                 "Modal frame submitted physics");
-        require(policy.interpolation_alpha() == 1.0F,
+        require(policy.interpolation_alpha() == 0.0F,
                 "Modal frame exposed stale interpolation");
         require(run_frame(policy, at(61.0) + policy.fixed_step_duration()).first == 1U,
                 "Modal time leaked into the next frame");
-
-        bool invalid_rejected = false;
-        mobile.target_fps = 0U;
-        try { policy.apply_workload(&mobile); }
-        catch (const std::invalid_argument &) { invalid_rejected = true; }
-        require(invalid_rejected, "Invalid profile cadence was accepted");
 
         Policy desktop, mobile_adapter;
         desktop.reset(at(0.0));
@@ -145,29 +131,15 @@ int main() {
         }
 
         for (const unsigned display_hz : {30U, 60U, 90U, 120U, 144U})
-            validate_realtime_rate(display_hz, 10U);
+            validate_fixed_rate(display_hz, 10U);
 
-        Policy realtime(nullptr,
-            parallel_mater::gallery::GalleryFrameProfile::
-                realtime_single_step_v1);
-        require(realtime.timestep() == 1.0F / 60.0F &&
-                    realtime.substeps() == 1U &&
-                    realtime.target_fps() == 60U,
-                "Real-time profile retained the 240-substep policy");
-        parallel_mater::gallery::GalleryWorkloadLimits low_refresh;
-        low_refresh.target_fps = 30U;
-        Policy realtime_low_refresh(
-            &low_refresh,
-            parallel_mater::gallery::GalleryFrameProfile::
-                realtime_single_step_v1);
-        require(realtime_low_refresh.timestep() == 1.0F / 60.0F &&
-                    realtime_low_refresh.substeps() == 1U,
-                "30 Hz workload enlarged the real-time physics tick");
-        realtime.reset(at(0.0));
-        const auto overloaded = run_frame(realtime, at(1.0 / 30.0));
-        require(overloaded.first == 1U && overloaded.second == 1U,
+        Policy low_refresh;
+        low_refresh.reset(at(0.0));
+        const auto low_refresh_frame = run_frame(low_refresh, at(1.0 / 30.0));
+        require(low_refresh_frame.first == 1U &&
+                    low_refresh_frame.second == 1U,
                 "30 Hz overload caught up or enlarged the timestep");
-        require(std::fabs(realtime.simulation_to_wall_clock_rate() - 0.5) <
+        require(std::fabs(low_refresh.simulation_to_wall_clock_rate() - 0.5) <
                     0.0001,
                 "30 Hz overload was not reported as half-speed");
 
@@ -176,30 +148,30 @@ int main() {
         const std::vector<double> jitter{
             0.040, 0.044, 0.061, 0.070, 0.105, 0.111, 0.129};
         for (double timestamp : jitter) {
-            const auto result = run_frame(realtime, at(timestamp));
+            const auto result = run_frame(low_refresh, at(timestamp));
             require(result.first <= 1U,
-                    "Jitter trace triggered real-time catch-up");
+                    "Jitter trace triggered fixed-tick catch-up");
         }
 
-        realtime.reset(at(1.0));
-        const auto stall = run_frame(realtime, at(2.0));
+        low_refresh.reset(at(1.0));
+        const auto stall = run_frame(low_refresh, at(2.0));
         require(stall.first == 0U && stall.second >= 60U &&
-                    realtime.interpolation_alpha() == 0.0F,
+                    low_refresh.interpolation_alpha() == 0.0F,
                 "Stall debt was not discarded with zero presentation alpha");
-        realtime.set_paused(true);
-        require(run_frame(realtime, at(3.0)).first == 0U &&
-                    realtime.interpolation_alpha() == 0.0F,
-                "Real-time pause retained presentation debt");
-        realtime.set_paused(false);
-        require(run_frame(realtime, at(4.0)).first == 0U,
-                "Real-time resume caught up paused time");
-        realtime.set_active(false);
-        require(run_frame(realtime, at(5.0)).first == 0U,
-                "Real-time background submitted physics");
-        realtime.set_active(true);
-        require(run_frame(realtime, at(6.0)).first == 0U &&
-                    realtime.interpolation_alpha() == 0.0F,
-                "Real-time foreground caught up background time");
+        low_refresh.set_paused(true);
+        require(run_frame(low_refresh, at(3.0)).first == 0U &&
+                    low_refresh.interpolation_alpha() == 0.0F,
+                "Fixed-tick pause retained presentation debt");
+        low_refresh.set_paused(false);
+        require(run_frame(low_refresh, at(4.0)).first == 0U,
+                "Fixed-tick resume caught up paused time");
+        low_refresh.set_active(false);
+        require(run_frame(low_refresh, at(5.0)).first == 0U,
+                "Fixed-tick background submitted physics");
+        low_refresh.set_active(true);
+        require(run_frame(low_refresh, at(6.0)).first == 0U &&
+                    low_refresh.interpolation_alpha() == 0.0F,
+                "Fixed-tick foreground caught up background time");
         return EXIT_SUCCESS;
     } catch (const std::exception &error) {
         std::cerr << error.what() << '\n';

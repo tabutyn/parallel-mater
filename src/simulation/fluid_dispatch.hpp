@@ -344,6 +344,8 @@ void solve_fluid_realtime_density(
     std::uint32_t candidates_per_query,
     const FluidDispatchConstants &constants, float timestep,
     std::uint32_t profile_version, float *densities, float *lambdas,
+    std::uint32_t record_neighbors, std::uint32_t *neighbor_overflow,
+    std::uint32_t *maximum_neighbor_count,
     std::uint32_t *status) noexcept;
 
 void solve_fluid_realtime_position_delta(

@@ -7,6 +7,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from mobile_gallery_report import (  # noqa: E402
     CONTROL_CHECKS,
+    EXECUTION_CONTRACT,
     LIFECYCLE_CHECKS,
     SCHEMA,
     validate_mobile_gallery_report,
@@ -43,6 +44,7 @@ def passing_report():
         "revision": "abc123",
         "platform": "Android",
         "backend": "vulkan",
+        "execution_contract": EXECUTION_CONTRACT,
         "device": "test-device",
         "renderer": {"kind": "native-gpu", "readback": "diagnostic-only"},
         "nonce": "nonce",
@@ -66,6 +68,7 @@ class MobileGalleryReportTests(unittest.TestCase):
     def test_rejects_platform_specific_or_incomplete_schema(self):
         for mutation in (
             lambda report: report.pop("schema"),
+            lambda report: report.pop("execution_contract"),
             lambda report: report["renderer"].pop("readback"),
             lambda report: report["lifecycle"].pop(),
             lambda report: report["controls"][0].update(passed=False),

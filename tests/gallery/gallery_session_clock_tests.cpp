@@ -28,8 +28,6 @@ int main() {
             .model = "test-host",
             .backend = PM_GALLERY_SESSION_TEST_BACKEND,
         };
-        config.frame_profile =
-            gallery::GalleryFrameProfile::realtime_single_step_v1;
         gallery::GallerySession session(std::move(config));
         using FrameClock = gallery::GallerySession::FrameClock;
         const auto baseline = FrameClock::time_point{};
@@ -56,7 +54,8 @@ int main() {
         require(session.frames == 1U && renders == 2U &&
                     session.frame_timestep() == 1.0F / 60.0F &&
                     session.frame_substeps() == 1U &&
-                    state.frame_profile == "realtime-single-step-v1" &&
+                    state.execution_contract ==
+                        gallery::gallery_execution_contract &&
                     state.simulation_to_wall_clock_rate > 0.49 &&
                     state.simulation_to_wall_clock_rate < 0.51 &&
                     state.interpolation_alpha >= 0.0F &&
@@ -69,7 +68,7 @@ int main() {
                     state.controls.gravity.x == 4.0F &&
                     state.controls.gravity.y == 5.0F &&
                     state.controls.gravity.z == 6.0F,
-                "Real-time session hid overload or sampled a tick twice");
+                "Fixed-tick session hid overload or sampled a tick twice");
         return EXIT_SUCCESS;
     } catch (const std::exception &error) {
         if (std::string_view(error.what()) ==

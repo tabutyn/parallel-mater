@@ -66,7 +66,7 @@ std::string details_text(const GalleryPresentationState &state) {
          << "\nRenderer: " << renderer_label(state)
          << "\nReadback: " << readback_label(state.readback)
          << "\n\nProfile: " << state.workload_profile
-         << " · clock " << state.frame_profile
+         << " · execution " << state.execution_contract
          << "\n" << state.fluid_particle_limit << " liquid particles · "
          << state.coupled_body_limit << " coupled bodies"
          << "\n" << state.width << " × " << state.height << " · target "
@@ -336,6 +336,8 @@ Java_org_parallelmater_gallery_GalleryActivity_nativeRuntimeInfo(JNIEnv *env, jc
         info.imbue(std::locale::classic());
         info << "{\"revision\":\"" << view.build_revision
              << "\",\"backend\":\"" << view.backend
+             << "\",\"execution_contract\":\""
+             << view.execution_contract
              << "\",\"frames\":" << view.steps
              << ",\"active\":" << (view.active ? "true" : "false")
              << ",\"paused\":" << (view.paused ? "true" : "false")

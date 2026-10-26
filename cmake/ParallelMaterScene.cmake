@@ -13,6 +13,7 @@ add_library(parallel-mater-scene STATIC
     examples/support/rope_render.cpp
     examples/support/device_profiles.cpp
     examples/support/liquid_workload.cpp
+    examples/support/fixed_tick_scene.cpp
     examples/support/brick_scene.cpp)
 add_library(ParallelMater::scene ALIAS parallel-mater-scene)
 set_target_properties(parallel-mater-scene PROPERTIES EXPORT_NAME scene
