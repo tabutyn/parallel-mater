@@ -273,8 +273,9 @@ void apply_smoke_grid_force_to_cloth(
     float maximum_acceleration, float timestep) noexcept;
 
 void apply_smoke_grid_force_to_rigid_body(
-    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *mesh,
-    std::uint32_t body, const void *body_parameters, void *body_states,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *meshes,
+    std::uint32_t mesh_index, std::uint32_t body,
+    const void *body_parameters, void *body_states,
     const SmokeGridDispatchField &field, float air_density,
     float drag_coefficient, float density_scale, float kinematic_viscosity,
     float les_coefficient, float timestep) noexcept;

@@ -1,5 +1,6 @@
 #include "dispatch_entry.slang"
 #include "dispatch_shape.slangh"
+#include "coupling_spatial.slangh"
 // SPDX-License-Identifier: MIT
 // Shared soft-body/smoke coupling kernels.
 
@@ -40,6 +41,14 @@ void smoke_soft_body_contact(
     uniform PMBuffer<SoftBodySurfaceBinding> bindings, uniform PMBuffer<uint> indices,
     uniform uint index_count, uniform PMBuffer<Vec3> node_velocities,
     uniform PMBuffer<Vec3> minimum, uniform PMBuffer<Vec3> maximum, uniform float clearance,
+    uniform PMBuffer<uint> triangle_generations,
+    uniform uint soft_owner_slot, uniform uint soft_owner_generation,
+    uniform uint soft_topology_revision,
+    uniform PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint spatial_leaf_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query, uniform PMBuffer<uint> spatial_status,
     uniform SmokeGridField grid PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
@@ -62,8 +71,39 @@ void smoke_soft_body_contact(
     Vec3 faceNormal = {};
     Vec3 weights = {};
     Vec3 path = subtract(point, before);
-    for (uint base = 0u; base < index_count; base += 3u)
+    uint candidateCount = candidate_counts[particle];
+    if (candidateCount > candidates_per_query)
     {
+        pmAtomicOr(spatial_status, kCouplingSpatialQueryOverflow);
+        return;
+    }
+    uint candidateBase = particle * candidates_per_query;
+    for (uint candidateIndex = 0u;
+         candidateIndex < candidateCount; ++candidateIndex)
+    {
+        uint source = candidate_sources[candidateBase + candidateIndex];
+        if (source >= spatial_leaf_capacity || spatial_admission[source] == 0u)
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialAdmissionInvalid);
+            return;
+        }
+        CouplingSpatialLeafMetadata leaf = spatial_metadata[source];
+        if (leaf.identity.family != kCouplingSpatialSoftFamily ||
+            leaf.identity.owner_slot != soft_owner_slot ||
+            leaf.identity.owner_generation != soft_owner_generation ||
+            leaf.identity.topology_revision != soft_topology_revision ||
+            leaf.identity.primitive_kind != kCouplingSpatialTrianglePrimitive)
+            continue;
+        uint triangle = leaf.payload_ref;
+        if (triangle >= index_count / 3u ||
+            leaf.identity.primitive_slot != triangle ||
+            leaf.identity.primitive_generation !=
+                triangle_generations[triangle])
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialStaleEpoch);
+            return;
+        }
+        uint base = triangle * 3u;
         Vec3 a = surface[indices[base]];
         Vec3 b = surface[indices[base + 1u]];
         Vec3 c = surface[indices[base + 2u]];

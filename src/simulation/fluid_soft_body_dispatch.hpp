@@ -21,8 +21,15 @@ void detect_fluid_soft_contacts(
     const void *previous_surface, const std::uint32_t *surface_indices,
     std::uint32_t surface_index_count, const void *surface_bindings,
     const void *soft_velocities, float orientation, float distance,
-    const void *bounds, bool sweep, const void *tree,
-    const std::uint32_t *triangle_order, void *contacts,
+    bool sweep, const std::uint32_t *triangle_generations,
+    std::uint32_t soft_owner_slot, std::uint32_t soft_owner_generation,
+    std::uint32_t soft_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
+    void *contacts,
     std::uint32_t *node_contact_counts, std::uint32_t *contact_count,
     float *maximum_penetration) noexcept;
 
@@ -46,7 +53,15 @@ void recover_fluid_soft_contacts(
     const void *previous, const std::uint32_t *particle_count,
     const void *surface, const void *previous_surface,
     const std::uint32_t *surface_indices, std::uint32_t surface_index_count,
-    float orientation, float distance, const void *bounds, bool sweep,
-    const void *tree, const std::uint32_t *triangle_order) noexcept;
+    float orientation, float distance, bool sweep,
+    const std::uint32_t *triangle_generations,
+    std::uint32_t soft_owner_slot, std::uint32_t soft_owner_generation,
+    std::uint32_t soft_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query,
+    std::uint32_t *spatial_status) noexcept;
 
 } // namespace parallel_mater::simulation

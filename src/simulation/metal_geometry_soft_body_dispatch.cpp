@@ -18,6 +18,12 @@ void collide_deformable_with_rigid_geometry(
     std::uint32_t count, float thickness, float timestep,
     const void *body_parameters, const void *previous_body_states,
     const void *body_states, const void *meshes, std::uint32_t body_count,
+    const void *body_ids, std::uint32_t body_topology_revision,
+    const void *spatial_metadata, const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
     std::uint32_t first_excluded_body, std::uint32_t first_excluded_count,
     std::uint32_t last_excluded_body, std::uint32_t last_excluded_count,
     void *impulses, void *contact_forces, void *contact_normals,
@@ -39,7 +45,10 @@ void collide_deformable_with_rigid_geometry(
         previous_body_states,
         body_states,
         meshes,
-        body_count, first_excluded_body, first_excluded_count,
+        body_count, body_ids, body_topology_revision, spatial_metadata,
+        spatial_admission, spatial_leaf_capacity, candidate_counts,
+        candidate_sources, candidates_per_query, spatial_status,
+        first_excluded_body, first_excluded_count,
         last_excluded_body, last_excluded_count, impulses,
         contact_forces, contact_normals,
         contact_arms, contact_momentum_delta,
@@ -105,6 +114,22 @@ void emit_deformable_spatial_primitives(
         spatial_vector(path_deviation), spatial_vector(correction_budget),
         epsilon, metadata, bounds, build_flags, query_bounds, query_masks,
         excluded_sort_keys, query_leaf_sources, status);
+}
+
+void emit_deformable_point_queries(
+    device::DispatchSize grid, device::DispatchSize,
+    device::ExecutionQueue stream, const void *previous_positions,
+    const void *predicted_positions, std::uint32_t point_count,
+    std::uint32_t query_offset, std::uint32_t query_capacity,
+    std::uint32_t query_mask, float radius,
+    const float path_deviation[3], const float correction_budget[3],
+    float epsilon, void *query_bounds, std::uint32_t *query_masks,
+    std::uint32_t *excluded_sort_keys, std::uint32_t *status) noexcept {
+    (void)metal::launch(stream, "pm_emit_deformable_point_queries", grid,
+        previous_positions, predicted_positions, point_count, query_offset,
+        query_capacity, query_mask, radius,
+        spatial_vector(path_deviation), spatial_vector(correction_budget),
+        epsilon, query_bounds, query_masks, excluded_sort_keys, status);
 }
 
 void filter_deformable_spatial_candidates(

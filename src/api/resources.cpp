@@ -137,14 +137,12 @@ struct RealtimeSpatialCapacities {
     }
     for (const auto capacity :
          std::span(info.pSoftBodyCapacities, info.softBodyCount)) {
+        const std::uint64_t soft_primitives =
+            std::uint64_t{capacity.nodeCapacity} +
+            capacity.surfaceTriangleIndexCapacity / 3U;
         if (!add_realtime_capacity(
-                output.leaves,
-                std::uint64_t{capacity.nodeCapacity} +
-                    capacity.surfaceTriangleIndexCapacity / 3U) ||
-            !add_realtime_capacity(
-                output.queries,
-                std::uint64_t{capacity.nodeCapacity} +
-                    capacity.surfaceVertexCapacity))
+                output.leaves, soft_primitives) ||
+            !add_realtime_capacity(output.queries, soft_primitives))
             return false;
         output.candidates_per_query = std::max(
             output.candidates_per_query, 64U);

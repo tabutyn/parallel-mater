@@ -22,6 +22,12 @@ void collide_deformable_with_rigid_geometry(
     std::uint32_t count, float thickness, float timestep,
     const void *body_parameters, const void *previous_body_states,
     const void *body_states, const void *meshes, std::uint32_t body_count,
+    const void *body_ids, std::uint32_t body_topology_revision,
+    const void *spatial_metadata, const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
     std::uint32_t first_excluded_body, std::uint32_t first_excluded_count,
     std::uint32_t last_excluded_body, std::uint32_t last_excluded_count,
     void *impulses, void *contact_forces, void *contact_normals,
@@ -42,7 +48,15 @@ void collide_deformable_with_rigid_geometry(
         const_cast<RigidBodyState_0 *>(as<RigidBodyState_0>(body_states)),
         const_cast<TriangleMeshResource_0 *>(
             as<TriangleMeshResource_0>(meshes)),
-        body_count, first_excluded_body, first_excluded_count,
+        body_count,
+        const_cast<RigidBodyId_0 *>(as<RigidBodyId_0>(body_ids)),
+        body_topology_revision,
+        const_cast<DeformableCollisionSpatialLeafMetadata_0 *>(
+            as<DeformableCollisionSpatialLeafMetadata_0>(spatial_metadata)),
+        const_cast<std::uint8_t *>(spatial_admission), spatial_leaf_capacity,
+        const_cast<std::uint32_t *>(candidate_counts),
+        const_cast<std::uint32_t *>(candidate_sources), candidates_per_query,
+        spatial_status, first_excluded_body, first_excluded_count,
         last_excluded_body, last_excluded_count,
         as<FluidBodyImpulse_0>(impulses),
         as<Vec3_0>(contact_forces), as<Vec3_0>(contact_normals),
@@ -115,6 +129,26 @@ void emit_deformable_spatial_primitives(
         as<DeformableSpatialAabb_0>(bounds), build_flags,
         as<DeformableSpatialAabb_0>(query_bounds), query_masks,
         excluded_sort_keys, query_leaf_sources, status);
+}
+
+void emit_deformable_point_queries(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *previous_positions,
+    const void *predicted_positions, std::uint32_t point_count,
+    std::uint32_t query_offset, std::uint32_t query_capacity,
+    std::uint32_t query_mask, float radius,
+    const float path_deviation[3], const float correction_budget[3],
+    float epsilon, void *query_bounds, std::uint32_t *query_masks,
+    std::uint32_t *excluded_sort_keys, std::uint32_t *status) noexcept {
+    pm_emit_deformable_point_queries<<<
+        dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        const_cast<Vec3_0 *>(as<Vec3_0>(previous_positions)),
+        const_cast<Vec3_0 *>(as<Vec3_0>(predicted_positions)), point_count,
+        query_offset, query_capacity, query_mask, radius,
+        vec3(path_deviation), vec3(correction_budget), epsilon,
+        as<DeformableSpatialAabb_0>(query_bounds), query_masks,
+        excluded_sort_keys, status);
 }
 
 void filter_deformable_spatial_candidates(

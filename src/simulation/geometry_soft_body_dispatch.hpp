@@ -13,6 +13,12 @@ void collide_deformable_with_rigid_geometry(
     std::uint32_t count, float thickness, float timestep,
     const void *body_parameters, const void *previous_body_states,
     const void *body_states, const void *meshes, std::uint32_t body_count,
+    const void *body_ids, std::uint32_t body_topology_revision,
+    const void *spatial_metadata, const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
     std::uint32_t first_excluded_body, std::uint32_t first_excluded_count,
     std::uint32_t last_excluded_body, std::uint32_t last_excluded_count,
     void *impulses, void *contact_forces, void *contact_normals,
@@ -53,6 +59,16 @@ void emit_deformable_spatial_primitives(
     void *query_bounds, std::uint32_t *query_masks,
     std::uint32_t *excluded_sort_keys, std::uint32_t *query_leaf_sources,
     std::uint32_t *status) noexcept;
+
+void emit_deformable_point_queries(
+    device::DispatchSize grid, device::DispatchSize block,
+    device::ExecutionQueue stream, const void *previous_positions,
+    const void *predicted_positions, std::uint32_t point_count,
+    std::uint32_t query_offset, std::uint32_t query_capacity,
+    std::uint32_t query_mask, float radius,
+    const float path_deviation[3], const float correction_budget[3],
+    float epsilon, void *query_bounds, std::uint32_t *query_masks,
+    std::uint32_t *excluded_sort_keys, std::uint32_t *status) noexcept;
 
 void filter_deformable_spatial_candidates(
     device::DispatchSize grid, device::DispatchSize block,

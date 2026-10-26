@@ -1310,7 +1310,8 @@ void smoke_grid_raster_soft(
 [shader("compute")]
 [numthreads(PM_THREADS(128), 1, 1)]
 void smoke_grid_rigid_force(
-    uniform TriangleMeshResource mesh, uniform uint body,
+    uniform PMBuffer<TriangleMeshResource> meshes, uniform uint mesh_index,
+    uniform uint body,
     uniform PMBuffer<BodyParameters> parameters, uniform PMBuffer<RigidBodyState> states,
     uniform SmokeGridField grid, uniform float air_density,
     uniform float drag_coefficient, uniform float density_scale,
@@ -1318,6 +1319,7 @@ void smoke_grid_rigid_force(
     uniform float dt PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
+    TriangleMeshResource mesh = meshes[mesh_index];
     uint lane = pmGroupThreadIndex().x;
     Vec3 localLinear = {};
     Vec3 localAngular = {};

@@ -23,6 +23,13 @@ void constrain_rigid_bodies_with_cloth(
     const void *previous_body_states, void *body_states, const void *meshes,
     const void *body_ids, std::uint32_t body_count,
     std::uint32_t cloth_index, std::uint32_t cloth_generation,
+    std::uint32_t cloth_topology_revision,
+    const std::uint32_t *triangle_generations,
+    const void *spatial_metadata, const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
     const void *paint_fields, std::uint32_t paint_field_capacity,
     const void *paint_rules, std::uint32_t paint_rule_capacity,
     void *corrections) noexcept {
@@ -42,6 +49,14 @@ void constrain_rigid_bodies_with_cloth(
             as<TriangleMeshResource_0>(meshes)),
         const_cast<RigidBodyId_0 *>(as<RigidBodyId_0>(body_ids)), body_count,
         cloth_index, cloth_generation,
+        cloth_topology_revision,
+        const_cast<std::uint32_t *>(triangle_generations),
+        const_cast<CouplingSpatialLeafMetadata_0 *>(
+            as<CouplingSpatialLeafMetadata_0>(spatial_metadata)),
+        const_cast<std::uint8_t *>(spatial_admission), spatial_leaf_capacity,
+        const_cast<std::uint32_t *>(candidate_counts),
+        const_cast<std::uint32_t *>(candidate_sources), candidates_per_query,
+        spatial_status,
         const_cast<PaintFieldResource_0 *>(
             as<PaintFieldResource_0>(paint_fields)),
         paint_field_capacity,

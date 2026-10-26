@@ -261,8 +261,17 @@ void collide_smoke_with_rigid_body(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,
     const void *previous_positions, void *velocities, const float *ages,
     float *pressures, std::uint32_t count, float lifetime,
-    const void *mesh, void *body_states, const void *previous_body_states,
-    std::uint32_t body, float clearance, float particle_mass,
+    const void *meshes, std::uint32_t mesh_index,
+    const void *body_parameters, void *body_states,
+    const void *previous_body_states,
+    std::uint32_t body, const void *body_ids,
+    std::uint32_t body_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
+    float clearance, float particle_mass,
     float wall_drag, float pressure_stiffness, float timestep,
     float maximum_speed, const SmokeGridDispatchField &smoke_grid,
     void *impulses) noexcept {
@@ -270,11 +279,23 @@ void collide_smoke_with_rigid_body(
         as<Vec3_0>(positions),
         const_cast<Vec3_0 *>(as<Vec3_0>(previous_positions)),
         as<Vec3_0>(velocities), const_cast<float *>(ages), pressures, count,
-        lifetime, *as<TriangleMeshResource_0>(mesh),
+        lifetime,
+        const_cast<TriangleMeshResource_0 *>(
+            as<TriangleMeshResource_0>(meshes)),
+        mesh_index,
+        const_cast<BodyParameters_0 *>(
+            as<BodyParameters_0>(body_parameters)),
         as<RigidBodyState_0>(body_states),
         const_cast<RigidBodyState_0 *>(
             as<RigidBodyState_0>(previous_body_states)),
-        body, clearance, particle_mass, wall_drag, pressure_stiffness,
+        body, const_cast<RigidBodyId_0 *>(as<RigidBodyId_0>(body_ids)),
+        body_topology_revision,
+        const_cast<CouplingSpatialLeafMetadata_0 *>(
+            as<CouplingSpatialLeafMetadata_0>(spatial_metadata)),
+        const_cast<std::uint8_t *>(spatial_admission), spatial_leaf_capacity,
+        const_cast<std::uint32_t *>(candidate_counts),
+        const_cast<std::uint32_t *>(candidate_sources), candidates_per_query,
+        spatial_status, clearance, particle_mass, wall_drag, pressure_stiffness,
         timestep, maximum_speed, grid_field(smoke_grid),
         as<FluidBodyImpulse_0>(impulses));
 }

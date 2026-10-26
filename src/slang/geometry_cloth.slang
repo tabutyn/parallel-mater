@@ -1,4 +1,5 @@
 #include "dispatch_entry.slang"
+#include "coupling_spatial.slangh"
 // SPDX-License-Identifier: MIT
 // Shared cloth/rigid geometry contacts and paint transfer.
 
@@ -87,6 +88,13 @@ void cloth_constrain_bodies(
     uniform PMBuffer<TriangleMeshResource> meshes, uniform PMBuffer<RigidBodyId> body_ids,
     uniform uint body_count, uniform uint cloth_index,
     uniform uint cloth_generation,
+    uniform uint cloth_topology_revision,
+    uniform PMBuffer<uint> triangle_generations,
+    uniform PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint spatial_leaf_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query, uniform PMBuffer<uint> spatial_status,
     uniform PMBuffer<PaintFieldResource> paint_fields, uniform uint field_capacity,
     uniform PMBuffer<PaintRuleResource> paint_rules, uniform uint rule_capacity,
     uniform PMBuffer<ClothBodyCorrection> corrections PM_D3D12_DISPATCH_PARAMETER)
@@ -107,8 +115,37 @@ void cloth_constrain_bodies(
     float bestPenetration = 0.0f;
     Vec3 bestNormal = {}, bestContact = {};
     uint bestTriangle = 0u;
-    for (uint triangle = 0u; triangle < triangle_count; ++triangle)
+    uint candidateCount = candidate_counts[bodyIndex];
+    if (candidateCount > candidates_per_query)
     {
+        pmAtomicOr(spatial_status, kCouplingSpatialQueryOverflow);
+        return;
+    }
+    uint candidateBase = bodyIndex * candidates_per_query;
+    for (uint candidateIndex = 0u;
+         candidateIndex < candidateCount; ++candidateIndex)
+    {
+        uint source = candidate_sources[candidateBase + candidateIndex];
+        if (source >= spatial_leaf_capacity || spatial_admission[source] == 0u)
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialAdmissionInvalid);
+            return;
+        }
+        CouplingSpatialLeafMetadata leaf = spatial_metadata[source];
+        if (leaf.identity.family != kCouplingSpatialClothFamily ||
+            leaf.identity.owner_slot != cloth_index ||
+            leaf.identity.owner_generation != cloth_generation ||
+            leaf.identity.topology_revision != cloth_topology_revision ||
+            leaf.identity.primitive_kind != kCouplingSpatialTrianglePrimitive)
+            continue;
+        uint triangle = leaf.payload_ref;
+        if (triangle >= triangle_count ||
+            leaf.identity.primitive_slot != triangle ||
+            leaf.identity.primitive_generation != triangle_generations[triangle])
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialStaleEpoch);
+            return;
+        }
         uint base = triangle * 3u;
         Vec3 a = pmBufferPresent(surface_positions) ? surface_positions[base] :
             cloth_positions[cloth_indices[base]];

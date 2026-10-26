@@ -17,11 +17,13 @@ template <typename State>
 PmResult native_realtime_spatial_counts(
     const State &state, std::uint32_t &leaves,
     std::uint32_t &queries) noexcept {
-    std::uint64_t total = state.rigid_body_count;
+    std::uint64_t leaf_total = state.rigid_body_count;
+    std::uint64_t query_total = state.rigid_body_count;
     for (std::uint32_t slot = 0U; slot < state.fluids.size(); ++slot) {
         const auto &owner = state.fluids[slot];
         if (!owner || !owner->alive) continue;
-        total += owner->options.capacity;
+        leaf_total += owner->options.capacity;
+        query_total += owner->options.capacity;
         std::uint64_t proposals{};
         const FluidId fluid_id{slot, owner->generation};
         for (const auto &source : state.particle_sources) {
@@ -31,36 +33,46 @@ PmResult native_realtime_spatial_counts(
             proposals = std::min<std::uint64_t>(owner->options.capacity,
                 proposals + source.data->count);
         }
-        total += proposals;
-        if (total > std::numeric_limits<std::uint32_t>::max())
+        leaf_total += proposals;
+        query_total += proposals;
+        if (leaf_total > std::numeric_limits<std::uint32_t>::max() ||
+            query_total > std::numeric_limits<std::uint32_t>::max())
             return PM_ERROR_CAPACITY_EXCEEDED;
     }
     for (const auto &owner : state.cloths) {
         if (!owner || !owner->alive) continue;
-        total += owner->index_count / 3U;
-        if (total > std::numeric_limits<std::uint32_t>::max())
+        leaf_total += owner->index_count / 3U;
+        query_total += owner->vertex_count;
+        if (leaf_total > std::numeric_limits<std::uint32_t>::max() ||
+            query_total > std::numeric_limits<std::uint32_t>::max())
             return PM_ERROR_CAPACITY_EXCEEDED;
     }
     for (const auto &owner : state.soft_bodies) {
         if (!owner || !owner->alive) continue;
-        total += owner->surface_index_count / 3U;
-        if (total > std::numeric_limits<std::uint32_t>::max())
+        leaf_total += owner->node_count + owner->surface_index_count / 3U;
+        query_total += owner->node_count;
+        if (leaf_total > std::numeric_limits<std::uint32_t>::max() ||
+            query_total > std::numeric_limits<std::uint32_t>::max())
             return PM_ERROR_CAPACITY_EXCEEDED;
     }
     for (const auto &owner : state.ropes) {
         if (!owner || !owner->alive) continue;
-        total += owner->data.count - 1U;
-        if (total > std::numeric_limits<std::uint32_t>::max())
+        leaf_total += std::uint64_t{owner->data.count} * 2U - 1U;
+        query_total += owner->data.count;
+        if (leaf_total > std::numeric_limits<std::uint32_t>::max() ||
+            query_total > std::numeric_limits<std::uint32_t>::max())
             return PM_ERROR_CAPACITY_EXCEEDED;
     }
     for (const auto &owner : state.smokes) {
         if (!owner || !owner->alive) continue;
-        total += owner->options.capacity;
-        if (total > std::numeric_limits<std::uint32_t>::max())
+        leaf_total += owner->options.capacity;
+        query_total += owner->options.capacity;
+        if (leaf_total > std::numeric_limits<std::uint32_t>::max() ||
+            query_total > std::numeric_limits<std::uint32_t>::max())
             return PM_ERROR_CAPACITY_EXCEEDED;
     }
-    leaves = static_cast<std::uint32_t>(total);
-    queries = leaves;
+    leaves = static_cast<std::uint32_t>(leaf_total);
+    queries = static_cast<std::uint32_t>(query_total);
     return PM_SUCCESS;
 }
 
@@ -546,7 +558,7 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                 ++boundary.barriers;
             }
             dispatch(predict, 1U, vertex_groups);
-            dispatch(index, 1U, triangle_groups);
+            dispatch(index, 2U, triangle_groups + vertex_groups);
             dispatch(domain,
                 3U * simulation::cloth_realtime_constraint_sweeps +
                     simulation::cloth_realtime_contact_passes,
@@ -574,7 +586,7 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                 2U * sizeof(std::uint32_t);
             boundary.barriers += 12U;
             dispatch(predict, 2U, node_groups + surface_groups);
-            dispatch(index, 1U, triangle_groups);
+            dispatch(index, 2U, triangle_groups + node_groups);
             dispatch(domain,
                 3U * simulation::soft_body_realtime_constraint_sweeps +
                     simulation::soft_body_realtime_contact_passes,
@@ -597,7 +609,7 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                 2U * sizeof(std::uint32_t);
             boundary.barriers += 5U;
             dispatch(predict, 1U, node_groups);
-            dispatch(index, 1U, segment_groups);
+            dispatch(index, 2U, segment_groups + node_groups);
             dispatch(domain,
                 2U * simulation::rope_realtime_constraint_sweeps +
                     simulation::rope_realtime_contact_passes,
@@ -786,17 +798,6 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                     2U * groups + 2U * sweeps * groups);
             }
             if (rigid != 0U) {
-                const auto body_groups =
-                    (std::uint64_t{rigid} + 127U) / 128U;
-                const auto body_words =
-                    (std::uint64_t{state.options.rigid_body_capacity} + 63U) /
-                    64U;
-                dispatch(coupling, 2U * sweeps,
-                    2U * sweeps * body_groups);
-                coupling.bytes_moved += sweeps *
-                    (NativeScheduleBackend::fluid_body_buckets + 1ULL) *
-                    body_words * sizeof(unsigned long long);
-                coupling.barriers += 2U * sweeps;
                 for (const auto &owner : state.fluids) {
                     if (!owner || !owner->alive) continue;
                     const auto groups =
@@ -854,17 +855,12 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                     (std::uint64_t{body.node_count} + 127U) / 128U;
                 const auto surface_groups =
                     (std::uint64_t{body.surface_vertex_count} + 127U) / 128U;
-                const auto tree_groups =
-                    (std::uint64_t{owner->tree_count} + 127U) / 128U;
-                dispatch(coupling, 5U * sweeps, sweeps *
-                    (2U * fluid_groups + node_groups + surface_groups +
-                     tree_groups));
+                dispatch(coupling, 4U * sweeps, sweeps *
+                    (2U * fluid_groups + node_groups + surface_groups));
                 coupling.bytes_moved += sweeps *
-                    (std::uint64_t{body.node_count} *
-                         (sizeof(std::uint32_t) + 2U * sizeof(Vec3)) +
-                     std::uint64_t{owner->tree_count} *
-                         sizeof(std::uint32_t));
-                coupling.barriers += 4U * sweeps;
+                    std::uint64_t{body.node_count} *
+                        (sizeof(std::uint32_t) + 2U * sizeof(Vec3));
+                coupling.barriers += 3U * sweeps;
             }
             for (const auto &owner : state.fluid_smoke_couplings) {
                 if (!owner || !owner->alive) continue;
@@ -928,12 +924,11 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                 const auto attachments =
                     std::uint32_t(owner->data.options.first.enabled) +
                     std::uint32_t(owner->data.options.last.enabled);
-                dispatch(coupling,
-                    3U * attachments *
-                        simulation::rigid_coupling_realtime_sweeps,
-                    std::uint64_t{attachments} *
+                if (attachments != 0U)
+                    dispatch(coupling,
+                        3U * simulation::rigid_coupling_realtime_sweeps,
                         simulation::rigid_coupling_realtime_sweeps *
-                        (2U + body_groups));
+                            (1U + node_groups + body_groups));
             }
             constexpr std::uint64_t sweeps =
                 simulation::rigid_coupling_realtime_sweeps;
@@ -984,30 +979,52 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                 const auto endpoints =
                     std::uint32_t(item.options.first_vertex != UINT32_MAX) +
                     std::uint32_t(item.options.last_vertex != UINT32_MAX);
-                dispatch(coupling,
-                    3U * endpoints *
-                        simulation::deformable_smoke_coupling_sweeps,
-                    3ULL * endpoints *
-                        simulation::deformable_smoke_coupling_sweeps);
+                if (endpoints != 0U) {
+                    const auto &cloth = *state.cloths[
+                        item.options.cloth.index];
+                    const auto &rope = *state.ropes[
+                        item.options.rope.index];
+                    const auto cloth_groups =
+                        (std::uint64_t{cloth.vertex_count} + 127U) / 128U;
+                    const auto rope_groups =
+                        (std::uint64_t{rope.data.count} + 127U) / 128U;
+                    dispatch(coupling,
+                        3U * simulation::deformable_smoke_coupling_sweeps,
+                        simulation::deformable_smoke_coupling_sweeps *
+                            (1U + cloth_groups + rope_groups));
+                }
             }
             for (const auto &owner : state.rope_soft_body_couplings) {
                 if (!owner || !owner->alive || !owner->options.enabled)
                     continue;
                 const auto &body = *state.soft_bodies[
                     owner->options.soft_body.index];
-                const auto records = 2U +
+                const auto attachments =
                     std::uint32_t(owner->options.attach_first) +
                     std::uint32_t(owner->options.attach_last);
+                const auto records = 2U + attachments;
                 const auto node_groups =
                     (std::uint64_t{body.node_count} + 127U) / 128U;
                 const auto surface_groups =
                     (std::uint64_t{body.surface_vertex_count} + 127U) / 128U;
+                const auto &rope = *state.ropes[
+                    owner->options.rope.index];
+                const auto rope_groups =
+                    (std::uint64_t{rope.data.count} + 127U) / 128U;
+                const std::uint64_t dispatches_per_sweep = 11U +
+                    (attachments == 0U ? 0U : 3U + 4U * attachments);
+                const std::uint64_t workgroups_per_sweep =
+                    6U + rope_groups + 2U * node_groups +
+                    2U * surface_groups +
+                    (attachments == 0U ? 0U :
+                        attachments + 2U + rope_groups +
+                            attachments * (1U + node_groups +
+                                surface_groups));
                 dispatch(coupling,
-                    7U * records *
+                    dispatches_per_sweep *
                         simulation::deformable_smoke_coupling_sweeps,
-                    std::uint64_t{records} *
-                        simulation::deformable_smoke_coupling_sweeps *
-                        (5U + node_groups + surface_groups));
+                    workgroups_per_sweep *
+                        simulation::deformable_smoke_coupling_sweeps);
                 coupling.bytes_moved += std::uint64_t{records} *
                     simulation::deformable_smoke_coupling_sweeps *
                     (sizeof(Vec3) +
@@ -1387,7 +1404,8 @@ public:
             owner->realtime_phase_first_slot = 0U;
             owner->realtime_phase_discovery = false;
         }
-        std::uint32_t fluid_offset = state_.rigid_body_count;
+        std::uint32_t leaf_offset = state_.rigid_body_count;
+        std::uint32_t query_offset = state_.rigid_body_count;
         for (std::uint32_t slot = 0U; slot < state_.fluids.size(); ++slot) {
             auto &owner = state_.fluids[slot];
             if (!owner || !owner->alive) continue;
@@ -1405,9 +1423,10 @@ public:
                 fluid.options.normal_damping,
                 fluid.options.velocity_damping});
             if (material != PM_SUCCESS) return material;
-            owner->realtime_leaf_offset = fluid_offset;
-            owner->realtime_query_offset = fluid_offset;
-            fluid_offset += owner->options.capacity;
+            owner->realtime_leaf_offset = leaf_offset;
+            owner->realtime_query_offset = query_offset;
+            leaf_offset += owner->options.capacity;
+            query_offset += owner->options.capacity;
             std::uint32_t proposal_count{};
             const FluidId fluid_id{slot, fluid.generation};
             for (auto &source : state_.particle_sources) {
@@ -1423,18 +1442,20 @@ public:
                     std::numeric_limits<std::uint32_t>::max() -
                         proposal_count - amount)
                     return PM_ERROR_CAPACITY_EXCEEDED;
-                source.realtime_proposal_offset = fluid_offset;
+                if (leaf_offset != query_offset)
+                    return PM_ERROR_INVALID_STATE;
+                source.realtime_proposal_offset = leaf_offset;
                 source.realtime_proposal_count = amount;
                 source.realtime_first_stable_id =
                     fluid.next_id + proposal_count;
-                fluid_offset += amount;
+                leaf_offset += amount;
+                query_offset += amount;
                 proposal_count += amount;
             }
             fluid.realtime_query_count =
                 fluid.options.capacity + proposal_count;
             fluid.realtime_pending_next_id = fluid.next_id + proposal_count;
         }
-        std::uint32_t cloth_offset = fluid_offset;
         for (auto &owner : state_.cloths) {
             if (!owner || !owner->alive) continue;
             auto &cloth = *owner;
@@ -1445,11 +1466,11 @@ public:
                         scene.timestep >
                     0.25F * cloth.realtime_characteristic_length)
                 return PM_ERROR_INVALID_ARGUMENT;
-            cloth.realtime_leaf_offset = cloth_offset;
-            cloth.realtime_query_offset = cloth_offset;
-            cloth_offset += cloth.index_count / 3U;
+            cloth.realtime_leaf_offset = leaf_offset;
+            cloth.realtime_query_offset = query_offset;
+            leaf_offset += cloth.index_count / 3U;
+            query_offset += cloth.vertex_count;
         }
-        std::uint32_t soft_offset = cloth_offset;
         for (auto &owner : state_.soft_bodies) {
             if (!owner || !owner->alive) continue;
             auto &body = *owner;
@@ -1460,11 +1481,14 @@ public:
                         scene.timestep >
                     0.25F * body.realtime_characteristic_length)
                 return PM_ERROR_INVALID_ARGUMENT;
-            body.realtime_leaf_offset = soft_offset;
-            body.realtime_query_offset = soft_offset;
-            soft_offset += body.surface_index_count / 3U;
+            body.realtime_leaf_offset = leaf_offset;
+            body.realtime_query_offset = query_offset;
+            const auto surface_triangles = body.surface_index_count / 3U;
+            body.realtime_node_leaf_offset = leaf_offset + surface_triangles;
+            body.realtime_node_query_offset = query_offset;
+            leaf_offset += surface_triangles + body.node_count;
+            query_offset += body.node_count;
         }
-        std::uint32_t rope_offset = soft_offset;
         for (auto &owner : state_.ropes) {
             if (!owner || !owner->alive) continue;
             auto &rope = *owner;
@@ -1495,11 +1519,12 @@ public:
             material.effective_inverse_mass = 2.0F * inverse_node_mass;
             validation = simulation::validate_rope_realtime_input(material);
             if (validation != PM_SUCCESS) return validation;
-            rope.realtime_leaf_offset = rope_offset;
-            rope.realtime_query_offset = rope_offset;
-            rope_offset += nodes - 1U;
+            rope.realtime_leaf_offset = leaf_offset;
+            rope.realtime_node_leaf_offset = leaf_offset + nodes - 1U;
+            rope.realtime_query_offset = query_offset;
+            leaf_offset += 2U * nodes - 1U;
+            query_offset += nodes;
         }
-        std::uint32_t smoke_offset = rope_offset;
         for (std::uint32_t smoke_slot = 0U;
              smoke_slot < state_.smokes.size(); ++smoke_slot) {
             auto &owner = state_.smokes[smoke_slot];
@@ -1573,9 +1598,10 @@ public:
                     validation = PM_ERROR_INVALID_ARGUMENT;
             }
             if (validation != PM_SUCCESS) return validation;
-            smoke.realtime_leaf_offset = smoke_offset;
-            smoke.realtime_query_offset = smoke_offset;
-            smoke_offset += smoke.options.capacity;
+            smoke.realtime_leaf_offset = leaf_offset;
+            smoke.realtime_query_offset = query_offset;
+            leaf_offset += smoke.options.capacity;
+            query_offset += smoke.options.capacity;
 
             smoke.realtime_pending_count = smoke.count;
             smoke.realtime_pending_next_slot = smoke.next_slot;
@@ -1663,7 +1689,7 @@ public:
             owner->realtime_phase_discovery =
                 !has_pending_phase || phase_admission;
         }
-        if (smoke_offset != staged_leaves_)
+        if (leaf_offset != staged_leaves_ || query_offset != staged_queries_)
             return PM_ERROR_INVALID_STATE;
         const auto candidates_per_query =
             state_.options.realtime_spatial_candidates_per_query;
@@ -2576,7 +2602,8 @@ public:
                 static_cast<std::uint32_t>(
                     scene.graph_revision %
                     (std::numeric_limits<std::uint32_t>::max() - 1U)) + 1U,
-                simulation::rigid_spatial_query_mask, path_deviation,
+                simulation::rigid_spatial_query_mask |
+                    simulation::coupling_spatial_query_mask, path_deviation,
                 correction_budget, 1.0e-5F, snapshot_.metadata,
                 snapshot_.bounds, snapshot_.build_flags, query_bounds,
                 query_masks, excluded, snapshot_.query_status);
@@ -2598,6 +2625,40 @@ public:
                     source.options.fluid == fluid_id)
                     source_spacing = std::max(
                         source_spacing, source.data->spacing);
+            float coupling_radius = fluid.options.support_radius;
+            for (const auto &coupling : state_.fluid_cloth_couplings) {
+                if (!coupling.alive || !coupling.options.enabled ||
+                    !(coupling.options.fluid == fluid_id))
+                    continue;
+                coupling_radius = std::max(coupling_radius,
+                    coupling.options.interaction_radius > 0.0F
+                        ? coupling.options.interaction_radius
+                        : fluid.options.support_radius);
+                coupling_radius = std::max(coupling_radius,
+                    coupling.options.contact_distance > 0.0F
+                        ? coupling.options.contact_distance
+                        : fluid.options.particle_radius);
+            }
+            for (const auto &coupling : state_.fluid_rope_couplings) {
+                if (!coupling || !coupling->alive ||
+                    !coupling->options.enabled ||
+                    !(coupling->options.fluid == fluid_id))
+                    continue;
+                coupling_radius = std::max(coupling_radius,
+                    coupling->options.contact_distance > 0.0F
+                        ? coupling->options.contact_distance
+                        : fluid.options.particle_radius);
+            }
+            for (const auto &coupling : state_.fluid_soft_couplings) {
+                if (!coupling || !coupling->alive ||
+                    !coupling->options.enabled ||
+                    !(coupling->options.fluid == fluid_id))
+                    continue;
+                coupling_radius = std::max(coupling_radius,
+                    coupling->options.contact_distance > 0.0F
+                        ? coupling->options.contact_distance
+                        : fluid.options.particle_radius);
+            }
             const float fluid_correction[3]{
                 simulation::fluid_realtime_maximum_correction_fraction *
                     fluid.options.support_radius,
@@ -2617,10 +2678,12 @@ public:
                 fluid.realtime_query_offset,
                 state_.realtime_spatial_plan.query_capacity,
                 fluid.realtime_leaf_offset,
-                simulation::fluid_spatial_query_mask,
-                simulation::fluid_spatial_query_mask,
+                simulation::fluid_spatial_query_mask |
+                    simulation::coupling_spatial_query_mask,
+                simulation::fluid_spatial_query_mask |
+                    simulation::coupling_spatial_query_mask,
                 0.5F * source_spacing,
-                fluid.options.support_radius, path_deviation,
+                coupling_radius, path_deviation,
                 fluid_correction, 1.0e-5F, snapshot_.metadata,
                 snapshot_.bounds, snapshot_.build_flags, query_bounds,
                 query_masks, excluded, query_leaf_sources,
@@ -2652,9 +2715,11 @@ public:
                     source.realtime_proposal_offset,
                     state_.realtime_spatial_plan.query_capacity,
                     source.realtime_proposal_offset,
-                    simulation::fluid_spatial_query_mask,
-                    simulation::fluid_spatial_query_mask,
-                    fluid.options.support_radius, path_deviation,
+                    simulation::fluid_spatial_query_mask |
+                        simulation::coupling_spatial_query_mask,
+                    simulation::fluid_spatial_query_mask |
+                        simulation::coupling_spatial_query_mask,
+                    coupling_radius, path_deviation,
                     fluid_correction, 1.0e-5F, snapshot_.metadata,
                     snapshot_.bounds, snapshot_.build_flags, query_bounds,
                     query_masks, excluded, query_leaf_sources,
@@ -2695,8 +2760,10 @@ public:
                 cloth.realtime_query_offset,
                 state_.realtime_spatial_plan.query_capacity,
                 cloth.realtime_leaf_offset,
-                simulation::deformable_spatial_contact_mask,
-                simulation::deformable_spatial_contact_mask,
+                0U,
+                simulation::deformable_spatial_contact_mask |
+                    simulation::smoke_spatial_obstacle_mask |
+                    simulation::coupling_spatial_query_mask,
                 cloth.thickness, path_deviation, cloth_correction, 1.0e-5F,
                 snapshot_.metadata, snapshot_.bounds,
                 snapshot_.build_flags, query_bounds, query_masks, excluded,
@@ -2705,6 +2772,21 @@ public:
             if (result != PM_SUCCESS) return result;
             dispatch(simulation::RealtimeTelemetryPhase::index,
                      cloth_groups);
+            const auto vertex_groups =
+                (cloth.vertex_count + block - 1U) / block;
+            native_.emit_deformable_point_queries(
+                vertex_groups, block, native_.queue(), cloth.previous,
+                cloth.realtime_positions, cloth.vertex_count,
+                cloth.realtime_query_offset,
+                state_.realtime_spatial_plan.query_capacity,
+                simulation::rigid_spatial_query_mask |
+                    simulation::coupling_spatial_query_mask,
+                cloth.thickness, path_deviation, cloth_correction, 1.0e-5F,
+                query_bounds, query_masks, excluded, snapshot_.query_status);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatch(simulation::RealtimeTelemetryPhase::index,
+                     vertex_groups);
         }
         for (std::uint32_t slot = 0U;
              slot < state_.soft_bodies.size(); ++slot) {
@@ -2734,8 +2816,10 @@ public:
                 body.realtime_query_offset,
                 state_.realtime_spatial_plan.query_capacity,
                 body.realtime_leaf_offset,
-                simulation::deformable_spatial_contact_mask,
-                simulation::deformable_spatial_contact_mask,
+                0U,
+                simulation::deformable_spatial_contact_mask |
+                    simulation::smoke_spatial_obstacle_mask |
+                    simulation::coupling_spatial_query_mask,
                 body.node_radius, path_deviation, soft_correction, 1.0e-5F,
                 snapshot_.metadata, snapshot_.bounds,
                 snapshot_.build_flags, query_bounds, query_masks, excluded,
@@ -2744,6 +2828,44 @@ public:
             if (result != PM_SUCCESS) return result;
             dispatch(simulation::RealtimeTelemetryPhase::index,
                      soft_groups);
+            float query_radius = body.node_radius;
+            const SoftBodyId body_id{slot, body.generation};
+            for (const auto &coupling : state_.soft_cloth_couplings) {
+                if (!coupling || !coupling->alive ||
+                    !coupling->options.enabled ||
+                    !(coupling->options.soft_body == body_id) ||
+                    coupling->options.contact_distance <= 0.0F)
+                    continue;
+                query_radius = std::max(
+                    query_radius, coupling->options.contact_distance);
+            }
+            const auto node_groups =
+                (body.node_count + block - 1U) / block;
+            native_.emit_deformable_spatial_primitives(
+                node_groups, block, native_.queue(), body.previous,
+                body.realtime_positions, body.node_count, nullptr, nullptr,
+                body.node_count, 1U,
+                simulation::deformable_spatial_soft_family, slot,
+                body.generation,
+                static_cast<std::uint32_t>(body.realtime_topology_revision),
+                simulation::deformable_spatial_point_primitive,
+                body.realtime_node_leaf_offset,
+                state_.realtime_spatial_plan.leaf_capacity,
+                body.realtime_node_query_offset,
+                state_.realtime_spatial_plan.query_capacity,
+                body.realtime_node_leaf_offset,
+                simulation::deformable_spatial_contact_mask |
+                    simulation::rigid_spatial_query_mask |
+                    simulation::coupling_spatial_query_mask,
+                simulation::deformable_spatial_query_identity_mask,
+                query_radius, path_deviation, soft_correction, 1.0e-5F,
+                snapshot_.metadata, snapshot_.bounds,
+                snapshot_.build_flags, query_bounds, query_masks, excluded,
+                deformable_query_leaf_sources, snapshot_.query_status);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatch(simulation::RealtimeTelemetryPhase::index,
+                     node_groups);
         }
         for (std::uint32_t slot = 0U; slot < state_.ropes.size(); ++slot) {
             auto &owner = state_.ropes[slot];
@@ -2772,8 +2894,10 @@ public:
                 rope.realtime_query_offset,
                 state_.realtime_spatial_plan.query_capacity,
                 rope.realtime_leaf_offset,
-                simulation::deformable_spatial_contact_mask,
-                simulation::deformable_spatial_contact_mask,
+                0U,
+                simulation::deformable_spatial_contact_mask |
+                    simulation::smoke_spatial_obstacle_mask |
+                    simulation::coupling_spatial_query_mask,
                 rope.data.options.radius, path_deviation, rope_correction,
                 1.0e-5F, snapshot_.metadata, snapshot_.bounds,
                 snapshot_.build_flags, query_bounds, query_masks, excluded,
@@ -2782,6 +2906,32 @@ public:
             if (result != PM_SUCCESS) return result;
             dispatch(simulation::RealtimeTelemetryPhase::index,
                      rope_groups);
+            const auto node_groups =
+                (rope.data.count + block - 1U) / block;
+            native_.emit_deformable_spatial_primitives(
+                node_groups, block, native_.queue(), rope.data.positions,
+                rope.realtime_positions, rope.data.count, nullptr, nullptr,
+                rope.data.count, 1U,
+                simulation::deformable_spatial_rope_family, slot,
+                rope.generation,
+                static_cast<std::uint32_t>(rope.realtime_topology_revision),
+                simulation::deformable_spatial_point_primitive,
+                rope.realtime_node_leaf_offset,
+                state_.realtime_spatial_plan.leaf_capacity,
+                rope.realtime_query_offset,
+                state_.realtime_spatial_plan.query_capacity,
+                rope.realtime_node_leaf_offset,
+                simulation::rigid_spatial_query_mask |
+                    simulation::coupling_spatial_query_mask,
+                simulation::deformable_spatial_query_identity_mask,
+                rope.data.options.radius, path_deviation, rope_correction,
+                1.0e-5F, snapshot_.metadata, snapshot_.bounds,
+                snapshot_.build_flags, query_bounds, query_masks, excluded,
+                deformable_query_leaf_sources, snapshot_.query_status);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
+            dispatch(simulation::RealtimeTelemetryPhase::index,
+                     node_groups);
         }
         for (std::uint32_t slot = 0U; slot < state_.smokes.size(); ++slot) {
             auto &owner = state_.smokes[slot];
@@ -2789,9 +2939,55 @@ public:
             auto &smoke = *owner;
             const auto smoke_groups =
                 (smoke.options.capacity + block - 1U) / block;
-            const float support = smoke.options.grid_resolution == 0U
+            float support = smoke.options.grid_resolution == 0U
                 ? 3.0F * smoke.options.particle_radius
                 : smoke.grid.spacing;
+            for (const auto &coupling_owner : state_.smoke_rigid_couplings) {
+                if (!coupling_owner || !coupling_owner->alive ||
+                    !coupling_owner->options.enabled ||
+                    !coupling_owner->options.tracer_contact ||
+                    coupling_owner->options.smoke.index != slot) continue;
+                const float clearance =
+                    coupling_owner->options.contact_distance > 0.0F
+                        ? coupling_owner->options.contact_distance
+                        : smoke.options.particle_radius;
+                support = std::max(support, 3.0F * clearance);
+            }
+            for (const auto &coupling_owner : state_.smoke_cloth_couplings) {
+                if (!coupling_owner || !coupling_owner->alive ||
+                    !coupling_owner->options.enabled ||
+                    coupling_owner->options.smoke.index != slot) continue;
+                const auto &cloth = *state_.cloths[
+                    coupling_owner->options.cloth.index];
+                support = std::max(support,
+                    coupling_owner->options.contact_distance > 0.0F
+                        ? coupling_owner->options.contact_distance
+                        : smoke.options.particle_radius + cloth.thickness);
+            }
+            for (const auto &coupling_owner :
+                 state_.smoke_soft_body_couplings) {
+                if (!coupling_owner || !coupling_owner->alive ||
+                    !coupling_owner->options.enabled ||
+                    coupling_owner->options.smoke.index != slot) continue;
+                const auto &body = *state_.soft_bodies[
+                    coupling_owner->options.soft_body.index];
+                support = std::max(support,
+                    coupling_owner->options.contact_distance > 0.0F
+                        ? coupling_owner->options.contact_distance
+                        : smoke.options.particle_radius + body.node_radius);
+            }
+            for (const auto &coupling_owner : state_.smoke_rope_couplings) {
+                if (!coupling_owner || !coupling_owner->alive ||
+                    !coupling_owner->options.enabled ||
+                    coupling_owner->options.smoke.index != slot) continue;
+                const auto &rope = *state_.ropes[
+                    coupling_owner->options.rope.index];
+                support = std::max(support,
+                    coupling_owner->options.contact_distance > 0.0F
+                        ? coupling_owner->options.contact_distance
+                        : smoke.options.particle_radius +
+                              rope.data.options.radius);
+            }
             const float smoke_correction[3]{
                 simulation::smoke_realtime_maximum_correction_fraction *
                     support,
@@ -2811,8 +3007,12 @@ public:
                 state_.realtime_spatial_plan.leaf_capacity,
                 smoke.realtime_query_offset,
                 state_.realtime_spatial_plan.query_capacity,
-                smoke.realtime_leaf_offset, smoke_realtime_spatial_mask,
-                smoke_realtime_spatial_mask, 0.0F, support,
+                smoke.realtime_leaf_offset,
+                smoke_realtime_spatial_mask |
+                    simulation::coupling_spatial_query_mask,
+                smoke_realtime_spatial_mask |
+                    simulation::coupling_spatial_query_mask,
+                0.0F, support,
                 path_deviation, smoke_correction, 1.0e-5F,
                 snapshot_.metadata, snapshot_.bounds,
                 snapshot_.build_flags, query_bounds, query_masks, excluded,
@@ -3499,6 +3699,8 @@ public:
             simulation::RealtimeTelemetryPhase::coupling);
         ++coupling_work.numerical_iterations;
         constexpr std::uint32_t block = 128U;
+        const auto candidates_per_query =
+            state_.options.realtime_spatial_candidates_per_query;
 
         if (family == simulation::RealtimeCouplingFamily::rigid) {
             if (edge_count != rigid_coupling_count_) return PM_ERROR_INVALID_STATE;
@@ -3533,6 +3735,10 @@ public:
                 if (result != PM_SUCCESS) return result;
                 stage_smoke_rigid_measurement();
             }
+            const auto spatial_topology_revision =
+                static_cast<std::uint32_t>(
+                    scene.graph_revision %
+                    (std::numeric_limits<std::uint32_t>::max() - 1U)) + 1U;
             for (std::uint32_t slot = 0U; slot < state_.cloths.size(); ++slot) {
                 auto &owner = state_.cloths[slot];
                 if (!owner || !owner->alive) continue;
@@ -3550,7 +3756,16 @@ public:
                     scene.timestep, state_.parameters,
                     state_.render_previous_states,
                     state_.states[output_state_], state_.meshes,
-                    state_.rigid_body_count, PM_INVALID_INDEX, 0U,
+                    state_.rigid_body_count, state_.ids,
+                    spatial_topology_revision, snapshot_.metadata,
+                    snapshot_.admission,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    snapshot_.query_counts + cloth.realtime_query_offset,
+                    snapshot_.query_candidates +
+                        std::size_t(cloth.realtime_query_offset) *
+                            candidates_per_query,
+                    candidates_per_query, snapshot_.query_status,
+                    PM_INVALID_INDEX, 0U,
                     PM_INVALID_INDEX, 0U, cloth.body_impulses,
                     cloth.rigid_contact_forces, nullptr, nullptr, nullptr,
                     nullptr, nullptr, nullptr, state_.fluid_body_contact_flags,
@@ -3577,6 +3792,13 @@ public:
                     state_.render_previous_states,
                     state_.states[output_state_], state_.meshes, state_.ids,
                     state_.rigid_body_count, slot, cloth.generation,
+                    static_cast<std::uint32_t>(
+                        cloth.realtime_topology_revision),
+                    cloth.realtime_triangle_generations,
+                    snapshot_.metadata, snapshot_.admission,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    snapshot_.query_counts, snapshot_.query_candidates,
+                    candidates_per_query, snapshot_.query_status,
                     state_.paint_fields,
                     state_.options.paint_field_capacity,
                     state_.paint_rules,
@@ -3612,7 +3834,16 @@ public:
                     scene.timestep, state_.parameters,
                     state_.render_previous_states,
                     state_.states[output_state_], state_.meshes,
-                    state_.rigid_body_count, PM_INVALID_INDEX, 0U,
+                    state_.rigid_body_count, state_.ids,
+                    spatial_topology_revision, snapshot_.metadata,
+                    snapshot_.admission,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    snapshot_.query_counts + body.realtime_node_query_offset,
+                    snapshot_.query_candidates +
+                        std::size_t(body.realtime_node_query_offset) *
+                            candidates_per_query,
+                    candidates_per_query, snapshot_.query_status,
+                    PM_INVALID_INDEX, 0U,
                     PM_INVALID_INDEX, 0U, body.body_impulses,
                     body.rigid_contact_forces, body.contact_normals,
                     body.contact_arms, body.contact_momentum_delta,
@@ -3684,7 +3915,16 @@ public:
                     rope.data.options.radius, scene.timestep,
                     state_.parameters, state_.render_previous_states,
                     state_.states[output_state_], state_.meshes,
-                    state_.rigid_body_count, attachment_bodies[0],
+                    state_.rigid_body_count, state_.ids,
+                    spatial_topology_revision, snapshot_.metadata,
+                    snapshot_.admission,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    snapshot_.query_counts + rope.realtime_query_offset,
+                    snapshot_.query_candidates +
+                        std::size_t(rope.realtime_query_offset) *
+                            candidates_per_query,
+                    candidates_per_query, snapshot_.query_status,
+                    attachment_bodies[0],
                     rope.data.first_attachment_contact_skip,
                     attachment_bodies[1],
                     rope.data.last_attachment_contact_skip,
@@ -3715,12 +3955,16 @@ public:
                 auto &rope = *owner;
                 const RopeAttachment attachments[2]{
                     rope.data.options.first, rope.data.options.last};
+                const auto first_record = record;
                 for (std::uint32_t end = 0U; end < 2U; ++end) {
                     if (!attachments[end].enabled) continue;
-                    auto result = solve_rigid_rope_attachment(
-                        rope, end, record++, sweep, scene);
-                    if (result != PM_SUCCESS) return result;
+                    ++record;
                 }
+                const auto attachment_count = record - first_record;
+                if (attachment_count == 0U) continue;
+                auto result = solve_rigid_rope_attachments(
+                    rope, first_record, attachment_count, sweep, scene);
+                if (result != PM_SUCCESS) return result;
             }
             if (record != rigid_attachment_records_)
                 return PM_ERROR_INVALID_STATE;
@@ -3808,6 +4052,11 @@ public:
             const float distance = coupling.options.contact_distance > 0.0F
                 ? coupling.options.contact_distance
                 : body.node_radius + cloth.thickness;
+            const auto candidates_per_query =
+                state_.options.realtime_spatial_candidates_per_query;
+            auto *query_leaf_sources = deformable_spatial<std::uint32_t>(
+                state_.realtime_deformable_spatial_plan.query_leaf_sources) +
+                body.realtime_node_query_offset;
             native_.detect_soft_body_cloth_contacts(
                 body_groups, block, native_.queue(),
                 body.realtime_positions, body.previous,
@@ -3815,7 +4064,20 @@ public:
                 body.node_count, cloth.realtime_positions, cloth.previous,
                 cloth.realtime_velocities, cloth.inverse_masses,
                 cloth.indices, cloth.realtime_surface_positions,
-                cloth_triangles, distance, coupling.options.friction,
+                cloth_triangles, cloth.realtime_triangle_generations,
+                coupling.options.cloth.index, cloth.generation,
+                static_cast<std::uint32_t>(cloth.realtime_topology_revision),
+                snapshot_.metadata, snapshot_.admission,
+                state_.realtime_spatial_plan.leaf_capacity,
+                query_leaf_sources,
+                snapshot_.query_counts + body.realtime_node_query_offset,
+                snapshot_.query_candidates +
+                    std::size_t(body.realtime_node_query_offset) *
+                        candidates_per_query,
+                candidates_per_query, coupling.options.soft_body.index,
+                body.generation,
+                static_cast<std::uint32_t>(body.realtime_topology_revision),
+                snapshot_.query_status, distance, coupling.options.friction,
                 coupling.contacts, coupling.cloth_contact_counts);
             native_.apply_soft_body_cloth_contacts_to_soft_body(
                 body_groups, block, native_.queue(),
@@ -3843,36 +4105,33 @@ public:
             if (!coupling.alive || !coupling.options.enabled) continue;
             auto &cloth = *state_.cloths[coupling.options.cloth.index];
             auto &rope = *state_.ropes[coupling.options.rope.index];
+            const auto first_record = record;
             for (std::uint32_t end = 0U; end < 2U; ++end) {
                 const auto vertex = end == 0U
                     ? coupling.options.first_vertex
                     : coupling.options.last_vertex;
                 if (vertex == UINT32_MAX) continue;
-                auto result = solve_deformable_pair(
-                    {cloth.realtime_positions + vertex,
-                     cloth.previous + vertex,
-                     cloth.realtime_velocities + vertex,
-                     cloth.inverse_masses + vertex,
-                     cloth.realtime_correction_used + vertex,
-                     state_.realtime_coupling_first_generations + record, 1U},
-                    {rope.realtime_positions +
-                         (end == 0U ? 0U : rope.data.count - 1U),
-                     rope.realtime_previous_positions +
-                         (end == 0U ? 0U : rope.data.count - 1U),
-                     rope.realtime_velocities +
-                         (end == 0U ? 0U : rope.data.count - 1U),
-                     rope.realtime_inverse_masses +
-                         (end == 0U ? 0U : rope.data.count - 1U),
-                     rope.realtime_correction_used +
-                         (end == 0U ? 0U : rope.data.count - 1U),
-                     state_.realtime_coupling_second_generations + record, 1U},
-                    record, std::max(cloth.realtime_characteristic_length,
-                        rope.data.options.node_spacing),
-                    std::max(cloth.realtime_maximum_speed,
-                        rope.data.options.maximum_speed), sweep, scene);
-                if (result != PM_SUCCESS) return result;
                 ++record;
             }
+            const auto attachment_count = record - first_record;
+            if (attachment_count == 0U) continue;
+            auto result = solve_deformable_pairs(
+                {cloth.realtime_positions, cloth.previous,
+                 cloth.realtime_velocities, cloth.inverse_masses,
+                 cloth.realtime_correction_used,
+                 state_.realtime_coupling_first_generations + first_record,
+                 cloth.vertex_count},
+                {rope.realtime_positions, rope.realtime_previous_positions,
+                 rope.realtime_velocities, rope.realtime_inverse_masses,
+                 rope.realtime_correction_used,
+                 state_.realtime_coupling_second_generations + first_record,
+                 rope.data.count},
+                first_record, attachment_count,
+                std::max(cloth.realtime_characteristic_length,
+                    rope.data.options.node_spacing),
+                std::max(cloth.realtime_maximum_speed,
+                    rope.data.options.maximum_speed), sweep, scene);
+            if (result != PM_SUCCESS) return result;
         }
         constexpr float zero_offset[3]{};
         for (auto &owner : state_.rope_soft_body_couplings) {
@@ -3881,6 +4140,7 @@ public:
             auto &body = *state_.soft_bodies[
                 coupling.options.soft_body.index];
             auto &rope = *state_.ropes[coupling.options.rope.index];
+            const auto first_record = record;
             for (std::uint32_t end = 0U; end < 2U; ++end) {
                 native_.sample_rope_soft_body_anchor(native_.queue(),
                     rope.data.soft_anchor_positions,
@@ -3892,10 +4152,12 @@ public:
                     body.surface_bindings, coupling.anchor_triangle[end],
                     &coupling.anchor_weights[end].x, zero_offset);
                 dispatch(simulation::RealtimeTelemetryPhase::coupling, 1U);
-                auto result = solve_soft_rope_pair(
-                    coupling, body, rope, end, record++, sweep, scene);
-                if (result != PM_SUCCESS) return result;
+                ++record;
             }
+            auto result = solve_soft_rope_pairs(
+                coupling, body, rope, first_record, 2U, 0x3U,
+                sweep, scene);
+            if (result != PM_SUCCESS) return result;
         }
         for (auto &owner : state_.rope_soft_body_couplings) {
             if (!owner || !owner->alive || !owner->options.enabled) continue;
@@ -3903,6 +4165,8 @@ public:
             auto &body = *state_.soft_bodies[
                 coupling.options.soft_body.index];
             auto &rope = *state_.ropes[coupling.options.rope.index];
+            const auto first_record = record;
+            std::uint32_t endpoint_mask{};
             for (std::uint32_t end = 0U; end < 2U; ++end) {
                 if (!(end == 0U ? coupling.options.attach_first
                                 : coupling.options.attach_last))
@@ -3918,10 +4182,15 @@ public:
                     &coupling.anchor_weights[end].x,
                     &coupling.anchor_offset[end].x);
                 dispatch(simulation::RealtimeTelemetryPhase::coupling, 1U);
-                auto result = solve_soft_rope_pair(
-                    coupling, body, rope, end, record++, sweep, scene);
-                if (result != PM_SUCCESS) return result;
+                endpoint_mask |= 1U << end;
+                ++record;
             }
+            const auto attachment_count = record - first_record;
+            if (attachment_count == 0U) continue;
+            auto result = solve_soft_rope_pairs(coupling, body, rope,
+                first_record, attachment_count, endpoint_mask,
+                sweep, scene);
+            if (result != PM_SUCCESS) return result;
         }
         if (record != 32U + deformable_attachment_records_)
             return PM_ERROR_INVALID_STATE;
@@ -4307,6 +4576,8 @@ private:
             simulation::RealtimeTelemetryPhase::coupling);
         ++coupling_work.numerical_iterations;
         constexpr std::uint32_t block = 128U;
+        const auto candidates_per_query =
+            state_.options.realtime_spatial_candidates_per_query;
         if (sweep == 0U) {
             std::uint64_t liquid_particles{};
             std::uint64_t partner_endpoints = state_.rigid_body_count;
@@ -4399,38 +4670,10 @@ private:
         }
 
         if (state_.rigid_body_count != 0U) {
-            const auto body_groups =
-                (state_.rigid_body_count + block - 1U) / block;
-            native_.calculate_fluid_body_bounds(body_groups, block,
-                native_.queue(), state_.parameters,
-                state_.render_previous_states, state_.states[output_state_],
-                state_.meshes, state_.rigid_body_count,
-                state_.fluid_body_bounds);
-            auto result = native_.check_error();
-            if (result != PM_SUCCESS) return result;
-            dispatch(simulation::RealtimeTelemetryPhase::coupling,
-                body_groups);
-            const auto body_words =
-                (state_.options.rigid_body_capacity + 63U) / 64U;
-            result = native_.clear(state_.fluid_body_masks, 0,
-                NativeScheduleBackend::fluid_body_buckets * body_words *
-                    sizeof(unsigned long long), native_.queue());
-            if (result == PM_SUCCESS)
-                result = native_.clear(state_.fluid_global_body_masks, 0,
-                    body_words * sizeof(unsigned long long), native_.queue());
-            if (result != PM_SUCCESS) return result;
-            coupling_work.bytes_moved +=
-                (NativeScheduleBackend::fluid_body_buckets + 1ULL) *
-                body_words * sizeof(unsigned long long);
-            coupling_work.barriers += 2U;
-            native_.index_fluid_body_cells(body_groups, block, native_.queue(),
-                state_.parameters, state_.fluid_body_bounds,
-                state_.rigid_body_count, body_words, 0.0F,
-                state_.fluid_body_masks, state_.fluid_global_body_masks);
-            result = native_.check_error();
-            if (result != PM_SUCCESS) return result;
-            dispatch(simulation::RealtimeTelemetryPhase::coupling,
-                body_groups);
+            const auto body_topology_revision =
+                static_cast<std::uint32_t>(
+                    scene.graph_revision %
+                    (std::numeric_limits<std::uint32_t>::max() - 1U)) + 1U;
             for (std::uint32_t slot = 0U;
                  slot < state_.fluids.size(); ++slot) {
                 auto &owner = state_.fluids[slot];
@@ -4438,7 +4681,8 @@ private:
                 auto &fluid = *owner;
                 const auto groups =
                     (fluid.options.capacity + block - 1U) / block;
-                result = native_.clear(state_.fluid_body_contact_flags, 0,
+                auto result = native_.clear(
+                    state_.fluid_body_contact_flags, 0,
                     state_.rigid_body_count * sizeof(std::uint32_t),
                     native_.queue());
                 if (result != PM_SUCCESS) return result;
@@ -4452,9 +4696,16 @@ private:
                     fluid.realtime_count, fluid.options.particle_radius,
                     state_.parameters, state_.render_previous_states,
                     state_.states[output_state_], state_.meshes,
-                    state_.fluid_body_bounds, state_.rigid_body_count,
-                    state_.fluid_body_masks, state_.fluid_global_body_masks,
-                    body_words, sweep == 0U, fluid.moving_contacts,
+                    state_.ids, state_.rigid_body_count,
+                    body_topology_revision, snapshot_.metadata,
+                    snapshot_.admission,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    snapshot_.query_counts + fluid.realtime_query_offset,
+                    snapshot_.query_candidates +
+                        std::size_t(fluid.realtime_query_offset) *
+                            candidates_per_query,
+                    candidates_per_query, snapshot_.query_status,
+                    sweep == 0U, fluid.moving_contacts,
                     state_.fluid_body_contact_flags);
                 native_.resolve_fluid_moving_contacts(groups, block,
                     native_.queue(), fluid.next_positions,
@@ -4522,7 +4773,19 @@ private:
                     fluid.realtime_velocity_deltas, fluid.foam_source,
                     particle_mass, cloth.realtime_positions,
                     cloth.realtime_velocities, cloth.indices,
-                    cloth.index_count / 3U, cloth.orientation,
+                    cloth.index_count / 3U,
+                    cloth.realtime_triangle_generations,
+                    coupling.options.cloth.index, cloth.generation,
+                    static_cast<std::uint32_t>(
+                        cloth.realtime_topology_revision),
+                    snapshot_.metadata, snapshot_.admission,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    snapshot_.query_counts + fluid.realtime_query_offset,
+                    snapshot_.query_candidates +
+                        std::size_t(fluid.realtime_query_offset) *
+                            candidates_per_query,
+                    candidates_per_query, snapshot_.query_status,
+                    cloth.orientation,
                     simulation::FluidClothDispatchOptions{contact, radius,
                         coupling.options.stiffness * response_step,
                         coupling.options.damping * response_step,
@@ -4550,6 +4813,17 @@ private:
                     fluid.next_velocities, fluid.realtime_count, contact,
                     cloth.realtime_positions, cloth.realtime_velocities,
                     cloth.indices, cloth.index_count / 3U,
+                    cloth.realtime_triangle_generations,
+                    coupling.options.cloth.index, cloth.generation,
+                    static_cast<std::uint32_t>(
+                        cloth.realtime_topology_revision),
+                    snapshot_.metadata, snapshot_.admission,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    snapshot_.query_counts + fluid.realtime_query_offset,
+                    snapshot_.query_candidates +
+                        std::size_t(fluid.realtime_query_offset) *
+                            candidates_per_query,
+                    candidates_per_query, snapshot_.query_status,
                     cloth.orientation);
                 result = native_.check_error();
                 if (result != PM_SUCCESS) return result;
@@ -4585,7 +4859,18 @@ private:
                 native_.queue(), fluid.next_positions,
                 fluid.next_velocities, fluid.realtime_count, particle_mass,
                 rope.realtime_positions, rope.realtime_velocities,
-                rope.data.count, distance, coupling.options.friction,
+                rope.data.count, rope.realtime_segment_generations,
+                coupling.options.rope.index, rope.generation,
+                static_cast<std::uint32_t>(
+                    rope.realtime_topology_revision),
+                snapshot_.metadata, snapshot_.admission,
+                state_.realtime_spatial_plan.leaf_capacity,
+                snapshot_.query_counts + fluid.realtime_query_offset,
+                snapshot_.query_candidates +
+                    std::size_t(fluid.realtime_query_offset) *
+                        candidates_per_query,
+                candidates_per_query, snapshot_.query_status,
+                distance, coupling.options.friction,
                 coupling.contribution_nodes, coupling.contribution_impulses,
                 coupling.contact_count, coupling.maximum_penetration, true);
             native_.apply_fluid_rope_impulses(rope_groups, block,
@@ -4627,17 +4912,7 @@ private:
             if (result == PM_SUCCESS)
                 result = native_.clear(coupling.impulses, 0,
                     body.node_count * sizeof(Vec3), native_.queue());
-            if (result == PM_SUCCESS)
-                result = native_.clear(coupling.ready, 0,
-                    coupling.tree_count * sizeof(std::uint32_t),
-                    native_.queue());
             if (result != PM_SUCCESS) return result;
-            native_.refit_fluid_soft_surface(
-                (coupling.tree_count + block - 1U) / block, block,
-                native_.queue(), body.realtime_surface_positions,
-                coupling.previous_surface, body.surface_indices,
-                coupling.triangle_order, coupling.tree, coupling.parents,
-                coupling.ready, coupling.tree_count, coupling.bounds);
             const float distance = coupling.options.contact_distance > 0.0F
                 ? coupling.options.contact_distance
                 : fluid.options.particle_radius;
@@ -4647,8 +4922,18 @@ private:
                 body.realtime_surface_positions, coupling.previous_surface,
                 body.surface_indices, body.surface_index_count,
                 body.surface_bindings, body.realtime_velocities,
-                coupling.orientation, distance, coupling.bounds,
-                sweep == 0U, coupling.tree, coupling.triangle_order,
+                coupling.orientation, distance, sweep == 0U,
+                body.realtime_surface_triangle_generations,
+                coupling.options.soft_body.index, body.generation,
+                static_cast<std::uint32_t>(
+                    body.realtime_topology_revision),
+                snapshot_.metadata, snapshot_.admission,
+                state_.realtime_spatial_plan.leaf_capacity,
+                snapshot_.query_counts + fluid.realtime_query_offset,
+                snapshot_.query_candidates +
+                    std::size_t(fluid.realtime_query_offset) *
+                        candidates_per_query,
+                candidates_per_query, snapshot_.query_status,
                 coupling.contacts, coupling.counts, coupling.contact_count,
                 coupling.maximum_penetration);
             const float diameter = 2.0F * fluid.options.particle_radius;
@@ -4679,13 +4964,11 @@ private:
             result = native_.check_error();
             if (result != PM_SUCCESS) return result;
             dispatches(simulation::RealtimeTelemetryPhase::coupling,
-                5U, 2ULL * fluid_groups + node_groups + surface_groups +
-                    (coupling.tree_count + block - 1U) / block);
+                4U, 2ULL * fluid_groups + node_groups + surface_groups);
             coupling_work.bytes_moved +=
                 body.node_count *
-                    (sizeof(std::uint32_t) + 2U * sizeof(Vec3)) +
-                coupling.tree_count * sizeof(std::uint32_t);
-            coupling_work.barriers += 4U;
+                    (sizeof(std::uint32_t) + 2U * sizeof(Vec3));
+            coupling_work.barriers += 3U;
         }
 
         for (auto &owner : state_.fluid_smoke_couplings) {
@@ -4782,7 +5065,8 @@ private:
     }
 
     simulation::RigidCouplingConstraintBuffers rigid_constraints(
-        std::uint32_t record) const noexcept {
+        std::uint32_t record,
+        std::uint32_t count = 1U) const noexcept {
         return {state_.realtime_coupling_first_endpoints + record,
             state_.realtime_coupling_second_endpoints + record,
             state_.realtime_coupling_first_generations + record,
@@ -4794,7 +5078,7 @@ private:
             state_.realtime_coupling_contact_distances + record,
             state_.realtime_coupling_frictions + record,
             state_.realtime_coupling_responses + record,
-            state_.realtime_coupling_active + record, 1U};
+            state_.realtime_coupling_active + record, count};
     }
 
     simulation::RigidCouplingScratchBuffers rigid_scratch(
@@ -4805,30 +5089,33 @@ private:
             state_.realtime_coupling_second_impulses + record};
     }
 
-    PmResult solve_rigid_rope_attachment(RopeStorage &rope,
-        std::uint32_t end, std::uint32_t record, std::uint32_t sweep,
+    PmResult solve_rigid_rope_attachments(RopeStorage &rope,
+        std::uint32_t record, std::uint32_t attachment_count,
+        std::uint32_t sweep,
         const simulation::RealtimeScheduleScene &scene) noexcept {
-        const auto node = end == 0U ? 0U : rope.data.count - 1U;
         const simulation::RigidCouplingEndpointBuffers endpoints{
-            rope.realtime_positions + node,
-            rope.realtime_previous_positions + node,
-            rope.realtime_velocities + node,
-            rope.realtime_inverse_masses + node,
-            rope.realtime_correction_used + node,
-            state_.realtime_coupling_first_generations + record, 1U};
+            rope.realtime_positions, rope.realtime_previous_positions,
+            rope.realtime_velocities, rope.realtime_inverse_masses,
+            rope.realtime_correction_used,
+            state_.realtime_coupling_first_generations + record,
+            rope.data.count};
         const simulation::RigidCouplingBodyBuffers bodies{
             state_.parameters, state_.render_previous_states,
             state_.states[output_state_],
             state_.realtime_rigid_correction_used,
             state_.realtime_rigid_generations, state_.rigid_body_count};
-        const auto constraints = rigid_constraints(record);
+        const auto constraints = rigid_constraints(record, attachment_count);
         const auto scratch = rigid_scratch(record);
-        native_.project_rigid_couplings(1U, 128U, native_.queue(), endpoints,
+        const auto constraint_groups = (attachment_count + 127U) / 128U;
+        const auto endpoint_groups = (rope.data.count + 127U) / 128U;
+        native_.project_rigid_couplings(
+            constraint_groups, 128U, native_.queue(), endpoints,
             bodies, constraints, scratch, rope.data.options.node_spacing,
             rope.data.options.maximum_speed, scene.timestep,
             simulation::rigid_coupling_realtime_profile_version, sweep,
             snapshot_.query_status);
-        native_.apply_rigid_coupling_endpoints(1U, 128U, native_.queue(),
+        native_.apply_rigid_coupling_endpoints(
+            endpoint_groups, 128U, native_.queue(),
             endpoints, constraints, scratch, rope.data.options.node_spacing,
             rope.data.options.maximum_speed, scene.timestep,
             simulation::rigid_coupling_realtime_profile_version, sweep,
@@ -4842,12 +5129,14 @@ private:
         const auto result = native_.check_error();
         if (result == PM_SUCCESS)
             dispatches(simulation::RealtimeTelemetryPhase::coupling, 3U,
-                2U + (state_.rigid_body_count + 127U) / 128U);
+                constraint_groups + endpoint_groups +
+                    (state_.rigid_body_count + 127U) / 128U);
         return result;
     }
 
     simulation::DeformableSmokeCouplingConstraintBuffers
-    deformable_constraints(std::uint32_t record) const noexcept {
+    deformable_constraints(std::uint32_t record,
+                           std::uint32_t count = 1U) const noexcept {
         return {state_.realtime_coupling_first_endpoints + record,
             state_.realtime_coupling_second_endpoints + record,
             state_.realtime_coupling_first_generations + record,
@@ -4858,7 +5147,7 @@ private:
             state_.realtime_coupling_contact_distances + record,
             state_.realtime_coupling_frictions + record,
             state_.realtime_coupling_responses + record,
-            state_.realtime_coupling_active + record, 1U};
+            state_.realtime_coupling_active + record, count};
     }
 
     simulation::DeformableSmokeCouplingScratchBuffers deformable_scratch(
@@ -4869,90 +5158,106 @@ private:
             state_.realtime_coupling_second_impulses + record};
     }
 
-    PmResult solve_deformable_pair(
+    PmResult solve_deformable_pairs(
         const simulation::DeformableSmokeCouplingEndpointBuffers &first,
         const simulation::DeformableSmokeCouplingEndpointBuffers &second,
-        std::uint32_t record, float characteristic_length,
+        std::uint32_t record, std::uint32_t constraint_count,
+        float characteristic_length,
         float maximum_speed, std::uint32_t sweep,
         const simulation::RealtimeScheduleScene &scene) noexcept {
-        const auto constraints = deformable_constraints(record);
+        const auto constraints = deformable_constraints(record,
+            constraint_count);
         const auto scratch = deformable_scratch(record);
+        const auto constraint_groups = (constraint_count + 127U) / 128U;
+        const auto first_groups = (first.count + 127U) / 128U;
+        const auto second_groups = (second.count + 127U) / 128U;
         native_.project_deformable_smoke_couplings(
-            1U, 128U, native_.queue(), first, second, constraints, scratch,
+            constraint_groups, 128U, native_.queue(), first, second,
+            constraints, scratch,
             characteristic_length, maximum_speed, scene.timestep,
             simulation::deformable_smoke_coupling_profile_version, sweep,
             snapshot_.query_status);
         native_.apply_deformable_smoke_coupling_first(
-            1U, 128U, native_.queue(), first, constraints, scratch,
+            first_groups, 128U, native_.queue(), first, constraints, scratch,
             characteristic_length, maximum_speed, scene.timestep,
             simulation::deformable_smoke_coupling_profile_version, sweep,
             snapshot_.query_status);
         native_.apply_deformable_smoke_coupling_second(
-            1U, 128U, native_.queue(), second, constraints, scratch,
+            second_groups, 128U, native_.queue(), second, constraints, scratch,
             characteristic_length, maximum_speed, scene.timestep,
             simulation::deformable_smoke_coupling_profile_version, sweep,
             snapshot_.query_status);
         const auto result = native_.check_error();
         if (result == PM_SUCCESS)
-            dispatches(simulation::RealtimeTelemetryPhase::coupling, 3U, 3U);
+            dispatches(simulation::RealtimeTelemetryPhase::coupling, 3U,
+                constraint_groups + first_groups + second_groups);
         return result;
     }
 
-    PmResult solve_soft_rope_pair(RopeSoftBodyCouplingStorage &coupling,
-        SoftBodyStorage &body, RopeStorage &rope, std::uint32_t end,
-        std::uint32_t record, std::uint32_t sweep,
+    PmResult solve_soft_rope_pairs(RopeSoftBodyCouplingStorage &coupling,
+        SoftBodyStorage &body, RopeStorage &rope, std::uint32_t record,
+        std::uint32_t constraint_count, std::uint32_t endpoint_mask,
+        std::uint32_t sweep,
         const simulation::RealtimeScheduleScene &scene) noexcept {
-        const auto node = end == 0U ? 0U : rope.data.count - 1U;
         const simulation::DeformableSmokeCouplingEndpointBuffers first{
-            rope.data.soft_anchor_positions + end,
-            rope.data.soft_anchor_positions + end,
-            rope.data.soft_anchor_velocities + end,
-            rope.data.soft_anchor_inverse_masses + end,
+            rope.data.soft_anchor_positions,
+            rope.data.soft_anchor_positions,
+            rope.data.soft_anchor_velocities,
+            rope.data.soft_anchor_inverse_masses,
             state_.realtime_coupling_first_correction_used + record,
-            state_.realtime_coupling_first_generations + record, 1U};
+            state_.realtime_coupling_first_generations + record, 2U};
         const simulation::DeformableSmokeCouplingEndpointBuffers second{
-            rope.realtime_positions + node,
-            rope.realtime_previous_positions + node,
-            rope.realtime_velocities + node,
-            rope.realtime_inverse_masses + node,
-            rope.realtime_correction_used + node,
-            state_.realtime_coupling_second_generations + record, 1U};
-        auto result = solve_deformable_pair(first, second, record,
+            rope.realtime_positions, rope.realtime_previous_positions,
+            rope.realtime_velocities, rope.realtime_inverse_masses,
+            rope.realtime_correction_used,
+            state_.realtime_coupling_second_generations + record,
+            rope.data.count};
+        auto result = solve_deformable_pairs(first, second, record,
+            constraint_count,
             std::max(body.realtime_characteristic_length,
                 rope.data.options.node_spacing),
             std::max(body.realtime_maximum_speed,
                 rope.data.options.maximum_speed), sweep, scene);
         if (result != PM_SUCCESS) return result;
-        result = native_.copy(rope.data.soft_anchor_impulses + end,
-            state_.realtime_coupling_first_impulses + record, sizeof(Vec3),
-            device::CopyDirection::device_to_device, native_.queue());
-        if (result != PM_SUCCESS) return result;
-        result = native_.clear(coupling.node_impulses, 0,
-            body.node_count * sizeof(Vec3), native_.queue());
-        if (result != PM_SUCCESS) return result;
-        native_.scatter_rope_soft_body_anchor(1U, 256U, native_.queue(),
-            rope.data.soft_anchor_positions, rope.data.soft_anchor_impulses,
-            end, body.realtime_positions, body.node_count,
-            coupling.options.anchor_support_radius_scale * body.node_radius,
-            coupling.options.anchor_contact_support_radius_scale *
-                body.node_radius,
-            coupling.contact_count, body.surface_indices,
-            body.surface_bindings, coupling.anchor_triangle[end],
-            &coupling.anchor_weights[end].x, coupling.node_impulses);
-        native_.apply_rope_soft_body_impulses(
-            (body.node_count + 127U) / 128U, 128U, native_.queue(),
-            body.realtime_positions, body.realtime_velocities,
-            body.rope_forces, body.inverse_masses, coupling.node_impulses,
-            body.node_count, coupling.options.maximum_soft_body_acceleration,
-            body.realtime_maximum_speed, scene.timestep,
-            1.0F / scene.timestep);
-        native_.update_soft_body_surface(
-            (body.surface_vertex_count + 127U) / 128U, 128U,
-            native_.queue(), body.realtime_positions, body.rest_positions,
-            body.surface_rest_positions, body.surface_bindings,
-            body.realtime_surface_positions, body.surface_vertex_count);
-        result = native_.check_error();
-        if (result == PM_SUCCESS) {
+        std::uint32_t local_record{};
+        for (std::uint32_t end = 0U; end < 2U; ++end) {
+            if ((endpoint_mask & (1U << end)) == 0U) continue;
+            result = native_.copy(rope.data.soft_anchor_impulses + end,
+                state_.realtime_coupling_first_impulses +
+                    record + local_record++,
+                sizeof(Vec3), device::CopyDirection::device_to_device,
+                native_.queue());
+            if (result != PM_SUCCESS) return result;
+            result = native_.clear(coupling.node_impulses, 0,
+                body.node_count * sizeof(Vec3), native_.queue());
+            if (result != PM_SUCCESS) return result;
+            native_.scatter_rope_soft_body_anchor(1U, 256U, native_.queue(),
+                rope.data.soft_anchor_positions,
+                rope.data.soft_anchor_impulses, end,
+                body.realtime_positions, body.node_count,
+                coupling.options.anchor_support_radius_scale *
+                    body.node_radius,
+                coupling.options.anchor_contact_support_radius_scale *
+                    body.node_radius,
+                coupling.contact_count, body.surface_indices,
+                body.surface_bindings, coupling.anchor_triangle[end],
+                &coupling.anchor_weights[end].x, coupling.node_impulses);
+            native_.apply_rope_soft_body_impulses(
+                (body.node_count + 127U) / 128U, 128U, native_.queue(),
+                body.realtime_positions, body.realtime_velocities,
+                body.rope_forces, body.inverse_masses,
+                coupling.node_impulses, body.node_count,
+                coupling.options.maximum_soft_body_acceleration,
+                body.realtime_maximum_speed, scene.timestep,
+                1.0F / scene.timestep);
+            native_.update_soft_body_surface(
+                (body.surface_vertex_count + 127U) / 128U, 128U,
+                native_.queue(), body.realtime_positions,
+                body.rest_positions, body.surface_rest_positions,
+                body.surface_bindings, body.realtime_surface_positions,
+                body.surface_vertex_count);
+            result = native_.check_error();
+            if (result != PM_SUCCESS) return result;
             dispatches(simulation::RealtimeTelemetryPhase::coupling, 3U,
                 1U + (body.node_count + 127U) / 128U +
                     (body.surface_vertex_count + 127U) / 128U);
@@ -4962,7 +5267,8 @@ private:
                 sizeof(Vec3) + body.node_count * sizeof(Vec3);
             coupling_work.barriers += 2U;
         }
-        return result;
+        return local_record == constraint_count
+            ? PM_SUCCESS : PM_ERROR_INVALID_STATE;
     }
 
     void stage_smoke_rigid_measurement() noexcept {
@@ -5140,6 +5446,12 @@ private:
     PmResult apply_smoke_rigid_couplings(
         const simulation::RealtimeScheduleScene &scene) noexcept {
         constexpr std::uint32_t block = 128U;
+        const auto candidates_per_query =
+            state_.options.realtime_spatial_candidates_per_query;
+        const auto body_topology_revision =
+            static_cast<std::uint32_t>(
+                scene.graph_revision %
+                (std::numeric_limits<std::uint32_t>::max() - 1U)) + 1U;
         const float dt = scene.timestep /
             static_cast<float>(simulation::rigid_coupling_realtime_sweeps);
         constexpr simulation::RigidCouplingFamily families[]{
@@ -5192,9 +5504,20 @@ private:
                                 smoke.realtime_pressures,
                                 smoke.realtime_pending_count,
                                 smoke.options.lifetime,
-                                state_.meshes + coupling.mesh.index,
+                                state_.meshes, coupling.mesh.index,
+                                state_.parameters,
                                 state_.states[output_state_],
                                 state_.render_previous_states, body,
+                                state_.ids, body_topology_revision,
+                                snapshot_.metadata, snapshot_.admission,
+                                state_.realtime_spatial_plan.leaf_capacity,
+                                snapshot_.query_counts +
+                                    smoke.realtime_query_offset,
+                                snapshot_.query_candidates +
+                                    std::size_t(smoke.realtime_query_offset) *
+                                        candidates_per_query,
+                                candidates_per_query,
+                                snapshot_.query_status,
                                 clearance, particle_mass,
                                 coupling.options.drag_coefficient,
                                 smoke.options.pressure_stiffness, dt,
@@ -5204,7 +5527,7 @@ private:
                                    coupling.options.air_density > 0.0F) {
                             native_.apply_smoke_grid_force_to_rigid_body(
                                 1U, block, native_.queue(),
-                                state_.meshes + coupling.mesh.index, body,
+                                state_.meshes, coupling.mesh.index, body,
                                 state_.parameters,
                                 state_.states[output_state_], field,
                                 coupling.options.air_density,
@@ -5264,6 +5587,8 @@ private:
         simulation::DeformableSmokeCouplingMode mode,
         float dt) noexcept {
         constexpr std::uint32_t block = 128U;
+        const auto candidates_per_query =
+            state_.options.realtime_spatial_candidates_per_query;
         for (auto &owner : state_.smoke_cloth_couplings) {
             if (!owner || !owner->alive || !owner->options.enabled) continue;
             auto &coupling = *owner;
@@ -5293,7 +5618,18 @@ private:
                     native_.smoke_dispatch_options(smoke.options),
                     cloth.realtime_positions, cloth.realtime_velocities,
                     cloth.indices, cloth.index_count, coupling.minimum,
-                    coupling.maximum, clearance, field);
+                    coupling.maximum, clearance,
+                    cloth.realtime_triangle_generations,
+                    coupling.options.cloth.index, cloth.generation,
+                    static_cast<std::uint32_t>(
+                        cloth.realtime_topology_revision),
+                    snapshot_.metadata, snapshot_.admission,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    snapshot_.query_counts + smoke.realtime_query_offset,
+                    snapshot_.query_candidates +
+                        std::size_t(smoke.realtime_query_offset) *
+                            candidates_per_query,
+                    candidates_per_query, snapshot_.query_status, field);
             } else if (!grid) {
                 const auto groups =
                     (cloth.vertex_count + block - 1U) / block;
@@ -5338,6 +5674,8 @@ private:
         simulation::DeformableSmokeCouplingMode mode,
         float dt) noexcept {
         constexpr std::uint32_t block = 128U;
+        const auto candidates_per_query =
+            state_.options.realtime_spatial_candidates_per_query;
         for (auto &owner : state_.smoke_soft_body_couplings) {
             if (!owner || !owner->alive || !owner->options.enabled) continue;
             auto &coupling = *owner;
@@ -5370,7 +5708,18 @@ private:
                     body.realtime_surface_positions,
                     body.surface_bindings, body.surface_indices,
                     body.surface_index_count, body.realtime_velocities,
-                    coupling.minimum, coupling.maximum, clearance, field);
+                    coupling.minimum, coupling.maximum, clearance,
+                    body.realtime_surface_triangle_generations,
+                    coupling.options.soft_body.index, body.generation,
+                    static_cast<std::uint32_t>(
+                        body.realtime_topology_revision),
+                    snapshot_.metadata, snapshot_.admission,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    snapshot_.query_counts + smoke.realtime_query_offset,
+                    snapshot_.query_candidates +
+                        std::size_t(smoke.realtime_query_offset) *
+                            candidates_per_query,
+                    candidates_per_query, snapshot_.query_status, field);
             } else if (!grid) {
                 const auto groups =
                     (body.node_count + block - 1U) / block;
@@ -5413,6 +5762,8 @@ private:
         simulation::DeformableSmokeCouplingMode mode,
         float dt) noexcept {
         constexpr std::uint32_t block = 128U;
+        const auto candidates_per_query =
+            state_.options.realtime_spatial_candidates_per_query;
         for (auto &owner : state_.smoke_rope_couplings) {
             if (!owner || !owner->alive || !owner->options.enabled) continue;
             auto &coupling = *owner;
@@ -5443,7 +5794,17 @@ private:
                     native_.smoke_dispatch_options(smoke.options),
                     rope.realtime_positions, rope.realtime_velocities,
                     rope.data.count, coupling.minimum, coupling.maximum,
-                    clearance);
+                    clearance, rope.realtime_segment_generations,
+                    coupling.options.rope.index, rope.generation,
+                    static_cast<std::uint32_t>(
+                        rope.realtime_topology_revision),
+                    snapshot_.metadata, snapshot_.admission,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    snapshot_.query_counts + smoke.realtime_query_offset,
+                    snapshot_.query_candidates +
+                        std::size_t(smoke.realtime_query_offset) *
+                            candidates_per_query,
+                    candidates_per_query, snapshot_.query_status);
             } else {
                 const auto groups =
                     (rope.data.count + block - 1U) / block;
@@ -5865,6 +6226,8 @@ private:
                             owner->generation, attachment.body.generation))
                         return PM_ERROR_CAPACITY_EXCEEDED;
                     const auto record = rigid_attachment_records_++;
+                    state_.realtime_coupling_first_endpoints_host[record] =
+                        end == 0U ? 0U : owner->data.count - 1U;
                     state_.realtime_coupling_second_endpoints_host[record] =
                         body_slot.dense_index;
                     state_.realtime_coupling_first_generations_host[record] =
@@ -5989,6 +6352,12 @@ private:
                 const auto record = 32U + deformable_attachment_records_++;
                 if (record >= state_.realtime_coupling_active_host.size())
                     return PM_ERROR_CAPACITY_EXCEEDED;
+                const auto &rope =
+                    *state_.ropes[coupling.options.rope.index];
+                state_.realtime_coupling_first_endpoints_host[record] =
+                    vertex;
+                state_.realtime_coupling_second_endpoints_host[record] =
+                    end == 0U ? 0U : rope.data.count - 1U;
                 state_.realtime_coupling_first_generations_host[record] =
                     coupling.options.cloth.generation;
                 state_.realtime_coupling_second_generations_host[record] =
@@ -6067,6 +6436,9 @@ private:
                 const auto record = 32U + deformable_attachment_records_++;
                 if (record >= state_.realtime_coupling_active_host.size())
                     return PM_ERROR_CAPACITY_EXCEEDED;
+                state_.realtime_coupling_first_endpoints_host[record] = end;
+                state_.realtime_coupling_second_endpoints_host[record] =
+                    end == 0U ? 0U : rope.data.count - 1U;
                 state_.realtime_coupling_first_generations_host[record] =
                     owner->options.soft_body.generation;
                 state_.realtime_coupling_second_generations_host[record] =
@@ -6112,6 +6484,11 @@ private:
                 const auto record = 32U + deformable_attachment_records_++;
                 if (record >= state_.realtime_coupling_active_host.size())
                     return PM_ERROR_CAPACITY_EXCEEDED;
+                const auto &rope =
+                    *state_.ropes[owner->options.rope.index];
+                state_.realtime_coupling_first_endpoints_host[record] = end;
+                state_.realtime_coupling_second_endpoints_host[record] =
+                    end == 0U ? 0U : rope.data.count - 1U;
                 state_.realtime_coupling_first_generations_host[record] =
                     owner->options.soft_body.generation;
                 state_.realtime_coupling_second_generations_host[record] =

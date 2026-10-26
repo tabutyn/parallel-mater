@@ -31,7 +31,14 @@ void collide_smoke_with_rope(
     std::uint32_t count, const SmokeDispatchOptions &smoke,
     const void *rope_positions, const void *rope_velocities,
     std::uint32_t rope_count, const void *minimum, const void *maximum,
-    float clearance) noexcept {
+    float clearance, const std::uint32_t *segment_generations,
+    std::uint32_t rope_owner_slot, std::uint32_t rope_owner_generation,
+    std::uint32_t rope_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status) noexcept {
     (void)metal::launch(stream, "smoke_rope_contact", grid,
         positions,
         previous_positions,
@@ -40,7 +47,10 @@ void collide_smoke_with_rope(
         rope_positions,
         rope_velocities, rope_count,
         minimum,
-        maximum, clearance);
+        maximum, clearance, segment_generations, rope_owner_slot,
+        rope_owner_generation, rope_topology_revision, spatial_metadata,
+        spatial_admission, spatial_leaf_capacity, candidate_counts,
+        candidate_sources, candidates_per_query, spatial_status);
 }
 
 } // namespace parallel_mater::simulation

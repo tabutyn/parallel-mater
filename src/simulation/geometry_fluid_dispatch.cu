@@ -76,9 +76,13 @@ void detect_fluid_moving_contacts(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *previous, const std::uint32_t *count, float radius,
     const void *body_parameters, const void *previous_states,
-    const void *current_states, const void *meshes, const void *bounds,
-    std::uint32_t body_count, const void *masks,
-    const void *global_masks, std::uint32_t words,
+    const void *current_states, const void *meshes, const void *body_ids,
+    std::uint32_t body_count, std::uint32_t body_topology_revision,
+    const void *spatial_metadata, const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
     bool first_iteration, void *contacts, std::uint32_t *contact_counts) noexcept {
     fluid_detect_moving_contacts<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)),
@@ -89,10 +93,14 @@ void detect_fluid_moving_contacts(
         const_cast<RigidBodyState_0 *>(as<RigidBodyState_0>(current_states)),
         const_cast<TriangleMeshResource_0 *>(
             as<TriangleMeshResource_0>(meshes)),
-        const_cast<WorldAabb_0 *>(as<WorldAabb_0>(bounds)), body_count,
-        const_cast<unsigned long long *>(as<unsigned long long>(masks)),
-        const_cast<unsigned long long *>(as<unsigned long long>(global_masks)),
-        words, first_iteration,
+        const_cast<RigidBodyId_0 *>(as<RigidBodyId_0>(body_ids)), body_count,
+        body_topology_revision,
+        const_cast<CouplingSpatialLeafMetadata_0 *>(
+            as<CouplingSpatialLeafMetadata_0>(spatial_metadata)),
+        const_cast<std::uint8_t *>(spatial_admission), spatial_leaf_capacity,
+        const_cast<std::uint32_t *>(candidate_counts),
+        const_cast<std::uint32_t *>(candidate_sources), candidates_per_query,
+        spatial_status, first_iteration,
         as<FluidMovingContact_0>(contacts), contact_counts);
 }
 

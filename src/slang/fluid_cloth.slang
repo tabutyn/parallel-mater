@@ -1,4 +1,5 @@
 #include "dispatch_entry.slang"
+#include "coupling_spatial.slangh"
 // SPDX-License-Identifier: MIT
 // Shared fluid and cloth coupling kernels.
 
@@ -16,6 +17,14 @@ void fluid_cloth_containment_forces(
     uniform PMBuffer<float> foam_source, uniform float particle_mass,
     uniform PMBuffer<Vec3> cloth_positions, uniform PMBuffer<Vec3> cloth_velocities,
     uniform PMBuffer<uint> cloth_indices, uniform uint triangle_count,
+    uniform PMBuffer<uint> triangle_generations,
+    uniform uint cloth_owner_slot, uniform uint cloth_owner_generation,
+    uniform uint cloth_topology_revision,
+    uniform PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint spatial_leaf_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query, uniform PMBuffer<uint> spatial_status,
     uniform float cloth_orientation,
     uniform FluidClothCouplingOptions options, uniform PMBuffer<Vec3> cloth_forces PM_D3D12_DISPATCH_PARAMETER)
 {
@@ -28,8 +37,38 @@ void fluid_cloth_containment_forces(
     Vec3 bestNormal = {};
     Vec3 bestWeights = {};
     uint bestTriangle = 0u;
-    for (uint triangle = 0u; triangle < triangle_count; ++triangle)
+    uint candidateCount = candidate_counts[particle];
+    if (candidateCount > candidates_per_query)
     {
+        pmAtomicOr(spatial_status, kCouplingSpatialQueryOverflow);
+        return;
+    }
+    uint candidateBase = particle * candidates_per_query;
+    for (uint candidateIndex = 0u;
+         candidateIndex < candidateCount; ++candidateIndex)
+    {
+        uint source = candidate_sources[candidateBase + candidateIndex];
+        if (source >= spatial_leaf_capacity || spatial_admission[source] == 0u)
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialAdmissionInvalid);
+            return;
+        }
+        CouplingSpatialLeafMetadata leaf = spatial_metadata[source];
+        if (leaf.identity.family != kCouplingSpatialClothFamily ||
+            leaf.identity.owner_slot != cloth_owner_slot ||
+            leaf.identity.owner_generation != cloth_owner_generation ||
+            leaf.identity.topology_revision != cloth_topology_revision ||
+            leaf.identity.primitive_kind != kCouplingSpatialTrianglePrimitive)
+            continue;
+        uint triangle = leaf.payload_ref;
+        if (triangle >= triangle_count ||
+            leaf.identity.primitive_slot != triangle ||
+            leaf.identity.primitive_generation !=
+                triangle_generations[triangle])
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialStaleEpoch);
+            return;
+        }
         uint aIndex = cloth_indices[3u * triangle];
         uint bIndex = cloth_indices[3u * triangle + 1u];
         uint cIndex = cloth_indices[3u * triangle + 2u];
@@ -111,6 +150,14 @@ void fluid_project_inside_cloth(
     uniform PMBuffer<uint> particle_count, uniform float contact_distance,
     uniform PMBuffer<Vec3> cloth_positions, uniform PMBuffer<Vec3> cloth_velocities,
     uniform PMBuffer<uint> cloth_indices, uniform uint triangle_count,
+    uniform PMBuffer<uint> triangle_generations,
+    uniform uint cloth_owner_slot, uniform uint cloth_owner_generation,
+    uniform uint cloth_topology_revision,
+    uniform PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint spatial_leaf_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query, uniform PMBuffer<uint> spatial_status,
     uniform float cloth_orientation PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
@@ -122,8 +169,38 @@ void fluid_project_inside_cloth(
     Vec3 bestNormal = {};
     Vec3 bestWeights = {};
     uint bestTriangle = 0u;
-    for (uint triangle = 0u; triangle < triangle_count; ++triangle)
+    uint candidateCount = candidate_counts[particle];
+    if (candidateCount > candidates_per_query)
     {
+        pmAtomicOr(spatial_status, kCouplingSpatialQueryOverflow);
+        return;
+    }
+    uint candidateBase = particle * candidates_per_query;
+    for (uint candidateIndex = 0u;
+         candidateIndex < candidateCount; ++candidateIndex)
+    {
+        uint source = candidate_sources[candidateBase + candidateIndex];
+        if (source >= spatial_leaf_capacity || spatial_admission[source] == 0u)
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialAdmissionInvalid);
+            return;
+        }
+        CouplingSpatialLeafMetadata leaf = spatial_metadata[source];
+        if (leaf.identity.family != kCouplingSpatialClothFamily ||
+            leaf.identity.owner_slot != cloth_owner_slot ||
+            leaf.identity.owner_generation != cloth_owner_generation ||
+            leaf.identity.topology_revision != cloth_topology_revision ||
+            leaf.identity.primitive_kind != kCouplingSpatialTrianglePrimitive)
+            continue;
+        uint triangle = leaf.payload_ref;
+        if (triangle >= triangle_count ||
+            leaf.identity.primitive_slot != triangle ||
+            leaf.identity.primitive_generation !=
+                triangle_generations[triangle])
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialStaleEpoch);
+            return;
+        }
         uint aIndex = cloth_indices[3u * triangle];
         uint bIndex = cloth_indices[3u * triangle + 1u];
         uint cIndex = cloth_indices[3u * triangle + 2u];

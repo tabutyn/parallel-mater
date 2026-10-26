@@ -16,6 +16,13 @@ void constrain_rigid_bodies_with_cloth(
     const void *previous_body_states, void *body_states, const void *meshes,
     const void *body_ids, std::uint32_t body_count,
     std::uint32_t cloth_index, std::uint32_t cloth_generation,
+    std::uint32_t cloth_topology_revision,
+    const std::uint32_t *triangle_generations,
+    const void *spatial_metadata, const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
     const void *paint_fields, std::uint32_t paint_field_capacity,
     const void *paint_rules, std::uint32_t paint_rule_capacity,
     void *corrections) noexcept {
@@ -37,6 +44,9 @@ void constrain_rigid_bodies_with_cloth(
         meshes,
         body_ids, body_count,
         cloth_index, cloth_generation,
+        cloth_topology_revision, triangle_generations, spatial_metadata,
+        spatial_admission, spatial_leaf_capacity, candidate_counts,
+        candidate_sources, candidates_per_query, spatial_status,
         paint_fields, paint_field_capacity, paint_rules, paint_rule_capacity, corrections);
 }
 

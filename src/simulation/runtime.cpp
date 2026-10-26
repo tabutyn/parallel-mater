@@ -911,6 +911,8 @@ struct SoftBodyStorage {
     std::uint32_t *realtime_time_advances{};
     std::uint32_t realtime_leaf_offset{};
     std::uint32_t realtime_query_offset{};
+    std::uint32_t realtime_node_leaf_offset{};
+    std::uint32_t realtime_node_query_offset{};
     std::uint64_t realtime_topology_revision{1U};
     float realtime_characteristic_length{};
     float realtime_maximum_speed{};

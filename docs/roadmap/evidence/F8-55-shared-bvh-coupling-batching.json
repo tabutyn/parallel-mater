@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "task": "F8-55",
+  "baseline_revision": "2d75da45744f600ac4a06fc3dc4fa9b31ce2db8c",
+  "branch": "work/F8-55/windows-gtx1080",
+  "machine": {
+    "name": "windows-gtx1080",
+    "os": "Microsoft Windows 11 Pro 10.0.26200 build 26200",
+    "gpu": "NVIDIA GeForce GTX 1080",
+    "driver": "582.66",
+    "cuda": "12.9",
+    "slang": "2026.18",
+    "cmake": "4.4.2"
+  },
+  "implementation": {
+    "spatial_epoch": "One generation-tagged common BVH build and publication supplies all geometry coupling candidates through four fixed sweeps.",
+    "candidate_consumers": [
+      "rigid-cloth",
+      "rigid-soft-body",
+      "rigid-rope",
+      "liquid-rigid",
+      "liquid-cloth",
+      "liquid-rope",
+      "liquid-soft-body",
+      "soft-body-cloth",
+      "smoke-rigid",
+      "smoke-cloth",
+      "smoke-rope",
+      "smoke-soft-body"
+    ],
+    "retained_specialized_searches": {
+      "liquid-liquid": "bounded particle cell-neighbor stencil",
+      "liquid-smoke": "particle cell neighbors or smoke-grid sampling",
+      "grid-smoke": "regular-grid pressure, raster and wind sampling",
+      "attachments": "declared endpoint and target identities"
+    },
+    "removed_private_paths": [
+      "per-sweep liquid/rigid body bounds and body-cell indexing",
+      "per-edge liquid/soft-body surface refit",
+      "soft-node scan of every opposing cloth triangle"
+    ],
+    "batched_records": [
+      "rigid/deformable generic constraints",
+      "rigid/rope endpoints",
+      "rope/cloth endpoints",
+      "rope/soft-body endpoints"
+    ]
+  },
+  "independent_ceilings": {
+    "source": "tests/api/native_realtime_runtime_tests.cpp --production-couplings",
+    "outside_runtime_estimator": true,
+    "total_dispatches": 512,
+    "total_workgroups": 640,
+    "bytes_moved": 65536,
+    "barriers": 768,
+    "candidate_dispatches": 16,
+    "candidate_workgroups": 96,
+    "coupling_dispatches": 288,
+    "coupling_workgroups": 288,
+    "spatial_builds": 1,
+    "spatial_publications": 1,
+    "intra_tick_host_readbacks": 0
+  },
+  "rejected_pre_change_scaling": {
+    "soft_body_cloth_triangle_tests_per_tick": "soft_nodes * cloth_triangles * 4",
+    "fluid_soft_dispatches_per_sweep": {
+      "old": 5,
+      "new": 4
+    },
+    "fluid_rigid_private_grid_dispatches_removed_per_sweep": 2,
+    "rigid_rope_attachment_dispatches_per_sweep": {
+      "old": "3 * endpoint_count",
+      "new": "3 when endpoint_count is nonzero"
+    },
+    "rope_cloth_attachment_dispatches_per_sweep": {
+      "old": "3 * endpoint_count",
+      "new": "3 when endpoint_count is nonzero"
+    },
+    "rope_soft_dispatches_per_sweep": {
+      "old": "7 * record_count",
+      "new": "11 + 3 + 4 * attachment_count when attachments exist; record growth is device work"
+    },
+    "negative_control": "tests/solver/check_slang_architecture.py rejects retired production calls, exhaustive scans and singular per-record helpers"
+  },
+  "physical_cuda_public_fixture": {
+    "command": "ctest --test-dir build-f8-55-cuda-vs2022 -R ^parallel-mater-slang-cuda-realtime-tests$ --output-on-failure",
+    "fixture": "two liquids, rigid, cloth, rope, soft body, particle smoke then grid smoke; public API; fixed 1/60 tick",
+    "total_dispatches": 467,
+    "total_workgroups": 530,
+    "bytes_moved": 37843,
+    "barriers": 628,
+    "candidate_dispatches": 11,
+    "candidate_workgroups": 59,
+    "coupling_dispatches": 259,
+    "coupling_workgroups": 259,
+    "coupling_edges": 27,
+    "coupling_sweeps": 12,
+    "time_advances": 1,
+    "spatial_builds": 1,
+    "spatial_publications": 1,
+    "intra_tick_host_readbacks": 0,
+    "result": "PASS"
+  },
+  "installed_cuda_public_fixture": {
+    "install": "cmake --install build-f8-55-cuda-vs2022 --config Release --prefix .f8-55-install --component loader; cmake --install build-f8-55-cuda-vs2022 --config Release --prefix .f8-55-install --component driver",
+    "command": "PM_DRIVER_FILES=.f8-55-install/share/parallel-mater/drivers.d/parallel_mater_slang_cuda.json .f8-55-install/bin/parallel-mater-slang-cuda-realtime-tests.exe --production-couplings",
+    "artifact_path": "fresh worktree-local install prefix, removed after verification",
+    "sha256": {
+      "parallel-mater.dll": "5083c986f6446dfd223cc4cb4698b394b2aa9e8af64639593c4e47b3b4e10931",
+      "parallel_mater_driver_slang_cuda.dll": "42f738038be4aeed14b1374b738cd587d2ab7bd6566bc3c03e003c234a77ebd4",
+      "parallel_mater_slang_cuda.json": "d4da37d22e3a9a3628e3f19a5036558e14693e942ea2f82290f4a8582cf91318"
+    },
+    "counters_match_build_tree_fixture": true,
+    "result": "PASS"
+  },
+  "physical_d3d12_public_fixture": {
+    "command": "ctest --test-dir build-f8-55-d3d12 -C Release -R ^parallel-mater-slang-d3d12-realtime-tests$ --output-on-failure",
+    "gpu": "NVIDIA GeForce GTX 1080",
+    "total_dispatches": 457,
+    "total_workgroups": 520,
+    "bytes_moved": 37843,
+    "barriers": 618,
+    "candidate_dispatches": 11,
+    "candidate_workgroups": 59,
+    "coupling_dispatches": 249,
+    "coupling_workgroups": 249,
+    "coupling_edges": 24,
+    "spatial_builds": 1,
+    "spatial_publications": 1,
+    "wall_seconds_cold": 87.8,
+    "wall_seconds_warm": 5.33,
+    "result": "PASS"
+  },
+  "focused_tests": {
+    "command": "ctest --test-dir build-f8-55-cuda-vs2022 -R ^(parallel-mater-slang-cuda-realtime-tests|parallel-mater-rigid-coupling-realtime-tests|parallel-mater-rigid-coupling-realtime-cuda-tests|parallel-mater-deform-coupling-tests|parallel-mater-deform-coupling-cuda-tests|parallel-mater-deformable-spatial-tests|parallel-mater-deformable-spatial-cuda-tests|parallel-mater-slang-architecture)$ --output-on-failure",
+    "passed": 8,
+    "failed": 0,
+    "result": "PASS"
+  },
+  "candidate_oracles": {
+    "host": "Randomized swept point/triangle oracle covers thin crossings, sparse resources and mixed families.",
+    "cuda": "Mixed leaf/query emission, query-only points, soft/cloth contact and stale-generation rejection pass on the GTX 1080.",
+    "result": "PASS"
+  },
+  "cross_adapter_build": {
+    "d3d12_dxil": "PASS",
+    "metal_generation": "PASS",
+    "cuda_mirror_validation": "PASS",
+    "vulkan_spirv_validation": "PASS",
+    "command": "cmake --build build-f8-55-d3d12 --config Release --target parallel-mater-slang-kernel-mirrors --parallel 6"
+  },
+  "limits": [
+    "F8-56 retains matched installed Mac/iPad Gallery before/after captures, native capture reconciliation, sustained timing and thermal qualification.",
+    "The Windows counters are public runtime telemetry from the production drivers; they are not an Nsight or PIX command-stream capture."
+  ]
+}

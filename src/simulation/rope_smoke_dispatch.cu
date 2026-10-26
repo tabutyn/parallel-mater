@@ -57,7 +57,14 @@ void collide_smoke_with_rope(
     std::uint32_t count, const SmokeDispatchOptions &smoke,
     const void *rope_positions, const void *rope_velocities,
     std::uint32_t rope_count, const void *minimum, const void *maximum,
-    float clearance) noexcept {
+    float clearance, const std::uint32_t *segment_generations,
+    std::uint32_t rope_owner_slot, std::uint32_t rope_owner_generation,
+    std::uint32_t rope_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status) noexcept {
     smoke_rope_contact<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions),
         const_cast<Vec3_0 *>(as<Vec3_0>(previous_positions)),
@@ -66,7 +73,15 @@ void collide_smoke_with_rope(
         const_cast<Vec3_0 *>(as<Vec3_0>(rope_positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(rope_velocities)), rope_count,
         const_cast<Vec3_0 *>(as<Vec3_0>(minimum)),
-        const_cast<Vec3_0 *>(as<Vec3_0>(maximum)), clearance);
+        const_cast<Vec3_0 *>(as<Vec3_0>(maximum)), clearance,
+        const_cast<std::uint32_t *>(segment_generations), rope_owner_slot,
+        rope_owner_generation, rope_topology_revision,
+        const_cast<CouplingSpatialLeafMetadata_0 *>(
+            as<CouplingSpatialLeafMetadata_0>(spatial_metadata)),
+        const_cast<std::uint8_t *>(spatial_admission), spatial_leaf_capacity,
+        const_cast<std::uint32_t *>(candidate_counts),
+        const_cast<std::uint32_t *>(candidate_sources), candidates_per_query,
+        spatial_status);
 }
 
 } // namespace parallel_mater::simulation

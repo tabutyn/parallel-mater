@@ -9,6 +9,40 @@ import device_intrinsics;
 import geometry_fluid;
 import graphics_resources;
 
+// ABI mirror of the shared spatial leaf published by geometry_soft_body.
+struct SoftClothSpatialIdentity
+{
+    uint family;
+    uint owner_slot;
+    uint owner_generation;
+    uint topology_revision;
+    uint primitive_kind;
+    uint primitive_slot;
+    uint primitive_generation;
+};
+
+struct SoftClothSpatialLeafMetadata
+{
+    SoftClothSpatialIdentity identity;
+    uint sort_key;
+    uint payload_ref;
+    uint query_mask;
+    uint admission_mask;
+    uint flags;
+    uint transfer_group;
+    uint reserved0;
+    uint reserved1;
+    uint reserved2;
+};
+
+static const uint kSoftClothSpatialClothFamily = 3u;
+static const uint kSoftClothSpatialSoftFamily = 5u;
+static const uint kSoftClothSpatialTrianglePrimitive = 2u;
+static const uint kSoftClothSpatialPointPrimitive = 3u;
+static const uint kSoftClothSpatialStaleEpoch = 1u << 9u;
+static const uint kSoftClothSpatialQueryOverflow = 1u << 10u;
+static const uint kSoftClothSpatialAdmissionInvalid = 1u << 12u;
+
 [shader("compute")]
 [numthreads(PM_THREADS(256), 1, 1)]
 void soft_cloth_detect(
@@ -18,6 +52,17 @@ void soft_cloth_detect(
     uniform PMBuffer<Vec3> cloth_previous, uniform PMBuffer<Vec3> cloth_velocities,
     uniform PMBuffer<float> cloth_inverse_masses, uniform PMBuffer<uint> indices,
     uniform PMBuffer<Vec3> surface, uniform uint triangle_count,
+    uniform PMBuffer<uint> triangle_generations,
+    uniform uint cloth_owner_slot, uniform uint cloth_owner_generation,
+    uniform uint cloth_topology_revision,
+    uniform PMBuffer<SoftClothSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint leaf_capacity,
+    uniform PMBuffer<uint> query_leaf_sources,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query,
+    uniform uint soft_owner_slot, uniform uint soft_owner_generation,
+    uniform uint soft_topology_revision, uniform PMBuffer<uint> status,
     uniform float distance, uniform float friction,
     uniform PMBuffer<SoftClothContact> contacts, uniform PMBuffer<uint> contact_counts PM_D3D12_DISPATCH_PARAMETER)
 {
@@ -26,6 +71,31 @@ void soft_cloth_detect(
     if (node >= count) return;
     contacts[node] = {};
     if (inverse_masses[node] == 0.0f) return;
+    uint querySource = query_leaf_sources[node];
+    if (querySource >= leaf_capacity || spatial_admission[querySource] == 0u)
+    {
+        pmAtomicOr(status, kSoftClothSpatialAdmissionInvalid);
+        return;
+    }
+    SoftClothSpatialLeafMetadata queryLeaf = spatial_metadata[querySource];
+    if (queryLeaf.identity.family != kSoftClothSpatialSoftFamily ||
+        queryLeaf.identity.owner_slot != soft_owner_slot ||
+        queryLeaf.identity.owner_generation != soft_owner_generation ||
+        queryLeaf.identity.topology_revision != soft_topology_revision ||
+        queryLeaf.identity.primitive_kind != kSoftClothSpatialPointPrimitive ||
+        queryLeaf.identity.primitive_slot != node ||
+        queryLeaf.identity.primitive_generation != soft_owner_generation ||
+        queryLeaf.payload_ref != node)
+    {
+        pmAtomicOr(status, kSoftClothSpatialStaleEpoch);
+        return;
+    }
+    uint candidateCount = candidate_counts[node];
+    if (candidateCount > candidates_per_query)
+    {
+        pmAtomicOr(status, kSoftClothSpatialQueryOverflow);
+        return;
+    }
     Vec3 point = positions[node];
     Vec3 start = previous[node];
     float bestSquared = 3.402823466e38f;
@@ -33,8 +103,32 @@ void soft_cloth_detect(
     Vec3 bestWeights = {};
     Vec3 bestPoint = {};
     uint best = kInvalidDense;
-    for (uint triangle = 0u; triangle < triangle_count; ++triangle)
+    uint candidateBase = node * candidates_per_query;
+    for (uint candidate = 0u; candidate < candidateCount; ++candidate)
     {
+        uint source = candidate_sources[candidateBase + candidate];
+        if (source >= leaf_capacity || spatial_admission[source] == 0u)
+        {
+            pmAtomicOr(status, kSoftClothSpatialAdmissionInvalid);
+            return;
+        }
+        SoftClothSpatialLeafMetadata leaf = spatial_metadata[source];
+        if (leaf.identity.family != kSoftClothSpatialClothFamily ||
+            leaf.identity.owner_slot != cloth_owner_slot ||
+            leaf.identity.owner_generation != cloth_owner_generation ||
+            leaf.identity.topology_revision != cloth_topology_revision ||
+            leaf.identity.primitive_kind !=
+                kSoftClothSpatialTrianglePrimitive)
+            continue;
+        uint triangle = leaf.payload_ref;
+        if (triangle >= triangle_count ||
+            leaf.identity.primitive_slot != triangle ||
+            triangle_generations[triangle] !=
+                leaf.identity.primitive_generation)
+        {
+            pmAtomicOr(status, kSoftClothSpatialStaleEpoch);
+            return;
+        }
         uint base = triangle * 3u;
         Vec3 a = pmBufferPresent(surface) ? surface[base] :
             cloth_positions[indices[base]];
