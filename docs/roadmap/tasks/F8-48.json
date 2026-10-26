@@ -1,7 +1,7 @@
 {
   "id": "F8-48",
   "title": "Complete source and topology lifecycle in the common tick",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-45",
     "F8-46",
@@ -21,6 +21,14 @@
     "Independent mass/thermal and generation-lifetime checks plus cold/sustained mixed-family runs pass with fixed workload counts and no extra iterations."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "899e8e00-3e38-4821-abf8-6f92e3fa5a5c",
+    "owner": "codex-android-overnight",
+    "machine": "thomas-laptop-pixel7",
+    "branch": "work/F8-48/thomas-laptop-pixel7",
+    "claimed_at": "2026-10-26T01:41:53Z",
+    "heartbeat_at": "2026-10-26T01:41:53Z",
+    "expires_at": "2026-10-27T01:41:53Z"
+  },
   "history": []
 }
