@@ -1,0 +1,95 @@
+{
+  "schema": "parallel-mater-f8-single-execution-path-evidence/v1",
+  "task": "F8-50",
+  "status": "passed-with-platform-build-limits",
+  "recorded_at": "2026-10-26",
+  "branch": "work/F8-50/thomas-laptop-pixel7",
+  "lease_token": "f2ec9154-74db-4d00-889b-f06a2ed91c70",
+  "base_revision": "11fe06a642ae333fd1ecba70c11c0501627a5ee0",
+  "implementation_revision": "7d467d21e6664ca2fa13a5719d2e83aadecd6bc9",
+  "implementation": {
+    "public_creation": "Normal PmSimulationCreateInfo creation with a NULL pNext enters the complete fixed-tick production runtime. The execution-profile extension and enumeration command were removed from the registry, headers, generated reference artifacts, loader, validation layer and drivers.",
+    "single_schedule": "Runtime stepping unconditionally records the complete fixed schedule. The selector branch and reference_schedule.hpp legacy scheduler were deleted; no public mode flag, environment variable or build option selects another production engine.",
+    "fixed_tick": "Every accepted step uses one substep at 1/60 second within one binary32 ULP. Other timestep or substep requests fail explicitly rather than changing schedules.",
+    "versioning": "The public API is 0.3 and the private driver interface is 2. API 0.2 and other incompatible requests are rejected; MIGRATION.md and release/reference artifacts describe the breaking change.",
+    "application_model": "The create/resources/commands/submit/output model remains intact, including asynchronous submission, diagnostics, recovery and all previously advertised domain and interaction resources.",
+    "adapter_parity": "CPU, CUDA, Metal, D3D12 and Vulkan wrappers bind the same production schedule and shared Slang operators. CUDA, desktop Vulkan and Android Vulkan builds prove the changed binding signatures available on this host.",
+    "rope_attachment_regression": "Rope endpoint contact-skip ranges exclude their attached rigid bodies during deformable/rigid collision, preserving exact anchored position and zero velocity on the physical Vulkan path."
+  },
+  "public_cases": [
+    "simulation creation succeeds without an execution-profile extension and exposes no profile enumeration entrypoint",
+    "fixed 1/60-second, one-substep commands execute rigid, liquid, cloth, soft-body, rope, smoke and coupling work through one schedule",
+    "incompatible timestep, substep, API and driver ABI requests fail explicitly",
+    "headless command, asynchronous submission, liquid and complete mixed-domain realtime tests pass through the ordinary public API",
+    "attached rope endpoints remain exact while neighboring nodes still participate in rigid collision",
+    "installed C and C++ consumers build and execute against API 0.3"
+  ],
+  "source_and_contract_checks": {
+    "removed_source": "src/simulation/reference_schedule.hpp",
+    "searched_roots": [
+      "include",
+      "src",
+      "registry"
+    ],
+    "removed_identifiers": [
+      "legacy_default",
+      "realtime_single_step",
+      "select_execution_profile",
+      "PM_SIMULATION_EXECUTION_PROFILE",
+      "PmSimulationExecutionProfile",
+      "PARALLEL_MATER_EXECUTION_PROFILE"
+    ],
+    "result": "PASS: no removed execution selector remains in public headers, runtime source or registry; the installed loader exports no legacy/profile symbol. Historical qualification data and Gallery frame-pacing policy remain outside the production runtime as required."
+  },
+  "fixed_tick_assertions": {
+    "timestep_seconds": 0.01666666753590107,
+    "substeps": 1,
+    "time_advances_per_tick": 1,
+    "spatial_index_builds_per_tick": 1,
+    "spatial_index_publications_per_tick": 1,
+    "intra_tick_host_readbacks": 0,
+    "commit_count_per_tick": 1
+  },
+  "qualification": {
+    "host_cpu": {
+      "command": "cmake --build --preset sdk-cpu -j2 && ctest --preset sdk-cpu --output-on-failure",
+      "result": "PASS: 102/102 discovered; 87 executed passed and 15 unadvertised-domain tests explicitly skipped"
+    },
+    "cross_platform_sdk": {
+      "command": "cmake --build --preset sdk-ci -j2 && ctest --preset sdk-ci --output-on-failure",
+      "result": "PASS: 72/72 tests, including generated API, reflected ABI, loader rejection, validation, lifecycle, architecture and platform contract checks"
+    },
+    "installed_sdk": {
+      "command": "python3 tools/check_sdk_install.py --build-dir build-sdk-ci --output /tmp/f8-50-sdk-install-20261026-f",
+      "result": "PASS: install; C/C++ consumer configure, build and tests; reject API 0.2 and 0.4; conformance configure/build/inputs; installed runner inputs; unsupported case; missing driver"
+    },
+    "cross_adapter_builds": {
+      "commands": [
+        "cmake --build build-f8-22-cuda --target parallel-mater-driver-slang-cuda -j2",
+        "cmake --build build-p3-02-vulkan --target parallel-mater-driver-slang-vulkan -j2",
+        "ANDROID_HOME=/home/thomas/Android/Sdk ./scripts/Build-AndroidGallery.sh -PphysicsBackend=vulkan -Pqualification=true"
+      ],
+      "result": "PASS: CUDA, desktop Vulkan and Android arm64-v8a Vulkan drivers rebuilt from the final source"
+    },
+    "physical_android_vulkan": {
+      "command": "python3 scripts/Test-AndroidVulkan.py --serial 2B241FDH20060P --adb /home/thomas/Android/Sdk/platform-tools/adb --build-directory examples/android/app/.cxx/Debug/6k2g6024/arm64-v8a --output out/android/F8-50-phone-clean --native-only",
+      "device": "Google Pixel 7 (panther), Mali-G710, Android 17/API 37, security patch 2026-10-05",
+      "result": "PASS: command, async, liquid and complete production realtime tests; no Validation Error or VUID",
+      "source_commit": "7d467d21e6664ca2fa13a5719d2e83aadecd6bc9",
+      "apk_sha256": "3449049564be605889d9242ef12d1787e33560113db782140aed6bb245028beb",
+      "driver_sha256": "a938bdff564e5d8bb436ebded4dacd6c822579264b6e9fe6828f1321049b4f2d",
+      "command_test_sha256": "f483413b70a08d59e7f62dd73e05b7645e30a4658b516dc3372b56d0318eb2f0",
+      "async_test_sha256": "e9113d08cc1f318c76991dd876699d4dfa93f8adbffefd133df12436fe590dd0",
+      "liquid_test_sha256": "874785d9fd671bb9d443c97d3f704be2692830d249a783afcb44d51354fa7db3",
+      "realtime_test_sha256": "e344f44c1820ccadf507fea69ffef0d4e1a69c38935961ab961a28da0ff0d40c",
+      "toolchain": {
+        "android_ndk": "29.0.14206865",
+        "slang": "2026.18"
+      }
+    }
+  },
+  "limits": [
+    "Physical Metal and D3D12 execution were unavailable on this Linux host; their common interfaces remain covered by source/contract tests, while CPU, CUDA and Vulkan builds and physical Android Vulkan execution passed.",
+    "Gallery frame pacing and platform presentation adoption remain F8-51; this card removes production runtime selection and establishes the sole public simulation execution contract."
+  ]
+}
