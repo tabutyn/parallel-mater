@@ -1,0 +1,73 @@
+{
+  "schema": "parallel-mater-f8-auxiliary-public-outputs-evidence/v1",
+  "task": "F8-49",
+  "status": "passed-with-platform-build-limits",
+  "recorded_at": "2026-10-26",
+  "branch": "work/F8-49/thomas-laptop-pixel7",
+  "lease_token": "efa1b0d4-bd85-461c-8fae-9150f440a3b9",
+  "base_revision": "71908d1",
+  "implementation_revision": "d73685de468b40f2c5678f629a944713ca56d1e0",
+  "implementation": {
+    "paint": "Realtime simulations admit fixed paint-field and paint-rule capacity. Liquid/rigid and cloth/rigid contacts apply installed rules inside the common tick; device-local backups restore pixels when staged work aborts.",
+    "contacts": "Rigid and liquid contact events are gathered from the committed tick when requested or required by debug capture. Per-tick counters are cleared before solve so disabled collection cannot expose stale events.",
+    "debug_capture": "Rigid inputs are captured before their fixed commit clear. Rigid, liquid and other enabled-domain samples are gathered only after the common tick commits; host observation remains an explicit post-completion operation.",
+    "public_outputs": "Statistics, rigid/fluid exports, paint pixels, contact events, debug records and hit-box queries observe one committed revision through ordinary public commands.",
+    "lifetime": "Reset invalidates removed paint fields, field replacement retains fixed allocation, and paint rollback storage follows field ownership without changing adapter-visible resource layouts.",
+    "schedule": "Diagnostics preserve the fixed timestep, eight rigid iterations, six liquid iterations, one spatial build/publication and zero intra-tick host readbacks."
+  },
+  "public_cases": [
+    "a mixed rigid, liquid, cloth, paint and diagnostic simulation steps once through the production realtime profile",
+    "a liquid/rigid event paints a rigid UV field and appears in the committed contact stream",
+    "debug records identify the driven rigid body, retain its applied force and match the committed liquid export position",
+    "statistics, state copies, paint, contacts, debug data and hit-box output are consumed after the same fence completion",
+    "clearing paint produces zero pixels and reset invalidates the removed field",
+    "the focused Android runner exits after auxiliary coverage instead of depending on unrelated broad-suite mechanics"
+  ],
+  "fixed_tick_assertions": {
+    "time_advances_per_tick": 1,
+    "rigid_iterations": 8,
+    "liquid_iterations": 6,
+    "spatial_index_builds_per_tick": 1,
+    "spatial_index_publications_per_tick": 1,
+    "intra_tick_host_readbacks": 0,
+    "public_output_revision": "shared committed revision"
+  },
+  "qualification": {
+    "host_tests": {
+      "commands": [
+        "ctest --test-dir build-sdk-cpu --output-on-failure -R '^parallel-mater-(native-realtime-runtime|cpu-realtime-profile-reference|paint-resource-plan)-tests$'",
+        "ctest --test-dir build-sdk-cpu --output-on-failure",
+        "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+        "python3 tools/check_realtime_candidate.py",
+        "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'"
+      ],
+      "result": "PASS: targeted runtime/profile/paint tests; 102/102 discovered CPU tests with 87 passed and 15 unadvertised-domain skips; 418 conformance tests; protected closure; 87 roadmap tests"
+    },
+    "cross_adapter_builds": {
+      "commands": [
+        "cmake --build build-f8-22-cuda --target parallel-mater-driver-slang-cuda -j2",
+        "cmake --build build-p3-02-vulkan --target parallel-mater-driver-slang-vulkan -j2",
+        "ANDROID_HOME=/home/thomas/Android/Sdk ./scripts/Build-AndroidGallery.sh -PphysicsBackend=vulkan -Pqualification=true"
+      ],
+      "result": "PASS: CUDA, desktop Vulkan and Android arm64-v8a Vulkan builds completed"
+    },
+    "physical_android_vulkan": {
+      "command": "python3 scripts/Test-AndroidVulkan.py --serial 2B241FDH20060P --adb /home/thomas/Android/Sdk/platform-tools/adb --build-directory examples/android/app/.cxx/Debug/285c4d65/arm64-v8a --output out/android/F8-49-phone --native-only --realtime-auxiliary-only",
+      "device": "Google Pixel 7 (panther), Mali-G710, Android 17/API 37, security patch 2026-10-05",
+      "result": "PASS: command, async, liquid and production auxiliary realtime tests; no Validation Error or VUID",
+      "source_commit": "d73685de468b40f2c5678f629a944713ca56d1e0",
+      "apk_sha256": "3abe151f488b9cb9f4f2501d8a838c6dde6b1ef8e499d60b06e920d530a8211a",
+      "driver_sha256": "2e855a93fab0f338031461a75f53efa26fede3c9ad8004be63f01cd93571e8fc",
+      "realtime_test_sha256": "555dc450e560364551673d00dfbd3e4218dd911c27d00cff9e4510db983b2497",
+      "toolchain": {
+        "android_ndk": "29.0.14206865",
+        "slang": "2026.18"
+      }
+    }
+  },
+  "limits": [
+    "Physical Metal and D3D12 execution were unavailable on this Linux host; common-source CPU/CUDA/Vulkan builds and physical Android Vulkan execution passed.",
+    "The pre-F8-49 Pixel artifact ca2eacc reproduces the unrelated broad realtime rope endpoint assertion; the auxiliary-only runner deliberately terminates after its focused public-output case.",
+    "Removal of alternate public execution paths remains F8-50; performance and sustained-device review remain later F8 scope."
+  ]
+}

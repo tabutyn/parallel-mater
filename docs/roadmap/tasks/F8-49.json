@@ -1,7 +1,7 @@
 {
   "id": "F8-49",
   "title": "Integrate paint, capture and public outputs with the common tick",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-48"
   ],
@@ -18,15 +18,27 @@
     "Queries and output buffers describe the committed tick and remain unavailable for aborted work; reset/replacement/destruction retain valid lifetimes and generations.",
     "Empty, mixed-family, diagnostic, headless and render-export fixtures preserve atomicity and all already supported capabilities."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "efa1b0d4-bd85-461c-8fae-9150f440a3b9",
-    "owner": "codex-android-overnight",
-    "machine": "thomas-laptop-pixel7",
-    "branch": "work/F8-49/thomas-laptop-pixel7",
-    "claimed_at": "2026-10-26T02:45:12Z",
-    "heartbeat_at": "2026-10-26T02:45:12Z",
-    "expires_at": "2026-10-27T02:45:12Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F8-49-auxiliary-public-outputs.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "efa1b0d4-bd85-461c-8fae-9150f440a3b9",
+        "owner": "codex-android-overnight",
+        "machine": "thomas-laptop-pixel7",
+        "branch": "work/F8-49/thomas-laptop-pixel7",
+        "claimed_at": "2026-10-26T02:45:12Z",
+        "heartbeat_at": "2026-10-26T02:45:12Z",
+        "expires_at": "2026-10-27T02:45:12Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-26T03:38:40Z",
+      "reason": "Integrated paint, debug capture, committed queries and public outputs into the common fixed tick; host, cross-adapter builds and Pixel 7 Vulkan qualification pass.",
+      "evidence": [
+        "docs/roadmap/evidence/F8-49-auxiliary-public-outputs.json"
+      ]
+    }
+  ]
 }
