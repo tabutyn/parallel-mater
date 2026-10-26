@@ -211,9 +211,20 @@ PmResult build_spatial_index_device(
         buffers.bounds, left, right, parents, leaf_sources, node_bounds,
         status);
     if (result != PM_SUCCESS) return result;
-    return expected_active_count <= 1U ? PM_SUCCESS : metal::launch(
-        stream, "pm_spatial_union_bounds", active_blocks, active_count,
-        plan.capacity, left, right, parents, node_bounds, arrivals, status);
+    if (expected_active_count > 1U) {
+        result = metal::launch(stream, "pm_spatial_union_bounds",
+            active_blocks, active_count, plan.capacity, left, right, parents,
+            node_bounds, arrivals, status);
+        if (result != PM_SUCCESS) return result;
+    }
+    result = metal::launch(stream, "pm_spatial_resolve_admission",
+        active_blocks, buffers.metadata, buffers.bounds, active_count,
+        plan.capacity, active, left, right, leaf_sources, node_bounds,
+        buffers.admission, status);
+    if (result != PM_SUCCESS) return result;
+    return metal::launch(stream, "pm_spatial_finalize_transfers",
+        active_blocks, buffers.metadata, active_count, plan.capacity, active,
+        buffers.admission, status);
 }
 
 PmResult publish_spatial_epoch_device(

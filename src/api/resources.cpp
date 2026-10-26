@@ -130,6 +130,16 @@ struct RealtimeSpatialCapacities {
             !add_realtime_capacity(output.queries,
                                    capacity.particleCapacity))
             return false;
+        // An authored source may reserve at most one destination-capacity of
+        // proposals for a liquid population.  Those provisional leaves share
+        // the sole tick build with retained particles; rejected proposals are
+        // tombstones, never a reason for a source-private rebuild.
+        if (info.emitterCapacity != 0U &&
+            (!add_realtime_capacity(output.leaves,
+                                    capacity.particleCapacity) ||
+             !add_realtime_capacity(output.queries,
+                                    capacity.particleCapacity)))
+            return false;
         output.candidates_per_query = std::max(
             output.candidates_per_query, 128U);
     }
@@ -586,8 +596,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
         device, info->pNext, execution_profile);
     if (profile_result != PM_SUCCESS) return profile_result;
     if (execution_profile == PmSimulationExecutionProfile::realtime_single_step &&
-        (info->emitterCapacity != 0U || info->destroyerCapacity != 0U ||
-         info->paintFieldCount != 0U || info->paintRuleCapacity != 0U ||
+        (info->paintFieldCount != 0U || info->paintRuleCapacity != 0U ||
          info->debugFrameCapacity != 0U))
         return PM_ERROR_FEATURE_NOT_PRESENT;
     if ((info->rigidBodyCapacity != 0U &&

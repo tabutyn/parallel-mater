@@ -225,7 +225,7 @@ void test_plan() {
     const auto dense = spatial_build_dispatch_budget(30065U, 30065U);
     CHECK(dense.sort_policy == SpatialSortPolicy::radix8);
     CHECK(dense.sort_dispatches == 24U);
-    CHECK(dense.total_dispatches == 32U);
+    CHECK(dense.total_dispatches == 34U);
     const auto small = spatial_build_dispatch_budget(1024U, 1024U);
     CHECK(small.sort_policy == SpatialSortPolicy::workgroup_bitonic);
     CHECK(small.sort_dispatches == 1U);
@@ -235,7 +235,7 @@ void test_plan() {
     CHECK(sparse.active_blocks == 1U && sparse.capacity_blocks == 4096U);
     CHECK(sparse.sort_policy == SpatialSortPolicy::workgroup_bitonic);
     const auto singleton = spatial_build_dispatch_budget(1U, 2U);
-    CHECK(singleton.active_count == 1U && singleton.total_dispatches == 7U);
+    CHECK(singleton.active_count == 1U && singleton.total_dispatches == 9U);
     CHECK(make_spatial_build_plan(spatial_max_capacity + 1U, plan)
           == PM_ERROR_CAPACITY_EXCEEDED);
     CHECK(make_spatial_build_plan(std::numeric_limits<std::uint32_t>::max(), plan)

@@ -196,14 +196,16 @@ namespace spatial_build_detail {
     }
 
     // Stable flag compaction, two-stage bounds reduction, key emission, sort,
-    // topology, and (for multiple leaves) one bottom-up union dispatch.
+    // topology, optional bottom-up union, admission resolution, and transfer
+    // finalization.
     result.total_dispatches = 3U + 2U + 1U + result.sort_dispatches + 1U +
-        (result.active_count > 1U ? 1U : 0U);
+        (result.active_count > 1U ? 1U : 0U) + 2U;
     result.total_workgroups =
         2ULL * result.capacity_blocks + 1ULL +
         result.active_blocks + 1ULL + result.active_blocks +
         result.active_blocks +
-        (result.active_count > 1U ? result.active_blocks : 0U);
+        (result.active_count > 1U ? result.active_blocks : 0U) +
+        2ULL * result.active_blocks;
     if (result.sort_policy == SpatialSortPolicy::workgroup_bitonic)
         result.total_workgroups += 1U;
     else if (result.sort_policy == SpatialSortPolicy::radix8)

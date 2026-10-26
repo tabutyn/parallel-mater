@@ -240,6 +240,19 @@ PmResult build_spatial_index_device(
             active_count, plan.capacity, left, right, parents,
             reinterpret_cast<PmSpatialAabb_0 *>(node_bounds), arrivals,
             status);
+    pm_spatial_resolve_admission<<<
+        active_blocks, tile, 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        reinterpret_cast<PmSpatialLeafMetadata_0 *>(buffers.metadata),
+        reinterpret_cast<PmSpatialAabb_0 *>(buffers.bounds), active_count,
+        plan.capacity, active, left, right, leaf_sources,
+        reinterpret_cast<PmSpatialAabb_0 *>(node_bounds), buffers.admission,
+        status);
+    pm_spatial_finalize_transfers<<<
+        active_blocks, tile, 0U,
+        static_cast<cudaStream_t>(stream.native_handle)>>>(
+        reinterpret_cast<PmSpatialLeafMetadata_0 *>(buffers.metadata),
+        active_count, plan.capacity, active, buffers.admission, status);
     return device::from_driver_error(cudaPeekAtLastError());
 }
 

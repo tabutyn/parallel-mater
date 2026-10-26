@@ -985,24 +985,73 @@ PmResult build_spatial_index_device(
     result = launch(stream, "primitives", "pm_spatial_build_topology",
         device::DispatchSize(active_blocks),
         device::DispatchSize(primitive_tile_size), topology);
-    if (result != PM_SUCCESS || expected_active_count <= 1U) return result;
+    if (result != PM_SUCCESS) return result;
 
-    using UnionLayout = d3d12::generated::layout::primitives::
-        Kernel_pm_spatial_union_bounds;
-    Constants<UnionLayout::constant_size> union_values;
-    union_values.buffer(UnionLayout::arg_active_count, *execution,
-                        active_count);
-    union_values.set(UnionLayout::arg_capacity, plan.capacity);
-    union_values.buffer(UnionLayout::arg_left_children, *execution, left);
-    union_values.buffer(UnionLayout::arg_right_children, *execution, right);
-    union_values.buffer(UnionLayout::arg_parents, *execution, parents);
-    union_values.buffer(UnionLayout::arg_node_bounds, *execution,
-                        node_bounds);
-    union_values.buffer(UnionLayout::arg_arrivals, *execution, arrivals);
-    union_values.buffer(UnionLayout::arg_status, *execution, status);
-    return launch(stream, "primitives", "pm_spatial_union_bounds",
+    if (expected_active_count > 1U) {
+        using UnionLayout = d3d12::generated::layout::primitives::
+            Kernel_pm_spatial_union_bounds;
+        Constants<UnionLayout::constant_size> union_values;
+        union_values.buffer(UnionLayout::arg_active_count, *execution,
+                            active_count);
+        union_values.set(UnionLayout::arg_capacity, plan.capacity);
+        union_values.buffer(UnionLayout::arg_left_children, *execution, left);
+        union_values.buffer(UnionLayout::arg_right_children, *execution,
+                            right);
+        union_values.buffer(UnionLayout::arg_parents, *execution, parents);
+        union_values.buffer(UnionLayout::arg_node_bounds, *execution,
+                            node_bounds);
+        union_values.buffer(UnionLayout::arg_arrivals, *execution, arrivals);
+        union_values.buffer(UnionLayout::arg_status, *execution, status);
+        result = launch(stream, "primitives", "pm_spatial_union_bounds",
+            device::DispatchSize(active_blocks),
+            device::DispatchSize(primitive_tile_size), union_values);
+        if (result != PM_SUCCESS) return result;
+    }
+
+    using AdmissionLayout = d3d12::generated::layout::primitives::
+        Kernel_pm_spatial_resolve_admission;
+    Constants<AdmissionLayout::constant_size> admission_values;
+    admission_values.buffer(AdmissionLayout::arg_metadata, *execution,
+                            buffers.metadata);
+    admission_values.buffer(AdmissionLayout::arg_leaf_bounds, *execution,
+                            buffers.bounds);
+    admission_values.buffer(AdmissionLayout::arg_active_count, *execution,
+                            active_count);
+    admission_values.set(AdmissionLayout::arg_capacity, plan.capacity);
+    admission_values.buffer(AdmissionLayout::arg_active_indices, *execution,
+                            active);
+    admission_values.buffer(AdmissionLayout::arg_left_children, *execution,
+                            left);
+    admission_values.buffer(AdmissionLayout::arg_right_children, *execution,
+                            right);
+    admission_values.buffer(AdmissionLayout::arg_leaf_sources, *execution,
+                            leaf_sources);
+    admission_values.buffer(AdmissionLayout::arg_node_bounds, *execution,
+                            node_bounds);
+    admission_values.buffer(AdmissionLayout::arg_admission, *execution,
+                            buffers.admission);
+    admission_values.buffer(AdmissionLayout::arg_status, *execution, status);
+    result = launch(stream, "primitives", "pm_spatial_resolve_admission",
         device::DispatchSize(active_blocks),
-        device::DispatchSize(primitive_tile_size), union_values);
+        device::DispatchSize(primitive_tile_size), admission_values);
+    if (result != PM_SUCCESS) return result;
+
+    using FinalizeLayout = d3d12::generated::layout::primitives::
+        Kernel_pm_spatial_finalize_transfers;
+    Constants<FinalizeLayout::constant_size> finalize_values;
+    finalize_values.buffer(FinalizeLayout::arg_metadata, *execution,
+                           buffers.metadata);
+    finalize_values.buffer(FinalizeLayout::arg_active_count, *execution,
+                           active_count);
+    finalize_values.set(FinalizeLayout::arg_capacity, plan.capacity);
+    finalize_values.buffer(FinalizeLayout::arg_active_indices, *execution,
+                           active);
+    finalize_values.buffer(FinalizeLayout::arg_admission, *execution,
+                           buffers.admission);
+    finalize_values.buffer(FinalizeLayout::arg_status, *execution, status);
+    return launch(stream, "primitives", "pm_spatial_finalize_transfers",
+        device::DispatchSize(active_blocks),
+        device::DispatchSize(primitive_tile_size), finalize_values);
 }
 
 PmResult publish_spatial_epoch_device(

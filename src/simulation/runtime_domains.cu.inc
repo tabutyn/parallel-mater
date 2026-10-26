@@ -44,6 +44,7 @@ Status SimulationRuntime::add_fluid(FluidOptions options,
     if (!status) return status;
     PmResult error = PM_SUCCESS;
     *fluid->count = static_cast<std::uint32_t>(initial_particles.size);
+    *fluid->realtime_count = static_cast<std::uint32_t>(initial_particles.size);
     fluid->next_id = static_cast<std::uint32_t>(initial_particles.size);
     fluid->initial_count = initial_particles.size;
     if (!initial_particles.empty()) {
@@ -63,6 +64,12 @@ Status SimulationRuntime::add_fluid(FluidOptions options,
         if (*impl_->fluid_neighbor_overflow != 0U)
             return failure(StatusCode::invalid_argument,
                            "initial fluid particles must be finite");
+        error = copy_bytes_wait(fluid->previous, fluid->positions,
+            initial_particles.size * sizeof(Vec3),
+            device::CopyDirection::device_to_device, stream);
+        if (error != PM_SUCCESS)
+            return backend_failure(error,
+                "initial fluid previous-state copy failed");
     }
     fluid->alive = true;
     output = {slot, fluid->generation};
@@ -603,7 +610,12 @@ Status SimulationRuntime::add_fluid_smoke_coupling(
     catch (...) { return failure(StatusCode::out_of_memory, "fluid smoke coupling allocation failed"); }
     coupling->generation = impl_->fluid_smoke_couplings[slot].generation();
     coupling->options = options;
-    if (!(status = allocate_managed(coupling->converted, 1U))) return status;
+    StorageAllocator allocator;
+    const auto fluid_capacity =
+        impl_->fluids[options.fluid.index]->options.capacity;
+    if (!(status = simulation::visit_fluid_smoke_storage(
+              *coupling, fluid_capacity, allocator)))
+        return status;
     *coupling->converted = 0U;
     coupling->alive = true;
     output = {slot, coupling->generation};
@@ -931,6 +943,8 @@ Status SimulationRuntime::add_particle_source(ParticleSourceMesh mesh, ParticleS
         status = simulation::visit_emitter_storage(*data, points.size(), allocator);
         if (!status) return status;
         std::copy(points.begin(), points.end(), data->points);
+        *data->accepted = 0;
+        *data->rejected = 0;
         *data->capacity_misses = 0;
         plane.options = options;
         plane.data = std::move(data);

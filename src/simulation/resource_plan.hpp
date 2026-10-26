@@ -362,6 +362,7 @@ Status visit_fluid_storage(State &state, std::uint32_t capacity, Visitor &visit)
     PM_STORAGE(realtime_accumulated_corrections, capacity, scratch);
     PM_STORAGE(realtime_position_deltas, capacity, scratch);
     PM_STORAGE(realtime_velocity_deltas, capacity, scratch);
+    PM_STORAGE(realtime_count, 1U, scratch);
     PM_STORAGE(realtime_time_advances, 1U, scratch);
     state.sort_workspace_size = radix_sort_scratch_bytes(capacity);
     state.select_workspace_size = compaction_scratch_bytes(capacity);
@@ -844,6 +845,24 @@ Status visit_soft_cloth_storage(State &state, std::size_t nodes, std::size_t ver
     return {};
 }
 template<class State, class Visitor>
+Status visit_fluid_smoke_storage(
+    State &state, std::size_t particles, Visitor &visit) noexcept {
+#define PM_STORAGE(member, count) do { \
+    const auto result = visit(state.member, count, MemoryClass::persistent); \
+    if (!result) return result; \
+} while (false)
+    PM_STORAGE(converted, 1U);
+    PM_STORAGE(realtime_phase_positions, particles);
+    PM_STORAGE(realtime_phase_velocities, particles);
+    PM_STORAGE(realtime_phase_vorticities, particles);
+    PM_STORAGE(realtime_phase_ages, particles);
+    PM_STORAGE(realtime_phase_thermal_lift, particles);
+    PM_STORAGE(realtime_phase_densities, particles);
+    PM_STORAGE(realtime_phase_pressures, particles);
+#undef PM_STORAGE
+    return {};
+}
+template<class State, class Visitor>
 Status visit_emitter_storage(State &state, std::size_t sites, Visitor &visit) noexcept {
 #define PM_STORAGE(member, count) do { \
     const auto result = visit(state.member, count, MemoryClass::persistent); \
@@ -851,6 +870,8 @@ Status visit_emitter_storage(State &state, std::size_t sites, Visitor &visit) no
 } while (false)
     PM_STORAGE(points, sites);
     PM_STORAGE(vacant, sites);
+    PM_STORAGE(accepted, 1);
+    PM_STORAGE(rejected, 1);
     PM_STORAGE(capacity_misses, 1);
 #undef PM_STORAGE
     return {};

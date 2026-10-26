@@ -1,7 +1,7 @@
 {
   "id": "F8-48",
   "title": "Complete source and topology lifecycle in the common tick",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-45",
     "F8-46",
@@ -20,15 +20,29 @@
     "Exercise spawn/outflow, reset, replacement, topology edits, teleports within the envelope and capacity recovery through public native execution on an applicable GPU.",
     "Independent mass/thermal and generation-lifetime checks plus cold/sustained mixed-family runs pass with fixed workload counts and no extra iterations."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "899e8e00-3e38-4821-abf8-6f92e3fa5a5c",
-    "owner": "codex-android-overnight",
-    "machine": "thomas-laptop-pixel7",
-    "branch": "work/F8-48/thomas-laptop-pixel7",
-    "claimed_at": "2026-10-26T01:41:53Z",
-    "heartbeat_at": "2026-10-26T01:41:53Z",
-    "expires_at": "2026-10-27T01:41:53Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/F8-48-SOURCE-TOPOLOGY-LIFECYCLE.md",
+    "docs/roadmap/evidence/F8-48-source-topology-lifecycle.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "899e8e00-3e38-4821-abf8-6f92e3fa5a5c",
+        "owner": "codex-android-overnight",
+        "machine": "thomas-laptop-pixel7",
+        "branch": "work/F8-48/thomas-laptop-pixel7",
+        "claimed_at": "2026-10-26T01:41:53Z",
+        "heartbeat_at": "2026-10-26T01:41:53Z",
+        "expires_at": "2026-10-27T01:41:53Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-26T02:38:54Z",
+      "reason": "Common fixed tick now admits source proposals before one spatial publication, compacts outflow once, and applies generation-pinned phase transfers atomically at the next boundary; host and Pixel 7 Vulkan lifecycle tests pass.",
+      "evidence": [
+        "docs/roadmap/F8-48-SOURCE-TOPOLOGY-LIFECYCLE.md",
+        "docs/roadmap/evidence/F8-48-source-topology-lifecycle.json"
+      ]
+    }
+  ]
 }

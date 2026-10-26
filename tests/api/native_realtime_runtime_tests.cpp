@@ -18,9 +18,11 @@
 int main(int argc, char **argv) {
     const bool smoke_couplings_only = argc == 2 &&
         std::strcmp(argv[1], "--production-smoke-couplings") == 0;
+    const bool lifecycle_only = argc == 2 &&
+        std::strcmp(argv[1], "--production-lifecycle") == 0;
     const bool production = argc == 2 &&
         (std::strcmp(argv[1], "--production") == 0 ||
-         smoke_couplings_only);
+         smoke_couplings_only || lifecycle_only);
     CHECK(argc == 1 || production);
     constexpr std::uint32_t body_count = 8U;
     constexpr std::uint32_t constraint_count = 8U;
@@ -150,6 +152,9 @@ int main(int argc, char **argv) {
     mixed_info.smokeCount = device_info.enabledFeatures.smoke;
     mixed_info.pSmokeCapacities = &smoke_capacity;
     mixed_info.couplingCapacity = 13U;
+    mixed_info.emitterCapacity = device_info.enabledFeatures.particleLiquids;
+    mixed_info.destroyerCapacity =
+        device_info.enabledFeatures.particleLiquids;
     PmSimulation mixed_simulation{};
     CHECK(pmCreateSimulation(device, &mixed_info, &mixed_simulation) ==
           PM_SUCCESS);
@@ -336,6 +341,318 @@ int main(int argc, char **argv) {
                 static_cast<const std::byte *>(fluid_output_map) + 512U);
         CHECK(empty_header->activeCount == 0U);
 
+        if (production) {
+        const PmBufferView lifecycle_empty{
+            {source, 384U, 0U}, PM_FORMAT_PARTICLE_STATE, 0U,
+            sizeof(PmParticleState)};
+        const PmFloat3 emitter_vertices[3]{
+            {-0.06F, 0.0F, -0.03F},
+            { 0.06F, 0.0F, -0.03F},
+            { 0.00F, 0.0F,  0.06F}};
+        const std::uint32_t emitter_indices[3]{0U, 1U, 2U};
+        PmParticleEmitterInfo emitter{};
+        emitter.active = PM_TRUE;
+        emitter.fluidIndex = 0U;
+        emitter.vertexCount = 3U;
+        emitter.pVertices = emitter_vertices;
+        emitter.triangleIndexCount = 3U;
+        emitter.pTriangleIndices = emitter_indices;
+        emitter.spacing = 0.05F;
+        emitter.initialVelocity = {0.0F, -1.0F, 0.0F};
+        emitter.initialTemperatureCelsius = 35.0F;
+        PmParticleDestroyerInfo destroyer{};
+        destroyer.fluidIndex = 0U;
+        destroyer.center = {0.0F, -0.005F, 0.0F};
+        destroyer.orientation[3] = 1.0F;
+        destroyer.halfExtents = {0.5F, 0.5F};
+        destroyer.crossing = PM_CROSSING_EITHER;
+
+        execution_label = "reset lifecycle population";
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdSetFluidParticles(commands, mixed_simulation, 0U,
+                                     &lifecycle_empty) == PM_SUCCESS);
+        CHECK(pmCmdSetFluidParticles(commands, mixed_simulation, 1U,
+                                     &lifecycle_empty) == PM_SUCCESS);
+        CHECK(pmCmdWriteParticleEmitters(
+            commands, mixed_simulation, 0U, 1U, &emitter) == PM_SUCCESS);
+        CHECK(pmCmdWriteParticleDestroyers(
+            commands, mixed_simulation, 0U, 1U, &destroyer) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+
+        const auto lifecycle_step = [&](const char *label,
+                                        PmRealtimeStepStatistics &out) {
+            execution_label = label;
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) ==
+                  PM_SUCCESS);
+            CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) ==
+                  PM_SUCCESS);
+            CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+            CHECK(pmCmdStepSimulation(
+                commands, mixed_simulation, &step) == PM_SUCCESS);
+            CHECK(pmCmdCopyFluidParticles(
+                commands, mixed_simulation, 0U, &fluid_range) == PM_SUCCESS);
+            CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+            execute(PM_SUCCESS);
+            CHECK(pmGetQueryPoolResults(device, query, 0U, 1U, sizeof out,
+                &out, sizeof out, PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+            CHECK(out.timeAdvances == 1U);
+            CHECK(out.total.spatialIndexBuilds == 1U);
+            CHECK(out.total.spatialIndexPublications == 1U);
+            CHECK(out.total.intraTickHostReadbacks == 0U);
+        };
+
+        PmRealtimeStepStatistics spawn_statistics{};
+        lifecycle_step("lifecycle source admission", spawn_statistics);
+        fluid_header =
+            static_cast<const PmDomainOutputHeader *>(fluid_output_map);
+        fluid_particles = reinterpret_cast<const PmFluidParticleOutput *>(
+            fluid_header + 1U);
+        CHECK(fluid_header->activeCount > 0U);
+        CHECK(fluid_header->activeCount <= fluid_capacities[0].particleCapacity);
+        std::array<std::uint32_t, 4U> first_ids{};
+        for (std::uint32_t index = 0U;
+             index < fluid_header->activeCount; ++index) {
+            first_ids[index] = fluid_particles[index].stableId;
+            CHECK(std::abs(
+                fluid_particles[index].temperatureCelsius - 35.0F) < 0.01F);
+            for (std::uint32_t earlier = 0U; earlier < index; ++earlier)
+                CHECK(first_ids[earlier] != first_ids[index]);
+        }
+        const auto first_count = fluid_header->activeCount;
+
+        PmRealtimeStepStatistics rejection_statistics{};
+        lifecycle_step("lifecycle source rejection", rejection_statistics);
+        fluid_header =
+            static_cast<const PmDomainOutputHeader *>(fluid_output_map);
+        fluid_particles = reinterpret_cast<const PmFluidParticleOutput *>(
+            fluid_header + 1U);
+        CHECK(fluid_header->activeCount == first_count);
+        CHECK(rejection_statistics.total.dispatches ==
+              spawn_statistics.total.dispatches);
+        CHECK(rejection_statistics.total.workgroups ==
+              spawn_statistics.total.workgroups);
+        for (std::uint32_t index = 0U; index < first_count; ++index)
+            CHECK(fluid_particles[index].stableId == first_ids[index]);
+
+        emitter.active = PM_FALSE;
+        destroyer.active = PM_TRUE;
+        execution_label = "enable lifecycle outflow";
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdWriteParticleEmitters(
+            commands, mixed_simulation, 0U, 1U, &emitter) == PM_SUCCESS);
+        CHECK(pmCmdWriteParticleDestroyers(
+            commands, mixed_simulation, 0U, 1U, &destroyer) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        PmRealtimeStepStatistics outflow_statistics{};
+        lifecycle_step("lifecycle outflow", outflow_statistics);
+        fluid_header =
+            static_cast<const PmDomainOutputHeader *>(fluid_output_map);
+        CHECK(fluid_header->activeCount == 0U);
+
+        emitter.active = PM_TRUE;
+        destroyer.active = PM_FALSE;
+        execution_label = "recover lifecycle capacity";
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdWriteParticleEmitters(
+            commands, mixed_simulation, 0U, 1U, &emitter) == PM_SUCCESS);
+        CHECK(pmCmdWriteParticleDestroyers(
+            commands, mixed_simulation, 0U, 1U, &destroyer) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        PmRealtimeStepStatistics recovery_statistics{};
+        lifecycle_step("lifecycle capacity recovery", recovery_statistics);
+        fluid_header =
+            static_cast<const PmDomainOutputHeader *>(fluid_output_map);
+        fluid_particles = reinterpret_cast<const PmFluidParticleOutput *>(
+            fluid_header + 1U);
+        CHECK(fluid_header->activeCount > 0U);
+        for (std::uint32_t index = 0U;
+             index < fluid_header->activeCount; ++index)
+            CHECK(fluid_particles[index].stableId >= first_count);
+
+        emitter.active = PM_FALSE;
+        execution_label = "retire lifecycle source";
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdWriteParticleEmitters(
+            commands, mixed_simulation, 0U, 1U, &emitter) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+
+        auto *phase_particle = reinterpret_cast<PmParticleState *>(
+            static_cast<std::byte *>(source_map) + 256U);
+        *phase_particle = {};
+        phase_particle->temperatureCelsius = 150.0F;
+        const PmBufferView phase_liquid{
+            {source, 256U, sizeof(PmParticleState)},
+            PM_FORMAT_PARTICLE_STATE, 1U, sizeof(PmParticleState)};
+        PmSmokeInfo phase_smoke{};
+        phase_smoke.active = PM_TRUE;
+        phase_smoke.particleCapacity = 2U;
+        phase_smoke.emitterHalfExtents = {0.1F, 0.1F};
+        phase_smoke.particlesPerSecond = 0.01F;
+        phase_smoke.lifetime = 10.0F;
+        phase_smoke.gridMinimum = {-1.0F, -1.0F, -1.0F};
+        phase_smoke.gridEdgeLength = 2.0F;
+        PmCouplingStateInfo phase_coupling{};
+        phase_coupling.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
+        phase_coupling.type = PM_COUPLING_LIQUID_SMOKE;
+        phase_coupling.modeFlags = PM_INTERACTION_MODE_DRAG_BIT |
+            PM_INTERACTION_MODE_THERMAL_BIT | PM_INTERACTION_MODE_PHASE_BIT;
+        phase_coupling.materialProfile =
+            PM_INTERACTION_MATERIAL_SMOKE_PARTICLE;
+        phase_coupling.parameters.thermal.heaterOrientation[3] = 1.0F;
+        phase_coupling.parameters.thermal.heaterHalfExtents[0] = 0.5F;
+        phase_coupling.parameters.thermal.heaterHalfExtents[1] = 0.5F;
+        phase_coupling.parameters.thermal.heaterTemperature = 150.0F;
+        phase_coupling.parameters.thermal.boilingTemperature = 100.0F;
+        phase_coupling.parameters.thermal.heatTransferRate = 0.0F;
+        phase_coupling.parameters.thermal.steamRiseSpeed = 1.0F;
+        const PmBufferRange phase_smoke_range{
+            smoke_output, 0U, 4096U};
+
+        const auto reset_phase_case = [&](const char *label) {
+            execution_label = label;
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdResetSimulation(commands, mixed_simulation) ==
+                  PM_SUCCESS);
+            execute(PM_SUCCESS);
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+            CHECK(pmCmdSetFluidParticles(
+                commands, mixed_simulation, 0U, &phase_liquid) == PM_SUCCESS);
+            CHECK(pmCmdSetFluidParticles(
+                commands, mixed_simulation, 1U, &lifecycle_empty) ==
+                  PM_SUCCESS);
+            CHECK(pmCmdWriteSmoke(
+                commands, mixed_simulation, 0U, 1U, &phase_smoke) ==
+                  PM_SUCCESS);
+            execute(PM_SUCCESS);
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdSetCouplings2(
+                commands, mixed_simulation, 1U, &phase_coupling) ==
+                  PM_SUCCESS);
+            execute(PM_SUCCESS);
+        };
+        const auto phase_step = [&](const char *label,
+                                    PmRealtimeStepStatistics &out) {
+            execution_label = label;
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) ==
+                  PM_SUCCESS);
+            CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) ==
+                  PM_SUCCESS);
+            CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+            CHECK(pmCmdStepSimulation(
+                commands, mixed_simulation, &step) == PM_SUCCESS);
+            CHECK(pmCmdCopyFluidParticles(
+                commands, mixed_simulation, 0U, &fluid_range) == PM_SUCCESS);
+            CHECK(pmCmdCopySmokeState(commands, mixed_simulation, 0U,
+                                      &phase_smoke_range) == PM_SUCCESS);
+            CHECK(pmCmdEndStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
+            execute(PM_SUCCESS);
+            CHECK(pmGetQueryPoolResults(device, query, 0U, 1U, sizeof out,
+                &out, sizeof out, PM_QUERY_RESULT_WAIT_BIT) == PM_SUCCESS);
+            CHECK(out.timeAdvances == 1U);
+            CHECK(out.total.spatialIndexBuilds == 1U);
+            CHECK(out.total.spatialIndexPublications == 1U);
+            CHECK(out.total.intraTickHostReadbacks == 0U);
+            CHECK(out.couplingEdgeCount == 2U);
+            CHECK(out.couplingSweeps == 4U);
+        };
+
+        reset_phase_case("reset successful phase lifecycle");
+        PmRealtimeStepStatistics phase_discovery_statistics{};
+        phase_step("discover phase transfer", phase_discovery_statistics);
+        fluid_header =
+            static_cast<const PmDomainOutputHeader *>(fluid_output_map);
+        fluid_particles = reinterpret_cast<const PmFluidParticleOutput *>(
+            fluid_header + 1U);
+        const auto *phase_smoke_header =
+            static_cast<const PmDomainOutputHeader *>(smoke_output_map);
+        CHECK(fluid_header->activeCount == 1U);
+        CHECK(phase_smoke_header->activeCount == 0U);
+        const auto phase_source_id = fluid_particles[0].stableId;
+
+        PmRealtimeStepStatistics phase_apply_statistics{};
+        phase_step("apply phase transfer", phase_apply_statistics);
+        fluid_header =
+            static_cast<const PmDomainOutputHeader *>(fluid_output_map);
+        phase_smoke_header =
+            static_cast<const PmDomainOutputHeader *>(smoke_output_map);
+        CHECK(fluid_header->activeCount == 0U);
+        CHECK(phase_smoke_header->activeCount == 1U);
+        CHECK(phase_apply_statistics.domainIterations[1] ==
+              phase_discovery_statistics.domainIterations[1]);
+        CHECK(phase_apply_statistics.couplingSweeps ==
+              phase_discovery_statistics.couplingSweeps);
+
+        phase_smoke.particleCapacity = 1U;
+        phase_smoke.particlesPerSecond = 60.0F;
+        reset_phase_case("reset blocked phase lifecycle");
+        PmRealtimeStepStatistics phase_full_discovery{};
+        phase_step("discover phase transfer into full smoke",
+                   phase_full_discovery);
+        fluid_header =
+            static_cast<const PmDomainOutputHeader *>(fluid_output_map);
+        fluid_particles = reinterpret_cast<const PmFluidParticleOutput *>(
+            fluid_header + 1U);
+        phase_smoke_header =
+            static_cast<const PmDomainOutputHeader *>(smoke_output_map);
+        CHECK(fluid_header->activeCount == 1U);
+        CHECK(phase_smoke_header->activeCount == 1U);
+        const auto blocked_source_id = fluid_particles[0].stableId;
+
+        PmRealtimeStepStatistics phase_blocked_statistics{};
+        phase_step("reject phase transfer at capacity",
+                   phase_blocked_statistics);
+        fluid_header =
+            static_cast<const PmDomainOutputHeader *>(fluid_output_map);
+        fluid_particles = reinterpret_cast<const PmFluidParticleOutput *>(
+            fluid_header + 1U);
+        phase_smoke_header =
+            static_cast<const PmDomainOutputHeader *>(smoke_output_map);
+        CHECK(fluid_header->activeCount == 1U);
+        CHECK(fluid_particles[0].stableId == blocked_source_id);
+        CHECK(phase_smoke_header->activeCount == 1U);
+
+        phase_smoke.particlesPerSecond = 0.01F;
+        execution_label = "replace full phase destination";
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        CHECK(pmCmdWriteSmoke(
+            commands, mixed_simulation, 0U, 1U, &phase_smoke) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+        CHECK(pmCmdSetCouplings2(
+            commands, mixed_simulation, 1U, &phase_coupling) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+
+        PmRealtimeStepStatistics phase_recovery_discovery{};
+        phase_step("rediscover phase transfer after replacement",
+                   phase_recovery_discovery);
+        fluid_header =
+            static_cast<const PmDomainOutputHeader *>(fluid_output_map);
+        fluid_particles = reinterpret_cast<const PmFluidParticleOutput *>(
+            fluid_header + 1U);
+        phase_smoke_header =
+            static_cast<const PmDomainOutputHeader *>(smoke_output_map);
+        CHECK(fluid_header->activeCount == 1U);
+        CHECK(fluid_particles[0].stableId == blocked_source_id);
+        CHECK(phase_smoke_header->activeCount == 0U);
+
+        PmRealtimeStepStatistics phase_recovery_apply{};
+        phase_step("recover phase transfer after replacement",
+                   phase_recovery_apply);
+        fluid_header =
+            static_cast<const PmDomainOutputHeader *>(fluid_output_map);
+        phase_smoke_header =
+            static_cast<const PmDomainOutputHeader *>(smoke_output_map);
+        CHECK(fluid_header->activeCount == 0U);
+        CHECK(phase_smoke_header->activeCount == 1U);
+        CHECK(phase_source_id == blocked_source_id);
+        }
+
+        if (!lifecycle_only) {
         auto *packed = reinterpret_cast<PmParticleState *>(
             static_cast<std::byte *>(source_map) + 256U);
         for (std::uint32_t index = 0U; index < 7U; ++index) {
@@ -433,9 +750,10 @@ int main(int argc, char **argv) {
         CHECK(pmCmdStepSimulation(
             commands, mixed_simulation, &step) == PM_SUCCESS);
         execute(PM_SUCCESS);
+        }
 
     }
-    if (mixed_info.clothCount != 0U) {
+    if (!lifecycle_only && mixed_info.clothCount != 0U) {
         const std::uint32_t cloth_indices[3]{0U, 1U, 2U};
         const float pinned_masses[3]{0.0F, 0.0F, 1.0F};
         const PmFloat3 hanging_vertices[3]{
@@ -574,7 +892,7 @@ int main(int argc, char **argv) {
             static_cast<const PmDomainOutputHeader *>(cloth_output_map);
         CHECK(cloth_header->activeCount == 3U);
     }
-    if (mixed_info.softBodyCount != 0U) {
+    if (!lifecycle_only && mixed_info.softBodyCount != 0U) {
         const PmFloat3 nodes[5]{
             {0.0F, 1.2F, 0.0F}, {-0.05F, 1.0F, 0.0F},
             {0.05F, 1.0F, 0.0F}, {0.0F, 1.1F, 0.05F},
@@ -727,7 +1045,7 @@ int main(int argc, char **argv) {
             static_cast<const PmDomainOutputHeader *>(soft_output_map);
         CHECK(soft_header->activeCount == 5U);
     }
-    if (mixed_info.ropeCount != 0U) {
+    if (!lifecycle_only && mixed_info.ropeCount != 0U) {
         PmRigidBodyInfo anchor{};
         anchor.active = PM_TRUE;
         anchor.geometry = geometry;
@@ -858,7 +1176,8 @@ int main(int argc, char **argv) {
             static_cast<const PmDomainOutputHeader *>(rope_output_map);
         CHECK(rope_header->activeCount == 6U);
     }
-    if (mixed_info.clothCount != 0U && mixed_info.softBodyCount != 0U &&
+    if (!lifecycle_only && mixed_info.clothCount != 0U &&
+        mixed_info.softBodyCount != 0U &&
         mixed_info.ropeCount != 0U && mixed_info.fluidCount == 2U &&
         mixed_info.smokeCount != 0U) {
         PmRigidBodyInfo floor{};
@@ -1300,7 +1619,8 @@ int main(int argc, char **argv) {
             commands, mixed_simulation, 0U, nullptr) == PM_SUCCESS);
         execute(PM_SUCCESS);
     }
-    if (!smoke_couplings_only && mixed_info.smokeCount != 0U) {
+    if (!lifecycle_only && !smoke_couplings_only &&
+        mixed_info.smokeCount != 0U) {
         PmSmokeInfo smoke{};
         smoke.active = PM_TRUE;
         smoke.particleCapacity = smoke_capacity.particleCapacity;
@@ -1426,7 +1746,7 @@ int main(int argc, char **argv) {
     }
     pmDestroySimulation(device, mixed_simulation);
 
-    if (!smoke_couplings_only) {
+    if (!smoke_couplings_only && !lifecycle_only) {
     std::array<PmRigidBodyInfo, body_count> bodies{};
     std::array<PmRigidConstraintInfo, constraint_count> constraints{};
     for (std::uint32_t index = 0U; index < body_count; ++index) {
@@ -1604,7 +1924,9 @@ int main(int argc, char **argv) {
     for (auto allocation : memory) pmFreeMemory(device, allocation);
     pmDestroyDevice(device);
     pmDestroyInstance(instance);
-    std::puts(smoke_couplings_only
+    std::puts(lifecycle_only
+        ? "PASS: production lifecycle uses one atomic fixed tick"
+        : smoke_couplings_only
         ? "PASS: production smoke couplings use fixed atomic ticks"
         : production
             ? "PASS: production realtime resources are fixed and atomic"

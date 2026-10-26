@@ -82,10 +82,18 @@ Status SimulationRuntime::step_async(StepOptions options, FrameToken &completion
     }
     frame->fluid_neighbor_overflow = impl_->fluid_neighbor_overflow;
     frame->execution = impl_->execution;
-    if (debug_enabled) {
+    if (debug_enabled || realtime) {
         try {
-            frame->on_complete = [implementation = impl_.get(), options, queue]() {
-                return implementation->record_debug_frame(options, queue);
+            frame->on_complete = [implementation = impl_.get(), options,
+                                  queue, debug_enabled, realtime]() {
+                if (realtime) {
+                    auto status =
+                        implementation->finalize_realtime_lifecycle();
+                    if (!status) return status;
+                }
+                return debug_enabled
+                    ? implementation->record_debug_frame(options, queue)
+                    : success();
             };
         } catch (...) {
             return failure(StatusCode::out_of_memory,

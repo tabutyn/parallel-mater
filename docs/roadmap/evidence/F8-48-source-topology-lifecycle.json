@@ -1,0 +1,84 @@
+{
+  "schema": "parallel-mater-f8-source-topology-lifecycle-evidence/v1",
+  "task": "F8-48",
+  "status": "passed-with-recorded-hardware-limit",
+  "recorded_at": "2026-10-26",
+  "branch": "work/F8-48/thomas-laptop-pixel7",
+  "lease_token": "899e8e00-3e38-4821-abf8-6f92e3fa5a5c",
+  "base_revision": "3a51d6c309cc033e5742e26ccc71525681ab6fe1",
+  "implementation_revision": "ca2eacce39d6bbc9471f8d7956756851221406fb",
+  "implementation": {
+    "source_admission": "Emitter proposals are staged before the sole shared spatial build and resolved by its common admission/finalization passes. Accepted, rejected and capacity-miss counters remain observable.",
+    "stable_identity": "Stable IDs are reserved monotonically for proposals. Rejection may leave the F8-09-permitted gaps, but outflow and later capacity recovery never reuse an ID.",
+    "removal": "Destroy planes mark staged liquid particles and one fixed gather compacts them before the normal atomic endpoint swap.",
+    "phase_discovery": "The final liquid/smoke solve sweep records fixed-capacity proposals and their full particle/thermal state without mutating public counts.",
+    "phase_admission": "The next boundary generation-checks source and destination, aggregates destination capacity globally and either applies all pending transfers or none before the single spatial publication.",
+    "phase_failure": "Destination-capacity or generation failure preserves source mass, source stable IDs and pending inputs. Destination replacement clears stale generation state and permits safe rediscovery.",
+    "fixed_schedule": "GPU-resident live counts feed predict, query, solve, coupling, commit and export. Completion reads source/phase counters only after terminal queue completion; telemetry records zero intra-tick host readbacks.",
+    "adapter_parity": "CPU, CUDA, Metal, D3D12 and Vulkan dispatch tables bind the common spatial admission and transfer-finalization primitives; no Android-local implementation exists."
+  },
+  "public_cases": [
+    "cold source spawn accepts a bounded particle set at the authored 35 C temperature",
+    "a full liquid rejects the next proposals with unchanged active count, stable IDs, dispatches and workgroups",
+    "destroy-plane outflow compacts to zero and a later source tick recovers capacity with non-reused stable IDs",
+    "a 150 C liquid against a 100 C boiling threshold is discovered on one solve and transfers to particle smoke at the next boundary",
+    "a full smoke destination rejects phase admission while preserving one liquid particle, its stable ID and one existing smoke particle",
+    "destination replacement invalidates stale generation state, then rediscovery and the following boundary complete the transfer with the original source ID",
+    "focused and broad mixed-family paths cover reset, replacement, topology mutation and sequential fixed ticks through the public native API"
+  ],
+  "fixed_tick_assertions": {
+    "time_advances_per_tick": 1,
+    "spatial_index_builds_per_tick": 1,
+    "spatial_index_publications_per_tick": 1,
+    "intra_tick_host_readbacks": 0,
+    "liquid_smoke_coupling_sweeps": 4,
+    "accepted_vs_rejected_source_dispatch_budget": "equal",
+    "accepted_vs_rejected_source_workgroup_budget": "equal",
+    "phase_discovery_vs_apply_domain_iterations": "equal"
+  },
+  "qualification": {
+    "host_suite": {
+      "command": "cmake --build build-sdk-cpu -j2 && ctest --test-dir build-sdk-cpu --output-on-failure",
+      "result": "PASS: 102/102 discovered; 87 executed passed and 15 unadvertised CPU-domain tests explicitly skipped"
+    },
+    "contracts": {
+      "commands": [
+        "python3 -m unittest discover -s conformance/v1/tests -p 'test_*.py'",
+        "python3 -m unittest discover -s tests/roadmap -p 'test_*.py'"
+      ],
+      "result": "PASS: 418 conformance tests and 87 roadmap tests"
+    },
+    "protected_closure": {
+      "command": "python3 tools/check_realtime_candidate.py",
+      "result": "PASS: realtime-single-step-v1-3671f18 protected closure and routing are exact"
+    },
+    "cross_adapter_builds": {
+      "commands": [
+        "cmake --build build-sdk-cpu -j2",
+        "cmake --build build-f8-22-cuda --target parallel-mater-driver-slang-cuda -j2",
+        "cmake --build build-p3-02-vulkan --target parallel-mater-driver-slang-vulkan -j2",
+        "ANDROID_HOME=/home/thomas/Android/Sdk ./scripts/Build-AndroidGallery.sh -PphysicsBackend=vulkan -Pqualification=true"
+      ],
+      "result": "PASS: CPU suite plus CUDA, desktop Vulkan and Android arm64-v8a Vulkan builds completed"
+    },
+    "physical_android_vulkan": {
+      "capture_command": "python3 scripts/Test-AndroidVulkan.py --serial 2B241FDH20060P --adb /home/thomas/Android/Sdk/platform-tools/adb --build-directory examples/android/app/.cxx/Debug/314c5r66/arm64-v8a --output out/android/F8-48-final --native-only --realtime-smoke-couplings-only",
+      "focused_command": "PM_DRIVER_FILES=/data/local/tmp/parallel-mater-qualification/driver.json PM_LAYER_FILES=/data/local/tmp/parallel-mater-qualification/validation.json ./pm-android-realtime-runtime-tests --production-lifecycle",
+      "device": "Google Pixel 7 (panther), Mali-G710, Android 17/API 37, security patch 2026-10-05",
+      "result": "PASS: command, async, liquid, broad production-smoke-couplings and focused production-lifecycle tests; no Validation Error or VUID",
+      "source_commit": "ca2eacce39d6bbc9471f8d7956756851221406fb",
+      "apk_sha256": "c201037b77d74ab6d72f656051895d3e793f65a20500d3d63442a427a19f867b",
+      "driver_sha256": "b30f8fbd7cbb642176f42ae75ce30a093a35eb015bbf1c87dd374bce029baa59",
+      "realtime_test_sha256": "82af88790f1827f14a7392de2e73c16b4e14ae3d459c6992dc5904efa6847657",
+      "toolchain": {
+        "android_ndk": "29.0.14206865",
+        "slang": "2026.18"
+      }
+    }
+  },
+  "limits": [
+    "Physical Metal and D3D12 execution were unavailable on this Linux host; common-source adapter bindings and available CPU/CUDA/Vulkan builds passed.",
+    "This card proves lifecycle correctness and fixed workload counters, not final release performance or sustained device thermal behavior; those remain F8-52 and platform qualification scope.",
+    "Paint, capture and public-output integration remains F8-49; removal of alternate public execution paths remains F8-50."
+  ]
+}

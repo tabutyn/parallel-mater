@@ -73,6 +73,11 @@ void fluid_smoke_exchange(
     PM_D3D12_DISPATCH_PROLOGUE();
     uint index = pmThreadIndex();
     if (index >= *water_count) return;
+    // UINT_MAX selects realtime proposal staging.  The proposal arrays are
+    // dense by ordinal, while `keep` is shared by all canonical liquid/smoke
+    // edges so the first edge to claim a liquid identity wins.
+    bool stageProposal = first_smoke_slot == 0xffffffffu;
+    if (!stageProposal) keep[index] = 1u;
     Vec3 position = positions[index];
     Vec3 velocity = velocities[index];
     Vec3 local = inverse_rotate(coupling.heater.orientation,
@@ -86,11 +91,12 @@ void fluid_smoke_exchange(
         temperature += (coupling.heater_temperature - temperature) *
             (1.0f - exp(-coupling.heat_transfer_rate * dt));
     temperatures[index] = temperature;
-    keep[index] = 1u;
     if (temperature < coupling.boiling_temperature) return;
+    if (stageProposal && keep[index] == 0u) return;
     uint ordinal = pmAtomicAdd(converted, 1u);
     if (ordinal >= smoke.capacity) return;
-    uint slot = (first_smoke_slot + ordinal) % smoke.capacity;
+    uint slot = stageProposal ? ordinal :
+        (first_smoke_slot + ordinal) % smoke.capacity;
     smoke_positions[slot] = position;
     smoke_velocities[slot] = add(velocity, multiply(
         normalized_or(multiply(gravity, -1.0f), {0.0f, 1.0f, 0.0f}),
