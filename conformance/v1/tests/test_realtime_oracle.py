@@ -214,10 +214,7 @@ class RealtimeOracleContractTests(unittest.TestCase):
             "schema": "parallel-mater-realtime-observation/v1",
             "source": "installed-public-api",
             "driver_private_state_used": False,
-            "profile": {
-                "name": "realtime-single-step",
-                "version": {"major": 1, "minor": 0},
-            },
+            "runtime": {"schedule": "fixed-tick", "version": 1},
             "candidate": {
                 "manifest_role": "qualification-input",
                 "execution_identity_claimed": False,
@@ -258,9 +255,9 @@ class RealtimeOracleContractTests(unittest.TestCase):
         )
 
         controls = []
-        legacy = copy.deepcopy(observation)
-        legacy["profile"]["name"] = "legacy-default"
-        controls.append(legacy)
+        alternate = copy.deepcopy(observation)
+        alternate["runtime"]["schedule"] = "legacy-default"
+        controls.append(alternate)
         subdivided = copy.deepcopy(observation)
         subdivided["steps"][0]["substeps"] = 4
         controls.append(subdivided)

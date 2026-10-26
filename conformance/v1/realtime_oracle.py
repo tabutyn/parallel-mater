@@ -603,17 +603,14 @@ def validate_public_observation(
             observation.get("driver_private_state_used"), False,
         ))
 
-    profile = observation.get("profile", {})
-    required_profile = contract["profile"]
-    expected_profile = {
-        "name": required_profile["semantic_name"],
-        "version": required_profile["version"],
-    }
-    if profile != expected_profile:
+    runtime = observation.get("runtime", {})
+    expected_runtime = {"schedule": "fixed-tick", "version": 1}
+    if runtime != expected_runtime:
         failures.append(Failure(
-            "observation.profile", "profile identity is not exact",
-            profile, expected_profile,
+            "observation.runtime", "runtime identity is not exact",
+            runtime, expected_runtime,
         ))
+    required_profile = contract["profile"]
 
     candidate_input = observation.get("candidate", {})
     variants = {
@@ -691,7 +688,7 @@ def validate_public_observation(
                     or substeps != 1:
                 failures.append(Failure(
                     f"observation.steps.{index}.substeps",
-                    "realtime profile requires exactly one substep",
+                    "fixed-tick runtime requires exactly one substep",
                     substeps, 1,
                 ))
 
