@@ -47,10 +47,12 @@ running app's compiled revision and actual backend using a fresh launch nonce,
 not a stale file from an earlier installation. A locked iPad is an installation
 success but a verification failure, never a claimed successful launch.
 
-For Mac: configure/build/test `macos-metal-preview`, then run
-`python3 scripts/Deploy-Gallery.py macos`. The wrapper checks the installed
-bundle and runs a native-window direct-GPU smoke test. Linux/Vulkan and
-Windows/D3D12 presets provide equivalent explicit backend selection; native
+For Mac: configure and build `macos-metal-preview`. A successful build
+atomically refreshes `/Applications/ParallelMater Gallery.app`, verifies its
+build identity and signature, and repairs the canonical Dock item. Then run the
+preset tests. `python3 scripts/Deploy-Gallery.py macos` is available for an
+additional native-window direct-GPU smoke and launch verification. Linux/Vulkan
+and Windows/D3D12 presets provide equivalent explicit backend selection; native
 runtime qualification still needs suitable hardware. See the mobile build
 workflow for Android's pinned Gradle/SDK/NDK configuration.
 

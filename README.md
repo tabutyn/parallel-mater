@@ -175,25 +175,31 @@ set `PARALLEL_MATER_SLANGC_EXECUTABLE` to that compiler. See
 
 ### macOS: Apple GPU
 
-Install Xcode with the Metal toolchain, then use the explicit Metal preset:
+Install Xcode with the Metal toolchain and `dockutil` (`brew install dockutil`),
+then use the explicit Metal preset:
 
 ```sh
 cmake --preset macos-metal-preview
 cmake --build --preset macos-metal-preview
-"./build-macos-metal-preview/ParallelMater Gallery.app/Contents/MacOS/ParallelMater Gallery" --backend metal
 ```
 
+The successful build atomically replaces the canonical
+`/Applications/ParallelMater Gallery.app`, verifies its signature and exact
+build identity, and replaces the Dock item with that installed path. Launch the
+Gallery from the Dock or `/Applications`; do not launch a stale build-tree copy.
 This app bundles the Metal physics driver. A plain macOS configuration without
-this preset defaults to the CPU development driver. To install the Metal build
-as the canonical `/Applications/ParallelMater Gallery.app` and update the Dock:
+this preset defaults to the CPU development driver.
+
+CI, packaging, or a deliberately non-installing build can opt out explicitly:
 
 ```sh
-python3 scripts/Deploy-Gallery.py macos
+cmake --preset macos-metal-preview -DPARALLEL_MATER_MACOS_GALLERY_AUTO_DEPLOY=OFF
 ```
 
-Deployment checks the built revision, signature, installed backend, and a native
-rendering smoke test. It requires a clean checkout and matching build by
-default; `--allow-dirty` permits an explicit development iteration.
+For an additional native rendering smoke test and launch verification, run
+`python3 scripts/Deploy-Gallery.py macos`. The wrapper requires a clean checkout
+and matching build by default; `--allow-dirty` permits an explicit development
+iteration.
 
 ### Windows: D3D12
 
