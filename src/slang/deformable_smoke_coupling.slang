@@ -123,8 +123,11 @@ void deformable_smoke_coupling_project(
         pmAtomicOr(status, kInvalidMaterial);
         return;
     }
-    if (first_generations[first] != constraint_first_generations[constraint] ||
-        second_generations[second] !=
+    // Resource generations are constraint-aligned. This keeps known endpoint
+    // attachments batchable without allocating per-vertex generation arrays.
+    if (first_generations[constraint] !=
+            constraint_first_generations[constraint] ||
+        second_generations[constraint] !=
             constraint_second_generations[constraint])
         return;
 
@@ -329,7 +332,7 @@ void deformable_smoke_coupling_apply_first(
     {
         if (constraint_active[constraint] == 0u ||
             constraint_endpoints[constraint] != endpoint ||
-            constraint_generations[constraint] != generations[endpoint])
+            constraint_generations[constraint] != generations[constraint])
             continue;
         correction = add(correction, position_deltas[constraint]);
         impulse = add(impulse, impulses[constraint]);
@@ -385,7 +388,7 @@ void deformable_smoke_coupling_apply_second(
     {
         if (constraint_active[constraint] == 0u ||
             constraint_endpoints[constraint] != endpoint ||
-            constraint_generations[constraint] != generations[endpoint])
+            constraint_generations[constraint] != generations[constraint])
             continue;
         correction = add(correction, position_deltas[constraint]);
         impulse = add(impulse, impulses[constraint]);

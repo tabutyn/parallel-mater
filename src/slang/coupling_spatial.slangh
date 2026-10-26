@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: MIT
+#ifndef PARALLEL_MATER_COUPLING_SPATIAL_SLANGH
+#define PARALLEL_MATER_COUPLING_SPATIAL_SLANGH
+
+struct CouplingSpatialIdentity
+{
+    uint family;
+    uint owner_slot;
+    uint owner_generation;
+    uint topology_revision;
+    uint primitive_kind;
+    uint primitive_slot;
+    uint primitive_generation;
+};
+
+struct CouplingSpatialLeafMetadata
+{
+    CouplingSpatialIdentity identity;
+    uint sort_key;
+    uint payload_ref;
+    uint query_mask;
+    uint admission_mask;
+    uint flags;
+    uint transfer_group;
+    uint reserved0;
+    uint reserved1;
+    uint reserved2;
+};
+
+static const uint kCouplingSpatialRigidFamily = 1u;
+static const uint kCouplingSpatialClothFamily = 3u;
+static const uint kCouplingSpatialRopeFamily = 4u;
+static const uint kCouplingSpatialSoftFamily = 5u;
+static const uint kCouplingSpatialBodyPrimitive = 1u;
+static const uint kCouplingSpatialSegmentPrimitive = 1u;
+static const uint kCouplingSpatialTrianglePrimitive = 2u;
+static const uint kCouplingSpatialStaleEpoch = 1u << 9u;
+static const uint kCouplingSpatialQueryOverflow = 1u << 10u;
+static const uint kCouplingSpatialAdmissionInvalid = 1u << 12u;
+
+#endif

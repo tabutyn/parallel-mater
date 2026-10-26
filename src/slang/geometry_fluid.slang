@@ -1,4 +1,5 @@
 #include "dispatch_entry.slang"
+#include "coupling_spatial.slangh"
 // SPDX-License-Identifier: MIT
 #include "dispatch_shape.slangh"
 // Slang mirror of src/geometry_fluid.cuh. Geometry contact kernels follow the
@@ -426,9 +427,14 @@ void fluid_detect_moving_contacts(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous, uniform PMBuffer<uint> count,
     uniform float radius, uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
-    uniform PMBuffer<TriangleMeshResource> meshes, uniform PMBuffer<WorldAabb> bounds,
-    uniform uint body_count, uniform PMBuffer<uint64_t> masks,
-    uniform PMBuffer<uint64_t> global_masks, uniform uint words,
+    uniform PMBuffer<TriangleMeshResource> meshes,
+    uniform PMBuffer<RigidBodyId> body_ids, uniform uint body_count,
+    uniform uint body_topology_revision,
+    uniform PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint spatial_leaf_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query, uniform PMBuffer<uint> spatial_status,
     uniform bool first_iteration, uniform PMBuffer<FluidMovingContact> contacts,
     uniform PMBuffer<uint> contact_counts PM_D3D12_DISPATCH_PARAMETER)
 {
@@ -442,25 +448,38 @@ void fluid_detect_moving_contacts(
     float bestPenetration = 0.0f;
     Vec3 bestNormal = {}, bestContact = {};
     uint bestBody = kInvalidDense;
-    uint bucket = fluid_body_bucket(
-        int(floor(end.x)), int(floor(end.y)), int(floor(end.z)));
-    for (uint word = 0u; word < words; ++word)
+    uint candidateCount = candidate_counts[particle];
+    if (candidateCount > candidates_per_query)
     {
-        uint64_t candidates = masks[bucket * words + word] | global_masks[word];
-        for (uint bit = 0u; bit < 64u; ++bit)
+        pmAtomicOr(spatial_status, kCouplingSpatialQueryOverflow);
+        return;
+    }
+    uint candidateBase = particle * candidates_per_query;
+    for (uint candidate = 0u; candidate < candidateCount; ++candidate)
+    {
+        uint source = candidate_sources[candidateBase + candidate];
+        if (source >= spatial_leaf_capacity || spatial_admission[source] == 0u)
         {
-            if ((candidates & (1ull << bit)) == 0ull) continue;
-            uint bodyIndex = word * 64u + bit;
-            if (bodyIndex >= body_count) continue;
+            pmAtomicOr(spatial_status, kCouplingSpatialAdmissionInvalid);
+            return;
+        }
+        CouplingSpatialLeafMetadata leaf = spatial_metadata[source];
+        if (leaf.identity.family != kCouplingSpatialRigidFamily) continue;
+        uint bodyIndex = leaf.payload_ref;
+        if (bodyIndex >= body_count ||
+            leaf.identity.owner_slot != body_ids[bodyIndex].index ||
+            leaf.identity.owner_generation != body_ids[bodyIndex].generation ||
+            leaf.identity.topology_revision != body_topology_revision ||
+            leaf.identity.primitive_kind != kCouplingSpatialBodyPrimitive ||
+            leaf.identity.primitive_slot != parameters[bodyIndex].mesh.index ||
+            leaf.identity.primitive_generation !=
+                parameters[bodyIndex].mesh.generation)
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialStaleEpoch);
+            return;
+        }
             BodyParameters body = parameters[bodyIndex];
             if (body.motion == MotionType.static_body) continue;
-            WorldAabb box = bounds[bodyIndex];
-            if (max(start.x, end.x) + radius < box.minimum.x ||
-                min(start.x, end.x) - radius > box.maximum.x ||
-                max(start.y, end.y) + radius < box.minimum.y ||
-                min(start.y, end.y) - radius > box.maximum.y ||
-                max(start.z, end.z) + radius < box.minimum.z ||
-                min(start.z, end.z) - radius > box.maximum.z) continue;
             RigidBodyState state = states[bodyIndex];
             RigidBodyState old = first_iteration
                 ? previous_states[bodyIndex] : state;
@@ -525,7 +544,6 @@ void fluid_detect_moving_contacts(
                     }
                 }
             }
-        }
     }
     if (bestBody == kInvalidDense) return;
     contacts[particle] = {

@@ -31,6 +31,7 @@ struct RopeStorage {
     std::uint32_t *realtime_count{};
     std::uint32_t realtime_leaf_offset{};
     std::uint32_t realtime_query_offset{};
+    std::uint32_t realtime_node_leaf_offset{};
     std::uint64_t realtime_topology_revision{1U};
     simulation::RopeRealtimeTickContract realtime_contract{};
     void release() {

@@ -118,7 +118,10 @@ void rigid_coupling_project(
         pmAtomicOr(status, kRigidCouplingInvalidMaterial);
         return;
     }
-    if (endpoint_generations[endpoint] !=
+    // Generation records are constraint-aligned so endpoints from one
+    // resource can be dispatched as a batch without a per-node generation
+    // allocation.
+    if (endpoint_generations[constraint] !=
             constraint_endpoint_generations[constraint] ||
         body_generations[body] != constraint_body_generations[constraint])
         return;
@@ -310,7 +313,7 @@ void rigid_coupling_apply_endpoints(
         if (constraint_active[constraint] == 0u ||
             constraint_endpoints[constraint] != endpoint ||
             constraint_endpoint_generations[constraint] !=
-                endpoint_generations[endpoint])
+                endpoint_generations[constraint])
             continue;
         correction = add(correction, endpoint_position_deltas[constraint]);
         impulse = add(impulse, endpoint_impulses[constraint]);

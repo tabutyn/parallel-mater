@@ -35,9 +35,13 @@ void detect_fluid_moving_contacts(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     const void *previous, const std::uint32_t *count, float radius,
     const void *body_parameters, const void *previous_states,
-    const void *current_states, const void *meshes, const void *bounds,
-    std::uint32_t body_count, const void *masks,
-    const void *global_masks, std::uint32_t words,
+    const void *current_states, const void *meshes, const void *body_ids,
+    std::uint32_t body_count, std::uint32_t body_topology_revision,
+    const void *spatial_metadata, const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
     bool first_iteration, void *contacts, std::uint32_t *contact_counts) noexcept;
 
 void resolve_fluid_moving_contacts(

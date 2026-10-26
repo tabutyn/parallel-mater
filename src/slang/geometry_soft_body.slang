@@ -10,6 +10,35 @@ import geometry_fluid;
 import geometry;
 import graphics_resources;
 
+struct DeformableCollisionSpatialIdentity
+{
+    uint family;
+    uint owner_slot;
+    uint owner_generation;
+    uint topology_revision;
+    uint primitive_kind;
+    uint primitive_slot;
+    uint primitive_generation;
+};
+
+struct DeformableCollisionSpatialLeafMetadata
+{
+    DeformableCollisionSpatialIdentity identity;
+    uint sort_key;
+    uint payload_ref;
+    uint query_mask;
+    uint admission_mask;
+    uint flags;
+    uint transfer_group;
+    uint reserved0;
+    uint reserved1;
+    uint reserved2;
+};
+
+static const uint kDeformableCollisionSpatialStaleEpoch = 1u << 9u;
+static const uint kDeformableCollisionSpatialQueryOverflow = 1u << 10u;
+static const uint kDeformableCollisionSpatialAdmissionInvalid = 1u << 12u;
+
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void deformable_collide(
@@ -19,6 +48,12 @@ void deformable_collide(
     uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
     uniform PMBuffer<TriangleMeshResource> meshes, uniform uint body_count,
+    uniform PMBuffer<RigidBodyId> body_ids, uniform uint body_topology_revision,
+    uniform PMBuffer<DeformableCollisionSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint spatial_leaf_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query, uniform PMBuffer<uint> spatial_status,
     uniform uint first_excluded_body, uniform uint first_excluded_count,
     uniform uint last_excluded_body, uniform uint last_excluded_count,
     uniform PMBuffer<FluidBodyImpulse> impulses, uniform PMBuffer<Vec3> contact_forces,
@@ -49,8 +84,37 @@ void deformable_collide(
     float bestPenetration = 0.0f;
     Vec3 bestNormal = {}, bestContact = {};
     uint bestBody = kInvalidDense;
-    for (uint bodyIndex = 0u; bodyIndex < body_count; ++bodyIndex)
+    uint candidateCount = candidate_counts[vertex];
+    if (candidateCount > candidates_per_query)
     {
+        pmAtomicOr(spatial_status, kDeformableCollisionSpatialQueryOverflow);
+        return;
+    }
+    uint candidateBase = vertex * candidates_per_query;
+    for (uint candidate = 0u; candidate < candidateCount; ++candidate)
+    {
+        uint source = candidate_sources[candidateBase + candidate];
+        if (source >= spatial_leaf_capacity || spatial_admission[source] == 0u)
+        {
+            pmAtomicOr(spatial_status,
+                kDeformableCollisionSpatialAdmissionInvalid);
+            return;
+        }
+        DeformableCollisionSpatialLeafMetadata leaf = spatial_metadata[source];
+        if (leaf.identity.family != 1u) continue;
+        uint bodyIndex = leaf.payload_ref;
+        if (bodyIndex >= body_count ||
+            leaf.identity.owner_slot != body_ids[bodyIndex].index ||
+            leaf.identity.owner_generation != body_ids[bodyIndex].generation ||
+            leaf.identity.topology_revision != body_topology_revision ||
+            leaf.identity.primitive_kind != 1u ||
+            leaf.identity.primitive_slot != parameters[bodyIndex].mesh.index ||
+            leaf.identity.primitive_generation !=
+                parameters[bodyIndex].mesh.generation)
+        {
+            pmAtomicOr(spatial_status, kDeformableCollisionSpatialStaleEpoch);
+            return;
+        }
         if ((bodyIndex == first_excluded_body &&
                 vertex < first_excluded_count) ||
             (bodyIndex == last_excluded_body &&
@@ -620,6 +684,7 @@ static const uint kDeformableSpatialClothFamily = 3u;
 static const uint kDeformableSpatialStaticFamily = 6u;
 static const uint kDeformableSpatialSegmentPrimitive = 1u;
 static const uint kDeformableSpatialTrianglePrimitive = 2u;
+static const uint kDeformableSpatialPointPrimitive = 3u;
 static const uint kDeformableSpatialLeafRetained = 1u;
 static const uint kDeformableSpatialLeafInactive = 1u << 4u;
 static const uint kDeformableSpatialInvalidIdentity = 1u << 8u;
@@ -723,10 +788,18 @@ void pm_emit_deformable_spatial_primitives(
     PM_D3D12_DISPATCH_PROLOGUE();
     uint primitive = pmThreadIndex();
     if (primitive >= primitive_count) return;
-    if (leaf_offset > leaf_capacity ||
-        primitive >= leaf_capacity - leaf_offset ||
-        query_offset > query_capacity ||
-        primitive >= query_capacity - query_offset)
+    bool emitsQuery = query_mask != 0u;
+    // Point queries use the existing canonical emitter with no leaf
+    // admission. This preserves the frozen kernel inventory while allowing
+    // surface leaves and per-vertex queries to use different layouts.
+    bool queryOnly = admission_mask == 0u && emitsQuery &&
+        vertices_per_primitive == 1u &&
+        primitive_kind == kDeformableSpatialPointPrimitive;
+    bool emitsLeaf = !queryOnly;
+    if ((emitsLeaf && (leaf_offset > leaf_capacity ||
+        primitive >= leaf_capacity - leaf_offset)) ||
+        (emitsQuery && (query_offset > query_capacity ||
+            primitive >= query_capacity - query_offset)))
     {
         pmAtomicOr(status, kDeformableSpatialQueryOverflow);
         return;
@@ -734,28 +807,40 @@ void pm_emit_deformable_spatial_primitives(
     uint source = leaf_offset + primitive;
     uint query = query_offset + primitive;
     DeformableSpatialLeafMetadata leaf = {};
-    leaf.flags = kDeformableSpatialLeafInactive;
-    metadata[source] = leaf;
-    build_flags[source] = PMResourceUint8(0u);
-    query_masks[query] = 0u;
-    excluded_sort_keys[query] = 0u;
-    query_leaf_sources[query] = source;
+    if (emitsLeaf)
+    {
+        leaf.flags = kDeformableSpatialLeafInactive;
+        metadata[source] = leaf;
+        build_flags[source] = PMResourceUint8(0u);
+    }
+    if (emitsQuery)
+    {
+        query_masks[query] = 0u;
+        excluded_sort_keys[query] = 0u;
+        if (emitsLeaf) query_leaf_sources[query] = source;
+    }
 
     bool shapeValid =
+        (vertices_per_primitive == 1u &&
+            primitive_kind == kDeformableSpatialPointPrimitive) ||
         (vertices_per_primitive == 2u &&
             primitive_kind == kDeformableSpatialSegmentPrimitive) ||
         (vertices_per_primitive == 3u &&
             primitive_kind == kDeformableSpatialTrianglePrimitive);
+    uint primitiveGeneration = primitive_kind ==
+            kDeformableSpatialPointPrimitive
+        ? owner_generation : primitive_generations[primitive];
     bool valid = shapeValid && deformable_spatial_valid_family(family) &&
         owner_generation != 0u && topology_revision != 0u &&
-        primitive_generations[primitive] != 0u &&
-        admission_mask != 0u && isfinite(thickness) && thickness >= 0.0f &&
+        primitiveGeneration != 0u &&
+        (queryOnly || admission_mask != 0u) &&
+        isfinite(thickness) && thickness >= 0.0f &&
         isfinite(epsilon) && epsilon > 0.0f &&
         deformable_spatial_finite_vec3(path_deviation) &&
         deformable_spatial_finite_vec3(correction_budget) &&
         deformable_spatial_nonnegative_vec3(path_deviation) &&
         deformable_spatial_nonnegative_vec3(correction_budget) &&
-        sort_key_base < 0xffffffffu - primitive;
+        (queryOnly || sort_key_base < 0xffffffffu - primitive);
     if (!valid)
     {
         pmAtomicOr(status, kDeformableSpatialInvalidIdentity);
@@ -767,7 +852,8 @@ void pm_emit_deformable_spatial_primitives(
     uint base = primitive * vertices_per_primitive;
     for (uint corner = 0u; corner < vertices_per_primitive; ++corner)
     {
-        uint vertex = indices[base + corner];
+        uint vertex = primitive_kind == kDeformableSpatialPointPrimitive
+            ? primitive : indices[base + corner];
         if (vertex >= vertex_count ||
             !deformable_spatial_finite_vec3(previous_positions[vertex]) ||
             !deformable_spatial_finite_vec3(predicted_positions[vertex]))
@@ -794,25 +880,35 @@ void pm_emit_deformable_spatial_primitives(
         return;
     }
 
-    uint sortKey = sort_key_base + primitive + 1u;
-    leaf.identity.family = family;
-    leaf.identity.owner_slot = owner_slot;
-    leaf.identity.owner_generation = owner_generation;
-    leaf.identity.topology_revision = topology_revision;
-    leaf.identity.primitive_kind = primitive_kind;
-    leaf.identity.primitive_slot = primitive;
-    leaf.identity.primitive_generation = primitive_generations[primitive];
-    leaf.sort_key = sortKey;
-    leaf.payload_ref = primitive;
-    leaf.query_mask = query_mask;
-    leaf.admission_mask = admission_mask;
-    leaf.flags = kDeformableSpatialLeafRetained;
-    metadata[source] = leaf;
-    bounds[source] = envelope;
-    build_flags[source] = PMResourceUint8(1u);
-    query_bounds[query] = envelope;
-    query_masks[query] = query_mask;
-    excluded_sort_keys[query] = sortKey;
+    uint sortKey = 0u;
+    if (emitsLeaf)
+    {
+        sortKey = sort_key_base + primitive + 1u;
+        leaf.identity.family = family;
+        leaf.identity.owner_slot = owner_slot;
+        leaf.identity.owner_generation = owner_generation;
+        leaf.identity.topology_revision = topology_revision;
+        leaf.identity.primitive_kind = primitive_kind;
+        leaf.identity.primitive_slot = primitive;
+        leaf.identity.primitive_generation = primitiveGeneration;
+        leaf.sort_key = sortKey;
+        leaf.payload_ref = primitive;
+        // Admission identifies which queries may see this leaf. Query
+        // emission is independent, so surface leaves can be published
+        // without wasting a second query while point leaves retain identity.
+        leaf.query_mask = admission_mask;
+        leaf.admission_mask = admission_mask;
+        leaf.flags = kDeformableSpatialLeafRetained;
+        metadata[source] = leaf;
+        bounds[source] = envelope;
+        build_flags[source] = PMResourceUint8(1u);
+    }
+    if (emitsQuery)
+    {
+        query_bounds[query] = envelope;
+        query_masks[query] = query_mask;
+        excluded_sort_keys[query] = emitsLeaf ? sortKey : 0u;
+    }
 }
 
 [shader("compute")]

@@ -475,6 +475,21 @@ if(BUILD_TESTING)
             SKIP_RETURN_CODE 77
             ENVIRONMENT
                 "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json;PM_LAYER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json")
+
+    add_executable(parallel-mater-slang-cuda-realtime-tests
+        tests/api/native_realtime_runtime_tests.cpp)
+    target_compile_features(parallel-mater-slang-cuda-realtime-tests
+        PRIVATE cxx_std_20)
+    target_link_libraries(parallel-mater-slang-cuda-realtime-tests
+        PRIVATE ParallelMater::parallel_mater)
+    add_dependencies(parallel-mater-slang-cuda-realtime-tests
+        parallel-mater-driver-slang-cuda)
+    add_test(NAME parallel-mater-slang-cuda-realtime-tests
+        COMMAND parallel-mater-slang-cuda-realtime-tests --production-couplings)
+    set_tests_properties(parallel-mater-slang-cuda-realtime-tests PROPERTIES
+        TIMEOUT 300 SKIP_RETURN_CODE 77 LABELS "api;cuda;gpu;realtime;f8"
+        ENVIRONMENT
+            "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json")
 endif()
 
 endif() # PARALLEL_MATER_BUILD_CUDA
@@ -1225,6 +1240,24 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
         set_tests_properties(parallel-mater-d3d12-command-api-tests PROPERTIES
             LABELS "api;d3d12;loader;slang"
             SKIP_RETURN_CODE 77
+            ENVIRONMENT
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json")
+        add_executable(parallel-mater-slang-d3d12-realtime-tests
+            tests/api/native_realtime_runtime_tests.cpp)
+        target_compile_features(parallel-mater-slang-d3d12-realtime-tests
+            PRIVATE cxx_std_20)
+        target_link_libraries(parallel-mater-slang-d3d12-realtime-tests
+            PRIVATE ParallelMater::parallel_mater)
+        add_dependencies(parallel-mater-slang-d3d12-realtime-tests
+            parallel-mater-driver-slang-d3d12)
+        parallel_mater_enable_warnings(
+            parallel-mater-slang-d3d12-realtime-tests)
+        add_test(NAME parallel-mater-slang-d3d12-realtime-tests
+            COMMAND parallel-mater-slang-d3d12-realtime-tests --production-couplings)
+        set_tests_properties(
+            parallel-mater-slang-d3d12-realtime-tests PROPERTIES
+            TIMEOUT 300 SKIP_RETURN_CODE 77
+            LABELS "api;d3d12;gpu;realtime;f8"
             ENVIRONMENT
                 "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json")
     endif()

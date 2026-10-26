@@ -1,5 +1,6 @@
 #include "dispatch_entry.slang"
 #include "dispatch_shape.slangh"
+#include "coupling_spatial.slangh"
 // SPDX-License-Identifier: MIT
 // Slang mirror of src/geometry_smoke.cuh. Rigid-contact entries follow the
 // standalone particle solver and shared wind sampler below.
@@ -720,8 +721,16 @@ void smoke_rigid_contact(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous_positions,
     uniform PMBuffer<Vec3> velocities, uniform PMBuffer<float> ages, uniform PMBuffer<float> pressures,
     uniform uint count, uniform float lifetime,
-    uniform TriangleMeshResource mesh, uniform PMBuffer<RigidBodyState> states,
+    uniform PMBuffer<TriangleMeshResource> meshes, uniform uint mesh_index,
+    uniform PMBuffer<BodyParameters> body_parameters,
+    uniform PMBuffer<RigidBodyState> states,
     uniform PMBuffer<RigidBodyState> previous_states, uniform uint body,
+    uniform PMBuffer<RigidBodyId> body_ids, uniform uint body_topology_revision,
+    uniform PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint spatial_leaf_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query, uniform PMBuffer<uint> spatial_status,
     uniform float clearance, uniform float particle_mass,
     uniform float wall_drag, uniform float pressure_stiffness,
     uniform float dt, uniform float maximum_speed,
@@ -732,6 +741,39 @@ void smoke_rigid_contact(
     if (particle >= count) return;
     impulses[particle] = {};
     if (ages[particle] >= lifetime) return;
+    TriangleMeshResource mesh = meshes[mesh_index];
+    uint candidateCount = candidate_counts[particle];
+    if (candidateCount > candidates_per_query)
+    {
+        pmAtomicOr(spatial_status, kCouplingSpatialQueryOverflow);
+        return;
+    }
+    bool bodyCandidate = false;
+    uint candidateBase = particle * candidates_per_query;
+    for (uint candidate = 0u; candidate < candidateCount; ++candidate)
+    {
+        uint source = candidate_sources[candidateBase + candidate];
+        if (source >= spatial_leaf_capacity || spatial_admission[source] == 0u)
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialAdmissionInvalid);
+            return;
+        }
+        CouplingSpatialLeafMetadata leaf = spatial_metadata[source];
+        if (leaf.identity.family != kCouplingSpatialRigidFamily ||
+            leaf.payload_ref != body) continue;
+        if (leaf.identity.owner_slot != body_ids[body].index ||
+            leaf.identity.owner_generation != body_ids[body].generation ||
+            leaf.identity.topology_revision != body_topology_revision ||
+            leaf.identity.primitive_kind != kCouplingSpatialBodyPrimitive ||
+            leaf.identity.primitive_generation != mesh.generation)
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialStaleEpoch);
+            return;
+        }
+        bodyCandidate = true;
+        break;
+    }
+    if (!bodyCandidate) return;
     float boundary = 3.0f * clearance;
     RigidBodyState state = states[body];
     RigidBodyState previousState = previous_states[body];

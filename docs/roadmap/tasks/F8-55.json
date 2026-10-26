@@ -1,7 +1,7 @@
 {
   "id": "F8-55",
   "title": "Use shared BVH candidates and batch coupling work",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-45",
     "F8-46",
@@ -21,15 +21,33 @@
     "Reuse one dynamic spatial build/publication through four fixed coupling sweeps; preserve documented one-way/two-way semantics, reciprocal exchange, physical accuracy limits and atomic overflow/failure recovery. No per-edge index, routine host readback/global wait, silent truncation or second timestep is permitted.",
     "Run installed public-API interaction fixtures and actual native work counters on an applicable physical GPU, preserving inputs and quality oracles. Build all applicable adapters; F8-56 and final device qualification retain full Gallery and physical platform obligations."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "4b930e57-e1d7-4684-a0f9-959688625a22",
-    "owner": "codex-windows-coupling-bvh",
-    "machine": "windows-gtx1080",
-    "branch": "work/F8-55/windows-gtx1080",
-    "claimed_at": "2026-10-26T12:32:59Z",
-    "heartbeat_at": "2026-10-26T12:32:59Z",
-    "expires_at": "2026-10-27T12:32:59Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: freshly installed public CUDA loader/driver coupling fixture on NVIDIA GeForce GTX 1080; 467 dispatches, 530 workgroups, 37843 bytes, 628 barriers, 11 candidate dispatches, 259 coupling dispatches, one BVH build/publication; docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json",
+    "PASS: D3D12 public coupling fixture on NVIDIA GeForce GTX 1080; 457 dispatches, 520 workgroups, 11 candidate dispatches, 249 coupling dispatches, one BVH build/publication; docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json",
+    "PASS: focused host/CUDA suite 8/8 including brute-force swept candidate oracle, mixed-family/stale-generation CUDA cases, batching contracts and architecture negative controls; docs/roadmap/F8-55-SHARED-BVH-COUPLING-BATCHING.md",
+    "PASS: D3D12 DXIL build, Metal generation, CUDA mirror and Vulkan SPIR-V mirror validation; docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "4b930e57-e1d7-4684-a0f9-959688625a22",
+        "owner": "codex-windows-coupling-bvh",
+        "machine": "windows-gtx1080",
+        "branch": "work/F8-55/windows-gtx1080",
+        "claimed_at": "2026-10-26T12:32:59Z",
+        "heartbeat_at": "2026-10-26T12:32:59Z",
+        "expires_at": "2026-10-27T12:32:59Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-26T15:40:30Z",
+      "reason": "All supported production geometry couplings now consume one common generation-tagged BVH epoch, compatible attachment records are batched, exhaustive/private broad phases are retired, and public CUDA/D3D12 fixtures pass independent work ceilings.",
+      "evidence": [
+        "PASS: freshly installed public CUDA loader/driver coupling fixture on NVIDIA GeForce GTX 1080; 467 dispatches, 530 workgroups, 37843 bytes, 628 barriers, 11 candidate dispatches, 259 coupling dispatches, one BVH build/publication; docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json",
+        "PASS: D3D12 public coupling fixture on NVIDIA GeForce GTX 1080; 457 dispatches, 520 workgroups, 11 candidate dispatches, 249 coupling dispatches, one BVH build/publication; docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json",
+        "PASS: focused host/CUDA suite 8/8 including brute-force swept candidate oracle, mixed-family/stale-generation CUDA cases, batching contracts and architecture negative controls; docs/roadmap/F8-55-SHARED-BVH-COUPLING-BATCHING.md",
+        "PASS: D3D12 DXIL build, Metal generation, CUDA mirror and Vulkan SPIR-V mirror validation; docs/roadmap/evidence/F8-55-shared-bvh-coupling-batching.json"
+      ]
+    }
+  ]
 }

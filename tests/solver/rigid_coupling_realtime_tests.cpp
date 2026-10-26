@@ -116,6 +116,18 @@ void test_budget_epoch_order_and_rebinding() {
         CHECK(budget.operators[index].algebraic_sweeps == 4U);
         CHECK(budget.operators[index].constraint_visits == 4U);
     }
+
+    auto multi_endpoint = registrations;
+    multi_endpoint[6].constraint_count = 2U;
+    multi_endpoint[7].constraint_count = 2U;
+    RigidCouplingRealtimeWorkBudget multi_endpoint_budget{};
+    CHECK(make_rigid_coupling_realtime_work_budget(
+        multi_endpoint, 6'062U, 32U, multi_endpoint_budget) == PM_SUCCESS);
+    CHECK(multi_endpoint_budget.constraint_count == 18U);
+    CHECK(multi_endpoint_budget.batched_dispatches == 12U);
+    CHECK(multi_endpoint_budget.batched_dispatches <
+        3U * multi_endpoint_budget.constraint_count *
+            rigid_coupling_realtime_sweeps);
     std::printf(
         "F8_RIGID_COUPLING_BUDGET edges=%u constraints=%u "
         "sweeps_per_edge=%u edge_sweeps=%llu constraint_visits=%llu "

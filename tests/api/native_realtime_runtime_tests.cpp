@@ -11,12 +11,29 @@
 #include <cstring>
 #include <vector>
 
+#if defined(_WIN32)
+int setenv(const char *name, const char *value, int overwrite) {
+    if (!overwrite) {
+        std::size_t required{};
+        if (getenv_s(&required, nullptr, 0U, name) != 0) return -1;
+        if (required != 0U) return 0;
+    }
+    return _putenv_s(name, value);
+}
+
+int unsetenv(const char *name) {
+    return _putenv_s(name, "");
+}
+#endif
+
 #define CHECK(value) do { if (!(value)) {                                  \
     std::fprintf(stderr, "line %d: %s\n", __LINE__, #value);             \
     std::abort();                                                           \
 } } while (false)
 
 int main(int argc, char **argv) {
+    const bool couplings_only = argc == 2 &&
+        std::strcmp(argv[1], "--production-couplings") == 0;
     const bool smoke_couplings_only = argc == 2 &&
         std::strcmp(argv[1], "--production-smoke-couplings") == 0;
     const bool lifecycle_only = argc == 2 &&
@@ -25,7 +42,8 @@ int main(int argc, char **argv) {
         std::strcmp(argv[1], "--production-auxiliary") == 0;
     const bool production = argc == 2 &&
         (std::strcmp(argv[1], "--production") == 0 ||
-         smoke_couplings_only || lifecycle_only || auxiliary_only);
+         couplings_only || smoke_couplings_only || lifecycle_only ||
+         auxiliary_only);
     CHECK(argc == 1 || production);
     constexpr std::uint32_t body_count = 8U;
     constexpr std::uint32_t constraint_count = 8U;
@@ -34,10 +52,18 @@ int main(int argc, char **argv) {
     instance_info.apiVersion = PM_API_VERSION_0_3;
     PmInstance instance{};
     CHECK(pmCreateInstance(&instance_info, nullptr, &instance) == PM_SUCCESS);
-    std::uint32_t physical_count = 1U;
-    PmPhysicalDevice physical{};
+    std::uint32_t physical_count{};
+    CHECK(pmEnumeratePhysicalDevices(instance, &physical_count, nullptr) ==
+          PM_SUCCESS);
+    if (physical_count == 0U) {
+        pmDestroyInstance(instance);
+        std::puts("SKIP: no selected native GPU device");
+        return 77;
+    }
+    std::vector<PmPhysicalDevice> physicals(physical_count);
     CHECK(pmEnumeratePhysicalDevices(
-        instance, &physical_count, &physical) == PM_SUCCESS);
+        instance, &physical_count, physicals.data()) == PM_SUCCESS);
+    const PmPhysicalDevice physical = physicals.front();
 
     const float priority = 1.0F;
     const PmDeviceQueueCreateInfo queue_info{0U, 1U, &priority};
@@ -283,6 +309,11 @@ int main(int argc, char **argv) {
     const char *execution_label = "setup";
     const auto execute = [&](PmResult expected) {
         ++execution_index;
+        if (std::getenv("PM_TEST_TRACE") != nullptr) {
+            std::fprintf(stderr, "execution=%u label=%s begin\n",
+                execution_index, execution_label);
+            std::fflush(stderr);
+        }
         CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
         CHECK(pmQueueSubmit(queue, &submit, fence) == PM_SUCCESS);
         const auto waited = pmWaitForFences(
@@ -333,7 +364,8 @@ int main(int argc, char **argv) {
         commands, mixed_simulation, &step) == PM_SUCCESS);
     execute(PM_SUCCESS);
 
-    if (production && mixed_info.fluidCount != 0U &&
+    if (production && !couplings_only && !smoke_couplings_only &&
+        mixed_info.fluidCount != 0U &&
         mixed_info.clothCount != 0U &&
         mixed_info.paintFieldCount != 0U &&
         mixed_info.debugFrameCapacity != 0U) {
@@ -632,7 +664,7 @@ int main(int argc, char **argv) {
                 static_cast<const std::byte *>(fluid_output_map) + 512U);
         CHECK(empty_header->activeCount == 0U);
 
-        if (production) {
+        if (production && !couplings_only && !smoke_couplings_only) {
         const PmBufferView lifecycle_empty{
             {source, 384U, 0U}, PM_FORMAT_PARTICLE_STATE, 0U,
             sizeof(PmParticleState)};
@@ -1781,6 +1813,31 @@ int main(int argc, char **argv) {
             sizeof coupling_statistics, &coupling_statistics,
             sizeof coupling_statistics, PM_QUERY_RESULT_WAIT_BIT) ==
             PM_SUCCESS);
+        constexpr std::uint64_t f855_dispatch_ceiling = 512U;
+        constexpr std::uint64_t f855_workgroup_ceiling = 640U;
+        constexpr std::uint64_t f855_bytes_moved_ceiling = 65536U;
+        constexpr std::uint64_t f855_barrier_ceiling = 768U;
+        constexpr std::uint64_t f855_candidate_dispatch_ceiling = 16U;
+        constexpr std::uint64_t f855_candidate_workgroup_ceiling = 96U;
+        constexpr std::uint64_t f855_coupling_dispatch_ceiling = 288U;
+        constexpr std::uint64_t f855_coupling_workgroup_ceiling = 288U;
+        CHECK(coupling_statistics.total.dispatches <= f855_dispatch_ceiling);
+        CHECK(coupling_statistics.total.workgroups <= f855_workgroup_ceiling);
+        CHECK(coupling_statistics.total.bytesMoved <=
+              f855_bytes_moved_ceiling);
+        CHECK(coupling_statistics.total.barriers <= f855_barrier_ceiling);
+        CHECK(coupling_statistics.phases[
+            PM_REALTIME_WORK_PHASE_CANDIDATES].dispatches <=
+            f855_candidate_dispatch_ceiling);
+        CHECK(coupling_statistics.phases[
+            PM_REALTIME_WORK_PHASE_CANDIDATES].workgroups <=
+            f855_candidate_workgroup_ceiling);
+        CHECK(coupling_statistics.phases[
+            PM_REALTIME_WORK_PHASE_COUPLING].dispatches <=
+            f855_coupling_dispatch_ceiling);
+        CHECK(coupling_statistics.phases[
+            PM_REALTIME_WORK_PHASE_COUPLING].workgroups <=
+            f855_coupling_workgroup_ceiling);
         const std::uint32_t expected_particle_coupling_edges =
             device_info.enabledFeatures.liquidLiquidCoupling ? 27U : 24U;
         CHECK(coupling_statistics.couplingEdgeCount ==
@@ -1791,6 +1848,31 @@ int main(int argc, char **argv) {
         CHECK(coupling_statistics.total.spatialIndexBuilds == 1U);
         CHECK(coupling_statistics.total.spatialIndexPublications == 1U);
         CHECK(coupling_statistics.total.intraTickHostReadbacks == 0U);
+        std::printf(
+            "F8-55 particle counters: dispatches=%llu workgroups=%llu "
+            "bytes=%llu barriers=%llu candidate-dispatches=%llu "
+            "candidate-workgroups=%llu coupling-dispatches=%llu "
+            "coupling-workgroups=%llu builds=%llu publications=%llu\n",
+            static_cast<unsigned long long>(
+                coupling_statistics.total.dispatches),
+            static_cast<unsigned long long>(
+                coupling_statistics.total.workgroups),
+            static_cast<unsigned long long>(
+                coupling_statistics.total.bytesMoved),
+            static_cast<unsigned long long>(
+                coupling_statistics.total.barriers),
+            static_cast<unsigned long long>(coupling_statistics.phases[
+                PM_REALTIME_WORK_PHASE_CANDIDATES].dispatches),
+            static_cast<unsigned long long>(coupling_statistics.phases[
+                PM_REALTIME_WORK_PHASE_CANDIDATES].workgroups),
+            static_cast<unsigned long long>(coupling_statistics.phases[
+                PM_REALTIME_WORK_PHASE_COUPLING].dispatches),
+            static_cast<unsigned long long>(coupling_statistics.phases[
+                PM_REALTIME_WORK_PHASE_COUPLING].workgroups),
+            static_cast<unsigned long long>(
+                coupling_statistics.total.spatialIndexBuilds),
+            static_cast<unsigned long long>(
+                coupling_statistics.total.spatialIndexPublications));
         const auto *coupled_cloth_header =
             static_cast<const PmDomainOutputHeader *>(cloth_output_map);
         const auto *coupled_cloth =
@@ -1921,7 +2003,7 @@ int main(int argc, char **argv) {
             commands, mixed_simulation, 0U, nullptr) == PM_SUCCESS);
         execute(PM_SUCCESS);
     }
-    if (!lifecycle_only && !smoke_couplings_only &&
+    if (!lifecycle_only && !couplings_only && !smoke_couplings_only &&
         mixed_info.smokeCount != 0U) {
         PmSmokeInfo smoke{};
         smoke.active = PM_TRUE;
@@ -2048,7 +2130,7 @@ int main(int argc, char **argv) {
     }
     pmDestroySimulation(device, mixed_simulation);
 
-    if (!smoke_couplings_only && !lifecycle_only) {
+    if (!couplings_only && !smoke_couplings_only && !lifecycle_only) {
     std::array<PmRigidBodyInfo, body_count> bodies{};
     std::array<PmRigidConstraintInfo, constraint_count> constraints{};
     for (std::uint32_t index = 0U; index < body_count; ++index) {
@@ -2238,6 +2320,8 @@ int main(int argc, char **argv) {
         ? "PASS: production lifecycle uses one atomic fixed tick"
         : auxiliary_only
         ? "PASS: production auxiliary outputs share one committed tick"
+        : couplings_only
+        ? "PASS: production couplings use shared fixed-tick spatial work"
         : smoke_couplings_only
         ? "PASS: production smoke couplings use fixed atomic ticks"
         : production

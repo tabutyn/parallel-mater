@@ -9,7 +9,15 @@ void detect_fluid_rope_contacts(device::DispatchSize grid, device::DispatchSize 
     void *particle_positions, void *particle_velocities,
     const std::uint32_t *particle_count, float particle_mass,
     const void *rope_positions, const void *rope_velocities,
-    std::uint32_t rope_count, float distance, float friction,
+    std::uint32_t rope_count, const std::uint32_t *segment_generations,
+    std::uint32_t rope_owner_slot, std::uint32_t rope_owner_generation,
+    std::uint32_t rope_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
+    float distance, float friction,
     std::uint32_t *contribution_nodes, void *contribution_impulses,
     std::uint32_t *contact_count,
     float *maximum_penetration, bool transfer_impulse) noexcept {
@@ -17,8 +25,11 @@ void detect_fluid_rope_contacts(device::DispatchSize grid, device::DispatchSize 
         particle_positions, particle_velocities,
         particle_count, particle_mass,
         rope_positions,
-        rope_velocities, rope_count,
-        distance, friction, contribution_nodes, contribution_impulses,
+        rope_velocities, rope_count, segment_generations, rope_owner_slot,
+        rope_owner_generation, rope_topology_revision, spatial_metadata,
+        spatial_admission, spatial_leaf_capacity, candidate_counts,
+        candidate_sources, candidates_per_query, spatial_status, distance,
+        friction, contribution_nodes, contribution_impulses,
         contact_count, maximum_penetration, transfer_impulse);
 }
 

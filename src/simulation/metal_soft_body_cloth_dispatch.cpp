@@ -12,7 +12,18 @@ void detect_soft_body_cloth_contacts(device::DispatchSize grid, device::Dispatch
     std::uint32_t count, const void *cloth_positions,
     const void *cloth_previous, const void *cloth_velocities,
     const float *cloth_inverse_masses, const std::uint32_t *indices,
-    const void *surface, std::uint32_t triangle_count, float distance,
+    const void *surface, std::uint32_t triangle_count,
+    const std::uint32_t *triangle_generations,
+    std::uint32_t cloth_owner_slot, std::uint32_t cloth_owner_generation,
+    std::uint32_t cloth_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission, std::uint32_t leaf_capacity,
+    const std::uint32_t *query_leaf_sources,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t soft_owner_slot,
+    std::uint32_t soft_owner_generation,
+    std::uint32_t soft_topology_revision, std::uint32_t *status,
+    float distance,
     float friction, void *contacts, std::uint32_t *contact_counts) noexcept {
     (void)metal::launch(stream, "soft_cloth_detect", grid,
         positions,
@@ -24,7 +35,12 @@ void detect_soft_body_cloth_contacts(device::DispatchSize grid, device::Dispatch
         cloth_velocities,
         cloth_inverse_masses,
         indices,
-        surface, triangle_count, distance,
+        surface, triangle_count, triangle_generations, cloth_owner_slot,
+        cloth_owner_generation, cloth_topology_revision, spatial_metadata,
+        spatial_admission, leaf_capacity, query_leaf_sources,
+        candidate_counts, candidate_sources, candidates_per_query,
+        soft_owner_slot, soft_owner_generation, soft_topology_revision,
+        status, distance,
         friction, contacts, contact_counts);
 }
 

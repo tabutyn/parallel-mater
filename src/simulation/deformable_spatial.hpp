@@ -18,8 +18,14 @@ inline constexpr std::uint32_t deformable_spatial_soft_family = 5U;
 inline constexpr std::uint32_t deformable_spatial_static_family = 6U;
 inline constexpr std::uint32_t deformable_spatial_segment_primitive = 1U;
 inline constexpr std::uint32_t deformable_spatial_triangle_primitive = 2U;
+inline constexpr std::uint32_t deformable_spatial_point_primitive = 3U;
 inline constexpr std::uint32_t deformable_spatial_contact_mask = 1U << 2U;
+// Point leaves carry generation-tagged query identity. They are deliberately
+// invisible to contact queries and therefore never become narrow-phase work.
+inline constexpr std::uint32_t deformable_spatial_query_identity_mask =
+    1U << 31U;
 inline constexpr std::uint32_t smoke_spatial_obstacle_mask = 1U << 3U;
+inline constexpr std::uint32_t coupling_spatial_query_mask = 1U << 5U;
 inline constexpr std::uint32_t deformable_spatial_collision_passes = 4U;
 
 struct DeformableSpatialPlan {
@@ -130,7 +136,7 @@ deformable_spatial_work_budget(
 [[nodiscard]] inline PmResult deformable_spatial_primitive_envelope(
     std::span<const DeformableSpatialPointMotion> vertices, float thickness,
     float epsilon, SpatialAabb &output) noexcept {
-    if ((vertices.size() != 2U && vertices.size() != 3U) ||
+    if ((vertices.size() < 1U || vertices.size() > 3U) ||
         !std::isfinite(thickness) || thickness < 0.0F ||
         !std::isfinite(epsilon) || epsilon <= 0.0F)
         return PM_ERROR_INVALID_ARGUMENT;

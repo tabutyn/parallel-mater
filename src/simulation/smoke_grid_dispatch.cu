@@ -536,13 +536,16 @@ void apply_smoke_grid_force_to_cloth(
 }
 
 void apply_smoke_grid_force_to_rigid_body(
-    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *mesh,
-    std::uint32_t body, const void *body_parameters, void *body_states,
+    device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *meshes,
+    std::uint32_t mesh_index, std::uint32_t body_index,
+    const void *body_parameters, void *body_states,
     const SmokeGridDispatchField &field, float air_density,
     float drag_coefficient, float density_scale, float kinematic_viscosity,
     float les_coefficient, float timestep) noexcept {
     smoke_grid_rigid_force<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
-        *as<TriangleMeshResource_0>(mesh), body,
+        const_cast<TriangleMeshResource_0 *>(
+            as<TriangleMeshResource_0>(meshes)),
+        mesh_index, body_index,
         const_cast<BodyParameters_0 *>(as<BodyParameters_0>(body_parameters)),
         as<RigidBodyState_0>(body_states), grid_field(field), air_density,
         drag_coefficient, density_scale, kinematic_viscosity,

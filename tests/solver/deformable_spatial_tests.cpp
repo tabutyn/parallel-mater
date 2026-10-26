@@ -168,6 +168,87 @@ void test_motion_envelope_completeness() {
           PM_ERROR_INVALID_ARGUMENT);
 }
 
+void test_point_triangle_candidate_oracle() {
+    std::mt19937 random(0xf855U);
+    std::uniform_real_distribution<float> position(-2.0F, 2.0F);
+    std::uniform_real_distribution<float> movement(-0.6F, 0.6F);
+    std::uniform_real_distribution<float> allowance(0.0F, 0.12F);
+    std::uniform_real_distribution<float> unit(0.0F, 1.0F);
+    constexpr float point_radius = 0.035F;
+    constexpr float triangle_radius = 0.012F;
+    std::uint64_t brute_overlaps{};
+    for (std::uint32_t trial = 0U; trial < 256U; ++trial) {
+        std::array<DeformableSpatialPointMotion, 1> point{};
+        std::array<DeformableSpatialPointMotion, 3> triangle{};
+        for (auto *motion : {&point[0], &triangle[0], &triangle[1],
+                             &triangle[2]}) {
+            for (std::uint32_t axis = 0U; axis < 3U; ++axis) {
+                motion->previous[axis] = position(random);
+                motion->predicted[axis] =
+                    motion->previous[axis] + movement(random);
+                motion->path_deviation[axis] = allowance(random);
+                motion->correction_budget[axis] = allowance(random);
+            }
+        }
+        SpatialAabb point_envelope{}, triangle_envelope{};
+        CHECK(deformable_spatial_primitive_envelope(
+                  point, point_radius, 1.0e-5F, point_envelope) ==
+              PM_SUCCESS);
+        CHECK(deformable_spatial_primitive_envelope(
+                  triangle, triangle_radius, 1.0e-5F,
+                  triangle_envelope) == PM_SUCCESS);
+        const bool candidate =
+            spatial_overlaps(point_envelope, triangle_envelope);
+        for (std::uint32_t sample = 0U; sample < 32U; ++sample) {
+            const float fraction = unit(random);
+            std::array<float, 3> current_point{};
+            std::array<std::array<float, 3>, 3> current_triangle{};
+            for (std::uint32_t axis = 0U; axis < 3U; ++axis) {
+                const float point_reach = point[0].path_deviation[axis] +
+                    point[0].correction_budget[axis];
+                current_point[axis] = point[0].previous[axis] + fraction *
+                    (point[0].predicted[axis] - point[0].previous[axis]) +
+                    (2.0F * unit(random) - 1.0F) * point_reach;
+                for (std::uint32_t corner = 0U; corner < 3U; ++corner) {
+                    const auto &motion = triangle[corner];
+                    const float reach = motion.path_deviation[axis] +
+                        motion.correction_budget[axis];
+                    current_triangle[corner][axis] =
+                        motion.previous[axis] + fraction *
+                            (motion.predicted[axis] - motion.previous[axis]) +
+                        (2.0F * unit(random) - 1.0F) * reach;
+                }
+            }
+            const std::array<std::array<float, 3>, 1> point_span{
+                current_point};
+            const auto point_bounds = exact_bounds(
+                point_span, point_radius);
+            const auto triangle_bounds = exact_bounds(
+                current_triangle, triangle_radius);
+            if (!spatial_overlaps(point_bounds, triangle_bounds)) continue;
+            ++brute_overlaps;
+            // Any brute-force overlap at any sampled time/correction state
+            // must be present in the once-per-tick broad-phase candidates.
+            CHECK(candidate);
+        }
+    }
+    CHECK(brute_overlaps != 0U);
+
+    SpatialLeafMetadata point_identity{};
+    point_identity.identity = {deformable_spatial_soft_family, 2U, 7U, 9U,
+        deformable_spatial_point_primitive, 4U, 7U};
+    point_identity.query_mask = deformable_spatial_query_identity_mask;
+    point_identity.admission_mask =
+        deformable_spatial_query_identity_mask;
+    point_identity.flags = spatial_leaf_retained;
+    CHECK(spatial_identity_valid(point_identity.identity));
+    CHECK(point_identity.query_mask == point_identity.admission_mask);
+    CHECK((point_identity.query_mask & deformable_spatial_contact_mask) == 0U);
+    auto stale = point_identity.identity;
+    ++stale.owner_generation;
+    CHECK(stale != point_identity.identity);
+}
+
 bool share_vertex(std::span<const std::uint32_t> left,
                   std::span<const std::uint32_t> right) {
     for (const auto a : left)
@@ -247,6 +328,7 @@ void test_one_epoch_for_all_consumers() {
 int main() {
     test_plan_and_budget();
     test_motion_envelope_completeness();
+    test_point_triangle_candidate_oracle();
     test_identities_exclusions_and_static_geometry();
     test_one_epoch_for_all_consumers();
     if (failures == 0)

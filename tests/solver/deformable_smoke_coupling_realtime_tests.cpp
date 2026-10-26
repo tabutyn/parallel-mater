@@ -135,6 +135,19 @@ void test_bounded_work() {
         CHECK(budget.operators[index].constraint_visits == 4U);
     }
 
+    auto multi_endpoint = registrations;
+    multi_endpoint[1].constraint_count = 2U;
+    multi_endpoint[6].constraint_count = 2U;
+    multi_endpoint[7].constraint_count = 2U;
+    DeformableSmokeCouplingWorkBudget multi_endpoint_budget{};
+    CHECK(make_deformable_smoke_coupling_work_budget(
+        multi_endpoint, 6144U, 6144U, multi_endpoint_budget) == PM_SUCCESS);
+    CHECK(multi_endpoint_budget.constraint_count == 19U);
+    CHECK(multi_endpoint_budget.batched_dispatches == 12U);
+    CHECK(multi_endpoint_budget.batched_dispatches <
+        3U * multi_endpoint_budget.constraint_count *
+            deformable_smoke_coupling_sweeps);
+
     std::array<DeformableSmokeCouplingRegistration, 65> too_many{};
     too_many.fill(registrations.front());
     CHECK(make_deformable_smoke_coupling_work_budget(

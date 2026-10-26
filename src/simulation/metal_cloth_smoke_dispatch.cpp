@@ -34,7 +34,15 @@ void collide_smoke_with_cloth(
     const SmokeDispatchOptions &smoke, const void *cloth_positions,
     const void *cloth_velocities, const std::uint32_t *cloth_indices,
     std::uint32_t index_count, const void *minimum, const void *maximum,
-    float clearance, const SmokeGridDispatchField &smoke_grid) noexcept {
+    float clearance, const std::uint32_t *triangle_generations,
+    std::uint32_t cloth_owner_slot, std::uint32_t cloth_owner_generation,
+    std::uint32_t cloth_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
+    const SmokeGridDispatchField &smoke_grid) noexcept {
     (void)metal::launch(stream, "smoke_cloth_contact", grid,
         positions,
         previous_positions,
@@ -45,6 +53,10 @@ void collide_smoke_with_cloth(
         cloth_indices, index_count,
         minimum,
         maximum, clearance,
+        triangle_generations, cloth_owner_slot, cloth_owner_generation,
+        cloth_topology_revision, spatial_metadata, spatial_admission,
+        spatial_leaf_capacity, candidate_counts, candidate_sources,
+        candidates_per_query, spatial_status,
         smoke.pressure_stiffness, smoke.maximum_speed, metal::grid_record(smoke_grid));
 }
 

@@ -35,8 +35,15 @@ void detect_fluid_soft_contacts(
     const void *previous_surface, const std::uint32_t *surface_indices,
     std::uint32_t surface_index_count, const void *surface_bindings,
     const void *soft_velocities, float orientation, float distance,
-    const void *bounds, bool sweep, const void *tree,
-    const std::uint32_t *triangle_order, void *contacts,
+    bool sweep, const std::uint32_t *triangle_generations,
+    std::uint32_t soft_owner_slot, std::uint32_t soft_owner_generation,
+    std::uint32_t soft_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
+    void *contacts,
     std::uint32_t *node_contact_counts, std::uint32_t *contact_count,
     float *maximum_penetration) noexcept {
     fluid_soft_detect<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
@@ -50,9 +57,14 @@ void detect_fluid_soft_contacts(
         const_cast<SoftBodySurfaceBinding_0 *>(
             as<SoftBodySurfaceBinding_0>(surface_bindings)),
         const_cast<Vec3_0 *>(as<Vec3_0>(soft_velocities)), orientation,
-        distance, const_cast<Vec3_0 *>(as<Vec3_0>(bounds)), sweep,
-        const_cast<BvhNode_0 *>(as<BvhNode_0>(tree)),
-        const_cast<std::uint32_t *>(triangle_order),
+        distance, sweep, const_cast<std::uint32_t *>(triangle_generations),
+        soft_owner_slot, soft_owner_generation, soft_topology_revision,
+        const_cast<CouplingSpatialLeafMetadata_0 *>(
+            as<CouplingSpatialLeafMetadata_0>(spatial_metadata)),
+        const_cast<std::uint8_t *>(spatial_admission), spatial_leaf_capacity,
+        const_cast<std::uint32_t *>(candidate_counts),
+        const_cast<std::uint32_t *>(candidate_sources), candidates_per_query,
+        spatial_status,
         as<FluidSoftContact_0>(contacts), node_contact_counts, contact_count,
         maximum_penetration);
 }
@@ -95,17 +107,31 @@ void recover_fluid_soft_contacts(
     const void *previous, const std::uint32_t *particle_count,
     const void *surface, const void *previous_surface,
     const std::uint32_t *surface_indices, std::uint32_t surface_index_count,
-    float orientation, float distance, const void *bounds, bool sweep,
-    const void *tree, const std::uint32_t *triangle_order) noexcept {
+    float orientation, float distance, bool sweep,
+    const std::uint32_t *triangle_generations,
+    std::uint32_t soft_owner_slot, std::uint32_t soft_owner_generation,
+    std::uint32_t soft_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query,
+    std::uint32_t *spatial_status) noexcept {
     fluid_soft_recover<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         as<Vec3_0>(positions), const_cast<Vec3_0 *>(as<Vec3_0>(previous)),
         const_cast<std::uint32_t *>(particle_count),
         const_cast<Vec3_0 *>(as<Vec3_0>(surface)),
         const_cast<Vec3_0 *>(as<Vec3_0>(previous_surface)),
         const_cast<std::uint32_t *>(surface_indices), surface_index_count,
-        orientation, distance, const_cast<Vec3_0 *>(as<Vec3_0>(bounds)),
-        sweep, const_cast<BvhNode_0 *>(as<BvhNode_0>(tree)),
-        const_cast<std::uint32_t *>(triangle_order));
+        orientation, distance, sweep,
+        const_cast<std::uint32_t *>(triangle_generations), soft_owner_slot,
+        soft_owner_generation, soft_topology_revision,
+        const_cast<CouplingSpatialLeafMetadata_0 *>(
+            as<CouplingSpatialLeafMetadata_0>(spatial_metadata)),
+        const_cast<std::uint8_t *>(spatial_admission), spatial_leaf_capacity,
+        const_cast<std::uint32_t *>(candidate_counts),
+        const_cast<std::uint32_t *>(candidate_sources), candidates_per_query,
+        spatial_status);
 }
 
 } // namespace parallel_mater::simulation

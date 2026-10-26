@@ -1,4 +1,5 @@
 #include "dispatch_entry.slang"
+#include "coupling_spatial.slangh"
 // SPDX-License-Identifier: MIT
 // Shared fluid/rope coupling kernels.
 
@@ -13,7 +14,15 @@ void fluid_rope_contacts(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<uint> particle_count, uniform float particle_mass,
     uniform PMBuffer<Vec3> rope_positions, uniform PMBuffer<Vec3> rope_velocities,
-    uniform uint rope_count, uniform float distance, uniform float friction,
+    uniform uint rope_count, uniform PMBuffer<uint> segment_generations,
+    uniform uint rope_owner_slot, uniform uint rope_owner_generation,
+    uniform uint rope_topology_revision,
+    uniform PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint spatial_leaf_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query, uniform PMBuffer<uint> spatial_status,
+    uniform float distance, uniform float friction,
     uniform PMBuffer<uint> contribution_nodes,
     uniform PMBuffer<Vec3> contribution_impulses,
     uniform PMBuffer<uint> contact_count,
@@ -32,8 +41,36 @@ void fluid_rope_contacts(
     uint segment = rope_count;
     float fraction = 0.0f;
     Vec3 closest = {};
-    for (uint i = 0u; i + 1u < rope_count; ++i)
+    uint candidateCount = candidate_counts[particle];
+    if (candidateCount > candidates_per_query)
     {
+        pmAtomicOr(spatial_status, kCouplingSpatialQueryOverflow);
+        return;
+    }
+    uint candidateBase = particle * candidates_per_query;
+    for (uint candidateIndex = 0u;
+         candidateIndex < candidateCount; ++candidateIndex)
+    {
+        uint source = candidate_sources[candidateBase + candidateIndex];
+        if (source >= spatial_leaf_capacity || spatial_admission[source] == 0u)
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialAdmissionInvalid);
+            return;
+        }
+        CouplingSpatialLeafMetadata leaf = spatial_metadata[source];
+        if (leaf.identity.family != kCouplingSpatialRopeFamily ||
+            leaf.identity.owner_slot != rope_owner_slot ||
+            leaf.identity.owner_generation != rope_owner_generation ||
+            leaf.identity.topology_revision != rope_topology_revision ||
+            leaf.identity.primitive_kind != kCouplingSpatialSegmentPrimitive)
+            continue;
+        uint i = leaf.payload_ref;
+        if (i + 1u >= rope_count || leaf.identity.primitive_slot != i ||
+            leaf.identity.primitive_generation != segment_generations[i])
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialStaleEpoch);
+            return;
+        }
         Vec3 a = rope_positions[i];
         Vec3 b = rope_positions[i + 1u];
         if (position.x < min(a.x, b.x) - distance ||

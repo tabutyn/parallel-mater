@@ -351,6 +351,151 @@ for shader in sorted((ROOT / "src" / "slang").rglob("*.slang")):
             failures.append(
                 f"{shader.relative_to(ROOT)}: native launch intrinsic {intrinsic}")
 
+# F8-55 negative controls: the production soft/cloth detector must consume the
+# once-published candidate list, and known attachment endpoints must enter the
+# generic coupling kernels as batches rather than one host sequence per record.
+soft_cloth = (ROOT / "src" / "slang" / "soft_body_cloth.slang").read_text(
+    encoding="utf-8"
+)
+if re.search(
+    r"for\s*\(\s*uint\s+triangle\s*=\s*0u\s*;\s*"
+    r"triangle\s*<\s*triangle_count",
+    soft_cloth,
+):
+    failures.append(
+        "src/slang/soft_body_cloth.slang: unconditional full-triangle "
+        "production search returned"
+    )
+for required in (
+    "candidate_counts",
+    "candidate_sources",
+    "SoftClothSpatialLeafMetadata",
+    "triangle_generations",
+    "kSoftClothSpatialStaleEpoch",
+):
+    if required not in soft_cloth:
+        failures.append(
+            "src/slang/soft_body_cloth.slang: missing shared-candidate "
+            f"contract {required}"
+        )
+production_backend = (
+    ROOT / "src" / "simulation" / "production_realtime_backend.cu.inc"
+).read_text(encoding="utf-8")
+for retired_per_record in (
+    "solve_rigid_rope_attachment(",
+    "solve_deformable_pair(",
+    "solve_soft_rope_pair(",
+):
+    if retired_per_record in production_backend:
+        failures.append(
+            "src/simulation/production_realtime_backend.cu.inc: "
+            f"per-record attachment helper returned ({retired_per_record})"
+        )
+for required_batch in (
+    "solve_rigid_rope_attachments(",
+    "solve_deformable_pairs(",
+    "solve_soft_rope_pairs(",
+):
+    if required_batch not in production_backend:
+        failures.append(
+            "src/simulation/production_realtime_backend.cu.inc: "
+            f"missing attachment batch helper {required_batch}"
+        )
+
+def shader_entry(path: str, entry: str) -> str:
+    source = (ROOT / path).read_text(encoding="utf-8")
+    start = source.find(f"void {entry}(")
+    if start < 0:
+        failures.append(f"{path}: missing shader entry {entry}")
+        return ""
+    end = source.find('[shader("compute")]', start + len(entry) + 5)
+    return source[start:] if end < 0 else source[start:end]
+
+
+# Every production contact search that formerly scanned all target primitives
+# or built a second body broad phase must consume the common-epoch candidates.
+candidate_entries = {
+    "src/slang/geometry_soft_body.slang": ("deformable_collide", "bodyIndex < body_count"),
+    "src/slang/geometry_cloth.slang": ("cloth_constrain_bodies", "triangle < triangle_count"),
+    "src/slang/fluid_cloth.slang": ("fluid_cloth_containment_forces", "triangle < triangle_count"),
+    "src/slang/fluid_rope.slang": ("fluid_rope_contacts", "segment + 1u < rope_count"),
+    "src/slang/cloth_smoke.slang": ("smoke_cloth_contact", "triangle < index_count / 3u"),
+    "src/slang/soft_body_smoke.slang": ("smoke_soft_body_contact", "triangle < index_count / 3u"),
+    "src/slang/rope_smoke.slang": ("smoke_rope_contact", "segment + 1u < rope_count"),
+    "src/slang/geometry_fluid.slang": ("fluid_detect_moving_contacts", "word < words"),
+    "src/slang/geometry_smoke.slang": ("smoke_rigid_contact", "bodyIndex < body_count"),
+}
+for path, (entry, retired_scan) in candidate_entries.items():
+    body = shader_entry(path, entry)
+    for required in (
+        "candidate_counts", "candidate_sources", "spatial_metadata",
+        "spatial_admission", "candidates_per_query", "spatial_status",
+    ):
+        if required not in body:
+            failures.append(f"{path}:{entry}: missing shared candidate {required}")
+    if retired_scan in body:
+        failures.append(f"{path}:{entry}: exhaustive scan returned ({retired_scan})")
+
+fluid_soft = shader_entry("src/slang/fluid_soft_body.slang", "fluid_soft_detect")
+for required in ("fluid_soft_nearest_shared", "candidate_counts", "candidate_sources"):
+    if required not in fluid_soft:
+        failures.append(
+            f"src/slang/fluid_soft_body.slang:fluid_soft_detect: missing {required}"
+        )
+
+# Vulkan and D3D12 translate mesh tables from the reflected body-index bound.
+# Keep this name explicit so smoke-grid rigid force cannot regress to an
+# unbounded host mesh translation.
+smoke_grid_rigid = shader_entry(
+    "src/slang/smoke_grid.slang", "smoke_grid_rigid_force")
+for required in ("uniform uint body_index", "PMBuffer<BodyParameters> parameters"):
+    if required not in smoke_grid_rigid:
+        failures.append(
+            "src/slang/smoke_grid.slang:smoke_grid_rigid_force: missing "
+            f"translated mesh bound {required}"
+        )
+smoke_grid_dispatch = (ROOT / "src/simulation/smoke_grid_dispatch.cu").read_text(
+    encoding="utf-8")
+if "std::uint32_t mesh_index, std::uint32_t body_index" not in smoke_grid_dispatch:
+    failures.append(
+        "src/simulation/smoke_grid_dispatch.cu: smoke-grid rigid wrapper "
+        "does not expose the translated body_index mesh bound"
+    )
+
+# The optional Slang/CPU liquid path includes this handwritten adapter. Keep it
+# synchronized with the generated shared-BVH entry-point ABI used by Android.
+cpu_geometry_fluid = (
+    ROOT / "src/simulation/cpu_geometry_fluid_dispatch.cpp"
+).read_text(encoding="utf-8")
+for required in (
+    "const void *current_states, const void *meshes, const void *body_ids",
+    "std::uint32_t body_count, std::uint32_t body_topology_revision",
+    "args.spatial_metadata_0",
+    "args.candidate_sources_0",
+    "args.spatial_status_0",
+):
+    if required not in cpu_geometry_fluid:
+        failures.append(
+            "src/simulation/cpu_geometry_fluid_dispatch.cpp: fluid moving "
+            f"contact wrapper missing shared-BVH ABI contract {required}"
+        )
+
+for retired_production_call in (
+    "calculate_fluid_body_bounds(",
+    "index_fluid_body_cells(",
+    "refit_fluid_soft_surface(",
+):
+    if retired_production_call in production_backend:
+        failures.append(
+            "src/simulation/production_realtime_backend.cu.inc: second "
+            f"production broad phase returned ({retired_production_call})"
+        )
+if production_backend.count("build_spatial_index_device(") != 1:
+    failures.append(
+        "src/simulation/production_realtime_backend.cu.inc: expected exactly "
+        "one shared spatial build call"
+    )
+
 migrated_launches = {
     "cloth_project_volume", "cloth_break_bonds", "cloth_limit_strain",
     "cloth_update_surface", "rope_cloth_sample_anchor",

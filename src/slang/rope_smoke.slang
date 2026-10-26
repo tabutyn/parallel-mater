@@ -1,5 +1,6 @@
 #include "dispatch_entry.slang"
 #include "dispatch_shape.slangh"
+#include "coupling_spatial.slangh"
 // SPDX-License-Identifier: MIT
 // Shared rope/smoke coupling kernels.
 
@@ -47,7 +48,16 @@ void smoke_rope_contact(
     uniform float lifetime, uniform PMBuffer<Vec3> rope_positions,
     uniform PMBuffer<Vec3> rope_velocities, uniform uint rope_count,
     uniform PMBuffer<Vec3> minimum,
-    uniform PMBuffer<Vec3> maximum, uniform float clearance PM_D3D12_DISPATCH_PARAMETER)
+    uniform PMBuffer<Vec3> maximum, uniform float clearance,
+    uniform PMBuffer<uint> segment_generations,
+    uniform uint rope_owner_slot, uniform uint rope_owner_generation,
+    uniform uint rope_topology_revision,
+    uniform PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint spatial_leaf_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query,
+    uniform PMBuffer<uint> spatial_status PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
@@ -69,8 +79,37 @@ void smoke_rope_contact(
     Vec3 ropeHit = {};
     Vec3 path = subtract(point, before);
     float pathSquared = length_squared(path);
-    for (uint index = 0u; index + 1u < rope_count; ++index)
+    uint candidateCount = candidate_counts[particle];
+    if (candidateCount > candidates_per_query)
     {
+        pmAtomicOr(spatial_status, kCouplingSpatialQueryOverflow);
+        return;
+    }
+    uint candidateBase = particle * candidates_per_query;
+    for (uint candidateIndex = 0u;
+         candidateIndex < candidateCount; ++candidateIndex)
+    {
+        uint source = candidate_sources[candidateBase + candidateIndex];
+        if (source >= spatial_leaf_capacity || spatial_admission[source] == 0u)
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialAdmissionInvalid);
+            return;
+        }
+        CouplingSpatialLeafMetadata leaf = spatial_metadata[source];
+        if (leaf.identity.family != kCouplingSpatialRopeFamily ||
+            leaf.identity.owner_slot != rope_owner_slot ||
+            leaf.identity.owner_generation != rope_owner_generation ||
+            leaf.identity.topology_revision != rope_topology_revision ||
+            leaf.identity.primitive_kind != kCouplingSpatialSegmentPrimitive)
+            continue;
+        uint index = leaf.payload_ref;
+        if (index + 1u >= rope_count ||
+            leaf.identity.primitive_slot != index ||
+            leaf.identity.primitive_generation != segment_generations[index])
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialStaleEpoch);
+            return;
+        }
         Vec3 a = rope_positions[index];
         Vec3 b = rope_positions[index + 1u];
         if (max(point.x, before.x) < min(a.x, b.x) - clearance ||

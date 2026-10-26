@@ -1,4 +1,5 @@
 #include "dispatch_entry.slang"
+#include "coupling_spatial.slangh"
 // SPDX-License-Identifier: MIT
 // Shared fluid/soft-body coupling kernels.
 
@@ -180,6 +181,139 @@ public FluidSoftNearest fluid_soft_nearest(
     return result;
 }
 
+bool fluid_soft_inside_shared(
+    Vec3 point, PMBuffer<Vec3> surface, PMBuffer<uint> indices,
+    uint index_count)
+{
+    // Only used after a shared candidate produced a near boundary hit.  The
+    // solid-angle fallback classifies containment without rebuilding a
+    // private per-coupling BVH in every solve sweep.
+    float angle = 0.0f;
+    for (uint base = 0u; base < index_count; base += 3u)
+    {
+        Vec3 a = subtract(surface[indices[base]], point);
+        Vec3 b = subtract(surface[indices[base + 1u]], point);
+        Vec3 c = subtract(surface[indices[base + 2u]], point);
+        float la = vector_length(a), lb = vector_length(b), lc = vector_length(c);
+        angle += 2.0f * atan2(dot(a, cross(b, c)),
+            la * lb * lc + dot(a, b) * lc + dot(b, c) * la +
+            dot(c, a) * lb);
+    }
+    return abs(angle) > 6.2831853f;
+}
+
+FluidSoftNearest fluid_soft_nearest_shared(
+    Vec3 point, Vec3 start, PMBuffer<Vec3> surface, PMBuffer<Vec3> previous,
+    PMBuffer<uint> indices, uint index_count, float orientation,
+    float distance, bool sweep, PMBuffer<uint> triangle_generations,
+    uint soft_owner_slot, uint soft_owner_generation,
+    uint soft_topology_revision,
+    PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    PMByteBuffer spatial_admission, uint spatial_leaf_capacity,
+    PMBuffer<uint> candidate_counts, PMBuffer<uint> candidate_sources,
+    uint candidates_per_query, uint query, PMBuffer<uint> spatial_status)
+{
+    FluidSoftNearest result = {};
+    result.triangle = kInvalidDense;
+    float best = 3.402823466e38f, earliest = 2.0f;
+    uint candidateCount = candidate_counts[query];
+    if (candidateCount > candidates_per_query)
+    {
+        pmAtomicOr(spatial_status, kCouplingSpatialQueryOverflow);
+        return result;
+    }
+    uint candidateBase = query * candidates_per_query;
+    for (uint candidateIndex = 0u;
+         candidateIndex < candidateCount; ++candidateIndex)
+    {
+        uint source = candidate_sources[candidateBase + candidateIndex];
+        if (source >= spatial_leaf_capacity || spatial_admission[source] == 0u)
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialAdmissionInvalid);
+            return result;
+        }
+        CouplingSpatialLeafMetadata leaf = spatial_metadata[source];
+        if (leaf.identity.family != kCouplingSpatialSoftFamily ||
+            leaf.identity.owner_slot != soft_owner_slot ||
+            leaf.identity.owner_generation != soft_owner_generation ||
+            leaf.identity.topology_revision != soft_topology_revision ||
+            leaf.identity.primitive_kind != kCouplingSpatialTrianglePrimitive)
+            continue;
+        uint triangle = leaf.payload_ref;
+        if (triangle >= index_count / 3u ||
+            leaf.identity.primitive_slot != triangle ||
+            leaf.identity.primitive_generation !=
+                triangle_generations[triangle])
+        {
+            pmAtomicOr(spatial_status, kCouplingSpatialStaleEpoch);
+            return result;
+        }
+        uint base = triangle * 3u;
+        Vec3 a = surface[indices[base]];
+        Vec3 b = surface[indices[base + 1u]];
+        Vec3 c = surface[indices[base + 2u]];
+        Vec3 crossNormal = cross(subtract(b, a), subtract(c, a));
+        if (length_squared(crossNormal) < 1.0e-16f) continue;
+        Vec3 normal = multiply(normalized_or(crossNormal, {}), orientation);
+        Vec3 weights = {};
+        Vec3 nearest = fluid_closest_triangle_barycentric(
+            point, a, b, c, weights);
+        float squared = length_squared(subtract(point, nearest));
+        if (earliest > 1.0f && squared < best)
+        {
+            best = squared;
+            result = {base, nearest, normal, weights,
+                distance - dot(subtract(point, nearest), normal)};
+        }
+        if (!sweep) continue;
+        Vec3 oldNear = add(multiply(previous[indices[base]], weights.x),
+            add(multiply(previous[indices[base + 1u]], weights.y),
+                multiply(previous[indices[base + 2u]], weights.z)));
+        Vec3 transportedStart = add(start, subtract(nearest, oldNear));
+        float first = dot(subtract(transportedStart, a), normal);
+        float last = dot(subtract(point, a), normal);
+        if (first < distance || last >= distance ||
+            first - last < 1.0e-8f) continue;
+        float time = (first - distance) / (first - last);
+        if (time >= earliest) continue;
+        Vec3 crossing = subtract(add(transportedStart,
+            multiply(subtract(point, transportedStart), time)),
+            multiply(normal, distance));
+        Vec3 hitWeights = {};
+        Vec3 hit = fluid_closest_triangle_barycentric(
+            crossing, a, b, c, hitWeights);
+        if (length_squared(subtract(crossing, hit)) > 1.0e-8f) continue;
+        earliest = time;
+        result = {base, hit, normal, hitWeights, distance - last};
+    }
+    if (result.triangle == kInvalidDense) return result;
+    if (earliest > 1.0f)
+    {
+        float radius = sqrt(best);
+        bool faceInterior = result.weights.x > 1.0e-4f &&
+            result.weights.y > 1.0e-4f && result.weights.z > 1.0e-4f;
+        bool inside = faceInterior
+            ? dot(subtract(point, result.point), result.normal) < 0.0f
+            : fluid_soft_inside_shared(point, surface, indices, index_count);
+        if (!inside)
+        {
+            result.penetration = distance - radius;
+            if (radius > 1.0e-7f)
+                result.normal = multiply(
+                    subtract(point, result.point), 1.0f / radius);
+        }
+        else
+        {
+            result.penetration = distance + radius;
+            if (radius > 1.0e-7f)
+                result.normal = multiply(
+                    subtract(result.point, point), 1.0f / radius);
+        }
+    }
+    if (result.penetration <= 0.0f) result.triangle = kInvalidDense;
+    return result;
+}
+
 [shader("compute")]
 [numthreads(128, 1, 1)]
 void fluid_soft_refit(
@@ -228,8 +362,15 @@ void fluid_soft_detect(
     uniform PMBuffer<Vec3> old_surface, uniform PMBuffer<uint> indices,
     uniform uint index_count, uniform PMBuffer<SoftBodySurfaceBinding> bindings,
     uniform PMBuffer<Vec3> soft_velocities, uniform float orientation,
-    uniform float distance, uniform PMBuffer<Vec3> bounds, uniform bool sweep,
-    uniform PMBuffer<BvhNode> tree, uniform PMBuffer<uint> order,
+    uniform float distance, uniform bool sweep,
+    uniform PMBuffer<uint> triangle_generations,
+    uniform uint soft_owner_slot, uniform uint soft_owner_generation,
+    uniform uint soft_topology_revision,
+    uniform PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint spatial_leaf_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query, uniform PMBuffer<uint> spatial_status,
     uniform PMBuffer<FluidSoftContact> contacts, uniform PMBuffer<uint> counts,
     uniform PMBuffer<uint> contact_count, uniform PMBuffer<float> maximum_penetration PM_D3D12_DISPATCH_PARAMETER)
 {
@@ -237,9 +378,12 @@ void fluid_soft_detect(
     uint particle = pmThreadIndex();
     if (particle >= *count) return;
     FluidSoftContact contact = {};
-    FluidSoftNearest hit = fluid_soft_nearest(positions[particle],
+    FluidSoftNearest hit = fluid_soft_nearest_shared(positions[particle],
         previous[particle], surface, old_surface, indices, index_count,
-        orientation, distance, bounds, sweep, tree, order);
+        orientation, distance, sweep, triangle_generations, soft_owner_slot,
+        soft_owner_generation, soft_topology_revision, spatial_metadata,
+        spatial_admission, spatial_leaf_capacity, candidate_counts,
+        candidate_sources, candidates_per_query, particle, spatial_status);
     if (hit.triangle != kInvalidDense)
     {
         float barycentric[3] = {hit.weights.x, hit.weights.y, hit.weights.z};
@@ -367,15 +511,26 @@ void fluid_soft_recover(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> previous, uniform PMBuffer<uint> count,
     uniform PMBuffer<Vec3> surface, uniform PMBuffer<Vec3> old_surface,
     uniform PMBuffer<uint> indices, uniform uint index_count, uniform float orientation,
-    uniform float distance, uniform PMBuffer<Vec3> bounds, uniform bool sweep,
-    uniform PMBuffer<BvhNode> tree, uniform PMBuffer<uint> order PM_D3D12_DISPATCH_PARAMETER)
+    uniform float distance, uniform bool sweep,
+    uniform PMBuffer<uint> triangle_generations,
+    uniform uint soft_owner_slot, uniform uint soft_owner_generation,
+    uniform uint soft_topology_revision,
+    uniform PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint spatial_leaf_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query,
+    uniform PMBuffer<uint> spatial_status PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
     uint particle = pmThreadIndex();
     if (particle >= *count) return;
-    FluidSoftNearest hit = fluid_soft_nearest(positions[particle],
+    FluidSoftNearest hit = fluid_soft_nearest_shared(positions[particle],
         previous[particle], surface, old_surface, indices, index_count,
-        orientation, distance, bounds, sweep, tree, order);
+        orientation, distance, sweep, triangle_generations, soft_owner_slot,
+        soft_owner_generation, soft_topology_revision, spatial_metadata,
+        spatial_admission, spatial_leaf_capacity, candidate_counts,
+        candidate_sources, candidates_per_query, particle, spatial_status);
     if (hit.triangle != kInvalidDense)
         positions[particle] = add(positions[particle],
             multiply(hit.normal, hit.penetration));
