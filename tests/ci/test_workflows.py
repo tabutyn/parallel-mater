@@ -82,7 +82,12 @@ class WorkflowTests(unittest.TestCase):
         self.assertTrue(any('discover -s tests/roadmap' in s.get('run', '') for s in steps))
 
     def test_full_platform_suite_contents_are_retained(self):
-        self.assertEqual(len(workflow('shader-portability.yml')['jobs']['compile']['strategy']['matrix']['include']), 3)
+        shader_job = workflow('shader-portability.yml')['jobs']['compile']
+        self.assertEqual(len(shader_job['strategy']['matrix']['include']), 3)
+        validation = next(
+            step for step in shader_job['steps']
+            if step.get('name') == 'Validate reflection and host contracts')
+        self.assertIn('slang-d3d12-realtime-tests', validation['run'])
         self.assertEqual(set(workflow('sdk-install.yml')['jobs']), {'sdk', 'sdk-macos', 'sdk-windows'})
         self.assertEqual(set(workflow('mobile-gallery.yml')['jobs']), {'ipad', 'android', 'android-ui'})
         self.assertEqual(len(workflow('gallery-frame-timing.yml')['jobs']['portable-timing']['strategy']['matrix']['os']), 3)
