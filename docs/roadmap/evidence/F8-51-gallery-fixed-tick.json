@@ -1,0 +1,94 @@
+{
+  "schema": "parallel-mater-f8-gallery-fixed-tick-evidence/v1",
+  "task": "F8-51",
+  "status": "passed-with-platform-execution-limits",
+  "recorded_at": "2026-10-26",
+  "branch": "work/F8-51/thomas-laptop-pixel7",
+  "lease_token": "dbfca484-3f4c-4ee8-a3e4-7dc7d49af17a",
+  "base_revision": "9cd97200fd9d0bfda93306571744fc1e0cdc0680",
+  "implementation_revision": "1eef2cf53da4448ebeb63c1bfeef838adff77c32",
+  "implementation": {
+    "single_gallery_path": "Desktop, Android and iPad shells now create scenes through the shared GallerySession fixed-tick path. Gallery workload/profile selection and the legacy/F8 clock switch were removed; the runtime reports fixed-tick-60hz-v1.",
+    "fixed_tick_policy": "Interactive callbacks submit at most one 1/60-second, one-substep tick. Excess elapsed work and stalls are discarded instead of caught up; 30 Hz is reported as half-speed, and 90/120/144 Hz renders interpolate between ticks.",
+    "lifecycle": "Pause, reset, scene replacement, background and foreground reset elapsed debt. Scripted and qualification stepping use explicit fixed ticks without wall-clock throttling.",
+    "presentation": "The iPad shell no longer requests 30 FPS. Its display link prefers 60 Hz where supported, while preserving the display maximum and an explicit 30 Hz lower range.",
+    "scene_migration": "All 26 scenes supported by the sole runtime receive fixed-tick-safe material, coupling and pressure parameters. Cloth fracture remains an explicit unavailable capability for cloth-tear and soft-body-cloth, with no fallback.",
+    "artifact_identity": "Desktop and mobile runtime state, qualification reports and deployment checks bind the source revision, backend, execution contract and clean/dirty source identity to the candidate artifact.",
+    "runtime_capacity": "Rigid and deformable-smoke coupling limits are independently sized for the migrated catalog, and smoke tracer commit work remains fused into the fixed schedule's existing grid dispatch budget."
+  },
+  "fixed_tick_assertions": {
+    "execution_contract": "fixed-tick-60hz-v1",
+    "timestep_seconds": 0.01666666753590107,
+    "substeps": 1,
+    "maximum_ticks_per_display_callback": 1,
+    "catch_up_ticks": 0,
+    "tested_display_rates_hz": [
+      30,
+      60,
+      90,
+      120,
+      144
+    ],
+    "lifecycle_debt_discarded": [
+      "pause",
+      "reset",
+      "scene-change",
+      "background",
+      "long-stall"
+    ]
+  },
+  "qualification": {
+    "desktop_vulkan_build": {
+      "command": "cmake --build build-p3-02-vulkan --target parallel-mater-gallery -j2",
+      "result": "PASS: Linux Gallery shell, shared Gallery session, Vulkan driver and all shared Slang modules built from the final implementation revision"
+    },
+    "portable_contracts": {
+      "command": "ctest --test-dir build-p3-02-vulkan --output-on-failure -j2 -R 'gallery-fixed-tick|gallery-deployment|linux-gallery|android-gallery|gallery-runtime-manifest|gallery-frame|gallery-gpu|gallery-workload|gallery-presentation|gallery-registry|gallery-input|realtime-schedule|rigid-coupling|liquid-coupling|deform-coupling'",
+      "result": "PASS: 17/17 fixed-tick, pacing, interpolation, deployment, manifest, renderer contract, UI, schedule and coupling tests"
+    },
+    "scene_migration_contract": {
+      "command": "./build-p3-02-vulkan/parallel-mater-gallery-fixed-tick-scene-tests",
+      "result": "PASS: 26 Gallery scenes migrated; 2 fracture scenes explicitly unavailable"
+    },
+    "slang_architecture": {
+      "command": "python3 tests/solver/check_slang_architecture.py",
+      "result": "PASS: runtime contains no native physics kernels or direct physics launches"
+    },
+    "android_build": {
+      "command": "ANDROID_HOME=/home/thomas/Android/Sdk ./scripts/Build-AndroidGallery.sh -PphysicsBackend=vulkan -Pqualification=true",
+      "result": "PASS: arm64-v8a debug qualification APK built from clean revision 1eef2cf53da4448ebeb63c1bfeef838adff77c32",
+      "apk_bytes": 8547252,
+      "apk_sha256": "0bb2d8f4fd85763891571f30dfa9dc60017ede6cfd1c5fd4e1c63625fb2a0b81",
+      "toolchain": {
+        "android_gradle_plugin": "9.0.1",
+        "gradle": "9.1.0",
+        "android_ndk": "29.0.14206865",
+        "cmake": "4.1.2",
+        "slang": "2026.18",
+        "compile_sdk": 36
+      }
+    },
+    "physical_android_gallery": {
+      "command": "python3 scripts/Test-AndroidGallery.py --serial 2B241FDH20060P --adb /home/thomas/Android/Sdk/platform-tools/adb --frames 3 --timeout 1800 --output out/android/F8-51-gallery-pixel7-1eef2cf",
+      "device": "Google Pixel 7 (panther), Mali-G710, Android 17/API 37, security patch 2026-10-05",
+      "result": "PASS: 28 catalog scenes (26 supported), direct Vulkan presentation, pause/reset, background/foreground, resize, rotation and teardown",
+      "source_revision": "1eef2cf53da4448ebeb63c1bfeef838adff77c32",
+      "backend": "vulkan",
+      "execution_contract": "fixed-tick-60hz-v1",
+      "supported_scenes_passed": 26,
+      "explicit_unavailable_scenes": [
+        "cloth-tear: fixed-tick cloth fracture is not implemented",
+        "soft-body-cloth: fixed-tick cloth fracture is not implemented"
+      ],
+      "qualification_report_sha256": "9507696e6a14fd2e4e2fcb0087d213910ec2077cf7cf9bd4c310fe4a179d2724",
+      "lifecycle_report_sha256": "c80dd8109074663e9748a5aee63771f1dcdf5211761e25fac32e14cdc7778ca2",
+      "surface_lifecycle_report_sha256": "f4a0b80d759402b1de5f8c26da455211e1fce7079eecf25c216ac7f4493860be",
+      "device_log_sha256": "3368e88689315f5858920c438a2b42c2f2f1d5e66f52448cef2cfe68212d4ff4"
+    }
+  },
+  "limits": [
+    "This Linux host cannot compile or physically execute the iPad Metal shell. The shared source and 60 Hz display-link request were updated, while independent macOS and physical iOS execution remain F8-28 and F8-29.",
+    "Desktop Vulkan execution could not discover the validation layer or a physical device in the sandbox. The Linux Vulkan shell built, and the exact shared public Gallery path passed on physical Android Vulkan; independent Linux Vulkan qualification remains F8-25.",
+    "The three-frame Android smoke run proves catalog, controls, rendering and lifecycle integration, not sustained performance or thermal acceptance; those remain F8-30."
+  ]
+}

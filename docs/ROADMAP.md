@@ -177,7 +177,7 @@ merging. The workflow does not change GitHub branch-protection settings.
 | [F8-48](roadmap/tasks/F8-48.json) | Complete source and topology lifecycle in the common tick | done | F8-45, F8-46, F8-47 | — |
 | [F8-49](roadmap/tasks/F8-49.json) | Integrate paint, capture and public outputs with the common tick | done | F8-48 | — |
 | [F8-50](roadmap/tasks/F8-50.json) | Make the fixed-tick runtime the sole public execution path | done | F8-49 | — |
-| [F8-51](roadmap/tasks/F8-51.json) | Make shared Gallery use the sole fixed-tick architecture | leased | F8-50 | codex-gallery-pixel7 / thomas-laptop-pixel7 / 2026-10-27T05:33:41Z |
+| [F8-51](roadmap/tasks/F8-51.json) | Make shared Gallery use the sole fixed-tick architecture | done | F8-50 | — |
 | [F8-52](roadmap/tasks/F8-52.json) | Freeze the complete single-path SDK and Gallery candidate | waiting on dependencies | F8-51, F8-54, F8-55, F8-56 | — |
 | [F8-53](roadmap/tasks/F8-53.json) | Requalify CPU and public contracts on the sole-path candidate | waiting on dependencies | F8-23, F8-52 | — |
 | [F8-54](roadmap/tasks/F8-54.json) | Batch Metal rigid solver dispatches | ready | F8-34, F8-45 | — |
