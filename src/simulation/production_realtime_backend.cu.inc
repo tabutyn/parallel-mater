@@ -365,7 +365,7 @@ PmResult native_realtime_registrations(
 
 template <typename State>
 simulation::RealtimeTelemetryLimits native_realtime_limits(
-    const State &state) noexcept {
+    const State &state, const StepOptions &options) noexcept {
     simulation::RealtimeTelemetryLimits limits{};
     auto &boundary = limits.phase_maximum[simulation::realtime_index(
         simulation::RealtimeTelemetryPhase::boundary)];
@@ -389,6 +389,10 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
         work.barriers += static_cast<std::uint32_t>(count);
     };
     const std::uint32_t rigid = state.rigid_body_count;
+    const bool debug_enabled =
+        state.options.physics_debug.frame_capacity != 0U;
+    const bool collect_fluid_contacts =
+        options.collect_fluid_contacts || debug_enabled;
     std::uint32_t staged_leaves{};
     std::uint32_t staged_queries{};
     if (native_realtime_spatial_counts(
@@ -407,6 +411,17 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
             simulation::RealtimeCouplingFamily::deformable_smoke)];
     commit.submissions = 1U;
     index.index_publications = 1U;
+    boundary.bytes_moved += 2U * sizeof(std::uint32_t);
+    boundary.barriers += 2U;
+    if (state.paint_rule_count != 0U) {
+        for (const auto &field : std::span(
+                 state.paint_fields, state.options.paint_field_capacity)) {
+            if (!field.alive) continue;
+            boundary.bytes_moved += std::uint64_t{field.options.width} *
+                field.options.height * sizeof(std::uint32_t);
+            ++boundary.barriers;
+        }
+    }
     if (staged_leaves == 0U) {
 #if !defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
         dispatch(boundary, 1U, 1U);
@@ -417,8 +432,8 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
         commit.bytes_moved = sizeof(std::uint32_t);
         ++commit.barriers;
     } else {
-        boundary.bytes_moved = sizeof(std::uint32_t);
-        boundary.barriers = 1U;
+        boundary.bytes_moved += sizeof(std::uint32_t);
+        ++boundary.barriers;
 #if !defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
         dispatch(boundary, 1U, 1U);
 #endif
@@ -477,6 +492,15 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
             const bool may_compact = destroyers != 0U || pending_phase;
             boundary.barriers += (may_compact ? 2U : 7U) +
                 std::uint32_t(phase_coupled);
+            if (collect_fluid_contacts) {
+                boundary.bytes_moved += owner->options.capacity *
+                    sizeof(std::uint8_t);
+                ++boundary.barriers;
+                dispatch(commit, 5U,
+                    2U * ((std::uint64_t{owner->options.capacity} + 255U) /
+                              256U) +
+                        2U + particle_groups);
+            }
             if (phase_coupled)
                 dispatch(boundary, 1U, particle_groups);
             if (may_compact) {
@@ -724,6 +748,7 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
                 ++domain.barriers;
             }
             dispatch(commit, 1U, body_groups);
+            if (debug_enabled) dispatch(commit, 1U, body_groups);
         } else {
             commit.bytes_moved += sizeof(std::uint32_t);
             ++commit.barriers;
@@ -1319,6 +1344,7 @@ public:
 
     PmResult begin_tick(
         const simulation::RealtimeScheduleScene &scene) noexcept {
+        paint_rollback_slot_limit_ = 0U;
         std::array<std::uint32_t,
                    simulation::realtime_coupling_family_count>
             coupling_counts{};
@@ -1775,6 +1801,33 @@ public:
         const simulation::RealtimeScheduleScene &) noexcept {
         auto &boundary_work = work(
             simulation::RealtimeTelemetryPhase::boundary);
+        auto count_result = native_.clear(state_.fluid_contact_count, 0,
+            sizeof(*state_.fluid_contact_count), native_.queue());
+        if (count_result == PM_SUCCESS)
+            count_result = native_.clear(state_.fluid_contact_overflow, 0,
+                sizeof(*state_.fluid_contact_overflow), native_.queue());
+        if (count_result != PM_SUCCESS) return count_result;
+        boundary_work.bytes_moved += 2U * sizeof(std::uint32_t);
+        boundary_work.barriers += 2U;
+        if (state_.paint_rule_count != 0U) {
+            for (std::uint32_t slot = 0U;
+                 slot < state_.options.paint_field_capacity; ++slot) {
+                const auto &field = state_.paint_fields[slot];
+                if (!field.alive) continue;
+                if (slot >= state_.paint_rollback_pixels.size() ||
+                    state_.paint_rollback_pixels[slot] == nullptr)
+                    return PM_ERROR_INVALID_STATE;
+                const auto bytes = std::size_t{field.options.width} *
+                    field.options.height * sizeof(std::uint32_t);
+                const auto result = native_.copy(
+                    state_.paint_rollback_pixels[slot], field.pixels, bytes,
+                    device::CopyDirection::device_to_device, native_.queue());
+                if (result != PM_SUCCESS) return result;
+                paint_rollback_slot_limit_ = slot + 1U;
+                boundary_work.bytes_moved += bytes;
+                ++boundary_work.barriers;
+            }
+        }
         if (rigid_coupling_count_ != 0U ||
             deformable_coupling_count_ != 0U) {
             auto coupling_result = stage_coupling_buffers(boundary_work);
@@ -1813,6 +1866,17 @@ public:
             auto &owner = state_.fluids[slot];
             if (!owner || !owner->alive) continue;
             auto &fluid = *owner;
+            if (collect_fluid_contacts()) {
+                auto clear_result = native_.clear(
+                    fluid.contact_flags, 0,
+                    std::size_t{fluid.options.capacity} *
+                        sizeof(std::uint8_t),
+                    native_.queue());
+                if (clear_result != PM_SUCCESS) return clear_result;
+                boundary_work.bytes_moved += fluid.options.capacity *
+                    sizeof(std::uint8_t);
+                ++boundary_work.barriers;
+            }
             const auto bytes = std::size_t(fluid.options.capacity) *
                 sizeof(Vec3);
             auto result = native_.copy(fluid.realtime_count, fluid.count,
@@ -3501,7 +3565,11 @@ public:
                     state_.render_previous_states,
                     state_.states[output_state_], state_.meshes, state_.ids,
                     state_.rigid_body_count, slot, cloth.generation,
-                    nullptr, 0U, nullptr, 0U, cloth.body_corrections);
+                    state_.paint_fields,
+                    state_.options.paint_field_capacity,
+                    state_.paint_rules,
+                    state_.options.paint_rule_capacity,
+                    cloth.body_corrections);
                 native_.apply_cloth_body_corrections(
                     groups, block, native_.queue(), cloth.realtime_positions,
                     cloth.realtime_velocities, cloth.inverse_masses,
@@ -3992,9 +4060,52 @@ public:
         }
         result = apply_smoke_couplings(scene);
         if (result != PM_SUCCESS) return result;
+        if (collect_fluid_contacts()) {
+            for (std::uint32_t slot = 0U;
+                 slot < state_.fluids.size(); ++slot) {
+                auto &owner = state_.fluids[slot];
+                if (!owner || !owner->alive) continue;
+                auto &fluid = *owner;
+                const auto groups =
+                    (fluid.options.capacity + block - 1U) / block;
+                result = native_.compact_flagged_indices(
+                    native_.queue(), fluid.contact_flags,
+                    fluid.options.capacity, fluid.selected,
+                    fluid.contact_count, fluid.select_workspace,
+                    fluid.select_workspace_size);
+                if (result != PM_SUCCESS) return result;
+                native_.reserve_fluid_contact_events(
+                    native_.queue(), fluid.contact_count,
+                    fluid.contact_offset, state_.fluid_contact_count,
+                    state_.fluid_contact_overflow,
+                    state_.options.contact_capacity);
+                const FluidId fluid_id{slot, fluid.generation};
+                native_.gather_fluid_contact_events(
+                    groups, block, native_.queue(), fluid.selected,
+                    fluid.contact_count, fluid.contact_offset,
+                    fluid.contact_samples, fluid.next_ids, state_.ids,
+                    &fluid_id, state_.fluid_contact_events,
+                    state_.options.contact_capacity);
+                result = native_.check_error();
+                if (result != PM_SUCCESS) return result;
+                dispatches(simulation::RealtimeTelemetryPhase::commit, 5U,
+                    2U * ((std::uint64_t{fluid.options.capacity} + 255U) /
+                              256U) +
+                        2U + groups);
+            }
+        }
         if (state_.rigid_body_count != 0U) {
             const auto groups =
                 (state_.rigid_body_count + block - 1U) / block;
+            if (debug_enabled()) {
+                result = native_.capture_rigid_inputs(
+                    groups, block, native_.queue(), state_.accumulators,
+                    state_.debug_applied_forces,
+                    state_.debug_applied_torques,
+                    state_.rigid_body_count);
+                if (result != PM_SUCCESS) return result;
+                dispatch(simulation::RealtimeTelemetryPhase::commit, groups);
+            }
             result = native_.clear_rigid_inputs(
                 groups, block, native_.queue(), state_.accumulators,
                 state_.targets, state_.rigid_body_count);
@@ -4097,11 +4208,26 @@ public:
         ++state_.frame_index;
         ++state_.revision;
         state_.rigid_contact_revision = state_.revision;
+        paint_rollback_slot_limit_ = 0U;
         return PM_SUCCESS;
     }
 
     PmResult abort_tick(
         const simulation::RealtimeScheduleScene &) noexcept {
+        PmResult rollback_result = PM_SUCCESS;
+        for (std::uint32_t slot = 0U;
+             slot < paint_rollback_slot_limit_; ++slot) {
+            const auto &field = state_.paint_fields[slot];
+            if (!field.alive) continue;
+            const auto bytes = std::size_t{field.options.width} *
+                field.options.height * sizeof(std::uint32_t);
+            const auto result = native_.copy(
+                field.pixels, state_.paint_rollback_pixels[slot], bytes,
+                device::CopyDirection::device_to_device, native_.queue());
+            if (rollback_result == PM_SUCCESS && result != PM_SUCCESS)
+                rollback_result = result;
+        }
+        paint_rollback_slot_limit_ = 0U;
         state_.realtime_spatial.abort();
         if (state_.realtime_snapshots.pending())
             (void)state_.realtime_snapshots.abort();
@@ -4120,10 +4246,22 @@ public:
         liquid_coupling_contract_ = {};
         rigid_coupling_contract_ = {};
         deformable_coupling_contract_ = {};
-        return PM_SUCCESS;
+        return rollback_result;
     }
 
 private:
+    [[nodiscard]] bool debug_enabled() const noexcept {
+        return state_.options.physics_debug.frame_capacity != 0U;
+    }
+
+    [[nodiscard]] bool collect_rigid_contacts() const noexcept {
+        return options_.collect_rigid_contacts || debug_enabled();
+    }
+
+    [[nodiscard]] bool collect_fluid_contacts() const noexcept {
+        return options_.collect_fluid_contacts || debug_enabled();
+    }
+
     PmResult solve_liquid_couplings(
         std::uint32_t sweep, std::uint32_t edge_count,
         const simulation::RealtimeScheduleScene &scene) noexcept {
@@ -4295,8 +4433,10 @@ private:
                     state_.parameters, state_.states[output_state_],
                     state_.meshes, fluid.moving_contacts,
                     state_.fluid_body_contact_flags, fluid.body_impulses,
-                    false, fluid.contact_samples, fluid.contact_flags, slot,
-                    fluid.generation, state_.ids, false, state_.paint_fields,
+                    collect_fluid_contacts(), fluid.contact_samples,
+                    fluid.contact_flags, slot,
+                    fluid.generation, state_.ids,
+                    state_.paint_rule_count != 0U, state_.paint_fields,
                     state_.options.paint_field_capacity, state_.paint_rules,
                     state_.options.paint_rule_capacity);
                 native_.reduce_fluid_body_impulses(
@@ -6420,7 +6560,7 @@ private:
             state_.rigid_manifolds, active_pairs, active_count, state_.ids,
             state_.rigid_contact_event_offsets,
             state_.rigid_contact_events, state_.rigid_contact_capacity,
-            state_.rigid_contact_count, options_.collect_rigid_contacts,
+            state_.rigid_contact_count, collect_rigid_contacts(),
             true);
         if (result != PM_SUCCESS) return result;
         dispatch(simulation::RealtimeTelemetryPhase::domain, 1U);
@@ -6522,13 +6662,14 @@ private:
     std::uint64_t pending_contact_epoch_{};
     std::uint32_t staged_leaves_{};
     std::uint32_t staged_queries_{};
+    std::uint32_t paint_rollback_slot_limit_{};
 };
 
 template <typename State>
 Status schedule_native_realtime(State &state, NativeScheduleBackend &native,
                                 StepOptions options) noexcept {
     const auto scene = native_realtime_scene(state, options);
-    const auto defaults = native_realtime_limits(state);
+    const auto defaults = native_realtime_limits(state, options);
     const auto &limits = options.realtime_telemetry_limits != nullptr
         ? *options.realtime_telemetry_limits : defaults;
     if (!native_realtime_limits_admit_minimum(state, limits)) {

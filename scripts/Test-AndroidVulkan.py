@@ -45,6 +45,8 @@ def main():
                         help="Run required native adapter tests and capture provenance")
     parser.add_argument("--realtime-smoke-couplings-only", action="store_true",
                         help="Run the realtime test's focused production smoke path")
+    parser.add_argument("--realtime-auxiliary-only", action="store_true",
+                        help="Run the realtime test's focused paint/debug/output path")
     parser.add_argument("--prepare-only", action="store_true",
                         help="Stage and verify the device payload without using adb")
     args = parser.parse_args()
@@ -166,7 +168,9 @@ def main():
         arguments = ()
         if name == "pm-android-realtime-runtime-tests":
             arguments = ("--production-smoke-couplings",) \
-                if args.realtime_smoke_couplings_only else ("--production",)
+                if args.realtime_smoke_couplings_only else \
+                ("--production-auxiliary",) \
+                if args.realtime_auxiliary_only else ("--production",)
         run_device(name, arguments, required=True)
 
     if args.native_only:

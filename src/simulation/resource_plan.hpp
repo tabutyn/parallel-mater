@@ -94,6 +94,7 @@ inline Status geometry_storage_requirements(
 struct PaintStoragePlan {
     Vec2 *uvs{};
     std::uint32_t *pixels{};
+    std::uint32_t *rollback_pixels{};
     std::size_t vertex_capacity{};
     std::size_t pixel_capacity{};
 };
@@ -120,6 +121,10 @@ Status visit_paint_storage(State &state, std::size_t vertices,
 } while (false)
     PM_STORAGE(uvs, state.vertex_capacity, persistent);
     PM_STORAGE(pixels, state.pixel_capacity, persistent);
+    // Realtime paint kernels update the public field during the tick.  Keep
+    // one fixed-capacity pre-tick image so abort can restore it without host
+    // traffic or a replacement allocation.
+    PM_STORAGE(rollback_pixels, state.pixel_capacity, persistent);
 #undef PM_STORAGE
     return {};
 }

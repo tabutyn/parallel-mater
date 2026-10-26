@@ -194,15 +194,21 @@ int main() {
     simulation_info.paintFieldCount = 1U;
     simulation_info.pPaintFieldCapacities = &paint;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
+          (features.paint ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT));
+    if (simulation != nullptr) pmDestroySimulation(device, simulation);
+    simulation = nullptr;
     simulation_info.paintFieldCount = 0U;
     simulation_info.paintRuleCapacity = 1U;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
+          (features.paint ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT));
+    if (simulation != nullptr) pmDestroySimulation(device, simulation);
+    simulation = nullptr;
     simulation_info.paintRuleCapacity = 0U;
     simulation_info.debugFrameCapacity = 1U;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
+          (features.debugData ? PM_SUCCESS : PM_ERROR_INVALID_ARGUMENT));
+    if (simulation != nullptr) pmDestroySimulation(device, simulation);
+    simulation = nullptr;
     simulation_info.debugFrameCapacity = 0U;
     profile.versionMinor = 1U;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
