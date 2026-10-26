@@ -33,8 +33,11 @@ int main() {
     for (int i = 0; i < 6; ++i)
         CHECK(simulation.step(1.0F / 60, 1, {0, -9.81F, 0}, frame, error));
     CHECK(frame.fluid_particles.size() == 130);
+    float expected_velocity = 0.0F;
+    for (int i = 0; i < 6; ++i)
+        expected_velocity = (expected_velocity - 9.81F / 60.0F) * 0.95F;
     for (const auto &particle : frame.fluid_particles) {
-        CHECK(std::fabs(particle.velocity[1] + 0.981F) < 1.0e-4F);
+        CHECK(std::fabs(particle.velocity[1] - expected_velocity) < 1.0e-4F);
         CHECK(particle.position[1] < 10 && particle.position[1] > 9.9F);
     }
 
