@@ -1,7 +1,7 @@
 {
   "id": "F8-57",
   "title": "Keep installed macOS Gallery synchronized",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-51"
   ],
@@ -19,6 +19,14 @@
     "Portable guards cover preset opt-in and clean/dirty build-time identity regeneration. A clean standard Metal preset build on the physical Mac completes automatic deployment, and the installed app passes a six-frame native Metal smoke with matching revision/backend identity."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "5477c425-968d-4260-99da-89632edf999b",
+    "owner": "codex-macos-gallery-delivery",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-57/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-26T12:45:39Z",
+    "heartbeat_at": "2026-10-26T12:45:39Z",
+    "expires_at": "2026-10-27T12:45:39Z"
+  },
   "history": []
 }
