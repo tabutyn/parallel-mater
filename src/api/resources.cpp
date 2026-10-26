@@ -586,8 +586,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
         device, info->pNext, execution_profile);
     if (profile_result != PM_SUCCESS) return profile_result;
     if (execution_profile == PmSimulationExecutionProfile::realtime_single_step &&
-        (info->couplingCapacity != 0U ||
-         info->emitterCapacity != 0U || info->destroyerCapacity != 0U ||
+        (info->emitterCapacity != 0U || info->destroyerCapacity != 0U ||
          info->paintFieldCount != 0U || info->paintRuleCapacity != 0U ||
          info->debugFrameCapacity != 0U))
         return PM_ERROR_FEATURE_NOT_PRESENT;

@@ -261,7 +261,9 @@ int main(int argc, char** argv) {
         profile.pNext = NULL;
         simulation_info.couplingCapacity = 1U;
         CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-              PM_ERROR_FEATURE_NOT_PRESENT);
+              PM_SUCCESS);
+        pmDestroySimulation(device, simulation);
+        simulation = NULL;
     }
     pmGetDeviceQueue(device, 0U, 0U, &queue);
     CHECK(queue != NULL);

@@ -149,6 +149,7 @@ int main(int argc, char **argv) {
     mixed_info.pSoftBodyCapacities = &soft_capacity;
     mixed_info.smokeCount = device_info.enabledFeatures.smoke;
     mixed_info.pSmokeCapacities = &smoke_capacity;
+    mixed_info.couplingCapacity = 13U;
     PmSimulation mixed_simulation{};
     CHECK(pmCreateSimulation(device, &mixed_info, &mixed_simulation) ==
           PM_SUCCESS);
@@ -262,6 +263,7 @@ int main(int argc, char **argv) {
     submit.pCommandBuffers = &commands;
 
     std::uint32_t execution_index{};
+    const char *execution_label = "setup";
     const auto execute = [&](PmResult expected) {
         ++execution_index;
         CHECK(pmEndCommandBuffer(commands) == PM_SUCCESS);
@@ -269,8 +271,10 @@ int main(int argc, char **argv) {
         const auto waited = pmWaitForFences(
             device, 1U, &fence, PM_TRUE, PM_TIMEOUT_INFINITE);
         if (waited != expected)
-            std::fprintf(stderr, "execution=%u waited=%d expected=%d\n",
-                         execution_index, int(waited), int(expected));
+            std::fprintf(stderr,
+                "execution=%u label=%s waited=%d expected=%d\n",
+                execution_index, execution_label, int(waited),
+                int(expected));
         CHECK(waited == expected);
         CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
         CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
@@ -284,14 +288,12 @@ int main(int argc, char **argv) {
     CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
     execute(PM_SUCCESS);
 
-    if (!smoke_couplings_only) {
-        CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
-        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
-        CHECK(pmCmdStepSimulation(
-            commands, mixed_simulation, &step) == PM_SUCCESS);
-        execute(PM_SUCCESS);
-    }
-    if (!smoke_couplings_only && mixed_info.fluidCount != 0U) {
+    CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+    CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+    CHECK(pmCmdStepSimulation(
+        commands, mixed_simulation, &step) == PM_SUCCESS);
+    execute(PM_SUCCESS);
+    if (mixed_info.fluidCount != 0U) {
         auto *particle = reinterpret_cast<PmParticleState *>(
             static_cast<std::byte *>(source_map) + 256U);
         *particle = {};
@@ -433,7 +435,7 @@ int main(int argc, char **argv) {
         execute(PM_SUCCESS);
 
     }
-    if (!smoke_couplings_only && mixed_info.clothCount != 0U) {
+    if (mixed_info.clothCount != 0U) {
         const std::uint32_t cloth_indices[3]{0U, 1U, 2U};
         const float pinned_masses[3]{0.0F, 0.0F, 1.0F};
         const PmFloat3 hanging_vertices[3]{
@@ -572,7 +574,7 @@ int main(int argc, char **argv) {
             static_cast<const PmDomainOutputHeader *>(cloth_output_map);
         CHECK(cloth_header->activeCount == 3U);
     }
-    if (!smoke_couplings_only && mixed_info.softBodyCount != 0U) {
+    if (mixed_info.softBodyCount != 0U) {
         const PmFloat3 nodes[5]{
             {0.0F, 1.2F, 0.0F}, {-0.05F, 1.0F, 0.0F},
             {0.05F, 1.0F, 0.0F}, {0.0F, 1.1F, 0.05F},
@@ -725,7 +727,7 @@ int main(int argc, char **argv) {
             static_cast<const PmDomainOutputHeader *>(soft_output_map);
         CHECK(soft_header->activeCount == 5U);
     }
-    if (!smoke_couplings_only && mixed_info.ropeCount != 0U) {
+    if (mixed_info.ropeCount != 0U) {
         PmRigidBodyInfo anchor{};
         anchor.active = PM_TRUE;
         anchor.geometry = geometry;
@@ -782,23 +784,25 @@ int main(int argc, char **argv) {
         const auto *rope_nodes = reinterpret_cast<const PmRopeNodeState *>(
             rope_header + 1U);
         CHECK(rope_header->activeCount == 6U);
-        CHECK(rope_nodes[0].position.x == centerline[0].x);
-        CHECK(rope_nodes[0].position.y == centerline[0].y);
-        CHECK(rope_nodes[0].position.z == centerline[0].z);
-        CHECK(rope_nodes[0].velocity.x == 0.0F);
-        CHECK(rope_nodes[0].velocity.y == 0.0F);
-        CHECK(rope_nodes[0].velocity.z == 0.0F);
-        for (std::uint32_t node = 1U; node < 6U; ++node) {
-            CHECK(std::isfinite(rope_nodes[node].position.x));
-            CHECK(std::isfinite(rope_nodes[node].position.y));
-            CHECK(std::isfinite(rope_nodes[node].velocity.y));
-            const auto &first_node = rope_nodes[node - 1U].position;
-            const auto &second_node = rope_nodes[node].position;
-            const float x = first_node.x - second_node.x;
-            const float y = first_node.y - second_node.y;
-            const float z = first_node.z - second_node.z;
-            CHECK(std::abs(std::sqrt(x * x + y * y + z * z) - 0.1F) <
-                  0.03F);
+        if (!smoke_couplings_only) {
+            CHECK(rope_nodes[0].position.x == centerline[0].x);
+            CHECK(rope_nodes[0].position.y == centerline[0].y);
+            CHECK(rope_nodes[0].position.z == centerline[0].z);
+            CHECK(rope_nodes[0].velocity.x == 0.0F);
+            CHECK(rope_nodes[0].velocity.y == 0.0F);
+            CHECK(rope_nodes[0].velocity.z == 0.0F);
+            for (std::uint32_t node = 1U; node < 6U; ++node) {
+                CHECK(std::isfinite(rope_nodes[node].position.x));
+                CHECK(std::isfinite(rope_nodes[node].position.y));
+                CHECK(std::isfinite(rope_nodes[node].velocity.y));
+                const auto &first_node = rope_nodes[node - 1U].position;
+                const auto &second_node = rope_nodes[node].position;
+                const float x = first_node.x - second_node.x;
+                const float y = first_node.y - second_node.y;
+                const float z = first_node.z - second_node.z;
+                CHECK(std::abs(
+                    std::sqrt(x * x + y * y + z * z) - 0.1F) < 0.03F);
+            }
         }
 
         if (!production) {
@@ -876,7 +880,7 @@ int main(int argc, char **argv) {
         const PmClothInfo cloth{PM_TRUE, 0U, 3U, cloth_vertices, 3U,
             cloth_indices, cloth_inverse_masses};
 
-        const PmFloat3 soft_nodes_input[5]{{0.2F, 1.15F, 0.0F},
+        const PmFloat3 soft_nodes_input[5]{{0.2F, 1.2F, 0.0F},
             {0.15F, 1.0F, 0.0F}, {0.25F, 1.0F, 0.0F},
             {0.2F, 1.1F, 0.05F}, {0.2F, 1.1F, -0.05F}};
         const float soft_inverse_masses[5]{0.0F, 1.0F, 1.0F, 1.0F, 1.0F};
@@ -939,21 +943,38 @@ int main(int argc, char **argv) {
         smoke.gridMinimum = {-1.0F, 0.0F, -1.0F};
         smoke.gridEdgeLength = 2.0F;
 
+        execution_label = "reset mixed smoke setup";
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
         CHECK(pmCmdResetSimulation(commands, mixed_simulation) == PM_SUCCESS);
-        CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
-        CHECK(pmCmdWriteRigidBodies(
-            commands, mixed_simulation, 0U, 1U, &floor) == PM_SUCCESS);
-        CHECK(pmCmdWriteCloths(
-            commands, mixed_simulation, 0U, 1U, &cloth) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        const auto begin_smoke_setup_write = [&](const char *label) {
+            execution_label = label;
+            CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
+            CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
+        };
+        begin_smoke_setup_write("write mixed soft body");
         CHECK(pmCmdWriteSoftBodies(
             commands, mixed_simulation, 0U, 1U, &soft_body) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        begin_smoke_setup_write("write mixed cloth");
+        CHECK(pmCmdWriteCloths(
+            commands, mixed_simulation, 0U, 1U, &cloth) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        begin_smoke_setup_write("write mixed rope");
         CHECK(pmCmdWriteRopes(
             commands, mixed_simulation, 0U, 1U, &rope) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        begin_smoke_setup_write("write mixed rigid");
+        CHECK(pmCmdWriteRigidBodies(
+            commands, mixed_simulation, 0U, 1U, &floor) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        begin_smoke_setup_write("write mixed liquids");
         CHECK(pmCmdSetFluidParticles(commands, mixed_simulation, 0U,
                                      &first_liquid) == PM_SUCCESS);
         CHECK(pmCmdSetFluidParticles(commands, mixed_simulation, 1U,
                                      &second_liquid) == PM_SUCCESS);
+        execute(PM_SUCCESS);
+        begin_smoke_setup_write("write mixed smoke");
         CHECK(pmCmdWriteSmoke(
             commands, mixed_simulation, 0U, 1U, &smoke) == PM_SUCCESS);
         execute(PM_SUCCESS);
@@ -1098,12 +1119,17 @@ int main(int argc, char **argv) {
         smoke_soft.parameters.smoke.maximumWindAcceleration = 10.0F;
         smoke_soft.parameters.smoke.contactDistance = 0.04F;
 
+        execution_label = "install particle smoke couplings";
+        const std::uint32_t installed_coupling_count = smoke_couplings_only
+            ? 4U : static_cast<std::uint32_t>(couplings.size());
+        const PmCouplingStateInfo *installed_couplings = smoke_couplings_only
+            ? couplings.data() + 9U : couplings.data();
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
         CHECK(pmCmdSetCouplings2(commands, mixed_simulation,
-            static_cast<std::uint32_t>(couplings.size()), couplings.data()) ==
-            PM_SUCCESS);
+            installed_coupling_count, installed_couplings) == PM_SUCCESS);
         execute(PM_SUCCESS);
 
+        execution_label = "particle smoke coupling tick";
         const PmBufferRange cloth_range{cloth_output, 0U, 1024U};
         const PmBufferRange soft_range{soft_output, 0U, 1024U};
         const PmBufferRange rope_range{rope_output, 0U, 1024U};
@@ -1135,7 +1161,8 @@ int main(int argc, char **argv) {
             sizeof coupling_statistics, &coupling_statistics,
             sizeof coupling_statistics, PM_QUERY_RESULT_WAIT_BIT) ==
             PM_SUCCESS);
-        CHECK(coupling_statistics.couplingEdgeCount == 28U);
+        CHECK(coupling_statistics.couplingEdgeCount ==
+            (smoke_couplings_only ? 15U : 28U));
         CHECK(coupling_statistics.couplingSweeps == 12U);
         CHECK(coupling_statistics.timeAdvances == 1U);
         CHECK(coupling_statistics.total.spatialIndexBuilds == 1U);
@@ -1223,16 +1250,19 @@ int main(int argc, char **argv) {
                               smoke_before_failure.size()) == 0);
         }
 
+        execution_label = "clear particle smoke couplings";
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
         CHECK(pmCmdSetCouplings2(
             commands, mixed_simulation, 0U, nullptr) == PM_SUCCESS);
         execute(PM_SUCCESS);
+        execution_label = "replace smoke with grid";
         smoke.materialIndex = 1U;
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
         CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
         CHECK(pmCmdWriteSmoke(
             commands, mixed_simulation, 0U, 1U, &smoke) == PM_SUCCESS);
         execute(PM_SUCCESS);
+        execution_label = "install grid smoke couplings";
         std::array<PmCouplingStateInfo, 4> grid_smoke_couplings{
             smoke_rigid, smoke_cloth, smoke_rope, smoke_soft};
         for (auto &coupling : grid_smoke_couplings)
@@ -1242,6 +1272,7 @@ int main(int argc, char **argv) {
             static_cast<std::uint32_t>(grid_smoke_couplings.size()),
             grid_smoke_couplings.data()) == PM_SUCCESS);
         execute(PM_SUCCESS);
+        execution_label = "grid smoke coupling tick";
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
         CHECK(pmCmdResetQueryPool(commands, query, 0U, 1U) == PM_SUCCESS);
         CHECK(pmCmdBeginStatisticsQuery(commands, query, 0U) == PM_SUCCESS);
@@ -1255,8 +1286,10 @@ int main(int argc, char **argv) {
             sizeof grid_coupling_statistics, &grid_coupling_statistics,
             sizeof grid_coupling_statistics, PM_QUERY_RESULT_WAIT_BIT) ==
             PM_SUCCESS);
-        CHECK(grid_coupling_statistics.couplingEdgeCount == 11U);
-        CHECK(grid_coupling_statistics.couplingSweeps == 8U);
+        CHECK(grid_coupling_statistics.couplingEdgeCount ==
+            (smoke_couplings_only ? 15U : 11U));
+        CHECK(grid_coupling_statistics.couplingSweeps ==
+            (smoke_couplings_only ? 12U : 8U));
         CHECK(grid_coupling_statistics.timeAdvances == 1U);
         CHECK(grid_coupling_statistics.total.spatialIndexBuilds == 1U);
         CHECK(grid_coupling_statistics.total.spatialIndexPublications == 1U);

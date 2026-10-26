@@ -113,8 +113,9 @@ int main() {
     simulation = nullptr;
     simulation_info.couplingCapacity = 1U;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
-    CHECK(simulation == nullptr);
+          PM_SUCCESS);
+    pmDestroySimulation(device, simulation);
+    simulation = nullptr;
     simulation_info.couplingCapacity = 0U;
     const PmFluidCapacity fluid{1U, 1U};
     simulation_info.fluidCount = 1U;
