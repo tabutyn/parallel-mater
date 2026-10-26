@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "task": "F8-54",
+  "baseline_revision": "f38abd833bcd536bbf392117e3a298223ae2ec3a",
+  "machine": {
+    "name": "Thomass-MacBook-Air",
+    "gpu": "Apple M4 (8 GPU cores)",
+    "os": "macOS 26.5.2 (25F84)",
+    "metal_compiler": "Apple metal 32023.883"
+  },
+  "independent_ceilings": {
+    "source": "tests/solver/rigid_realtime_tests.cpp::test_metal_dispatch_ceilings",
+    "solve_dispatches_per_tick": 1,
+    "prepare_plus_solve_dispatches_per_tick": 2,
+    "solve_workgroups_per_tick": 1,
+    "intra_tick_host_readbacks": 0,
+    "host_waits": 0,
+    "fixtures": [
+      {
+        "name": "small-active",
+        "bodies": 8,
+        "active_constraints": 7,
+        "old_solve_dispatches": 78
+      },
+      {
+        "name": "sparse-capacity",
+        "bodies": 64,
+        "active_constraints": 1,
+        "old_solve_dispatches": 526
+      },
+      {
+        "name": "medium-active",
+        "bodies": 128,
+        "active_constraints": 32,
+        "old_solve_dispatches": 1038
+      },
+      {
+        "name": "desktop-386",
+        "bodies": 386,
+        "active_constraints": 32,
+        "old_solve_dispatches": 3102
+      }
+    ]
+  },
+  "pre_change_physical_baseline": {
+    "public_runtime_command": "PM_DRIVER_FILES=build-macos-metal-preview/Release/manifests/slang-metal.json ./build-macos-metal-preview/parallel-mater-slang-metal-realtime-tests --production",
+    "rigid_fixture_bodies": 8,
+    "total_dispatches": 112,
+    "total_workgroups": 1513,
+    "domain_dispatches": 88,
+    "domain_workgroups": 1489,
+    "barriers": 117,
+    "time_advances": 1,
+    "rigid_iterations": 8,
+    "wall_seconds": 0.72,
+    "result": "PASS"
+  },
+  "pre_change_physical_quality": {
+    "command": "build-macos-metal-preview/tests/solver/parallel-mater-slang-metal-kernel-tests build-macos-metal-preview/generated/slang/metal/manifest.txt",
+    "gpu": "Apple M4",
+    "avbd_cases": "97 and 545 bodies; contacts, all joint types and impact phases",
+    "result": "PASS"
+  },
+  "implementation_revision": "f95cc77f533edc2b21abef2af2f44105b1e0325a",
+  "post_change": {
+    "public_production_path": {
+      "command": "PM_DRIVER_FILES=build-macos-metal-preview/Release/manifests/slang-metal.json ./build-macos-metal-preview/parallel-mater-slang-metal-realtime-tests --production",
+      "rigid_fixture_bodies": 8,
+      "total_dispatches": 35,
+      "total_workgroups": 1436,
+      "domain_dispatches": 11,
+      "domain_workgroups": 1412,
+      "barriers": 40,
+      "time_advances": 1,
+      "rigid_iterations": 8,
+      "intra_tick_host_readbacks": 0,
+      "host_waits": 0,
+      "wall_seconds": 0.62,
+      "result": "PASS",
+      "reduction_from_identical_baseline": {
+        "total_dispatches": 77,
+        "total_dispatches_percent": 68.75,
+        "domain_dispatches": 77,
+        "domain_dispatches_percent": 87.5,
+        "barriers": 77
+      }
+    },
+    "physical_scaling_fixtures": {
+      "command": "build-macos-metal-preview/tests/solver/parallel-mater-slang-metal-kernel-tests build-macos-metal-preview/generated/slang/metal/manifest.txt",
+      "gpu": "Apple M4",
+      "comparison": "The shared cooperative Slang kernel and retained staged test oracle use identical prepared buffers, constraints, timestep and eight-sweep schedule. Body and constraint output tolerances pass.",
+      "prepare_dispatches": 1,
+      "solve_dispatches": 1,
+      "solve_workgroups": 1,
+      "fixtures": [
+        {
+          "name": "small-active",
+          "bodies": 8,
+          "active_constraints": 7,
+          "constraint_capacity": 32,
+          "old_solve_dispatches": 78,
+          "new_solve_dispatches": 1,
+          "batched_gpu_ms": 0.587,
+          "staged_gpu_ms": 0.782708
+        },
+        {
+          "name": "sparse-capacity",
+          "bodies": 64,
+          "active_constraints": 1,
+          "constraint_capacity": 64,
+          "old_solve_dispatches": 526,
+          "new_solve_dispatches": 1,
+          "batched_gpu_ms": 0.369125,
+          "staged_gpu_ms": 1.13279
+        },
+        {
+          "name": "medium-active",
+          "bodies": 128,
+          "active_constraints": 32,
+          "constraint_capacity": 64,
+          "old_solve_dispatches": 1038,
+          "new_solve_dispatches": 1,
+          "batched_gpu_ms": 0.972625,
+          "staged_gpu_ms": 3.42696
+        },
+        {
+          "name": "desktop-386",
+          "bodies": 386,
+          "active_constraints": 32,
+          "constraint_capacity": 64,
+          "old_solve_dispatches": 3102,
+          "new_solve_dispatches": 1,
+          "batched_gpu_ms": 1.52321,
+          "staged_gpu_ms": 19.1811
+        }
+      ],
+      "result": "PASS"
+    },
+    "cold_start_and_sustained": {
+      "command": "ctest --test-dir build-macos-metal-preview --repeat until-fail:20 -R ^parallel-mater-slang-metal-realtime-tests$ --output-on-failure",
+      "processes": 20,
+      "result": "PASS"
+    },
+    "focused_contracts": {
+      "command": "ctest --test-dir build-macos-metal-preview -R ^parallel-mater-(compute-contract-tests|rigid-realtime-tests|slang-architecture|slang-metal-kernel-tests|slang-metal-realtime-tests)$ --output-on-failure",
+      "passed": 5,
+      "failed": 0,
+      "result": "PASS"
+    },
+    "macos_build": {
+      "command": "cmake --build --preset macos-metal-preview",
+      "result": "PASS"
+    },
+    "cpu_reference_build_and_tests": {
+      "configure": "cmake --preset sdk-cpu",
+      "build": "cmake --build --preset sdk-cpu",
+      "test": "ctest --preset sdk-cpu",
+      "total": 102,
+      "failed": 0,
+      "skipped_for_unadvertised_cpu_domains": 15,
+      "result": "PASS"
+    },
+    "installed_sdk_contract": {
+      "command": "python3 tools/check_sdk_install.py --build-dir build-sdk-cpu --output <fresh-directory> --require-realtime-driver",
+      "public_observations": [
+        "plain",
+        "validation"
+      ],
+      "packaging_and_external_consumer_checks": "PASS",
+      "result": "PASS"
+    },
+    "ipad_device_compile": {
+      "configure": "cmake --preset ipad-ci",
+      "build": "cmake --build --preset ipad-ci",
+      "architecture": "arm64",
+      "sdk": "iPhoneOS 26.5",
+      "signing": "disabled CI artifact",
+      "result": "PASS"
+    }
+  },
+  "limitations": [
+    "The recorded GPU timings are single diagnostic captures, not the final Gallery performance qualification.",
+    "Cross-adapter builds are enforced by the completion pull request CI; the implementation changes only the Metal adapter path and the shared solver remains the same Slang source used by every adapter.",
+    "Full installed Mac/iPad Gallery comparison remains assigned to F8-56."
+  ]
+}

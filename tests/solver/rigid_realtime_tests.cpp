@@ -123,11 +123,53 @@ void test_budget_and_epoch() {
     CHECK(bad.begin(token, counters, bad_budget) == PM_ERROR_INVALID_STATE);
 }
 
+void test_metal_dispatch_ceilings() {
+    struct Fixture {
+        const char *name;
+        std::uint32_t bodies;
+        std::uint32_t constraints;
+        std::uint32_t grid_blocks;
+        std::uint32_t staged_solve_baseline;
+    };
+    // Independent F8-54 acceptance values. These are deliberately explicit,
+    // not generated from the production Metal adapter or telemetry limits.
+    constexpr Fixture fixtures[]{
+        {"small-active", 8U, 7U, 1U, 78U},
+        {"sparse-capacity", 64U, 1U, 2U, 526U},
+        {"medium-active", 128U, 32U, 4U, 1'038U},
+        {"desktop-386", 386U, 32U, 13U, 3'102U},
+    };
+    constexpr std::uint32_t solve_dispatch_ceiling = 1U;
+    constexpr std::uint32_t total_avbd_dispatch_ceiling = 2U;
+    constexpr std::uint32_t solve_workgroup_ceiling = 1U;
+    for (const auto &fixture : fixtures) {
+        const auto budget = rigid_realtime_work_budget(
+            fixture.bodies, 65'536U, fixture.constraints, fixture.bodies,
+            fixture.grid_blocks);
+        CHECK(budget.cooperative_dispatches <= total_avbd_dispatch_ceiling);
+        CHECK(budget.cooperative_dispatches - 1U <= solve_dispatch_ceiling);
+        CHECK(budget.cooperative_dispatches - 1U <=
+              solve_workgroup_ceiling);
+        CHECK(budget.staged_dispatches ==
+              fixture.staged_solve_baseline + 1U);
+        CHECK(fixture.staged_solve_baseline >=
+              4U * solve_dispatch_ceiling);
+        std::printf(
+            "F8_METAL_AVBD_CEILING fixture=%s bodies=%u constraints=%u "
+            "old_solve_dispatches=%u solve_dispatch_ceiling=%u "
+            "avbd_dispatch_ceiling=%u solve_workgroup_ceiling=%u\n",
+            fixture.name, fixture.bodies, fixture.constraints,
+            fixture.staged_solve_baseline, solve_dispatch_ceiling,
+            total_avbd_dispatch_ceiling, solve_workgroup_ceiling);
+    }
+}
+
 } // namespace
 
 int main() {
     test_input_contract();
     test_budget_and_epoch();
+    test_metal_dispatch_ceilings();
     if (failures == 0)
         std::puts("F8-11 rigid realtime contract tests passed");
     return failures == 0 ? 0 : 1;

@@ -4,6 +4,7 @@
 #include <device/compute.hpp>
 #include <simulation/geometry_storage.hpp>
 #include <simulation/avbd_schedule.hpp>
+#include <simulation/rigid_realtime.hpp>
 
 #include <array>
 #include <bit>
@@ -944,6 +945,194 @@ void check_avbd_schedule(Gpu &gpu) {
     }
     std::cout << "AVBD multi-dispatch: 97/545 bodies, contacts, all joint types, impact phases passed\n";
 }
+
+void check_realtime_avbd_batching(Gpu &gpu) {
+    struct Fixture {
+        const char *name;
+        std::uint32_t body_count;
+        std::uint32_t active_constraints;
+        std::uint32_t constraint_capacity;
+        std::uint32_t old_solve_dispatches;
+    };
+    constexpr Fixture fixtures[]{
+        {"small-active", 8U, 7U, 32U, 78U},
+        {"sparse-capacity", 64U, 1U, 64U, 526U},
+        {"medium-active", 128U, 32U, 64U, 1'038U},
+        {"desktop-386", 386U, 32U, 64U, 3'102U},
+    };
+    for (const auto &fixture : fixtures) {
+        constexpr float dt = rigid_realtime_timestep;
+        std::vector<BodyParameters> parameters(fixture.body_count);
+        std::vector<RigidBodyState> previous(fixture.body_count);
+        std::vector<RigidBodyState> predicted(fixture.body_count);
+        std::vector<RigidBodyId> ids(fixture.body_count);
+        for (std::uint32_t i = 0; i < fixture.body_count; ++i) {
+            auto &body = parameters[i];
+            body.motion = i == 0U
+                ? MotionType::static_body : MotionType::dynamic;
+            body.inverse_mass = i == 0U ? 0.0f : 1.0f;
+            body.inverse_inertia_local = {1.0f, 1.0f, 1.0f};
+            body.friction = 0.4f;
+            body.restitution = 0.0f;
+            body.collision_margin = 0.001f;
+            previous[i].position = {static_cast<float>(i), 1.0f, 0.0f};
+            previous[i].orientation.w = 1.0f;
+            predicted[i] = previous[i];
+            ids[i] = {i, 1U};
+        }
+        std::vector<RigidConstraintResource> constraints(
+            fixture.constraint_capacity);
+        for (std::uint32_t i = 0; i < fixture.active_constraints; ++i) {
+            auto &constraint = constraints[i];
+            constraint.alive = true;
+            constraint.options.type = RigidConstraintType::point;
+            constraint.options.body_a = ids[i];
+            constraint.options.body_b = ids[i + 1U];
+            constraint.options.local_anchor_a = {0.5f, 0.0f, 0.0f};
+            constraint.options.local_anchor_b = {-0.4f, 0.0f, 0.0f};
+            constraint.options.enabled = true;
+            constraint.options.solver_iterations = rigid_realtime_sweeps;
+        }
+        const auto parameter_buffer = gpu.buffer(parameters);
+        const auto previous_buffer = gpu.buffer(previous);
+        const auto id_buffer = gpu.buffer(ids);
+        const std::uint32_t empty_pair{};
+        const ContactManifold empty_manifold{};
+        const auto pair_buffer = gpu.buffer(sizeof empty_pair, &empty_pair);
+        const auto manifold_buffer = gpu.buffer(
+            sizeof empty_manifold, &empty_manifold);
+        const auto pair_count_buffer = gpu.buffer(
+            sizeof empty_pair, &empty_pair);
+        struct Result {
+            BufferPtr states;
+            BufferPtr constraints;
+            BufferPtr bodies;
+            BufferPtr schedule;
+            std::uint64_t dispatches{};
+            std::uint64_t workgroups{};
+            double gpu_seconds{};
+        } results[2];
+        const auto groups = (fixture.body_count + 31U) / 32U;
+        for (std::uint32_t staged = 0U; staged < 2U; ++staged) {
+            auto &result = results[staged];
+            result.states = gpu.buffer(predicted);
+            result.constraints = gpu.buffer(constraints);
+            result.bodies = gpu.buffer(
+                fixture.body_count * sizeof(GeometryConstraintBody));
+            result.schedule = gpu.buffer(sizeof(ContactSchedule));
+            const auto bind = [&](Arguments &arguments) {
+                arguments.buffer("parameters", parameter_buffer);
+                arguments.buffer("previous", previous_buffer);
+                arguments.buffer("states", result.states);
+                arguments.set("count", fixture.body_count);
+                arguments.buffer("manifolds", manifold_buffer);
+                arguments.buffer("pairs", pair_buffer);
+                arguments.buffer("pair_count", pair_count_buffer);
+                arguments.buffer("joints", result.constraints);
+                arguments.set("joint_capacity", fixture.constraint_capacity);
+                arguments.buffer("bodies", result.bodies);
+                arguments.buffer("schedule", result.schedule);
+                arguments.set("dt", dt);
+            };
+            auto command = gpu.device->commands();
+            Arguments prepare(gpu.kernels.at("prepare_avbd_kernel"));
+            bind(prepare);
+            prepare.buffer("ids", id_buffer);
+            prepare.set("gravity", Vec3{});
+            prepare.set("base_iterations", rigid_realtime_sweeps);
+            prepare.set("requested_iterations", rigid_realtime_sweeps);
+            prepare.set("profile_version", rigid_realtime_profile_version);
+            prepare.set("grid_blocks", groups);
+            gpu.encode(prepare, 1U, command);
+            result.dispatches = 1U;
+            result.workgroups = 1U;
+            Arguments solve(gpu.kernels.at(staged
+                ? "solve_avbd_stage_kernel" : "solve_avbd_kernel"));
+            bind(solve);
+            if (staged) {
+                encode_avbd_schedule(rigid_realtime_sweeps,
+                    fixture.body_count,
+                    [&](AvbdStage operation, auto phase, auto iteration,
+                        auto color) {
+                        solve.set("operation",
+                            static_cast<std::uint32_t>(operation));
+                        solve.set("phase", phase);
+                        solve.set("iteration", iteration);
+                        solve.set("color", color);
+                        gpu.encode(solve, groups, command);
+                        ++result.dispatches;
+                        result.workgroups += groups;
+                    }, 1U);
+            } else {
+                gpu.encode(solve, 1U, command);
+                ++result.dispatches;
+                ++result.workgroups;
+            }
+            result.gpu_seconds = gpu.complete(command);
+        }
+        const auto &batched = results[0];
+        const auto &staged = results[1];
+        require(batched.dispatches == 2U && batched.workgroups == 2U,
+            std::string(fixture.name) + ": batched AVBD ceiling missed");
+        require(staged.dispatches == fixture.old_solve_dispatches + 1U,
+            std::string(fixture.name) + ": staged dispatch baseline drifted");
+        require(staged.workgroups == 1U +
+            std::uint64_t{fixture.old_solve_dispatches} * groups,
+            std::string(fixture.name) + ": staged workgroup baseline drifted");
+        const auto &batched_schedule =
+            *static_cast<const ContactSchedule *>(
+                batched.schedule->host_address());
+        const auto &staged_schedule =
+            *static_cast<const ContactSchedule *>(
+                staged.schedule->host_address());
+        require(batched_schedule.budget == rigid_realtime_sweeps &&
+            batched_schedule.counts[6] == rigid_realtime_sweeps &&
+            batched_schedule.maximum_passes == rigid_realtime_sweeps &&
+            std::memcmp(&batched_schedule, &staged_schedule,
+                sizeof(ContactSchedule)) == 0,
+            std::string(fixture.name) + ": realtime schedule changed");
+        const auto *batched_states = static_cast<const RigidBodyState *>(
+            batched.states->host_address());
+        const auto *staged_states = static_cast<const RigidBodyState *>(
+            staged.states->host_address());
+        for (std::uint32_t i = 0; i < fixture.body_count; ++i) {
+            const auto a = std::bit_cast<std::array<float, 13>>(
+                batched_states[i]);
+            const auto b = std::bit_cast<std::array<float, 13>>(
+                staged_states[i]);
+            for (std::size_t field = 0; field < a.size(); ++field)
+                require(std::isfinite(a[field]) &&
+                    std::abs(a[field] - b[field]) < 2.0e-4f,
+                    std::string(fixture.name) +
+                    ": batched/staged body mismatch");
+        }
+        const auto *batched_constraints =
+            static_cast<const RigidConstraintResource *>(
+                batched.constraints->host_address());
+        const auto *staged_constraints =
+            static_cast<const RigidConstraintResource *>(
+                staged.constraints->host_address());
+        for (std::uint32_t i = 0; i < fixture.active_constraints; ++i)
+            require(batched_constraints[i].state.enabled ==
+                    staged_constraints[i].state.enabled &&
+                batched_constraints[i].state.broken ==
+                    staged_constraints[i].state.broken &&
+                std::abs(batched_constraints[i].state.applied_impulse -
+                    staged_constraints[i].state.applied_impulse) < 2.0e-4f,
+                std::string(fixture.name) +
+                    ": batched/staged constraint mismatch");
+        std::cout << "F8_METAL_AVBD_PHYSICAL fixture=" << fixture.name
+                  << " bodies=" << fixture.body_count
+                  << " active_constraints=" << fixture.active_constraints
+                  << " constraint_capacity=" << fixture.constraint_capacity
+                  << " old_solve_dispatches="
+                  << fixture.old_solve_dispatches
+                  << " solve_dispatches=1 solve_workgroups=1"
+                  << " batched_gpu_ms=" << batched.gpu_seconds * 1000.0
+                  << " staged_gpu_ms=" << staged.gpu_seconds * 1000.0
+                  << '\n';
+    }
+}
 } // namespace
 
 int main(int argc, char **argv) {
@@ -964,6 +1153,7 @@ int main(int argc, char **argv) {
         check_rigid_integration(gpu);
         check_soft_body_simd(gpu);
         check_soft_body_realtime(gpu);
+        check_realtime_avbd_batching(gpu);
         check_avbd_schedule(gpu);
         return 0;
     } catch (const std::exception &error) {

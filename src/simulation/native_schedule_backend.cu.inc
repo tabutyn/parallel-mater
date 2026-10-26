@@ -35,9 +35,8 @@ struct NativeScheduleBackend {
     static constexpr std::uint64_t realtime_geometry_solve_dispatches(
         std::uint32_t body_count) noexcept {
 #if defined(PARALLEL_MATER_METAL_DRIVER)
-        return body_count == 0U ? 0U :
-            std::uint64_t{simulation::rigid_realtime_sweeps} *
-                (std::uint64_t{body_count} + 1U) + 6U;
+        return simulation::rigid_realtime_cooperative_solve_dispatches(
+            body_count);
 #else
         (void)body_count;
         return 1U;
@@ -47,9 +46,8 @@ struct NativeScheduleBackend {
         std::uint32_t body_count, std::uint32_t grid_blocks) noexcept {
 #if defined(PARALLEL_MATER_METAL_DRIVER)
         (void)grid_blocks;
-        const auto groups = std::max<std::uint64_t>(
-            1U, (std::uint64_t{body_count} + 31U) / 32U);
-        return realtime_geometry_solve_dispatches(body_count) * groups;
+        return simulation::rigid_realtime_cooperative_solve_workgroups(
+            body_count);
 #else
         (void)body_count;
         return grid_blocks;

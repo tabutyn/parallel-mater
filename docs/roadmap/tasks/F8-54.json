@@ -1,7 +1,7 @@
 {
   "id": "F8-54",
   "title": "Batch Metal rigid solver dispatches",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-34",
     "F8-45"
@@ -20,15 +20,33 @@
     "Measure actual native compute dispatches including no-op/indirect commands, workgroups, barriers and CPU/GPU time through the public production path on a physical Apple GPU. Compare identical inputs with the retained pre-fix revision; preserve independent rigid contact/joint, cold-start and sustained quality checks.",
     "Portable regression tests reject the original per-body launch scaling and reconcile scheduler statistics with adapter-issued counts. Cross-adapter compilation and the shared solver tests pass; installed Mac/iPad Gallery comparison is completed by F8-56."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "3c7a4940-733a-413e-b7a6-1764c5c3b901",
-    "owner": "codex-macos-dispatch",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-54/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-26T10:34:02Z",
-    "heartbeat_at": "2026-10-26T10:34:02Z",
-    "expires_at": "2026-10-27T10:34:02Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: ctest --test-dir build-macos-metal-preview -R ^parallel-mater-(compute-contract-tests|rigid-realtime-tests|slang-architecture|slang-metal-kernel-tests|slang-metal-realtime-tests)$ --output-on-failure; Apple M4/macOS 26.5.2/Metal 32023.883; docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json",
+    "PASS: public production counters reduced total dispatches 112 to 35 and domain dispatches 88 to 11 with zero host waits/readbacks; docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json",
+    "PASS: ctest --test-dir build-macos-metal-preview --repeat until-fail:20 -R parallel-mater-slang-metal-realtime-tests; 20 cold-start processes; docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json",
+    "PASS: cmake --build --preset macos-metal-preview, cmake --build --preset ipad-ci, and ctest --preset sdk-cpu; macOS arm64, iPhoneOS 26.5 arm64, CPU reference; docs/roadmap/F8-54-METAL-RIGID-DISPATCH-BATCHING.md"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "3c7a4940-733a-413e-b7a6-1764c5c3b901",
+        "owner": "codex-macos-dispatch",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-54/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-26T10:34:02Z",
+        "heartbeat_at": "2026-10-26T10:34:02Z",
+        "expires_at": "2026-10-27T10:34:02Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-26T10:56:33Z",
+      "reason": "Metal fixed realtime AVBD now executes the shared cooperative Slang solve in one bounded dispatch while preserving eight sweeps, one time advance, device dependencies and public telemetry.",
+      "evidence": [
+        "PASS: ctest --test-dir build-macos-metal-preview -R ^parallel-mater-(compute-contract-tests|rigid-realtime-tests|slang-architecture|slang-metal-kernel-tests|slang-metal-realtime-tests)$ --output-on-failure; Apple M4/macOS 26.5.2/Metal 32023.883; docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json",
+        "PASS: public production counters reduced total dispatches 112 to 35 and domain dispatches 88 to 11 with zero host waits/readbacks; docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json",
+        "PASS: ctest --test-dir build-macos-metal-preview --repeat until-fail:20 -R parallel-mater-slang-metal-realtime-tests; 20 cold-start processes; docs/roadmap/evidence/F8-54-metal-rigid-dispatch-batching.json",
+        "PASS: cmake --build --preset macos-metal-preview, cmake --build --preset ipad-ci, and ctest --preset sdk-cpu; macOS arm64, iPhoneOS 26.5 arm64, CPU reference; docs/roadmap/F8-54-METAL-RIGID-DISPATCH-BATCHING.md"
+      ]
+    }
+  ]
 }

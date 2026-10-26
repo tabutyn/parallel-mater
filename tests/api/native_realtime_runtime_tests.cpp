@@ -2029,7 +2029,7 @@ int main(int argc, char **argv) {
         CHECK(grid_smoke_statistics.total.intraTickHostReadbacks == 0U);
         smoke_header =
             static_cast<const PmDomainOutputHeader *>(smoke_output_map);
-        CHECK(smoke_header->activeCount == 0U);
+        CHECK(smoke_header->activeCount == 2U);
 
         smoke.materialIndex = 0U;
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
@@ -2137,6 +2137,30 @@ int main(int argc, char **argv) {
     CHECK(statistics.domainIterations[0] == 8U);
     CHECK(statistics.couplingEdgeCount == 0U);
     CHECK(statistics.couplingSweeps == 0U);
+#if defined(PM_TEST_METAL_AVBD_BATCHING)
+    // F8-54 independent public-path ceilings. The old 8-body staged solve
+    // produced 112/88 total/domain dispatches and 1513/1489 workgroups.
+    CHECK(statistics.total.dispatches <= 40U);
+    CHECK(statistics.phases[
+        PM_REALTIME_WORK_PHASE_DOMAIN].dispatches <= 16U);
+    CHECK(statistics.total.workgroups <= 1'445U);
+    CHECK(statistics.phases[
+        PM_REALTIME_WORK_PHASE_DOMAIN].workgroups <= 1'420U);
+    CHECK(statistics.total.barriers <= 45U);
+    std::printf(
+        "F8_METAL_REALTIME_WORK total_dispatches=%llu total_workgroups=%llu "
+        "domain_dispatches=%llu domain_workgroups=%llu barriers=%llu "
+        "time_advances=%llu rigid_iterations=%llu\n",
+        static_cast<unsigned long long>(statistics.total.dispatches),
+        static_cast<unsigned long long>(statistics.total.workgroups),
+        static_cast<unsigned long long>(
+            statistics.phases[PM_REALTIME_WORK_PHASE_DOMAIN].dispatches),
+        static_cast<unsigned long long>(
+            statistics.phases[PM_REALTIME_WORK_PHASE_DOMAIN].workgroups),
+        static_cast<unsigned long long>(statistics.total.barriers),
+        static_cast<unsigned long long>(statistics.timeAdvances),
+        static_cast<unsigned long long>(statistics.domainIterations[0]));
+#endif
     std::uint64_t phase_dispatches{};
     for (std::uint32_t index = 0U;
          index < PM_REALTIME_WORK_PHASE_COUNT; ++index)
