@@ -534,7 +534,8 @@ int main(int argc, char **argv) {
         const PmDebugRecord *liquid_debug{};
         for (std::uint32_t index = 0U;
              index < debug_header->activeCount; ++index) {
-            if (debug_records[index].type == PM_DEBUG_RIGID)
+            if (debug_records[index].type == PM_DEBUG_RIGID &&
+                debug_records[index].objectIndex == input.bodyIndex)
                 rigid_debug = &debug_records[index];
             if (debug_records[index].type == PM_DEBUG_LIQUID)
                 liquid_debug = &debug_records[index];
