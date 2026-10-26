@@ -304,6 +304,28 @@ int main(int argc, char **argv) {
         CHECK(pmResetCommandBuffer(commands) == PM_SUCCESS);
         CHECK(pmResetFences(device, 1U, &fence) == PM_SUCCESS);
     };
+    const auto cleanup = [&](bool destroy_mixed_simulation) {
+        pmDestroyFence(device, fence);
+        pmFreeCommandBuffers(device, pool, 1U, &commands);
+        pmDestroyCommandPool(device, pool);
+        pmDestroyQueryPool(device, query);
+        pmDestroyPhysicsPipeline(device, pipeline);
+        if (destroy_mixed_simulation)
+            pmDestroySimulation(device, mixed_simulation);
+        pmDestroySimulation(device, simulation);
+        pmDestroyGeometry(device, geometry);
+        pmDestroyBuffer(device, output);
+        pmDestroyBuffer(device, fluid_output);
+        pmDestroyBuffer(device, cloth_output);
+        pmDestroyBuffer(device, soft_output);
+        pmDestroyBuffer(device, rope_output);
+        pmDestroyBuffer(device, smoke_output);
+        pmDestroyBuffer(device, auxiliary_output);
+        pmDestroyBuffer(device, source);
+        for (auto allocation : memory) pmFreeMemory(device, allocation);
+        pmDestroyDevice(device);
+        pmDestroyInstance(instance);
+    };
     CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
     CHECK(pmCmdBuildGeometry(commands, geometry) == PM_SUCCESS);
     execute(PM_SUCCESS);
@@ -569,6 +591,11 @@ int main(int argc, char **argv) {
         execute(PM_ERROR_INVALID_STATE);
     } else if (auxiliary_only) {
         std::puts("SKIP: production auxiliary features unavailable");
+    }
+    if (auxiliary_only) {
+        cleanup(true);
+        std::puts("PASS: production auxiliary outputs share one committed tick");
+        return 0;
     }
     if (mixed_info.fluidCount != 0U) {
         auto *particle = reinterpret_cast<PmParticleState *>(
@@ -2179,24 +2206,7 @@ int main(int argc, char **argv) {
     if (!production) CHECK(total_x_velocity > 0.5F);
     }
 
-    pmDestroyFence(device, fence);
-    pmFreeCommandBuffers(device, pool, 1U, &commands);
-    pmDestroyCommandPool(device, pool);
-    pmDestroyQueryPool(device, query);
-    pmDestroyPhysicsPipeline(device, pipeline);
-    pmDestroySimulation(device, simulation);
-    pmDestroyGeometry(device, geometry);
-    pmDestroyBuffer(device, output);
-    pmDestroyBuffer(device, fluid_output);
-    pmDestroyBuffer(device, cloth_output);
-    pmDestroyBuffer(device, soft_output);
-    pmDestroyBuffer(device, rope_output);
-    pmDestroyBuffer(device, smoke_output);
-    pmDestroyBuffer(device, auxiliary_output);
-    pmDestroyBuffer(device, source);
-    for (auto allocation : memory) pmFreeMemory(device, allocation);
-    pmDestroyDevice(device);
-    pmDestroyInstance(instance);
+    cleanup(false);
     std::puts(lifecycle_only
         ? "PASS: production lifecycle uses one atomic fixed tick"
         : auxiliary_only
