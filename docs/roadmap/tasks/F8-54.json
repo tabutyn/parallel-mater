@@ -1,7 +1,7 @@
 {
   "id": "F8-54",
   "title": "Batch Metal rigid solver dispatches",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-34",
     "F8-45"
@@ -21,6 +21,14 @@
     "Portable regression tests reject the original per-body launch scaling and reconcile scheduler statistics with adapter-issued counts. Cross-adapter compilation and the shared solver tests pass; installed Mac/iPad Gallery comparison is completed by F8-56."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "3c7a4940-733a-413e-b7a6-1764c5c3b901",
+    "owner": "codex-macos-dispatch",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-54/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-26T10:34:02Z",
+    "heartbeat_at": "2026-10-26T10:34:02Z",
+    "expires_at": "2026-10-27T10:34:02Z"
+  },
   "history": []
 }
