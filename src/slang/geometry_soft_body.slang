@@ -789,8 +789,15 @@ void pm_emit_deformable_spatial_primitives(
     uint primitive = pmThreadIndex();
     if (primitive >= primitive_count) return;
     bool emitsQuery = query_mask != 0u;
-    if (leaf_offset > leaf_capacity ||
-        primitive >= leaf_capacity - leaf_offset ||
+    // Point queries use the existing canonical emitter with no leaf
+    // admission. This preserves the frozen kernel inventory while allowing
+    // surface leaves and per-vertex queries to use different layouts.
+    bool queryOnly = admission_mask == 0u && emitsQuery &&
+        vertices_per_primitive == 1u &&
+        primitive_kind == kDeformableSpatialPointPrimitive;
+    bool emitsLeaf = !queryOnly;
+    if ((emitsLeaf && (leaf_offset > leaf_capacity ||
+        primitive >= leaf_capacity - leaf_offset)) ||
         (emitsQuery && (query_offset > query_capacity ||
             primitive >= query_capacity - query_offset)))
     {
@@ -800,14 +807,17 @@ void pm_emit_deformable_spatial_primitives(
     uint source = leaf_offset + primitive;
     uint query = query_offset + primitive;
     DeformableSpatialLeafMetadata leaf = {};
-    leaf.flags = kDeformableSpatialLeafInactive;
-    metadata[source] = leaf;
-    build_flags[source] = PMResourceUint8(0u);
+    if (emitsLeaf)
+    {
+        leaf.flags = kDeformableSpatialLeafInactive;
+        metadata[source] = leaf;
+        build_flags[source] = PMResourceUint8(0u);
+    }
     if (emitsQuery)
     {
         query_masks[query] = 0u;
         excluded_sort_keys[query] = 0u;
-        query_leaf_sources[query] = source;
+        if (emitsLeaf) query_leaf_sources[query] = source;
     }
 
     bool shapeValid =
@@ -823,13 +833,14 @@ void pm_emit_deformable_spatial_primitives(
     bool valid = shapeValid && deformable_spatial_valid_family(family) &&
         owner_generation != 0u && topology_revision != 0u &&
         primitiveGeneration != 0u &&
-        admission_mask != 0u && isfinite(thickness) && thickness >= 0.0f &&
+        (queryOnly || admission_mask != 0u) &&
+        isfinite(thickness) && thickness >= 0.0f &&
         isfinite(epsilon) && epsilon > 0.0f &&
         deformable_spatial_finite_vec3(path_deviation) &&
         deformable_spatial_finite_vec3(correction_budget) &&
         deformable_spatial_nonnegative_vec3(path_deviation) &&
         deformable_spatial_nonnegative_vec3(correction_budget) &&
-        sort_key_base < 0xffffffffu - primitive;
+        (queryOnly || sort_key_base < 0xffffffffu - primitive);
     if (!valid)
     {
         pmAtomicOr(status, kDeformableSpatialInvalidIdentity);
@@ -869,88 +880,35 @@ void pm_emit_deformable_spatial_primitives(
         return;
     }
 
-    uint sortKey = sort_key_base + primitive + 1u;
-    leaf.identity.family = family;
-    leaf.identity.owner_slot = owner_slot;
-    leaf.identity.owner_generation = owner_generation;
-    leaf.identity.topology_revision = topology_revision;
-    leaf.identity.primitive_kind = primitive_kind;
-    leaf.identity.primitive_slot = primitive;
-    leaf.identity.primitive_generation = primitiveGeneration;
-    leaf.sort_key = sortKey;
-    leaf.payload_ref = primitive;
-    // Admission identifies which queries may see this leaf. Query emission
-    // is independent, so surface leaves can be published without wasting a
-    // second query while point leaves retain generation-tagged identity.
-    leaf.query_mask = admission_mask;
-    leaf.admission_mask = admission_mask;
-    leaf.flags = kDeformableSpatialLeafRetained;
-    metadata[source] = leaf;
-    bounds[source] = envelope;
-    build_flags[source] = PMResourceUint8(1u);
+    uint sortKey = 0u;
+    if (emitsLeaf)
+    {
+        sortKey = sort_key_base + primitive + 1u;
+        leaf.identity.family = family;
+        leaf.identity.owner_slot = owner_slot;
+        leaf.identity.owner_generation = owner_generation;
+        leaf.identity.topology_revision = topology_revision;
+        leaf.identity.primitive_kind = primitive_kind;
+        leaf.identity.primitive_slot = primitive;
+        leaf.identity.primitive_generation = primitiveGeneration;
+        leaf.sort_key = sortKey;
+        leaf.payload_ref = primitive;
+        // Admission identifies which queries may see this leaf. Query
+        // emission is independent, so surface leaves can be published
+        // without wasting a second query while point leaves retain identity.
+        leaf.query_mask = admission_mask;
+        leaf.admission_mask = admission_mask;
+        leaf.flags = kDeformableSpatialLeafRetained;
+        metadata[source] = leaf;
+        bounds[source] = envelope;
+        build_flags[source] = PMResourceUint8(1u);
+    }
     if (emitsQuery)
     {
         query_bounds[query] = envelope;
         query_masks[query] = query_mask;
-        excluded_sort_keys[query] = sortKey;
+        excluded_sort_keys[query] = emitsLeaf ? sortKey : 0u;
     }
-}
-
-[shader("compute")]
-[numthreads(128, 1, 1)]
-void pm_emit_deformable_point_queries(
-    uniform PMBuffer<Vec3> previous_positions,
-    uniform PMBuffer<Vec3> predicted_positions, uniform uint point_count,
-    uniform uint query_offset, uniform uint query_capacity,
-    uniform uint query_mask, uniform float radius,
-    uniform Vec3 path_deviation, uniform Vec3 correction_budget,
-    uniform float epsilon,
-    uniform PMBuffer<DeformableSpatialAabb> query_bounds,
-    uniform PMBuffer<uint> query_masks,
-    uniform PMBuffer<uint> excluded_sort_keys,
-    uniform PMBuffer<uint> status PM_D3D12_DISPATCH_PARAMETER)
-{
-    PM_D3D12_DISPATCH_PROLOGUE();
-    uint point = pmThreadIndex();
-    if (point >= point_count) return;
-    if (query_offset > query_capacity ||
-        point >= query_capacity - query_offset)
-    {
-        pmAtomicOr(status, kDeformableSpatialQueryOverflow);
-        return;
-    }
-    uint query = query_offset + point;
-    query_masks[query] = 0u;
-    excluded_sort_keys[query] = 0u;
-    bool valid = query_mask != 0u && isfinite(radius) && radius >= 0.0f &&
-        isfinite(epsilon) && epsilon > 0.0f &&
-        deformable_spatial_finite_vec3(previous_positions[point]) &&
-        deformable_spatial_finite_vec3(predicted_positions[point]) &&
-        deformable_spatial_finite_vec3(path_deviation) &&
-        deformable_spatial_finite_vec3(correction_budget) &&
-        deformable_spatial_nonnegative_vec3(path_deviation) &&
-        deformable_spatial_nonnegative_vec3(correction_budget);
-    if (!valid)
-    {
-        pmAtomicOr(status, kDeformableSpatialInvalidBounds);
-        return;
-    }
-    Vec3 expansion = add(add(path_deviation, correction_budget),
-        Vec3(radius + epsilon, radius + epsilon, radius + epsilon));
-    Vec3 minimum = subtract(component_min(previous_positions[point],
-        predicted_positions[point]), expansion);
-    Vec3 maximum = add(component_max(previous_positions[point],
-        predicted_positions[point]), expansion);
-    DeformableSpatialAabb envelope;
-    envelope.minimum = float4(minimum.x, minimum.y, minimum.z, 0.0f);
-    envelope.maximum = float4(maximum.x, maximum.y, maximum.z, 0.0f);
-    if (!deformable_spatial_valid_bounds(envelope))
-    {
-        pmAtomicOr(status, kDeformableSpatialInvalidBounds);
-        return;
-    }
-    query_bounds[query] = envelope;
-    query_masks[query] = query_mask;
 }
 
 [shader("compute")]

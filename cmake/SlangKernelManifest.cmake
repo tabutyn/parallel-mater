@@ -176,7 +176,6 @@ set(PARALLEL_MATER_SLANG_geometry_soft_body_ENTRIES
     deformable_collide soft_body_surface_contacts
     soft_body_apply_surface_contacts
     pm_emit_deformable_spatial_primitives
-    pm_emit_deformable_point_queries
     pm_filter_deformable_spatial_candidates
     pm_emit_smoke_spatial_queries
     pm_filter_smoke_spatial_obstacles)

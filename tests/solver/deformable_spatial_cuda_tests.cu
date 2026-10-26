@@ -349,12 +349,16 @@ void run_point_query_fixture() {
     CHECK(bounds[0].maximum[0] > 1.18F);
     query_masks[0] = query_masks[1] = 0U;
     excluded[0] = excluded[1] = 99U;
-    pm_emit_deformable_point_queries<<<1U, threads>>>(
-        previous, predicted, 2U, 0U, 2U,
-        coupling_spatial_query_mask, 0.03F, deviation, correction,
+    pm_emit_deformable_spatial_primitives<<<1U, threads>>>(
+        previous, predicted, 2U, nullptr, nullptr, 2U, 1U,
+        deformable_spatial_soft_family, 12U, 5U, 19U,
+        deformable_spatial_point_primitive, 0U, 2U, 0U, 2U, 0U,
+        coupling_spatial_query_mask, 0U, 0.03F, deviation, correction,
         1.0e-5F,
+        reinterpret_cast<DeformableSpatialLeafMetadata_0 *>(metadata),
+        reinterpret_cast<DeformableSpatialAabb_0 *>(bounds), build_flags,
         reinterpret_cast<DeformableSpatialAabb_0 *>(query_bounds),
-        query_masks, excluded, status);
+        query_masks, excluded, query_leaf_sources, status);
     CHECK(cudaDeviceSynchronize() == cudaSuccess);
     CHECK(*status == 0U);
     CHECK(query_masks[0] == coupling_spatial_query_mask);
@@ -363,6 +367,12 @@ void run_point_query_fixture() {
     CHECK(excluded[1] == 0U);
     CHECK(query_bounds[0].minimum[0] < -1.18F);
     CHECK(query_bounds[0].maximum[0] > 1.18F);
+    for (unsigned node = 0U; node < 2U; ++node) {
+        CHECK(build_flags[node] == 1U);
+        CHECK(metadata[node].admission_mask ==
+              deformable_spatial_query_identity_mask);
+        CHECK(query_leaf_sources[node] == node);
+    }
     for (void *pointer : std::array<void *, 10>{
              previous, predicted, metadata, bounds, build_flags,
              query_bounds, query_masks, excluded, query_leaf_sources,

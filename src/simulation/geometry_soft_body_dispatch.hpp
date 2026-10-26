@@ -60,16 +60,6 @@ void emit_deformable_spatial_primitives(
     std::uint32_t *excluded_sort_keys, std::uint32_t *query_leaf_sources,
     std::uint32_t *status) noexcept;
 
-void emit_deformable_point_queries(
-    device::DispatchSize grid, device::DispatchSize block,
-    device::ExecutionQueue stream, const void *previous_positions,
-    const void *predicted_positions, std::uint32_t point_count,
-    std::uint32_t query_offset, std::uint32_t query_capacity,
-    std::uint32_t query_mask, float radius,
-    const float path_deviation[3], const float correction_budget[3],
-    float epsilon, void *query_bounds, std::uint32_t *query_masks,
-    std::uint32_t *excluded_sort_keys, std::uint32_t *status) noexcept;
-
 void filter_deformable_spatial_candidates(
     device::DispatchSize grid, device::DispatchSize block,
     device::ExecutionQueue stream, const void *metadata,

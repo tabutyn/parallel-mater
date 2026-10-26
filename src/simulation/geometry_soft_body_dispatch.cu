@@ -131,26 +131,6 @@ void emit_deformable_spatial_primitives(
         excluded_sort_keys, query_leaf_sources, status);
 }
 
-void emit_deformable_point_queries(
-    device::DispatchSize grid, device::DispatchSize block,
-    device::ExecutionQueue stream, const void *previous_positions,
-    const void *predicted_positions, std::uint32_t point_count,
-    std::uint32_t query_offset, std::uint32_t query_capacity,
-    std::uint32_t query_mask, float radius,
-    const float path_deviation[3], const float correction_budget[3],
-    float epsilon, void *query_bounds, std::uint32_t *query_masks,
-    std::uint32_t *excluded_sort_keys, std::uint32_t *status) noexcept {
-    pm_emit_deformable_point_queries<<<
-        dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U,
-        static_cast<cudaStream_t>(stream.native_handle)>>>(
-        const_cast<Vec3_0 *>(as<Vec3_0>(previous_positions)),
-        const_cast<Vec3_0 *>(as<Vec3_0>(predicted_positions)), point_count,
-        query_offset, query_capacity, query_mask, radius,
-        vec3(path_deviation), vec3(correction_budget), epsilon,
-        as<DeformableSpatialAabb_0>(query_bounds), query_masks,
-        excluded_sort_keys, status);
-}
-
 void filter_deformable_spatial_candidates(
     device::DispatchSize grid, device::DispatchSize block,
     device::ExecutionQueue stream, const void *metadata,

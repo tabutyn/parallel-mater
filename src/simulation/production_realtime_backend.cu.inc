@@ -2774,15 +2774,23 @@ public:
                      cloth_groups);
             const auto vertex_groups =
                 (cloth.vertex_count + block - 1U) / block;
-            native_.emit_deformable_point_queries(
+            native_.emit_deformable_spatial_primitives(
                 vertex_groups, block, native_.queue(), cloth.previous,
-                cloth.realtime_positions, cloth.vertex_count,
+                cloth.realtime_positions, cloth.vertex_count, nullptr,
+                nullptr, cloth.vertex_count, 1U,
+                simulation::deformable_spatial_cloth_family, slot,
+                cloth.generation,
+                static_cast<std::uint32_t>(cloth.realtime_topology_revision),
+                simulation::deformable_spatial_point_primitive, 0U,
+                state_.realtime_spatial_plan.leaf_capacity,
                 cloth.realtime_query_offset,
-                state_.realtime_spatial_plan.query_capacity,
+                state_.realtime_spatial_plan.query_capacity, 0U,
                 simulation::rigid_spatial_query_mask |
                     simulation::coupling_spatial_query_mask,
-                cloth.thickness, path_deviation, cloth_correction, 1.0e-5F,
-                query_bounds, query_masks, excluded, snapshot_.query_status);
+                0U, cloth.thickness, path_deviation, cloth_correction,
+                1.0e-5F, snapshot_.metadata, snapshot_.bounds,
+                snapshot_.build_flags, query_bounds, query_masks, excluded,
+                deformable_query_leaf_sources, snapshot_.query_status);
             result = native_.check_error();
             if (result != PM_SUCCESS) return result;
             dispatch(simulation::RealtimeTelemetryPhase::index,

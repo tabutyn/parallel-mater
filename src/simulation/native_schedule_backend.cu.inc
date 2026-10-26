@@ -192,7 +192,6 @@ struct NativeScheduleBackend {
     PM_SCHEDULE_DISPATCH(emit_fluid_spatial_source_proposals)
     PM_SCHEDULE_DISPATCH(apply_fluid_spatial_source_admission)
     PM_SCHEDULE_DISPATCH(emit_deformable_spatial_primitives)
-    PM_SCHEDULE_DISPATCH(emit_deformable_point_queries)
     PM_SCHEDULE_DISPATCH(emit_rigid_spatial_proxies)
     PM_SCHEDULE_DISPATCH(emit_smoke_particles)
     PM_SCHEDULE_DISPATCH(emit_smoke_realtime_particles)

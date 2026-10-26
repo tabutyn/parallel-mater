@@ -116,22 +116,6 @@ void emit_deformable_spatial_primitives(
         excluded_sort_keys, query_leaf_sources, status);
 }
 
-void emit_deformable_point_queries(
-    device::DispatchSize grid, device::DispatchSize,
-    device::ExecutionQueue stream, const void *previous_positions,
-    const void *predicted_positions, std::uint32_t point_count,
-    std::uint32_t query_offset, std::uint32_t query_capacity,
-    std::uint32_t query_mask, float radius,
-    const float path_deviation[3], const float correction_budget[3],
-    float epsilon, void *query_bounds, std::uint32_t *query_masks,
-    std::uint32_t *excluded_sort_keys, std::uint32_t *status) noexcept {
-    (void)metal::launch(stream, "pm_emit_deformable_point_queries", grid,
-        previous_positions, predicted_positions, point_count, query_offset,
-        query_capacity, query_mask, radius,
-        spatial_vector(path_deviation), spatial_vector(correction_budget),
-        epsilon, query_bounds, query_masks, excluded_sort_keys, status);
-}
-
 void filter_deformable_spatial_candidates(
     device::DispatchSize grid, device::DispatchSize,
     device::ExecutionQueue stream, const void *metadata,
