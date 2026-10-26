@@ -1,7 +1,7 @@
 {
   "id": "F8-57",
   "title": "Keep installed macOS Gallery synchronized",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-51"
   ],
@@ -18,15 +18,31 @@
     "Deployment verifies the installed code signature and exact Dock path. Legacy Metal Gallery entries are removed, and unavailable or failed Dock repair is a build failure rather than a warning that leaves an ambiguous launcher.",
     "Portable guards cover preset opt-in and clean/dirty build-time identity regeneration. A clean standard Metal preset build on the physical Mac completes automatic deployment, and the installed app passes a six-frame native Metal smoke with matching revision/backend identity."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "5477c425-968d-4260-99da-89632edf999b",
-    "owner": "codex-macos-gallery-delivery",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-57/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-26T12:45:39Z",
-    "heartbeat_at": "2026-10-26T12:45:39Z",
-    "expires_at": "2026-10-27T12:45:39Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F8-57-macos-gallery-delivery.json",
+    "PASS: 10/10 portable deployment guards and 2/2 focused CTests; Apple M4/macOS 26.5.2",
+    "PASS: standard macos-metal-preview build auto-deployed clean Metal revision 8a180fdd; exact build-info hash, strict signature and Dock path matched; installed six-frame metal-direct-fenced smoke passed"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "5477c425-968d-4260-99da-89632edf999b",
+        "owner": "codex-macos-gallery-delivery",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-57/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-26T12:45:39Z",
+        "heartbeat_at": "2026-10-26T12:45:39Z",
+        "expires_at": "2026-10-27T12:45:39Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-26T12:48:02Z",
+      "reason": "Standard macOS Metal builds now regenerate identity, atomically deploy the exact signed bundle and fail unless the canonical Dock path verifies.",
+      "evidence": [
+        "docs/roadmap/evidence/F8-57-macos-gallery-delivery.json",
+        "PASS: 10/10 portable deployment guards and 2/2 focused CTests; Apple M4/macOS 26.5.2",
+        "PASS: standard macos-metal-preview build auto-deployed clean Metal revision 8a180fdd; exact build-info hash, strict signature and Dock path matched; installed six-frame metal-direct-fenced smoke passed"
+      ]
+    }
+  ]
 }
