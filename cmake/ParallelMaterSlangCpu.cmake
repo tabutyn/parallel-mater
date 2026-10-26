@@ -255,10 +255,10 @@ list(APPEND PARALLEL_MATER_DRIVER_INSTALL_TARGETS
 
 file(GENERATE
     OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cpu.json"
-    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-cpu>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-cpu>\",\n    \"api_version\": \"0.3.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 file(GENERATE
     OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/slang-cpu.json"
-    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../../Frameworks/$<TARGET_FILE_NAME:parallel-mater-driver-slang-cpu>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../../Frameworks/$<TARGET_FILE_NAME:parallel-mater-driver-slang-cpu>\",\n    \"api_version\": \"0.3.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 
 if(BUILD_TESTING)
     # This non-installed fixture runs host-side resource lifecycle tests through
@@ -273,11 +273,11 @@ if(BUILD_TESTING)
         PARALLEL_MATER_TEST_FAILURE_DRIVER=1)
     file(GENERATE
         OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-slang-cpu-resources.json"
-        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-test-driver-slang-cpu-resources>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-test-driver-slang-cpu-resources>\",\n    \"api_version\": \"0.3.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
     # Preserve the F1-04 evidence command while new tests use the generic name.
     file(GENERATE
         OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-slang-cpu-paint-resources.json"
-        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-test-driver-slang-cpu-resources>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-test-driver-slang-cpu-resources>\",\n    \"api_version\": \"0.3.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 
     add_executable(parallel-mater-async-submission-tests tests/api/async_submission_tests.cpp)
     target_compile_features(parallel-mater-async-submission-tests PRIVATE cxx_std_20)

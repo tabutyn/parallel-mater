@@ -55,10 +55,10 @@ set(PARALLEL_MATER_BUILD_MANIFEST_DIR
     "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/manifests")
 file(GENERATE
     OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/validation.json"
-    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_PARALLEL_MATER_validation\",\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.2.0\"\n  }\n}\n")
+    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_PARALLEL_MATER_validation\",\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.3.0\"\n  }\n}\n")
 file(GENERATE
     OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/validation.json"
-    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_PARALLEL_MATER_validation\",\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.2.0\"\n  }\n}\n")
+    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"layer\": {\n    \"name\": \"PM_LAYER_PARALLEL_MATER_validation\",\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-layer-validation>\",\n    \"api_version\": \"0.3.0\"\n  }\n}\n")
 
 if(BUILD_TESTING)
     target_compile_definitions(parallel-mater-layer-validation PRIVATE
@@ -82,12 +82,12 @@ if(BUILD_TESTING)
         "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-drivers")
     file(GENERATE
         OUTPUT "${PARALLEL_MATER_TEST_DRIVER_MANIFEST_DIR}/mock.json"
-        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-mock-driver>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-mock-driver>\",\n    \"api_version\": \"0.3.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
     set(PARALLEL_MATER_TEST_UNICODE_DRIVER_MANIFEST_DIR
         "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/test-drivers-unicode/物理")
     file(GENERATE
         OUTPUT "${PARALLEL_MATER_TEST_UNICODE_DRIVER_MANIFEST_DIR}/mock.json"
-        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-mock-driver>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-mock-driver>\",\n    \"api_version\": \"0.3.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
     add_executable(parallel-mater-loader-driver-discovery-tests
         tests/api/loader_driver_discovery_tests.cpp)
     target_compile_features(parallel-mater-loader-driver-discovery-tests
@@ -130,7 +130,7 @@ if(BUILD_TESTING)
             endif()
             file(GENERATE
                 OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/${mock_target}.json"
-                CONTENT "{\"file_format_version\":\"1.0.0\",\"${manifest_key}\":{\"library_path\":\"$<TARGET_FILE:${mock_target}>\",\"api_version\":\"0.2.0\"}}\n")
+                CONTENT "{\"file_format_version\":\"1.0.0\",\"${manifest_key}\":{\"library_path\":\"$<TARGET_FILE:${mock_target}>\",\"api_version\":\"0.3.0\"}}\n")
             add_dependencies(parallel-mater-loader-driver-discovery-tests ${mock_target})
             add_test(NAME parallel-mater-reject-${kind}-abi-${version}
                 COMMAND parallel-mater-loader-driver-discovery-tests reject-${kind})

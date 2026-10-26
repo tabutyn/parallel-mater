@@ -45,7 +45,7 @@ bool open_selected_device(SelectedDevice &selected,
                           std::optional<PmNativeBackend> backend) {
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instance_info.apiVersion = PM_API_VERSION_0_2;
+    instance_info.apiVersion = PM_API_VERSION_0_3;
     instance_info.pApplicationName = "parallel-mater-gallery-platform";
     if (pmCreateInstance(&instance_info, nullptr, &selected.instance) !=
         PM_SUCCESS)
@@ -101,7 +101,7 @@ bool open_selected_device(SelectedDevice &selected,
 std::vector<GalleryBackendOption> platform_gallery_backends() {
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instance_info.apiVersion = PM_API_VERSION_0_2;
+    instance_info.apiVersion = PM_API_VERSION_0_3;
     instance_info.pApplicationName = "parallel-mater-gallery-backends";
     PmInstance instance{};
     if (pmCreateInstance(&instance_info, nullptr, &instance) != PM_SUCCESS)

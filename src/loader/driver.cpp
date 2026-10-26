@@ -106,8 +106,8 @@ std::filesystem::path library_from_manifest(
         if (major_result.ec != std::errc{} ||
             minor_result.ec != std::errc{})
             return {};
-        if (major != PM_API_VERSION_MAJOR(PM_API_VERSION_0_2) ||
-            minor > PM_API_VERSION_MINOR(PM_API_VERSION_0_2))
+        if (major != PM_API_VERSION_MAJOR(PM_API_VERSION_0_3) ||
+            minor != PM_API_VERSION_MINOR(PM_API_VERSION_0_3))
             return {};
     }
     if (!std::regex_search(text, match,

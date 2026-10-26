@@ -1,7 +1,8 @@
 /* SPDX-License-Identifier: MIT
  * Frozen pre-profile API 0.2 declarations. This source deliberately does not
  * include the installed header, proving that an independently built old client
- * retains the legacy default against the new loader and driver. */
+ * is rejected explicitly by the API 0.3 loader before any request can be
+ * reinterpreted with fixed-tick semantics. */
 #include <stdint.h>
 #include <stdio.h>
 
@@ -20,6 +21,7 @@ typedef struct OldPmSimulation_T* OldPmSimulation;
 
 enum {
     OLD_PM_SUCCESS = 0,
+    OLD_PM_ERROR_INCOMPATIBLE_VERSION = -9,
     OLD_PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO = 1,
     OLD_PM_STRUCTURE_TYPE_DEVICE_CREATE_INFO = 2,
     OLD_PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO = 6,
@@ -104,19 +106,15 @@ int main(void) {
     uint32_t count = 1U;
     instance_info.sType = OLD_PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instance_info.apiVersion = OLD_PM_API_VERSION_0_2;
-    CHECK(pmCreateInstance(&instance_info, 0, &instance) == OLD_PM_SUCCESS);
-    CHECK(pmEnumeratePhysicalDevices(instance, &count, &physical) ==
-          OLD_PM_SUCCESS);
-    CHECK(count == 1U && physical != 0);
-    device_info.sType = OLD_PM_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    CHECK(pmCreateDevice(physical, &device_info, &device) == OLD_PM_SUCCESS);
-    simulation_info.sType = OLD_PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
-    simulation_info.rigidBodyCapacity = 1U;
-    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-          OLD_PM_SUCCESS);
-    pmDestroySimulation(device, simulation);
-    pmDestroyDevice(device);
-    pmDestroyInstance(instance);
-    puts("PASS: independently built API 0.2 client retains legacy default");
+    CHECK(pmCreateInstance(&instance_info, 0, &instance) ==
+          OLD_PM_ERROR_INCOMPATIBLE_VERSION);
+    CHECK(instance == 0);
+    (void)physical;
+    (void)device_info;
+    (void)device;
+    (void)simulation_info;
+    (void)simulation;
+    (void)count;
+    puts("PASS: independently built API 0.2 client is rejected explicitly");
     return 0;
 }

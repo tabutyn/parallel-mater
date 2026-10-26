@@ -239,7 +239,7 @@ def main():
                 "workload": json.loads(capacity_path.read_text(encoding="utf-8"))[
                     "workload"],
             }
-        for version in ("0.1", "0.3"):
+        for version in ("0.2", "0.4"):
             run("reject-version-" + version, ["cmake", "-S", source, "-B",
                 output / ("version-" + version), *generator,
                 f"-DCMAKE_PREFIX_PATH={sdk}", f"-DPM_REQUIRED_VERSION={version}"], expected=1)

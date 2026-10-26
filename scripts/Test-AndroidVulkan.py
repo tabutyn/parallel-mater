@@ -96,10 +96,10 @@ def main():
         shutil.copy2(ROOT / relative, destination)
     (stage / "driver.json").write_text(json.dumps({"file_format_version": "1.0.0", "PMD": {
         "library_path": "./libparallel_mater_driver_slang_vulkan.so",
-        "api_version": "0.2.0", "library_arch": "64"}}))
+        "api_version": "0.3.0", "library_arch": "64"}}))
     (stage / "validation.json").write_text(json.dumps({"file_format_version": "1.0.0", "layer": {
         "name": "PM_LAYER_KHRONOS_validation", "library_path": "./libparallel_mater_layer_validation.so",
-        "api_version": "0.2.0"}}))
+        "api_version": "0.3.0"}}))
     if args.prepare_only:
         print(f"Prepared Android Vulkan qualification payload: {stage}")
         return

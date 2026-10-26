@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
 
     std::uint32_t version{};
     CHECK(pmEnumerateInstanceVersion(&version) == PM_SUCCESS);
-    CHECK(version == PM_API_VERSION_0_2);
+    CHECK(version == PM_API_VERSION_0_3);
     CHECK(pmGetInstanceProcAddr(nullptr, "pmCreateInstance") != nullptr);
     std::uint32_t count{};
     CHECK(pmEnumerateInstanceLayerProperties(&count, nullptr) == PM_SUCCESS);
@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
 
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instance_info.apiVersion = PM_API_VERSION_0_2;
+    instance_info.apiVersion = PM_API_VERSION_0_3;
     instance_info.enableValidation = PM_TRUE;
     PmInstance instance{};
     CHECK(pmCreateInstance(&instance_info, nullptr, &instance) == PM_SUCCESS);
@@ -65,12 +65,7 @@ int main(int argc, char **argv) {
     std::uint32_t extension_count{};
     CHECK(pmEnumerateDeviceExtensionProperties(
               physical, nullptr, &extension_count, nullptr) == PM_SUCCESS);
-    CHECK(extension_count == 1U);
-    PmExtensionProperties extension{};
-    CHECK(pmEnumerateDeviceExtensionProperties(
-              physical, nullptr, &extension_count, &extension) == PM_SUCCESS);
-    CHECK(std::strcmp(extension.extensionName,
-                      PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME) == 0);
+    CHECK(extension_count == 0U);
 
     PmDeviceCreateInfo device_info{};
     device_info.sType = PM_STRUCTURE_TYPE_DEVICE_CREATE_INFO;

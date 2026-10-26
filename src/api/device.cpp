@@ -9,8 +9,6 @@ namespace {
 
 [[nodiscard]] bool supported_extension(const char *name) noexcept {
     if (name == nullptr) return false;
-    if (std::strcmp(name, PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME) == 0)
-        return true;
 #if defined(PARALLEL_MATER_HAS_VULKAN_INTEROP)
     if (std::strcmp(name, "PM_EXT_vulkan_interop") == 0) return true;
 #endif
@@ -44,13 +42,10 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateDevice(
          info->ppEnabledExtensionNames == nullptr) ||
         !subset(info->enabledFeatures, parallel_mater::api::supported_features()))
         return PM_ERROR_INVALID_ARGUMENT;
-    bool simulation_profile_extension = false;
     for (std::uint32_t index = 0U; index < info->enabledExtensionCount; ++index) {
         const char *name = info->ppEnabledExtensionNames[index];
         if (name == nullptr) return PM_ERROR_INVALID_ARGUMENT;
         if (!supported_extension(name)) return PM_ERROR_EXTENSION_NOT_PRESENT;
-        simulation_profile_extension = simulation_profile_extension ||
-            std::strcmp(name, PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME) == 0;
     }
     PmResult result = PM_SUCCESS;
 #if defined(PARALLEL_MATER_SLANG_CPU_DRIVER)
@@ -75,7 +70,6 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateDevice(
     created->physical = physical;
     created->enabled = info->enabledFeatures;
     created->services = std::move(services);
-    created->simulation_profile_extension = simulation_profile_extension;
     try {
         created->queue.submissions =
             std::make_unique<parallel_mater::device::SubmissionQueue>();

@@ -19,7 +19,7 @@
 int main() {
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instance_info.apiVersion = PM_API_VERSION_0_2;
+    instance_info.apiVersion = PM_API_VERSION_0_3;
     PmInstance instance{};
     CHECK(pmCreateInstance(&instance_info, nullptr, &instance) == PM_SUCCESS);
     std::uint32_t physical_count{};
@@ -299,7 +299,7 @@ int main() {
     CHECK(pmCmdBindPhysicsPipeline(commands, pipeline) == PM_SUCCESS);
     if (timing)
         CHECK(pmCmdWriteTimestamp(commands, PM_STAGE_ALL_COMMANDS_BIT, timing, 0U) == PM_SUCCESS);
-    const PmStepInfo step{1.0F / 60.0F, 2U, {0.0F, -9.81F, 0.0F},
+    const PmStepInfo step{1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F},
                           PM_STEP_COLLECT_CONTACT_EVENTS_BIT};
     CHECK(pmCmdStepSimulation(commands, simulation, &step) == PM_SUCCESS);
     const PmBufferRange state_output{

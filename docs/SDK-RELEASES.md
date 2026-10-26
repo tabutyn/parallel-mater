@@ -7,10 +7,10 @@ libraries are host tooling, with no stable C++ binary ABI promise.
 
 ## Versions and packages
 
-The current SDK/package and application API line is **0.2**. Package patch
+The current SDK/package and application API line is **0.3**. Package patch
 versions identify compatible fixes within that line. Until 1.0, a minor version
-may break the contract: CMake accepts the same minor line and rejects 0.1/0.3
-against 0.2.0. ELF/macOS loader ABI naming follows 0.2. Driver-interface version 1
+may break the contract: CMake accepts the same minor line and rejects 0.2/0.4
+against 0.3.0. ELF/macOS loader ABI naming follows 0.3. Driver-interface version 2
 and layer-interface version 3 are separate negotiation domains; increasing the
 SDK patch number never silently changes either interface. Applications request
 their API explicitly; the documented zero alias is not a compatibility promise
@@ -36,7 +36,7 @@ components into the same prefix. `scene` additionally requires `preparation`.
 Missing components and incomplete dependency combinations fail during
 `find_package`, before a dangling imported target can be used.
 
-Consumers request the same names with `find_package(ParallelMater 0.2 CONFIG
+Consumers request the same names with `find_package(ParallelMater 0.3 CONFIG
 REQUIRED COMPONENTS ...)`. Use `ParallelMater::api` for the public C interface,
 `ParallelMater::validation`, `ParallelMater::preparation`, and
 `ParallelMater::scene` for the corresponding libraries. The `driver` component

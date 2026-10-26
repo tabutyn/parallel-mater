@@ -19,7 +19,7 @@ extern "C" {
 #endif
 #endif
 
-#define PM_DRIVER_INTERFACE_VERSION 1u
+#define PM_DRIVER_INTERFACE_VERSION 2u
 #define PM_DRIVER_MANIFEST_FILE_VERSION "1.0.0"
 
 typedef PmResult (PMAPI_CALL *PFN_pmDriverNegotiateLoaderInterfaceVersion)(

@@ -42,9 +42,6 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateQueryPool(
          info->queryType != PM_QUERY_STEP_STATISTICS &&
          info->queryType != PM_QUERY_REALTIME_STEP_STATISTICS))
         return PM_ERROR_INVALID_ARGUMENT;
-    if (info->queryType == PM_QUERY_REALTIME_STEP_STATISTICS &&
-        !device->simulation_profile_extension)
-        return PM_ERROR_EXTENSION_NOT_PRESENT;
     auto *created = parallel_mater::api::make_object<PmQueryPool_T>(device);
     if (created == nullptr) return PM_ERROR_OUT_OF_HOST_MEMORY;
     created->device = device;

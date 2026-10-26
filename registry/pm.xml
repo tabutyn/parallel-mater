@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<registry api="parallel-mater" major="0" minor="2" loader-driver-interface="1">
+<registry api="parallel-mater" major="0" minor="3" loader-driver-interface="2">
   <prelude>
 #ifndef PARALLEL_MATER_H
 #define PARALLEL_MATER_H
@@ -35,6 +35,7 @@ extern "C" {
 #define PM_API_VERSION_MINOR(version) (((uint32_t)(version) &gt;&gt; 12) &amp; 0x3ffu)
 #define PM_API_VERSION_PATCH(version) ((uint32_t)(version) &amp; 0xfffu)
 #define PM_API_VERSION_0_2 PM_MAKE_API_VERSION(0, 2, 0)
+#define PM_API_VERSION_0_3 PM_MAKE_API_VERSION(0, 3, 0)
 #define PM_WHOLE_SIZE UINT64_MAX
 #define PM_TIMEOUT_INFINITE UINT64_MAX
 #define PM_INVALID_INDEX UINT32_MAX
@@ -83,7 +84,7 @@ typedef struct PmQueryPool_T* PmQueryPool;
     <type name="PmFluidPairMaterialState" value="16" />
     <type name="PmPhysicsPipelineCouplingStateInfo" value="17" />
     <type name="PmFluidInterfaceState" value="18" />
-    <type name="PmSimulationProfileCreateInfo" value="19" />
+    <!-- Value 19 was PmSimulationProfileCreateInfo in API 0.2. Retired. -->
     <type name="PmSoftBodyStateInfo" value="20" />
     <type name="PmSoftBodySelfContactState" value="21" />
     <type name="PmClothStateInfo" value="22" />
@@ -343,27 +344,6 @@ typedef struct PmQueueFamilyProperties {
       <commands>void pmGetPhysicalDeviceFeatures(
     PmPhysicalDevice physicalDevice,
     PmPhysicalDeviceFeatures* pFeatures);</commands>
-    </card>
-    <card key="execution_profiles" section="discovery" extension="false" emit-header="true">
-      <types>#define PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME "PM_EXT_simulation_profile"
-#define PM_EXT_SIMULATION_PROFILE_SPEC_VERSION 1u
-#define PM_EXECUTION_PROFILE_NAME_MAX_SIZE 64u
-#define PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP "realtime-single-step"
-typedef struct PmExecutionProfileProperties {
-    char profileName[PM_EXECUTION_PROFILE_NAME_MAX_SIZE];
-    uint32_t versionMajor;
-    uint32_t versionMinor;
-} PmExecutionProfileProperties;
-typedef struct PmSimulationProfileCreateInfo {
-    PmStructureType sType;
-    const void* pNext;
-    const char* pProfileName;
-    uint32_t versionMajor;
-    uint32_t versionMinor;
-} PmSimulationProfileCreateInfo;</types>
-      <commands>PmResult pmEnumerateExecutionProfiles(
-    PmPhysicalDevice physicalDevice, uint32_t* pCount,
-    PmExecutionProfileProperties* pProperties);</commands>
     </card>
     <card key="device" section="discovery" extension="false" emit-header="true">
       <types>typedef struct PmDeviceQueueCreateInfo {

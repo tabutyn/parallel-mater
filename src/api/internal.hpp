@@ -61,17 +61,11 @@ struct PmDevice_T {
     PmPhysicalDeviceFeatures enabled{};
     std::unique_ptr<parallel_mater::device::Services> services;
     PmQueue_T queue{};
-    bool simulation_profile_extension{};
     std::atomic<std::uint64_t> next_pipeline_serial{1};
     std::atomic<PmDeviceSize> application_bytes{};
     std::atomic<PmDeviceSize> library_device_bytes{};
     std::atomic<PmDeviceSize> library_host_bytes{};
     std::atomic<PmDeviceSize> borrowed_buffer_bytes{};
-};
-
-enum class PmSimulationExecutionProfile : std::uint8_t {
-    legacy_default,
-    realtime_single_step,
 };
 
 struct PmDeviceMemory_T {
@@ -128,8 +122,6 @@ using PmRuntimeCoupling = std::variant<
 struct PmSimulation_T {
     PmDevice_T *device{};
     PmSimulationCreateInfo info{};
-    PmSimulationExecutionProfile execution_profile{
-        PmSimulationExecutionProfile::legacy_default};
     std::vector<PmFluidCapacity> fluids;
     std::vector<PmClothCapacity> cloth_capacities;
     std::vector<PmRopeCapacity> rope_capacities;

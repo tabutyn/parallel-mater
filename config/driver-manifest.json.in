@@ -2,7 +2,7 @@
   "file_format_version": "1.0.0",
   "PMD": {
     "library_path": "@PARALLEL_MATER_INSTALLED_DRIVER_PATH@",
-    "api_version": "0.2.0",
+    "api_version": "0.3.0",
     "library_arch": "@PARALLEL_MATER_LIBRARY_ARCH@"
   }
 }

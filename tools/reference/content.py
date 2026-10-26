@@ -38,7 +38,7 @@ def c(key, title, text="", *, types="", functions="", code="", rows=(), links=()
 PRELUDE = ""  # Populated from registry/pm.xml by apply_registry().
 
 SECTIONS = [
-    Section("overview", "Parallel Mater", "API 0.2", [
+    Section("overview", "Parallel Mater", "API 0.3", [
         c("intent", "Overview", "Parallel Mater is a physics API offering functions and structures that allow you to define physics simulations. Parallel Mater supports Rigid Bodies, Fluid, Cloth, Rope, Smoke, and Soft Bodies. Parallel Mater uses a configured fixed-function pipeline to simulate the specified physics simulations and their specified couplings."),
         c("legend", "Color key", "Function names: pmCreateInstance<br/>Structure and type names: PmInstanceCreateInfo<br/>Constants and return codes: PM_SUCCESS<br/>PFN_pmName: pointer type for pmName<br/>[n.n] Specification section"),
         c("conventions", "Calling conventions", "pmCreate*/pmDestroy* own objects; pmGet* queries; pmCmd* records work. Counts precede arrays. Input pointers are const. A null array requests an enumeration count; a short array returns PM_INCOMPLETE and the number written. Unless stated otherwise, input data is copied before a call returns."),
@@ -90,7 +90,7 @@ SECTIONS = [
                 const PmAllocationCallbacks* pAllocator,
                 PmInstance* pInstance);
             void pmDestroyInstance(PmInstance instance);
-        """, text="pmEnumerateInstanceVersion reports the highest supported API version; pApiVersion must be non-NULL. Set apiVersion = PM_API_VERSION_0_2 to use this reference; zero selects 0.2. Other versions are unsupported, including older pre-stable versions. Unsupported versions return PM_ERROR_INCOMPATIBLE_VERSION. Destroy every logical device before its instance. Validation is a host-side diagnostic request, not permission to omit required synchronization.", links=("allocator", "discovery")),
+        """, text="pmEnumerateInstanceVersion reports the highest supported API version; pApiVersion must be non-NULL. Set apiVersion = PM_API_VERSION_0_3 to use this reference; zero selects 0.3. API 0.2 and other versions are unsupported because 0.3 removes execution-profile selection and makes the fixed-tick runtime mandatory. Unsupported versions return PM_ERROR_INCOMPATIBLE_VERSION. Destroy every logical device before its instance. Validation is a host-side diagnostic request, not permission to omit required synchronization.", links=("allocator", "discovery")),
         c("validation_diagnostics", "Structured validation diagnostics", text="Chain exactly one PmValidationDiagnosticsCreateInfo through PmInstanceCreateInfo::pNext to enable validation and receive diagnostics. pfnDiagnostic must be non-NULL; the loader copies the function and user-data pointers before pmCreateInstance returns. Keep the callback target and user data valid until pmDestroyInstance returns.<br/><br/>Rule-ID strings and enum values are stable and only extended. object is the application-visible dispatch object named by objectType. pCommandName, pArguments, and pMessage remain valid only for the callback duration; cast pArguments to the matching registry-generated PmLayerArgs_pmCommand after checking argumentSize. Callbacks may arrive concurrently and must externally synchronize their own state. A callback may make independent Parallel Mater calls, but must not destroy or mutate the originating object while its call is active.<br/><br/>Delivery performs no allocation and occurs outside validation bookkeeping locks. If validation bookkeeping exhausts host memory, PM-VAL-0004 is delivered once for the triggering call, tracked state is discarded, and stateful validation is disabled while stateless argument checks and driver execution continue. Diagnostics never replace the API result. Applications must not throw or long-jump through the callback.", links=("instance", "validity")),
         c("allocator", "Host allocation callbacks", types="""
             typedef void* (PMAPI_CALL *PmAllocateFn)(
@@ -168,28 +168,6 @@ SECTIONS = [
                 PmPhysicalDevice physicalDevice,
                 PmPhysicalDeviceFeatures* pFeatures);
         """, text="Supported features are not automatically enabled. Request only needed features at device creation. Constraints require rigidBodies; each coupling requires its participating domains. Timeline semaphores are required for a conforming command-API device; other features may be false."),
-        c("execution_profiles", "Execution profile negotiation", types="""
-            #define PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME "PM_EXT_simulation_profile"
-            #define PM_EXT_SIMULATION_PROFILE_SPEC_VERSION 1u
-            #define PM_EXECUTION_PROFILE_NAME_MAX_SIZE 64u
-            #define PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP "realtime-single-step"
-            typedef struct PmExecutionProfileProperties {
-                char profileName[PM_EXECUTION_PROFILE_NAME_MAX_SIZE];
-                uint32_t versionMajor;
-                uint32_t versionMinor;
-            } PmExecutionProfileProperties;
-            typedef struct PmSimulationProfileCreateInfo {
-                PmStructureType sType;
-                const void* pNext;
-                const char* pProfileName;
-                uint32_t versionMajor;
-                uint32_t versionMinor;
-            } PmSimulationProfileCreateInfo;
-        """, functions="""
-            PmResult pmEnumerateExecutionProfiles(
-                PmPhysicalDevice physicalDevice, uint32_t* pCount,
-                PmExecutionProfileProperties* pProperties);
-        """, text="Lists executable name/version pairs, not qualification. Enable PM_EXT_simulation_profile and chain PmSimulationProfileCreateInfo at simulation creation; omission keeps the legacy schedule. Unknown profiles and versions fail without fallback. realtime-single-step 1.0 requires one substep and 1/60 second within one binary32 ULP, enforced without validation."),
         c("device", "Logical device", types="""
             typedef struct PmDeviceQueueCreateInfo {
                 uint32_t queueFamilyIndex;
@@ -431,7 +409,7 @@ SECTIONS += [
                 PmSimulation* pSimulation);
             void pmDestroySimulation(PmDevice device,
                 PmSimulation simulation);
-        """, text="At least one body slot or fluid is required. Zero capacity disables a domain. Body and constraint IDs are stable, zero-based slots, not pointers. Each fluid is a separate particle state range with its own material. No hidden growth is permitted; change capacity by creating and migrating to a new simulation."),
+        """, text="At least one domain capacity is required. Zero capacity disables a domain. Body and constraint IDs are stable, zero-based slots, not pointers. Each fluid is a separate particle state range with its own material. No hidden growth is permitted; change capacity by creating and migrating to a new simulation. pNext must be NULL: API 0.3 has one production execution architecture and no profile selector."),
         c("simulation_memory", "Persistent & scratch bindings", types="""
             typedef struct PmSimulationMemoryRequirements {
                 PmMemoryRequirements persistent;
@@ -1235,7 +1213,7 @@ SECTIONS += [
                 PmCommandBuffer commandBuffer,
                 PmSimulation simulation,
                 const PmStepInfo* pStep);
-        """, text="timestep > 0 seconds; 1 ≤ substeps ≤ maxSubsteps. Each substep advances timestep/substeps. Time advances only by the supplied timestep. PM_STEP_COLLECT_CONTACT_EVENTS_BIT records rigid and liquid contact events for later copy; without it the step avoids event-generation work and the copied event count is zero. A compatible pipeline must be bound. The simulation must be initialized, geometry built, and prior writes visible. Two submissions must not mutate one simulation concurrently.", links=("pipelines", "barriers")),
+        """, text="Every step is exactly one fixed tick: timestep must equal 1/60 second within one binary32 ULP and substeps must be 1. The runtime performs one shared spatial epoch and one commit; no mode, extension, environment variable, or build option selects another schedule. PM_STEP_COLLECT_CONTACT_EVENTS_BIT records rigid and liquid contact events for later copy; without it the step avoids event-generation work and the copied event count is zero. A compatible pipeline must be bound. The simulation must be initialized, geometry built, and prior writes visible. Two submissions must not mutate one simulation concurrently.", links=("pipelines", "barriers")),
     ], "lifecycle"),
     Section("transfer", "Data movement & output", "Renderer-visible buffers without exposing private solver layouts", [
         c("buffer_copy", "Buffer transfers", types="""
@@ -1541,7 +1519,7 @@ SECTIONS += [
                 PmCommandBuffer commandBuffer,
                 PmQueryPool pool, uint32_t first,
                 uint32_t count);
-        """, text="Query pools own implementation-managed result storage, accounted as library bytes. Reset slots before first use and after consuming prior results. Do not reset results still in flight. timestampQueries/statisticsQueries must be enabled for the selected type. PM_QUERY_REALTIME_STEP_STATISTICS additionally requires PM_EXT_simulation_profile on the device and reports one realtime-single-step profile tick. queryCount is positive and bounded by maxQueriesPerPool."),
+        """, text="Query pools own implementation-managed result storage, accounted as library bytes. Reset slots before first use and after consuming prior results. Do not reset results still in flight. timestampQueries/statisticsQueries must be enabled for the selected type. PM_QUERY_REALTIME_STEP_STATISTICS reports one mandatory fixed tick and requires no device extension. queryCount is positive and bounded by maxQueriesPerPool."),
         c("timestamps", "GPU timestamps", functions="""
             PmResult pmCmdWriteTimestamp(
                 PmCommandBuffer commandBuffer,
@@ -1613,7 +1591,7 @@ SECTIONS += [
             PmResult pmGetSimulationStatus(
                 PmDevice device, PmSimulation simulation,
                 PmResult* pExecutionResult);
-        """, text="PM_QUERY_STEP_STATISTICS queries accumulate across enclosed steps: work counters sum, peak fields and high-water bytes take maxima. executionResult is the first failing PmResult, or SUCCESS. PM_QUERY_REALTIME_STEP_STATISTICS must enclose exactly one realtime-single-step profile step and returns schema/profile/budget version 1, the seven ordered boundary-through-commit phase records, total work, one time advance, six domain iteration totals, and coupling work. Its public counters are the qualification observation surface; no driver-private state is required. Do not nest statistics queries; Begin and End must be in one buffer. After observing completion, GetSimulationStatus exposes the last step status even when statistics are disabled. It returns NOT_READY while simulation work is pending. Overflow invalidates that step's output and requires reinitialization. When an enclosed step completes with CAPACITY_EXCEEDED, its completed statistics result remains readable and returns SUCCESS; executionResult contains CAPACITY_EXCEEDED and overflowCount contains the generated overflow count. Other failed query submissions return their completion error."),
+        """, text="PM_QUERY_STEP_STATISTICS queries accumulate across enclosed steps: work counters sum, peak fields and high-water bytes take maxima. executionResult is the first failing PmResult, or SUCCESS. PM_QUERY_REALTIME_STEP_STATISTICS must enclose exactly one fixed tick and returns schema/profile/budget version 1, the seven ordered boundary-through-commit phase records, total work, one time advance, six domain iteration totals, and coupling work. profileVersion identifies the immutable equation set used by the sole schedule; it is telemetry, not a selectable execution engine. Its public counters are the qualification observation surface; no driver-private state is required. Do not nest statistics queries; Begin and End must be in one buffer. After observing completion, GetSimulationStatus exposes the last step status even when statistics are disabled. It returns NOT_READY while simulation work is pending. Overflow invalidates that step's output and requires reinitialization. When an enclosed step completes with CAPACITY_EXCEEDED, its completed statistics result remains readable and returns SUCCESS; executionResult contains CAPACITY_EXCEEDED and overflowCount contains the generated overflow count. Other failed query submissions return their completion error."),
         c("query_results", "Readback & availability", types="""
             enum {
                 PM_QUERY_RESULT_WAIT_BIT = 0x1,
@@ -1694,7 +1672,7 @@ SECTIONS += [
         c("format_layouts", "Portable buffer layouts", rows=[("R32_UINT", "4 bytes / alignment 4 / unsigned index"), ("R32_SFLOAT", "4 bytes / alignment 4 / IEEE binary32"), ("R32G32B32_SFLOAT", "12 bytes / alignment 4 / x,y,z"), ("R32G32B32A32_SFLOAT", "16 bytes / alignment 4 / x,y,z,w"), ("PARTICLE_STATE", "28 bytes / alignment 4 / PmParticleState"), ("FLUID_PARTICLE_OUTPUT", "48 bytes / alignment 4 / PmFluidParticleOutput"), ("RIGID_STATE", "52 bytes / alignment 4 / PmRigidState")], text="Record arrays are little-endian. These buffer layouts have fixed offsets, regardless of a shader language's native vector packing. PmRigidBodyInfo and other handle-containing host descriptors are not GPU binary layouts. Do not memcpy them into storage buffers. Scalar fields are 32-bit unless explicitly declared otherwise."),
         c("feature_matrix", "Dependency checklist", rows=[("Rigid contacts", "rigidBodies"), ("Rigid joints", "rigidBodies + rigidConstraints"), ("One liquid", "particleLiquids"), ("Liquid ↔ bodies", "both domains + liquidRigidCoupling"), ("Liquid ↔ liquid", "particleLiquids + liquidLiquidCoupling"), ("GPU timing", "timestampQueries + queue timestamp bits"), ("Solver counters", "statisticsQueries"), ("Native object sharing", "Per-backend import capabilities"), ("Typed Vulkan adapters", "vulkanInterop + required native features")], text="Report a feature only when its required behavior is supported. Requesting unsupported features or coupling pairs fails with FEATURE_NOT_PRESENT.", links=("features", "native_support")),
         c("threading", "Threading & data races", text="Physical-device queries are safe to call concurrently. Distinct command pools can record independently. Host access to the same queue, pool, fence, mapped range or mutable resource must be externally synchronized. Destroying an object must also be synchronized against queries that use it.<br/><br/>GPU races are a separate concern. Serialize writes to a simulation, coordinate shared input/output buffers, and avoid changing CPU-mapped bytes while a pending command may read them. Callback implementations must support concurrency across independently accessed objects."),
-        c("not_capabilities", "Core scope", text="Core 0.2 defines primary command buffers, explicit memory binding, rigid triangle geometry, rigid constraints, particle liquids and the listed couplings. Secondary buffers, simultaneous reuse, sparse resources, shader injection and cross-device migration are outside this specification.<br/><br/>Cloth, ropes, soft bodies, smoke, emitters and paint require domain-specific extensions. Unknown pNext structures are errors.", links=("features",), tone="warm"),
+        c("not_capabilities", "Core scope", text="Core 0.3 defines primary command buffers, explicit memory binding, rigid triangle geometry, rigid constraints, particle liquids and the listed couplings. Secondary buffers, simultaneous reuse, sparse resources, shader injection and cross-device migration are outside this specification.<br/><br/>Cloth, ropes, soft bodies, smoke, emitters and paint require domain-specific extensions. Unknown pNext structures are errors.", links=("features",), tone="warm"),
     ]),
 ]
 
@@ -1772,7 +1750,7 @@ STRUCTURE_TYPES += "\n} PmStructureType;"
 
 SECTIONS.append(Section("fundamentals", "Fundamental declarations", "Types and identifiers", [
     c("base_types", "Types, handles & constants",
-      types=PRELUDE[PRELUDE.index("#define PM_API_VERSION_0_2"):], emit_header=False,
+      types=PRELUDE[PRELUDE.index("#define PM_API_VERSION_0_3"):], emit_header=False,
       text="Handles are opaque pointers, not structures applications may dereference. PMAPI_ATTR supplies the platform's loader import/export visibility and PMAPI_CALL supplies its calling convention. All declarations use C linkage in C++. PmBool32 is PM_FALSE or PM_TRUE. Each command has a PFN_pmCommandName function-pointer typedef with exactly the displayed return type, parameters and PMAPI_CALL convention."),
     c("structure_types", "Structure types", types=STRUCTURE_TYPES, emit_header=False,
       text="Every extensible input structure sets sType to the identifier for its exact structure type. pNext is NULL unless a supported extension defines the chained structure. An identifier does not enable a feature or extension."),

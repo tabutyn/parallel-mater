@@ -15,7 +15,7 @@ for their target GPU; Metal physics executes on the Apple GPU.
 - **Integrate physics into an application:** [use the C API](#use-the-c-api).
 - **Implement a driver:** [driver development](#write-a-driver).
 
-The project is in development on API version **0.2**. Before 1.0, minor API
+The project is in development on API version **0.3**. Before 1.0, minor API
 versions may introduce incompatible changes. Drivers have different feature
 coverage, and complete physical and performance qualification is still open.
 Use the [qualification index](docs/QUALIFICATION.md) to check evidence for the
@@ -150,7 +150,7 @@ See [driver discovery](docs/DRIVER_SDK.md#driver-manifest) for packaging details
 In a CMake consumer:
 
 ```cmake
-find_package(ParallelMater 0.2 CONFIG REQUIRED COMPONENTS loader)
+find_package(ParallelMater 0.3 CONFIG REQUIRED COMPONENTS loader)
 target_link_libraries(your_application PRIVATE ParallelMater::api)
 ```
 

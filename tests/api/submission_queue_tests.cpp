@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 #include "device/submission.hpp"
-#include "simulation/reference_schedule.hpp"
 
 #include <atomic>
 #include <cstdio>

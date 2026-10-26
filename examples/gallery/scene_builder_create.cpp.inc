@@ -15,7 +15,7 @@ bool CommandScene::create(const SceneDefinition &scene,
 
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instance_info.apiVersion = PM_API_VERSION_0_2;
+    instance_info.apiVersion = PM_API_VERSION_0_3;
     instance_info.pApplicationName = "parallel-mater-gallery";
     instance_info.enableValidation = PM_TRUE;
     if (!checked(pmCreateInstance(&instance_info, nullptr, &next->instance),

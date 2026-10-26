@@ -48,41 +48,12 @@ using parallel_mater::Vec3;
 
 [[nodiscard]] bool finite(float value) noexcept { return std::isfinite(value); }
 
-struct StructureHeader {
-    PmStructureType sType;
-    const void *pNext;
-};
-
 [[nodiscard]] bool realtime_timestep(float value) noexcept {
     constexpr float expected = 1.0F / 60.0F;
     const float lower = std::nextafter(expected, 0.0F);
     const float upper = std::nextafter(
         expected, std::numeric_limits<float>::infinity());
     return std::isfinite(value) && value >= lower && value <= upper;
-}
-
-[[nodiscard]] PmResult select_execution_profile(
-    PmDevice device, const void *chain,
-    PmSimulationExecutionProfile &profile) noexcept {
-    profile = PmSimulationExecutionProfile::legacy_default;
-    if (chain == nullptr) return PM_SUCCESS;
-    const auto *header = static_cast<const StructureHeader *>(chain);
-    if (header->sType != PM_STRUCTURE_TYPE_SIMULATION_PROFILE_CREATE_INFO ||
-        header->pNext != nullptr)
-        return PM_ERROR_INVALID_ARGUMENT;
-    if (!device->simulation_profile_extension)
-        return PM_ERROR_EXTENSION_NOT_PRESENT;
-    const auto *request = static_cast<
-        const PmSimulationProfileCreateInfo *>(chain);
-    if (request->pProfileName == nullptr || request->pProfileName[0] == '\0')
-        return PM_ERROR_INVALID_ARGUMENT;
-    if (std::strcmp(request->pProfileName,
-                    PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP) != 0)
-        return PM_ERROR_FEATURE_NOT_PRESENT;
-    if (request->versionMajor != 1U || request->versionMinor != 0U)
-        return PM_ERROR_INCOMPATIBLE_VERSION;
-    profile = PmSimulationExecutionProfile::realtime_single_step;
-    return PM_SUCCESS;
 }
 
 [[nodiscard]] bool finite(const PmRigidState &state) noexcept {
@@ -233,8 +204,7 @@ struct RealtimeSpatialCapacities {
 }
 
 [[nodiscard]] parallel_mater::SimulationOptions simulation_options(
-    const PmSimulationCreateInfo &info,
-    PmSimulationExecutionProfile profile) noexcept {
+    const PmSimulationCreateInfo &info) noexcept {
     parallel_mater::SimulationOptions options{};
     options.rigid_body_capacity = std::max(1U, info.rigidBodyCapacity);
     options.rigid_constraint_capacity = std::max(1U, info.constraintCapacity);
@@ -265,29 +235,23 @@ struct RealtimeSpatialCapacities {
     options.rope_cloth_coupling_capacity = coupling_capacity;
     options.physics_debug.frame_capacity = info.debugFrameCapacity;
     options.rigid_sleeping = false;
-    if (profile == PmSimulationExecutionProfile::realtime_single_step) {
-        RealtimeSpatialCapacities capacities{};
-        (void)realtime_spatial_capacities(info, capacities);
-        options.realtime_spatial_enabled = true;
-        options.realtime_spatial_leaf_capacity = capacities.leaves;
-        options.realtime_spatial_query_capacity = capacities.queries;
-        options.realtime_spatial_candidates_per_query =
-            capacities.candidates_per_query;
-    }
+    RealtimeSpatialCapacities capacities{};
+    (void)realtime_spatial_capacities(info, capacities);
+    options.realtime_spatial_leaf_capacity = capacities.leaves;
+    options.realtime_spatial_query_capacity = capacities.queries;
+    options.realtime_spatial_candidates_per_query =
+        capacities.candidates_per_query;
     return options;
 }
 
 [[nodiscard]] bool simulation_requirements(
     const PmSimulationCreateInfo &info,
-    PmSimulationExecutionProfile profile,
     PmSimulationMemoryRequirements &output) noexcept {
-    if (profile == PmSimulationExecutionProfile::realtime_single_step) {
-        RealtimeSpatialCapacities capacities{};
-        if (!realtime_spatial_capacities(info, capacities)) return false;
-    }
+    RealtimeSpatialCapacities capacities{};
+    if (!realtime_spatial_capacities(info, capacities)) return false;
     parallel_mater::simulation::StorageRequirements base{};
     if (!parallel_mater::SimulationRuntime::base_memory_requirements(
-            simulation_options(info, profile), base)) return false;
+            simulation_options(info), base)) return false;
     PmDeviceSize persistent = base.persistent;
     PmDeviceSize scratch = base.scratch;
     const PmDeviceSize rigid = info.rigidBodyCapacity;
@@ -575,7 +539,9 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
     if (simulation == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     *simulation = nullptr;
     if (device == nullptr || info == nullptr ||
-        info->sType != PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO ||
+        !parallel_mater::api::valid_structure(
+            info->sType, PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO,
+            info->pNext) ||
         info->queueFamilyIndex != 0U ||
         (info->rigidBodyCapacity == 0U && info->fluidCount == 0U &&
          info->clothCount == 0U && info->ropeCount == 0U &&
@@ -591,10 +557,6 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
                 info->paintFieldCount >
             std::numeric_limits<std::uint32_t>::max())
         return PM_ERROR_INVALID_ARGUMENT;
-    PmSimulationExecutionProfile execution_profile{};
-    const PmResult profile_result = select_execution_profile(
-        device, info->pNext, execution_profile);
-    if (profile_result != PM_SUCCESS) return profile_result;
     if ((info->rigidBodyCapacity != 0U &&
          device->enabled.rigidBodies == PM_FALSE) ||
         (info->constraintCapacity != 0U &&
@@ -645,15 +607,13 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
             return PM_ERROR_INVALID_ARGUMENT;
     }
     PmSimulationMemoryRequirements memory_requirements{};
-    if (!simulation_requirements(*info, execution_profile,
-                                 memory_requirements))
+    if (!simulation_requirements(*info, memory_requirements))
         return PM_ERROR_INVALID_ARGUMENT;
     auto *created = parallel_mater::api::make_object<PmSimulation_T>(device);
     if (created == nullptr) return PM_ERROR_OUT_OF_HOST_MEMORY;
     created->device = device;
     created->info = *info;
     created->info.pNext = nullptr;
-    created->execution_profile = execution_profile;
     created->requirements = memory_requirements;
     try {
         if (info->fluidCount != 0U)
@@ -711,7 +671,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateSimulation(
         parallel_mater::api::destroy_object(device, created);
         return PM_ERROR_OUT_OF_HOST_MEMORY;
     }
-    created->simulation_options = simulation_options(*info, execution_profile);
+    created->simulation_options = simulation_options(*info);
     *simulation = created;
     return PM_SUCCESS;
 }
@@ -1278,16 +1238,12 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdStepSimulation(
         command_buffer->bound_pipeline == nullptr ||
         (step->flags & ~PM_STEP_COLLECT_CONTACT_EVENTS_BIT) != 0U)
         return PM_ERROR_INVALID_ARGUMENT;
-    if (simulation->execution_profile ==
-            PmSimulationExecutionProfile::realtime_single_step &&
-        (!realtime_timestep(step->timestep) || step->substeps != 1U))
+    if (!realtime_timestep(step->timestep) || step->substeps != 1U)
         return PM_ERROR_INVALID_ARGUMENT;
     if (command_buffer->statistics_open &&
         command_buffer->statistics_pool->type ==
             PM_QUERY_REALTIME_STEP_STATISTICS &&
-        (simulation->execution_profile !=
-             PmSimulationExecutionProfile::realtime_single_step ||
-         command_buffer->statistics_step_count != 0U))
+        command_buffer->statistics_step_count != 0U)
         return PM_ERROR_INVALID_ARGUMENT;
     const PmStepInfo copied = *step;
     const PmPhysicsPipeline pipeline = command_buffer->bound_pipeline;
@@ -1307,10 +1263,6 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCmdStepSimulation(
             options.substeps = copied.substeps;
             options.gravity = vector3(copied.gravity);
             options.rigid_contact_iterations = pipeline->rigid.rigidIterations;
-            options.profile = simulation->execution_profile ==
-                    PmSimulationExecutionProfile::realtime_single_step
-                ? parallel_mater::PhysicsStepProfile::realtime_single_step_v1
-                : parallel_mater::PhysicsStepProfile::legacy_default;
             const bool collect_contacts =
                 (copied.flags & PM_STEP_COLLECT_CONTACT_EVENTS_BIT) != 0U;
             options.collect_rigid_contacts = collect_contacts;

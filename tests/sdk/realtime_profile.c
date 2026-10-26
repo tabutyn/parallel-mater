@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MIT
- * Installed-SDK realtime profile execution and observation gate. */
+ * Installed-SDK fixed-tick execution and observation gate. */
 #include <parallel_mater/parallel_mater.h>
 
 #include <math.h>
@@ -19,11 +19,16 @@ typedef struct AllocationList {
     uint32_t count;
 } AllocationList;
 
-static PmResult create_device(PmPhysicalDevice physical, int enable_profile,
-                              PmDevice* device) {
+typedef struct RetiredProfileCreateInfo {
+    PmStructureType sType;
+    const void* pNext;
+    const char* pProfileName;
+    uint32_t versionMajor;
+    uint32_t versionMinor;
+} RetiredProfileCreateInfo;
+
+static PmResult create_device(PmPhysicalDevice physical, PmDevice* device) {
     static const float priority = 1.0F;
-    static const char* extension =
-        PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME;
     PmDeviceQueueCreateInfo queue = {0U, 1U, &priority};
     PmDeviceCreateInfo info = {0};
     info.sType = PM_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -32,8 +37,6 @@ static PmResult create_device(PmPhysicalDevice physical, int enable_profile,
     info.enabledFeatures.rigidBodies = PM_TRUE;
     info.enabledFeatures.rigidConstraints = PM_TRUE;
     info.enabledFeatures.statisticsQueries = PM_TRUE;
-    info.enabledExtensionCount = enable_profile ? 1U : 0U;
-    info.ppEnabledExtensionNames = enable_profile ? &extension : NULL;
     return pmCreateDevice(physical, &info, device);
 }
 
@@ -107,8 +110,8 @@ static int write_observation(const char* path, int validation,
         "  \"source\": \"installed-public-api\",\n"
         "  \"driver_private_state_used\": false,\n"
         "  \"validation_enabled\": %s,\n"
-        "  \"profile\": {\"name\": \"realtime-single-step\", "
-        "\"version\": {\"major\": 1, \"minor\": 0}},\n"
+        "  \"runtime\": {\"schedule\": \"fixed-tick\", "
+        "\"version\": 1},\n"
         "  \"candidate\": {\"manifest_role\": \"qualification-input\", "
         "\"execution_identity_claimed\": false, \"id\": \"%s\", "
         "\"manifest_sha256\": \"%s\", "
@@ -116,7 +119,7 @@ static int write_observation(const char* path, int validation,
         "\"runtime_variant\": \"cpu-runtime\"},\n"
         "  \"case_id\": \"f8-kernel-entrypoint-execution/cpu\",\n"
         "  \"public_api_calls\": [\n"
-        "    \"pmEnumerateExecutionProfiles\", \"pmCreateDevice\", "
+        "    \"pmCreateDevice\", "
         "\"pmCreateSimulation\", \"pmCreatePhysicsPipeline\",\n"
         "    \"pmCreateQueryPool\", \"pmBeginCommandBuffer\", "
         "\"pmCmdBuildGeometry\", \"pmCmdWriteRigidBodies\",\n"
@@ -214,51 +217,39 @@ int main(int argc, char** argv) {
           candidate_sha256 && candidate_revision);
 
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instance_info.apiVersion = PM_API_VERSION_0_2;
+    instance_info.apiVersion = PM_API_VERSION_0_3;
     instance_info.enableValidation = validation ? PM_TRUE : PM_FALSE;
     CHECK(pmCreateInstance(&instance_info, NULL, &instance) == PM_SUCCESS);
     CHECK(pmEnumeratePhysicalDevices(instance, &count, &physical) == PM_SUCCESS);
     CHECK(count == 1U && physical != NULL);
 
-    count = 0U;
-    CHECK(pmEnumerateExecutionProfiles(physical, &count, NULL) == PM_SUCCESS);
-    CHECK(count == 1U);
     {
-        PmExecutionProfileProperties property = {0};
-        CHECK(pmEnumerateExecutionProfiles(
-                  physical, &count, &property) == PM_SUCCESS);
-        CHECK(strcmp(property.profileName,
-                     PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP) == 0);
-        CHECK(property.versionMajor == 1U && property.versionMinor == 0U);
-    }
-
-    {
-        PmDevice legacy = NULL;
-        PmSimulationProfileCreateInfo profile = {0};
+        static const char* retired_extension = "PM_EXT_simulation_profile";
+        static const float priority = 1.0F;
+        PmDeviceQueueCreateInfo queue_info = {0U, 1U, &priority};
+        PmDeviceCreateInfo retired_device_info = {0};
+        PmDevice retired_device = NULL;
+        RetiredProfileCreateInfo retired_profile = {0};
         PmSimulationCreateInfo simulation_info = {0};
-        profile.sType = PM_STRUCTURE_TYPE_SIMULATION_PROFILE_CREATE_INFO;
-        profile.pProfileName = PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP;
-        profile.versionMajor = 1U;
-        simulation_info.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
-        simulation_info.pNext = &profile;
-        simulation_info.rigidBodyCapacity = 1U;
-        CHECK(create_device(physical, 0, &legacy) == PM_SUCCESS);
-        CHECK(pmCreateSimulation(legacy, &simulation_info, &simulation) ==
+        retired_device_info.sType = PM_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        retired_device_info.queueCreateInfoCount = 1U;
+        retired_device_info.pQueueInfos = &queue_info;
+        retired_device_info.enabledExtensionCount = 1U;
+        retired_device_info.ppEnabledExtensionNames = &retired_extension;
+        CHECK(pmCreateDevice(physical, &retired_device_info, &retired_device) ==
               PM_ERROR_EXTENSION_NOT_PRESENT);
-        pmDestroyDevice(legacy);
-        CHECK(create_device(physical, 1, &device) == PM_SUCCESS);
-        profile.pProfileName = "unknown-profile";
-        CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-              PM_ERROR_FEATURE_NOT_PRESENT);
-        profile.pProfileName = PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP;
-        profile.versionMinor = 1U;
-        CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-              PM_ERROR_INCOMPATIBLE_VERSION);
-        profile.versionMinor = 0U;
-        profile.pNext = &profile;
+        CHECK(retired_device == NULL);
+        CHECK(create_device(physical, &device) == PM_SUCCESS);
+        retired_profile.sType = (PmStructureType)19;
+        retired_profile.pProfileName = "realtime-single-step";
+        retired_profile.versionMajor = 1U;
+        simulation_info.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
+        simulation_info.pNext = &retired_profile;
+        simulation_info.rigidBodyCapacity = 1U;
         CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
               PM_ERROR_INVALID_ARGUMENT);
-        profile.pNext = NULL;
+        CHECK(simulation == NULL);
+        simulation_info.pNext = NULL;
         simulation_info.couplingCapacity = 1U;
         CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
               PM_SUCCESS);
@@ -304,15 +295,10 @@ int main(int argc, char** argv) {
               PM_SUCCESS);
     }
     {
-        PmSimulationProfileCreateInfo profile = {0};
         PmSimulationCreateInfo simulation_info = {0};
         PmSimulationMemoryRequirements requirements = {0};
         PmSimulationMemoryBinding binding = {0};
-        profile.sType = PM_STRUCTURE_TYPE_SIMULATION_PROFILE_CREATE_INFO;
-        profile.pProfileName = PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP;
-        profile.versionMajor = 1U;
         simulation_info.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
-        simulation_info.pNext = &profile;
         simulation_info.rigidBodyCapacity = 1U;
         simulation_info.contactCapacity = 8U;
         CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
@@ -432,7 +418,7 @@ int main(int argc, char** argv) {
     pmDestroyDevice(device);
     pmDestroyInstance(instance);
     puts(validation
-        ? "PASS: installed validated realtime public observation"
-        : "PASS: installed realtime public observation");
+        ? "PASS: installed validated fixed-tick public observation"
+        : "PASS: installed fixed-tick public observation");
     return 0;
 }

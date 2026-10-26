@@ -50,7 +50,7 @@ No C++ standard-library type crosses the driver boundary.
   "file_format_version": "1.0.0",
   "PMD": {
     "library_path": "/usr/lib/libparallel_mater_vendor.so",
-    "api_version": "0.2.0",
+    "api_version": "0.3.0",
     "library_arch": "64"
   }
 }
@@ -92,21 +92,17 @@ A conforming driver implements:
 - command recording, submission, barriers, and asynchronous execution;
 - fences, timeline semaphores, timestamps, statistics, and memory queries;
 - advertised interoperability extensions;
-- advertised execution-profile negotiation and immutable per-simulation
-  selection;
+- the mandatory fixed-tick execution path and its public telemetry;
 - the behavior required by the Parallel Mater specification and conformance
   cases.
 
 The loader does not compile Slang, allocate device memory, record native command
 buffers, schedule physics, or implement equations.
 
-`PM_EXT_simulation_profile` advertises the negotiation ABI, not a solver.
-`pmEnumerateExecutionProfiles` must return only exact
-name/version pairs the device can execute. Physical qualification is separate
-revisioned evidence and never appears implicitly from this runtime query. A
-driver that understands the extension but has not implemented
-`realtime-single-step` 1.0 enumerates no such record and returns
-`PM_ERROR_FEATURE_NOT_PRESENT` for the exact request.
+API 0.3 drivers implement the fixed-tick schedule directly. They do not expose
+execution-profile enumeration or accept a profile through simulation creation.
+Physical qualification remains separate revisioned evidence and never appears
+implicitly from runtime discovery.
 
 ## Reference implementation
 
@@ -166,16 +162,16 @@ launch intrinsics outside the shared device-intrinsic module.
 
 ## Compatibility and validation
 
-API 0.2 currently accepts `PM_API_VERSION_0_2` or zero (the 0.2 default).
+API 0.3 currently accepts `PM_API_VERSION_0_3` or zero (the 0.3 default).
 Other API versions return `PM_ERROR_INCOMPATIBLE_VERSION`; pre-stable minor
 versions do not imply backward compatibility. Loader/driver and loader/layer
 interface versions are separate from the application API version.
 
 The validation layer is advertised as `PM_LAYER_PARALLEL_MATER_validation`.
 The initial `PM_LAYER_KHRONOS_validation` spelling remains an unadvertised
-compatibility alias for existing 0.2 applications; it implies no Khronos
-ownership or endorsement. The command arguments and state validation contract
-is tracked in [API contract rules](API-CONTRACT.md).
+source-name alias; it does not make API 0.2 applications binary compatible and
+implies no Khronos ownership or endorsement. The command arguments and state
+validation contract is tracked in [API contract rules](API-CONTRACT.md).
 
 Layer ABI 2 appended `argumentSize` and `pArguments` to `PmLayerCallInfo`.
 Layer ABI 3 appends the application-visible dispatch-object type/handle and the

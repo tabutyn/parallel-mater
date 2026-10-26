@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 project(ParallelMaterComponentConsumer LANGUAGES C CXX)
 
 set(PM_COMPONENTS loader CACHE STRING "Parallel Mater components to require")
-find_package(ParallelMater 0.2 CONFIG REQUIRED COMPONENTS ${PM_COMPONENTS})
+find_package(ParallelMater 0.3 CONFIG REQUIRED COMPONENTS ${PM_COMPONENTS})
 
 if("loader" IN_LIST PM_COMPONENTS)
     add_executable(loader-consumer devices.c)

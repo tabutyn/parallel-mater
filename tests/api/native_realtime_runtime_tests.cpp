@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     constexpr std::uint32_t constraint_count = 8U;
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instance_info.apiVersion = PM_API_VERSION_0_2;
+    instance_info.apiVersion = PM_API_VERSION_0_3;
     PmInstance instance{};
     CHECK(pmCreateInstance(&instance_info, nullptr, &instance) == PM_SUCCESS);
     std::uint32_t physical_count = 1U;
@@ -41,14 +41,11 @@ int main(int argc, char **argv) {
 
     const float priority = 1.0F;
     const PmDeviceQueueCreateInfo queue_info{0U, 1U, &priority};
-    const char *extension = PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME;
     PmDeviceCreateInfo device_info{};
     device_info.sType = PM_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     device_info.queueCreateInfoCount = 1U;
     device_info.pQueueInfos = &queue_info;
     pmGetPhysicalDeviceFeatures(physical, &device_info.enabledFeatures);
-    device_info.enabledExtensionCount = 1U;
-    device_info.ppEnabledExtensionNames = &extension;
     PmDevice device{};
     CHECK(pmCreateDevice(physical, &device_info, &device) == PM_SUCCESS);
     PmQueue queue{};
@@ -124,13 +121,8 @@ int main(int argc, char **argv) {
     CHECK(pmBindGeometryMemory(
         device, geometry, allocate(geometry_memory.size), 0U) == PM_SUCCESS);
 
-    PmSimulationProfileCreateInfo profile{};
-    profile.sType = PM_STRUCTURE_TYPE_SIMULATION_PROFILE_CREATE_INFO;
-    profile.pProfileName = PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP;
-    profile.versionMajor = 1U;
     PmSimulationCreateInfo simulation_info{};
     simulation_info.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
-    simulation_info.pNext = &profile;
     simulation_info.rigidBodyCapacity = body_count;
     simulation_info.constraintCapacity = constraint_count;
     simulation_info.contactCapacity = 2048U;

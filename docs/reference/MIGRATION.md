@@ -6,6 +6,26 @@ shared Slang sources; device adapters provide allocation, dispatch, transfer,
 synchronization, queries, and native-handle services without implementing a
 second solver or simulation schedule.
 
+## Migrating from API 0.2 to 0.3
+
+API 0.3 intentionally breaks compatibility to make the fixed 1/60-second
+runtime the sole production execution path. Applications must request
+`PM_API_VERSION_0_3`; the loader rejects API 0.2 requests with
+`PM_ERROR_INCOMPATIBLE_VERSION` rather than changing their timestep semantics.
+
+Remove `PM_EXT_simulation_profile` from device extension lists, remove
+`PmSimulationProfileCreateInfo` from `PmSimulationCreateInfo::pNext`, and stop
+calling `pmEnumerateExecutionProfiles`. Simulation creation now requires a NULL
+`pNext`. Record every `pmCmdStepSimulation` with a timestep within one binary32
+ULP of 1/60 second and `substeps` equal to one. The create/resources/commands/
+submit/output model and supported domain and interaction resources are otherwise
+unchanged.
+
+Drivers must rebuild against driver-interface version 2 and publish
+`api_version` 0.3.0 in their manifests. A driver or layer compiled for the 0.2
+profile-selection ABI is incompatible and must not be loaded as an API 0.3
+implementation.
+
 The Slang/CUDA driver is the first qualified implementation. Native CUDA calls
 inside its device-services and dispatch layers are private driver machinery,
 not an alternate public API. Additional drivers must advertise only the

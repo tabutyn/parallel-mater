@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(ParallelMater VERSION 0.2.0 LANGUAGES CXX)
+project(ParallelMater VERSION 0.3.0 LANGUAGES CXX)
 
 set(PARALLEL_MATER_IOS OFF)
 if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
@@ -358,7 +358,6 @@ add_library(
     src/simulation/runtime_deformables.cu.inc
     src/simulation/runtime_rigid.cu.inc
     src/simulation/runtime_schedule.cu.inc
-    src/simulation/reference_schedule.hpp
     src/simulation/realtime_schedule.hpp
     src/simulation/realtime_telemetry.hpp
     src/simulation/native_schedule_backend.cu.inc
@@ -441,10 +440,10 @@ add_library(ParallelMater::slang_cuda_driver ALIAS
             parallel-mater-driver-slang-cuda)
 file(GENERATE
     OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json"
-    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-cuda>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-cuda>\",\n    \"api_version\": \"0.3.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 file(GENERATE
     OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/slang-cuda.json"
-    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-driver-slang-cuda>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+    CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-driver-slang-cuda>\",\n    \"api_version\": \"0.3.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 
 if(BUILD_TESTING)
     add_executable(parallel-mater-driver-abi-tests
@@ -1192,10 +1191,10 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
          parallel-mater-driver-slang-d3d12)
     file(GENERATE
         OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json"
-        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-d3d12>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-d3d12>\",\n    \"api_version\": \"0.3.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
     file(GENERATE
         OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/slang-d3d12.json"
-        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-driver-slang-d3d12>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+        CONTENT "{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../$<TARGET_FILE_NAME:parallel-mater-driver-slang-d3d12>\",\n    \"api_version\": \"0.3.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
     if(BUILD_TESTING)
         add_executable(parallel-mater-d3d12-command-api-tests
             tests/api/native_command_api_tests.cpp)

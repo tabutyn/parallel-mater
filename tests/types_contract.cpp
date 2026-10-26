@@ -50,6 +50,6 @@ static_assert(std::is_trivially_copyable_v<SimulationStatistics>);
 static_assert(std::is_trivially_copyable_v<SimulationStepTimings>);
 static_assert(std::is_trivially_copyable_v<StepOptions>);
 static_assert(StepOptions{}.rigid_contact_pass_limit == 0U);
-static_assert(StepOptions{}.profile == PhysicsStepProfile::legacy_default);
+static_assert(StepOptions{}.substeps == 1U);
 
 int main() { return 0; }

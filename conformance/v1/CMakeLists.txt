@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(ParallelMaterConformance LANGUAGES CXX)
 include(CTest)
-find_package(ParallelMater 0.2 CONFIG REQUIRED COMPONENTS loader scene)
+find_package(ParallelMater 0.3 CONFIG REQUIRED COMPONENTS loader scene)
 if(NOT TARGET ParallelMater::scene)
     message(FATAL_ERROR "Install the Parallel Mater scene SDK component before building conformance")
 endif()

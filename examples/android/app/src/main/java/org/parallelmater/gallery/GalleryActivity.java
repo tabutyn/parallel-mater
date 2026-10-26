@@ -253,7 +253,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                 JSONObject driver = new JSONObject();
                 driver.put("library_path", getApplicationInfo().nativeLibraryDir +
                     "/libparallel_mater_driver_slang_" + BuildConfig.PHYSICS_BACKEND + ".so");
-                driver.put("api_version", "0.2.0");
+                driver.put("api_version", "0.3.0");
                 driver.put("library_arch", "64");
                 JSONObject manifest = new JSONObject();
                 manifest.put("file_format_version", "1.0.0");
@@ -266,7 +266,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                 layer.put("name", "PM_LAYER_PARALLEL_MATER_validation");
                 layer.put("library_path", getApplicationInfo().nativeLibraryDir +
                     "/libparallel_mater_layer_validation.so");
-                layer.put("api_version", "0.2.0");
+                layer.put("api_version", "0.3.0");
                 JSONObject layerManifest = new JSONObject();
                 layerManifest.put("file_format_version", "1.0.0");
                 layerManifest.put("layer", layer);

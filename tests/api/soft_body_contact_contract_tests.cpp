@@ -33,11 +33,11 @@ int main() {
     PmSoftBodyMaterialState material{};
     material.nodeMass = 1.0F;
     material.nodeRadius = 0.05F;
-    material.springDamping = 0.1F;
+    material.springDamping = 0.0F;
     material.contactFriction = 0.5F;
     material.maximumProjectionFraction = 0.2F;
     material.constraintVelocityResponse = 1.0F;
-    material.maximumSpeed = 100.0F;
+    material.maximumSpeed = 20.0F;
     material.solverIterations = 4U;
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;

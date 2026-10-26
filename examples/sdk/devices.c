@@ -8,7 +8,7 @@ int main(void) {
     PmInstanceCreateInfo info = {0};
     PmInstance instance = NULL;
     info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    info.apiVersion = PM_API_VERSION_0_2;
+    info.apiVersion = PM_API_VERSION_0_3;
     info.pApplicationName = "pm-devices";
     PmResult result = pmCreateInstance(&info, NULL, &instance);
     if (result != PM_SUCCESS) {

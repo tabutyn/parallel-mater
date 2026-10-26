@@ -13,18 +13,22 @@
 
 namespace {
 
-PmResult create_device(PmPhysicalDevice physical, bool enable_profile,
-                       PmDevice *device) {
+struct RetiredProfileCreateInfo {
+    PmStructureType sType;
+    const void *pNext;
+    const char *pProfileName;
+    std::uint32_t versionMajor;
+    std::uint32_t versionMinor;
+};
+
+PmResult create_device(PmPhysicalDevice physical, PmDevice *device) {
     const float priority = 1.0F;
     const PmDeviceQueueCreateInfo queue{0U, 1U, &priority};
-    const char *extension = PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME;
     PmDeviceCreateInfo info{};
     info.sType = PM_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     info.queueCreateInfoCount = 1U;
     info.pQueueInfos = &queue;
     pmGetPhysicalDeviceFeatures(physical, &info.enabledFeatures);
-    info.enabledExtensionCount = enable_profile ? 1U : 0U;
-    info.ppEnabledExtensionNames = enable_profile ? &extension : nullptr;
     return pmCreateDevice(physical, &info, device);
 }
 
@@ -33,7 +37,7 @@ PmResult create_device(PmPhysicalDevice physical, bool enable_profile,
 int main() {
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instance_info.apiVersion = PM_API_VERSION_0_2;
+    instance_info.apiVersion = PM_API_VERSION_0_3;
     PmInstance instance{};
     const PmResult instance_result =
         pmCreateInstance(&instance_info, nullptr, &instance);
@@ -57,56 +61,30 @@ int main() {
     PmPhysicalDeviceFeatures features{};
     pmGetPhysicalDeviceFeatures(physical, &features);
 
-    count = 0U;
-    CHECK(pmEnumerateExecutionProfiles(
-              physical, &count, nullptr) == PM_SUCCESS);
-    CHECK(count == 1U);
-    PmExecutionProfileProperties property{};
-    CHECK(pmEnumerateExecutionProfiles(
-        physical, &count, &property) == PM_SUCCESS);
-    CHECK(count == 1U);
-    CHECK(std::strcmp(property.profileName,
-                      PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP) == 0);
-    CHECK(property.versionMajor == 1U && property.versionMinor == 0U);
+    CHECK(pmGetInstanceProcAddr(instance, "pmEnumerateExecutionProfiles") ==
+          nullptr);
 
-    PmSimulationProfileCreateInfo profile{};
-    profile.sType = PM_STRUCTURE_TYPE_SIMULATION_PROFILE_CREATE_INFO;
-    profile.pProfileName = PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP;
-    profile.versionMajor = 1U;
-    profile.versionMinor = 0U;
     PmSimulationCreateInfo simulation_info{};
     simulation_info.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
-    simulation_info.pNext = &profile;
     simulation_info.rigidBodyCapacity = 1U;
     PmSimulation simulation{};
 
-    PmDevice legacy_device{};
-    const PmResult legacy_device_result =
-        create_device(physical, false, &legacy_device);
-    if (legacy_device_result != PM_SUCCESS) {
-        std::fprintf(stderr, "SKIP: legacy device creation returned %d\n",
-                     static_cast<int>(legacy_device_result));
-        pmDestroyInstance(instance);
-        return 77;
-    }
-    CHECK(pmCreateSimulation(legacy_device, &simulation_info, &simulation) ==
-          PM_ERROR_EXTENSION_NOT_PRESENT);
-    simulation_info.pNext = nullptr;
-    CHECK(pmCreateSimulation(legacy_device, &simulation_info, &simulation) ==
-          PM_SUCCESS);
-    pmDestroySimulation(legacy_device, simulation);
-    pmDestroyDevice(legacy_device);
-
     PmDevice device{};
-    const PmResult profile_device_result =
-        create_device(physical, true, &device);
-    if (profile_device_result != PM_SUCCESS) {
-        std::fprintf(stderr, "SKIP: profile device creation returned %d\n",
-                     static_cast<int>(profile_device_result));
+    const PmResult device_result = create_device(physical, &device);
+    if (device_result != PM_SUCCESS) {
+        std::fprintf(stderr, "SKIP: device creation returned %d\n",
+                     static_cast<int>(device_result));
         pmDestroyInstance(instance);
         return 77;
     }
-    simulation_info.pNext = &profile;
+    RetiredProfileCreateInfo retired_profile{
+        static_cast<PmStructureType>(19), nullptr, "realtime-single-step",
+        1U, 0U};
+    simulation_info.pNext = &retired_profile;
+    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
+          PM_ERROR_INVALID_ARGUMENT);
+    CHECK(simulation == nullptr);
+    simulation_info.pNext = nullptr;
     CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
           PM_SUCCESS);
     pmDestroySimulation(device, simulation);
@@ -210,15 +188,8 @@ int main() {
     if (simulation != nullptr) pmDestroySimulation(device, simulation);
     simulation = nullptr;
     simulation_info.debugFrameCapacity = 0U;
-    profile.versionMinor = 1U;
-    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-          PM_ERROR_INCOMPATIBLE_VERSION);
-    profile.versionMinor = 0U;
-    profile.pProfileName = "unknown-profile";
-    CHECK(pmCreateSimulation(device, &simulation_info, &simulation) ==
-          PM_ERROR_FEATURE_NOT_PRESENT);
     pmDestroyDevice(device);
     pmDestroyInstance(instance);
-    std::puts("PASS: reference driver exposes executable realtime profile");
+    std::puts("PASS: reference driver exposes one fixed-tick runtime");
     return 0;
 }

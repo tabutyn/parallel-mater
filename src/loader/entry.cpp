@@ -80,7 +80,7 @@ pmEnumerateInstanceLayerProperties(std::uint32_t *count,
                                    PmLayerProperties *properties) {
     PmLayerProperties validation{};
     copy_name(validation.layerName, "PM_LAYER_PARALLEL_MATER_validation");
-    validation.specificationVersion = PM_API_VERSION_0_2;
+    validation.specificationVersion = PM_API_VERSION_0_3;
     validation.implementationVersion = 1U;
     copy_name(validation.description, "Parallel Mater validation layer");
     return enumerate_values(std::vector<PmLayerProperties>{validation}, count,
@@ -137,7 +137,7 @@ extern "C" PMAPI_ATTR PFN_pmVoidFunction PMAPI_CALL pmGetDeviceProcAddr(
 extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmEnumerateInstanceVersion(
     std::uint32_t *version) {
     if (version == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-    *version = PM_API_VERSION_0_2;
+    *version = PM_API_VERSION_0_3;
     return PM_SUCCESS;
 }
 
@@ -151,7 +151,7 @@ extern "C" PMAPI_ATTR PmResult PMAPI_CALL pmCreateInstance(
         (info->enabledExtensionCount != 0U &&
          info->ppEnabledExtensionNames == nullptr))
         return PM_ERROR_INVALID_ARGUMENT;
-    if (info->apiVersion != 0U && info->apiVersion != PM_API_VERSION_0_2)
+    if (info->apiVersion != 0U && info->apiVersion != PM_API_VERSION_0_3)
         return PM_ERROR_INCOMPATIBLE_VERSION;
     const PmValidationDiagnosticsCreateInfo *diagnostics{};
     if (info->pNext) {
