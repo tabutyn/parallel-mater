@@ -40,9 +40,9 @@ add_library(ParallelMater::slang_metal_driver ALIAS
 list(APPEND PARALLEL_MATER_DRIVER_INSTALL_TARGETS
     parallel-mater-driver-slang-metal)
 file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-metal.json" CONTENT
-"{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-metal>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+"{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"$<TARGET_FILE:parallel-mater-driver-slang-metal>\",\n    \"api_version\": \"0.3.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 file(GENERATE OUTPUT "${PARALLEL_MATER_BUILD_MANIFEST_DIR}/portable/slang-metal.json" CONTENT
-"{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../../Frameworks/$<TARGET_FILE_NAME:parallel-mater-driver-slang-metal>\",\n    \"api_version\": \"0.2.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
+"{\n  \"file_format_version\": \"1.0.0\",\n  \"PMD\": {\n    \"library_path\": \"../../Frameworks/$<TARGET_FILE_NAME:parallel-mater-driver-slang-metal>\",\n    \"api_version\": \"0.3.0\",\n    \"library_arch\": \"${PARALLEL_MATER_LIBRARY_ARCH}\"\n  }\n}\n")
 if(BUILD_TESTING)
     foreach(domain liquid deformable transport)
         add_executable(parallel-mater-slang-metal-${domain}-tests tests/api/${domain}_command_api_tests.cpp)

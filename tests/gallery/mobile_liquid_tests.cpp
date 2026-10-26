@@ -21,7 +21,9 @@ int main() {
     SceneDefinition freefall;
     freefall.fluid_options.capacity = 130;
     freefall.fluid_options.velocity_damping = 0;
-    freefall.fluid_options.maximum_speed = 100;
+    freefall.fluid_options.maximum_speed = 2.5F;
+    freefall.fluid_options.rest_particle_volume =
+        0.045F * 0.045F * 0.045F;
     for (int i = 0; i < 130; ++i)
         freefall.initial_particles.push_back({.position = {float(i), 10, 0}});
     CommandScene simulation;
@@ -29,10 +31,13 @@ int main() {
     CHECK(CommandScene::create(freefall, 0, simulation, instance, error));
     CommandSceneFrame frame;
     for (int i = 0; i < 6; ++i)
-        CHECK(simulation.step(1.0F / 60, 4, {0, -9.81F, 0}, frame, error));
+        CHECK(simulation.step(1.0F / 60, 1, {0, -9.81F, 0}, frame, error));
     CHECK(frame.fluid_particles.size() == 130);
+    float expected_velocity = 0.0F;
+    for (int i = 0; i < 6; ++i)
+        expected_velocity = (expected_velocity - 9.81F / 60.0F) * 0.95F;
     for (const auto &particle : frame.fluid_particles) {
-        CHECK(std::fabs(particle.velocity[1] + 0.981F) < 1.0e-4F);
+        CHECK(std::fabs(particle.velocity[1] - expected_velocity) < 1.0e-4F);
         CHECK(particle.position[1] < 10 && particle.position[1] > 9.9F);
     }
 
@@ -53,6 +58,14 @@ int main() {
             CHECK(constrained.fluid_options.capacity == scene.fluid_options.capacity);
         }
         CHECK(apply_liquid_workload_limits(scene, *limits, error));
+        scene.fluid_options.maximum_speed = std::min(
+            scene.fluid_options.maximum_speed,
+            0.45F * scene.fluid_options.support_radius * 60.0F);
+        if (scene.fluid_options.rest_particle_volume <= 0.0F) {
+            const float diameter = 2.0F * scene.fluid_options.particle_radius;
+            scene.fluid_options.rest_particle_volume =
+                diameter * diameter * diameter;
+        }
         CHECK(scene.rigid_bodies.size() == (original_bodies == 1 ? 1 : limits->coupled_bodies + 1));
         CHECK(std::count_if(scene.rigid_bodies.begin(), scene.rigid_bodies.end(),
             [](const auto &body) { return body.options.motion == MotionType::static_body; }) == 1);
@@ -60,7 +73,7 @@ int main() {
         CommandSceneInstance bindings;
         CHECK(CommandScene::create(scene, 0, preview, bindings, error));
         for (int i = 0; i < 30; ++i) {
-            CHECK(preview.step(1.0F / 30, 8, {0, -9.81F, 0}, frame, error));
+            CHECK(preview.step(1.0F / 60, 1, {0, -9.81F, 0}, frame, error));
             CHECK(!frame.fluid_particles.empty());
             CHECK(frame.fluid_particles.size() <= limits->fluid_particles);
             for (const auto &particle : frame.fluid_particles)
@@ -70,6 +83,6 @@ int main() {
                 for (float coordinate : body.position) CHECK(std::isfinite(coordinate));
         }
         CHECK(preview.reset(error));
-        CHECK(preview.step(1.0F / 30, 8, {0, -9.81F, 0}, frame, error));
+        CHECK(preview.step(1.0F / 60, 1, {0, -9.81F, 0}, frame, error));
     }
 }

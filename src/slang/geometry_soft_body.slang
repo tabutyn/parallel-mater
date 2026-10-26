@@ -19,6 +19,8 @@ void deformable_collide(
     uniform PMBuffer<BodyParameters> parameters,
     uniform PMBuffer<RigidBodyState> previous_states, uniform PMBuffer<RigidBodyState> states,
     uniform PMBuffer<TriangleMeshResource> meshes, uniform uint body_count,
+    uniform uint first_excluded_body, uniform uint first_excluded_count,
+    uniform uint last_excluded_body, uniform uint last_excluded_count,
     uniform PMBuffer<FluidBodyImpulse> impulses, uniform PMBuffer<Vec3> contact_forces,
     uniform PMBuffer<Vec3> contact_normals, uniform PMBuffer<Vec3> contact_arms,
     uniform PMBuffer<Vec3> contact_momentum_delta,
@@ -49,6 +51,11 @@ void deformable_collide(
     uint bestBody = kInvalidDense;
     for (uint bodyIndex = 0u; bodyIndex < body_count; ++bodyIndex)
     {
+        if ((bodyIndex == first_excluded_body &&
+                vertex < first_excluded_count) ||
+            (bodyIndex == last_excluded_body &&
+                vertex + last_excluded_count >= count))
+            continue;
         BodyParameters body = parameters[bodyIndex];
         if (static_only && body.motion != MotionType.static_body) continue;
         RigidBodyState state = states[bodyIndex];

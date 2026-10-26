@@ -13,6 +13,8 @@ void collide_deformable_with_rigid_geometry(
     std::uint32_t count, float thickness, float timestep,
     const void *body_parameters, const void *previous_body_states,
     const void *body_states, const void *meshes, std::uint32_t body_count,
+    std::uint32_t first_excluded_body, std::uint32_t first_excluded_count,
+    std::uint32_t last_excluded_body, std::uint32_t last_excluded_count,
     void *impulses, void *contact_forces, void *contact_normals,
     void *contact_arms, void *contact_momentum_delta,
     float *accumulated_normal_delta,

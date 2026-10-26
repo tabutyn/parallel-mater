@@ -15,10 +15,10 @@ PmLiquidMaterialState material(float density = 1000.0F) {
     result.particleRadius = 0.025F;
     result.supportRadius = 0.1F;
     result.restParticleVolume = 0.000125F;
-    result.pressureStiffness = 1.0F;
+    result.pressureStiffness = 8.0F;
     result.kinematicViscosity = 0.1F;
     result.normalDamping = 0.05F;
-    result.maximumSpeed = 100.0F;
+    result.maximumSpeed = 2.9F;
     result.maximumPairAcceleration = 1000.0F;
     result.densityIterations = 1U;
     return result;
@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
     for (std::uint32_t index = 0U; index < 2U; ++index)
         PM_CHECK(pmCmdSetFluidParticles(context.commands, simulation, index,
                                        &views[index]) == PM_SUCCESS);
-    const PmStepInfo step{0.001F, 1U, {0.0F, 0.0F, 0.0F}, 0U};
+    const PmStepInfo step{1.0F / 60.0F, 1U, {0.0F, 0.0F, 0.0F}, 0U};
     PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
              PM_SUCCESS);
     PM_CHECK(context.submit() == PM_ERROR_INVALID_ARGUMENT);

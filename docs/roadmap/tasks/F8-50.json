@@ -1,7 +1,7 @@
 {
   "id": "F8-50",
   "title": "Make the fixed-tick runtime the sole public execution path",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-49"
   ],
@@ -22,15 +22,27 @@
     "Update machine-readable contract negotiation, generated bindings/reference artifacts, capability/validation logic and installed C/C++ consumer tests together. A historical evidence profile identifier must not remain a selectable production engine.",
     "Retain all currently supported domain/interaction capabilities and fixed numeric gates; unsupported-hardware reporting cannot mask a missing native binding. Cross-platform builds and meaningful public production tests pass."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "f2ec9154-74db-4d00-889b-f06a2ed91c70",
-    "owner": "codex-android-overnight",
-    "machine": "thomas-laptop-pixel7",
-    "branch": "work/F8-50/thomas-laptop-pixel7",
-    "claimed_at": "2026-10-26T03:43:44Z",
-    "heartbeat_at": "2026-10-26T03:43:44Z",
-    "expires_at": "2026-10-27T03:43:44Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/evidence/F8-50-single-execution-path.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "f2ec9154-74db-4d00-889b-f06a2ed91c70",
+        "owner": "codex-android-overnight",
+        "machine": "thomas-laptop-pixel7",
+        "branch": "work/F8-50/thomas-laptop-pixel7",
+        "claimed_at": "2026-10-26T03:43:44Z",
+        "heartbeat_at": "2026-10-26T03:43:44Z",
+        "expires_at": "2026-10-27T03:43:44Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-26T05:27:30Z",
+      "reason": "Sole fixed-tick API 0.3 path passed CPU, installed SDK, CUDA/Vulkan builds, and full Pixel 7 Vulkan qualification",
+      "evidence": [
+        "docs/roadmap/evidence/F8-50-single-execution-path.json"
+      ]
+    }
+  ]
 }

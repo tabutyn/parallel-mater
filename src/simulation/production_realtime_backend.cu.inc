@@ -3539,7 +3539,8 @@ public:
                     scene.timestep, state_.parameters,
                     state_.render_previous_states,
                     state_.states[output_state_], state_.meshes,
-                    state_.rigid_body_count, cloth.body_impulses,
+                    state_.rigid_body_count, PM_INVALID_INDEX, 0U,
+                    PM_INVALID_INDEX, 0U, cloth.body_impulses,
                     cloth.rigid_contact_forces, nullptr, nullptr, nullptr,
                     nullptr, nullptr, nullptr, state_.fluid_body_contact_flags,
                     false, false, false, false,
@@ -3600,7 +3601,8 @@ public:
                     scene.timestep, state_.parameters,
                     state_.render_previous_states,
                     state_.states[output_state_], state_.meshes,
-                    state_.rigid_body_count, body.body_impulses,
+                    state_.rigid_body_count, PM_INVALID_INDEX, 0U,
+                    PM_INVALID_INDEX, 0U, body.body_impulses,
                     body.rigid_contact_forces, body.contact_normals,
                     body.contact_arms, body.contact_momentum_delta,
                     body.contact_normal_delta, body.contact_count,
@@ -3647,6 +3649,22 @@ public:
                     state_.rigid_body_count * sizeof(std::uint32_t),
                     native_.queue());
                 if (result != PM_SUCCESS) return result;
+                const RopeAttachment attachments[2]{
+                    rope.data.options.first, rope.data.options.last};
+                std::uint32_t attachment_bodies[2]{
+                    PM_INVALID_INDEX, PM_INVALID_INDEX};
+                for (std::uint32_t end = 0U; end < 2U; ++end) {
+                    const auto &attachment = attachments[end];
+                    if (!attachment.enabled) continue;
+                    if (attachment.body.index >= state_.slots.size())
+                        return PM_ERROR_INVALID_STATE;
+                    const auto &body_slot = state_.slots[attachment.body.index];
+                    if (!body_slot.alive ||
+                        body_slot.generation != attachment.body.generation ||
+                        body_slot.dense_index >= state_.rigid_body_count)
+                        return PM_ERROR_INVALID_STATE;
+                    attachment_bodies[end] = body_slot.dense_index;
+                }
                 native_.collide_deformable_with_rigid_geometry(
                     groups, block, native_.queue(), rope.realtime_positions,
                     rope.realtime_velocities,
@@ -3655,7 +3673,11 @@ public:
                     rope.data.options.radius, scene.timestep,
                     state_.parameters, state_.render_previous_states,
                     state_.states[output_state_], state_.meshes,
-                    state_.rigid_body_count, rope.realtime_body_impulses,
+                    state_.rigid_body_count, attachment_bodies[0],
+                    rope.data.first_attachment_contact_skip,
+                    attachment_bodies[1],
+                    rope.data.last_attachment_contact_skip,
+                    rope.realtime_body_impulses,
                     rope.realtime_rigid_contact_forces, nullptr, nullptr,
                     nullptr, nullptr, nullptr, nullptr,
                     state_.fluid_body_contact_flags, true, false, false,

@@ -302,24 +302,17 @@ struct SimulationOptions {
     std::uint32_t rope_soft_body_coupling_capacity{1U};
     std::uint32_t rope_cloth_coupling_capacity{1U};
     PhysicsDebugOptions physics_debug{};
-    // Internal fixed-capacity storage for the opt-in realtime profile. Public
-    // creation leaves this disabled until profile negotiation is exposed.
-    bool realtime_spatial_enabled{};
+    // Fixed-capacity storage for the production fixed-tick runtime.
+    bool realtime_spatial_enabled{true};
     std::uint32_t realtime_spatial_leaf_capacity{};
     std::uint32_t realtime_spatial_query_capacity{};
     std::uint32_t realtime_spatial_candidates_per_query{};
     std::uint32_t realtime_spatial_snapshot_count{3U};
 };
 
-enum class PhysicsStepProfile : std::uint32_t {
-    legacy_default = 0U,
-    realtime_single_step_v1 = 1U,
-};
-
 struct StepOptions {
     float timestep{1.0F / 60.0F};
-    // Minimum count; live ropes may require smaller shared integration steps.
-    std::uint32_t substeps{4U};
+    std::uint32_t substeps{1U};
     Vec3 gravity{0.0F, -9.81F, 0.0F};
     // Records backend GPU timings for this frame. Disabled by default.
     bool collect_kernel_timings{};
@@ -337,10 +330,6 @@ struct StepOptions {
     // Base AVBD coordinate budget for bodies without a higher local joint
     // requirement. The command API supplies this from its bound pipeline.
     std::uint32_t rigid_contact_iterations{10U};
-    // Immutable simulation profile. Domain kernels receive the version
-    // explicitly; a one-substep request never selects realtime equations by
-    // accident.
-    PhysicsStepProfile profile{PhysicsStepProfile::legacy_default};
     // Internal native-profile instrumentation seam. Null selects the fixed
     // production limits and retains the latest report inside the runtime.
     const simulation::RealtimeTelemetryLimits *realtime_telemetry_limits{};

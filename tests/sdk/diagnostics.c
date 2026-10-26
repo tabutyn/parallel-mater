@@ -54,7 +54,7 @@ int main(void) {
     diagnostics.pUserData = &state;
     instanceInfo.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceInfo.pNext = &diagnostics;
-    instanceInfo.apiVersion = PM_API_VERSION_0_2;
+    instanceInfo.apiVersion = PM_API_VERSION_0_3;
     result = pmCreateInstance(&instanceInfo, NULL, &instance);
     if (result != PM_SUCCESS) return 1;
     result = pmEnumeratePhysicalDevices(instance, &count, &physical);

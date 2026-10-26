@@ -62,7 +62,7 @@ foreach(suite resource-lifecycle domain-lifecycle coupling-lifecycle interaction
             parallel-mater-test-driver-slang-cpu-resources)
         set(host_suite_arguments)
         if(suite STREQUAL "fluid-pair-graph-lifecycle")
-            list(APPEND host_suite_arguments --miscible --resource-fixture)
+            list(APPEND host_suite_arguments --resource-fixture)
         endif()
         add_test(NAME parallel-mater-host-${suite}-tests
             COMMAND parallel-mater-${suite}-tests ${host_suite_arguments})

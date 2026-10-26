@@ -52,7 +52,7 @@ static int check_instance_extensions(void) {
               "PM_LAYER_unknown", &count, NULL) == PM_ERROR_LAYER_NOT_PRESENT);
 
     info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    info.apiVersion = PM_API_VERSION_0_2;
+    info.apiVersion = PM_API_VERSION_0_3;
     info.enabledExtensionCount = 1U;
     info.ppEnabledExtensionNames = &unknown;
     CHECK(pmCreateInstance(&info, NULL, &instance) ==
@@ -66,23 +66,16 @@ static int check_device_extensions(void) {
     PmPhysicalDevice physical = NULL;
     PmDevice device = NULL;
     PmDeviceCreateInfo info = {0};
-    PmExtensionProperties extension = {0};
     const char* unknown = "PM_EXT_unknown";
     uint32_t count = 1U;
     uint32_t extension_count = UINT32_MAX;
 
-    CHECK(create_instance(PM_API_VERSION_0_2, 0, &instance) == PM_SUCCESS);
+    CHECK(create_instance(PM_API_VERSION_0_3, 0, &instance) == PM_SUCCESS);
     CHECK(pmEnumeratePhysicalDevices(instance, &count, &physical) == PM_SUCCESS);
     CHECK(count == 1U && physical != NULL);
     CHECK(pmEnumerateDeviceExtensionProperties(
               physical, NULL, &extension_count, NULL) == PM_SUCCESS);
-    CHECK(extension_count == 1U);
-    CHECK(pmEnumerateDeviceExtensionProperties(
-              physical, NULL, &extension_count, &extension) == PM_SUCCESS);
-    CHECK(strcmp(extension.extensionName,
-                 PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME) == 0);
-    CHECK(extension.specificationVersion ==
-          PM_EXT_SIMULATION_PROFILE_SPEC_VERSION);
+    CHECK(extension_count == 0U);
     CHECK(pmEnumerateDeviceExtensionProperties(
               physical, "PM_LAYER_unknown", &extension_count, NULL) ==
           PM_ERROR_LAYER_NOT_PRESENT);
@@ -104,31 +97,31 @@ int main(int argc, char** argv) {
     if (strcmp(mode, "app-default") == 0)
         return expect_application_version(0U, PM_SUCCESS);
     if (strcmp(mode, "app-current") == 0)
-        return expect_application_version(PM_API_VERSION_0_2, PM_SUCCESS);
+        return expect_application_version(PM_API_VERSION_0_3, PM_SUCCESS);
     if (strcmp(mode, "app-old") == 0)
         return expect_application_version(
-            PM_MAKE_API_VERSION(0, 1, 0), PM_ERROR_INCOMPATIBLE_VERSION);
+            PM_API_VERSION_0_2, PM_ERROR_INCOMPATIBLE_VERSION);
     if (strcmp(mode, "app-future") == 0)
         return expect_application_version(
-            PM_MAKE_API_VERSION(0, 3, 0), PM_ERROR_INCOMPATIBLE_VERSION);
+            PM_MAKE_API_VERSION(0, 4, 0), PM_ERROR_INCOMPATIBLE_VERSION);
     if (strcmp(mode, "instance-extension") == 0)
         return check_instance_extensions();
     if (strcmp(mode, "device-extension") == 0)
         return check_device_extensions();
     if (strcmp(mode, "layer") == 0) {
-        CHECK(create_instance(PM_API_VERSION_0_2, 1, &instance) == PM_SUCCESS);
+        CHECK(create_instance(PM_API_VERSION_0_3, 1, &instance) == PM_SUCCESS);
         CHECK(instance != NULL);
         pmDestroyInstance(instance);
         return 0;
     }
     if (strcmp(mode, "reject-driver") == 0) {
-        CHECK(create_instance(PM_API_VERSION_0_2, 0, &instance) ==
+        CHECK(create_instance(PM_API_VERSION_0_3, 0, &instance) ==
               PM_ERROR_DRIVER_NOT_FOUND);
         CHECK(instance == NULL);
         return 0;
     }
     if (strcmp(mode, "reject-layer") == 0) {
-        CHECK(create_instance(PM_API_VERSION_0_2, 1, &instance) ==
+        CHECK(create_instance(PM_API_VERSION_0_3, 1, &instance) ==
               PM_ERROR_LAYER_NOT_PRESENT);
         CHECK(instance == NULL);
         return 0;

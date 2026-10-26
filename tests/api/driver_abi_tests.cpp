@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
         get_instance(nullptr, "pmCreateInstance"));
     PmInstanceCreateInfo info{};
     info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    info.apiVersion = PM_API_VERSION_0_2 + 1U;
+    info.apiVersion = PM_API_VERSION_0_3 + 1U;
     PmInstance instance{};
     CHECK(create(&info, nullptr, &instance) == PM_ERROR_INCOMPATIBLE_VERSION);
     CHECK(instance == nullptr);

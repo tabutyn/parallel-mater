@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     constexpr std::uint32_t constraint_count = 8U;
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instance_info.apiVersion = PM_API_VERSION_0_2;
+    instance_info.apiVersion = PM_API_VERSION_0_3;
     PmInstance instance{};
     CHECK(pmCreateInstance(&instance_info, nullptr, &instance) == PM_SUCCESS);
     std::uint32_t physical_count = 1U;
@@ -41,14 +41,11 @@ int main(int argc, char **argv) {
 
     const float priority = 1.0F;
     const PmDeviceQueueCreateInfo queue_info{0U, 1U, &priority};
-    const char *extension = PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME;
     PmDeviceCreateInfo device_info{};
     device_info.sType = PM_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     device_info.queueCreateInfoCount = 1U;
     device_info.pQueueInfos = &queue_info;
     pmGetPhysicalDeviceFeatures(physical, &device_info.enabledFeatures);
-    device_info.enabledExtensionCount = 1U;
-    device_info.ppEnabledExtensionNames = &extension;
     PmDevice device{};
     CHECK(pmCreateDevice(physical, &device_info, &device) == PM_SUCCESS);
     PmQueue queue{};
@@ -124,13 +121,8 @@ int main(int argc, char **argv) {
     CHECK(pmBindGeometryMemory(
         device, geometry, allocate(geometry_memory.size), 0U) == PM_SUCCESS);
 
-    PmSimulationProfileCreateInfo profile{};
-    profile.sType = PM_STRUCTURE_TYPE_SIMULATION_PROFILE_CREATE_INFO;
-    profile.pProfileName = PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP;
-    profile.versionMajor = 1U;
     PmSimulationCreateInfo simulation_info{};
     simulation_info.sType = PM_STRUCTURE_TYPE_SIMULATION_CREATE_INFO;
-    simulation_info.pNext = &profile;
     simulation_info.rigidBodyCapacity = body_count;
     simulation_info.constraintCapacity = constraint_count;
     simulation_info.contactCapacity = 2048U;
@@ -1652,8 +1644,7 @@ int main(int argc, char **argv) {
         auto &liquid_cloth = couplings[5];
         liquid_cloth.sType = PM_STRUCTURE_TYPE_COUPLING_STATE_INFO;
         liquid_cloth.type = PM_COUPLING_LIQUID_CLOTH;
-        liquid_cloth.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT |
-            PM_INTERACTION_MODE_CONTAINMENT_BIT;
+        liquid_cloth.modeFlags = PM_INTERACTION_MODE_CONTACT_BIT;
         liquid_cloth.materialProfile =
             PM_INTERACTION_MATERIAL_ENDPOINT_NATIVE;
         liquid_cloth.parameters.mechanical.contactDistance = 0.02F;
@@ -1738,13 +1729,24 @@ int main(int argc, char **argv) {
         smoke_soft.parameters.smoke.contactDistance = 0.04F;
 
         execution_label = "install particle smoke couplings";
-        const std::uint32_t installed_coupling_count = smoke_couplings_only
-            ? 4U : static_cast<std::uint32_t>(couplings.size());
-        const PmCouplingStateInfo *installed_couplings = smoke_couplings_only
-            ? couplings.data() + 9U : couplings.data();
+        std::vector<PmCouplingStateInfo> installed_couplings;
+        if (smoke_couplings_only) {
+            installed_couplings.assign(couplings.begin() + 9U,
+                                       couplings.end());
+        } else {
+            installed_couplings.reserve(couplings.size());
+            for (const auto &coupling : couplings) {
+                if (coupling.type == PM_COUPLING_LIQUID_LIQUID &&
+                    !device_info.enabledFeatures.liquidLiquidCoupling)
+                    continue;
+                installed_couplings.push_back(coupling);
+            }
+        }
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
-        CHECK(pmCmdSetCouplings2(commands, mixed_simulation,
-            installed_coupling_count, installed_couplings) == PM_SUCCESS);
+        CHECK(pmCmdSetCouplings2(
+            commands, mixed_simulation,
+            static_cast<std::uint32_t>(installed_couplings.size()),
+            installed_couplings.data()) == PM_SUCCESS);
         execute(PM_SUCCESS);
 
         execution_label = "particle smoke coupling tick";
@@ -1779,8 +1781,11 @@ int main(int argc, char **argv) {
             sizeof coupling_statistics, &coupling_statistics,
             sizeof coupling_statistics, PM_QUERY_RESULT_WAIT_BIT) ==
             PM_SUCCESS);
+        const std::uint32_t expected_particle_coupling_edges =
+            device_info.enabledFeatures.liquidLiquidCoupling ? 27U : 24U;
         CHECK(coupling_statistics.couplingEdgeCount ==
-            (smoke_couplings_only ? 15U : 28U));
+            (smoke_couplings_only ? 15U :
+             expected_particle_coupling_edges));
         CHECK(coupling_statistics.couplingSweeps == 12U);
         CHECK(coupling_statistics.timeAdvances == 1U);
         CHECK(coupling_statistics.total.spatialIndexBuilds == 1U);
@@ -1904,10 +1909,8 @@ int main(int argc, char **argv) {
             sizeof grid_coupling_statistics, &grid_coupling_statistics,
             sizeof grid_coupling_statistics, PM_QUERY_RESULT_WAIT_BIT) ==
             PM_SUCCESS);
-        CHECK(grid_coupling_statistics.couplingEdgeCount ==
-            (smoke_couplings_only ? 15U : 11U));
-        CHECK(grid_coupling_statistics.couplingSweeps ==
-            (smoke_couplings_only ? 12U : 8U));
+        CHECK(grid_coupling_statistics.couplingEdgeCount == 15U);
+        CHECK(grid_coupling_statistics.couplingSweeps == 12U);
         CHECK(grid_coupling_statistics.timeAdvances == 1U);
         CHECK(grid_coupling_statistics.total.spatialIndexBuilds == 1U);
         CHECK(grid_coupling_statistics.total.spatialIndexPublications == 1U);

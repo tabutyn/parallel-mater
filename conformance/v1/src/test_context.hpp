@@ -43,7 +43,7 @@ public:
     bool open(PmPhysicalDeviceFeatures needed) {
         PmInstanceCreateInfo info{};
         info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-        info.apiVersion = PM_API_VERSION_0_2;
+        info.apiVersion = PM_API_VERSION_0_3;
         info.enableValidation = std::getenv("PM_TEST_VALIDATION") ? PM_TRUE : PM_FALSE;
         PM_CHECK(pmCreateInstance(&info, nullptr, &instance) == PM_SUCCESS);
         std::uint32_t count{};

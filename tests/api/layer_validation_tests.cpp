@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
 
     PmInstanceCreateInfo info{};
     info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    info.apiVersion = PM_API_VERSION_0_2;
+    info.apiVersion = PM_API_VERSION_0_3;
     PmValidationDiagnosticsCreateInfo diagnostic_info{};
     diagnostic_info.sType =
         PM_STRUCTURE_TYPE_VALIDATION_DIAGNOSTICS_CREATE_INFO;

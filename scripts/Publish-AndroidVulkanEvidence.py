@@ -224,7 +224,7 @@ def main() -> int:
         "obligations_sha256": sha256(profile_path),
         "execution_status": "completed",
         "source": {"commit": source_commit, "dirty": False},
-        "driver": {"name": "slang-vulkan", "version": "0.2.0",
+        "driver": {"name": "slang-vulkan", "version": "0.3.0",
                    "binary_sha256": capture["driver_sha256"]},
         "device": {"name": capture["device"]["gpu"],
                    "vendor_id": capture["device"]["vendor_id"],

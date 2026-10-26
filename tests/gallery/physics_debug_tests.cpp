@@ -191,7 +191,7 @@ int main() try {
          {2.1786871e-5F, -1.2911597e-5F, 3.79184439e-6F}}};
     frame.constraint_states.push_back({PM_TRUE, PM_FALSE, 3.5F});
 
-    PmStepInfo step{1.0F / 240.0F, 1U,
+    PmStepInfo step{1.0F / 60.0F, 1U,
                     {4.88931274F, -8.49570942F, -0.391981125F},
                     PM_STEP_COLLECT_CONTACT_EVENTS_BIT};
     PhysicsDebugHistory history(2U);

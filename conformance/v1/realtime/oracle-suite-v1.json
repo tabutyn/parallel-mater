@@ -17,14 +17,9 @@
   },
   "public_api": {
     "rule": "Fixtures create, mutate, step, synchronize and read state only through the installed public API. Driver-private state cannot satisfy an assertion.",
-    "required_extension": "PM_EXT_simulation_profile",
-    "requested_profile": "realtime-single-step",
-    "requested_version": {
-      "major": 1,
-      "minor": 0
-    },
+    "execution_path": "fixed-tick-v1",
+    "selection": "none",
     "operation_sequence": [
-      "pmEnumerateExecutionProfiles",
       "pmCreateDevice",
       "pmCreateSimulation",
       "pmCreatePhysicsPipeline",

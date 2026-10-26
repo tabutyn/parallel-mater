@@ -33,7 +33,7 @@
     ]
   },
   "contracts": [
-    {"id": "registry:interaction-capabilities", "path": "registry/pm.xml", "sha256": "2e221632660dced87fa1069fdff5fedb8f78e09a18f2ae3488e413ba7b15285f", "compatible_sha256": ["c14fef87bc0c2ac6124eb1d201ad0400f59d8ee50264f8724e80191c83afee6e", "c203b18faa0a05f5bc4dc393dc22a23e6191bb3f62d230529b1edb76f3649b4c", "a9d8f5ed8c0a1a075c3f0ac50dbe9914db9a3dcf1abae2524a4a5fd97fc1344d", "e3373207b92f7065fa2def13e53178aa56f4dc49e850bd86d5cc15cf71790d62", "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af", "d2eeafa838267aab72684355ac129e4776da422a3c8ab728115f155d16472f5f"]},
+    {"id": "registry:interaction-capabilities", "path": "registry/pm.xml", "sha256": "9581bc11a09dd04983b0e98339b8c5716b23c9e06f07be7a7726d00701e07189", "compatible_sha256": ["2e221632660dced87fa1069fdff5fedb8f78e09a18f2ae3488e413ba7b15285f", "c14fef87bc0c2ac6124eb1d201ad0400f59d8ee50264f8724e80191c83afee6e", "c203b18faa0a05f5bc4dc393dc22a23e6191bb3f62d230529b1edb76f3649b4c", "a9d8f5ed8c0a1a075c3f0ac50dbe9914db9a3dcf1abae2524a4a5fd97fc1344d", "e3373207b92f7065fa2def13e53178aa56f4dc49e850bd86d5cc15cf71790d62", "c7e30e508dc3c16e33a81bc24fc1cab8839990322fc50ab583afab91be3781af", "d2eeafa838267aab72684355ac129e4776da422a3c8ab728115f155d16472f5f"]},
     {"id": "case:fluid-lifecycle", "path": "conformance/v1/cases/fluid-lifecycle.json", "sha256": "43ab9cd6b0d5a845c8aae5555e4ceff3a839a2758eaeb9f9661446492b34416b"},
     {"id": "case:rope-core", "path": "conformance/v1/cases/rope-core.json", "sha256": "8a03f0a180f37c0bef978cbd0d632605c6df9fadea020895c3710cb97d5fad41"},
     {"id": "case:smoke-grid", "path": "conformance/v1/cases/smoke-grid.json", "sha256": "8f97e13d84761b7b37834535c91f00a3f5830a179820b303d72d36d39d8454b3"},

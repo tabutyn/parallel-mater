@@ -16,7 +16,7 @@
 int main() {
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instance_info.apiVersion = PM_API_VERSION_0_2;
+    instance_info.apiVersion = PM_API_VERSION_0_3;
     PmInstance instance{};
     CHECK(pmCreateInstance(&instance_info, nullptr, &instance) == PM_SUCCESS);
     std::uint32_t count = 1;

@@ -28,15 +28,15 @@ int main(int argc, char **argv) {
     const char *mode = argc > 1 ? argv[1] : "normal";
     PmInstanceCreateInfo info{};
     info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    info.apiVersion = PM_API_VERSION_0_2;
+    info.apiVersion = PM_API_VERSION_0_3;
     PmInstance instance{};
-    for (const std::uint32_t version : {1U, PM_API_VERSION_0_2 + 1U, 0xffffffffU}) {
+    for (const std::uint32_t version : {1U, PM_API_VERSION_0_3 + 1U, 0xffffffffU}) {
         info.apiVersion = version;
         CHECK(pmCreateInstance(&info, nullptr, &instance) ==
               PM_ERROR_INCOMPATIBLE_VERSION);
         CHECK(instance == nullptr);
     }
-    info.apiVersion = PM_API_VERSION_0_2;
+    info.apiVersion = PM_API_VERSION_0_3;
     if (std::strcmp(mode, "reject-driver") == 0) {
         CHECK(pmCreateInstance(&info, nullptr, &instance) == PM_ERROR_DRIVER_NOT_FOUND);
         CHECK(instance == nullptr);

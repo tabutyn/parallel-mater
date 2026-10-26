@@ -4,7 +4,7 @@
     "name": "PM_LAYER_PARALLEL_MATER_validation",
     "type": "GLOBAL",
     "library_path": "@PARALLEL_MATER_INSTALLED_LAYER_PATH@",
-    "api_version": "0.2.0",
+    "api_version": "0.3.0",
     "implementation_version": "1"
   }
 }

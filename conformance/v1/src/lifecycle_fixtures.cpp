@@ -35,7 +35,7 @@ std::string driver_name(PmDevice device) {
 Json selected_driver_json() {
     PmInstanceCreateInfo create{};
     create.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    create.apiVersion = PM_API_VERSION_0_2;
+    create.apiVersion = PM_API_VERSION_0_3;
     PmInstance instance{};
     if (pmCreateInstance(&create, nullptr, &instance) != PM_SUCCESS)
         throw std::runtime_error("create lifecycle provenance instance");

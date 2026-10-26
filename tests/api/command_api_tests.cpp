@@ -15,7 +15,7 @@
 int main() {
     std::uint32_t version = 0U;
     CHECK(pmEnumerateInstanceVersion(&version) == PM_SUCCESS);
-    CHECK(version == PM_API_VERSION_0_2);
+    CHECK(version == PM_API_VERSION_0_3);
     CHECK(pmGetInstanceProcAddr(nullptr, "pmCreateInstance") != nullptr);
     CHECK(pmGetInstanceProcAddr(nullptr, "pmQueueSubmit") == nullptr);
     std::uint32_t layer_count = 0U;
@@ -28,7 +28,7 @@ int main() {
     const char *missing_instance_extension = "PM_EXT_missing";
     PmInstanceCreateInfo missing_instance_info{};
     missing_instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    missing_instance_info.apiVersion = PM_API_VERSION_0_2;
+    missing_instance_info.apiVersion = PM_API_VERSION_0_3;
     missing_instance_info.enabledExtensionCount = 1U;
     missing_instance_info.ppEnabledExtensionNames = &missing_instance_extension;
     PmInstance missing_instance{};
@@ -38,7 +38,7 @@ int main() {
 
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instance_info.apiVersion = PM_API_VERSION_0_2;
+    instance_info.apiVersion = PM_API_VERSION_0_3;
     const char *validation_layer = "PM_LAYER_PARALLEL_MATER_validation";
     instance_info.enabledLayerCount = 1U;
     instance_info.ppEnabledLayerNames = &validation_layer;
@@ -461,7 +461,7 @@ int main() {
     bodies[0].state.position[1] = -1.0F;
     bodies[1].motionType = PM_MOTION_DYNAMIC;
     bodies[1].state.position[1] = 2.0F;
-    PmStepInfo step{1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F}, 0U};
+    PmStepInfo step{1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F}, 0U};
     PmBufferRange output_range{destination, 0U, 2U * sizeof(PmRigidState)};
     auto *particle_states = reinterpret_cast<PmParticleState *>(
         static_cast<std::byte *>(mapped_destination) + 128U);

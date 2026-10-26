@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(ParallelMaterExternalSdkGate LANGUAGES C CXX)
 include(CTest)
-set(PM_REQUIRED_VERSION 0.2 CACHE STRING "Requested SDK compatibility line")
+set(PM_REQUIRED_VERSION 0.3 CACHE STRING "Requested SDK compatibility line")
 set(PM_REALTIME_DRIVER_MANIFEST "" CACHE FILEPATH
     "Installed production driver manifest used by the realtime SDK gate")
 set(PM_REALTIME_OBSERVATION_DIR "" CACHE PATH
@@ -38,7 +38,7 @@ set_target_properties(external-mock PROPERTIES CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES)
 # Intentionally no link to loader, reference driver or internal source.
 file(GENERATE OUTPUT "$<TARGET_FILE_DIR:external-mock>/mock.json"
-    CONTENT "{\"file_format_version\":\"1.0.0\",\"PMD\":{\"library_path\":\"$<TARGET_FILE_NAME:external-mock>\",\"api_version\":\"0.2.0\"}}\n")
+    CONTENT "{\"file_format_version\":\"1.0.0\",\"PMD\":{\"library_path\":\"$<TARGET_FILE_NAME:external-mock>\",\"api_version\":\"0.3.0\"}}\n")
 
 # Compile negotiated ABI fixtures only from installed public C/C++ headers.
 # No loader, layer implementation or solver source is staged into this project.
@@ -53,7 +53,7 @@ foreach(version IN ITEMS 1 2 3 0 999)
         C_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN YES)
     file(GENERATE
         OUTPUT "$<TARGET_FILE_DIR:external-layer-${version}>/layer-${version}.json"
-        CONTENT "{\"file_format_version\":\"1.0.0\",\"layer\":{\"library_path\":\"$<TARGET_FILE_NAME:external-layer-${version}>\",\"api_version\":\"0.2.0\"}}\n")
+        CONTENT "{\"file_format_version\":\"1.0.0\",\"layer\":{\"library_path\":\"$<TARGET_FILE_NAME:external-layer-${version}>\",\"api_version\":\"0.3.0\"}}\n")
 endforeach()
 
 foreach(version IN ITEMS 0 999)
@@ -68,11 +68,11 @@ foreach(version IN ITEMS 0 999)
         CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN YES)
     file(GENERATE
         OUTPUT "$<TARGET_FILE_DIR:external-driver-${version}>/driver-${version}.json"
-        CONTENT "{\"file_format_version\":\"1.0.0\",\"PMD\":{\"library_path\":\"$<TARGET_FILE_NAME:external-driver-${version}>\",\"api_version\":\"0.2.0\"}}\n")
+        CONTENT "{\"file_format_version\":\"1.0.0\",\"PMD\":{\"library_path\":\"$<TARGET_FILE_NAME:external-driver-${version}>\",\"api_version\":\"0.3.0\"}}\n")
 endforeach()
 
 file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/installed-layer-3.json"
-    CONTENT "{\"file_format_version\":\"1.0.0\",\"layer\":{\"library_path\":\"$<TARGET_FILE:ParallelMater::parallel-mater-layer-validation>\",\"api_version\":\"0.2.0\"}}\n")
+    CONTENT "{\"file_format_version\":\"1.0.0\",\"layer\":{\"library_path\":\"$<TARGET_FILE:ParallelMater::parallel-mater-layer-validation>\",\"api_version\":\"0.3.0\"}}\n")
 
 add_executable(c-consumer devices.c)
 target_compile_features(c-consumer PRIVATE c_std_11)

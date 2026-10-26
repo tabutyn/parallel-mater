@@ -219,7 +219,7 @@ int main(int argc, char **argv) {
 
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instance_info.apiVersion = PM_API_VERSION_0_2;
+    instance_info.apiVersion = PM_API_VERSION_0_3;
     instance_info.enableValidation =
         std::getenv("PM_TEST_VALIDATION") != nullptr ? PM_TRUE : PM_FALSE;
     PmInstance instance{};

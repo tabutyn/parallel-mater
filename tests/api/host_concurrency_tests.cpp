@@ -227,7 +227,7 @@ int main(int argc, char **argv) {
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instance_info.pNext = &diagnostic_info;
-    instance_info.apiVersion = PM_API_VERSION_0_2;
+    instance_info.apiVersion = PM_API_VERSION_0_3;
     instance_info.pApplicationName = "Parallel Mater host concurrency test";
 
     PmInstance instance{};

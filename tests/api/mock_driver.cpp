@@ -22,14 +22,9 @@ namespace {
 
 struct MockInstance { std::uint32_t tag{0x504d4452U}; };
 struct MockPhysical { MockInstance *instance{}; };
-struct MockDevice { bool simulation_profile_extension{}; };
-struct MockSimulation { bool realtime_single_step{}; };
+struct MockDevice {};
+struct MockSimulation {};
 struct MockSemaphore { std::uint64_t value{}; };
-
-struct StructureHeader {
-    PmStructureType sType;
-    const void *pNext;
-};
 
 bool realtime_timestep(float value) {
     constexpr float expected = 1.0F / 60.0F;
@@ -74,7 +69,7 @@ void mock_get_properties(PmPhysicalDevice physical,
     if (properties == nullptr) return;
     *properties = {};
     if (physical == nullptr) return;
-    properties->apiVersion = PM_API_VERSION_0_2;
+    properties->apiVersion = PM_API_VERSION_0_3;
     properties->vendorId = 0x504dU;
     properties->deviceId = 1U;
     std::strncpy(properties->deviceName, "Parallel Mater mock vendor device",
@@ -87,38 +82,8 @@ PmResult mock_enumerate_device_extensions(
     if (physical == nullptr || count == nullptr)
         return PM_ERROR_INVALID_ARGUMENT;
     if (layer_name != nullptr) return PM_ERROR_LAYER_NOT_PRESENT;
-    if (properties == nullptr) {
-        *count = 1U;
-        return PM_SUCCESS;
-    }
-    if (*count == 0U) return PM_INCOMPLETE;
-    properties[0] = {};
-    std::strncpy(properties[0].extensionName,
-                 PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME,
-                 sizeof properties[0].extensionName - 1U);
-    properties[0].specificationVersion =
-        PM_EXT_SIMULATION_PROFILE_SPEC_VERSION;
-    *count = 1U;
-    return PM_SUCCESS;
-}
-
-PmResult mock_enumerate_execution_profiles(
-    PmPhysicalDevice physical, std::uint32_t *count,
-    PmExecutionProfileProperties *properties) {
-    if (physical == nullptr || count == nullptr)
-        return PM_ERROR_INVALID_ARGUMENT;
-    if (properties == nullptr) {
-        *count = 1U;
-        return PM_SUCCESS;
-    }
-    if (*count == 0U) return PM_INCOMPLETE;
-    properties[0] = {};
-    std::strncpy(properties[0].profileName,
-                 PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP,
-                 sizeof properties[0].profileName - 1U);
-    properties[0].versionMajor = 1U;
-    properties[0].versionMinor = 0U;
-    *count = 1U;
+    (void)properties;
+    *count = 0U;
     return PM_SUCCESS;
 }
 
@@ -195,7 +160,6 @@ PmResult mock_create_device(PmPhysicalDevice, const PmDeviceCreateInfo *info,
                             PmDevice *out) {
     if (out == nullptr) return PM_ERROR_INVALID_ARGUMENT;
     *out = nullptr;
-    bool simulation_profile_extension = false;
     if (info != nullptr) {
         if (info->enabledExtensionCount != 0U &&
             info->ppEnabledExtensionNames == nullptr)
@@ -204,19 +168,13 @@ PmResult mock_create_device(PmPhysicalDevice, const PmDeviceCreateInfo *info,
              index < info->enabledExtensionCount; ++index) {
             const char *name = info->ppEnabledExtensionNames[index];
             if (name == nullptr) return PM_ERROR_INVALID_ARGUMENT;
-            if (std::strcmp(name,
-                            PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME) == 0) {
-                simulation_profile_extension = true;
-                continue;
-            }
 #if defined(PARALLEL_MATER_HAS_VULKAN_INTEROP)
             if (std::strcmp(name, "PM_EXT_vulkan_interop") == 0) continue;
 #endif
             return PM_ERROR_EXTENSION_NOT_PRESENT;
         }
     }
-    *out = reinterpret_cast<PmDevice>(
-        new (std::nothrow) MockDevice{simulation_profile_extension});
+    *out = reinterpret_cast<PmDevice>(new (std::nothrow) MockDevice);
     return *out ? PM_SUCCESS : PM_ERROR_OUT_OF_HOST_MEMORY;
 }
 void mock_destroy_device(PmDevice device) {
@@ -406,30 +364,8 @@ PmResult mock_create_simulation(PmDevice device, const PmSimulationCreateInfo *i
     if (device == nullptr || info == nullptr || out == nullptr)
         return PM_ERROR_INVALID_ARGUMENT;
     *out = nullptr;
-    bool realtime = false;
-    if (info->pNext != nullptr) {
-        const auto *header = static_cast<const StructureHeader *>(info->pNext);
-        if (header->sType !=
-                PM_STRUCTURE_TYPE_SIMULATION_PROFILE_CREATE_INFO ||
-            header->pNext != nullptr)
-            return PM_ERROR_INVALID_ARGUMENT;
-        const auto *mock_device = reinterpret_cast<MockDevice *>(device);
-        if (!mock_device->simulation_profile_extension)
-            return PM_ERROR_EXTENSION_NOT_PRESENT;
-        const auto *request = static_cast<
-            const PmSimulationProfileCreateInfo *>(info->pNext);
-        if (request->pProfileName == nullptr ||
-            request->pProfileName[0] == '\0')
-            return PM_ERROR_INVALID_ARGUMENT;
-        if (std::strcmp(request->pProfileName,
-                        PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP) != 0)
-            return PM_ERROR_FEATURE_NOT_PRESENT;
-        if (request->versionMajor != 1U || request->versionMinor != 0U)
-            return PM_ERROR_INCOMPATIBLE_VERSION;
-        realtime = true;
-    }
-    *out = reinterpret_cast<PmSimulation>(
-        new (std::nothrow) MockSimulation{realtime});
+    if (info->pNext != nullptr) return PM_ERROR_INVALID_ARGUMENT;
+    *out = reinterpret_cast<PmSimulation>(new (std::nothrow) MockSimulation);
     return *out ? PM_SUCCESS : PM_ERROR_OUT_OF_HOST_MEMORY;
 }
 void mock_destroy_simulation(PmDevice, PmSimulation simulation) {
@@ -472,9 +408,7 @@ PmResult mock_cmd_step(PmCommandBuffer, PmSimulation simulation,
                        const PmStepInfo *step) {
     if (simulation == nullptr || step == nullptr)
         return PM_ERROR_INVALID_ARGUMENT;
-    const auto *mock = reinterpret_cast<MockSimulation *>(simulation);
-    if (mock->realtime_single_step &&
-        (!realtime_timestep(step->timestep) || step->substeps != 1U))
+    if (!realtime_timestep(step->timestep) || step->substeps != 1U)
         return PM_ERROR_INVALID_ARGUMENT;
     return PM_SUCCESS;
 }
@@ -632,11 +566,6 @@ pm_driverGetPhysicalDeviceProcAddr(PmInstance, const char *name) {
             name, "pmEnumerateDeviceExtensionProperties") == 0)
         return reinterpret_cast<PFN_pmVoidFunction>(
             &mock_enumerate_device_extensions);
-    if (name && std::strcmp(
-            name,
-            "pmEnumerateExecutionProfiles") == 0)
-        return reinterpret_cast<PFN_pmVoidFunction>(
-            &mock_enumerate_execution_profiles);
     if (name && std::strcmp(
             name, "pmEnumeratePhysicalDeviceInteractionCapabilities") == 0)
         return reinterpret_cast<PFN_pmVoidFunction>(&mock_enumerate_interactions);

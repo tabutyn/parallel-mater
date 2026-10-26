@@ -1,7 +1,7 @@
 @PACKAGE_INIT@
 
 set(ParallelMater_VERSION "@PROJECT_VERSION@")
-set(ParallelMater_API_VERSION "0.2")
+set(ParallelMater_API_VERSION "0.3")
 foreach(component IN ITEMS loader validation preparation scene driver
                            conformance benchmark)
     set(ParallelMater_${component}_FOUND FALSE)

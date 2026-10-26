@@ -1,4 +1,4 @@
-<!-- Generated from registry/pm.xml sha256:2e221632660dced87fa1069fdff5fedb8f78e09a18f2ae3488e413ba7b15285f -->
+<!-- Generated from registry/pm.xml sha256:9581bc11a09dd04983b0e98339b8c5716b23c9e06f07be7a7726d00701e07189 -->
 
 # Parallel Mater 0.2 — API Specification
 
@@ -50,7 +50,7 @@ Requirements stated as must, must not, required, or an imperative define valid u
 
 ## 1 Parallel Mater
 
-API 0.2
+API 0.3
 
 <a id="spec-intent"></a>
 
@@ -147,7 +147,7 @@ With instance = NULL, pmGetInstanceProcAddr resolves only itself, pmEnumerateIns
 
 Obtain pmGetInstanceProcAddr by linking or the platform's library-symbol lookup. Instance-resolved pointers are valid only for that instance and its children; device-resolved pointers only for that device and its children. Keep their owner and the library alive while using them.
 
-Related sections: [3.2](#spec-instance), [4.6](#spec-device).
+Related sections: [3.2](#spec-instance), [4.5](#spec-device).
 
 <a id="spec-instance"></a>
 
@@ -195,7 +195,7 @@ PmResult pmCreateInstance(
 void pmDestroyInstance(PmInstance instance);
 ```
 
-pmEnumerateInstanceVersion reports the highest supported API version; pApiVersion must be non-NULL. Set apiVersion = PM_API_VERSION_0_2 to use this reference; zero selects 0.2. Other versions are unsupported, including older pre-stable versions. Unsupported versions return PM_ERROR_INCOMPATIBLE_VERSION. Destroy every logical device before its instance. Validation is a host-side diagnostic request, not permission to omit required synchronization.
+pmEnumerateInstanceVersion reports the highest supported API version; pApiVersion must be non-NULL. Set apiVersion = PM_API_VERSION_0_3 to use this reference; zero selects 0.3. API 0.2 and other versions are unsupported because 0.3 removes execution-profile selection and makes the fixed-tick runtime mandatory. Unsupported versions return PM_ERROR_INCOMPATIBLE_VERSION. Destroy every logical device before its instance. Validation is a host-side diagnostic request, not permission to omit required synchronization.
 
 Related sections: [3.4](#spec-allocator), [4](#spec-discovery).
 
@@ -377,40 +377,9 @@ void pmGetPhysicalDeviceFeatures(
 
 Supported features are not automatically enabled. Request only needed features at device creation. Constraints require rigidBodies; each coupling requires its participating domains. Timeline semaphores are required for a conforming command-API device; other features may be false.
 
-<a id="spec-execution_profiles"></a>
-
-### 4.5 Execution profile negotiation
-
-```c
-#define PM_EXT_SIMULATION_PROFILE_EXTENSION_NAME "PM_EXT_simulation_profile"
-#define PM_EXT_SIMULATION_PROFILE_SPEC_VERSION 1u
-#define PM_EXECUTION_PROFILE_NAME_MAX_SIZE 64u
-#define PM_EXECUTION_PROFILE_REALTIME_SINGLE_STEP "realtime-single-step"
-typedef struct PmExecutionProfileProperties {
-    char profileName[PM_EXECUTION_PROFILE_NAME_MAX_SIZE];
-    uint32_t versionMajor;
-    uint32_t versionMinor;
-} PmExecutionProfileProperties;
-typedef struct PmSimulationProfileCreateInfo {
-    PmStructureType sType;
-    const void* pNext;
-    const char* pProfileName;
-    uint32_t versionMajor;
-    uint32_t versionMinor;
-} PmSimulationProfileCreateInfo;
-```
-
-```c
-PmResult pmEnumerateExecutionProfiles(
-    PmPhysicalDevice physicalDevice, uint32_t* pCount,
-    PmExecutionProfileProperties* pProperties);
-```
-
-Lists executable name/version pairs, not qualification. Enable PM_EXT_simulation_profile and chain PmSimulationProfileCreateInfo at simulation creation; omission keeps the legacy schedule. Unknown profiles and versions fail without fallback. realtime-single-step 1.0 requires one substep and 1/60 second within one binary32 ULP, enforced without validation.
-
 <a id="spec-device"></a>
 
-### 4.6 Logical device
+### 4.5 Logical device
 
 ```c
 typedef struct PmDeviceQueueCreateInfo {
@@ -783,7 +752,7 @@ void pmDestroySimulation(PmDevice device,
     PmSimulation simulation);
 ```
 
-At least one body slot or fluid is required. Zero capacity disables a domain. Body and constraint IDs are stable, zero-based slots, not pointers. Each fluid is a separate particle state range with its own material. No hidden growth is permitted; change capacity by creating and migrating to a new simulation.
+At least one domain capacity is required. Zero capacity disables a domain. Body and constraint IDs are stable, zero-based slots, not pointers. Each fluid is a separate particle state range with its own material. No hidden growth is permitted; change capacity by creating and migrating to a new simulation. pNext must be NULL: API 0.3 has one production execution architecture and no profile selector.
 
 <a id="spec-simulation_memory"></a>
 
@@ -1958,7 +1927,7 @@ PmResult pmCmdStepSimulation(
     const PmStepInfo* pStep);
 ```
 
-timestep > 0 seconds; 1 ≤ substeps ≤ maxSubsteps. Each substep advances timestep/substeps. Time advances only by the supplied timestep. PM_STEP_COLLECT_CONTACT_EVENTS_BIT records rigid and liquid contact events for later copy; without it the step avoids event-generation work and the copied event count is zero. A compatible pipeline must be bound. The simulation must be initialized, geometry built, and prior writes visible. Two submissions must not mutate one simulation concurrently.
+Every step is exactly one fixed tick: timestep must equal 1/60 second within one binary32 ULP and substeps must be 1. The runtime performs one shared spatial epoch and one commit; no mode, extension, environment variable, or build option selects another schedule. PM_STEP_COLLECT_CONTACT_EVENTS_BIT records rigid and liquid contact events for later copy; without it the step avoids event-generation work and the copied event count is zero. A compatible pipeline must be bound. The simulation must be initialized, geometry built, and prior writes visible. Two submissions must not mutate one simulation concurrently.
 
 Related sections: [9](#spec-pipelines), [13.2](#spec-barriers).
 
@@ -2485,7 +2454,7 @@ PmResult pmCmdResetQueryPool(
     uint32_t count);
 ```
 
-Query pools own implementation-managed result storage, accounted as library bytes. Reset slots before first use and after consuming prior results. Do not reset results still in flight. timestampQueries/statisticsQueries must be enabled for the selected type. PM_QUERY_REALTIME_STEP_STATISTICS additionally requires PM_EXT_simulation_profile on the device and reports one realtime-single-step profile tick. queryCount is positive and bounded by maxQueriesPerPool.
+Query pools own implementation-managed result storage, accounted as library bytes. Reset slots before first use and after consuming prior results. Do not reset results still in flight. timestampQueries/statisticsQueries must be enabled for the selected type. PM_QUERY_REALTIME_STEP_STATISTICS reports one mandatory fixed tick and requires no device extension. queryCount is positive and bounded by maxQueriesPerPool.
 
 <a id="spec-timestamps"></a>
 
@@ -2574,7 +2543,7 @@ PmResult pmGetSimulationStatus(
     PmResult* pExecutionResult);
 ```
 
-PM_QUERY_STEP_STATISTICS queries accumulate across enclosed steps: work counters sum, peak fields and high-water bytes take maxima. executionResult is the first failing PmResult, or SUCCESS. PM_QUERY_REALTIME_STEP_STATISTICS must enclose exactly one realtime-single-step profile step and returns schema/profile/budget version 1, the seven ordered boundary-through-commit phase records, total work, one time advance, six domain iteration totals, and coupling work. Its public counters are the qualification observation surface; no driver-private state is required. Do not nest statistics queries; Begin and End must be in one buffer. After observing completion, GetSimulationStatus exposes the last step status even when statistics are disabled. It returns NOT_READY while simulation work is pending. Overflow invalidates that step's output and requires reinitialization. When an enclosed step completes with CAPACITY_EXCEEDED, its completed statistics result remains readable and returns SUCCESS; executionResult contains CAPACITY_EXCEEDED and overflowCount contains the generated overflow count. Other failed query submissions return their completion error.
+PM_QUERY_STEP_STATISTICS queries accumulate across enclosed steps: work counters sum, peak fields and high-water bytes take maxima. executionResult is the first failing PmResult, or SUCCESS. PM_QUERY_REALTIME_STEP_STATISTICS must enclose exactly one fixed tick and returns schema/profile/budget version 1, the seven ordered boundary-through-commit phase records, total work, one time advance, six domain iteration totals, and coupling work. profileVersion identifies the immutable equation set used by the sole schedule; it is telemetry, not a selectable execution engine. Its public counters are the qualification observation surface; no driver-private state is required. Do not nest statistics queries; Begin and End must be in one buffer. After observing completion, GetSimulationStatus exposes the last step status even when statistics are disabled. It returns NOT_READY while simulation work is pending. Overflow invalidates that step's output and requires reinitialization. When an enclosed step completes with CAPACITY_EXCEEDED, its completed statistics result remains readable and returns SUCCESS; executionResult contains CAPACITY_EXCEEDED and overflowCount contains the generated overflow count. Other failed query submissions return their completion error.
 
 <a id="spec-query_results"></a>
 
@@ -2783,7 +2752,7 @@ GPU races are a separate concern. Serialize writes to a simulation, coordinate s
 
 ### 16.7 Core scope
 
-Core 0.2 defines primary command buffers, explicit memory binding, rigid triangle geometry, rigid constraints, particle liquids and the listed couplings. Secondary buffers, simultaneous reuse, sparse resources, shader injection and cross-device migration are outside this specification.
+Core 0.3 defines primary command buffers, explicit memory binding, rigid triangle geometry, rigid constraints, particle liquids and the listed couplings. Secondary buffers, simultaneous reuse, sparse resources, shader injection and cross-device migration are outside this specification.
 
 Cloth, ropes, soft bodies, smoke, emitters and paint require domain-specific extensions. Unknown pNext structures are errors.
 
@@ -2917,7 +2886,7 @@ Types and identifiers
 ### 18.1 Types, handles & constants
 
 ```c
-#define PM_API_VERSION_0_2 PM_MAKE_API_VERSION(0, 2, 0)
+#define PM_API_VERSION_0_3 PM_MAKE_API_VERSION(0, 3, 0)
 #define PM_WHOLE_SIZE UINT64_MAX
 #define PM_TIMEOUT_INFINITE UINT64_MAX
 #define PM_INVALID_INDEX UINT32_MAX
@@ -2973,7 +2942,6 @@ typedef enum PmStructureType {
     PM_STRUCTURE_TYPE_FLUID_PAIR_MATERIAL_STATE = 16,
     PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_COUPLING_STATE_INFO = 17,
     PM_STRUCTURE_TYPE_FLUID_INTERFACE_STATE = 18,
-    PM_STRUCTURE_TYPE_SIMULATION_PROFILE_CREATE_INFO = 19,
     PM_STRUCTURE_TYPE_SOFT_BODY_STATE_INFO = 20,
     PM_STRUCTURE_TYPE_SOFT_BODY_SELF_CONTACT_STATE = 21,
     PM_STRUCTURE_TYPE_CLOTH_STATE_INFO = 22,
@@ -3074,7 +3042,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmCouplingType | [9.3](#spec-coupling) |
 | pmCreateBuffer | [6.1](#spec-buffer) |
 | pmCreateCommandPool | [11.1](#spec-command_pool) |
-| pmCreateDevice | [4.6](#spec-device) |
+| pmCreateDevice | [4.5](#spec-device) |
 | pmCreateFence | [13.5](#spec-fences) |
 | pmCreateGeometry | [6.4](#spec-geometry) |
 | pmCreateInstance | [3.2](#spec-instance) |
@@ -3087,7 +3055,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmDebugRecordType | [10.8](#spec-event_outputs) |
 | pmDestroyBuffer | [6.1](#spec-buffer) |
 | pmDestroyCommandPool | [11.1](#spec-command_pool) |
-| pmDestroyDevice | [4.6](#spec-device) |
+| pmDestroyDevice | [4.5](#spec-device) |
 | pmDestroyFence | [13.5](#spec-fences) |
 | pmDestroyGeometry | [6.4](#spec-geometry) |
 | pmDestroyInstance | [3.2](#spec-instance) |
@@ -3096,21 +3064,19 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmDestroySemaphore | [13.3](#spec-semaphores) |
 | pmDestroySimulation | [7.1](#spec-simulation_create) |
 | PmDevice | [18.1](#spec-base_types) |
-| PmDeviceCreateInfo | [4.6](#spec-device) |
+| PmDeviceCreateInfo | [4.5](#spec-device) |
 | PmDeviceMemory | [18.1](#spec-base_types) |
-| PmDeviceQueueCreateInfo | [4.6](#spec-device) |
+| PmDeviceQueueCreateInfo | [4.5](#spec-device) |
 | PmDeviceSize | [18.1](#spec-base_types) |
 | pmDeviceWaitIdle | [13.4](#spec-submission) |
 | PmDomainOutputHeader | [10.1](#spec-domain_records) |
 | pmEndCommandBuffer | [11.2](#spec-command_buffers) |
 | pmEnumerateDeviceExtensionProperties | [3.2](#spec-instance) |
-| pmEnumerateExecutionProfiles | [4.5](#spec-execution_profiles) |
 | pmEnumerateInstanceExtensionProperties | [3.2](#spec-instance) |
 | pmEnumerateInstanceLayerProperties | [3.2](#spec-instance) |
 | pmEnumerateInstanceVersion | [3.2](#spec-instance) |
 | pmEnumeratePhysicalDeviceInteractionCapabilities | [16.1](#spec-interaction_capabilities) |
 | pmEnumeratePhysicalDevices | [4.1](#spec-physical_devices) |
-| PmExecutionProfileProperties | [4.5](#spec-execution_profiles) |
 | PmExtensionProperties | [3.2](#spec-instance) |
 | PmFence | [18.1](#spec-base_types) |
 | PmFlags | [18.1](#spec-base_types) |
@@ -3131,7 +3097,7 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | pmGetBufferMemoryRequirements | [6.2](#spec-buffer_binding) |
 | pmGetDeviceMemoryBudget | [15.5](#spec-memory_budget) |
 | pmGetDeviceProcAddr | [3.1](#spec-function_pointers) |
-| pmGetDeviceQueue | [4.6](#spec-device) |
+| pmGetDeviceQueue | [4.5](#spec-device) |
 | pmGetFenceStatus | [13.5](#spec-fences) |
 | pmGetGeometryMemoryRequirements | [6.4](#spec-geometry) |
 | pmGetInstanceProcAddr | [3.1](#spec-function_pointers) |
@@ -3243,7 +3209,6 @@ Every extensible input structure sets sType to the identifier for its exact stru
 | PmSimulationCreateInfo | [7.1](#spec-simulation_create) |
 | PmSimulationMemoryBinding | [7.2](#spec-simulation_memory) |
 | PmSimulationMemoryRequirements | [7.2](#spec-simulation_memory) |
-| PmSimulationProfileCreateInfo | [4.5](#spec-execution_profiles) |
 | PmSmokeCapacity | [7.1](#spec-simulation_create) |
 | PmSmokeCouplingState | [9.3](#spec-coupling) |
 | PmSmokeInfo | [10.5](#spec-smoke_resources) |

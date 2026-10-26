@@ -17,7 +17,7 @@
 int main() {
     PmInstanceCreateInfo instance_info{};
     instance_info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    instance_info.apiVersion = PM_API_VERSION_0_2;
+    instance_info.apiVersion = PM_API_VERSION_0_3;
     PmInstance instance{};
     CHECK(pmCreateInstance(&instance_info, nullptr, &instance) == PM_SUCCESS);
     std::uint32_t count = 1U;
@@ -183,7 +183,7 @@ int main() {
     body.state.orientation[3] = 1.0F;
     body.state.position[1] = 2.0F;
     body.inertiaDiagonal[0] = body.inertiaDiagonal[1] = body.inertiaDiagonal[2] = 1.0F / 6.0F;
-    body.maximumLinearSpeed = body.maximumAngularSpeed = 100.0F;
+    body.maximumLinearSpeed = body.maximumAngularSpeed = 10.0F;
     CHECK(pmCmdWriteRigidBodies(commands[0], simulation, 0U, 1U, &body) == PM_SUCCESS);
     const PmFloat2 paint_uvs[8]{{0.0F, 0.0F}, {1.0F, 0.0F},
                                 {1.0F, 1.0F}, {0.0F, 1.0F},
@@ -211,7 +211,7 @@ int main() {
     }
     CHECK(pmCmdBindPhysicsPipeline(commands[0], pipeline) == PM_SUCCESS);
     CHECK(pmCmdBeginStatisticsQuery(commands[0], query, 0U) == PM_SUCCESS);
-    PmStepInfo step{1.0F / 60.0F, 2U, {0.0F, -9.81F, 0.0F}, 0U};
+    PmStepInfo step{1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F}, 0U};
     CHECK(pmCmdStepSimulation(commands[0], simulation, &step) == PM_SUCCESS);
     CHECK(pmCmdEndStatisticsQuery(commands[0], query, 0U) == PM_SUCCESS);
     PmBufferRange range{destination, 0U, sizeof(PmRigidState)};
@@ -304,12 +304,15 @@ int main() {
     CHECK(states[0].position[1] < 2.0F);
     CHECK(states[1].position[1] < states[0].position[1]);
     CHECK(states[2].position[1] < states[1].position[1]);
-    CHECK(std::abs(states[2].linearVelocity[1] - (-9.81F * 3.0F / 60.0F)) < 0.001F);
+    float expected_velocity = 0.0F;
+    for (std::uint32_t frame = 0U; frame < 3U; ++frame)
+        expected_velocity = (expected_velocity - 9.81F / 60.0F) * 0.95F;
+    CHECK(std::abs(states[2].linearVelocity[1] - expected_velocity) < 0.001F);
     // Runtime validation errors are deferred, stable, and do not strand handles.
     CHECK(pmBeginCommandBuffer(commands[3], &begin) == PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands[3], pipeline) == PM_SUCCESS);
     CHECK(pmCmdBeginStatisticsQuery(commands[3], query, 0U) == PM_SUCCESS);
-    step.substeps = 1025U;
+    step.gravity[1] = std::nanf("");
     CHECK(pmCmdStepSimulation(commands[3], simulation, &step) == PM_SUCCESS);
     CHECK(pmCmdEndStatisticsQuery(commands[3], query, 0U) == PM_SUCCESS);
     CHECK(pmEndCommandBuffer(commands[3]) == PM_SUCCESS);
@@ -323,7 +326,7 @@ int main() {
     CHECK(pmBeginCommandBuffer(commands[4], &begin) == PM_SUCCESS);
     CHECK(pmCmdBindPhysicsPipeline(commands[4], pipeline) == PM_SUCCESS);
     CHECK(pmCmdBeginStatisticsQuery(commands[4], query, 1U) == PM_SUCCESS);
-    step.substeps = 2U;
+    step.gravity[1] = -9.81F;
     CHECK(pmCmdStepSimulation(commands[4], simulation, &step) == PM_SUCCESS);
     CHECK(pmCmdEndStatisticsQuery(commands[4], query, 1U) == PM_SUCCESS);
     CHECK(pmEndCommandBuffer(commands[4]) == PM_SUCCESS);

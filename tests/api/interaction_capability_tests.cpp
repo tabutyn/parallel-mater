@@ -26,7 +26,7 @@ bool same_key(const PmInteractionCapabilityKey &left,
 int main() {
     PmInstanceCreateInfo info{};
     info.sType = PM_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    info.apiVersion = PM_API_VERSION_0_2;
+    info.apiVersion = PM_API_VERSION_0_3;
     PmInstance instance{};
     CHECK(pmCreateInstance(&info, nullptr, &instance) == PM_SUCCESS);
     std::uint32_t physical_count = 1U;

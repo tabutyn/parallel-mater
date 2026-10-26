@@ -26,12 +26,12 @@ if (ROOT / "src" / "device" / "d3d12_compat").exists() and any(
         (ROOT / "src" / "device" / "d3d12_compat").rglob("*.*")):
     failures.append("Windows CUDA compatibility headers must not be reintroduced")
 schedule_path = ROOT / "src" / "simulation" / "reference_schedule.hpp"
-schedule_text = schedule_path.read_text(encoding="utf-8")
-for native_token in ("cuda_runtime", "cudaStream", "cudaEvent", "cudaMemcpy", "cudaError", "<<<"):
-    if native_token in schedule_text:
-        failures.append(f"{schedule_path.relative_to(ROOT)}: portable schedule contains {native_token}")
-if "simulation::schedule_frame(*impl_, backend, options)" not in runtime:
-    failures.append("runtime_schedule.cu.inc: runtime bypasses the shared reference schedule")
+if schedule_path.exists():
+    failures.append("src/simulation/reference_schedule.hpp: legacy schedule was not retired")
+if "schedule_native_realtime(*impl_, backend, options)" not in runtime:
+    failures.append("runtime_schedule.cu.inc: fixed-tick production schedule is missing")
+if "simulation::schedule_frame" in runtime or "PhysicsStepProfile" in runtime:
+    failures.append("runtime_schedule.cu.inc: selectable legacy scheduling remains")
 runtime_header = (ROOT / "src" / "simulation" / "runtime.hpp").read_text(encoding="utf-8")
 registry = (ROOT / "registry" / "pm.xml")
 if not registry.exists():
