@@ -2029,7 +2029,7 @@ int main(int argc, char **argv) {
         CHECK(grid_smoke_statistics.total.intraTickHostReadbacks == 0U);
         smoke_header =
             static_cast<const PmDomainOutputHeader *>(smoke_output_map);
-        CHECK(smoke_header->activeCount == 0U);
+        CHECK(smoke_header->activeCount == 2U);
 
         smoke.materialIndex = 0U;
         CHECK(pmBeginCommandBuffer(commands, &begin) == PM_SUCCESS);
