@@ -29,18 +29,20 @@ int main() {
     PmClothMaterialState cloth_material{};
     cloth_material.vertexMass = 1; cloth_material.thickness = 0.01F;
     cloth_material.solverIterations = 4; cloth_material.fracturePersistenceSubsteps = 1;
-    cloth_material.breakStrain = 0.5F;
+    cloth_material.breakStrain = 0;
     PmRopeMaterialState rope_material{};
     rope_material.nodeSpacing = 0.01F; rope_material.radius = 0.01F; rope_material.mass = 1;
-    rope_material.maximumSubstepTimestep = 1.0F / 60; rope_material.maximumSpeed = 100;
+    rope_material.maximumSubstepTimestep = 1.0F / 60; rope_material.maximumSpeed = 0.25F;
     rope_material.solverIterations = 8;
     PmSoftBodyMaterialState soft_material{};
     soft_material.nodeMass = 1; soft_material.nodeRadius = 0.01F;
     soft_material.maximumProjectionFraction = 0.2F; soft_material.constraintVelocityResponse = 1;
-    soft_material.maximumSpeed = 100; soft_material.solverIterations = 4;
+    soft_material.maximumSpeed = 20; soft_material.solverIterations = 4;
     PmSmokeMaterialState smoke_material{};
     smoke_material.particleRadius = 0.02F; smoke_material.restNumberDensity = 12;
-    smoke_material.maximumSpeed = 100; smoke_material.gridResolution = 16;
+    // One material is exercised as both grid and particle smoke below. Keep
+    // its speed inside the tighter particle fixed-tick displacement envelope.
+    smoke_material.maximumSpeed = 1; smoke_material.gridResolution = 16;
     smoke_material.gridVerticalResolution = 8; smoke_material.gridPressureIterations = 8;
     smoke_material.gridPressureTolerance = 0.001F;
     PmPhysicsPipelineCreateInfo policy{};
@@ -50,12 +52,15 @@ int main() {
     policy.pSoftBodyMaterials = &soft_material; policy.pSmokeMaterials = &smoke_material;
     PmPhysicsPipeline pipeline{};
     PM_CHECK(pmCreatePhysicsPipeline(context.device, &policy, &pipeline) == PM_SUCCESS);
-    // Alternate layouts within each declared slot: fracture/no fracture and
-    // grid/particle smoke. Reserved regions must support both without reset.
+    // Alternate grid/particle smoke layouts within the declared slot. Cloth
+    // fracture remains a record-time capacity contract; the fixed runtime does
+    // not execute fracture until its topology lifecycle is implemented.
     PmPhysicsPipeline compact_pipeline{};
-    cloth_material.breakStrain = 0;
     smoke_material.gridResolution = 0;
     PM_CHECK(pmCreatePhysicsPipeline(context.device, &policy, &compact_pipeline) == PM_SUCCESS);
+    PmPhysicsPipeline fracture_pipeline{};
+    cloth_material.breakStrain = 0.5F;
+    PM_CHECK(pmCreatePhysicsPipeline(context.device, &policy, &fracture_pipeline) == PM_SUCCESS);
     const PmFloat3 vertices[4]{{0, 1, 0}, {1, 1, 0}, {0, 2, 0}, {0, 1, 1}};
     const std::uint32_t indices[12]{0, 2, 1, 0, 1, 3, 0, 3, 2, 1, 2, 3};
     const float masses[4]{1, 1, 1, 1};
@@ -123,7 +128,7 @@ int main() {
     const PmFloat3 long_line[2]{{2, 1, 0}, {3, 1, 0}};
     auto excessive = rope; excessive.pCenterline = long_line;
     context.begin();
-    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, pipeline) == PM_SUCCESS);
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, fracture_pipeline) == PM_SUCCESS);
     PM_CHECK(pmCmdWriteRopes(context.commands, simulation, 0, 1, &excessive) == PM_ERROR_CAPACITY_EXCEEDED);
     PM_CHECK(context.submit() == PM_SUCCESS);
     // Fracture capacity includes source vertices plus potential new corners.
@@ -132,12 +137,13 @@ int main() {
     PmSimulation small{};
     PM_CHECK(pmCreateSimulation(context.device, &small_create, &small) == PM_SUCCESS);
     context.begin();
-    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, pipeline) == PM_SUCCESS);
+    PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, fracture_pipeline) == PM_SUCCESS);
     PM_CHECK(pmCmdWriteCloths(context.commands, small, 0, 1, &cloth) == PM_ERROR_CAPACITY_EXCEEDED);
     PM_CHECK(context.submit() == PM_SUCCESS);
     pmDestroySimulation(context.device, small);
     pmDestroySimulation(context.device, simulation);
     pmDestroyPhysicsPipeline(context.device, pipeline);
     pmDestroyPhysicsPipeline(context.device, compact_pipeline);
+    pmDestroyPhysicsPipeline(context.device, fracture_pipeline);
     std::puts("PASS: exact storage, 1024 mixed-domain writes and generated capacity bounds");
 }

@@ -66,10 +66,15 @@ struct RunResult {
     result.particleRadius = 0.1F;
     result.supportRadius = is_self_fixture(fixture) ? 0.4F : 1.0F;
     result.restParticleVolume = 0.008F;
-    result.pressureStiffness = is_viscosity_fixture(fixture) ? 0.0F : 40.0F;
-    result.kinematicViscosity = is_viscosity_fixture(fixture) ? 2.0F : 0.0F;
+    // Preserve the qualified dimensionless response after the public API's
+    // migration to one 1/60-second tick.
+    result.pressureStiffness = fixture == Fixture::self_contact
+        ? 120.0F : fixture == Fixture::self_pressure
+            ? 96.0F : is_viscosity_fixture(fixture) ? 0.0F : 40.0F;
+    result.kinematicViscosity = fixture == Fixture::self_viscosity
+        ? 6.0F : fixture == Fixture::viscosity ? 2.0F : 0.0F;
     result.normalDamping = fixture == Fixture::pressure_contact ? 2.0F : 0.0F;
-    result.maximumSpeed = 100.0F;
+    result.maximumSpeed = is_self_fixture(fixture) ? 10.0F : 100.0F;
     result.maximumPairAcceleration = 1000.0F;
     result.densityIterations = 1U;
     return result;
@@ -322,19 +327,19 @@ template <typename Particle>
 }
 
 [[nodiscard]] Json self_contact_fixture(Context &context) {
-    return self_fixture(context, Fixture::self_contact, 0.05F,
+    return self_fixture(context, Fixture::self_contact, 1.0F / 60.0F,
         "symmetric-two-particle-self-contact",
         "public-output-pair-distance-momentum-and-symmetry");
 }
 
 [[nodiscard]] Json self_pressure_fixture(Context &context) {
-    return self_fixture(context, Fixture::self_pressure, 0.04F,
+    return self_fixture(context, Fixture::self_pressure, 1.0F / 60.0F,
         "symmetric-compressed-pair-pressure-relaxation",
         "public-output-isotropic-packing-density-and-momentum");
 }
 
 [[nodiscard]] Json self_viscosity_fixture(Context &context) {
-    return self_fixture(context, Fixture::self_viscosity, 0.05F,
+    return self_fixture(context, Fixture::self_viscosity, 1.0F / 60.0F,
         "symmetric-separating-pair-viscosity-damping",
         "public-output-relative-speed-energy-and-momentum");
 }

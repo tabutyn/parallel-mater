@@ -13,7 +13,7 @@
 namespace parallel_mater::gallery {
 
 inline constexpr std::string_view mobile_gallery_qualification_schema =
-    "parallel-mater-mobile-gallery-qualification/v1";
+    "parallel-mater-mobile-gallery-qualification/v2";
 
 struct MobileQualificationCheck {
     std::string id;
@@ -47,6 +47,7 @@ struct MobileGalleryQualificationReport {
     std::string revision;
     std::string platform;
     std::string backend;
+    std::string execution_contract;
     std::string device;
     std::string renderer;
     std::string readback;

@@ -64,6 +64,7 @@ struct ClothDefinition {
     std::uint32_t fracture_persistence_substeps{4U};
     float impact_break_impulse{};
     float stretch_compliance{1.0e-6F};
+    float bending_compliance{0.1F};
     float velocity_damping{5.0F};
     float contact_friction{0.4F};
     std::uint32_t solver_iterations{8U};
@@ -163,6 +164,13 @@ struct SceneDefinition {
 // when reduction would be necessary, rather than leaving dangling indices.
 [[nodiscard]] bool apply_liquid_workload_limits(SceneDefinition &scene,
     const GalleryWorkloadLimits &limits, std::string &error);
+
+// Migrates authored Gallery material limits to the sole 1/60-second,
+// one-substep execution contract. This is shared by every Gallery shell and
+// rejects unsupported material semantics instead of selecting another
+// scheduler or silently removing them.
+[[nodiscard]] bool apply_gallery_fixed_tick_material_contract(
+    SceneDefinition &scene, std::string &error);
 
 // Examples-only rigid stress scene. The installed physics API has no scene
 // concepts; the legacy hopper fixture builds reusable triangle meshes through

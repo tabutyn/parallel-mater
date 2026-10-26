@@ -222,12 +222,14 @@ struct Fixture {
                 smoke_realtime_profile_version, status);
     }
 
-    void trace() {
+    void trace(unsigned first_emit_slot = 0U, unsigned emit_count = 0U,
+               unsigned long long first_emit_serial = 0U) {
         if (particles == 0U) return;
         const unsigned blocks = (particles + threads - 1U) / threads;
         smoke_realtime_grid_trace<<<blocks, threads>>>(positions, previous,
             velocities, ages, thermal_lift, particle_density,
-            particle_pressure, particle_vorticity, particles, options, grid,
+            particle_pressure, particle_vorticity, particles,
+            first_emit_slot, emit_count, first_emit_serial, options, grid,
             smoke_realtime_timestep, smoke_realtime_profile_version, status);
     }
 
@@ -381,6 +383,12 @@ void test_transport_cold_start_long_run_and_timing() {
     CHECK(std::abs(smoke.positions[0].x_0 -
                    (0.25F + smoke_realtime_timestep)) < 1.0e-5F);
     CHECK(smoke.ages[0] == smoke_realtime_timestep);
+
+    smoke.options.emitter_center_0 = {0.5F, 0.6F, 0.7F};
+    smoke.trace(17U, 1U, 42U);
+    CHECK(cudaDeviceSynchronize() == cudaSuccess);
+    CHECK(smoke.positions[17].x_0 == 0.5F);
+    CHECK(smoke.ages[17] == 0.0F);
 
     for (unsigned tick = 0U; tick < 120U; ++tick) {
         smoke.run_full_tick();

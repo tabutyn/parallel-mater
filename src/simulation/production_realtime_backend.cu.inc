@@ -73,7 +73,13 @@ PmResult native_realtime_coupling_counts(
     const auto add = [&](simulation::RealtimeCouplingFamily family,
                          std::uint32_t amount = 1U) noexcept -> PmResult {
         auto &count = counts[simulation::realtime_index(family)];
-        if (amount > simulation::rigid_coupling_realtime_maximum_edges - count)
+        const std::uint32_t maximum = family ==
+                simulation::RealtimeCouplingFamily::liquid
+            ? simulation::liquid_coupling_realtime_maximum_edges
+            : family == simulation::RealtimeCouplingFamily::rigid
+                ? simulation::rigid_coupling_realtime_maximum_edges
+                : simulation::deformable_smoke_coupling_maximum_edges;
+        if (amount > maximum - count)
             return PM_ERROR_CAPACITY_EXCEEDED;
         count += amount;
         return PM_SUCCESS;
@@ -411,8 +417,8 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
             simulation::RealtimeCouplingFamily::deformable_smoke)];
     commit.submissions = 1U;
     index.index_publications = 1U;
-    boundary.bytes_moved += 2U * sizeof(std::uint32_t);
-    boundary.barriers += 2U;
+    boundary.bytes_moved += 4U * sizeof(std::uint32_t);
+    boundary.barriers += 4U;
     if (state.paint_rule_count != 0U) {
         for (const auto &field : std::span(
                  state.paint_fields, state.options.paint_field_capacity)) {
@@ -1579,22 +1585,18 @@ public:
                 smoke.emission_fraction;
             smoke.realtime_pending_time = float(std::fmod(
                 double(smoke.time) + double(scene.timestep), 1000.0));
-            if (representation ==
-                simulation::SmokeRealtimeRepresentation::particles) {
-                const double exact = double(smoke.emission_fraction) +
-                    double(smoke.options.particles_per_second) *
-                        scene.timestep;
-                const auto requested = static_cast<std::uint32_t>(std::min(
-                    std::floor(exact), double(smoke.options.capacity)));
-                smoke.realtime_pending_emit_count = requested;
-                smoke.realtime_pending_emission_fraction =
-                    float(exact - std::floor(exact));
-                smoke.realtime_pending_next_slot =
-                    (smoke.next_slot + requested) % smoke.options.capacity;
-                smoke.realtime_pending_count = std::min(
-                    smoke.options.capacity, smoke.count + requested);
-                smoke.realtime_pending_emitted = smoke.emitted + requested;
-            }
+            const double exact = double(smoke.emission_fraction) +
+                double(smoke.options.particles_per_second) * scene.timestep;
+            const auto requested = static_cast<std::uint32_t>(std::min(
+                std::floor(exact), double(smoke.options.capacity)));
+            smoke.realtime_pending_emit_count = requested;
+            smoke.realtime_pending_emission_fraction =
+                float(exact - std::floor(exact));
+            smoke.realtime_pending_next_slot =
+                (smoke.next_slot + requested) % smoke.options.capacity;
+            smoke.realtime_pending_count = std::min(
+                smoke.options.capacity, smoke.count + requested);
+            smoke.realtime_pending_emitted = smoke.emitted + requested;
         }
         bool phase_admission = true;
         bool has_pending_phase = false;
@@ -1806,9 +1808,15 @@ public:
         if (count_result == PM_SUCCESS)
             count_result = native_.clear(state_.fluid_contact_overflow, 0,
                 sizeof(*state_.fluid_contact_overflow), native_.queue());
+        if (count_result == PM_SUCCESS)
+            count_result = native_.clear(state_.fluid_neighbor_overflow, 0,
+                sizeof(*state_.fluid_neighbor_overflow), native_.queue());
+        if (count_result == PM_SUCCESS)
+            count_result = native_.clear(state_.fluid_maximum_neighbor_count, 0,
+                sizeof(*state_.fluid_maximum_neighbor_count), native_.queue());
         if (count_result != PM_SUCCESS) return count_result;
-        boundary_work.bytes_moved += 2U * sizeof(std::uint32_t);
-        boundary_work.barriers += 2U;
+        boundary_work.bytes_moved += 4U * sizeof(std::uint32_t);
+        boundary_work.barriers += 4U;
         if (state_.paint_rule_count != 0U) {
             for (std::uint32_t slot = 0U;
                  slot < state_.options.paint_field_capacity; ++slot) {
@@ -3128,6 +3136,9 @@ public:
                     scene.timestep,
                     simulation::fluid_realtime_profile_version,
                     fluid.foam_source, fluid.next_foam,
+                    iteration == 0U ? 1U : 0U,
+                    state_.fluid_neighbor_overflow,
+                    state_.fluid_maximum_neighbor_count,
                     snapshot_.query_status);
                 auto result = native_.check_error();
                 if (result == PM_SUCCESS) {
@@ -4072,8 +4083,9 @@ public:
                     smoke.realtime_number_densities,
                     smoke.realtime_pressures,
                     smoke.realtime_vorticities,
-                    smoke.realtime_pending_count, smoke_options, field,
-                    scene.timestep,
+                    smoke.realtime_pending_count, smoke.next_slot,
+                    smoke.realtime_pending_emit_count, smoke.emitted,
+                    smoke_options, field, scene.timestep,
                     simulation::smoke_realtime_profile_version,
                     snapshot_.query_status);
             }

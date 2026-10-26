@@ -587,7 +587,8 @@ else:
     mobile_qualification = mobile_qualification_header.read_text(
         encoding="utf-8") + mobile_qualification_source.read_text(encoding="utf-8")
     for required in (
-        "parallel-mater-mobile-gallery-qualification/v1",
+        "parallel-mater-mobile-gallery-qualification/v2",
+        "execution_contract",
         "qualify_mobile_gallery",
         '"attach"', '"resize"', '"background"',
         '"failure_recovery"', '"scene_selection"',

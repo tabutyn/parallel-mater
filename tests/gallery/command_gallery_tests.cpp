@@ -160,7 +160,7 @@ bool validate_torque_free_rotation(const TriangleMesh &mesh,
         if (!CommandScene::create(scene, 2U, simulation, instance, error, backend)) return false;
         float maximum_drift{};
         for (unsigned step = 0U; step < 60U; ++step) {
-            if (!simulation.step(1.0F / 60.0F, 4U, {}, frame, error)) return false;
+            if (!simulation.step(1.0F / 60.0F, 1U, {}, frame, error)) return false;
             const auto &actual = frame.rigid_states.at(0U);
             maximum_drift = std::max({maximum_drift,
                 std::abs(actual.angularVelocity[0] - spin.x),
@@ -224,8 +224,7 @@ bool validate_swept_face_impact_case(std::optional<PmNativeBackend> backend,
 
 bool validate_swept_face_impact(std::optional<PmNativeBackend> backend,
                                std::string &error) {
-    return validate_swept_face_impact_case(backend, -1.0F, 4U, error) &&
-        validate_swept_face_impact_case(backend, -1.0F, 1U, error) &&
+    return validate_swept_face_impact_case(backend, -1.0F, 1U, error) &&
         validate_swept_face_impact_case(backend, -0.5F, 1U, error);
 }
 
@@ -277,14 +276,14 @@ bool run_planar_sweep(std::optional<PmNativeBackend> backend, float target_tilt,
     impulse.linearImpulse[0] = 1.5F;
     if (!simulation.apply_rigid_inputs({impulse}, error)) return false;
     for (unsigned step = 0U; step < 20U; ++step)
-        if (!simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F},
+        if (!simulation.step(1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F},
                              frame, error, true)) return false;
     RigidBodyState target;
     target.position = {1.0F, 1.5F, 0.0F};
     target.orientation = {0.0F, std::sin(0.5F * target_tilt), 0.0F,
                           std::cos(0.5F * target_tilt)};
     if (!simulation.set_kinematic_target(1U, target, error) ||
-        !simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F},
+        !simulation.step(1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F},
                          frame, error, true)) return false;
     state = frame.rigid_states.at(0U);
     contacts = std::move(frame.contacts);
@@ -408,7 +407,7 @@ bool validate_face_contact_normals(const TriangleMesh &mesh,
     std::size_t contacts{};
     float minimum_clearance = 0.0F;
     for (unsigned step = 0U; step < 60U; ++step) {
-        if (!simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F}, frame, error, true))
+        if (!simulation.step(1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F}, frame, error, true))
             return false;
         const auto &state = frame.rigid_states.at(0U);
         const Quaternion orientation{state.orientation[0], state.orientation[1],
@@ -540,7 +539,7 @@ bool validate_face_contact_normals(const TriangleMesh &mesh,
             return false;
         bool saw_contact = false;
         for (unsigned step = 0U; step < 30U; ++step) {
-            if (!sheet_simulation.step(1.0F / 60.0F, 4U, {}, frame, error, true)) return false;
+            if (!sheet_simulation.step(1.0F / 60.0F, 1U, {}, frame, error, true)) return false;
             for (const auto &contact : frame.contacts) {
                 saw_contact = true;
                 if (contact.normal.y * side < 0.99F) {
@@ -609,6 +608,11 @@ int main(int argc, char **argv) {
         const GalleryEntry &entry = gallery_entries[index];
         if (!selected_scene.empty() && selected_scene != entry.asset_file)
             continue;
+        if (!gallery_fixed_tick_supported(entry.context)) {
+            std::cout << entry.name
+                      << ": unavailable: fixed-tick cloth fracture is not implemented\n";
+            continue;
+        }
         SceneDefinition authored;
         if (!load_glb_scene(asset_root / entry.asset_file, authored, error)) {
             std::cerr << entry.name << ": load failed: " << error << '\n';
@@ -633,6 +637,11 @@ int main(int argc, char **argv) {
         }
         if (is_fluid_context(entry.context))
             scene.fluid_options.capacity = 100U;
+        if (!apply_gallery_fixed_tick_material_contract(scene, error)) {
+            std::cerr << entry.name << ": fixed-tick material migration failed: "
+                      << error << '\n';
+            return 1;
+        }
         std::vector<rigid_mesh_checks::MeshSamples> brick_geometry;
         float maximum_brick_penetration{};
         std::uint32_t maximum_brick_penetration_frame{};
@@ -678,7 +687,7 @@ int main(int argc, char **argv) {
         std::cout << entry.name << ": starting " << frame_count << " frames\n" << std::flush;
         for (std::uint32_t frame_index = 0U; frame_index < frame_count;
              ++frame_index) {
-            if (!simulation.step(1.0F / 60.0F, 4U,
+            if (!simulation.step(1.0F / 60.0F, 1U,
                                  {0.0F, -9.81F, 0.0F}, frame, error, true) ||
                 !validate_frame(scene, frame, error)) {
                 std::cerr << entry.name << ": frame " << frame_index
@@ -753,7 +762,7 @@ int main(int argc, char **argv) {
                     }
             }
             if (reference_backend &&
-                (!reference.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F}, reference_frame, error, true) ||
+                (!reference.step(1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F}, reference_frame, error, true) ||
                  !validate_frame(scene, reference_frame, error) ||
                  !test::compare_frames(frame, reference_frame, error, trace_comparison))) {
                 std::cerr << entry.name << ": backend comparison frame " << frame_index
@@ -787,7 +796,7 @@ int main(int argc, char **argv) {
                     std::cerr << entry.name << ": release failed: " << error << '\n';
                     return 1;
                 }
-            if (!simulation.step(1.0F / 60.0F, 4U,
+            if (!simulation.step(1.0F / 60.0F, 1U,
                                  {0.0F, -9.81F, 0.0F}, frame, error)) {
                 std::cerr << entry.name << ": released step failed: "
                           << error << '\n';
@@ -802,7 +811,7 @@ int main(int argc, char **argv) {
 
         // Native drawing must not require deformable CPU vectors. A later
         // diagnostic read must recover the same latest output without stepping.
-        if (!simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F}, frame,
+        if (!simulation.step(1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F}, frame,
                              error, true, false) || frame.full_host_output ||
             !frame.fluid_particles.empty() || !frame.cloth_vertices.empty() ||
             !simulation.read_output(frame, error) || !frame.full_host_output ||
@@ -813,12 +822,12 @@ int main(int argc, char **argv) {
         // Apple drawing needs no per-frame host snapshot at all. Explicit
         // diagnostic access must still recover that exact completed output.
         CommandSceneFrame gpu_only;
-        if (!simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F}, gpu_only,
+        if (!simulation.step(1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F}, gpu_only,
                 error, false, false, false) || gpu_only.full_host_output ||
             gpu_only.revision != 0 || !gpu_only.rigid_states.empty() ||
             !gpu_only.fluid_particles.empty() || !gpu_only.cloth_vertices.empty() ||
             gpu_only.statistics.stepCount == 0U ||
-            !simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F}, gpu_only,
+            !simulation.step(1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F}, gpu_only,
                 error, false, false, false) || gpu_only.full_host_output ||
             gpu_only.revision != 0 || !gpu_only.rigid_states.empty() ||
             !simulation.read_output(gpu_only, error) || !validate_frame(scene, gpu_only, error)) {
@@ -841,7 +850,7 @@ int main(int argc, char **argv) {
                 return 1;
             }
         }
-        if (!simulation.step(1.0F / 60.0F, 4U, {0.0F, -9.81F, 0.0F},
+        if (!simulation.step(1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F},
                              frame, error, true) ||
             !validate_frame(scene, frame, error)) {
             std::cerr << entry.name << ": reset step failed: " << error << '\n';

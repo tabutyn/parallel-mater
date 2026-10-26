@@ -242,7 +242,7 @@ int parallel_mater_capacity_recovery_fixture(CapacityLifecycleResult *result) {
     material.supportRadius = 0.1F;
     material.restParticleVolume = 0.000125F;
     material.pressureStiffness = 50.0F;
-    material.maximumSpeed = 100.0F;
+    material.maximumSpeed = 2.9F;
     material.densityIterations = 1U;
     const PmLiquidMaterialState materials[2]{material, material};
     PmPhysicsPipelineCreateInfo pipeline_info{};

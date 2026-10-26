@@ -530,7 +530,8 @@ bool CommandScene::create(const SceneDefinition &scene,
         for (const auto &source : scene.cloths)
             cloth_materials.push_back({
                 source.vertex_mass, source.thickness,
-                source.stretch_compliance, 0.1F, source.velocity_damping,
+                source.stretch_compliance, source.bending_compliance,
+                source.velocity_damping,
                 source.contact_friction, source.solver_iterations,
                 source.break_strain, source.fracture_persistence_substeps,
                 source.impact_break_impulse,

@@ -137,16 +137,25 @@ Activation resets the wall-clock baseline so elapsed background time cannot
 become catch-up work. The next unpaused frame advances according to the same
 fixed-step policy used on every shell.
 
-Each workload profile's `target_fps` selects both the fixed timestep and enough
-solver substeps to retain an approximately 240 Hz solver cadence. Interactive
-adapters pass monotonic timestamps and `GalleryFramePlan` records into
-`GallerySession::frame_at`. A display frame
-may submit at most four due physics steps, and additional catch-up is admitted
-only while the previous step predicts that the 8 ms physics budget remains.
-A wall-clock delta is clamped to 250 ms; work still due after either limit is
-discarded while its fractional remainder is retained. Modal UI, reset, profile
-changes, pause, and background transitions clear accumulated elapsed time.
-Scripted qualification uses the same policy with exact one-interval timestamps.
+Every workload uses the sole `fixed-tick-60hz-v1` execution contract: `dt=1/60`,
+one solver substep, and at most one physics tick per display callback. Workload
+`target_fps` values describe qualification/performance targets only; they cannot
+select another physics cadence. Interactive adapters pass monotonic timestamps
+and `GalleryFramePlan` records into `GallerySession::frame_at`. Whole ticks still
+due after the admitted tick are discarded, never caught up, and `dt` is never
+enlarged. An interval above 250 ms is a stall that submits no physics. Modal UI,
+reset, scene changes, workload changes, pause, and background transitions clear
+accumulated elapsed time. Scripted/headless qualification advances with explicit
+fixed-tick timestamps and is not wall-clock throttled.
+
+Shared scene configuration also migrates authored speed caps, deformable
+compliance, soft-body damping, and smoke pressure work into the declared
+single-step material envelope before public resource creation. The migration is
+identical on desktop, Android, and iPad; it cannot select a different schedule.
+The authored Cloth Tear and Soft Body Cloth scenes require cloth-fracture
+topology mutation, which `fixed-tick-60hz-v1` does not implement. They remain
+visible with that exact unavailability reason instead of running without their
+authored fracture behavior.
 
 Each successful physics step publishes one coherent output generation.
 Renderer adapters receive that generation, camera, dimensions, visual/debug
@@ -158,6 +167,7 @@ diagnostic or capture command requests it. Presentation failure cancels the
 in-progress timing sample and cannot publish a completed frame.
 
 Status and qualification output identify source revision, driver/backend,
+execution contract,
 physical device, selected stable scene identity, availability reason, workload
 profile, dimensions, physics generation, and whether host readback was used.
 Physics validity, visual execution, and performance are reported separately.
@@ -175,6 +185,7 @@ These tests protect behavior while later F7 tasks move ownership:
 |---|---|
 | Common-session recreation, desktop render/present callback ordering, shared scheduling, surface replacement, selection, reset, pause/background, presentation failure recovery, and point release/restore | `parallel-mater-gallery-session-contract-tests` |
 | Shared catalog ordering, stable unique identities, required features, and precise backend rejection reasons | `parallel-mater-gallery-registry-tests` |
+| All 28 authored assets either migrate into the fixed-tick material envelope or report the exact fracture limitation | `parallel-mater-gallery-fixed-tick-scene-tests` |
 | Catalog selection, modal reset/action gating, and held-input clearing | `parallel-mater-gallery-input-tests` |
 | Camera, gravity/force policies, motor/dump classification, and four-wheel steering math | `parallel-mater-camera-controller-tests` |
 | Full mobile session scene loop, presentation failure, and qualification lifecycle on Metal | `parallel-mater-ipad-session-tests` |

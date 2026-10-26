@@ -418,6 +418,7 @@ public final class GalleryActivity extends Activity implements SurfaceHolder.Cal
                 .put("source_revision", BuildConfig.SOURCE_REVISION)
                 .put("source_dirty", BuildConfig.SOURCE_DIRTY)
                 .put("source_patch_sha256", BuildConfig.SOURCE_PATCH_SHA256)
+                .put("execution_contract", BuildConfig.EXECUTION_CONTRACT)
                 .put("android_gradle_plugin", BuildConfig.ANDROID_GRADLE_PLUGIN_VERSION)
                 .put("gradle", BuildConfig.GRADLE_VERSION)
                 .put("ndk", BuildConfig.NDK_VERSION)

@@ -73,10 +73,11 @@ held input. A completed worker frame can still finish during the transition.
 Android and iPad use one C++ `MobileGallerySession`, including controls,
 scene/reset logic, surface admission, failure recovery, workload selection and
 `FrameTimingCollector`. They also use one qualification coordinator and the
-`parallel-mater-mobile-gallery-qualification/v1` report schema. Native adapters
-own only lifecycle, semantic input translation, presentation, native surface
-configuration and atomic report storage. Metal drawable acquisition/presentation is
-recorded under presentation; GPU command completion is render work. These are
+`parallel-mater-mobile-gallery-qualification/v2` report schema, including the
+fixed-tick execution contract. Native adapters own only lifecycle, semantic
+input translation, presentation, native surface configuration and atomic report
+storage. Metal drawable acquisition/presentation is recorded under
+presentation; GPU command completion is render work. These are
 host wall-clock measurements, neither GPU-kernel durations nor scan-out FPS.
 Physics and graphics are explicitly fenced before the shared output buffer is
 reused: this removes the rendering readback, not all host waits or solver-internal
@@ -87,12 +88,17 @@ uses four bricks, 256 liquid particles, four independent dynamic bodies in the
 Fluid + Rigid scene, 128 smoke particles, at most 960×720 pixels, and a 30-update/s
 target. Indexed mixed-scene attachments are retained. These budgets are not
 measured performance guarantees or quality-equivalent desktop benchmarks.
-Under the default `legacy-v1` clock, each update advances 1/30 second with eight
-substeps, preserving the historical 240 substeps/second. The explicitly selected
-`realtime-single-step-v1` client clock instead submits at most one `dt=1/60`
-tick with one substep per callback; sustained 30 Hz overload is half-speed and
-never catches up. Runtime profile support is negotiated separately, so this new
-clock does not silently replace legacy behavior.
+The sole `fixed-tick-60hz-v1` Gallery clock submits at most one `dt=1/60` tick
+with one substep per callback; sustained 30 Hz overload is half-speed and never
+catches up. Workload `target_fps` remains a qualification target and does not
+select cadence. The iPad shell requests 60 Hz when the display supports it and
+does not impose the former 30 Hz cap.
+
+Shared scene configuration applies the same fixed-tick material envelope used
+by desktop and Android before public resource creation. Cloth Tear and Soft
+Body Cloth remain catalogued but unavailable with an explicit cloth-fracture
+reason; the iPad shell neither removes their authored behavior nor selects a
+different scheduler.
 
 ## Validation
 
@@ -103,7 +109,7 @@ ctest --test-dir build-macos-metal-preview --output-on-failure \
   -R 'ipad-session|gallery-workload'
 ```
 
-The session test loads all 28 shared catalog scenes supported by the queried
+The session test visits all 28 shared catalog scenes and loads those supported by the queried
 Metal device with software and native Metal
 rendering, checks finite domain output and image dimensions, and exercises
 pause, reset, timing-history reset, invalid selection, and Point release/restore.

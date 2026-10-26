@@ -222,7 +222,7 @@ int main() {
         bool stepped = true;
         for (unsigned frame = 0U; frame < 120U && stepped; ++frame)
             stepped = physical_simulation.step(
-                1.0F / 60.0F, 8U, {0.0F, -9.81F, 0.0F},
+                1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F},
                 physical_frame, error);
         check(stepped, "settle generated wall through command API");
         if (stepped) {
@@ -271,7 +271,7 @@ int main() {
             check(stepped, "launch ball through command API");
             for (unsigned frame = 0U; frame < 240U && stepped; ++frame)
                 stepped = physical_simulation.step(
-                    1.0F / 60.0F, 8U, {0.0F, -9.81F, 0.0F},
+                    1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F},
                     physical_frame, error);
             check(stepped, "impact generated walls through command API");
             unsigned displaced = 0U;
@@ -313,7 +313,7 @@ int main() {
         bool stepped = true;
         for (unsigned frame = 0U; frame < 240U && stepped; ++frame)
             stepped = sleeping_simulation.step(
-                1.0F / 60.0F, 8U, {0.0F, -9.81F, 0.0F},
+                1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F},
                 sleeping_frame, error);
         check(stepped, "settle sleeping brick through command API");
         std::size_t brick = sleeping_scene.rigid_bodies.size();
@@ -333,7 +333,7 @@ int main() {
             stepped = sleeping_simulation.apply_rigid_inputs({input}, error);
             for (unsigned frame = 0U; frame < 12U && stepped; ++frame)
                 stepped = sleeping_simulation.step(
-                    1.0F / 60.0F, 8U, {0.0F, -9.81F, 0.0F},
+                    1.0F / 60.0F, 1U, {0.0F, -9.81F, 0.0F},
                     sleeping_frame, error);
             check(stepped, "wake generated brick through command API");
             if (stepped) {

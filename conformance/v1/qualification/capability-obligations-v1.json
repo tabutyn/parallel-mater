@@ -7,7 +7,8 @@
     "25d66d938a950dc34fda16b7d06fb6350d5bc1555652ab336248e80d46e2fc99",
     "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
     "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-    "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2"
+    "2b7651dabc5379edd365ec0b87141243fcaa8531c33e4ae551b4db8df9dd6ef2",
+    "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2"
   ],
   "api_version": "0.2",
   "title": "Interaction capability qualification obligations",
@@ -55,9 +56,9 @@
     {"id": "case:smoke-rope", "path": "conformance/v1/cases/smoke-rope.json", "sha256": "da5541333d2260b875cd4266f9975146f05e7923175be415486cb1c7376b7eb7"},
     {"id": "quality:rigid-brick-penetration-v1", "path": "conformance/v1/quality/rigid-brick-penetration-v1.json", "sha256": "1d0e5bc608ba662a3e30f3e3740fb089f5028e9bffcfd5ddb09303feefe098da"},
     {"id": "quality:rigid-attachment-v1", "path": "conformance/v1/quality/rigid-attachment-v1.json", "sha256": "570add4a6e74539f46513a5baa8168bd2b81dd2ef95ff2a7f6bbb407f3afd108"},
-    {"id": "quality:fluid-self-contact-v1", "path": "conformance/v1/quality/fluid-self-contact-v1.json", "sha256": "21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2"},
-    {"id": "quality:fluid-self-pressure-v1", "path": "conformance/v1/quality/fluid-self-pressure-v1.json", "sha256": "4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b"},
-    {"id": "quality:fluid-self-viscosity-v1", "path": "conformance/v1/quality/fluid-self-viscosity-v1.json", "sha256": "9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c"},
+    {"id": "quality:fluid-self-contact-v1", "path": "conformance/v1/quality/fluid-self-contact-v1.json", "sha256": "28b9bb8f1dbe1a9696418f93108549b65a369dd4b81f69bf714312251b8e3af2"},
+    {"id": "quality:fluid-self-pressure-v1", "path": "conformance/v1/quality/fluid-self-pressure-v1.json", "sha256": "42825a5db3568c7d204f88958718f0a2b512880de865e036f8d82ecae0da93be"},
+    {"id": "quality:fluid-self-viscosity-v1", "path": "conformance/v1/quality/fluid-self-viscosity-v1.json", "sha256": "a41f204deac0b08a1e4741542533e17922b1af1dce38220ab05f63bfcba2e5d5"},
     {"id": "quality:rope-self-contact-v1", "path": "conformance/v1/quality/rope-self-contact-v1.json", "sha256": "46f4a52904d5255bc08ee7363218fc1db7180d69f1cf14f0c47f0a76cd24e113"},
     {"id": "quality:rope-self-contact-v2", "path": "conformance/v1/quality/rope-self-contact-v2.json", "sha256": "8860ec9a5ba0e79dc4b917eabaad88d99fb77b0d17b8575d650f43143d17b408"},
     {"id": "quality:rope-rigid-contact-v1", "path": "conformance/v1/quality/rope-rigid-contact-v1.json", "sha256": "2cd3e0ff2be4463e635bc855810b933d38c5e2b099fbb511df8360846202c9e3"},

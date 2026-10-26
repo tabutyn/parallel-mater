@@ -14,7 +14,7 @@ function(parallel_mater_gallery_build_info target backend)
     set(info "${CMAKE_CURRENT_BINARY_DIR}/generated/${target}/build-info.json")
     file(SHA256 "${CMAKE_CURRENT_SOURCE_DIR}/examples/assets/branding/logo.png" logo_hash)
     file(GENERATE OUTPUT "${info}" CONTENT
-"{\"schema_version\":1,\"revision\":\"${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}\",\"dirty\":${dirty},\"backend\":\"${backend}\",\"release_channel\":\"development-preview\",\"build_number\":${number},\"logo_sha256\":\"${logo_hash}\"}\n")
+"{\"schema_version\":2,\"revision\":\"${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}\",\"dirty\":${dirty},\"backend\":\"${backend}\",\"execution_contract\":\"fixed-tick-60hz-v1\",\"release_channel\":\"development-preview\",\"build_number\":${number},\"logo_sha256\":\"${logo_hash}\"}\n")
     target_sources(${target} PRIVATE "${info}")
     set_source_files_properties("${info}" PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
     set_target_properties(${target} PROPERTIES MACOSX_BUNDLE_BUNDLE_VERSION "${number}")

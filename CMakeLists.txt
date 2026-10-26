@@ -583,6 +583,21 @@ if(PARALLEL_MATER_BUILD_GALLERY)
             PARALLEL_MATER_GALLERY_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
         parallel_mater_enable_warnings(parallel-mater-command-gallery-tests)
 
+        add_executable(parallel-mater-gallery-fixed-tick-scene-tests
+                       tests/gallery/fixed_tick_scene_tests.cpp)
+        target_link_libraries(parallel-mater-gallery-fixed-tick-scene-tests
+                              PRIVATE parallel-mater-gallery-scene)
+        target_compile_definitions(
+            parallel-mater-gallery-fixed-tick-scene-tests PRIVATE
+            PARALLEL_MATER_GALLERY_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/examples/assets")
+        parallel_mater_enable_warnings(
+            parallel-mater-gallery-fixed-tick-scene-tests)
+        add_test(NAME parallel-mater-gallery-fixed-tick-scene-tests
+                 COMMAND parallel-mater-gallery-fixed-tick-scene-tests)
+        set_tests_properties(
+            parallel-mater-gallery-fixed-tick-scene-tests PROPERTIES
+            LABELS "gallery;contract")
+
         add_executable(parallel-mater-rigid-constraint-command-tests
                        tests/gallery/rigid_constraint_command_tests.cpp)
         target_link_libraries(parallel-mater-rigid-constraint-command-tests

@@ -339,7 +339,7 @@ int main(int argc, char **argv) try {
                 : Vec3{0.0F, -9.81000042F, 0.0F};
         check(simulation.step(
                   replay ? capture.history.back().step.timestep : 1.0F / 60.0F,
-                  replay ? capture.history.back().step.substeps : 4U,
+                  replay ? capture.history.back().step.substeps : 1U,
                   gravity, frame, error, true),
               error.empty() ? "step Hinge + Slider scene" : error.c_str());
         const auto &driver_state = frame.rigid_states[gear_indices[0]];
