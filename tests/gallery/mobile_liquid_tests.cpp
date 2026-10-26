@@ -58,6 +58,14 @@ int main() {
             CHECK(constrained.fluid_options.capacity == scene.fluid_options.capacity);
         }
         CHECK(apply_liquid_workload_limits(scene, *limits, error));
+        scene.fluid_options.maximum_speed = std::min(
+            scene.fluid_options.maximum_speed,
+            0.45F * scene.fluid_options.support_radius * 60.0F);
+        if (scene.fluid_options.rest_particle_volume <= 0.0F) {
+            const float diameter = 2.0F * scene.fluid_options.particle_radius;
+            scene.fluid_options.rest_particle_volume =
+                diameter * diameter * diameter;
+        }
         CHECK(scene.rigid_bodies.size() == (original_bodies == 1 ? 1 : limits->coupled_bodies + 1));
         CHECK(std::count_if(scene.rigid_bodies.begin(), scene.rigid_bodies.end(),
             [](const auto &body) { return body.options.motion == MotionType::static_body; }) == 1);
