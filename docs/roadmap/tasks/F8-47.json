@@ -1,7 +1,7 @@
 {
   "id": "F8-47",
   "title": "Connect remaining smoke interactions to production fixed ticks",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-41",
     "F8-42",
@@ -21,15 +21,29 @@
     "Graph edits, endpoint destruction, reset, overflow and failed-tick recovery preserve one coherent commit and no double integration.",
     "Map actual executed kernels and counters to canonical obligations; no platform-local physics or hidden fallback path."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "9fc21c5f-52bd-479d-9200-d33295302b47",
-    "owner": "codex-android-overnight",
-    "machine": "thomas-laptop-pixel7",
-    "branch": "work/F8-47/thomas-laptop-pixel7",
-    "claimed_at": "2026-10-25T23:38:30Z",
-    "heartbeat_at": "2026-10-25T23:38:30Z",
-    "expires_at": "2026-10-26T23:38:30Z"
-  },
-  "history": []
+  "evidence": [
+    "docs/roadmap/F8-47-SMOKE-COUPLINGS-PRODUCTION-TICKS.md",
+    "docs/roadmap/evidence/F8-47-smoke-couplings-production-ticks.json"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "9fc21c5f-52bd-479d-9200-d33295302b47",
+        "owner": "codex-android-overnight",
+        "machine": "thomas-laptop-pixel7",
+        "branch": "work/F8-47/thomas-laptop-pixel7",
+        "claimed_at": "2026-10-25T23:38:30Z",
+        "heartbeat_at": "2026-10-25T23:38:30Z",
+        "expires_at": "2026-10-26T23:38:30Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-26T00:53:21Z",
+      "reason": "Connected every implemented smoke/rigid and smoke/deformable tuple to four-sweep production ticks with atomic public graph coverage and physical Pixel 7 Vulkan qualification.",
+      "evidence": [
+        "docs/roadmap/F8-47-SMOKE-COUPLINGS-PRODUCTION-TICKS.md",
+        "docs/roadmap/evidence/F8-47-smoke-couplings-production-ticks.json"
+      ]
+    }
+  ]
 }
