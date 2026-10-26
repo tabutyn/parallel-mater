@@ -32,15 +32,17 @@ int main() {
     cloth_material.breakStrain = 0.5F;
     PmRopeMaterialState rope_material{};
     rope_material.nodeSpacing = 0.01F; rope_material.radius = 0.01F; rope_material.mass = 1;
-    rope_material.maximumSubstepTimestep = 1.0F / 60; rope_material.maximumSpeed = 100;
+    rope_material.maximumSubstepTimestep = 1.0F / 60; rope_material.maximumSpeed = 0.25F;
     rope_material.solverIterations = 8;
     PmSoftBodyMaterialState soft_material{};
     soft_material.nodeMass = 1; soft_material.nodeRadius = 0.01F;
     soft_material.maximumProjectionFraction = 0.2F; soft_material.constraintVelocityResponse = 1;
-    soft_material.maximumSpeed = 100; soft_material.solverIterations = 4;
+    soft_material.maximumSpeed = 20; soft_material.solverIterations = 4;
     PmSmokeMaterialState smoke_material{};
     smoke_material.particleRadius = 0.02F; smoke_material.restNumberDensity = 12;
-    smoke_material.maximumSpeed = 100; smoke_material.gridResolution = 16;
+    // One material is exercised as both grid and particle smoke below. Keep
+    // its speed inside the tighter particle fixed-tick displacement envelope.
+    smoke_material.maximumSpeed = 1; smoke_material.gridResolution = 16;
     smoke_material.gridVerticalResolution = 8; smoke_material.gridPressureIterations = 8;
     smoke_material.gridPressureTolerance = 0.001F;
     PmPhysicsPipelineCreateInfo policy{};

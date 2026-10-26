@@ -13380,7 +13380,7 @@
           "contracts": [
             "quality:fluid-self-contact-v1"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "compilation": {
           "contracts": [
@@ -13482,7 +13482,7 @@
           "contracts": [
             "quality:fluid-self-pressure-v1"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "compilation": {
           "contracts": [
@@ -13584,7 +13584,7 @@
           "contracts": [
             "quality:fluid-self-viscosity-v1"
           ],
-          "status": "passed"
+          "status": "invalid"
         },
         "compilation": {
           "contracts": [
@@ -17378,7 +17378,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20620,7 +20621,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20637,7 +20639,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20654,7 +20657,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20671,7 +20675,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20688,7 +20693,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20705,7 +20711,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20722,7 +20729,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20739,7 +20747,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20756,7 +20765,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20773,7 +20783,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20790,7 +20801,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20807,7 +20819,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20824,7 +20837,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20841,7 +20855,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20858,7 +20873,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20875,7 +20891,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20892,7 +20909,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20909,7 +20927,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20926,7 +20945,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20943,7 +20963,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20960,7 +20981,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20977,7 +20999,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -20994,7 +21017,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -21011,7 +21035,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -21028,7 +21053,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -21045,7 +21071,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -21062,7 +21089,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -21519,7 +21547,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -21536,7 +21565,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -21553,7 +21583,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24364,7 +24395,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24381,7 +24413,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24398,7 +24431,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24415,7 +24449,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24432,7 +24467,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24449,7 +24485,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24466,7 +24503,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24483,7 +24521,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24500,7 +24539,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24517,7 +24557,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24534,7 +24575,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -24549,6 +24591,15 @@
       "message": "required evidence is missing",
       "path": "$.advertised_capabilities[0].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "quality:fluid-self-contact-v1",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[0].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -24963,6 +25014,15 @@
       "message": "required evidence is missing",
       "path": "$.advertised_capabilities[1].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "quality:fluid-self-pressure-v1",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[1].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -25521,6 +25581,15 @@
       "message": "required evidence is missing",
       "path": "$.advertised_capabilities[2].analytic_invariants",
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
+    },
+    {
+      "actual": "quality:fluid-self-viscosity-v1",
+      "driver": "slang-vulkan",
+      "expected": null,
+      "kind": "qualification_failure",
+      "message": "required evidence metadata is invalid",
+      "path": "$.advertised_capabilities[2].analytic_invariants",
+      "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
       "actual": "registry:interaction-capabilities",
@@ -26555,6 +26624,17 @@
       "report": "linux-rtx3050ti-slang-vulkan-eed669e"
     },
     {
+      "actual": "21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2",
+      "driver": "slang-vulkan",
+      "expected": [
+        "28b9bb8f1dbe1a9696418f93108549b65a369dd4b81f69bf714312251b8e3af2"
+      ],
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[3].contract_sha256",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
       "actual": "cd4772393605856cf37139e2e63dffd9cc8ae2a2751af2bad7edf27d08c1fec9",
       "driver": "slang-vulkan",
       "expected": [
@@ -26563,6 +26643,28 @@
       "kind": "qualification_failure",
       "message": "evidence contract hash mismatch",
       "path": "$.evidence[45].contract_sha256",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b",
+      "driver": "slang-vulkan",
+      "expected": [
+        "42825a5db3568c7d204f88958718f0a2b512880de865e036f8d82ecae0da93be"
+      ],
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[4].contract_sha256",
+      "report": "android-pixel7-slang-vulkan-3187375"
+    },
+    {
+      "actual": "9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c",
+      "driver": "slang-vulkan",
+      "expected": [
+        "a41f204deac0b08a1e4741542533e17922b1af1dce38220ab05f63bfcba2e5d5"
+      ],
+      "kind": "qualification_failure",
+      "message": "evidence contract hash mismatch",
+      "path": "$.evidence[5].contract_sha256",
       "report": "android-pixel7-slang-vulkan-3187375"
     },
     {
@@ -26575,7 +26677,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -26592,7 +26695,8 @@
         "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
         "5ef3cda7ac04d2680c59f6ee6fe758cb81a04cb9958c1d344ed299315660e947",
         "68c7a9036f9135b99dacb9bd25c0d11b1f82921762ef70894a8a07b7924807e5",
-        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1"
+        "70d75be01217e2c0ebf2946bb0f79ee92d7a9f11ab13d73b9e8965ae4827bbe1",
+        "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b"
       ],
       "kind": "qualification_failure",
       "message": "obligations hash mismatch",
@@ -26601,7 +26705,7 @@
     }
   ],
   "obligations_id": "capability-obligations-v1",
-  "obligations_sha256": "447dcf4ba9055078ecc208fa2783e2ff0f3a945ed39f2be764104cb82e39f1e2",
+  "obligations_sha256": "8d9e23e33a51e4e23dcc00f0d57e369f5f2e71eaa4eb04846efcba653c42741b",
   "qualification_complete": true,
   "qualified_capability_count": 1,
   "report_count": 47,
@@ -26619,7 +26723,7 @@
         "name": "slang-vulkan",
         "version": "0.2.0"
       },
-      "failure_count": 74,
+      "failure_count": 80,
       "id": "android-pixel7-slang-vulkan-3187375",
       "kind": "capability-qualification",
       "path": "conformance/v1/evidence/android-pixel7-slang-vulkan-3187375-qualification.json",
@@ -27985,7 +28089,7 @@
   ],
   "schema": "parallel-mater-driver-evidence-index/v1",
   "sources_id": "driver-evidence-sources-v1",
-  "sources_sha256": "43e99ad68af61f3f4fc60b322aef499042c96ed0626a36e1d07786e7896ded9a",
+  "sources_sha256": "eac1925758a8af29f4b8809803ddc62f32f3bbd02b717ad79a2ccc7d7428b73e",
   "valid": true,
   "validation_failures": []
 }

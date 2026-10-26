@@ -167,9 +167,9 @@ target_include_directories(parallel-mater-fluid-pair-quality-tests PRIVATE
     "${CMAKE_CURRENT_LIST_DIR}/../../conformance/v1/include")
 target_compile_definitions(parallel-mater-fluid-pair-quality-tests PRIVATE
     PM_QUALITY_PROFILE_SHA256="a59a81c71b5ddf9ae1f0a47cd8e61e2074c24d929b15318852863b2c92cd9326"
-    PM_FLUID_SELF_CONTACT_PROFILE_SHA256="21cea5a517d39a4b8008b22c1813a4558242b1ff2530d9408d45c5bb782c89d2"
-    PM_FLUID_SELF_PRESSURE_PROFILE_SHA256="4eff3434d9020881443303ea7601112db891282051f1f2408a505aae11e9dd8b"
-    PM_FLUID_SELF_VISCOSITY_PROFILE_SHA256="9c75474a738aac4890474dcf49cbfa9766da0bb9fc54e0a9e0461283b778758c")
+    PM_FLUID_SELF_CONTACT_PROFILE_SHA256="28b9bb8f1dbe1a9696418f93108549b65a369dd4b81f69bf714312251b8e3af2"
+    PM_FLUID_SELF_PRESSURE_PROFILE_SHA256="42825a5db3568c7d204f88958718f0a2b512880de865e036f8d82ecae0da93be"
+    PM_FLUID_SELF_VISCOSITY_PROFILE_SHA256="a41f204deac0b08a1e4741542533e17922b1af1dce38220ab05f63bfcba2e5d5")
 target_link_libraries(parallel-mater-fluid-pair-quality-tests
     PRIVATE ParallelMater::parallel_mater)
 foreach(backend cpu cuda vulkan d3d12 metal)
