@@ -52,10 +52,18 @@ int main(int argc, char **argv) {
     instance_info.apiVersion = PM_API_VERSION_0_3;
     PmInstance instance{};
     CHECK(pmCreateInstance(&instance_info, nullptr, &instance) == PM_SUCCESS);
-    std::uint32_t physical_count = 1U;
-    PmPhysicalDevice physical{};
+    std::uint32_t physical_count{};
+    CHECK(pmEnumeratePhysicalDevices(instance, &physical_count, nullptr) ==
+          PM_SUCCESS);
+    if (physical_count == 0U) {
+        pmDestroyInstance(instance);
+        std::puts("SKIP: no selected native GPU device");
+        return 77;
+    }
+    std::vector<PmPhysicalDevice> physicals(physical_count);
     CHECK(pmEnumeratePhysicalDevices(
-        instance, &physical_count, &physical) == PM_SUCCESS);
+        instance, &physical_count, physicals.data()) == PM_SUCCESS);
+    const PmPhysicalDevice physical = physicals.front();
 
     const float priority = 1.0F;
     const PmDeviceQueueCreateInfo queue_info{0U, 1U, &priority};

@@ -487,7 +487,7 @@ if(BUILD_TESTING)
     add_test(NAME parallel-mater-slang-cuda-realtime-tests
         COMMAND parallel-mater-slang-cuda-realtime-tests --production-couplings)
     set_tests_properties(parallel-mater-slang-cuda-realtime-tests PROPERTIES
-        TIMEOUT 300 LABELS "api;cuda;gpu;realtime;f8"
+        TIMEOUT 300 SKIP_RETURN_CODE 77 LABELS "api;cuda;gpu;realtime;f8"
         ENVIRONMENT
             "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-cuda.json")
 endif()
@@ -1256,9 +1256,10 @@ if(WIN32 AND PARALLEL_MATER_BUILD_D3D12)
             COMMAND parallel-mater-slang-d3d12-realtime-tests --production-couplings)
         set_tests_properties(
             parallel-mater-slang-d3d12-realtime-tests PROPERTIES
-            TIMEOUT 300 LABELS "api;d3d12;gpu;realtime;f8"
+            TIMEOUT 300 SKIP_RETURN_CODE 77
+            LABELS "api;d3d12;gpu;realtime;f8"
             ENVIRONMENT
-                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json;PM_TEST_TRACE=1")
+                "PM_DRIVER_FILES=${PARALLEL_MATER_BUILD_MANIFEST_DIR}/slang-d3d12.json")
     endif()
 endif()
 if(PARALLEL_MATER_BUILD_SLANG_MIRRORS)
