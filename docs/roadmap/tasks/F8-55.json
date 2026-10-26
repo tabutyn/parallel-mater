@@ -1,7 +1,7 @@
 {
   "id": "F8-55",
   "title": "Use shared BVH candidates and batch coupling work",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-45",
     "F8-46",
@@ -22,6 +22,14 @@
     "Run installed public-API interaction fixtures and actual native work counters on an applicable physical GPU, preserving inputs and quality oracles. Build all applicable adapters; F8-56 and final device qualification retain full Gallery and physical platform obligations."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "4b930e57-e1d7-4684-a0f9-959688625a22",
+    "owner": "codex-windows-coupling-bvh",
+    "machine": "windows-gtx1080",
+    "branch": "work/F8-55/windows-gtx1080",
+    "claimed_at": "2026-10-26T12:32:59Z",
+    "heartbeat_at": "2026-10-26T12:32:59Z",
+    "expires_at": "2026-10-27T12:32:59Z"
+  },
   "history": []
 }
