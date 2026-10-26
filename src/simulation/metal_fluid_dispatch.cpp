@@ -495,12 +495,15 @@ void solve_fluid_realtime_density(
     std::uint32_t candidates_per_query,
     const FluidDispatchConstants &values, float timestep,
     std::uint32_t profile_version, float *densities, float *lambdas,
+    std::uint32_t record_neighbors, std::uint32_t *neighbor_overflow,
+    std::uint32_t *maximum_neighbor_count,
     std::uint32_t *status) noexcept {
     (void)metal::launch(stream, "fluid_realtime_density_lambda", grid,
         metadata, admission, leaf_capacity, query_leaf_sources, query_count,
         positions, count, capacity, filtered_counts, filtered_sources,
         candidates_per_query, options(values), timestep, profile_version,
-        densities, lambdas, status);
+        densities, lambdas, record_neighbors, neighbor_overflow,
+        maximum_neighbor_count, status);
 }
 
 void solve_fluid_realtime_position_delta(

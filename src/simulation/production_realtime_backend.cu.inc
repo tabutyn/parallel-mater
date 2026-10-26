@@ -417,8 +417,8 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
             simulation::RealtimeCouplingFamily::deformable_smoke)];
     commit.submissions = 1U;
     index.index_publications = 1U;
-    boundary.bytes_moved += 2U * sizeof(std::uint32_t);
-    boundary.barriers += 2U;
+    boundary.bytes_moved += 4U * sizeof(std::uint32_t);
+    boundary.barriers += 4U;
     if (state.paint_rule_count != 0U) {
         for (const auto &field : std::span(
                  state.paint_fields, state.options.paint_field_capacity)) {
@@ -1808,9 +1808,15 @@ public:
         if (count_result == PM_SUCCESS)
             count_result = native_.clear(state_.fluid_contact_overflow, 0,
                 sizeof(*state_.fluid_contact_overflow), native_.queue());
+        if (count_result == PM_SUCCESS)
+            count_result = native_.clear(state_.fluid_neighbor_overflow, 0,
+                sizeof(*state_.fluid_neighbor_overflow), native_.queue());
+        if (count_result == PM_SUCCESS)
+            count_result = native_.clear(state_.fluid_maximum_neighbor_count, 0,
+                sizeof(*state_.fluid_maximum_neighbor_count), native_.queue());
         if (count_result != PM_SUCCESS) return count_result;
-        boundary_work.bytes_moved += 2U * sizeof(std::uint32_t);
-        boundary_work.barriers += 2U;
+        boundary_work.bytes_moved += 4U * sizeof(std::uint32_t);
+        boundary_work.barriers += 4U;
         if (state_.paint_rule_count != 0U) {
             for (std::uint32_t slot = 0U;
                  slot < state_.options.paint_field_capacity; ++slot) {
@@ -3130,6 +3136,9 @@ public:
                     scene.timestep,
                     simulation::fluid_realtime_profile_version,
                     fluid.foam_source, fluid.next_foam,
+                    iteration == 0U ? 1U : 0U,
+                    state_.fluid_neighbor_overflow,
+                    state_.fluid_maximum_neighbor_count,
                     snapshot_.query_status);
                 auto result = native_.check_error();
                 if (result == PM_SUCCESS) {
