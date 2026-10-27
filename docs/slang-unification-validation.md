@@ -69,9 +69,10 @@ unsupported cases. All ten former failures, including cloth-tear topology,
 are resolved. Canonical inputs, numerical tolerances and historical goldens
 are unchanged; execution remains separate from physical qualification.
 
-The independent closed-mesh brick-separation check passes on both drivers:
-eight bricks, four substeps and 300 frames produce 0.205278 mm maximum sampled
-penetration against the unchanged 2 mm gate. Additional regressions check
+At that historical F5 revision, the independent closed-mesh brick-separation
+check passes on both drivers: eight bricks, four substeps and 300 frames produce
+0.205278 mm maximum sampled penetration against the unchanged 2 mm gate.
+Additional regressions check
 torque-free rotation, floor clearance, closed/open concave seams, two-sided
 surfaces, real open-edge impacts across a triangulation diagonal, and centered
 fast convex impacts (including an initially touching complete crossing).

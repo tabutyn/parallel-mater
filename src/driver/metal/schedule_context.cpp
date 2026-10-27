@@ -627,11 +627,28 @@ cudaError_t pmMetalRecordEvent(cudaEvent_t event, cudaStream_t stream) noexcept 
 }
 cudaError_t pmMetalWaitEvent(cudaEvent_t event) noexcept {
     if (!event || !event->submission) return cudaErrorInvalidResourceHandle;
-    try { event->submission->wait(); return cudaSuccess; } catch (...) { return cudaErrorLaunchFailure; }
+    try {
+        event->submission->wait();
+        return cudaSuccess;
+    } catch (const std::exception &error) {
+        std::fprintf(stderr, "Metal preview: %s\n", error.what());
+        return cudaErrorLaunchFailure;
+    } catch (...) {
+        std::fprintf(stderr, "Metal preview: unknown event wait failure\n");
+        return cudaErrorLaunchFailure;
+    }
 }
 cudaError_t pmMetalQueryEvent(cudaEvent_t event) noexcept {
     if (!event || !event->submission) return cudaErrorInvalidResourceHandle;
-    try { return event->submission->ready() ? cudaSuccess : cudaErrorNotReady; } catch (...) { return cudaErrorLaunchFailure; }
+    try {
+        return event->submission->ready() ? cudaSuccess : cudaErrorNotReady;
+    } catch (const std::exception &error) {
+        std::fprintf(stderr, "Metal preview: %s\n", error.what());
+        return cudaErrorLaunchFailure;
+    } catch (...) {
+        std::fprintf(stderr, "Metal preview: unknown event query failure\n");
+        return cudaErrorLaunchFailure;
+    }
 }
 cudaError_t pmMetalPeekError(cudaStream_t stream, bool take) noexcept {
     auto *execution = context(stream);

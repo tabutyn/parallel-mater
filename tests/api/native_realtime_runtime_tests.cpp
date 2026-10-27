@@ -385,11 +385,13 @@ int main(int argc, char **argv) {
         body.collisionMargin = 0.005F;
         auxiliary_bodies[1] = body;
         auxiliary_bodies[1].motionType = PM_MOTION_STATIC;
-        auxiliary_bodies[1].state.position[0] = 0.75F;
+        // Keep the query-only static body outside the paint contact. Static
+        // bodies now participate in the shared fixed-tick fluid contact pass.
+        auxiliary_bodies[1].state.position[0] = 1.5F;
         auto *particle = reinterpret_cast<PmParticleState *>(
             static_cast<std::byte *>(source_map) + 256U);
         *particle = {};
-        particle->position[0] = 0.24F;
+        particle->position[0] = 0.52F;
         particle->position[1] = 0.0F;
         particle->position[2] = 0.2F;
         particle->velocity[1] = -0.25F;
@@ -568,9 +570,15 @@ int main(int argc, char **argv) {
         CHECK(contact_header->revision == debug_header->revision);
         CHECK(hit_box_header->rigidBodyCount == 2U);
         CHECK(hit_box_header->particleCount == 1U);
-        CHECK(std::any_of(paint_pixels,
+        const bool painted = std::any_of(paint_pixels,
             paint_pixels + paint_header->activeCount,
-            [](std::uint32_t pixel) { return pixel != 0U; }));
+            [](std::uint32_t pixel) { return pixel != 0U; });
+        if (!painted)
+            std::fprintf(stderr,
+                "paint contact missing: particle=(%g,%g,%g) contacts=%u\n",
+                fluid_particles[0].position[0], fluid_particles[0].position[1],
+                fluid_particles[0].position[2], contact_header->activeCount);
+        CHECK(painted);
         CHECK(std::any_of(contact_records,
             contact_records + contact_header->activeCount,
             [](const PmContactEvent &event) {

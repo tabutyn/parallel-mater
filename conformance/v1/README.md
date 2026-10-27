@@ -157,9 +157,10 @@ samples fail. This gate never reads CUDA goldens and never treats better
 reference agreement as proof of conservation or stability.
 
 Rigid contact uses the separate `rigid-brick-penetration-v1` profile. Its
-result repeats the fixed `RigidBody.glb`, eight-brick, 300-frame, four-substep
-configuration and reports the maximum pairwise penetration observed by the
-independent closed-mesh sampler in `tests/gallery/rigid_mesh_checks.hpp`.
+result repeats the fixed `RigidBody.glb`, eight-brick, 300-frame configuration
+at one 1/60-second step per frame and reports the maximum pairwise penetration
+observed by the independent closed-mesh sampler in
+`tests/gallery/rigid_mesh_checks.hpp`.
 Select one installed driver and capture the public-API result, then evaluate it:
 
 ```text
@@ -699,9 +700,10 @@ shared response/reference instead of treating the remaining issue as CPU-only.
 
 Subsequent [Windows GTX 1080 evidence](evidence/windows-gtx1080-physics-2026-10-16.json)
 resolves the ten failing comparisons: the same-build SDK runner passes all 17
-selected CUDA/D3D12 cases with zero unsupported results. Independent eight-brick,
-four-substep, 300-frame mesh checks pass on both drivers at 0.205278 mm against
-the unchanged 2 mm limit. The report retains original divergences, source/case/
+selected CUDA/D3D12 cases with zero unsupported results. At that historical F5
+revision, independent eight-brick, four-substep, 300-frame mesh checks pass on
+both drivers at 0.205278 mm against the unchanged 2 mm limit. The report retains
+original divergences, source/case/
 binary hashes and reproduction commands. These corrections do not qualify the
 remaining corpus, CPU historical regression, other devices or performance.
 

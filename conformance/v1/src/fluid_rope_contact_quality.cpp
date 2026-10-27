@@ -18,6 +18,11 @@ namespace parallel_mater::conformance {
 namespace {
 using test::Context;
 
+constexpr float timestep = 1.0F / 60.0F;
+constexpr float fluid_maximum_speed = 5.999F;
+constexpr float rope_maximum_speed = 2.999F;
+constexpr float rope_stretch_compliance = 1.0e-3F;
+
 constexpr std::array<PmFloat3, 2> rope_centerline{{
     {0.0F, 0.0F, 0.0F},
     {0.0F, 0.1F, 0.0F},
@@ -70,7 +75,7 @@ constexpr std::array<PmFloat3, 2> rope_centerline{{
     material.particleRadius = 0.05F;
     material.supportRadius = 0.2F;
     material.restParticleVolume = 0.001F;
-    material.maximumSpeed = 10.0F;
+    material.maximumSpeed = fluid_maximum_speed;
     material.maximumPairAcceleration = 1000.0F;
     material.densityIterations = 1U;
     return material;
@@ -81,9 +86,9 @@ constexpr std::array<PmFloat3, 2> rope_centerline{{
     material.nodeSpacing = 0.1F;
     material.radius = 0.05F;
     material.mass = 4.0F;
-    material.stretchCompliance = 1.0F;
-    material.maximumSubstepTimestep = 0.01F;
-    material.maximumSpeed = 10.0F;
+    material.stretchCompliance = rope_stretch_compliance;
+    material.maximumSubstepTimestep = timestep;
+    material.maximumSpeed = rope_maximum_speed;
     material.solverIterations = 1U;
     return material;
 }
@@ -135,7 +140,7 @@ constexpr std::array<PmFloat3, 2> rope_centerline{{
 
     Json result = Json::object();
     result["id"] = "quarter-segment-normal-impact";
-    result["timestep_seconds"] = 0.01;
+    result["timestep_seconds"] = static_cast<double>(timestep);
     result["substeps"] = static_cast<std::uint64_t>(1U);
     result["gravity_m_s2"] = vector_json(PmFloat3{});
     result["fluid_particle_count"] = static_cast<std::uint64_t>(1U);
@@ -308,7 +313,7 @@ std::string conformance_fluid_rope_contact_quality(
 
     context.begin();
     PM_CHECK(pmCmdBindPhysicsPipeline(context.commands, pipeline) == PM_SUCCESS);
-    const PmStepInfo step{0.01F, 1U, {0.0F, 0.0F, 0.0F}, 0U};
+    const PmStepInfo step{timestep, 1U, {0.0F, 0.0F, 0.0F}, 0U};
     PM_CHECK(pmCmdStepSimulation(context.commands, simulation, &step) ==
              PM_SUCCESS);
     PM_CHECK(pmCmdCopyFluidParticles(context.commands, simulation, 0U,

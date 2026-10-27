@@ -77,11 +77,11 @@ int main() {
     PmSoftBodyMaterialState soft_material{};
     soft_material.nodeMass = 1;
     soft_material.nodeRadius = 0.01F;
-    soft_material.springDamping = 0.1F;
+    soft_material.springDamping = 0.0F;
     soft_material.shapeMatchingStiffness = 0.5F;
     soft_material.maximumProjectionFraction = 0.2F;
     soft_material.constraintVelocityResponse = 1;
-    soft_material.maximumSpeed = 100;
+    soft_material.maximumSpeed = 20;
     soft_material.solverIterations = 4;
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
@@ -155,11 +155,18 @@ int main() {
         const auto *surface_header = reinterpret_cast<const PmDomainOutputHeader *>(static_cast<const std::byte *>(mapped) + 8192);
         CHECK(cloth_header->activeCount == 3 && soft_header->activeCount == 9 && surface_header->activeCount == 9);
         const auto verify = [&](PmFloat3 position, PmFloat3 velocity, PmFloat3 original) {
-            const float displacement = pinned ? 0 : -9.81F * 55.0F / 3600.0F;
+            float expected_velocity = 0.0F;
+            float displacement = 0.0F;
+            if (!pinned)
+                for (int frame = 0; frame < 10; ++frame) {
+                    expected_velocity -= 9.81F / 60.0F;
+                    displacement += expected_velocity / 60.0F;
+                    expected_velocity *= 0.95F;
+                }
             CHECK(std::abs(position.x - original.x) < 1e-4F && std::abs(position.z - original.z) < 1e-4F);
             CHECK(std::abs(position.y - original.y - displacement) < 1e-4F);
             CHECK(std::abs(velocity.x) < 1e-4F && std::abs(velocity.z) < 1e-4F);
-            CHECK(std::abs(velocity.y - (pinned ? 0 : -9.81F / 6.0F)) < 1e-4F);
+            CHECK(std::abs(velocity.y - expected_velocity) < 1e-4F);
         };
         const auto *cloth_states = reinterpret_cast<const PmClothVertexState *>(cloth_header + 1);
         const auto *soft_states = reinterpret_cast<const PmSoftBodyNodeState *>(soft_header + 1);

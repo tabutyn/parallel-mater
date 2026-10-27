@@ -593,7 +593,7 @@ int parallel_mater_interaction_graph_lifecycle_fixture(
     smoke.gridMinimum = {29.0F, -1.0F, -1.0F};
     smoke.gridEdgeLength = 2.0F;
     const auto body = rigid_body(geometry);
-    const PmStepInfo step{1.0e-4F, 1U, {0.0F, 0.0F, 0.0F}, 0U};
+    const PmStepInfo step{1.0F / 60.0F, 1U, {0.0F, 0.0F, 0.0F}, 0U};
 
     const auto submit_endpoint = [&](const char *name, auto record) {
         context.begin();

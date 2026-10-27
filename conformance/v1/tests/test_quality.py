@@ -428,7 +428,7 @@ class RigidPenetrationQualityTests(unittest.TestCase):
 
     def test_fixture_configuration_and_frame_are_exact(self):
         for field, value in (("body_count", 7), ("frames", 299),
-                             ("substeps", 1), ("scene", "Other.glb"),
+                             ("substeps", 2), ("scene", "Other.glb"),
                              ("oracle", "driver-contacts")):
             with self.subTest(field=field):
                 result = self.valid_result()

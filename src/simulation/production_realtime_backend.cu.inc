@@ -4727,7 +4727,8 @@ private:
                     state_.fluid_body_contact_flags);
                 native_.resolve_fluid_moving_contacts(groups, block,
                     native_.queue(), fluid.next_positions,
-                    fluid.next_velocities, fluid.next_foam,
+                    fluid.previous, fluid.next_velocities,
+                    fluid.realtime_velocity_deltas, fluid.next_foam,
                     fluid.realtime_count,
                     fluid.options.particle_radius, particle_mass,
                     scene.timestep /
@@ -4741,7 +4742,9 @@ private:
                     fluid.generation, state_.ids,
                     state_.paint_rule_count != 0U, state_.paint_fields,
                     state_.options.paint_field_capacity, state_.paint_rules,
-                    state_.options.paint_rule_capacity);
+                    state_.options.paint_rule_capacity,
+                    1.0F / scene.timestep,
+                    1.0F - simulation::fluid_realtime_solver_damping);
                 native_.reduce_fluid_body_impulses(
                     state_.rigid_body_count, block, native_.queue(),
                     fluid.body_impulses, fluid.realtime_count,
@@ -4874,8 +4877,9 @@ private:
                 ? coupling.options.contact_distance
                 : fluid.options.particle_radius + rope.data.options.radius;
             native_.detect_fluid_rope_contacts(fluid_groups, block,
-                native_.queue(), fluid.next_positions,
-                fluid.next_velocities, fluid.realtime_count, particle_mass,
+                native_.queue(), fluid.next_positions, fluid.previous,
+                fluid.next_velocities, fluid.realtime_velocity_deltas,
+                fluid.realtime_count, particle_mass,
                 rope.realtime_positions, rope.realtime_velocities,
                 rope.data.count, rope.realtime_segment_generations,
                 coupling.options.rope.index, rope.generation,
@@ -4890,9 +4894,12 @@ private:
                 candidates_per_query, snapshot_.query_status,
                 distance, coupling.options.friction,
                 coupling.contribution_nodes, coupling.contribution_impulses,
-                coupling.contact_count, coupling.maximum_penetration, true);
+                coupling.contact_count, coupling.maximum_penetration, true,
+                1.0F / scene.timestep,
+                1.0F - simulation::fluid_realtime_solver_damping);
             native_.apply_fluid_rope_impulses(rope_groups, block,
-                native_.queue(), rope.realtime_velocities,
+                native_.queue(), rope.realtime_positions,
+                rope.realtime_previous_positions, rope.realtime_velocities,
                 rope.data.fluid_contact_forces, rope.data.count,
                 rope.data.options.mass, rope.data.options.maximum_speed,
                 rope.data.options.first.enabled,
@@ -4901,7 +4908,8 @@ private:
                 coupling.options.maximum_rope_acceleration,
                 scene.timestep /
                     simulation::liquid_coupling_realtime_sweeps,
-                1.0F / scene.timestep);
+                1.0F / scene.timestep,
+                1.0F - simulation::rope_realtime_solver_damping);
             result = native_.check_error();
             if (result != PM_SUCCESS) return result;
             dispatches(simulation::RealtimeTelemetryPhase::coupling,
@@ -7138,6 +7146,24 @@ Status schedule_native_realtime(State &state, NativeScheduleBackend &native,
         state.realtime_telemetry);
     if (options.realtime_telemetry_output != nullptr)
         *options.realtime_telemetry_output = state.realtime_telemetry;
+    if (result != PM_SUCCESS &&
+        std::getenv("PM_SCHEDULER_TRACE_ERRORS") != nullptr) {
+        const auto &ledger = state.realtime_ledger;
+        std::fprintf(stderr,
+            "Parallel Mater realtime progress: boundary=%u advances=%u "
+            "predict=%u,%u,%u,%u,%u,%u spatial=%u/%u "
+            "domain=%u,%u,%u,%u,%u,%u coupling=%u,%u,%u commits=%u\n",
+            ledger.boundary_passes, ledger.time_advances,
+            ledger.predictions[0], ledger.predictions[1],
+            ledger.predictions[2], ledger.predictions[3],
+            ledger.predictions[4], ledger.predictions[5],
+            ledger.spatial_updates, ledger.spatial_publications,
+            ledger.domain_iterations[0], ledger.domain_iterations[1],
+            ledger.domain_iterations[2], ledger.domain_iterations[3],
+            ledger.domain_iterations[4], ledger.domain_iterations[5],
+            ledger.coupling_sweeps[0], ledger.coupling_sweeps[1],
+            ledger.coupling_sweeps[2], ledger.commits);
+    }
     return result == PM_SUCCESS ? success()
         : backend_failure(result, "native realtime schedule failed");
 }

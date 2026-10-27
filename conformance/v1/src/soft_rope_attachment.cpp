@@ -21,9 +21,9 @@ namespace {
 using parallel_mater::test::Buffer;
 using parallel_mater::test::Context;
 
-constexpr float timestep = 1.0F / 120.0F;
-constexpr std::uint32_t step_count = 120U;
-constexpr std::uint32_t substeps = 2U;
+constexpr float timestep = 1.0F / 60.0F;
+constexpr std::uint32_t step_count = 60U;
+constexpr std::uint32_t substeps = 1U;
 constexpr float soft_node_mass = 0.25F;
 constexpr float rope_mass = 0.5F;
 constexpr float rope_spacing = 0.05F;

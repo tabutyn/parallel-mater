@@ -52,9 +52,9 @@ class FluidRopeContactQualityTests(unittest.TestCase):
         ]
         fixture["final_rope_node_state"] = [
             node(0, [0.0, 0.0, 0.0], [0.375, 0.0, 0.0],
-                 [75.0, 0.0, 0.0]),
+                 [45.0, 0.0, 0.0]),
             node(1, [0.0, 0.1, 0.0], [0.125, 0.0, 0.0],
-                 [25.0, 0.0, 0.0]),
+                 [15.0, 0.0, 0.0]),
         ]
         self.result = {
             "schema": "parallel-mater-conformance-quality-result/v1",

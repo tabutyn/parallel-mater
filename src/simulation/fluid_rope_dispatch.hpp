@@ -8,7 +8,8 @@
 namespace parallel_mater::simulation {
 
 void detect_fluid_rope_contacts(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
-    void *particle_positions, void *particle_velocities,
+    void *particle_positions, const void *particle_previous_positions,
+    void *particle_velocities, void *particle_velocity_deltas,
     const std::uint32_t *particle_count, float particle_mass,
     const void *rope_positions, const void *rope_velocities,
     std::uint32_t rope_count, const std::uint32_t *segment_generations,
@@ -22,9 +23,11 @@ void detect_fluid_rope_contacts(device::DispatchSize grid, device::DispatchSize 
     float distance, float friction,
     std::uint32_t *contribution_nodes, void *contribution_impulses,
     std::uint32_t *contact_count,
-    float *maximum_penetration, bool transfer_impulse) noexcept;
+    float *maximum_penetration, bool transfer_impulse,
+    float frame_inverse_timestep, float commit_velocity_scale) noexcept;
 
 void apply_fluid_rope_impulses(device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream,
+    void *rope_positions, const void *rope_previous_positions,
     void *rope_velocities, void *fluid_contact_forces,
     std::uint32_t rope_count, float rope_mass, float rope_maximum_speed,
     bool first_attached, bool last_attached,
@@ -32,6 +35,6 @@ void apply_fluid_rope_impulses(device::DispatchSize grid, device::DispatchSize b
     const std::uint32_t *contribution_nodes,
     const void *contribution_impulses,
     float maximum_acceleration, float timestep,
-    float frame_inverse_timestep) noexcept;
+    float frame_inverse_timestep, float commit_velocity_scale) noexcept;
 
 } // namespace parallel_mater::simulation
