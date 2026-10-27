@@ -364,11 +364,12 @@ def main():
     else:
         run("xcrun", "devicectl", "device", "install", "app", "--device", args.device, app)
         nonce = str(uuid.uuid4())
+        isolate_physics = bool(args.qualify and args.physics_qualification)
         command = ["xcrun", "devicectl", "device", "process", "launch", "--device", args.device,
                    "--terminate-existing", BUNDLE, "--deployment-nonce", nonce]
         if args.qualify:
             command += ["--qualify", "--qualification-frames", str(args.qualify)]
-        if args.physics_qualification:
+        if args.physics_qualification and not isolate_physics:
             command += ["--physics-qualification"]
         if args.schedule_profile:
             command += ["--metal-schedule-profile"]
@@ -405,14 +406,37 @@ def main():
                     raise RuntimeError("Simulation advanced while backgrounded")
                 runtime = foreground
             if args.physics_qualification:
-                physics = wait_report(args.device, "physics-qualification.json", nonce,
+                physics_nonce = nonce
+                physics_runtime = runtime
+                if isolate_physics:
+                    # The scene sweep intentionally backgrounds Gallery to test
+                    # lifecycle recovery. Do not suspend the independent public-
+                    # API runner halfway through a case; give it a fresh process
+                    # and nonce after Gallery and schedule capture are complete.
+                    physics_nonce = str(uuid.uuid4())
+                    run("xcrun", "devicectl", "device", "process", "launch",
+                        "--device", args.device, "--terminate-existing", BUNDLE,
+                        "--deployment-nonce", physics_nonce,
+                        "--physics-qualification")
+                    physics_runtime = wait_report(
+                        args.device, "runtime-info.json", physics_nonce,
+                        directory, lambda r: True, 120)
+                    if (physics_runtime["revision"] != info["revision"] or
+                            physics_runtime["backend"] != info["backend"] or
+                            physics_runtime.get("execution_contract") !=
+                            info["execution_contract"]):
+                        raise RuntimeError(
+                            "Physics runtime does not match built revision/backend")
+                    (args.output / "ipad-physics-runtime.json").write_text(
+                        json.dumps(physics_runtime, indent=2) + "\n")
+                physics = wait_report(args.device, "physics-qualification.json", physics_nonce,
                                       directory, lambda r: r.get("completed"), args.timeout,
                                       health=lambda: assert_process_running(
-                                          args.device, runtime["pid"], directory),
+                                          args.device, physics_runtime["pid"], directory),
                                       save=args.output / "ipad-physics-qualification.json")
                 identity = ipad_binary_identity(app)
                 validate_physics_qualification(
-                    physics, nonce, info["revision"], identity)
+                    physics, physics_nonce, info["revision"], identity)
                 collect_physics_artifacts(args.device, physics, args.output, directory)
             if args.schedule_profile and not args.qualify:
                 copy_artifact(args.device, "metal-schedule-profile.jsonl",
