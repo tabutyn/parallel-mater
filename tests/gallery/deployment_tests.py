@@ -109,6 +109,35 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(len(deploy.validate_physics_qualification(
             report, "fresh", "revision", report["binary_identity"])), 36)
 
+        report = self.physics_report()
+        for artifact in report["artifacts"][:2]:
+            artifact["status"] = "unsupported"
+        report["trajectory"].update(completed=28, unsupported=2)
+        self.assertEqual(len(deploy.validate_physics_qualification(
+            report, "fresh", "revision", report["binary_identity"])), 36)
+
+    def test_physics_qualification_rejects_failed_or_inconsistent_results(self):
+        report = self.physics_report()
+        report["artifacts"][0]["status"] = "failed"
+        report["trajectory"].update(completed=29, failed=1)
+        with self.assertRaisesRegex(RuntimeError, "failed trajectories"):
+            deploy.validate_physics_qualification(
+                report, "fresh", "revision", report["binary_identity"])
+
+        report = self.physics_report()
+        report["trajectory"].update(completed=29, unsupported=1)
+        with self.assertRaisesRegex(RuntimeError, "totals disagree"):
+            deploy.validate_physics_qualification(
+                report, "fresh", "revision", report["binary_identity"])
+
+        report = self.physics_report()
+        quality = next(artifact for artifact in report["artifacts"]
+                       if artifact["kind"] == "physical-quality")
+        quality["status"] = "failed"
+        with self.assertRaisesRegex(RuntimeError, "failed physical quality"):
+            deploy.validate_physics_qualification(
+                report, "fresh", "revision", report["binary_identity"])
+
     def test_physics_qualification_rejects_stale_partial_mismatched_and_gallery_only(self):
         for field, value, message in (
             ("nonce", "old", "stale"),

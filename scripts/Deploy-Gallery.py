@@ -156,6 +156,30 @@ def validate_physics_qualification(report, nonce, revision, binary_identity):
             kinds.count("physical-quality") != 3 or
             kinds.count("adverse-lifecycle") != 1):
         raise RuntimeError("Physics qualification artifact scopes are incomplete")
+    trajectory_artifacts = [
+        artifact for artifact in artifacts
+        if isinstance(artifact, dict) and artifact.get("kind") == "trajectory"
+    ]
+    trajectory_statuses = {
+        status: sum(artifact.get("status") == status
+                    for artifact in trajectory_artifacts)
+        for status in ("completed", "unsupported", "failed")
+    }
+    if (trajectory_statuses["failed"] != 0 or
+            trajectory.get("failed") != 0):
+        raise RuntimeError("Physics qualification contains failed trajectories")
+    if any(trajectory.get(status) != trajectory_statuses[status]
+           for status in ("completed", "unsupported", "failed")):
+        raise RuntimeError("Physics qualification trajectory totals disagree")
+    if trajectory_statuses["completed"] + trajectory_statuses["unsupported"] != 30:
+        raise RuntimeError("Physics qualification trajectory coverage is incomplete")
+    quality_statuses = [
+        artifact.get("status") for artifact in artifacts
+        if isinstance(artifact, dict) and artifact.get("kind") == "physical-quality"
+    ]
+    if any(status not in ("completed", "unsupported")
+           for status in quality_statuses):
+        raise RuntimeError("Physics qualification contains failed physical quality")
     device = report.get("device")
     toolchain = report.get("toolchain")
     if not isinstance(device, dict) or any(not device.get(key) for key in
