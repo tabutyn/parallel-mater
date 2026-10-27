@@ -202,6 +202,7 @@ UIImage *frame_image(const GallerySession &session) {
     NSString *_details;
     unsigned _backgrounds, _foregrounds;
     std::uint64_t _backgroundFrames;
+    UIBackgroundTaskIdentifier _backgroundTask;
     unsigned _renderWidth, _renderHeight;
 }
 @end
@@ -280,6 +281,7 @@ UIImage *frame_image(const GallerySession &session) {
     [super viewDidLoad];
     UIApplication.sharedApplication.idleTimerDisabled = YES;
     _active = YES; _selection = -1;
+    _backgroundTask = UIBackgroundTaskInvalid;
     _worker = dispatch_queue_create("org.parallelmater.gallery.simulation", DISPATCH_QUEUE_SERIAL);
     self.view.backgroundColor = [UIColor colorWithWhite:0.075 alpha:1];
     _image = [PMMetalView new];
@@ -526,13 +528,35 @@ UIImage *frame_image(const GallerySession &session) {
 - (void)zoom:(UIPinchGestureRecognizer *)gesture { _zoom += std::log(gesture.scale) * 10; gesture.scale = 1; }
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)a shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)b { (void)a; (void)b; return YES; }
 - (void)background {
-    UIApplication.sharedApplication.idleTimerDisabled = NO;
+    UIApplication *application = UIApplication.sharedApplication;
+    application.idleTimerDisabled = NO;
     _active = NO; [self releaseDirections]; _orbitX = _orbitY = _zoom = 0;
+    if (_backgroundTask != UIBackgroundTaskInvalid) {
+        [application endBackgroundTask:_backgroundTask];
+        _backgroundTask = UIBackgroundTaskInvalid;
+    }
+    _backgroundTask = [application
+        beginBackgroundTaskWithName:@"ParallelMater lifecycle checkpoint"
+        expirationHandler:^{
+            if (self->_backgroundTask != UIBackgroundTaskInvalid) {
+                [UIApplication.sharedApplication
+                    endBackgroundTask:self->_backgroundTask];
+                self->_backgroundTask = UIBackgroundTaskInvalid;
+            }
+        }];
     dispatch_async(_worker, ^{
-        if (!self->_mobile) return;
-        self->_mobile->set_foreground(false); ++self->_backgrounds;
-        self->_backgroundFrames = self->_session->frames;
-        [self writeRuntimeInfo];
+        if (self->_mobile) {
+            self->_mobile->set_foreground(false); ++self->_backgrounds;
+            self->_backgroundFrames = self->_session->frames;
+            [self writeRuntimeInfo];
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (self->_backgroundTask != UIBackgroundTaskInvalid) {
+                [UIApplication.sharedApplication
+                    endBackgroundTask:self->_backgroundTask];
+                self->_backgroundTask = UIBackgroundTaskInvalid;
+            }
+        });
     });
 }
 - (void)foreground {
@@ -561,6 +585,10 @@ UIImage *frame_image(const GallerySession &session) {
     UIApplication.sharedApplication.idleTimerDisabled = NO;
     _active = NO; [_display invalidate];
     [NSNotificationCenter.defaultCenter removeObserver:self];
+    if (_backgroundTask != UIBackgroundTaskInvalid) {
+        [UIApplication.sharedApplication endBackgroundTask:_backgroundTask];
+        _backgroundTask = UIBackgroundTaskInvalid;
+    }
     dispatch_async(_worker, ^{
         self->_session = nullptr;
         self->_mobile.reset();
