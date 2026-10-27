@@ -8,7 +8,10 @@
 #import <Metal/Metal.h>
 
 #include <algorithm>
+#include <cstdlib>
+#include <cstring>
 #include <limits>
+#include <sstream>
 #include <utility>
 
 namespace parallel_mater::device::compute {
@@ -22,7 +25,19 @@ NSString *native(const std::string &value) {
     return result;
 }
 std::string error_text(NSError *error) {
-    return error ? error.localizedDescription.UTF8String : "no native error detail";
+    if (!error) return "no native error detail";
+    std::ostringstream result;
+    result << error.localizedDescription.UTF8String;
+    NSArray<id<MTLCommandBufferEncoderInfo>> *encoders =
+        error.userInfo[MTLCommandBufferEncoderInfoErrorKey];
+    for (id<MTLCommandBufferEncoderInfo> encoder in encoders) {
+        if (encoder.errorState != MTLCommandEncoderErrorStateFaulted)
+            continue;
+        result << "; encoder="
+               << (encoder.label.length ? encoder.label.UTF8String : "<unlabeled>")
+               << " state=" << static_cast<unsigned long>(encoder.errorState);
+    }
+    return result.str();
 }
 std::string field_name(NSString *native_name) {
     std::string name = native_name.UTF8String;
@@ -192,7 +207,17 @@ public:
         // A caller may run thousands of physics submissions inside one outer
         // autorelease pool. Do not retain every completed command until then.
         @autoreleasepool {
-            command_ = [queue commandBuffer];
+            const char *diagnostics = std::getenv(
+                "PM_METAL_ENCODER_DIAGNOSTICS");
+            if (diagnostics && std::strcmp(diagnostics, "1") == 0) {
+                MTLCommandBufferDescriptor *descriptor =
+                    [MTLCommandBufferDescriptor new];
+                descriptor.errorOptions =
+                    MTLCommandBufferErrorOptionEncoderExecutionStatus;
+                command_ = [queue commandBufferWithDescriptor:descriptor];
+            } else {
+                command_ = [queue commandBuffer];
+            }
             require(command_ != nil, "Metal command buffer allocation failed");
         }
     }
@@ -256,6 +281,7 @@ public:
             const std::uint32_t dimensions[4]{groups.x, groups.y, groups.z, kernel->threads.x};
             id<MTLComputeCommandEncoder> encoder = [command_ computeCommandEncoder];
             require(encoder != nil, "Metal compute encoder allocation failed");
+            encoder.label = kernel->pipeline.label;
             [encoder setComputePipelineState:kernel->pipeline];
             if (kernel->has_dispatch_uniform)
                 [encoder setBytes:dimensions length:sizeof(dimensions) atIndex:kernel->dispatch_index];

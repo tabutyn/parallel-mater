@@ -495,6 +495,29 @@ if production_backend.count("build_spatial_index_device(") != 1:
         "src/simulation/production_realtime_backend.cu.inc: expected exactly "
         "one shared spatial build call"
     )
+spatial_emit_keys = shader_entry(
+    "src/slang/primitives/spatial_build.slang", "pm_spatial_emit_keys")
+for required in (
+    "PMBuffer<PmSpatialLeafMetadata> metadata",
+    "metadata[source].sort_key",
+):
+    if required not in spatial_emit_keys:
+        failures.append(
+            "src/slang/primitives/spatial_build.slang:pm_spatial_emit_keys: "
+            f"missing authoritative leaf key source {required}"
+        )
+if "PMBuffer<uint> identities" in spatial_emit_keys:
+    failures.append(
+        "src/slang/primitives/spatial_build.slang:pm_spatial_emit_keys: "
+        "query exclusion keys were reused as BVH leaf identities"
+    )
+spatial_build_call = production_backend.split(
+    "build_spatial_index_device(", 1)[1].split(");", 1)[0]
+if "excluded" in spatial_build_call:
+    failures.append(
+        "src/simulation/production_realtime_backend.cu.inc: shared BVH build "
+        "still consumes query exclusion keys"
+    )
 
 migrated_launches = {
     "cloth_project_volume", "cloth_break_bonds", "cloth_limit_strain",

@@ -3054,7 +3054,7 @@ public:
             snapshot_.build_scratch};
         result = simulation::build_spatial_index_device(
             native_.queue(), state_.realtime_spatial_plan.build, buffers,
-            excluded, staged_leaves_);
+            staged_leaves_);
         if (result != PM_SUCCESS) return result;
         result = state_.realtime_spatial.record_device_update(
             simulation::SpatialUpdateKind::build);

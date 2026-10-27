@@ -278,7 +278,7 @@ uint pmSpatialMorton(float3 point, PmSpatialAabb scene)
 public void pm_spatial_emit_keys(
     uniform PMBuffer<uint> active_indices,
     uniform PMBuffer<uint> active_count, uniform uint capacity,
-    uniform PMBuffer<uint> identities,
+    uniform PMBuffer<PmSpatialLeafMetadata> metadata,
     uniform PMBuffer<PmSpatialAabb> input_bounds,
     uniform PMBuffer<PmSpatialAabb> scene_bounds,
     uniform PMBuffer<uint64_t> keys, uniform PMBuffer<uint> values,
@@ -292,7 +292,8 @@ public void pm_spatial_emit_keys(
     PmSpatialAabb bounds = input_bounds[source];
     float3 center = 0.5f * (bounds.minimum.xyz + bounds.maximum.xyz);
     uint morton = pmSpatialMorton(center, scene_bounds[0]);
-    keys[index] = (uint64_t(morton) << 32u) | uint64_t(identities[source]);
+    keys[index] = (uint64_t(morton) << 32u) |
+        uint64_t(metadata[source].sort_key);
     values[index] = source;
 }
 
@@ -552,8 +553,9 @@ public void pm_spatial_union_bounds(
     for (;;)
     {
         uint parent = parents[node];
-        pmDeviceBarrier();
-        if (pmAtomicAdd(arrivals + parent, 1u) == 0u) return;
+        // Publish this child's bounds before announcing its arrival. The
+        // second child then acquires those writes before reading both bounds.
+        if (pmAtomicPublishAdd(arrivals + parent, 1u) == 0u) return;
         PmSpatialAabb left = node_bounds[left_children[parent]];
         PmSpatialAabb right = node_bounds[right_children[parent]];
         node_bounds[parent] = pmSpatialUnion(left, right);

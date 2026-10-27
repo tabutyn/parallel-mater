@@ -74,7 +74,7 @@ PmResult initialize_spatial_epoch_device(
 
 PmResult build_spatial_index_device(
     device::ExecutionQueue stream, const SpatialBuildPlan &plan,
-    const SpatialDeviceBuffers &buffers, const std::uint32_t *sort_keys,
+    const SpatialDeviceBuffers &buffers,
     std::uint32_t expected_active_count) noexcept;
 
 PmResult publish_spatial_epoch_device(

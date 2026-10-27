@@ -64,7 +64,9 @@ function(parallel_mater_add_slang_metal_kernels)
                 add_custom_command(
                     OUTPUT "${base}.air" "${base}.metallib"
                     COMMAND "${PARALLEL_MATER_XCRUN_EXECUTABLE}" --sdk ${metal_sdk} metal
-                        -std=metal3.0 -Werror -fno-fast-math -ffp-contract=off
+                        # The shared device fence needs Metal 3.2's non-collective
+                        # atomic_thread_fence on Apple silicon.
+                        -std=metal3.2 -Werror -fno-fast-math -ffp-contract=off
                         # Slang retains unused atomic fetch results in MSL.
                         # Keep all other native diagnostics as errors.
                         -Wno-unused-variable

@@ -359,7 +359,17 @@ public uint3 pmGridDim() { return pmDispatchGroupCount; }
 // split logical schedules at each grid dependency; this remains a group
 // barrier within one dispatch.
 public void pmGridBarrier() { DeviceMemoryBarrierWithGroupSync(); }
+#if defined(PM_TARGET_METAL)
+// DeviceMemoryBarrier lowers to Metal's collective threadgroup_barrier. Some
+// device-fence call sites are deliberately divergent (for example, the
+// bottom-up BVH union), so using that lowering there can deadlock a threadgroup.
+// Metal 3.2's atomic fence orders device writes without rendezvousing threads.
+__target_intrinsic(metal,
+    "atomic_thread_fence(mem_flags::mem_device, memory_order_seq_cst, thread_scope_device)")
+public void pmDeviceBarrier();
+#else
 public void pmDeviceBarrier() { DeviceMemoryBarrier(); }
+#endif
 #else
 public uint3 pmBlockIndex() { return cudaBlockIdx(); }
 public uint3 pmGroupThreadIndex() { return cudaThreadIdx(); }
@@ -433,6 +443,23 @@ public uint pmAtomicMinPositiveFloat(PMBuffer<float> value, float candidate)
 
 #if defined(PM_TARGET_VULKAN) || defined(PM_TARGET_METAL) || PM_TARGET_D3D12
 public uint pmThreadIndex() { return pmDispatchThreadId.x; }
+#endif
+
+public uint pmAtomicPublishAdd(uint* value, uint addend)
+{
+    pmDeviceBarrier();
+    uint original = pmAtomicAdd(value, addend);
+    pmDeviceBarrier();
+    return original;
+}
+#if PM_TARGET_D3D12
+public uint pmAtomicPublishAdd(PMBuffer<uint> value, uint addend)
+{
+    pmDeviceBarrier();
+    uint original = pmAtomicAdd(value, addend);
+    pmDeviceBarrier();
+    return original;
+}
 #endif
 
 #if !defined(PM_TARGET_CPU)

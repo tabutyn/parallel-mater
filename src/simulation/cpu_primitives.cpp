@@ -59,8 +59,7 @@ PmResult initialize_spatial_epoch_device(
 
 PmResult build_spatial_index_device(
     device::ExecutionQueue, const SpatialBuildPlan &,
-    const SpatialDeviceBuffers &, const std::uint32_t *,
-    std::uint32_t) noexcept {
+    const SpatialDeviceBuffers &, std::uint32_t) noexcept {
     return PM_ERROR_FEATURE_NOT_PRESENT;
 }
 
