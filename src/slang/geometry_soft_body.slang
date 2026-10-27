@@ -38,6 +38,34 @@ struct DeformableCollisionSpatialLeafMetadata
 static const uint kDeformableCollisionSpatialStaleEpoch = 1u << 9u;
 static const uint kDeformableCollisionSpatialQueryOverflow = 1u << 10u;
 static const uint kDeformableCollisionSpatialAdmissionInvalid = 1u << 12u;
+static const uint kDeformableRigidBatchCapacity = 10u;
+
+struct DeformableRigidCollisionBatchItem
+{
+    PMBuffer<Vec3> positions;
+    PMBuffer<Vec3> velocities;
+    PMBuffer<Vec3> previous;
+    PMBuffer<float> inverse_masses;
+    uint count;
+    float thickness;
+    PMBuffer<uint> candidate_counts;
+    PMBuffer<uint> candidate_sources;
+    PMBuffer<FluidBodyImpulse> impulses;
+    PMBuffer<Vec3> contact_forces;
+    PMBuffer<Vec3> contact_normals;
+    PMBuffer<Vec3> contact_arms;
+    PMBuffer<Vec3> contact_momentum_delta;
+    PMBuffer<float> accumulated_normal_delta;
+    PMBuffer<uint> deformable_contact_count;
+    PMBuffer<uint> dynamic_contact_flag;
+    PMBuffer<Vec3> body_position_corrections;
+    float maximum_speed;
+};
+
+struct DeformableRigidCollisionBatch
+{
+    DeformableRigidCollisionBatchItem items[kDeformableRigidBatchCapacity];
+};
 
 [shader("compute")]
 [numthreads(128, 1, 1)]
@@ -289,6 +317,39 @@ void deformable_collide(
             (inverse_masses[vertex] + body.inverse_mass));
     positions[vertex] = end;
     velocities[vertex] = clamp_length(velocity, maximum_speed);
+}
+
+[shader("compute")]
+[numthreads(128, 1, 1)]
+void deformable_collide_batch(
+    uniform DeformableRigidCollisionBatch batch, uniform uint batch_count,
+    uniform float dt, uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> previous_states,
+    uniform PMBuffer<RigidBodyState> states,
+    uniform PMBuffer<TriangleMeshResource> meshes, uniform uint body_count,
+    uniform PMBuffer<RigidBodyId> body_ids,
+    uniform uint body_topology_revision,
+    uniform PMBuffer<DeformableCollisionSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint spatial_leaf_capacity,
+    uniform uint candidates_per_query, uniform PMBuffer<uint> spatial_status,
+    uniform PMBuffer<uint> contact_flags PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint resource = pmBlockIndex().y;
+    if (resource >= batch_count) return;
+    DeformableRigidCollisionBatchItem item = batch.items[resource];
+    deformable_collide(item.positions, item.velocities, item.previous,
+        item.inverse_masses, item.count, item.thickness, dt, parameters,
+        previous_states, states, meshes, body_count, body_ids,
+        body_topology_revision, spatial_metadata, spatial_admission,
+        spatial_leaf_capacity, item.candidate_counts,
+        item.candidate_sources, candidates_per_query, spatial_status,
+        kInvalidDense, 0u, kInvalidDense, 0u, item.impulses,
+        item.contact_forces, item.contact_normals, item.contact_arms,
+        item.contact_momentum_delta, item.accumulated_normal_delta,
+        item.deformable_contact_count, item.dynamic_contact_flag,
+        contact_flags, true, false, false, false, item.maximum_speed,
+        item.body_position_corrections PM_D3D12_DISPATCH_ARGUMENT);
 }
 
 struct SoftTriangleHalfspace

@@ -13,6 +13,26 @@ import graphics_resources;
 groupshared Vec3 smoke_grid_rigid_linear[128];
 groupshared Vec3 smoke_grid_rigid_angular[128];
 
+static const uint kSmokeGridSoftBodyBatchCapacity = 10u;
+
+struct SmokeGridSoftBodyForceBatchItem
+{
+    PMBuffer<Vec3> surface;
+    PMBuffer<uint> indices;
+    uint index_count;
+    PMBuffer<SoftBodySurfaceBinding> bindings;
+    PMBuffer<Vec3> node_velocity_snapshot;
+    PMBuffer<Vec3> node_velocities;
+    PMBuffer<float> inverse_masses;
+    float drag_coefficient;
+    float maximum_acceleration;
+};
+
+struct SmokeGridSoftBodyForceBatch
+{
+    SmokeGridSoftBodyForceBatchItem items[kSmokeGridSoftBodyBatchCapacity];
+};
+
 uint smoke_grid_hash(uint value)
 {
     value ^= value >> 16u;
@@ -1039,6 +1059,25 @@ void smoke_grid_soft_body_force(
             pmAtomicAddVec3(node_velocities + node, deltaVelocity);
         }
     }
+}
+
+[shader("compute")]
+[numthreads(PM_THREADS(256), 1, 1)]
+void smoke_grid_soft_body_force_batch(
+    uniform SmokeGridSoftBodyForceBatch batch, uniform uint batch_count,
+    uniform SmokeGridField grid, uniform float density_scale,
+    uniform float kinematic_viscosity, uniform float les_coefficient,
+    uniform float dt PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    uint resource = pmBlockIndex().y;
+    if (resource >= batch_count) return;
+    SmokeGridSoftBodyForceBatchItem item = batch.items[resource];
+    smoke_grid_soft_body_force(item.surface, item.indices, item.index_count,
+        item.bindings, item.node_velocity_snapshot, item.node_velocities,
+        item.inverse_masses, grid, item.drag_coefficient, density_scale,
+        kinematic_viscosity, les_coefficient, item.maximum_acceleration, dt
+        PM_D3D12_DISPATCH_ARGUMENT);
 }
 
 [shader("compute")]

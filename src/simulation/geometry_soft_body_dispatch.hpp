@@ -3,9 +3,50 @@
 
 #include "device/device.hpp"
 
+#include <array>
 #include <cstdint>
 
 namespace parallel_mater::simulation {
+
+inline constexpr std::size_t deformable_rigid_batch_capacity = 10U;
+
+struct DeformableRigidCollisionBatchItem {
+    void *positions{};
+    void *velocities{};
+    const void *previous{};
+    const float *inverse_masses{};
+    std::uint32_t count{};
+    float thickness{};
+    const std::uint32_t *candidate_counts{};
+    const std::uint32_t *candidate_sources{};
+    void *impulses{};
+    void *contact_forces{};
+    void *contact_normals{};
+    void *contact_arms{};
+    void *contact_momentum_delta{};
+    float *accumulated_normal_delta{};
+    std::uint32_t *deformable_contact_count{};
+    std::uint32_t *dynamic_contact_flag{};
+    void *body_position_corrections{};
+    float maximum_speed{};
+};
+
+struct DeformableRigidCollisionBatch {
+    std::array<DeformableRigidCollisionBatchItem,
+               deformable_rigid_batch_capacity> items{};
+};
+
+void collide_soft_bodies_with_rigid_geometry_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    const DeformableRigidCollisionBatch &batch, std::uint32_t batch_count,
+    float timestep, const void *body_parameters,
+    const void *previous_body_states, const void *body_states,
+    const void *meshes, std::uint32_t body_count, const void *body_ids,
+    std::uint32_t body_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
+    std::uint32_t *contact_flags) noexcept;
 
 void collide_deformable_with_rigid_geometry(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,

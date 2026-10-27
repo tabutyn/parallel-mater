@@ -5,9 +5,46 @@
 
 #include "device/device.hpp"
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 
 namespace parallel_mater::simulation {
+
+inline constexpr std::size_t smoke_soft_body_batch_capacity = 10U;
+
+struct SmokeSoftBodyContactBatchItem {
+    const void *surface_positions{};
+    const void *surface_bindings{};
+    const std::uint32_t *surface_indices{};
+    std::uint32_t index_count{};
+    const void *node_velocities{};
+    const void *minimum{};
+    const void *maximum{};
+    float clearance{};
+    const std::uint32_t *triangle_generations{};
+    std::uint32_t soft_owner_slot{};
+    std::uint32_t soft_owner_generation{};
+    std::uint32_t soft_topology_revision{};
+};
+
+struct SmokeSoftBodyContactBatch {
+    std::array<SmokeSoftBodyContactBatchItem,
+               smoke_soft_body_batch_capacity> items{};
+};
+
+void collide_smoke_with_soft_body_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    void *positions, const void *previous_positions, void *velocities,
+    const float *ages, std::uint32_t count,
+    const SmokeDispatchOptions &smoke,
+    const SmokeSoftBodyContactBatch &batch, std::uint32_t batch_count,
+    const void *spatial_metadata, const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
+    const SmokeGridDispatchField &smoke_grid) noexcept;
 
 void apply_smoke_wind_to_cloth(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,

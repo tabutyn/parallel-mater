@@ -4,13 +4,48 @@
 #include "types.hpp"
 #include "driver/metal/schedule_context.hpp"
 #include <array>
+#include <span>
 
 namespace parallel_mater::simulation {
 namespace {
 Vec3 spatial_vector(const float value[3]) noexcept {
     return {value[0], value[1], value[2]};
 }
+
+template <typename Batch>
+metal::RelocatedRecord batch_record(const Batch &batch) noexcept {
+    static constexpr metal::HostMember members[]{
+        {"items", offsetof(Batch, items),
+         sizeof(static_cast<Batch *>(nullptr)->items)}};
+    return {std::as_bytes(std::span{&batch, 1}), members};
+}
 } // namespace
+
+void collide_soft_bodies_with_rigid_geometry_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    const DeformableRigidCollisionBatch &batch, std::uint32_t batch_count,
+    float timestep, const void *body_parameters,
+    const void *previous_body_states, const void *body_states,
+    const void *meshes, std::uint32_t body_count, const void *body_ids,
+    std::uint32_t body_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
+    std::uint32_t *contact_flags) noexcept {
+    if (auto *execution = metal::context(stream)) {
+        if (execution->checked_result([&] {
+                execution->meshes(meshes, body_parameters, body_count);
+            }) != PM_SUCCESS)
+            return;
+    }
+    grid.y = batch_count;
+    (void)metal::launch(stream, "deformable_collide_batch", grid,
+        batch_record(batch), batch_count, timestep, body_parameters,
+        previous_body_states, body_states, meshes, body_count, body_ids,
+        body_topology_revision, spatial_metadata, spatial_admission,
+        spatial_leaf_capacity, candidates_per_query, spatial_status,
+        contact_flags);
+}
 
 void collide_deformable_with_rigid_geometry(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,

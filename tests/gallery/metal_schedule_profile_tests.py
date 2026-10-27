@@ -70,6 +70,33 @@ def profile(dispatches=35, workgroups=4354, declared=35):
     }
 
 
+def gallery_smoke_soft_body_profile():
+    value = profile(dispatches=269, workgroups=66563, declared=269)
+    value["dependency_barriers"] = 632
+    value["phases"][0]["dependency_barriers"] = 632
+    required = [
+        ("deformable_collide_batch", 8),
+        ("reduce_point_body_impulses_batch", 8),
+        ("soft_body_apply_contact_friction_batch", 8),
+        ("smoke_soft_body_contact_batch", 8),
+        ("smoke_grid_soft_body_force_batch", 8),
+        ("pm_spatial_publish_epoch", 1),
+    ]
+    required_dispatches = sum(count for _, count in required)
+    required_workgroups = required_dispatches
+    value["kernels"] = [{
+        "name": name,
+        "dispatches": count,
+        "workgroups": count,
+    } for name, count in required]
+    value["kernels"].append({
+        "name": "remaining_shared_schedule",
+        "dispatches": value["dispatches"] - required_dispatches,
+        "workgroups": value["workgroups"] - required_workgroups,
+    })
+    return value
+
+
 class MetalScheduleProfileTests(unittest.TestCase):
     def test_load_and_evaluate_rigid_profile(self):
         value = profile()
@@ -94,6 +121,28 @@ class MetalScheduleProfileTests(unittest.TestCase):
     def test_independent_dispatch_ceiling_rejects_regression(self):
         with self.assertRaisesRegex(ValueError, "ceiling exceeded"):
             MODULE.evaluate([profile(dispatches=41, declared=40)], "rigid-386")
+
+    def test_gallery_smoke_soft_body_fixed_gate_accepts_batches(self):
+        result = MODULE.evaluate(
+            [gallery_smoke_soft_body_profile()],
+            "gallery-smoke-soft-body")
+        self.assertEqual(result["fixed_ceiling_status"], "enforced")
+
+    def test_gallery_smoke_soft_body_ceiling_rejects_per_resource_scale(self):
+        value = gallery_smoke_soft_body_profile()
+        value["dispatches"] = 289
+        value["declared_launches"] = 289
+        value["phases"][0]["dispatches"] = 289
+        value["phases"][0]["declared_launches"] = 289
+        value["kernels"][-1]["dispatches"] += 20
+        with self.assertRaisesRegex(ValueError, "ceiling exceeded"):
+            MODULE.evaluate([value], "gallery-smoke-soft-body")
+
+    def test_gallery_smoke_soft_body_rejects_legacy_resource_loop(self):
+        value = gallery_smoke_soft_body_profile()
+        value["kernels"][-1]["name"] = "deformable_collide"
+        with self.assertRaisesRegex(ValueError, "forbidden legacy"):
+            MODULE.evaluate([value], "gallery-smoke-soft-body")
 
     def test_readback_and_host_wait_are_rejected(self):
         for field in ("readbacks", "host_waits"):

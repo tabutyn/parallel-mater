@@ -35,7 +35,11 @@ function(parallel_mater_add_slang_metal_kernels)
             set(source "${CMAKE_CURRENT_SOURCE_DIR}/tests/solver/metal_device_contract.slang")
         endif()
         parallel_mater_slang_definition_arguments("${module}" METAL definitions)
-        foreach(entry IN LISTS PARALLEL_MATER_SLANG_${module}_ENTRIES)
+        set(module_entries "${PARALLEL_MATER_SLANG_${module}_METAL_ENTRIES}")
+        if(NOT module_entries)
+            set(module_entries "${PARALLEL_MATER_SLANG_${module}_ENTRIES}")
+        endif()
+        foreach(entry IN LISTS module_entries)
             set(base "${generated_dir}/${module}/${entry}")
             add_custom_command(
                 OUTPUT "${base}.metal" "${base}.json"

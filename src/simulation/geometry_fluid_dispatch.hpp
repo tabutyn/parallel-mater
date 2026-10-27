@@ -3,9 +3,30 @@
 
 #include "device/device.hpp"
 
+#include <array>
 #include <cstdint>
 
 namespace parallel_mater::simulation {
+
+inline constexpr std::size_t point_body_impulse_batch_capacity = 10U;
+
+struct PointBodyImpulseBatchItem {
+    const void *impulses{};
+    const std::uint32_t *particle_count{};
+    const void *position_corrections{};
+    std::uint32_t reserved{};
+};
+
+struct PointBodyImpulseBatch {
+    std::array<PointBodyImpulseBatchItem,
+               point_body_impulse_batch_capacity> items{};
+};
+
+void reduce_point_body_impulses_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    const PointBodyImpulseBatch &batch, std::uint32_t batch_count,
+    const void *body_parameters, void *body_states,
+    const std::uint32_t *contact_flags, std::uint32_t body_count) noexcept;
 
 void collide_fluid_with_static_body(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,

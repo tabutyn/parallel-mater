@@ -28,14 +28,19 @@ CEILINGS = {
         "declared_launches": 512,
     },
     # Representative installed-Gallery captures retain all native counters and
-    # timing distributions, but do not invent implementation-derived ceilings.
-    # Their independent physics/work gates remain the named rigid and mixed
-    # fixtures above.
+    # timing distributions. The smoke/soft-body scene also has a reviewed gate:
+    # its fixed 20-body asset must stay below the rounded command/work limits
+    # established before the Metal resource batches were implemented.
     "gallery-fluid": None,
     "gallery-cloth": None,
     "gallery-soft-body": None,
     "gallery-soft-body-fluid": None,
-    "gallery-smoke-soft-body": None,
+    "gallery-smoke-soft-body": {
+        "dispatches": 288,
+        "workgroups": 67000,
+        "dependency_barriers": 672,
+        "declared_launches": 288,
+    },
 }
 KERNEL_GATES = {
     "rigid-386": {
@@ -53,7 +58,24 @@ KERNEL_GATES = {
     "gallery-cloth": {"required": {}, "forbidden": {"solve_avbd_stage_kernel"}},
     "gallery-soft-body": {"required": {}, "forbidden": {"solve_avbd_stage_kernel"}},
     "gallery-soft-body-fluid": {"required": {}, "forbidden": {"solve_avbd_stage_kernel"}},
-    "gallery-smoke-soft-body": {"required": {}, "forbidden": {"solve_avbd_stage_kernel"}},
+    "gallery-smoke-soft-body": {
+        "required": {
+            "deformable_collide_batch": {"dispatches": 8},
+            "reduce_point_body_impulses_batch": {"dispatches": 8},
+            "soft_body_apply_contact_friction_batch": {"dispatches": 8},
+            "smoke_soft_body_contact_batch": {"dispatches": 8},
+            "smoke_grid_soft_body_force_batch": {"dispatches": 8},
+            "pm_spatial_publish_epoch": {"dispatches": 1},
+        },
+        "forbidden": {
+            "solve_avbd_stage_kernel",
+            "deformable_collide",
+            "reduce_point_body_impulses",
+            "soft_body_apply_contact_friction",
+            "smoke_soft_body_contact",
+            "smoke_grid_soft_body_force",
+        },
+    },
 }
 COUNTERS = (
     "dispatches",

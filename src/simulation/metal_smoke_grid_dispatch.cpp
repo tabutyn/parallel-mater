@@ -8,6 +8,14 @@ namespace parallel_mater::simulation {
 namespace {
 using metal_bindings::vector;
 using metal_bindings::smoke_options;
+
+template <typename Batch>
+metal::RelocatedRecord batch_record(const Batch &batch) noexcept {
+    static constexpr metal::HostMember members[]{
+        {"items", offsetof(Batch, items),
+         sizeof(static_cast<Batch *>(nullptr)->items)}};
+    return {std::as_bytes(std::span{&batch, 1}), members};
+}
 } // namespace
 
 void begin_smoke_grid_realtime(
@@ -441,6 +449,18 @@ void apply_smoke_grid_force_to_soft_body(
         node_velocities, inverse_masses,
         metal::grid_record(field), drag_coefficient, density_scale,
         kinematic_viscosity, les_coefficient, maximum_acceleration, timestep);
+}
+
+void apply_smoke_grid_force_to_soft_body_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    const SmokeGridSoftBodyForceBatch &batch, std::uint32_t batch_count,
+    const SmokeGridDispatchField &field, float density_scale,
+    float kinematic_viscosity, float les_coefficient,
+    float timestep) noexcept {
+    grid.y = batch_count;
+    (void)metal::launch(stream, "smoke_grid_soft_body_force_batch", grid,
+        batch_record(batch), batch_count, metal::grid_record(field),
+        density_scale, kinematic_viscosity, les_coefficient, timestep);
 }
 
 void accumulate_smoke_grid_force_on_cloth(

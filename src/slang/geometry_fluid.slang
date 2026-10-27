@@ -724,3 +724,35 @@ void reduce_point_body_impulses(
         states[body] = state;
     }
 }
+
+static const uint kPointBodyImpulseBatchCapacity = 10u;
+struct PointBodyImpulseBatchItem
+{
+    PMBuffer<FluidBodyImpulse> impulses;
+    PMBuffer<uint> particle_count;
+    PMBuffer<Vec3> position_corrections;
+    uint reserved;
+};
+struct PointBodyImpulseBatch
+{
+    PointBodyImpulseBatchItem items[kPointBodyImpulseBatchCapacity];
+};
+
+[shader("compute")]
+[numthreads(PM_THREADS(128), 1, 1)]
+void reduce_point_body_impulses_batch(
+    uniform PointBodyImpulseBatch batch, uniform uint batch_count,
+    uniform PMBuffer<BodyParameters> parameters,
+    uniform PMBuffer<RigidBodyState> states,
+    uniform PMBuffer<uint> contact_flags, uniform uint body_count
+    PM_D3D12_DISPATCH_PARAMETER)
+{
+    PM_D3D12_DISPATCH_PROLOGUE();
+    for (uint resource = 0u; resource < batch_count; ++resource)
+    {
+        PointBodyImpulseBatchItem item = batch.items[resource];
+        reduce_point_body_impulses(item.impulses, item.particle_count,
+            parameters, states, contact_flags, body_count,
+            item.position_corrections PM_D3D12_DISPATCH_ARGUMENT);
+    }
+}

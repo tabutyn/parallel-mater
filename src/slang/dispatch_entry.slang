@@ -9,10 +9,12 @@
 #if PM_TARGET_D3D12
 #define PM_D3D12_DISPATCH_PARAMETER \
     , uint3 pmD3D12DispatchThreadId : SV_DispatchThreadID
+#define PM_D3D12_DISPATCH_ARGUMENT , pmD3D12DispatchThreadId
 #define PM_D3D12_DISPATCH_PROLOGUE() \
     pmSetD3D12DispatchThreadId(pmD3D12DispatchThreadId)
 #else
 #define PM_D3D12_DISPATCH_PARAMETER
+#define PM_D3D12_DISPATCH_ARGUMENT
 #define PM_D3D12_DISPATCH_PROLOGUE()
 #endif
 #endif

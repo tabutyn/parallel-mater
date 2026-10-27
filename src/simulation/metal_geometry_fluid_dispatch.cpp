@@ -4,7 +4,28 @@
 #include "types.hpp"
 #include "driver/metal/schedule_context.hpp"
 
+#include <span>
+
 namespace parallel_mater::simulation {
+namespace {
+template <typename Batch>
+metal::RelocatedRecord batch_record(const Batch &batch) noexcept {
+    static constexpr metal::HostMember members[]{
+        {"items", offsetof(Batch, items),
+         sizeof(static_cast<Batch *>(nullptr)->items)}};
+    return {std::as_bytes(std::span{&batch, 1}), members};
+}
+} // namespace
+
+void reduce_point_body_impulses_batch(
+    device::DispatchSize grid, device::ExecutionQueue stream,
+    const PointBodyImpulseBatch &batch, std::uint32_t batch_count,
+    const void *body_parameters, void *body_states,
+    const std::uint32_t *contact_flags, std::uint32_t body_count) noexcept {
+    (void)metal::launch(stream, "reduce_point_body_impulses_batch", grid,
+        batch_record(batch), batch_count, body_parameters, body_states,
+        contact_flags, body_count);
+}
 
 void collide_fluid_with_static_body(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, void *positions,

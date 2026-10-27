@@ -134,6 +134,15 @@ set(PARALLEL_MATER_SLANG_soft_body_ENTRIES
     soft_body_realtime_predict soft_body_realtime_project_links
     soft_body_realtime_apply_position_delta soft_body_realtime_project_shape
     soft_body_realtime_project_contacts soft_body_realtime_commit)
+set(PARALLEL_MATER_SLANG_soft_body_METAL_ENTRIES
+    ${PARALLEL_MATER_SLANG_soft_body_ENTRIES}
+    soft_body_realtime_predict_batch
+    soft_body_realtime_project_links_batch
+    soft_body_realtime_apply_position_delta_batch
+    soft_body_realtime_project_shape_batch
+    soft_body_realtime_project_contacts_batch
+    soft_body_realtime_commit_batch soft_body_update_surface_batch
+    soft_body_apply_contact_friction_batch)
 set(PARALLEL_MATER_SLANG_soft_body_cloth_ENTRIES
     soft_cloth_detect soft_cloth_apply_soft soft_cloth_apply_cloth)
 set(PARALLEL_MATER_SLANG_cloth_rope_ENTRIES
@@ -152,6 +161,9 @@ set(PARALLEL_MATER_SLANG_cloth_smoke_ENTRIES
     smoke_cloth_wind smoke_cloth_contact)
 set(PARALLEL_MATER_SLANG_soft_body_smoke_ENTRIES
     smoke_soft_body_wind smoke_soft_body_contact)
+set(PARALLEL_MATER_SLANG_soft_body_smoke_METAL_ENTRIES
+    ${PARALLEL_MATER_SLANG_soft_body_smoke_ENTRIES}
+    smoke_soft_body_contact_batch)
 set(PARALLEL_MATER_SLANG_rope_smoke_ENTRIES
     smoke_rope_wind smoke_rope_contact)
 set(PARALLEL_MATER_SLANG_fluid_soft_body_ENTRIES
@@ -163,6 +175,9 @@ set(PARALLEL_MATER_SLANG_geometry_fluid_ENTRIES
     fluid_static_contacts fluid_body_bounds_kernel fluid_index_body_cells
     fluid_detect_moving_contacts fluid_resolve_moving_contacts
     reduce_point_body_impulses)
+set(PARALLEL_MATER_SLANG_geometry_fluid_METAL_ENTRIES
+    ${PARALLEL_MATER_SLANG_geometry_fluid_ENTRIES}
+    reduce_point_body_impulses_batch)
 set(PARALLEL_MATER_SLANG_geometry_smoke_ENTRIES
     smoke_emit_cells smoke_density_pressure smoke_pair_forces
     smoke_compute_vorticity smoke_advect smoke_emit smoke_deformable_bounds
@@ -179,6 +194,9 @@ set(PARALLEL_MATER_SLANG_geometry_soft_body_ENTRIES
     pm_filter_deformable_spatial_candidates
     pm_emit_smoke_spatial_queries
     pm_filter_smoke_spatial_obstacles)
+set(PARALLEL_MATER_SLANG_geometry_soft_body_METAL_ENTRIES
+    ${PARALLEL_MATER_SLANG_geometry_soft_body_ENTRIES}
+    deformable_collide_batch)
 set(PARALLEL_MATER_SLANG_rigid_coupling_ENTRIES
     rigid_coupling_project rigid_coupling_apply_endpoints
     rigid_coupling_apply_bodies)
@@ -230,6 +248,9 @@ set(PARALLEL_MATER_SLANG_smoke_grid_ENTRIES
     smoke_realtime_grid_pressure_cycle
     smoke_realtime_grid_project_face
     smoke_realtime_grid_trace)
+set(PARALLEL_MATER_SLANG_smoke_grid_METAL_ENTRIES
+    ${PARALLEL_MATER_SLANG_smoke_grid_ENTRIES}
+    smoke_grid_soft_body_force_batch)
 set(PARALLEL_MATER_SLANG_rope_ENTRIES
     rope_realtime_predict rope_realtime_project_constraints
     rope_realtime_apply_position_delta rope_realtime_project_contacts
