@@ -25,7 +25,9 @@ struct MobileQualificationCheck {
 struct MobileQualificationSceneResult {
     std::string id;
     std::string scene;
+    std::string scene_asset;
     std::string requirements;
+    std::string workload_profile;
     bool available{};
     bool skipped{};
     bool passed{};
@@ -52,6 +54,15 @@ struct MobileQualificationSceneResult {
     std::string thermal_state_before;
     std::string thermal_state_after;
     std::uint64_t memory_footprint_bytes{};
+    std::uint32_t target_updates_per_second{};
+    std::uint32_t rigid_body_limit{};
+    std::uint32_t fluid_particle_limit{};
+    std::uint32_t coupled_body_limit{};
+    std::uint32_t smoke_particle_limit{};
+    unsigned render_width{};
+    unsigned render_height{};
+    std::size_t peak_particle_count{};
+    std::size_t moving_body_count{};
     std::string reason;
     std::string error;
 };

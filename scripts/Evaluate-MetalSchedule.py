@@ -27,6 +27,15 @@ CEILINGS = {
         "dependency_barriers": 768,
         "declared_launches": 512,
     },
+    # Representative installed-Gallery captures retain all native counters and
+    # timing distributions, but do not invent implementation-derived ceilings.
+    # Their independent physics/work gates remain the named rigid and mixed
+    # fixtures above.
+    "gallery-fluid": None,
+    "gallery-cloth": None,
+    "gallery-soft-body": None,
+    "gallery-soft-body-fluid": None,
+    "gallery-smoke-soft-body": None,
 }
 KERNEL_GATES = {
     "rigid-386": {
@@ -40,6 +49,11 @@ KERNEL_GATES = {
         "required": {},
         "forbidden": {"solve_avbd_stage_kernel"},
     },
+    "gallery-fluid": {"required": {}, "forbidden": {"solve_avbd_stage_kernel"}},
+    "gallery-cloth": {"required": {}, "forbidden": {"solve_avbd_stage_kernel"}},
+    "gallery-soft-body": {"required": {}, "forbidden": {"solve_avbd_stage_kernel"}},
+    "gallery-soft-body-fluid": {"required": {}, "forbidden": {"solve_avbd_stage_kernel"}},
+    "gallery-smoke-soft-body": {"required": {}, "forbidden": {"solve_avbd_stage_kernel"}},
 }
 COUNTERS = (
     "dispatches",
@@ -140,13 +154,14 @@ def validate_profile(profile, workload, ceiling):
     if any(instrumentation.get(field) != 0 for field in
            ("timestamp_queries", "forced_waits", "result_bytes")):
         raise ValueError("Metal capture changed the measured command stream")
-    for field, maximum in ceiling.items():
-        value = profile.get(field)
-        if not isinstance(value, int) or value < 0:
-            raise ValueError(f"Metal profile has invalid {field}")
-        if value > maximum:
-            raise ValueError(
-                f"Metal {field} ceiling exceeded: {value} > {maximum}")
+    if ceiling is not None:
+        for field, maximum in ceiling.items():
+            value = profile.get(field)
+            if not isinstance(value, int) or value < 0:
+                raise ValueError(f"Metal profile has invalid {field}")
+            if value > maximum:
+                raise ValueError(
+                    f"Metal {field} ceiling exceeded: {value} > {maximum}")
     kernels = profile.get("kernels")
     if not isinstance(kernels, list) or not kernels:
         raise ValueError("Metal profile has no native kernel capture")
@@ -248,6 +263,9 @@ def evaluate(profiles, workload, warmup=0, minimum_samples=1, frames=None,
         "profile_schema": PROFILE_SCHEMA,
         "workload": workload,
         "fixed_ceiling": ceiling,
+        "fixed_ceiling_status": (
+            "enforced" if ceiling is not None else
+            "not-applicable; observational Gallery workload"),
         "warmup_samples_excluded": warmup,
         "priming_samples": priming_samples,
         "sample_count": len(measured),

@@ -47,8 +47,10 @@ struct GalleryPresentationState {
 
     std::string_view workload_profile;
     std::string_view execution_contract;
+    std::uint32_t rigid_body_limit{};
     std::uint32_t fluid_particle_limit{};
     std::uint32_t coupled_body_limit{};
+    std::uint32_t smoke_particle_limit{};
     unsigned width{};
     unsigned height{};
     unsigned target_updates_per_second{};

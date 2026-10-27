@@ -114,7 +114,10 @@ std::string MobileGalleryQualificationReport::json() const {
         [](std::ostream &stream, const MobileQualificationSceneResult &scene) {
             stream << "{\"id\":" << json_string(scene.id)
                    << ",\"scene\":" << json_string(scene.scene)
+                   << ",\"scene_asset\":" << json_string(scene.scene_asset)
                    << ",\"requirements\":" << json_string(scene.requirements)
+                   << ",\"workload_profile\":"
+                   << json_string(scene.workload_profile)
                    << ",\"available\":" << json_bool(scene.available)
                    << ",\"skipped\":" << json_bool(scene.skipped)
                    << ",\"passed\":" << json_bool(scene.passed)
@@ -157,10 +160,32 @@ std::string MobileGalleryQualificationReport::json() const {
                    << scene.realtime_statistics.timeAdvances
                    << ",\"spatial_builds\":"
                    << scene.realtime_statistics.total.spatialIndexBuilds
+                   << ",\"spatial_refits\":"
+                   << scene.realtime_statistics.total.spatialIndexRefits
                    << ",\"spatial_publications\":"
                    << scene.realtime_statistics.total.spatialIndexPublications
+                   << ",\"numerical_iterations\":"
+                   << scene.realtime_statistics.total.numericalIterations
                    << ",\"intra_tick_host_readbacks\":"
                    << scene.realtime_statistics.total.intraTickHostReadbacks
+                   << ",\"intra_tick_host_waits\":"
+                   << scene.realtime_statistics.total.intraTickHostWaits
+                   << ",\"domain_iterations\":{\"rigid\":"
+                   << scene.realtime_statistics.domainIterations[0]
+                   << ",\"fluid\":"
+                   << scene.realtime_statistics.domainIterations[1]
+                   << ",\"cloth\":"
+                   << scene.realtime_statistics.domainIterations[2]
+                   << ",\"soft_body\":"
+                   << scene.realtime_statistics.domainIterations[3]
+                   << ",\"rope\":"
+                   << scene.realtime_statistics.domainIterations[4]
+                   << ",\"smoke\":"
+                   << scene.realtime_statistics.domainIterations[5] << '}'
+                   << ",\"coupling_edges\":"
+                   << scene.realtime_statistics.couplingEdgeCount
+                   << ",\"coupling_sweeps\":"
+                   << scene.realtime_statistics.couplingSweeps
                    << '}'
                    << ",\"thermal_state_before\":"
                    << json_string(scene.thermal_state_before)
@@ -168,7 +193,23 @@ std::string MobileGalleryQualificationReport::json() const {
                    << json_string(scene.thermal_state_after)
                    << ",\"session_controls\":true"
                    << ",\"memory_footprint_bytes\":"
-                   << scene.memory_footprint_bytes;
+                   << scene.memory_footprint_bytes
+                   << ",\"workload\":{\"target_updates_per_second\":"
+                   << scene.target_updates_per_second
+                   << ",\"rigid_body_limit\":"
+                   << scene.rigid_body_limit
+                   << ",\"fluid_particle_limit\":"
+                   << scene.fluid_particle_limit
+                   << ",\"coupled_body_limit\":"
+                   << scene.coupled_body_limit
+                   << ",\"smoke_particle_limit\":"
+                   << scene.smoke_particle_limit
+                   << ",\"render_width\":" << scene.render_width
+                   << ",\"render_height\":" << scene.render_height
+                   << ",\"peak_particle_count\":"
+                   << scene.peak_particle_count
+                   << ",\"moving_body_count\":"
+                   << scene.moving_body_count << '}';
             if (!scene.reason.empty())
                 stream << ",\"reason\":" << json_string(scene.reason);
             if (!scene.error.empty())
@@ -389,7 +430,9 @@ MobileGalleryQualificationReport qualify_mobile_gallery(
         MobileQualificationSceneResult result{
             .id = std::string(item.id),
             .scene = std::string(item.scene.name),
+            .scene_asset = std::string(item.asset_file),
             .requirements = item.required_feature_names,
+            .workload_profile = {},
             .available = item.available,
             .skipped = !item.available,
             .passed = false,
@@ -416,6 +459,15 @@ MobileGalleryQualificationReport qualify_mobile_gallery(
             .thermal_state_before = "unavailable",
             .thermal_state_after = "unavailable",
             .memory_footprint_bytes = 0U,
+            .target_updates_per_second = 0U,
+            .rigid_body_limit = 0U,
+            .fluid_particle_limit = 0U,
+            .coupled_body_limit = 0U,
+            .smoke_particle_limit = 0U,
+            .render_width = 0U,
+            .render_height = 0U,
+            .peak_particle_count = 0U,
+            .moving_body_count = 0U,
             .reason = item.available ? std::string{} : item.unavailable_reason,
             .error = {},
         };
@@ -426,11 +478,30 @@ MobileGalleryQualificationReport qualify_mobile_gallery(
                 require(session.execute(MobileGalleryCommand::select_scene,
                                         static_cast<float>(index)),
                         failure_message(session, "Scene selection failed"));
+                const auto workload = session.gallery().presentation();
+                result.workload_profile = workload.workload_profile;
+                result.target_updates_per_second =
+                    workload.target_updates_per_second;
+                result.rigid_body_limit = workload.rigid_body_limit;
+                result.fluid_particle_limit = workload.fluid_particle_limit;
+                result.coupled_body_limit = workload.coupled_body_limit;
+                result.smoke_particle_limit = workload.smoke_particle_limit;
+                result.render_width = workload.width;
+                result.render_height = workload.height;
+                result.peak_particle_count = workload.particle_count;
+                result.moving_body_count = workload.moving_body_count;
                 const auto statistics = session.gallery().qualify(
                     config.frames_per_scene,
                     [&](const FrameTimingSample &,
                         const PmRealtimeStepStatistics &realtime) {
                         result.realtime_statistics = realtime;
+                        const auto observed = session.gallery().presentation();
+                        result.peak_particle_count = std::max(
+                            result.peak_particle_count,
+                            observed.particle_count);
+                        result.moving_body_count = std::max(
+                            result.moving_body_count,
+                            observed.moving_body_count);
                     });
                 result.mean_ms = statistics.mean_ms;
                 result.p50_ms = statistics.median_ms;

@@ -86,9 +86,31 @@ def validate_mobile_gallery_report(report, nonce=None, expected_scenes=28):
                 any(not isinstance(work.get(field), int) or work[field] < 0
                     for field in ("dispatches", "workgroups", "barriers",
                                   "submissions", "bytes_moved", "time_advances",
-                                  "spatial_builds", "spatial_publications",
-                                  "intra_tick_host_readbacks"))):
+                                  "spatial_builds", "spatial_refits",
+                                  "spatial_publications", "numerical_iterations",
+                                  "intra_tick_host_readbacks",
+                                  "intra_tick_host_waits", "coupling_edges",
+                                  "coupling_sweeps")) or
+                not isinstance(work.get("domain_iterations"), dict) or
+                any(not isinstance(work["domain_iterations"].get(domain), int) or
+                    work["domain_iterations"][domain] < 0
+                    for domain in ("rigid", "fluid", "cloth", "soft_body",
+                                   "rope", "smoke"))):
             raise RuntimeError("Supported mobile Gallery scene lacks public realtime work")
+        workload = scene.get("workload")
+        if (not isinstance(scene.get("scene_asset"), str) or
+                not scene["scene_asset"] or
+                not isinstance(scene.get("workload_profile"), str) or
+                not scene["workload_profile"] or
+                not isinstance(workload, dict) or
+                any(not isinstance(workload.get(field), int) or
+                    workload[field] < 0 for field in (
+                        "target_updates_per_second", "rigid_body_limit",
+                        "fluid_particle_limit", "coupled_body_limit",
+                        "smoke_particle_limit", "render_width",
+                        "render_height", "peak_particle_count",
+                        "moving_body_count"))):
+            raise RuntimeError("Supported mobile Gallery scene lacks workload identity")
         if (not isinstance(scene.get("simulation_to_wall_clock_rate"), (int, float)) or
                 scene["simulation_to_wall_clock_rate"] < 0):
             raise RuntimeError("Supported mobile Gallery scene lacks simulation/wall rate")

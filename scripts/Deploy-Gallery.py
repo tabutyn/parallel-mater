@@ -21,6 +21,20 @@ from mobile_gallery_report import validate_mobile_gallery_report  # noqa: E402
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 BUNDLE = "com.ballrollergames.parallelmater.gallery"
 EXECUTION_CONTRACT = "fixed-tick-60hz-v1"
+MACOS_PROFILE_SUITE = (
+    {"id": "rigid-386", "workload": "rigid-386",
+     "arguments": ("--brick-count", "386")},
+    {"id": "fluid", "workload": "gallery-fluid",
+     "arguments": ("--fluid",)},
+    {"id": "cloth", "workload": "gallery-cloth",
+     "arguments": ("--cloth",)},
+    {"id": "soft-body", "workload": "gallery-soft-body",
+     "arguments": ("--soft-body",)},
+    {"id": "soft-body-fluid", "workload": "gallery-soft-body-fluid",
+     "arguments": ("--soft-body-fluid",)},
+    {"id": "smoke-soft-body", "workload": "gallery-smoke-soft-body",
+     "arguments": ("--smoke-softbody",)},
+)
 
 
 def run(*args, **kwargs):
@@ -218,6 +232,8 @@ def main():
                         help="iPad: run and collect canonical public-API physics artifacts")
     parser.add_argument("--schedule-profile", action="store_true",
                         help="collect opt-in native Metal dispatch/timing evidence")
+    parser.add_argument("--gallery-suite", action="store_true",
+                        help="macOS: capture rigid, liquid, cloth, soft and mixed scenes")
     parser.add_argument("--timeout", type=int, default=1800)
     parser.add_argument("--output", type=pathlib.Path, default=ROOT / "out/gallery-deployment")
     args = parser.parse_args()
@@ -229,6 +245,9 @@ def main():
         parser.error("--physics-qualification is available only for iPad")
     if args.schedule_profile and args.platform == "ipad" and not args.qualify:
         parser.error("iPad --schedule-profile requires --qualify")
+    if args.gallery_suite and (args.platform != "macos" or
+                               not args.schedule_profile):
+        parser.error("--gallery-suite requires macOS --schedule-profile")
     default = ("build-macos-metal-preview/ParallelMater Gallery.app" if args.platform == "macos"
                else "build-ipad-gallery/Release-iphoneos/ParallelMater Gallery.app")
     app = (args.app or ROOT / default).resolve()
@@ -240,47 +259,73 @@ def main():
             "-DUPDATE_DOCK=ON", "-P", ROOT / "cmake/DeployMacOSBundle.cmake")
         if build_info(installed, "macos", args.allow_dirty) != info:
             raise RuntimeError("Installed Mac build identity differs from staged bundle")
-        command = [installed / "Contents/MacOS/ParallelMater Gallery"]
-        environment = None
-        if args.schedule_profile:
-            profile = (args.output / "macos-metal-schedule.jsonl").resolve()
-            profile.unlink(missing_ok=True)
-            environment = os.environ.copy()
-            environment["PM_METAL_SCHEDULE_PROFILE"] = "1"
-            environment["PM_METAL_SCHEDULE_PROFILE_FILE"] = str(profile)
-            command += ["--brick-count", "386", "--frame-timings",
-                        (args.output / "macos-frame-timings.csv").resolve(),
-                        "--frames", "180"]
-        else:
-            command += ["--constraint-point", "--frames", "6"]
-        command += ["--backend", "metal", "--interactive-smoke",
-                    args.output.resolve() / "macos-smoke.ppm"]
-        thermal_before = macos_thermal_state()
-        result = run(*command, capture_output=True, env=environment)
-        thermal_after = macos_thermal_state()
-        thermal_report = {
-            "schema": "parallel-mater-macos-thermal-capture/v1",
-            "revision": info["revision"],
-            "before": thermal_before,
-            "after": thermal_after,
-        }
-        (args.output / "macos-thermal.json").write_text(
-            json.dumps(thermal_report, indent=2) + "\n")
-        if thermal_before["exit_code"] or thermal_after["exit_code"]:
-            raise RuntimeError("pmset could not capture physical Mac thermal state")
-        (args.output / "macos-smoke.log").write_text(result.stdout + result.stderr)
-        if (f"Build revision: {info['revision']}" not in result.stdout or
-                f"Execution contract: {EXECUTION_CONTRACT}" not in result.stdout or
-                "renderer=metal-direct-fenced" not in result.stdout):
-            raise RuntimeError("Installed Mac runtime did not prove the expected revision and direct Metal renderer")
-        if args.schedule_profile:
-            run(sys.executable, ROOT / "scripts/Evaluate-MetalSchedule.py",
-                args.output / "macos-metal-schedule.jsonl", "--workload", "rigid-386",
-                "--priming-samples", "1", "--warmup", "30",
-                "--minimum-samples", "60",
-                "--frame-timings", args.output / "macos-frame-timings.csv",
-                "--output",
-                args.output / "macos-metal-schedule-evaluation.json")
+        executable = installed / "Contents/MacOS/ParallelMater Gallery"
+        captures = (MACOS_PROFILE_SUITE if args.gallery_suite else
+                    ({"id": "rigid-386", "workload": "rigid-386",
+                      "arguments": ("--brick-count", "386")},))
+        if not args.schedule_profile:
+            captures = ({"id": "smoke", "workload": None,
+                         "arguments": ("--constraint-point",)},)
+        suite_results = []
+        for capture in captures:
+            output = (args.output / capture["id"]
+                      if args.gallery_suite else args.output)
+            output.mkdir(parents=True, exist_ok=True)
+            command = [executable, *capture["arguments"]]
+            environment = None
+            if args.schedule_profile:
+                profile = (output / "macos-metal-schedule.jsonl").resolve()
+                profile.unlink(missing_ok=True)
+                environment = os.environ.copy()
+                environment["PM_METAL_SCHEDULE_PROFILE"] = "1"
+                environment["PM_METAL_SCHEDULE_PROFILE_FILE"] = str(profile)
+                command += ["--frame-timings",
+                            (output / "macos-frame-timings.csv").resolve(),
+                            "--frames", "180"]
+            else:
+                command += ["--frames", "6"]
+            command += ["--backend", "metal", "--interactive-smoke",
+                        output.resolve() / "macos-smoke.ppm"]
+            thermal_before = macos_thermal_state()
+            result = run(*command, capture_output=True, env=environment)
+            thermal_after = macos_thermal_state()
+            thermal_report = {
+                "schema": "parallel-mater-macos-thermal-capture/v1",
+                "revision": info["revision"],
+                "scene": capture["id"],
+                "before": thermal_before,
+                "after": thermal_after,
+            }
+            (output / "macos-thermal.json").write_text(
+                json.dumps(thermal_report, indent=2) + "\n")
+            if thermal_before["exit_code"] or thermal_after["exit_code"]:
+                raise RuntimeError("pmset could not capture physical Mac thermal state")
+            (output / "macos-smoke.log").write_text(result.stdout + result.stderr)
+            if (f"Build revision: {info['revision']}" not in result.stdout or
+                    f"Execution contract: {EXECUTION_CONTRACT}" not in result.stdout or
+                    "renderer=metal-direct-fenced" not in result.stdout):
+                raise RuntimeError(
+                    "Installed Mac runtime did not prove the expected revision "
+                    "and direct Metal renderer")
+            if args.schedule_profile:
+                evaluation = output / "macos-metal-schedule-evaluation.json"
+                run(sys.executable, ROOT / "scripts/Evaluate-MetalSchedule.py",
+                    output / "macos-metal-schedule.jsonl", "--workload",
+                    capture["workload"], "--priming-samples", "1", "--warmup", "30",
+                    "--minimum-samples", "60", "--frame-timings",
+                    output / "macos-frame-timings.csv", "--output", evaluation)
+                suite_results.append({
+                    "id": capture["id"],
+                    "workload": capture["workload"],
+                    "evaluation": str(evaluation.relative_to(args.output)),
+                })
+        if args.gallery_suite:
+            (args.output / "macos-gallery-suite.json").write_text(json.dumps({
+                "schema": "parallel-mater-macos-gallery-suite/v1",
+                "revision": info["revision"],
+                "execution_contract": info["execution_contract"],
+                "captures": suite_results,
+            }, indent=2) + "\n")
         print("Installed bundle and native smoke verified:", info)
         run("open", "-a", installed)
     else:
@@ -313,6 +358,12 @@ def main():
                 run("xcrun", "devicectl", "device", "process", "launch", "--device", args.device, "com.apple.Preferences")
                 background = wait_report(args.device, "runtime-info.json", nonce, directory,
                                          lambda r: not r["active"] and r["backgrounds"] > runtime["backgrounds"], 60)
+                # The native profile is append-only while the Gallery is active.
+                # Snapshot it while the display link is suspended so CoreDevice
+                # never tries to copy a file that is still growing.
+                if args.schedule_profile:
+                    copy_artifact(args.device, "metal-schedule-profile.jsonl",
+                                  args.output / "ipad-metal-schedule.jsonl")
                 time.sleep(5)
                 run("xcrun", "devicectl", "device", "process", "launch", "--device", args.device, BUNDLE)
                 foreground = wait_report(args.device, "runtime-info.json", nonce, directory,
@@ -330,7 +381,7 @@ def main():
                 validate_physics_qualification(
                     physics, nonce, info["revision"], identity)
                 collect_physics_artifacts(args.device, physics, args.output, directory)
-            if args.schedule_profile:
+            if args.schedule_profile and not args.qualify:
                 copy_artifact(args.device, "metal-schedule-profile.jsonl",
                               args.output / "ipad-metal-schedule.jsonl")
             (args.output / "ipad-runtime.json").write_text(json.dumps(runtime, indent=2) + "\n")
