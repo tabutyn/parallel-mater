@@ -43,17 +43,28 @@ void apply_smoke_wind_to_cloth(
     device::DispatchSize grid, device::DispatchSize block, device::ExecutionQueue stream, const void *positions,
     void *velocities, const float *inverse_masses, std::uint32_t vertex_count,
     const SmokeDispatchOptions &smoke, const void *smoke_positions,
-    const void *smoke_velocities, const std::uint64_t *keys,
-    const std::uint32_t *indices, const SmokeGridDispatchField &smoke_grid,
+    const void *smoke_velocities, std::uint32_t smoke_owner_slot,
+    std::uint32_t smoke_owner_generation,
+    std::uint32_t smoke_topology_revision, const void *spatial_metadata,
+    const std::uint8_t *spatial_admission,
+    std::uint32_t spatial_leaf_capacity,
+    const std::uint32_t *candidate_counts,
+    const std::uint32_t *candidate_sources,
+    std::uint32_t candidates_per_query, std::uint32_t *spatial_status,
+    const SmokeGridDispatchField &smoke_grid,
     float drag, float maximum_acceleration, float timestep) noexcept {
     smoke_cloth_wind<<<dim3(grid.x, grid.y, grid.z), dim3(block.x, block.y, block.z), 0U, static_cast<cudaStream_t>(stream.native_handle)>>>(
         const_cast<Vec3_0 *>(as<Vec3_0>(positions)), as<Vec3_0>(velocities),
         const_cast<float *>(inverse_masses), vertex_count, converted(smoke),
         const_cast<Vec3_0 *>(as<Vec3_0>(smoke_positions)),
         const_cast<Vec3_0 *>(as<Vec3_0>(smoke_velocities)),
-        reinterpret_cast<ulonglong *>(
-            const_cast<std::uint64_t *>(keys)),
-        const_cast<std::uint32_t *>(indices), converted(smoke_grid), drag,
+        smoke_owner_slot, smoke_owner_generation, smoke_topology_revision,
+        const_cast<CouplingSpatialLeafMetadata_0 *>(
+            as<CouplingSpatialLeafMetadata_0>(spatial_metadata)),
+        const_cast<std::uint8_t *>(spatial_admission), spatial_leaf_capacity,
+        const_cast<std::uint32_t *>(candidate_counts),
+        const_cast<std::uint32_t *>(candidate_sources), candidates_per_query,
+        spatial_status, converted(smoke_grid), drag,
         maximum_acceleration, timestep);
 }
 

@@ -670,12 +670,16 @@ simulation::RealtimeTelemetryLimits native_realtime_limits(
             } else {
                 const auto &grid = owner->grid;
                 const auto cell_groups =
-                    (std::uint64_t{grid.cell_count} + 127U) / 128U;
+                    (std::uint64_t{grid.cell_count} +
+                     simulation::smoke_realtime_grid_block_size - 1U) /
+                    simulation::smoke_realtime_grid_block_size;
                 std::uint64_t face_groups = 0U;
                 std::uint64_t face_bytes = 0U;
                 for (std::uint32_t axis = 0U; axis < 3U; ++axis) {
                     face_groups +=
-                        (std::uint64_t{grid.face_count[axis]} + 127U) / 128U;
+                        (std::uint64_t{grid.face_count[axis]} +
+                         simulation::smoke_realtime_grid_block_size - 1U) /
+                        simulation::smoke_realtime_grid_block_size;
                     face_bytes += std::uint64_t{grid.face_count[axis]} *
                         sizeof(float);
                 }
@@ -2484,8 +2488,10 @@ public:
                 }
 
                 auto &grid = smoke.grid;
+                constexpr std::uint32_t grid_block =
+                    simulation::smoke_realtime_grid_block_size;
                 const auto cell_groups =
-                    (grid.cell_count + block - 1U) / block;
+                    (grid.cell_count + grid_block - 1U) / grid_block;
                 auto current = native_.smoke_dispatch_grid(grid);
                 current.density = grid.realtime_density[0];
                 current.pressure = grid.pressure[1];
@@ -2493,13 +2499,13 @@ public:
                     current.face_velocity[axis] =
                         grid.face_velocity[axis][1];
                 native_.begin_smoke_grid_realtime(
-                    cell_groups, block, native_.queue(), current, options,
+                    cell_groups, grid_block, native_.queue(), current, options,
                     scene.timestep,
                     simulation::smoke_realtime_profile_version,
                     grid.pressure[1], grid.realtime_divergence,
                     smoke.realtime_time_advances, snapshot_.query_status);
                 native_.apply_smoke_grid_realtime_source(
-                    cell_groups, block, native_.queue(), current, options,
+                    cell_groups, grid_block, native_.queue(), current, options,
                     grid.realtime_density_rate,
                     grid.realtime_temperature_rate,
                     grid.realtime_density[0],
@@ -2507,13 +2513,13 @@ public:
                     simulation::smoke_realtime_profile_version,
                     snapshot_.query_status);
                 native_.advect_smoke_grid_realtime_scalar(
-                    cell_groups, block, native_.queue(), current, options,
+                    cell_groups, grid_block, native_.queue(), current, options,
                     grid.realtime_density[0], grid.realtime_density[1],
                     scene.timestep,
                     simulation::smoke_realtime_profile_version,
                     snapshot_.query_status);
                 native_.advect_smoke_grid_realtime_scalar(
-                    cell_groups, block, native_.queue(), current, options,
+                    cell_groups, grid_block, native_.queue(), current, options,
                     grid.realtime_temperature[0],
                     grid.realtime_temperature[1], scene.timestep,
                     simulation::smoke_realtime_profile_version,
@@ -2521,10 +2527,11 @@ public:
                 std::uint64_t face_groups = 0U;
                 for (std::uint32_t axis = 0U; axis < 3U; ++axis) {
                     const auto groups =
-                        (grid.face_count[axis] + block - 1U) / block;
+                        (grid.face_count[axis] + grid_block - 1U) /
+                        grid_block;
                     face_groups += groups;
                     native_.advect_smoke_grid_realtime_face(
-                        groups, block, native_.queue(), int(axis), current,
+                        groups, grid_block, native_.queue(), int(axis), current,
                         options, grid.face_velocity[axis][1],
                         grid.realtime_face_velocity[axis], scene.timestep,
                         simulation::smoke_realtime_profile_version,
@@ -2537,9 +2544,10 @@ public:
                         grid.realtime_face_velocity[axis];
                 for (std::uint32_t axis = 0U; axis < 3U; ++axis) {
                     const auto groups =
-                        (grid.face_count[axis] + block - 1U) / block;
+                        (grid.face_count[axis] + grid_block - 1U) /
+                        grid_block;
                     native_.apply_smoke_grid_realtime_face_forces(
-                        groups, block, native_.queue(), int(axis), advected,
+                        groups, grid_block, native_.queue(), int(axis), advected,
                         options, grid.realtime_face_velocity[axis],
                         grid.face_velocity[axis][1], grid.face_open[axis],
                         grid.face_wall_velocity[axis], grid.strain,
@@ -2554,9 +2562,10 @@ public:
                         grid.face_velocity[axis][1];
                 for (std::uint32_t axis = 0U; axis < 3U; ++axis) {
                     const auto groups =
-                        (grid.face_count[axis] + block - 1U) / block;
+                        (grid.face_count[axis] + grid_block - 1U) /
+                        grid_block;
                     native_.apply_smoke_grid_realtime_boundaries(
-                        groups, block, native_.queue(), int(axis), forced,
+                        groups, grid_block, native_.queue(), int(axis), forced,
                         options, grid.face_velocity[axis][1],
                         grid.face_open[axis],
                         grid.face_wall_velocity[axis], scene.timestep,
@@ -2564,7 +2573,7 @@ public:
                         snapshot_.query_status);
                 }
                 native_.calculate_smoke_grid_realtime_divergence(
-                    cell_groups, block, native_.queue(), forced, options,
+                    cell_groups, grid_block, native_.queue(), forced, options,
                     grid.realtime_divergence, scene.timestep,
                     simulation::smoke_realtime_profile_version,
                     snapshot_.query_status);
@@ -2782,6 +2791,19 @@ public:
             if (result != PM_SUCCESS) return result;
             dispatch(simulation::RealtimeTelemetryPhase::index,
                      cloth_groups);
+            float query_radius = cloth.thickness;
+            const ClothId cloth_id{slot, cloth.generation};
+            for (const auto &coupling : state_.smoke_cloth_couplings) {
+                if (!coupling || !coupling->alive ||
+                    !coupling->options.enabled ||
+                    !(coupling->options.cloth == cloth_id))
+                    continue;
+                const auto &smoke = *state_.smokes[
+                    coupling->options.smoke.index];
+                if (smoke.options.grid_resolution == 0U)
+                    query_radius = std::max(query_radius,
+                        3.0F * smoke.options.particle_radius);
+            }
             const auto vertex_groups =
                 (cloth.vertex_count + block - 1U) / block;
             native_.emit_deformable_spatial_primitives(
@@ -2797,7 +2819,7 @@ public:
                 state_.realtime_spatial_plan.query_capacity, 0U,
                 simulation::rigid_spatial_query_mask |
                     simulation::coupling_spatial_query_mask,
-                0U, cloth.thickness, path_deviation, cloth_correction,
+                0U, query_radius, path_deviation, cloth_correction,
                 1.0e-5F, snapshot_.metadata, snapshot_.bounds,
                 snapshot_.build_flags, query_bounds, query_masks, excluded,
                 deformable_query_leaf_sources, snapshot_.query_status);
@@ -2856,6 +2878,17 @@ public:
                     continue;
                 query_radius = std::max(
                     query_radius, coupling->options.contact_distance);
+            }
+            for (const auto &coupling : state_.smoke_soft_body_couplings) {
+                if (!coupling || !coupling->alive ||
+                    !coupling->options.enabled ||
+                    !(coupling->options.soft_body == body_id))
+                    continue;
+                const auto &smoke = *state_.smokes[
+                    coupling->options.smoke.index];
+                if (smoke.options.grid_resolution == 0U)
+                    query_radius = std::max(query_radius,
+                        3.0F * smoke.options.particle_radius);
             }
             const auto node_groups =
                 (body.node_count + block - 1U) / block;
@@ -2924,6 +2957,19 @@ public:
             if (result != PM_SUCCESS) return result;
             dispatch(simulation::RealtimeTelemetryPhase::index,
                      rope_groups);
+            float query_radius = rope.data.options.radius;
+            const RopeId rope_id{slot, rope.generation};
+            for (const auto &coupling : state_.smoke_rope_couplings) {
+                if (!coupling || !coupling->alive ||
+                    !coupling->options.enabled ||
+                    !(coupling->options.rope == rope_id))
+                    continue;
+                const auto &smoke = *state_.smokes[
+                    coupling->options.smoke.index];
+                if (smoke.options.grid_resolution == 0U)
+                    query_radius = std::max(query_radius,
+                        3.0F * smoke.options.particle_radius);
+            }
             const auto node_groups =
                 (rope.data.count + block - 1U) / block;
             native_.emit_deformable_spatial_primitives(
@@ -2942,7 +2988,7 @@ public:
                 simulation::rigid_spatial_query_mask |
                     simulation::coupling_spatial_query_mask,
                 simulation::deformable_spatial_query_identity_mask,
-                rope.data.options.radius, path_deviation, rope_correction,
+                query_radius, path_deviation, rope_correction,
                 1.0e-5F, snapshot_.metadata, snapshot_.bounds,
                 snapshot_.build_flags, query_bounds, query_masks, excluded,
                 deformable_query_leaf_sources, snapshot_.query_status);
@@ -4344,6 +4390,8 @@ public:
                     snapshot_.query_status);
             } else {
                 auto &grid = smoke.grid;
+                constexpr std::uint32_t grid_block =
+                    simulation::smoke_realtime_grid_block_size;
                 auto field = native_.smoke_dispatch_grid(grid);
                 field.density = grid.realtime_density[1];
                 field.pressure = grid.pressure[1];
@@ -4352,9 +4400,10 @@ public:
                         grid.face_velocity[axis][1];
                 for (std::uint32_t axis = 0U; axis < 3U; ++axis) {
                     const auto face_groups =
-                        (grid.face_count[axis] + block - 1U) / block;
+                        (grid.face_count[axis] + grid_block - 1U) /
+                        grid_block;
                     native_.project_smoke_grid_realtime_face(
-                        face_groups, block, native_.queue(), int(axis),
+                        face_groups, grid_block, native_.queue(), int(axis),
                         field, smoke_options, grid.pressure[1],
                         grid.face_velocity[axis][1], grid.face_open[axis],
                         grid.face_wall_velocity[axis], scene.timestep,
@@ -5320,32 +5369,6 @@ private:
         auto &coupling = work(simulation::RealtimeTelemetryPhase::coupling);
         constexpr std::uint64_t sweeps =
             simulation::deformable_smoke_coupling_sweeps;
-        for (std::uint32_t smoke_slot = 0U;
-             smoke_slot < state_.smokes.size(); ++smoke_slot) {
-            const auto &smoke = state_.smokes[smoke_slot];
-            if (!smoke || !smoke->alive ||
-                smoke->options.grid_resolution != 0U)
-                continue;
-            const auto references_smoke = [smoke_slot](
-                    const auto &owner) noexcept {
-                return owner && owner->alive && owner->options.enabled &&
-                    owner->options.smoke.index == smoke_slot;
-            };
-            if (std::any_of(state_.smoke_cloth_couplings.begin(),
-                            state_.smoke_cloth_couplings.end(),
-                            references_smoke) ||
-                std::any_of(state_.smoke_soft_body_couplings.begin(),
-                            state_.smoke_soft_body_couplings.end(),
-                            references_smoke) ||
-                std::any_of(state_.smoke_rope_couplings.begin(),
-                            state_.smoke_rope_couplings.end(),
-                            references_smoke)) {
-                const auto groups =
-                    (std::uint64_t{smoke->options.capacity} + 127U) / 128U;
-                dispatches(simulation::RealtimeTelemetryPhase::coupling,
-                    2U, 2U * groups);
-            }
-        }
         for (const auto &owner : state_.smoke_cloth_couplings) {
             if (!owner || !owner->alive || !owner->options.enabled) continue;
             const auto &smoke = *state_.smokes[owner->options.smoke.index];
@@ -5410,24 +5433,6 @@ private:
         }
     }
 
-    [[nodiscard]] bool smoke_has_deformable_coupling(
-        std::uint32_t smoke_slot) const noexcept {
-        const auto references_smoke = [smoke_slot](
-                const auto &owner) noexcept {
-            return owner && owner->alive && owner->options.enabled &&
-                owner->options.smoke.index == smoke_slot;
-        };
-        return std::any_of(state_.smoke_cloth_couplings.begin(),
-                           state_.smoke_cloth_couplings.end(),
-                           references_smoke) ||
-            std::any_of(state_.smoke_soft_body_couplings.begin(),
-                        state_.smoke_soft_body_couplings.end(),
-                        references_smoke) ||
-            std::any_of(state_.smoke_rope_couplings.begin(),
-                        state_.smoke_rope_couplings.end(),
-                        references_smoke);
-    }
-
     simulation::SmokeGridDispatchField staged_smoke_grid(
         SmokeStorage &smoke) noexcept {
         auto field = native_.smoke_dispatch_grid(smoke.grid);
@@ -5438,35 +5443,6 @@ private:
             field.face_velocity[axis] =
                 smoke.grid.face_velocity[axis][1];
         return field;
-    }
-
-    PmResult index_smoke_for_deformable_drag() noexcept {
-        constexpr std::uint32_t block = 128U;
-        for (std::uint32_t slot = 0U; slot < state_.smokes.size(); ++slot) {
-            auto &owner = state_.smokes[slot];
-            if (!owner || !owner->alive ||
-                owner->options.grid_resolution != 0U ||
-                !smoke_has_deformable_coupling(slot))
-                continue;
-            auto &smoke = *owner;
-            const auto groups =
-                (smoke.options.capacity + block - 1U) / block;
-            native_.index_smoke_particles(
-                groups, block, native_.queue(), smoke.realtime_positions,
-                smoke.realtime_ages, smoke.realtime_pending_count,
-                native_.smoke_domain_options(smoke.options), smoke.keys[0],
-                smoke.indices[0]);
-            auto result = native_.check_error();
-            if (result != PM_SUCCESS) return result;
-            result = native_.radix_sort_pairs_u64_u32(
-                native_.queue(), smoke.keys[0], smoke.keys[1],
-                smoke.indices[0], smoke.indices[1], smoke.options.capacity,
-                smoke.sort_workspace, smoke.sort_workspace_size);
-            if (result != PM_SUCCESS) return result;
-            result = native_.check_error();
-            if (result != PM_SUCCESS) return result;
-        }
-        return PM_SUCCESS;
     }
 
     PmResult apply_smoke_rigid_couplings(
@@ -5611,7 +5587,7 @@ private:
     PmResult apply_smoke_cloth_couplings(
         simulation::DeformableSmokeCouplingPair pair,
         simulation::DeformableSmokeCouplingMode mode,
-        float dt) noexcept {
+        float dt, std::uint32_t spatial_topology_revision) noexcept {
         constexpr std::uint32_t block = 128U;
         const auto candidates_per_query =
             state_.options.realtime_spatial_candidates_per_query;
@@ -5665,7 +5641,15 @@ private:
                     cloth.inverse_masses, cloth.vertex_count,
                     native_.smoke_dispatch_options(smoke.options),
                     smoke.realtime_positions, smoke.realtime_velocities,
-                    smoke.keys[1], smoke.indices[1], field,
+                    coupling.options.smoke.index, smoke.generation,
+                    spatial_topology_revision,
+                    snapshot_.metadata, snapshot_.admission,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    snapshot_.query_counts + cloth.realtime_query_offset,
+                    snapshot_.query_candidates +
+                        std::size_t(cloth.realtime_query_offset) *
+                            candidates_per_query,
+                    candidates_per_query, snapshot_.query_status, field,
                     coupling.options.wind_drag,
                     coupling.options.maximum_wind_acceleration, dt);
             } else {
@@ -5698,7 +5682,7 @@ private:
     PmResult apply_smoke_soft_body_couplings(
         simulation::DeformableSmokeCouplingPair pair,
         simulation::DeformableSmokeCouplingMode mode,
-        float dt) noexcept {
+        float dt, std::uint32_t spatial_topology_revision) noexcept {
         constexpr std::uint32_t block = 128U;
         const auto candidates_per_query =
             state_.options.realtime_spatial_candidates_per_query;
@@ -5755,7 +5739,16 @@ private:
                     body.inverse_masses, body.node_count,
                     native_.smoke_dispatch_options(smoke.options),
                     smoke.realtime_positions, smoke.realtime_velocities,
-                    smoke.keys[1], smoke.indices[1], field,
+                    coupling.options.smoke.index, smoke.generation,
+                    spatial_topology_revision,
+                    snapshot_.metadata, snapshot_.admission,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    snapshot_.query_counts +
+                        body.realtime_node_query_offset,
+                    snapshot_.query_candidates +
+                        std::size_t(body.realtime_node_query_offset) *
+                            candidates_per_query,
+                    candidates_per_query, snapshot_.query_status, field,
                     coupling.options.wind_drag,
                     coupling.options.maximum_wind_acceleration, dt,
                     body.realtime_maximum_speed);
@@ -5786,7 +5779,7 @@ private:
     PmResult apply_smoke_rope_couplings(
         simulation::DeformableSmokeCouplingPair pair,
         simulation::DeformableSmokeCouplingMode mode,
-        float dt) noexcept {
+        float dt, std::uint32_t spatial_topology_revision) noexcept {
         constexpr std::uint32_t block = 128U;
         const auto candidates_per_query =
             state_.options.realtime_spatial_candidates_per_query;
@@ -5843,7 +5836,15 @@ private:
                     rope.data.soft_last,
                     native_.smoke_dispatch_options(smoke.options),
                     smoke.realtime_positions, smoke.realtime_velocities,
-                    smoke.keys[1], smoke.indices[1], field,
+                    coupling.options.smoke.index, smoke.generation,
+                    spatial_topology_revision,
+                    snapshot_.metadata, snapshot_.admission,
+                    state_.realtime_spatial_plan.leaf_capacity,
+                    snapshot_.query_counts + rope.realtime_query_offset,
+                    snapshot_.query_candidates +
+                        std::size_t(rope.realtime_query_offset) *
+                            candidates_per_query,
+                    candidates_per_query, snapshot_.query_status, field,
                     coupling.options.wind_drag,
                     coupling.options.maximum_wind_acceleration, dt);
             }
@@ -5855,10 +5856,11 @@ private:
         const simulation::RealtimeScheduleScene &scene) noexcept {
         auto result = prepare_smoke_deformable_contacts();
         if (result != PM_SUCCESS) return result;
-        result = index_smoke_for_deformable_drag();
-        if (result != PM_SUCCESS) return result;
         const float dt = scene.timestep / static_cast<float>(
             simulation::deformable_smoke_coupling_sweeps);
+        const auto spatial_topology_revision = static_cast<std::uint32_t>(
+            scene.graph_revision %
+            (std::numeric_limits<std::uint32_t>::max() - 1U)) + 1U;
         constexpr simulation::DeformableSmokeCouplingMode modes[]{
             simulation::DeformableSmokeCouplingMode::contact,
             simulation::DeformableSmokeCouplingMode::drag};
@@ -5876,17 +5878,20 @@ private:
              sweep < simulation::deformable_smoke_coupling_sweeps; ++sweep) {
             for (const auto pair : cloth_pairs)
                 for (const auto mode : modes) {
-                    result = apply_smoke_cloth_couplings(pair, mode, dt);
+                    result = apply_smoke_cloth_couplings(
+                        pair, mode, dt, spatial_topology_revision);
                     if (result != PM_SUCCESS) return result;
                 }
             for (const auto pair : soft_pairs)
                 for (const auto mode : modes) {
-                    result = apply_smoke_soft_body_couplings(pair, mode, dt);
+                    result = apply_smoke_soft_body_couplings(
+                        pair, mode, dt, spatial_topology_revision);
                     if (result != PM_SUCCESS) return result;
                 }
             for (const auto pair : rope_pairs)
                 for (const auto mode : modes) {
-                    result = apply_smoke_rope_couplings(pair, mode, dt);
+                    result = apply_smoke_rope_couplings(
+                        pair, mode, dt, spatial_topology_revision);
                     if (result != PM_SUCCESS) return result;
                 }
         }
@@ -6765,8 +6770,9 @@ private:
             std::uint64_t face_groups = 0U;
             for (std::uint32_t axis = 0U; axis < 3U; ++axis)
                 face_groups +=
-                    (std::uint64_t{owner->grid.face_count[axis]} + 127U) /
-                    128U;
+                    (std::uint64_t{owner->grid.face_count[axis]} +
+                     simulation::smoke_realtime_grid_block_size - 1U) /
+                    simulation::smoke_realtime_grid_block_size;
             dispatches(simulation::RealtimeTelemetryPhase::commit, 4U,
                        face_groups + groups);
         }
@@ -6846,8 +6852,10 @@ private:
                 if (result != PM_SUCCESS) return result;
             } else {
                 auto &grid = smoke.grid;
+                constexpr std::uint32_t grid_block =
+                    simulation::smoke_realtime_grid_block_size;
                 const auto groups =
-                    (grid.cell_count + block - 1U) / block;
+                    (grid.cell_count + grid_block - 1U) / grid_block;
                 auto field = native_.smoke_dispatch_grid(grid);
                 field.density = grid.realtime_density[1];
                 field.pressure = grid.pressure[1];
@@ -6859,7 +6867,7 @@ private:
                 float *next = (iteration & 1U) == 0U
                     ? grid.residual : grid.pressure[1];
                 native_.solve_smoke_grid_realtime_pressure_cycle(
-                    groups, block, native_.queue(), field, options,
+                    groups, grid_block, native_.queue(), field, options,
                     grid.realtime_divergence, pressure, next,
                     grid.face_open[0], grid.face_open[1],
                     grid.face_open[2], scene.timestep,

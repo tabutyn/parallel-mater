@@ -12,22 +12,33 @@ import geometry_smoke;
 import smoke_grid;
 import graphics_resources;
 
+#include "smoke_coupling_candidates.slangh"
+
 [shader("compute")]
 [numthreads(PM_THREADS(256), 1, 1)]
 void smoke_cloth_wind(
     uniform PMBuffer<Vec3> positions, uniform PMBuffer<Vec3> velocities,
     uniform PMBuffer<float> inverse_masses, uniform uint vertex_count,
     uniform SmokeOptions smoke, uniform PMBuffer<Vec3> smoke_positions,
-    uniform PMBuffer<Vec3> smoke_velocities, uniform PMBuffer<uint64_t> keys,
-    uniform PMBuffer<uint> indices, uniform SmokeGridField grid, uniform float drag,
+    uniform PMBuffer<Vec3> smoke_velocities, uniform uint smoke_owner_slot,
+    uniform uint smoke_owner_generation, uniform uint smoke_topology_revision,
+    uniform PMBuffer<CouplingSpatialLeafMetadata> spatial_metadata,
+    uniform PMByteBuffer spatial_admission, uniform uint spatial_leaf_capacity,
+    uniform PMBuffer<uint> candidate_counts,
+    uniform PMBuffer<uint> candidate_sources,
+    uniform uint candidates_per_query, uniform PMBuffer<uint> spatial_status,
+    uniform SmokeGridField grid, uniform float drag,
     uniform float maximum_acceleration, uniform float dt PM_D3D12_DISPATCH_PARAMETER)
 {
     PM_D3D12_DISPATCH_PROLOGUE();
     uint vertex = pmThreadIndex();
     if (vertex >= vertex_count || inverse_masses[vertex] == 0.0f) return;
-    velocities[vertex] = add(velocities[vertex], smoke_wind_delta(
+    velocities[vertex] = add(velocities[vertex], smoke_coupling_wind_delta(
         positions[vertex], velocities[vertex], smoke_positions,
-        smoke_velocities, keys, indices, smoke, grid, drag,
+        smoke_velocities, smoke, smoke_owner_slot, smoke_owner_generation,
+        smoke_topology_revision, spatial_metadata, spatial_admission,
+        spatial_leaf_capacity, candidate_counts, candidate_sources,
+        candidates_per_query, spatial_status, vertex, grid, drag,
         maximum_acceleration, dt));
 }
 

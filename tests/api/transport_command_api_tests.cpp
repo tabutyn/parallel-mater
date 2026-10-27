@@ -71,25 +71,25 @@ int main() {
         allocate(requirements.persistent.size), 0, allocate(requirements.scratch.size), 0};
     CHECK(pmBindSimulationMemory(device, simulation, &binding) == PM_SUCCESS);
     PmRopeMaterialState rope_material{};
-    rope_material.nodeSpacing = 0.01F;
-    rope_material.radius = 0.01F;
+    rope_material.nodeSpacing = 0.1F;
+    rope_material.radius = 0.05F;
     rope_material.mass = 1;
     rope_material.maximumSubstepTimestep = 1.0F / 60.0F;
-    rope_material.maximumSpeed = 100;
+    rope_material.maximumSpeed = 2;
     rope_material.solverIterations = 8;
     PmSmokeMaterialState smoke_material{};
     smoke_material.particleRadius = 0.02F;
     smoke_material.restNumberDensity = 12;
-    smoke_material.maximumSpeed = 100;
+    smoke_material.maximumSpeed = 1;
     smoke_material.gridVerticalResolution = 8;
-    smoke_material.gridPressureIterations = 8;
+    smoke_material.gridPressureIterations = 12;
     smoke_material.gridPressureTolerance = 0.001F;
     PmPhysicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = PM_STRUCTURE_TYPE_PHYSICS_PIPELINE_CREATE_INFO;
     pipeline_info.ropeMaterialCount = pipeline_info.smokeMaterialCount = 1;
     pipeline_info.pRopeMaterials = &rope_material;
     pipeline_info.pSmokeMaterials = &smoke_material;
-    const PmFloat3 line[2]{{0, 1, 0}, {0.08F, 1, 0}};
+    const PmFloat3 line[2]{{0, 1, 0}, {0.8F, 1, 0}};
     PmRopeInfo rope{};
     rope.active = PM_TRUE;
     rope.pointCount = 2;
@@ -143,11 +143,18 @@ int main() {
         const auto *rope_header = static_cast<const PmDomainOutputHeader *>(mapped);
         const auto *smoke_header = reinterpret_cast<const PmDomainOutputHeader *>(static_cast<const std::byte *>(mapped) + 4096);
         CHECK(rope_header->activeCount == 9 && smoke_header->activeCount == 10);
+        float expected_rope_y = 1.0F;
+        float expected_rope_velocity = 0.0F;
+        for (int frame = 0; frame < 10; ++frame) {
+            expected_rope_velocity -= 9.81F / 60.0F;
+            expected_rope_y += expected_rope_velocity / 60.0F;
+            expected_rope_velocity *= 0.95F;
+        }
         const auto *nodes = reinterpret_cast<const PmRopeNodeState *>(rope_header + 1);
         for (std::uint32_t i = 0; i < rope_header->activeCount; ++i) {
-            CHECK(std::abs(nodes[i].position.x - 0.01F * i) < 1e-4F);
-            CHECK(std::abs(nodes[i].position.y - (1.0F - 9.81F * 55.0F / 3600.0F)) < 1e-4F);
-            CHECK(std::abs(nodes[i].velocity.y + 9.81F / 6.0F) < 1e-4F);
+            CHECK(std::abs(nodes[i].position.x - 0.1F * i) < 1e-4F);
+            CHECK(std::abs(nodes[i].position.y - expected_rope_y) < 1e-4F);
+            CHECK(std::abs(nodes[i].velocity.y - expected_rope_velocity) < 1e-4F);
             CHECK(std::abs(nodes[i].position.z) < 1e-4F);
         }
         const auto *particles = reinterpret_cast<const PmSmokeParticleState *>(smoke_header + 1);
@@ -157,8 +164,15 @@ int main() {
             // Emission can occur after advection: the newest tracer has age zero.
             CHECK(p.age >= 0 && p.age <= 10.01F / 60.0F);
             oldest = std::max(oldest, p.age);
-            CHECK(std::abs(p.position.x - smoke.emitterCenter.x - p.age) < 2e-4F);
-            CHECK(std::abs(p.velocity.x - 1) < 2e-4F);
+            const auto ticks = static_cast<int>(std::lround(p.age * 60.0F));
+            const float expected_velocity = grid
+                ? 1.0F : std::pow(0.95F, float(ticks));
+            const float expected_distance = grid
+                ? p.age
+                : (1.0F - expected_velocity) / (60.0F * 0.05F);
+            CHECK(std::abs(p.position.x - smoke.emitterCenter.x -
+                           expected_distance) < 2e-4F);
+            CHECK(std::abs(p.velocity.x - expected_velocity) < 2e-4F);
             CHECK(std::abs(p.velocity.y) < 2e-4F && std::abs(p.velocity.z) < 2e-4F);
             CHECK(std::abs(p.position.y - 2) <= 0.101F && std::abs(p.position.z) <= 0.101F);
             CHECK(std::isfinite(p.numberDensity) && std::isfinite(p.pressure));

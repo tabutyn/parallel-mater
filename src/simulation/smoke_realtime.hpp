@@ -13,6 +13,7 @@ namespace parallel_mater::simulation {
 inline constexpr std::uint32_t smoke_realtime_profile_version = 1U;
 inline constexpr std::uint32_t smoke_realtime_particle_sweeps = 6U;
 inline constexpr std::uint32_t smoke_realtime_grid_pressure_cycles = 12U;
+inline constexpr std::uint32_t smoke_realtime_grid_block_size = 256U;
 inline constexpr float smoke_realtime_timestep = 1.0F / 60.0F;
 inline constexpr float smoke_realtime_solver_damping = 0.05F;
 inline constexpr float smoke_realtime_maximum_correction_fraction = 0.25F;
@@ -187,9 +188,13 @@ smoke_realtime_grid_work_budget(std::uint32_t live_particles,
     const std::uint64_t particle_groups =
         (std::uint64_t{live_particles} + 127U) / 128U;
     const std::uint64_t cell_groups =
-        (std::uint64_t{result.grid_cells} + 127U) / 128U;
+        (std::uint64_t{result.grid_cells} +
+         smoke_realtime_grid_block_size - 1U) /
+        smoke_realtime_grid_block_size;
     const std::uint64_t face_groups =
-        (std::uint64_t{result.grid_faces} + 127U) / 128U;
+        (std::uint64_t{result.grid_faces} +
+         smoke_realtime_grid_block_size - 1U) /
+        smoke_realtime_grid_block_size;
     result.domain_workgroups = particle_groups +
         (1U + 1U + 2U + 1U + smoke_realtime_grid_pressure_cycles) *
             cell_groups +
