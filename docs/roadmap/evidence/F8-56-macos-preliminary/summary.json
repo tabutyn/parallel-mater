@@ -1,0 +1,137 @@
+{
+  "schema": "parallel-mater-f8-56-device-evidence/v1",
+  "task": "F8-56",
+  "status": "preliminary-macos-only",
+  "completion_gate": {
+    "passed": false,
+    "reason": "The paired physical iPad was unavailable; matched iPad traces and the remaining domain/mixed captures are mandatory before F8-56 can complete."
+  },
+  "source": {
+    "revision": "55523941739eb170b2dbd18ac5f87a0c3a35fc58",
+    "dirty": false,
+    "branch": "work/F8-56/Thomass-MacBook-Air"
+  },
+  "device": {
+    "model": "MacBook Air (Mac16,12)",
+    "chip": "Apple M4",
+    "gpu": "Apple M4, 8 GPU cores",
+    "memory": "16 GB",
+    "operating_system": "macOS 26.5.2 (25F84)",
+    "metal_support": "Metal 4",
+    "metal_compiler": "Apple metal 32023.883"
+  },
+  "installed_identity": {
+    "path": "/Applications/ParallelMater Gallery.app",
+    "backend": "metal",
+    "execution_contract": "fixed-tick-60hz-v1",
+    "release_channel": "development-preview",
+    "dirty": false,
+    "renderer": "metal-direct-fenced",
+    "app_executable_sha256": "9ffb3e0969675013ee86930d8b1619a326933174be32eff99e8722d19d133118",
+    "driver_sha256": "00c6313f43ac39b044b677b9a14838ff159087829e81e4e0cf5c0a0a1a25434d",
+    "codesign_cdhash": "54dce6c0e69b6f552023c8561de23b0a81b7aae0"
+  },
+  "workload": {
+    "scene": "Rigid Body",
+    "rigid_body_count": 386,
+    "displayed_frames": 180,
+    "scene_priming_samples": 1,
+    "warmup_samples_excluded": 30,
+    "measured_ticks": 143,
+    "measured_frames": 149,
+    "fixed_timestep_hz": 60
+  },
+  "fixed_gates": {
+    "passed": true,
+    "dispatch_ceiling": 40,
+    "observed_dispatches_per_tick": 34,
+    "dependency_barrier_ceiling": 45,
+    "observed_dependency_barriers_per_tick": 35,
+    "cooperative_solve_dispatches": 1,
+    "cooperative_solve_workgroups": 1,
+    "legacy_staged_solver_dispatches": 0,
+    "host_waits": 0,
+    "readbacks_inside_realtime_tick": 0,
+    "submissions_per_tick": 1
+  },
+  "measured": {
+    "native_workgroups_per_tick": 4354,
+    "gpu_ms_per_tick": {
+      "p50": 8.455875,
+      "p95": 18.902042,
+      "p99": 99.373959
+    },
+    "cpu_record_ms_per_tick": {
+      "p50": 0.643542,
+      "p95": 0.762708,
+      "p99": 0.823209
+    },
+    "frame_ms": {
+      "p50": 16.705292,
+      "p95": 23.216,
+      "p99": 102.94975
+    },
+    "physics_host_wall_ms": {
+      "p50": 9.998959,
+      "p95": 20.980166,
+      "p99": 100.93625
+    },
+    "present_callback_ms": {
+      "p50": 2.994166,
+      "p95": 8.624334,
+      "p99": 12.559292
+    },
+    "simulation_to_wall_clock_rate": 0.8401356529179786,
+    "thermal_before": "no warning recorded",
+    "thermal_after": "no warning recorded"
+  },
+  "interpretation": {
+    "dispatch_reduction_gate": "passed",
+    "realtime_throughput_gate": "not established",
+    "note": "The 386-body capture confirms bounded native dispatch encoding, but its simulated-time/wall-time ratio is below 1.0. Dispatch reduction alone is not reported as a frame-rate improvement."
+  },
+  "baseline": {
+    "matched_legacy_gallery": "pending",
+    "matched_pre_fix_f8": "pending",
+    "note": "F8-54's retained 8-body public-runtime comparison is not presented as a matched 386-body Gallery performance baseline."
+  },
+  "artifacts": [
+    {
+      "path": "macos-metal-schedule.jsonl.gz",
+      "kind": "native-command-trace-gzip",
+      "compressed_sha256": "703ae627d0789afdda83e019d5d2edc9160aa3f4dc52cd6d1dd79d337a401b67",
+      "uncompressed_sha256": "13f39da002214b11183e4d6da85cf878035f5a72c0640979e06657c29deaf998"
+    },
+    {
+      "path": "macos-frame-timings.csv.gz",
+      "kind": "shared-gallery-frame-timing-gzip",
+      "compressed_sha256": "dfb2ee1f4572741ed8fef3470dc34dc20d3880cc795d32024d6c8d841f79e952",
+      "uncompressed_sha256": "d85007507a5471a5f652c29041e08df7c8c24aec1179653c9e75d95b6314a8c9"
+    },
+    {
+      "path": "macos-metal-schedule-evaluation.json",
+      "kind": "fixed-gate-evaluation",
+      "sha256": "51dafb13ed56009387c026b13661c1bd67569e4ea7a86b21dfcaae63d47cbb96"
+    },
+    {
+      "path": "macos-thermal.json",
+      "kind": "thermal-state",
+      "sha256": "ef603cedff1269f35fe547e625e92608308e0ca51fe4b8770f8e4fda3b10885b"
+    },
+    {
+      "path": "macos-build-info.json",
+      "kind": "build-identity",
+      "sha256": "4e6fbccc121bd74a1b72cc9cb8af5415c58e861ef1e5cdc7a1c104a492b7f947"
+    },
+    {
+      "path": "macos-smoke.log",
+      "kind": "installed-runtime-log",
+      "sha256": "a925081721ad782aa050af23c5ab6848341470c586feb092378c7a8956132642"
+    }
+  ],
+  "commands": [
+    "cmake --build build-macos-metal-preview --target refresh-macos-gallery-runtime -j 8",
+    "python3 scripts/Deploy-Gallery.py macos --app build-macos-metal-preview/ParallelMater Gallery.app --schedule-profile --output /private/tmp/pm-f856-macos-55523941",
+    "ctest --test-dir build-macos-metal-preview --output-on-failure -R ^parallel-mater-(slang-metal-realtime-tests|slang-metal-kernel-tests|slang-architecture|slang-metal-schedule-profile-tests)$"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "schema": "parallel-mater-macos-thermal-capture/v1",
+  "revision": "55523941739eb170b2dbd18ac5f87a0c3a35fc58",
+  "before": {
+    "measured_at_unix": 1793106143.461117,
+    "exit_code": 0,
+    "stdout": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n",
+    "stderr": ""
+  },
+  "after": {
+    "measured_at_unix": 1793106150.0788622,
+    "exit_code": 0,
+    "stdout": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded\n",
+    "stderr": ""
+  }
+}
