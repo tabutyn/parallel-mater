@@ -1,7 +1,7 @@
 {
   "id": "F8-56",
   "title": "Verify Gallery dispatch reductions on Mac and iPad",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-51",
     "F8-54",
@@ -25,6 +25,14 @@
     "Attach durable baseline and post-fix traces, evaluator inputs/results and exact source/artifact/toolchain identities. F8-52 freezes the tested source closure and budget artifact; protected drift requires fresh affected captures, and F8-28/F8-29 still qualify the exact final candidate."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "e9582cf9-afff-476b-8c7c-4cb68b0aa68d",
+    "owner": "codex-macos-gallery-qualification",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-56/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-27T12:27:36Z",
+    "heartbeat_at": "2026-10-27T12:27:36Z",
+    "expires_at": "2026-10-28T12:27:36Z"
+  },
   "history": []
 }
