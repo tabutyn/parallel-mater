@@ -1,0 +1,177 @@
+{
+  "schema": "parallel-mater-f8-56-device-evidence/v2",
+  "task": "F8-56",
+  "status": "complete",
+  "captured_at": "2026-10-27T23:56:09Z",
+  "tested_runtime_source": {
+    "revision": "632bf778bd958c46418e3b2692825d206c3b82c0",
+    "branch": "work/F8-56/Thomass-MacBook-Air",
+    "dirty": false,
+    "backend": "metal",
+    "execution_contract": "fixed-tick-60hz-v1",
+    "release_channel": "development-preview",
+    "build_number": 1906,
+    "slang_version": "2026.18"
+  },
+  "matched_prefix_source": {
+    "revision": "68600efe2c98f82924319729e436607d9835aa4c",
+    "dirty": false,
+    "relationship": "same F8 Gallery assets and sole 60 Hz schedule before resource dispatch batching"
+  },
+  "fixed_smoke_soft_body_gate": {
+    "dispatches_maximum": 288,
+    "workgroups_maximum": 67000,
+    "dependency_barriers_maximum": 672,
+    "declared_launches_maximum": 288,
+    "required_batch_kernels": {
+      "deformable_collide_batch": 8,
+      "reduce_point_body_impulses_batch": 8,
+      "soft_body_apply_contact_friction_batch": 8,
+      "smoke_soft_body_contact_batch": 8,
+      "smoke_grid_soft_body_force_batch": 8,
+      "pm_spatial_publish_epoch": 1
+    },
+    "forbidden_per_resource_kernels": [
+      "deformable_collide",
+      "reduce_point_body_impulses",
+      "soft_body_apply_contact_friction",
+      "smoke_soft_body_contact",
+      "smoke_grid_soft_body_force"
+    ],
+    "macos_passed": true,
+    "ipados_passed": true
+  },
+  "macos": {
+    "device": {
+      "model": "MacBook Air (Mac16,12)",
+      "chip": "Apple M4",
+      "gpu": "Apple M4, 8 GPU cores",
+      "memory": "16 GB",
+      "operating_system": "macOS 26.5.2 (25F84)"
+    },
+    "installed_identity": {
+      "path": "/Applications/ParallelMater Gallery.app",
+      "revision": "632bf778bd958c46418e3b2692825d206c3b82c0",
+      "backend": "metal",
+      "dirty": false,
+      "app_executable_sha256": "d05f0ee6ef75d37e29b084739ec542893f8aa5ff4bdde3c7f3ec62e24e09ef74",
+      "driver_sha256": "62271ca9eae4842a4f0f26962a4efe0aebfa7d0849e8f4c0350d6f338e49655e"
+    },
+    "gallery_suite": {
+      "passed": true,
+      "displayed_frames_per_scene": 180,
+      "measured_workloads": [
+        "rigid-386",
+        "fluid",
+        "cloth",
+        "soft-body",
+        "soft-body-fluid",
+        "smoke-soft-body"
+      ],
+      "rigid_386_fixed_gate": "passed",
+      "thermal_before": "no warning recorded",
+      "thermal_after": "no warning recorded"
+    },
+    "smoke_soft_body": {
+      "prefix": {
+        "dispatches_per_tick": 1277,
+        "workgroups_per_tick": 66707,
+        "dependency_barriers_per_tick": 1712,
+        "gpu_ms_p50": 23.84325,
+        "record_ms_p50": 34.244208,
+        "frame_ms_p50": 62.515792,
+        "simulation_to_wall_clock_rate": 0.2659565912698687
+      },
+      "postfix": {
+        "dispatches_per_tick": 269,
+        "workgroups_per_tick": 66563,
+        "dependency_barriers_per_tick": 632,
+        "gpu_ms_p50": 17.574583,
+        "record_ms_p50": 40.034292,
+        "frame_ms_p50": 62.312417,
+        "simulation_to_wall_clock_rate": 0.2656795216442481
+      },
+      "dispatch_reduction_percent": 78.935,
+      "barrier_reduction_percent": 63.084,
+      "gpu_p50_reduction_percent": 26.292
+    }
+  },
+  "ipados": {
+    "device": "Apple M1 GPU - Metal GPU preview (qualification incomplete)",
+    "installed_identity": {
+      "revision": "632bf778bd958c46418e3b2692825d206c3b82c0",
+      "backend": "metal",
+      "dirty": false,
+      "app_executable_sha256": "6c21f95814f1957365c0b32bf0b4a8b8cdbd3c5dc4e965275bb1cc6805fcc35e",
+      "driver_sha256": "50baabc19940963250ae668471cccb60980e67beda99bf702bf041fba097a72b"
+    },
+    "gallery_qualification": {
+      "passed": true,
+      "scenes_total": 28,
+      "scenes_available_and_passed": 21,
+      "frames_per_scene": 30,
+      "pause_reset_controls": "passed",
+      "background_foreground_recovery": "passed",
+      "simulation_advanced_while_backgrounded": false
+    },
+    "physics_qualification": {
+      "failed": 0,
+      "completed": 28,
+      "unsupported_not_advertised": 2,
+      "rigid_brick_quality": "passed",
+      "fluid_rope_quality": "passed",
+      "adverse_lifecycle": "2 cases, 9 checkpoints, 0 failures"
+    },
+    "smoke_soft_body": {
+      "prefix": {
+        "dispatches_per_tick": 1277,
+        "workgroups_per_tick": 63204,
+        "dependency_barriers_per_tick": 1712,
+        "gpu_ms_p50": 47.21675,
+        "record_ms_p50": 53.404375,
+        "frame_ms_p50": 104.1179585,
+        "simulation_to_wall_clock_rate": 0.15940947683042508
+      },
+      "postfix": {
+        "dispatches_per_tick": 269,
+        "workgroups_per_tick": 63060,
+        "dependency_barriers_per_tick": 632,
+        "gpu_ms_p50": 32.29525,
+        "record_ms_p50": 68.79975,
+        "frame_ms_p50": 104.8550415,
+        "simulation_to_wall_clock_rate": 0.15889848605621446
+      },
+      "dispatch_reduction_percent": 78.935,
+      "barrier_reduction_percent": 63.084,
+      "gpu_p50_reduction_percent": 31.603
+    }
+  },
+  "interpretation": {
+    "dispatch_reduction_gate": "passed",
+    "single_spatial_publication_gate": "passed",
+    "native_public_counter_reconciliation": "passed",
+    "host_waits_inside_realtime_tick": 0,
+    "readbacks_inside_realtime_tick": 0,
+    "frame_throughput_claim": "not established",
+    "note": "Native launch and barrier costs fell substantially and GPU p50 improved on both devices. Record relocation became the dominant host cost, so total smoke/soft-body frame time and simulated-time/wall-time ratio did not materially improve. The evidence establishes dispatch reduction and preserved qualification, not a 60 FPS claim for this overload scene."
+  },
+  "raw_trace_identity": {
+    "macos_prefix_uncompressed_sha256": "ed38ef688e28e3d69b24c9564d7b598c2f5bdb100d6bf21ddce0a67d59183726",
+    "macos_prefix_compressed_sha256": "0e204a25b7b30b153977773df049af5144424a397a26a4988ecb00f16717b2ae",
+    "macos_postfix_uncompressed_sha256": "47ad035d4d522c19e62766e5f7f54e8c8a42c00ea011a7bbd031fba5e7264fc6",
+    "macos_postfix_compressed_sha256": "d3dbe1ae1b3222784d2b3545982906d79374ef5c9e2570e411812907f72b2ac1",
+    "ipados_prefix_uncompressed_sha256": "d5a7eeab1cd18f74ee52398827ce33ecb35e31f41b9aab3b88a3b2ebc793aca0",
+    "ipados_prefix_compressed_sha256": "f12079fd84e87ea6a56dc095858e4b271118ba447b8b9bee2b4c4ce37d9ba4f1",
+    "ipados_postfix_uncompressed_sha256": "71495723233a825fc6949329defbcf437326b16ba3eb44cf01d0b1482f3b36f0",
+    "ipados_postfix_compressed_sha256": "44fad08be3763cc9ca628ccb7d5f813c55cea6e890d6839de6a004b37302fdb4"
+  },
+  "verification": [
+    "PASS: full macOS build plus CUDA and Vulkan Slang mirror validation",
+    "PASS: focused Metal realtime, kernel, schedule-profile and architecture suite 4/4",
+    "PASS: Mac installed Gallery suite 6/6 workloads at exact clean revision",
+    "PASS: iPad Gallery 28/28 scene decisions with all 21 available scenes passing",
+    "PASS: iPad native/public schedule reconciliation across 21 available scenes",
+    "PASS: iPad canonical physics 28 completed, 2 unsupported-not-advertised, 0 failed",
+    "PASS: independent rigid, fluid/rope and adverse-lifecycle host oracles"
+  ]
+}

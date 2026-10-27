@@ -1,0 +1,15 @@
+{
+  "backend": "metal",
+  "nonce": "11c0328d-4d8c-42ee-8191-469e44e508fd",
+  "active": true,
+  "release_channel": "development-preview",
+  "revision": "632bf778bd958c46418e3b2692825d206c3b82c0",
+  "renderer": "Metal GPU renderer",
+  "background_frames": 121,
+  "execution_contract": "fixed-tick-60hz-v1",
+  "foregrounds": 2,
+  "frames": 121,
+  "pid": 19494,
+  "device": "Apple M1 GPU - Metal GPU preview (qualification incomplete)",
+  "backgrounds": 1
+}

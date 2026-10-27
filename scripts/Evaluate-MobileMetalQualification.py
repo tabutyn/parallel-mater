@@ -30,10 +30,37 @@ REQUIRED_COVERAGE = (
     "soft-body-fluid",
     "smoke-soft-body",
 )
-RIGID_CEILING = {
-    "dispatches": 40,
-    "dependency_barriers": 45,
-    "declared_launches": 40,
+FIXED_CEILINGS = {
+    "rigid-body": {
+        "dispatches": 40,
+        "dependency_barriers": 45,
+        "declared_launches": 40,
+    },
+    "smoke-soft-body": {
+        "dispatches": 288,
+        "workgroups": 67000,
+        "dependency_barriers": 672,
+        "declared_launches": 288,
+    },
+}
+KERNEL_GATES = {
+    "smoke-soft-body": {
+        "required": {
+            "deformable_collide_batch": 8,
+            "reduce_point_body_impulses_batch": 8,
+            "soft_body_apply_contact_friction_batch": 8,
+            "smoke_soft_body_contact_batch": 8,
+            "smoke_grid_soft_body_force_batch": 8,
+            "pm_spatial_publish_epoch": 1,
+        },
+        "forbidden": {
+            "deformable_collide",
+            "reduce_point_body_impulses",
+            "soft_body_apply_contact_friction",
+            "smoke_soft_body_contact",
+            "smoke_grid_soft_body_force",
+        },
+    },
 }
 
 
@@ -122,6 +149,19 @@ def validate_native_profile(profile, scene_id, expected):
             sum(item.get("workgroups", -1) for item in kernels) !=
             profile["workgroups"]):
         raise ValueError(f"{scene_id}: native kernel totals disagree")
+    gate = KERNEL_GATES.get(scene_id)
+    if gate:
+        by_name = {item["name"]: item for item in kernels}
+        for name, dispatches in gate["required"].items():
+            if (name not in by_name or
+                    by_name[name].get("dispatches") != dispatches):
+                raise ValueError(
+                    f"{scene_id}: required batch kernel gate failed: {name}")
+        forbidden = sorted(gate["forbidden"] & set(by_name))
+        if forbidden:
+            raise ValueError(
+                f"{scene_id}: forbidden legacy kernels: " +
+                ", ".join(forbidden))
     phases = profile.get("phases")
     if not isinstance(phases, list) or not phases:
         raise ValueError(f"{scene_id}: native phase capture is missing")
@@ -211,19 +251,21 @@ def evaluate(report, profiles, assets):
                 "wait_ms", "submit_to_fence_ms")
         }
         fixed_gate = None
-        if scene["id"] == "rigid-body":
+        ceiling = FIXED_CEILINGS.get(scene["id"])
+        if ceiling:
             failures = {
                 field: {"observed": native[field]["maximum"], "maximum": maximum}
-                for field, maximum in RIGID_CEILING.items()
+                for field, maximum in ceiling.items()
                 if native[field]["maximum"] > maximum
             }
             fixed_gate = {
-                "ceiling": RIGID_CEILING,
+                "ceiling": ceiling,
                 "passed": not failures,
                 "failures": failures,
             }
             if failures:
-                raise ValueError("rigid-body: frozen dispatch ceiling failed")
+                raise ValueError(
+                    f"{scene['id']}: frozen native-work ceiling failed")
         results.append({
             "id": scene["id"],
             "scene": scene["scene"],

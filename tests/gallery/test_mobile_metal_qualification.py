@@ -37,6 +37,12 @@ def available_scene(identifier, offset):
         "coupling_edges": 0,
         "coupling_sweeps": 0,
     }
+    if identifier == "smoke-soft-body":
+        work.update({
+            "dispatches": 269,
+            "workgroups": 63060,
+            "barriers": 632,
+        })
     timing = {
         phase: {field: 1.0 for field in ("mean", "p50", "p95", "p99")}
         for phase in ("frame", "physics", "render", "present")
@@ -71,7 +77,7 @@ def available_scene(identifier, offset):
     }
 
 
-def native_profile(context, schedule, work):
+def native_profile(context, schedule, work, identifier):
     phase = {
         "dispatches": work["dispatches"],
         "workgroups": work["workgroups"],
@@ -83,6 +89,19 @@ def native_profile(context, schedule, work):
         "bytes_moved": work["bytes_moved"],
         "declared_launches": work["dispatches"],
     }
+    kernels = [{"name": "kernel", "dispatches": work["dispatches"],
+                "workgroups": work["workgroups"]}]
+    if identifier == "smoke-soft-body":
+        required = mobile_metal.KERNEL_GATES[identifier]["required"]
+        required_dispatches = sum(required.values())
+        kernels = [{"name": name, "dispatches": count,
+                    "workgroups": count}
+                   for name, count in required.items()]
+        kernels.append({
+            "name": "remaining_shared_schedule",
+            "dispatches": work["dispatches"] - required_dispatches,
+            "workgroups": work["workgroups"] - required_dispatches,
+        })
     return {
         "schema": mobile_metal.PROFILE_SCHEMA,
         "context": context,
@@ -93,8 +112,7 @@ def native_profile(context, schedule, work):
         "gpu_timing_status": "supported",
         "instrumentation": {
             "timestamp_queries": 0, "forced_waits": 0, "result_bytes": 0},
-        "kernels": [{"name": "kernel", "dispatches": work["dispatches"],
-                     "workgroups": work["workgroups"]}],
+        "kernels": kernels,
         "phases": [phase],
         "gpu_ms": 1.0,
         "record_ms": 0.1,
@@ -114,7 +132,7 @@ class MobileMetalQualificationTests(unittest.TestCase):
             scenes.append(scene)
             (assets / scene["scene_asset"]).write_bytes(identifier.encode())
             profiles.extend(native_profile(index + 1, schedule,
-                                           scene["realtime_work"])
+                                           scene["realtime_work"], identifier)
                             for schedule in range(1, 6))
         for index in range(28 - len(scenes)):
             scenes.append({
@@ -145,6 +163,7 @@ class MobileMetalQualificationTests(unittest.TestCase):
             self.assertTrue(result["passed"])
             self.assertEqual(len(result["scenes"]), len(mobile_metal.REQUIRED_COVERAGE))
             self.assertTrue(result["scenes"][0]["fixed_gate"]["passed"])
+            self.assertTrue(result["scenes"][-1]["fixed_gate"]["passed"])
 
     def test_rejects_native_public_counter_drift(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -152,6 +171,15 @@ class MobileMetalQualificationTests(unittest.TestCase):
             report, profiles = self.fixture(assets)
             profiles[1]["dispatches"] += 1
             with self.assertRaisesRegex(ValueError, "no bounded native context"):
+                mobile_metal.evaluate(report, profiles, assets)
+
+    def test_rejects_legacy_smoke_soft_body_resource_loop(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            assets = pathlib.Path(temporary)
+            report, profiles = self.fixture(assets)
+            smoke_profile = profiles[-4]
+            smoke_profile["kernels"][-1]["name"] = "deformable_collide"
+            with self.assertRaisesRegex(ValueError, "forbidden legacy"):
                 mobile_metal.evaluate(report, profiles, assets)
 
 

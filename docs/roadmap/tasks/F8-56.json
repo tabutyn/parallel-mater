@@ -1,7 +1,7 @@
 {
   "id": "F8-56",
   "title": "Verify Gallery dispatch reductions on Mac and iPad",
-  "status": "leased",
+  "status": "done",
   "dependencies": [
     "F8-51",
     "F8-54",
@@ -24,15 +24,35 @@
     "Verify installed Mac Dock and iPad app revision/backend/binary identities and ordinary startup on the sole schedule. Both physical devices must run; unavailable hardware, failed quality, missed ceilings or reduced workloads keep this task incomplete.",
     "Attach durable baseline and post-fix traces, evaluator inputs/results and exact source/artifact/toolchain identities. F8-52 freezes the tested source closure and budget artifact; protected drift requires fresh affected captures, and F8-28/F8-29 still qualify the exact final candidate."
   ],
-  "evidence": [],
-  "lease": {
-    "token": "e9582cf9-afff-476b-8c7c-4cb68b0aa68d",
-    "owner": "codex-macos-gallery-qualification",
-    "machine": "Thomass-MacBook-Air",
-    "branch": "work/F8-56/Thomass-MacBook-Air",
-    "claimed_at": "2026-10-27T12:27:36Z",
-    "heartbeat_at": "2026-10-27T12:27:36Z",
-    "expires_at": "2026-10-28T12:27:36Z"
-  },
-  "history": []
+  "evidence": [
+    "PASS: docs/roadmap/evidence/F8-56-apple-gallery-dispatch/summary.json records matched clean prefix 68600efe and post-fix 632bf778 physical Apple-device captures, exact installed binary/driver identities, raw trace hashes and evaluator results",
+    "PASS: smoke-soft-body native dispatches fell 1277 to 269 and dependency barriers 1712 to 632 on both Mac M4 and iPad M1; fixed 288-dispatch, 67000-workgroup, 672-barrier and 288-declared-launch ceilings passed with required batch kernels and forbidden legacy per-resource kernels",
+    "PASS: installed Mac Gallery ran rigid-386, fluid, cloth, soft-body, soft-body-fluid and smoke-soft-body for 180 frames each; installed iPad Gallery passed all 21 available scenes, controls, background recovery and native/public counter reconciliation",
+    "PASS: iPad canonical physics completed 28 cases with 2 unsupported-not-advertised and 0 failures; independent rigid-brick, fluid/rope and adverse-lifecycle quality oracles passed",
+    "QUALIFIED CLAIM: GPU p50 improved 26.292 percent on Mac and 31.603 percent on iPad, but host record relocation offset it, so this evidence establishes dispatch reduction and preserved quality rather than improved total frame throughput"
+  ],
+  "lease": null,
+  "history": [
+    {
+      "lease": {
+        "token": "e9582cf9-afff-476b-8c7c-4cb68b0aa68d",
+        "owner": "codex-macos-gallery-qualification",
+        "machine": "Thomass-MacBook-Air",
+        "branch": "work/F8-56/Thomass-MacBook-Air",
+        "claimed_at": "2026-10-27T12:27:36Z",
+        "heartbeat_at": "2026-10-27T12:27:36Z",
+        "expires_at": "2026-10-28T12:27:36Z"
+      },
+      "outcome": "completed",
+      "at": "2026-10-27T23:56:09Z",
+      "reason": "Verified fixed dispatch and barrier reductions with matched native captures on installed Mac and iPad Galleries while preserving cross-domain physics qualification",
+      "evidence": [
+        "PASS: docs/roadmap/evidence/F8-56-apple-gallery-dispatch/summary.json records matched clean prefix 68600efe and post-fix 632bf778 physical Apple-device captures, exact installed binary/driver identities, raw trace hashes and evaluator results",
+        "PASS: smoke-soft-body native dispatches fell 1277 to 269 and dependency barriers 1712 to 632 on both Mac M4 and iPad M1; fixed 288-dispatch, 67000-workgroup, 672-barrier and 288-declared-launch ceilings passed with required batch kernels and forbidden legacy per-resource kernels",
+        "PASS: installed Mac Gallery ran rigid-386, fluid, cloth, soft-body, soft-body-fluid and smoke-soft-body for 180 frames each; installed iPad Gallery passed all 21 available scenes, controls, background recovery and native/public counter reconciliation",
+        "PASS: iPad canonical physics completed 28 cases with 2 unsupported-not-advertised and 0 failures; independent rigid-brick, fluid/rope and adverse-lifecycle quality oracles passed",
+        "QUALIFIED CLAIM: GPU p50 improved 26.292 percent on Mac and 31.603 percent on iPad, but host record relocation offset it, so this evidence establishes dispatch reduction and preserved quality rather than improved total frame throughput"
+      ]
+    }
+  ]
 }

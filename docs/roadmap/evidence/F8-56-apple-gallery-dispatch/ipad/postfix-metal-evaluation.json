@@ -1,0 +1,4015 @@
+{
+  "artifacts": {
+    "build_info_sha256": "a33786b4b9f5a861d31ab4892edf1e9874305f3f1d8fb527d4544359e2befd3c",
+    "native_profile_sha256": "71495723233a825fc6949329defbcf437326b16ba3eb44cf01d0b1482f3b36f0",
+    "qualification_sha256": "f284a2c8ddfe608558bdb72374767c45d6d2bd6ac4b8a0aca526854db18b9ed5"
+  },
+  "build_info": {
+    "backend": "metal",
+    "build_number": 1906,
+    "dirty": false,
+    "execution_contract": "fixed-tick-60hz-v1",
+    "logo_sha256": "1741f9d7759b2af13255f92a97dbb27a9e50854db634bf1cf3823b455a9e90d3",
+    "release_channel": "development-preview",
+    "revision": "632bf778bd958c46418e3b2692825d206c3b82c0",
+    "schema_version": 2
+  },
+  "device": "Apple M1 GPU - Metal GPU preview (qualification incomplete)",
+  "installed_binary_identity": {
+    "app_executable_sha256": "6c21f95814f1957365c0b32bf0b4a8b8cdbd3c5dc4e965275bb1cc6805fcc35e",
+    "driver_sha256": "50baabc19940963250ae668471cccb60980e67beda99bf702bf041fba097a72b"
+  },
+  "measurement_contract": {
+    "fixed_tick_hz": 60,
+    "frames_per_scene": 30,
+    "initialization_samples_excluded_per_scene": 1,
+    "instrumentation_forced_waits": 0,
+    "instrumentation_timestamp_queries": 0,
+    "native_profile_schema": "parallel-mater-metal-schedule-profile/v1",
+    "native_public_counter_reconciliation": true,
+    "resume_samples_excluded_per_scene": 1
+  },
+  "passed": true,
+  "required_coverage": [
+    "rigid-body",
+    "fluid",
+    "cloth",
+    "soft-body",
+    "soft-body-fluid",
+    "smoke-soft-body"
+  ],
+  "scenes": [
+    {
+      "fixed_gate": {
+        "ceiling": {
+          "declared_launches": 40,
+          "dependency_barriers": 45,
+          "dispatches": 40
+        },
+        "failures": {},
+        "passed": true
+      },
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 6.381397100000002,
+          "p50": 5.939500000000001,
+          "p95": 9.100458,
+          "p99": 14.763166
+        },
+        "physics": {
+          "mean": 5.091570833333335,
+          "p50": 4.692854499999999,
+          "p95": 7.573291,
+          "p99": 12.479292
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 1.2896207333333332,
+          "p50": 0.980583,
+          "p95": 2.482334,
+          "p99": 2.650917
+        }
+      },
+      "id": "rigid-body",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 78283448,
+      "native_context": 10,
+      "native_minus_public_per_tick": {
+        "barriers": -6.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 11040.0,
+        "dependency_barriers": 2160.0,
+        "dispatches": 2100.0,
+        "workgroups": 13560.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 184,
+          "mean": 184.0,
+          "minimum": 184,
+          "p50": 184,
+          "p95": 184,
+          "p99": 184
+        },
+        "declared_launches": {
+          "maximum": 35,
+          "mean": 35.0,
+          "minimum": 35,
+          "p50": 35,
+          "p95": 35,
+          "p99": 35
+        },
+        "dependency_barriers": {
+          "maximum": 36,
+          "mean": 36.0,
+          "minimum": 36,
+          "p50": 36,
+          "p95": 36,
+          "p99": 36
+        },
+        "dependency_ranges": {
+          "maximum": 71,
+          "mean": 71.0,
+          "minimum": 71,
+          "p50": 71,
+          "p95": 71,
+          "p99": 71
+        },
+        "dispatches": {
+          "maximum": 35,
+          "mean": 35.0,
+          "minimum": 35,
+          "p50": 35,
+          "p95": 35,
+          "p99": 35
+        },
+        "gpu_ms": {
+          "maximum": 4.648583,
+          "mean": 2.5675166666666667,
+          "minimum": 1.45975,
+          "p50": 2.403375,
+          "p95": 4.226125,
+          "p99": 4.648583
+        },
+        "record_ms": {
+          "maximum": 1.455291,
+          "mean": 1.0166458,
+          "minimum": 0.925791,
+          "p50": 0.969833,
+          "p95": 1.278834,
+          "p99": 1.455291
+        },
+        "submit_ms": {
+          "maximum": 0.045042,
+          "mean": 0.007148566666666667,
+          "minimum": 0.004292,
+          "p50": 0.005417,
+          "p95": 0.009208,
+          "p99": 0.045042
+        },
+        "submit_to_fence_ms": {
+          "maximum": 4.941333,
+          "mean": 2.8428957,
+          "minimum": 1.675875,
+          "p50": 2.678875,
+          "p95": 4.5985,
+          "p99": 4.941333
+        },
+        "transfer_commands": {
+          "maximum": 7,
+          "mean": 7.0,
+          "minimum": 7,
+          "p50": 7,
+          "p95": 7,
+          "p99": 7
+        },
+        "wait_ms": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "workgroups": {
+          "maximum": 226,
+          "mean": 226.0,
+          "minimum": 226,
+          "p50": 226,
+          "p95": 226,
+          "p99": 226
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 42,
+        "bytes_moved": 184,
+        "coupling_edges": 0,
+        "coupling_sweeps": 0,
+        "dispatches": 35,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 0,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 8,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 226
+      },
+      "requirements": "rigidBodies",
+      "scene": "RIGID BODY",
+      "scene_asset": "RigidBody.glb",
+      "scene_asset_sha256": "0167a7f3f91ca57703e74996c9c99051c0ed8793fd50aa59adaab3c304b7dd09",
+      "simulation_to_wall_clock_rate": 2.6117584088131838,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 2,
+        "peak_particle_count": 0,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 27.4775278,
+          "p50": 26.9410415,
+          "p95": 35.097375,
+          "p99": 37.935
+        },
+        "physics": {
+          "mean": 26.521484733333338,
+          "p50": 25.97,
+          "p95": 34.222583,
+          "p99": 36.883667
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0.9559097000000001,
+          "p50": 0.9398960000000001,
+          "p95": 1.051167,
+          "p99": 1.272667
+        }
+      },
+      "id": "constraint-fixed",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 74842808,
+      "native_context": 13,
+      "native_minus_public_per_tick": {
+        "barriers": -6.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 172320.0,
+        "dependency_barriers": 2160.0,
+        "dispatches": 2100.0,
+        "workgroups": 51420.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 2872,
+          "mean": 2872.0,
+          "minimum": 2872,
+          "p50": 2872,
+          "p95": 2872,
+          "p99": 2872
+        },
+        "declared_launches": {
+          "maximum": 35,
+          "mean": 35.0,
+          "minimum": 35,
+          "p50": 35,
+          "p95": 35,
+          "p99": 35
+        },
+        "dependency_barriers": {
+          "maximum": 36,
+          "mean": 36.0,
+          "minimum": 36,
+          "p50": 36,
+          "p95": 36,
+          "p99": 36
+        },
+        "dependency_ranges": {
+          "maximum": 262,
+          "mean": 262.0,
+          "minimum": 262,
+          "p50": 262,
+          "p95": 262,
+          "p99": 262
+        },
+        "dispatches": {
+          "maximum": 35,
+          "mean": 35.0,
+          "minimum": 35,
+          "p50": 35,
+          "p95": 35,
+          "p99": 35
+        },
+        "gpu_ms": {
+          "maximum": 21.086375,
+          "mean": 11.011963900000001,
+          "minimum": 4.56875,
+          "p50": 10.306208,
+          "p95": 18.592,
+          "p99": 21.086375
+        },
+        "record_ms": {
+          "maximum": 14.043834,
+          "mean": 13.750688866666668,
+          "minimum": 13.620833,
+          "p50": 13.696917,
+          "p95": 14.038834,
+          "p99": 14.043834
+        },
+        "submit_ms": {
+          "maximum": 0.008042,
+          "mean": 0.005759633333333333,
+          "minimum": 0.004916,
+          "p50": 0.005666,
+          "p95": 0.007333,
+          "p99": 0.008042
+        },
+        "submit_to_fence_ms": {
+          "maximum": 21.652459,
+          "mean": 11.507636100000001,
+          "minimum": 5.154875,
+          "p50": 10.799167,
+          "p95": 19.03875,
+          "p99": 21.652459
+        },
+        "transfer_commands": {
+          "maximum": 7,
+          "mean": 7.0,
+          "minimum": 7,
+          "p50": 7,
+          "p95": 7,
+          "p99": 7
+        },
+        "wait_ms": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "workgroups": {
+          "maximum": 857,
+          "mean": 857.0,
+          "minimum": 857,
+          "p50": 857,
+          "p95": 857,
+          "p99": 857
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 42,
+        "bytes_moved": 2872,
+        "coupling_edges": 0,
+        "coupling_sweeps": 0,
+        "dispatches": 35,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 0,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 8,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 857
+      },
+      "requirements": "rigidBodies, rigidConstraints",
+      "scene": "CONSTRAINT: FIXED",
+      "scene_asset": "ConstraintFixed.glb",
+      "scene_asset_sha256": "c4aa05878338908ac420a059f4de25b767c4a1f3b573c5f41aee6841e5852bdc",
+      "simulation_to_wall_clock_rate": 0.6065562978304427,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 50,
+        "peak_particle_count": 0,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 7.7707875333333325,
+          "p50": 6.7703545,
+          "p95": 14.429084,
+          "p99": 15.801291
+        },
+        "physics": {
+          "mean": 6.7962347,
+          "p50": 5.811916999999999,
+          "p95": 13.557417,
+          "p99": 14.919791
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0.9744485666666667,
+          "p50": 0.95625,
+          "p95": 1.065959,
+          "p99": 1.492167
+        }
+      },
+      "id": "constraint-point",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 197968568,
+      "native_context": 16,
+      "native_minus_public_per_tick": {
+        "barriers": -6.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 21120.0,
+        "dependency_barriers": 2220.0,
+        "dispatches": 2160.0,
+        "workgroups": 49260.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 352,
+          "mean": 352.0,
+          "minimum": 352,
+          "p50": 352,
+          "p95": 352,
+          "p99": 352
+        },
+        "declared_launches": {
+          "maximum": 36,
+          "mean": 36.0,
+          "minimum": 36,
+          "p50": 36,
+          "p95": 36,
+          "p99": 36
+        },
+        "dependency_barriers": {
+          "maximum": 37,
+          "mean": 37.0,
+          "minimum": 37,
+          "p50": 37,
+          "p95": 37,
+          "p99": 37
+        },
+        "dependency_ranges": {
+          "maximum": 83,
+          "mean": 83.0,
+          "minimum": 83,
+          "p50": 83,
+          "p95": 83,
+          "p99": 83
+        },
+        "dispatches": {
+          "maximum": 36,
+          "mean": 36.0,
+          "minimum": 36,
+          "p50": 36,
+          "p95": 36,
+          "p99": 36
+        },
+        "gpu_ms": {
+          "maximum": 12.23275,
+          "mean": 4.1017569,
+          "minimum": 2.076375,
+          "p50": 3.418083,
+          "p95": 10.9175,
+          "p99": 12.23275
+        },
+        "record_ms": {
+          "maximum": 1.328083,
+          "mean": 1.1993388333333332,
+          "minimum": 1.163417,
+          "p50": 1.189166,
+          "p95": 1.24925,
+          "p99": 1.328083
+        },
+        "submit_ms": {
+          "maximum": 0.007667,
+          "mean": 0.005992966666666667,
+          "minimum": 0.0045,
+          "p50": 0.006334,
+          "p95": 0.007625,
+          "p99": 0.007667
+        },
+        "submit_to_fence_ms": {
+          "maximum": 12.490959,
+          "mean": 4.373812566666667,
+          "minimum": 2.32,
+          "p50": 3.637541,
+          "p95": 11.186042,
+          "p99": 12.490959
+        },
+        "transfer_commands": {
+          "maximum": 7,
+          "mean": 7.0,
+          "minimum": 7,
+          "p50": 7,
+          "p95": 7,
+          "p99": 7
+        },
+        "wait_ms": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "workgroups": {
+          "maximum": 821,
+          "mean": 821.0,
+          "minimum": 821,
+          "p50": 821,
+          "p95": 821,
+          "p99": 821
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 43,
+        "bytes_moved": 352,
+        "coupling_edges": 0,
+        "coupling_sweeps": 0,
+        "dispatches": 36,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 0,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 8,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 821
+      },
+      "requirements": "rigidBodies, rigidConstraints",
+      "scene": "CONSTRAINT: POINT",
+      "scene_asset": "Celestial.glb",
+      "scene_asset_sha256": "79c0b0207ef5cf5557cb186c758654600c6d347b7557026bb0a3fef9fef8522a",
+      "simulation_to_wall_clock_rate": 2.144784870826572,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 4,
+        "peak_particle_count": 0,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 11.4270293,
+          "p50": 11.359729,
+          "p95": 12.886708,
+          "p99": 16.300375
+        },
+        "physics": {
+          "mean": 10.485487499999998,
+          "p50": 10.4159165,
+          "p95": 11.904125,
+          "p99": 14.939167
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0.9414139333333333,
+          "p50": 0.9192290000000001,
+          "p95": 1.053917,
+          "p99": 1.360959
+        }
+      },
+      "id": "constraint-hinge",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 197477048,
+      "native_context": 19,
+      "native_minus_public_per_tick": {
+        "barriers": -6.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 21120.0,
+        "dependency_barriers": 2220.0,
+        "dispatches": 2160.0,
+        "workgroups": 49260.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 352,
+          "mean": 352.0,
+          "minimum": 352,
+          "p50": 352,
+          "p95": 352,
+          "p99": 352
+        },
+        "declared_launches": {
+          "maximum": 36,
+          "mean": 36.0,
+          "minimum": 36,
+          "p50": 36,
+          "p95": 36,
+          "p99": 36
+        },
+        "dependency_barriers": {
+          "maximum": 37,
+          "mean": 37.0,
+          "minimum": 37,
+          "p50": 37,
+          "p95": 37,
+          "p99": 37
+        },
+        "dependency_ranges": {
+          "maximum": 83,
+          "mean": 83.0,
+          "minimum": 83,
+          "p50": 83,
+          "p95": 83,
+          "p99": 83
+        },
+        "dispatches": {
+          "maximum": 36,
+          "mean": 36.0,
+          "minimum": 36,
+          "p50": 36,
+          "p95": 36,
+          "p99": 36
+        },
+        "gpu_ms": {
+          "maximum": 12.116375,
+          "mean": 7.831772166666666,
+          "minimum": 6.394375,
+          "p50": 7.752833,
+          "p95": 9.18375,
+          "p99": 12.116375
+        },
+        "record_ms": {
+          "maximum": 1.320042,
+          "mean": 1.1909055666666668,
+          "minimum": 1.149375,
+          "p50": 1.181333,
+          "p95": 1.305959,
+          "p99": 1.320042
+        },
+        "submit_ms": {
+          "maximum": 0.007208,
+          "mean": 0.005323533333333334,
+          "minimum": 0.00425,
+          "p50": 0.005125,
+          "p95": 0.007125,
+          "p99": 0.007208
+        },
+        "submit_to_fence_ms": {
+          "maximum": 12.372666,
+          "mean": 8.119229299999999,
+          "minimum": 6.726291,
+          "p50": 8.002042,
+          "p95": 9.587292,
+          "p99": 12.372666
+        },
+        "transfer_commands": {
+          "maximum": 7,
+          "mean": 7.0,
+          "minimum": 7,
+          "p50": 7,
+          "p95": 7,
+          "p99": 7
+        },
+        "wait_ms": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "workgroups": {
+          "maximum": 821,
+          "mean": 821.0,
+          "minimum": 821,
+          "p50": 821,
+          "p95": 821,
+          "p99": 821
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 43,
+        "bytes_moved": 352,
+        "coupling_edges": 0,
+        "coupling_sweeps": 0,
+        "dispatches": 36,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 0,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 8,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 821
+      },
+      "requirements": "rigidBodies, rigidConstraints",
+      "scene": "CONSTRAINT: HINGE + SLIDER",
+      "scene_asset": "ConstraintHinge.glb",
+      "scene_asset_sha256": "db5447b00a33d29990e2f0d441d154c0509dee99689fc940261c1c92c2fe2a20",
+      "simulation_to_wall_clock_rate": 1.4585302179894708,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 4,
+        "peak_particle_count": 0,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 6.459015333333332,
+          "p50": 6.361458,
+          "p95": 6.832541,
+          "p99": 8.678709
+        },
+        "physics": {
+          "mean": 5.487883366666667,
+          "p50": 5.406979,
+          "p95": 5.8775,
+          "p99": 7.257208
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0.9710069333333334,
+          "p50": 0.957021,
+          "p95": 1.016708,
+          "p99": 1.421125
+        }
+      },
+      "id": "constraint-piston",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 82379448,
+      "native_context": 22,
+      "native_minus_public_per_tick": {
+        "barriers": -6.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 11040.0,
+        "dependency_barriers": 2220.0,
+        "dispatches": 2160.0,
+        "workgroups": 13620.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 184,
+          "mean": 184.0,
+          "minimum": 184,
+          "p50": 184,
+          "p95": 184,
+          "p99": 184
+        },
+        "declared_launches": {
+          "maximum": 36,
+          "mean": 36.0,
+          "minimum": 36,
+          "p50": 36,
+          "p95": 36,
+          "p99": 36
+        },
+        "dependency_barriers": {
+          "maximum": 37,
+          "mean": 37.0,
+          "minimum": 37,
+          "p50": 37,
+          "p95": 37,
+          "p99": 37
+        },
+        "dependency_ranges": {
+          "maximum": 72,
+          "mean": 72.0,
+          "minimum": 72,
+          "p50": 72,
+          "p95": 72,
+          "p99": 72
+        },
+        "dispatches": {
+          "maximum": 36,
+          "mean": 36.0,
+          "minimum": 36,
+          "p50": 36,
+          "p95": 36,
+          "p99": 36
+        },
+        "gpu_ms": {
+          "maximum": 4.64175,
+          "mean": 3.1562208333333337,
+          "minimum": 2.968708,
+          "p50": 3.115042,
+          "p95": 3.125,
+          "p99": 4.64175
+        },
+        "record_ms": {
+          "maximum": 1.050834,
+          "mean": 0.9432695333333334,
+          "minimum": 0.90775,
+          "p50": 0.93625,
+          "p95": 1.015375,
+          "p99": 1.050834
+        },
+        "submit_ms": {
+          "maximum": 0.007458,
+          "mean": 0.004952733333333333,
+          "minimum": 0.003958,
+          "p50": 0.004667,
+          "p95": 0.007208,
+          "p99": 0.007458
+        },
+        "submit_to_fence_ms": {
+          "maximum": 4.923,
+          "mean": 3.4164499999999998,
+          "minimum": 3.237458,
+          "p50": 3.373208,
+          "p95": 3.41675,
+          "p99": 4.923
+        },
+        "transfer_commands": {
+          "maximum": 7,
+          "mean": 7.0,
+          "minimum": 7,
+          "p50": 7,
+          "p95": 7,
+          "p99": 7
+        },
+        "wait_ms": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "workgroups": {
+          "maximum": 227,
+          "mean": 227.0,
+          "minimum": 227,
+          "p50": 227,
+          "p95": 227,
+          "p99": 227
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 43,
+        "bytes_moved": 184,
+        "coupling_edges": 0,
+        "coupling_sweeps": 0,
+        "dispatches": 36,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 0,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 8,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 227
+      },
+      "requirements": "rigidBodies, rigidConstraints",
+      "scene": "CONSTRAINT: PISTON",
+      "scene_asset": "ConstraintPiston.glb",
+      "scene_asset_sha256": "48dcc6b5e0241592f0cc8ba46aaf34314d083047b41025525c3897ffd279f50a",
+      "simulation_to_wall_clock_rate": 2.580372808512877,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 1,
+        "peak_particle_count": 0,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 8.679162533333333,
+          "p50": 9.009375,
+          "p95": 10.403458,
+          "p99": 11.72025
+        },
+        "physics": {
+          "mean": 7.713647166666669,
+          "p50": 8.061021,
+          "p95": 9.450292,
+          "p99": 10.401416
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0.9653943999999998,
+          "p50": 0.993958,
+          "p95": 1.041959,
+          "p99": 1.318666
+        }
+      },
+      "id": "constraint-generic",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 110871224,
+      "native_context": 25,
+      "native_minus_public_per_tick": {
+        "barriers": -6.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 14400.0,
+        "dependency_barriers": 2220.0,
+        "dispatches": 2160.0,
+        "workgroups": 22860.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 240,
+          "mean": 240.0,
+          "minimum": 240,
+          "p50": 240,
+          "p95": 240,
+          "p99": 240
+        },
+        "declared_launches": {
+          "maximum": 36,
+          "mean": 36.0,
+          "minimum": 36,
+          "p50": 36,
+          "p95": 36,
+          "p99": 36
+        },
+        "dependency_barriers": {
+          "maximum": 37,
+          "mean": 37.0,
+          "minimum": 37,
+          "p50": 37,
+          "p95": 37,
+          "p99": 37
+        },
+        "dependency_ranges": {
+          "maximum": 75,
+          "mean": 75.0,
+          "minimum": 75,
+          "p50": 75,
+          "p95": 75,
+          "p99": 75
+        },
+        "dispatches": {
+          "maximum": 36,
+          "mean": 36.0,
+          "minimum": 36,
+          "p50": 36,
+          "p95": 36,
+          "p99": 36
+        },
+        "gpu_ms": {
+          "maximum": 7.966625,
+          "mean": 5.3523014,
+          "minimum": 2.34725,
+          "p50": 5.650333,
+          "p95": 7.084667,
+          "p99": 7.966625
+        },
+        "record_ms": {
+          "maximum": 1.158542,
+          "mean": 1.0390082666666667,
+          "minimum": 1.009792,
+          "p50": 1.029708,
+          "p95": 1.145166,
+          "p99": 1.158542
+        },
+        "submit_ms": {
+          "maximum": 0.007583,
+          "mean": 0.0045862,
+          "minimum": 0.004167,
+          "p50": 0.004458,
+          "p95": 0.005625,
+          "p99": 0.007583
+        },
+        "submit_to_fence_ms": {
+          "maximum": 8.254833,
+          "mean": 5.608156833333334,
+          "minimum": 2.562416,
+          "p50": 5.915666,
+          "p95": 7.403958,
+          "p99": 8.254833
+        },
+        "transfer_commands": {
+          "maximum": 7,
+          "mean": 7.0,
+          "minimum": 7,
+          "p50": 7,
+          "p95": 7,
+          "p99": 7
+        },
+        "wait_ms": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "workgroups": {
+          "maximum": 381,
+          "mean": 381.0,
+          "minimum": 381,
+          "p50": 381,
+          "p95": 381,
+          "p99": 381
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 43,
+        "bytes_moved": 240,
+        "coupling_edges": 0,
+        "coupling_sweeps": 0,
+        "dispatches": 36,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 0,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 8,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 381
+      },
+      "requirements": "rigidBodies, rigidConstraints",
+      "scene": "CONSTRAINT: GENERIC",
+      "scene_asset": "ConstraintGeneric.glb",
+      "scene_asset_sha256": "1f66ea70d80db6febdde1b3265842d6ccae1d07e88741b2db3d750f1434069be",
+      "simulation_to_wall_clock_rate": 1.9203082638319993,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 3,
+        "peak_particle_count": 0,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 11.9096875,
+          "p50": 11.683437,
+          "p95": 15.623166,
+          "p99": 16.323875
+        },
+        "physics": {
+          "mean": 10.996581866666668,
+          "p50": 10.816125,
+          "p95": 14.324708,
+          "p99": 15.373375
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0.9129750666666667,
+          "p50": 0.897187,
+          "p95": 0.999458,
+          "p99": 1.298084
+        }
+      },
+      "id": "constraint-motor-spring",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 50250400,
+      "native_context": 28,
+      "native_minus_public_per_tick": {
+        "barriers": -6.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 37920.0,
+        "dependency_barriers": 2160.0,
+        "dispatches": 2100.0,
+        "workgroups": 45300.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 632,
+          "mean": 632.0,
+          "minimum": 632,
+          "p50": 632,
+          "p95": 632,
+          "p99": 632
+        },
+        "declared_launches": {
+          "maximum": 35,
+          "mean": 35.0,
+          "minimum": 35,
+          "p50": 35,
+          "p95": 35,
+          "p99": 35
+        },
+        "dependency_barriers": {
+          "maximum": 36,
+          "mean": 36.0,
+          "minimum": 36,
+          "p50": 36,
+          "p95": 36,
+          "p99": 36
+        },
+        "dependency_ranges": {
+          "maximum": 102,
+          "mean": 102.0,
+          "minimum": 102,
+          "p50": 102,
+          "p95": 102,
+          "p99": 102
+        },
+        "dispatches": {
+          "maximum": 35,
+          "mean": 35.0,
+          "minimum": 35,
+          "p50": 35,
+          "p95": 35,
+          "p99": 35
+        },
+        "gpu_ms": {
+          "maximum": 11.812,
+          "mean": 7.5588041666666665,
+          "minimum": 4.071875,
+          "p50": 7.561208,
+          "p95": 10.787,
+          "p99": 11.812
+        },
+        "record_ms": {
+          "maximum": 1.973708,
+          "mean": 1.8443554666666666,
+          "minimum": 1.805958,
+          "p50": 1.832583,
+          "p95": 1.924625,
+          "p99": 1.973708
+        },
+        "submit_ms": {
+          "maximum": 0.00525,
+          "mean": 0.0046430333333333336,
+          "minimum": 0.004292,
+          "p50": 0.004542,
+          "p95": 0.005125,
+          "p99": 0.00525
+        },
+        "submit_to_fence_ms": {
+          "maximum": 12.296916,
+          "mean": 8.013434666666667,
+          "minimum": 4.535875,
+          "p50": 8.023209,
+          "p95": 11.27775,
+          "p99": 12.296916
+        },
+        "transfer_commands": {
+          "maximum": 7,
+          "mean": 7.0,
+          "minimum": 7,
+          "p50": 7,
+          "p95": 7,
+          "p99": 7
+        },
+        "wait_ms": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "workgroups": {
+          "maximum": 755,
+          "mean": 755.0,
+          "minimum": 755,
+          "p50": 755,
+          "p95": 755,
+          "p99": 755
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 42,
+        "bytes_moved": 632,
+        "coupling_edges": 0,
+        "coupling_sweeps": 0,
+        "dispatches": 35,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 0,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 8,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 755
+      },
+      "requirements": "rigidBodies, rigidConstraints",
+      "scene": "CONSTRAINT: MOTOR + SPRING",
+      "scene_asset": "ConstraintMotorSpring.glb",
+      "scene_asset_sha256": "9a4798104689dac0ea171652535de37d84e043f071ba17876bf29c7675ca9e76",
+      "simulation_to_wall_clock_rate": 1.3994210625510592,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 9,
+        "peak_particle_count": 0,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 11.7481695,
+          "p50": 11.6284585,
+          "p95": 12.926083,
+          "p99": 13.477166
+        },
+        "physics": {
+          "mean": 10.834675199999998,
+          "p50": 10.716437500000001,
+          "p95": 12.024042,
+          "p99": 12.208
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0.9133792666666667,
+          "p50": 0.9028754999999999,
+          "p95": 0.975208,
+          "p99": 1.268916
+        }
+      },
+      "id": "dump-truck",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 52232864,
+      "native_context": 31,
+      "native_minus_public_per_tick": {
+        "barriers": -6.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 71520.0,
+        "dependency_barriers": 2160.0,
+        "dispatches": 2100.0,
+        "workgroups": 48300.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 1192,
+          "mean": 1192.0,
+          "minimum": 1192,
+          "p50": 1192,
+          "p95": 1192,
+          "p99": 1192
+        },
+        "declared_launches": {
+          "maximum": 35,
+          "mean": 35.0,
+          "minimum": 35,
+          "p50": 35,
+          "p95": 35,
+          "p99": 35
+        },
+        "dependency_barriers": {
+          "maximum": 36,
+          "mean": 36.0,
+          "minimum": 36,
+          "p50": 36,
+          "p95": 36,
+          "p99": 36
+        },
+        "dependency_ranges": {
+          "maximum": 106,
+          "mean": 106.0,
+          "minimum": 106,
+          "p50": 106,
+          "p95": 106,
+          "p99": 106
+        },
+        "dispatches": {
+          "maximum": 35,
+          "mean": 35.0,
+          "minimum": 35,
+          "p50": 35,
+          "p95": 35,
+          "p99": 35
+        },
+        "gpu_ms": {
+          "maximum": 8.723042,
+          "mean": 7.478676366666666,
+          "minimum": 6.2645,
+          "p50": 7.435667,
+          "p95": 8.579375,
+          "p99": 8.723042
+        },
+        "record_ms": {
+          "maximum": 2.098333,
+          "mean": 1.9802457333333334,
+          "minimum": 1.929083,
+          "p50": 1.966042,
+          "p95": 2.084708,
+          "p99": 2.098333
+        },
+        "submit_ms": {
+          "maximum": 0.005583,
+          "mean": 0.004933333333333333,
+          "minimum": 0.004583,
+          "p50": 0.004875,
+          "p95": 0.0055,
+          "p99": 0.005583
+        },
+        "submit_to_fence_ms": {
+          "maximum": 9.235375,
+          "mean": 7.9551874,
+          "minimum": 6.755625,
+          "p50": 7.866417,
+          "p95": 9.035417,
+          "p99": 9.235375
+        },
+        "transfer_commands": {
+          "maximum": 7,
+          "mean": 7.0,
+          "minimum": 7,
+          "p50": 7,
+          "p95": 7,
+          "p99": 7
+        },
+        "wait_ms": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "workgroups": {
+          "maximum": 805,
+          "mean": 805.0,
+          "minimum": 805,
+          "p50": 805,
+          "p95": 805,
+          "p99": 805
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 42,
+        "bytes_moved": 1192,
+        "coupling_edges": 0,
+        "coupling_sweeps": 0,
+        "dispatches": 35,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 0,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 8,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 805
+      },
+      "requirements": "rigidBodies, rigidConstraints",
+      "scene": "DUMP",
+      "scene_asset": "DumpTruck.glb",
+      "scene_asset_sha256": "8db46578c812a4981975f9c0dd2792027a3676d66632c73a4b9b03150798612f",
+      "simulation_to_wall_clock_rate": 1.4186607995314564,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 20,
+        "peak_particle_count": 0,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 7.459016666666668,
+          "p50": 7.376937,
+          "p95": 7.954125,
+          "p99": 8.868917
+        },
+        "physics": {
+          "mean": 6.388018033333334,
+          "p50": 6.314854,
+          "p95": 6.737958,
+          "p99": 7.441
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 1.0708653000000001,
+          "p50": 1.0565625,
+          "p95": 1.216083,
+          "p99": 1.427541
+        }
+      },
+      "id": "fluid",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 53707424,
+      "native_context": 34,
+      "native_minus_public_per_tick": {
+        "barriers": -6.0,
+        "bytes_moved": -9216.0,
+        "dispatches": 0.0,
+        "workgroups": -1.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 144240.0,
+        "dependency_barriers": 5400.0,
+        "dispatches": 4860.0,
+        "workgroups": 9120.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 2404,
+          "mean": 2404.0,
+          "minimum": 2404,
+          "p50": 2404,
+          "p95": 2404,
+          "p99": 2404
+        },
+        "declared_launches": {
+          "maximum": 81,
+          "mean": 81.0,
+          "minimum": 81,
+          "p50": 81,
+          "p95": 81,
+          "p99": 81
+        },
+        "dependency_barriers": {
+          "maximum": 90,
+          "mean": 90.0,
+          "minimum": 90,
+          "p50": 90,
+          "p95": 90,
+          "p99": 90
+        },
+        "dependency_ranges": {
+          "maximum": 184,
+          "mean": 184.0,
+          "minimum": 184,
+          "p50": 184,
+          "p95": 184,
+          "p99": 184
+        },
+        "dispatches": {
+          "maximum": 81,
+          "mean": 81.0,
+          "minimum": 81,
+          "p50": 81,
+          "p95": 81,
+          "p99": 81
+        },
+        "gpu_ms": {
+          "maximum": 3.511375,
+          "mean": 2.676016666666667,
+          "minimum": 2.413292,
+          "p50": 2.656792,
+          "p95": 2.786917,
+          "p99": 3.511375
+        },
+        "record_ms": {
+          "maximum": 2.619041,
+          "mean": 2.3389555,
+          "minimum": 2.2575,
+          "p50": 2.316292,
+          "p95": 2.587,
+          "p99": 2.619041
+        },
+        "submit_ms": {
+          "maximum": 0.008916,
+          "mean": 0.005163833333333334,
+          "minimum": 0.00425,
+          "p50": 0.00475,
+          "p95": 0.007875,
+          "p99": 0.008916
+        },
+        "submit_to_fence_ms": {
+          "maximum": 3.948459,
+          "mean": 3.0659555666666667,
+          "minimum": 2.811958,
+          "p50": 3.050208,
+          "p95": 3.191667,
+          "p99": 3.948459
+        },
+        "transfer_commands": {
+          "maximum": 15,
+          "mean": 15.0,
+          "minimum": 15,
+          "p50": 15,
+          "p95": 15,
+          "p99": 15
+        },
+        "wait_ms": {
+          "maximum": 0.00025,
+          "mean": 0.00018053333333333332,
+          "minimum": 8.3e-05,
+          "p50": 0.000167,
+          "p95": 0.00025,
+          "p99": 0.00025
+        },
+        "workgroups": {
+          "maximum": 152,
+          "mean": 152.0,
+          "minimum": 152,
+          "p50": 152,
+          "p95": 152,
+          "p99": 152
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 96,
+        "bytes_moved": 11620,
+        "coupling_edges": 2,
+        "coupling_sweeps": 4,
+        "dispatches": 81,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 6,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 18,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 153
+      },
+      "requirements": "rigidBodies, particleLiquids",
+      "scene": "FLUID",
+      "scene_asset": "Fluid.glb",
+      "scene_asset_sha256": "740af8ab070eccb8117bfc2a51d00ee0a8227b27c7801e44bcf38a166d72e817",
+      "simulation_to_wall_clock_rate": 2.2344322691196203,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 0,
+        "peak_particle_count": 7,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 9.557937533333332,
+          "p50": 9.528896,
+          "p95": 9.74925,
+          "p99": 11.164083
+        },
+        "physics": {
+          "mean": 8.501116633333336,
+          "p50": 8.498249999999999,
+          "p95": 8.6425,
+          "p99": 9.726791
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 1.0566929999999997,
+          "p50": 1.041125,
+          "p95": 1.106584,
+          "p99": 1.437041
+        }
+      },
+      "id": "fluid-rigid",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 149013176,
+      "native_context": 37,
+      "native_minus_public_per_tick": {
+        "barriers": -6.0,
+        "bytes_moved": -9216.0,
+        "dispatches": 0.0,
+        "workgroups": -1.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 161520.0,
+        "dependency_barriers": 5460.0,
+        "dispatches": 4920.0,
+        "workgroups": 43440.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 2692,
+          "mean": 2692.0,
+          "minimum": 2692,
+          "p50": 2692,
+          "p95": 2692,
+          "p99": 2692
+        },
+        "declared_launches": {
+          "maximum": 82,
+          "mean": 82.0,
+          "minimum": 82,
+          "p50": 82,
+          "p95": 82,
+          "p99": 82
+        },
+        "dependency_barriers": {
+          "maximum": 91,
+          "mean": 91.0,
+          "minimum": 91,
+          "p50": 91,
+          "p95": 91,
+          "p99": 91
+        },
+        "dependency_ranges": {
+          "maximum": 197,
+          "mean": 197.0,
+          "minimum": 197,
+          "p50": 197,
+          "p95": 197,
+          "p99": 197
+        },
+        "dispatches": {
+          "maximum": 82,
+          "mean": 82.0,
+          "minimum": 82,
+          "p50": 82,
+          "p95": 82,
+          "p99": 82
+        },
+        "gpu_ms": {
+          "maximum": 5.503958,
+          "mean": 4.4925222,
+          "minimum": 4.21775,
+          "p50": 4.476375,
+          "p95": 4.611,
+          "p99": 5.503958
+        },
+        "record_ms": {
+          "maximum": 2.821375,
+          "mean": 2.5911264333333337,
+          "minimum": 2.522834,
+          "p50": 2.57525,
+          "p95": 2.784583,
+          "p99": 2.821375
+        },
+        "submit_ms": {
+          "maximum": 0.007334,
+          "mean": 0.004825033333333333,
+          "minimum": 0.004042,
+          "p50": 0.004667,
+          "p95": 0.00675,
+          "p99": 0.007334
+        },
+        "submit_to_fence_ms": {
+          "maximum": 5.917708,
+          "mean": 4.897612366666666,
+          "minimum": 4.605041,
+          "p50": 4.893458,
+          "p95": 5.016166,
+          "p99": 5.917708
+        },
+        "transfer_commands": {
+          "maximum": 15,
+          "mean": 15.0,
+          "minimum": 15,
+          "p50": 15,
+          "p95": 15,
+          "p99": 15
+        },
+        "wait_ms": {
+          "maximum": 0.00025,
+          "mean": 0.00018196666666666668,
+          "minimum": 8.3e-05,
+          "p50": 0.000208,
+          "p95": 0.00025,
+          "p99": 0.00025
+        },
+        "workgroups": {
+          "maximum": 724,
+          "mean": 724.0,
+          "minimum": 724,
+          "p50": 724,
+          "p95": 724,
+          "p99": 724
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 97,
+        "bytes_moved": 11908,
+        "coupling_edges": 2,
+        "coupling_sweeps": 4,
+        "dispatches": 82,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 6,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 18,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 725
+      },
+      "requirements": "rigidBodies, particleLiquids, liquidRigidCoupling",
+      "scene": "FLUID RIGID",
+      "scene_asset": "FluidRigid.glb",
+      "scene_asset_sha256": "a73e2b800569ffc038329d4f57624d766dd2ecf9eaea02bf3f58e268f2c224a0",
+      "simulation_to_wall_clock_rate": 1.7437514607912035,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 4,
+        "peak_particle_count": 7,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 15.440568099999998,
+          "p50": 15.531334000000001,
+          "p95": 17.87575,
+          "p99": 19.382791
+        },
+        "physics": {
+          "mean": 14.488868066666665,
+          "p50": 14.5464375,
+          "p95": 16.829625,
+          "p99": 18.50325
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0.9515374333333333,
+          "p50": 0.9325835,
+          "p95": 1.072458,
+          "p99": 1.351209
+        }
+      },
+      "id": "peg-paint",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 252609232,
+      "native_context": 40,
+      "native_minus_public_per_tick": {
+        "barriers": -6.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 1644720.0,
+        "dependency_barriers": 5400.0,
+        "dispatches": 4500.0,
+        "workgroups": 73980.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 27412,
+          "mean": 27412.0,
+          "minimum": 27412,
+          "p50": 27412,
+          "p95": 27412,
+          "p99": 27412
+        },
+        "declared_launches": {
+          "maximum": 75,
+          "mean": 75.0,
+          "minimum": 75,
+          "p50": 75,
+          "p95": 75,
+          "p99": 75
+        },
+        "dependency_barriers": {
+          "maximum": 90,
+          "mean": 90.0,
+          "minimum": 90,
+          "p50": 90,
+          "p95": 90,
+          "p99": 90
+        },
+        "dependency_ranges": {
+          "maximum": 271,
+          "mean": 270.5,
+          "minimum": 270,
+          "p50": 271,
+          "p95": 271,
+          "p99": 271
+        },
+        "dispatches": {
+          "maximum": 75,
+          "mean": 75.0,
+          "minimum": 75,
+          "p50": 75,
+          "p95": 75,
+          "p99": 75
+        },
+        "gpu_ms": {
+          "maximum": 12.758917,
+          "mean": 8.758697233333333,
+          "minimum": 6.227,
+          "p50": 8.7725,
+          "p95": 11.120208,
+          "p99": 12.758917
+        },
+        "record_ms": {
+          "maximum": 4.197625,
+          "mean": 3.958790366666667,
+          "minimum": 3.908791,
+          "p50": 3.94825,
+          "p95": 4.107792,
+          "p99": 4.197625
+        },
+        "submit_ms": {
+          "maximum": 0.007167,
+          "mean": 0.004919433333333333,
+          "minimum": 0.004125,
+          "p50": 0.004875,
+          "p95": 0.006,
+          "p99": 0.007167
+        },
+        "submit_to_fence_ms": {
+          "maximum": 13.168625,
+          "mean": 9.207126333333333,
+          "minimum": 6.65075,
+          "p50": 9.2195,
+          "p95": 11.564417,
+          "p99": 13.168625
+        },
+        "transfer_commands": {
+          "maximum": 21,
+          "mean": 21.0,
+          "minimum": 21,
+          "p50": 21,
+          "p95": 21,
+          "p99": 21
+        },
+        "wait_ms": {
+          "maximum": 0.001041,
+          "mean": 0.00024173333333333332,
+          "minimum": 8.3e-05,
+          "p50": 0.000209,
+          "p95": 0.000333,
+          "p99": 0.001041
+        },
+        "workgroups": {
+          "maximum": 1233,
+          "mean": 1233.0,
+          "minimum": 1233,
+          "p50": 1233,
+          "p95": 1233,
+          "p99": 1233
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 96,
+        "bytes_moved": 27412,
+        "coupling_edges": 2,
+        "coupling_sweeps": 4,
+        "dispatches": 75,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 6,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 18,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 1233
+      },
+      "requirements": "rigidBodies, particleLiquids, paint",
+      "scene": "PEG PAINT",
+      "scene_asset": "Pegs.glb",
+      "scene_asset_sha256": "1eb9ce2b833eecd0821862b6031e0d2c71fe522ddbeaee955b1db87a4106676d",
+      "simulation_to_wall_clock_rate": 1.079407663497891,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 1,
+        "peak_particle_count": 256,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 13.8591223,
+          "p50": 13.952313,
+          "p95": 18.014583,
+          "p99": 18.694625
+        },
+        "physics": {
+          "mean": 12.816258333333334,
+          "p50": 12.9449995,
+          "p95": 16.957375,
+          "p99": 17.600708
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 1.0427654,
+          "p50": 1.0431045,
+          "p95": 1.169625,
+          "p99": 1.339125
+        }
+      },
+      "id": "cloth",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 67322552,
+      "native_context": 43,
+      "native_minus_public_per_tick": {
+        "barriers": -7.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 4153260.0,
+        "dependency_barriers": 8460.0,
+        "dispatches": 6660.0,
+        "workgroups": 45300.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 69221,
+          "mean": 69221.0,
+          "minimum": 69221,
+          "p50": 69221,
+          "p95": 69221,
+          "p99": 69221
+        },
+        "declared_launches": {
+          "maximum": 111,
+          "mean": 111.0,
+          "minimum": 111,
+          "p50": 111,
+          "p95": 111,
+          "p99": 111
+        },
+        "dependency_barriers": {
+          "maximum": 141,
+          "mean": 141.0,
+          "minimum": 141,
+          "p50": 141,
+          "p95": 141,
+          "p99": 141
+        },
+        "dependency_ranges": {
+          "maximum": 247,
+          "mean": 247.0,
+          "minimum": 247,
+          "p50": 247,
+          "p95": 247,
+          "p99": 247
+        },
+        "dispatches": {
+          "maximum": 111,
+          "mean": 111.0,
+          "minimum": 111,
+          "p50": 111,
+          "p95": 111,
+          "p99": 111
+        },
+        "gpu_ms": {
+          "maximum": 13.154458,
+          "mean": 8.298848633333334,
+          "minimum": 4.20575,
+          "p50": 8.7805,
+          "p95": 12.3895,
+          "p99": 13.154458
+        },
+        "record_ms": {
+          "maximum": 3.207625,
+          "mean": 3.052536133333333,
+          "minimum": 2.985,
+          "p50": 3.037375,
+          "p95": 3.164959,
+          "p99": 3.207625
+        },
+        "submit_ms": {
+          "maximum": 0.008,
+          "mean": 0.0052487666666666665,
+          "minimum": 0.004208,
+          "p50": 0.004959,
+          "p95": 0.007417,
+          "p99": 0.008
+        },
+        "submit_to_fence_ms": {
+          "maximum": 13.5865,
+          "mean": 8.788173633333335,
+          "minimum": 4.695459,
+          "p50": 9.339917,
+          "p95": 12.919084,
+          "p99": 13.5865
+        },
+        "transfer_commands": {
+          "maximum": 37,
+          "mean": 37.0,
+          "minimum": 37,
+          "p50": 37,
+          "p95": 37,
+          "p99": 37
+        },
+        "wait_ms": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "workgroups": {
+          "maximum": 755,
+          "mean": 755.0,
+          "minimum": 755,
+          "p50": 755,
+          "p95": 755,
+          "p99": 755
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 148,
+        "bytes_moved": 69221,
+        "coupling_edges": 1,
+        "coupling_sweeps": 4,
+        "dispatches": 111,
+        "domain_iterations": {
+          "cloth": 8,
+          "fluid": 0,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 20,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 755
+      },
+      "requirements": "rigidBodies, cloth",
+      "scene": "CLOTH",
+      "scene_asset": "Cloth.glb",
+      "scene_asset_sha256": "f4dc3dd53aa6f2459ef3032bbbd4711406a049f31bb7b2a7ea9bf3006b503033",
+      "simulation_to_wall_clock_rate": 1.2025774197765084,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 1,
+        "peak_particle_count": 0,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 13.977504200000002,
+          "p50": 14.098291499999998,
+          "p95": 15.990375,
+          "p99": 17.40225
+        },
+        "physics": {
+          "mean": 12.898449933333334,
+          "p50": 12.962104,
+          "p95": 14.975375,
+          "p99": 15.878792
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 1.0789472666666668,
+          "p50": 1.065979,
+          "p95": 1.226292,
+          "p99": 1.52325
+        }
+      },
+      "id": "cloth-paint",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 70025912,
+      "native_context": 46,
+      "native_minus_public_per_tick": {
+        "barriers": -7.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 8085420.0,
+        "dependency_barriers": 8520.0,
+        "dispatches": 6660.0,
+        "workgroups": 45300.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 134757,
+          "mean": 134757.0,
+          "minimum": 134757,
+          "p50": 134757,
+          "p95": 134757,
+          "p99": 134757
+        },
+        "declared_launches": {
+          "maximum": 111,
+          "mean": 111.0,
+          "minimum": 111,
+          "p50": 111,
+          "p95": 111,
+          "p99": 111
+        },
+        "dependency_barriers": {
+          "maximum": 142,
+          "mean": 142.0,
+          "minimum": 142,
+          "p50": 142,
+          "p95": 142,
+          "p99": 142
+        },
+        "dependency_ranges": {
+          "maximum": 252,
+          "mean": 252.0,
+          "minimum": 252,
+          "p50": 252,
+          "p95": 252,
+          "p99": 252
+        },
+        "dispatches": {
+          "maximum": 111,
+          "mean": 111.0,
+          "minimum": 111,
+          "p50": 111,
+          "p95": 111,
+          "p99": 111
+        },
+        "gpu_ms": {
+          "maximum": 10.504792,
+          "mean": 8.042568,
+          "minimum": 3.919125,
+          "p50": 7.980667,
+          "p95": 9.873708,
+          "p99": 10.504792
+        },
+        "record_ms": {
+          "maximum": 3.317291,
+          "mean": 3.1226138666666667,
+          "minimum": 3.033333,
+          "p50": 3.130458,
+          "p95": 3.209458,
+          "p99": 3.317291
+        },
+        "submit_ms": {
+          "maximum": 0.008041,
+          "mean": 0.006104066666666667,
+          "minimum": 0.004583,
+          "p50": 0.006083,
+          "p95": 0.007541,
+          "p99": 0.008041
+        },
+        "submit_to_fence_ms": {
+          "maximum": 11.07425,
+          "mean": 8.522247233333333,
+          "minimum": 4.399458,
+          "p50": 8.456416,
+          "p95": 10.496167,
+          "p99": 11.07425
+        },
+        "transfer_commands": {
+          "maximum": 38,
+          "mean": 38.0,
+          "minimum": 38,
+          "p50": 38,
+          "p95": 38,
+          "p99": 38
+        },
+        "wait_ms": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "workgroups": {
+          "maximum": 755,
+          "mean": 755.0,
+          "minimum": 755,
+          "p50": 755,
+          "p95": 755,
+          "p99": 755
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 149,
+        "bytes_moved": 134757,
+        "coupling_edges": 1,
+        "coupling_sweeps": 4,
+        "dispatches": 111,
+        "domain_iterations": {
+          "cloth": 8,
+          "fluid": 0,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 20,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 755
+      },
+      "requirements": "rigidBodies, cloth, paint",
+      "scene": "CLOTH PAINT",
+      "scene_asset": "ClothPaint.glb",
+      "scene_asset_sha256": "cb7fce3bced7d99a29db25a68dbe50f8e4f2c686accb1d866cd2d19db26908e2",
+      "simulation_to_wall_clock_rate": 1.192392239517343,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 1,
+        "peak_particle_count": 0,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 19.641886199999995,
+          "p50": 19.629292,
+          "p95": 20.132667,
+          "p99": 21.39575
+        },
+        "physics": {
+          "mean": 18.647701433333335,
+          "p50": 18.598458,
+          "p95": 19.232042,
+          "p99": 19.998542
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0.9940529333333336,
+          "p50": 0.995125,
+          "p95": 1.152709,
+          "p99": 1.396916
+        }
+      },
+      "id": "cloth-water",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 58606264,
+      "native_context": 49,
+      "native_minus_public_per_tick": {
+        "barriers": -8.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 2106360.0,
+        "dependency_barriers": 11100.0,
+        "dispatches": 8340.0,
+        "workgroups": 15000.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 35106,
+          "mean": 35106.0,
+          "minimum": 35106,
+          "p50": 35106,
+          "p95": 35106,
+          "p99": 35106
+        },
+        "declared_launches": {
+          "maximum": 139,
+          "mean": 139.0,
+          "minimum": 139,
+          "p50": 139,
+          "p95": 139,
+          "p99": 139
+        },
+        "dependency_barriers": {
+          "maximum": 185,
+          "mean": 185.0,
+          "minimum": 185,
+          "p50": 185,
+          "p95": 185,
+          "p99": 185
+        },
+        "dependency_ranges": {
+          "maximum": 367,
+          "mean": 366.5,
+          "minimum": 366,
+          "p50": 367,
+          "p95": 367,
+          "p99": 367
+        },
+        "dispatches": {
+          "maximum": 139,
+          "mean": 139.0,
+          "minimum": 139,
+          "p50": 139,
+          "p95": 139,
+          "p99": 139
+        },
+        "gpu_ms": {
+          "maximum": 13.332292,
+          "mean": 12.182558366666665,
+          "minimum": 11.757,
+          "p50": 12.146625,
+          "p95": 12.620375,
+          "p99": 13.332292
+        },
+        "record_ms": {
+          "maximum": 5.022209,
+          "mean": 4.738562533333334,
+          "minimum": 4.650459,
+          "p50": 4.71775,
+          "p95": 4.898458,
+          "p99": 5.022209
+        },
+        "submit_ms": {
+          "maximum": 0.007708,
+          "mean": 0.0065734999999999995,
+          "minimum": 0.00475,
+          "p50": 0.007084,
+          "p95": 0.007625,
+          "p99": 0.007708
+        },
+        "submit_to_fence_ms": {
+          "maximum": 13.849583,
+          "mean": 12.683866700000001,
+          "minimum": 12.252208,
+          "p50": 12.665542,
+          "p95": 13.1465,
+          "p99": 13.849583
+        },
+        "transfer_commands": {
+          "maximum": 54,
+          "mean": 54.0,
+          "minimum": 54,
+          "p50": 54,
+          "p95": 54,
+          "p99": 54
+        },
+        "wait_ms": {
+          "maximum": 0.000375,
+          "mean": 0.0001889,
+          "minimum": 8.3e-05,
+          "p50": 0.000208,
+          "p95": 0.00025,
+          "p99": 0.000375
+        },
+        "workgroups": {
+          "maximum": 250,
+          "mean": 250.0,
+          "minimum": 250,
+          "p50": 250,
+          "p95": 250,
+          "p99": 250
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 193,
+        "bytes_moved": 35106,
+        "coupling_edges": 5,
+        "coupling_sweeps": 8,
+        "dispatches": 139,
+        "domain_iterations": {
+          "cloth": 8,
+          "fluid": 6,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 30,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 250
+      },
+      "requirements": "rigidBodies, particleLiquids, cloth, domainCouplings",
+      "scene": "WATER CLOTH",
+      "scene_asset": "ClothWater.glb",
+      "scene_asset_sha256": "2d27f380ef01c8a20998d4a4f0e05574d111a14faaf0e199780be415a02c6782",
+      "simulation_to_wall_clock_rate": 0.8485268352639714,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 0,
+        "peak_particle_count": 256,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 15.017387600000003,
+          "p50": 14.8666255,
+          "p95": 16.010958,
+          "p99": 17.15775
+        },
+        "physics": {
+          "mean": 14.021927866666664,
+          "p50": 13.8937505,
+          "p95": 14.9845,
+          "p99": 15.77075
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0.9952958666666668,
+          "p50": 0.9856670000000001,
+          "p95": 1.098292,
+          "p99": 1.386709
+        }
+      },
+      "id": "soft-body",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 61211344,
+      "native_context": 52,
+      "native_minus_public_per_tick": {
+        "barriers": -8.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 3804300.0,
+        "dependency_barriers": 7140.0,
+        "dispatches": 5040.0,
+        "workgroups": 19200.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 63405,
+          "mean": 63405.0,
+          "minimum": 63405,
+          "p50": 63405,
+          "p95": 63405,
+          "p99": 63405
+        },
+        "declared_launches": {
+          "maximum": 84,
+          "mean": 84.0,
+          "minimum": 84,
+          "p50": 84,
+          "p95": 84,
+          "p99": 84
+        },
+        "dependency_barriers": {
+          "maximum": 119,
+          "mean": 119.0,
+          "minimum": 119,
+          "p50": 119,
+          "p95": 119,
+          "p99": 119
+        },
+        "dependency_ranges": {
+          "maximum": 212,
+          "mean": 212.0,
+          "minimum": 212,
+          "p50": 212,
+          "p95": 212,
+          "p99": 212
+        },
+        "dispatches": {
+          "maximum": 84,
+          "mean": 84.0,
+          "minimum": 84,
+          "p50": 84,
+          "p95": 84,
+          "p99": 84
+        },
+        "gpu_ms": {
+          "maximum": 10.192875,
+          "mean": 8.774084733333332,
+          "minimum": 8.2825,
+          "p50": 8.666875,
+          "p95": 9.60525,
+          "p99": 10.192875
+        },
+        "record_ms": {
+          "maximum": 4.136916,
+          "mean": 3.7885153666666667,
+          "minimum": 3.697042,
+          "p50": 3.767542,
+          "p95": 4.007458,
+          "p99": 4.136916
+        },
+        "submit_ms": {
+          "maximum": 0.007791,
+          "mean": 0.005909766666666667,
+          "minimum": 0.004083,
+          "p50": 0.006333,
+          "p95": 0.007209,
+          "p99": 0.007791
+        },
+        "submit_to_fence_ms": {
+          "maximum": 10.717792,
+          "mean": 9.2701499,
+          "minimum": 8.736541,
+          "p50": 9.160083,
+          "p95": 10.167375,
+          "p99": 10.717792
+        },
+        "transfer_commands": {
+          "maximum": 43,
+          "mean": 43.0,
+          "minimum": 43,
+          "p50": 43,
+          "p95": 43,
+          "p99": 43
+        },
+        "wait_ms": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "workgroups": {
+          "maximum": 320,
+          "mean": 320.0,
+          "minimum": 320,
+          "p50": 320,
+          "p95": 320,
+          "p99": 320
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 127,
+        "bytes_moved": 63405,
+        "coupling_edges": 1,
+        "coupling_sweeps": 4,
+        "dispatches": 84,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 0,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 8
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 20,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 320
+      },
+      "requirements": "rigidBodies, softBodies",
+      "scene": "SOFT BODY",
+      "scene_asset": "Softbody.glb",
+      "scene_asset_sha256": "c13ae5df9651d687f1233481dd094e2e06ad3b51fe4cd58be851400a63b954af",
+      "simulation_to_wall_clock_rate": 1.1098246898748931,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 0,
+        "peak_particle_count": 0,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 16.126294366666663,
+          "p50": 15.3052915,
+          "p95": 20.900375,
+          "p99": 22.332375
+        },
+        "physics": {
+          "mean": 15.13300416666667,
+          "p50": 14.316687,
+          "p95": 19.904959,
+          "p99": 20.950083
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0.9931333666666669,
+          "p50": 0.988479,
+          "p95": 1.241209,
+          "p99": 1.381958
+        }
+      },
+      "id": "soft-body-rigid",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 120521424,
+      "native_context": 55,
+      "native_minus_public_per_tick": {
+        "barriers": -6.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 3818700.0,
+        "dependency_barriers": 7320.0,
+        "dispatches": 5100.0,
+        "workgroups": 40800.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 63645,
+          "mean": 63645.0,
+          "minimum": 63645,
+          "p50": 63645,
+          "p95": 63645,
+          "p99": 63645
+        },
+        "declared_launches": {
+          "maximum": 85,
+          "mean": 85.0,
+          "minimum": 85,
+          "p50": 85,
+          "p95": 85,
+          "p99": 85
+        },
+        "dependency_barriers": {
+          "maximum": 122,
+          "mean": 122.0,
+          "minimum": 122,
+          "p50": 122,
+          "p95": 122,
+          "p99": 122
+        },
+        "dependency_ranges": {
+          "maximum": 238,
+          "mean": 238.0,
+          "minimum": 238,
+          "p50": 238,
+          "p95": 238,
+          "p99": 238
+        },
+        "dispatches": {
+          "maximum": 85,
+          "mean": 85.0,
+          "minimum": 85,
+          "p50": 85,
+          "p95": 85,
+          "p99": 85
+        },
+        "gpu_ms": {
+          "maximum": 14.930583,
+          "mean": 9.3390541,
+          "minimum": 6.17975,
+          "p50": 8.506875,
+          "p95": 14.197792,
+          "p99": 14.930583
+        },
+        "record_ms": {
+          "maximum": 4.642083,
+          "mean": 4.288861033333333,
+          "minimum": 4.209125,
+          "p50": 4.249958,
+          "p95": 4.538208,
+          "p99": 4.642083
+        },
+        "submit_ms": {
+          "maximum": 0.007416,
+          "mean": 0.0052721,
+          "minimum": 0.004334,
+          "p50": 0.005,
+          "p95": 0.007292,
+          "p99": 0.007416
+        },
+        "submit_to_fence_ms": {
+          "maximum": 15.403625,
+          "mean": 9.836663933333334,
+          "minimum": 6.692875,
+          "p50": 9.07375,
+          "p95": 14.676291,
+          "p99": 15.403625
+        },
+        "transfer_commands": {
+          "maximum": 43,
+          "mean": 43.0,
+          "minimum": 43,
+          "p50": 43,
+          "p95": 43,
+          "p99": 43
+        },
+        "wait_ms": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "workgroups": {
+          "maximum": 680,
+          "mean": 680.0,
+          "minimum": 680,
+          "p50": 680,
+          "p95": 680,
+          "p99": 680
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 128,
+        "bytes_moved": 63645,
+        "coupling_edges": 1,
+        "coupling_sweeps": 4,
+        "dispatches": 85,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 0,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 8
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 20,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 680
+      },
+      "requirements": "rigidBodies, softBodies",
+      "scene": "SOFT BODY RIGID",
+      "scene_asset": "SoftbodyRigidBody.glb",
+      "scene_asset_sha256": "5d40b70591f6ef771a78d238571571b8d1c09ab8af953d447d80361e90d2c5b9",
+      "simulation_to_wall_clock_rate": 1.0335088245909343,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 2,
+        "peak_particle_count": 0,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 22.94543063333333,
+          "p50": 22.9140835,
+          "p95": 23.541041,
+          "p99": 24.0575
+        },
+        "physics": {
+          "mean": 21.92581253333334,
+          "p50": 21.924917,
+          "p95": 22.542417,
+          "p99": 22.822083
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 1.0194623666666667,
+          "p50": 1.0305625,
+          "p95": 1.15075,
+          "p99": 1.235209
+        }
+      },
+      "id": "soft-body-fluid",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 82576080,
+      "native_context": 58,
+      "native_minus_public_per_tick": {
+        "barriers": -7.0,
+        "bytes_moved": -9216.0,
+        "dispatches": 0.0,
+        "workgroups": -1.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 9826620.0,
+        "dependency_barriers": 13620.0,
+        "dispatches": 10260.0,
+        "workgroups": 46500.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 163777,
+          "mean": 163777.0,
+          "minimum": 163777,
+          "p50": 163777,
+          "p95": 163777,
+          "p99": 163777
+        },
+        "declared_launches": {
+          "maximum": 171,
+          "mean": 171.0,
+          "minimum": 171,
+          "p50": 171,
+          "p95": 171,
+          "p99": 171
+        },
+        "dependency_barriers": {
+          "maximum": 227,
+          "mean": 227.0,
+          "minimum": 227,
+          "p50": 227,
+          "p95": 227,
+          "p99": 227
+        },
+        "dependency_ranges": {
+          "maximum": 420,
+          "mean": 420.0,
+          "minimum": 420,
+          "p50": 420,
+          "p95": 420,
+          "p99": 420
+        },
+        "dispatches": {
+          "maximum": 171,
+          "mean": 171.0,
+          "minimum": 171,
+          "p50": 171,
+          "p95": 171,
+          "p99": 171
+        },
+        "gpu_ms": {
+          "maximum": 14.251208,
+          "mean": 13.531020833333335,
+          "minimum": 12.6545,
+          "p50": 13.509667,
+          "p95": 14.235625,
+          "p99": 14.251208
+        },
+        "record_ms": {
+          "maximum": 7.056875,
+          "mean": 6.623887466666667,
+          "minimum": 6.549833,
+          "p50": 6.579333,
+          "p95": 6.971417,
+          "p99": 7.056875
+        },
+        "submit_ms": {
+          "maximum": 0.008583,
+          "mean": 0.0064403333333333335,
+          "minimum": 0.004375,
+          "p50": 0.006917,
+          "p95": 0.007875,
+          "p99": 0.008583
+        },
+        "submit_to_fence_ms": {
+          "maximum": 14.761125,
+          "mean": 14.027620866666666,
+          "minimum": 13.151458,
+          "p50": 14.01825,
+          "p95": 14.674208,
+          "p99": 14.761125
+        },
+        "transfer_commands": {
+          "maximum": 63,
+          "mean": 63.0,
+          "minimum": 63,
+          "p50": 63,
+          "p95": 63,
+          "p99": 63
+        },
+        "wait_ms": {
+          "maximum": 0.000416,
+          "mean": 0.00024033333333333334,
+          "minimum": 8.3e-05,
+          "p50": 0.00025,
+          "p95": 0.000333,
+          "p99": 0.000416
+        },
+        "workgroups": {
+          "maximum": 775,
+          "mean": 775.0,
+          "minimum": 775,
+          "p50": 775,
+          "p95": 775,
+          "p99": 775
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 234,
+        "bytes_moved": 172993,
+        "coupling_edges": 4,
+        "coupling_sweeps": 8,
+        "dispatches": 171,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 6,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 0,
+          "soft_body": 8
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 30,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 776
+      },
+      "requirements": "rigidBodies, particleLiquids, softBodies, domainCouplings",
+      "scene": "SOFT BODY FLUID",
+      "scene_asset": "SoftbodyFluid.glb",
+      "scene_asset_sha256": "d2e3738810af12d7075e8ae45040bd981dad49abd8daf5ff39e23f8be7b1f2ee",
+      "simulation_to_wall_clock_rate": 0.7263610695407493,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 0,
+        "peak_particle_count": 1,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 16.8117861,
+          "p50": 17.345291500000002,
+          "p95": 17.573834,
+          "p99": 17.874458
+        },
+        "physics": {
+          "mean": 15.821759766666672,
+          "p50": 16.341396,
+          "p95": 16.594584,
+          "p99": 16.6215
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0.9898821000000001,
+          "p50": 0.9874585,
+          "p95": 1.041,
+          "p99": 1.365833
+        }
+      },
+      "id": "smoke",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 199754496,
+      "native_context": 61,
+      "native_minus_public_per_tick": {
+        "barriers": -8.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 636020640.0,
+        "dependency_barriers": 6420.0,
+        "dispatches": 4380.0,
+        "workgroups": 3589320.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 10600344,
+          "mean": 10600344.0,
+          "minimum": 10600344,
+          "p50": 10600344,
+          "p95": 10600344,
+          "p99": 10600344
+        },
+        "declared_launches": {
+          "maximum": 73,
+          "mean": 73.0,
+          "minimum": 73,
+          "p50": 73,
+          "p95": 73,
+          "p99": 73
+        },
+        "dependency_barriers": {
+          "maximum": 107,
+          "mean": 107.0,
+          "minimum": 107,
+          "p50": 107,
+          "p95": 107,
+          "p99": 107
+        },
+        "dependency_ranges": {
+          "maximum": 184,
+          "mean": 184.0,
+          "minimum": 184,
+          "p50": 184,
+          "p95": 184,
+          "p99": 184
+        },
+        "dispatches": {
+          "maximum": 73,
+          "mean": 73.0,
+          "minimum": 73,
+          "p50": 73,
+          "p95": 73,
+          "p99": 73
+        },
+        "gpu_ms": {
+          "maximum": 12.37425,
+          "mean": 11.530476433333332,
+          "minimum": 8.330125,
+          "p50": 12.081208,
+          "p95": 12.335875,
+          "p99": 12.37425
+        },
+        "record_ms": {
+          "maximum": 2.838583,
+          "mean": 2.6541846666666666,
+          "minimum": 2.602125,
+          "p50": 2.642583,
+          "p95": 2.7915,
+          "p99": 2.838583
+        },
+        "submit_ms": {
+          "maximum": 0.008167,
+          "mean": 0.006429133333333333,
+          "minimum": 0.005,
+          "p50": 0.00675,
+          "p95": 0.008125,
+          "p99": 0.008167
+        },
+        "submit_to_fence_ms": {
+          "maximum": 12.892166,
+          "mean": 12.056900033333333,
+          "minimum": 8.997,
+          "p50": 12.582708,
+          "p95": 12.8655,
+          "p99": 12.892166
+        },
+        "transfer_commands": {
+          "maximum": 42,
+          "mean": 42.0,
+          "minimum": 42,
+          "p50": 42,
+          "p95": 42,
+          "p99": 42
+        },
+        "wait_ms": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "workgroups": {
+          "maximum": 59822,
+          "mean": 59822.0,
+          "minimum": 59822,
+          "p50": 59822,
+          "p95": 59822,
+          "p99": 59822
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 115,
+        "bytes_moved": 10600344,
+        "coupling_edges": 2,
+        "coupling_sweeps": 4,
+        "dispatches": 73,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 0,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 12,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 24,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 59822
+      },
+      "requirements": "rigidBodies, smoke",
+      "scene": "SMOKE",
+      "scene_asset": "Smoke.glb",
+      "scene_asset_sha256": "0b2d2a482c2c34f219e9656fea907fd522821b37feb1960a49f670a285aa8ad8",
+      "simulation_to_wall_clock_rate": 0.9913680460103564,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 0,
+        "peak_particle_count": 0,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 21.627122133333337,
+          "p50": 21.818541000000003,
+          "p95": 22.4795,
+          "p99": 22.527541
+        },
+        "physics": {
+          "mean": 20.653911133333335,
+          "p50": 20.884209,
+          "p95": 21.488292,
+          "p99": 21.500375
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0.9730527666666666,
+          "p50": 0.977708,
+          "p95": 1.047209,
+          "p99": 1.291875
+        }
+      },
+      "id": "smoke-water",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 264209176,
+      "native_context": 64,
+      "native_minus_public_per_tick": {
+        "barriers": -6.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 636682800.0,
+        "dependency_barriers": 10620.0,
+        "dispatches": 7380.0,
+        "workgroups": 3617460.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 10611380,
+          "mean": 10611380.0,
+          "minimum": 10611380,
+          "p50": 10611380,
+          "p95": 10611380,
+          "p99": 10611380
+        },
+        "declared_launches": {
+          "maximum": 123,
+          "mean": 123.0,
+          "minimum": 123,
+          "p50": 123,
+          "p95": 123,
+          "p99": 123
+        },
+        "dependency_barriers": {
+          "maximum": 177,
+          "mean": 177.0,
+          "minimum": 177,
+          "p50": 177,
+          "p95": 177,
+          "p99": 177
+        },
+        "dependency_ranges": {
+          "maximum": 400,
+          "mean": 399.5,
+          "minimum": 399,
+          "p50": 400,
+          "p95": 400,
+          "p99": 400
+        },
+        "dispatches": {
+          "maximum": 123,
+          "mean": 123.0,
+          "minimum": 123,
+          "p50": 123,
+          "p95": 123,
+          "p99": 123
+        },
+        "gpu_ms": {
+          "maximum": 14.00175,
+          "mean": 13.1515083,
+          "minimum": 11.545875,
+          "p50": 13.443833,
+          "p95": 13.825583,
+          "p99": 14.00175
+        },
+        "record_ms": {
+          "maximum": 5.919958,
+          "mean": 5.607725033333334,
+          "minimum": 5.499084,
+          "p50": 5.58075,
+          "p95": 5.833042,
+          "p99": 5.919958
+        },
+        "submit_ms": {
+          "maximum": 0.008333,
+          "mean": 0.006323566666666667,
+          "minimum": 0.004333,
+          "p50": 0.00625,
+          "p95": 0.007666,
+          "p99": 0.008333
+        },
+        "submit_to_fence_ms": {
+          "maximum": 14.491334,
+          "mean": 13.6638361,
+          "minimum": 12.003959,
+          "p50": 13.919167,
+          "p95": 14.321333,
+          "p99": 14.491334
+        },
+        "transfer_commands": {
+          "maximum": 60,
+          "mean": 60.0,
+          "minimum": 60,
+          "p50": 60,
+          "p95": 60,
+          "p99": 60
+        },
+        "wait_ms": {
+          "maximum": 0.000334,
+          "mean": 0.0001764,
+          "minimum": 8.3e-05,
+          "p50": 0.000167,
+          "p95": 0.00025,
+          "p99": 0.000334
+        },
+        "workgroups": {
+          "maximum": 60291,
+          "mean": 60291.0,
+          "minimum": 60291,
+          "p50": 60291,
+          "p95": 60291,
+          "p99": 60291
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 183,
+        "bytes_moved": 10611380,
+        "coupling_edges": 6,
+        "coupling_sweeps": 8,
+        "dispatches": 123,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 6,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 12,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 34,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 60291
+      },
+      "requirements": "rigidBodies, particleLiquids, smoke, domainCouplings",
+      "scene": "SMOKE WATER",
+      "scene_asset": "SmokeWater.glb",
+      "scene_asset_sha256": "cf1cddb0a7f6e73f767125f6e15f80bb35c32a9d696ffcb9cd987035d1102bdd",
+      "simulation_to_wall_clock_rate": 0.7706373244276064,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 1,
+        "peak_particle_count": 256,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": {
+        "ceiling": {
+          "declared_launches": 288,
+          "dependency_barriers": 672,
+          "dispatches": 288,
+          "workgroups": 67000
+        },
+        "failures": {},
+        "passed": true
+      },
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 104.88877490000002,
+          "p50": 104.8550415,
+          "p95": 107.991125,
+          "p99": 108.536292
+        },
+        "physics": {
+          "mean": 103.862754,
+          "p50": 103.82510450000001,
+          "p95": 107.040958,
+          "p99": 107.410708
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 1.0257805333333334,
+          "p50": 1.005083,
+          "p95": 1.133625,
+          "p99": 1.453417
+        }
+      },
+      "id": "smoke-soft-body",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 264979272,
+      "native_context": 67,
+      "native_minus_public_per_tick": {
+        "barriers": -7.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 664689120.0,
+        "dependency_barriers": 37920.0,
+        "dispatches": 16140.0,
+        "workgroups": 3783600.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 11078152,
+          "mean": 11078152.0,
+          "minimum": 11078152,
+          "p50": 11078152,
+          "p95": 11078152,
+          "p99": 11078152
+        },
+        "declared_launches": {
+          "maximum": 269,
+          "mean": 269.0,
+          "minimum": 269,
+          "p50": 269,
+          "p95": 269,
+          "p99": 269
+        },
+        "dependency_barriers": {
+          "maximum": 632,
+          "mean": 632.0,
+          "minimum": 632,
+          "p50": 632,
+          "p95": 632,
+          "p99": 632
+        },
+        "dependency_ranges": {
+          "maximum": 1566,
+          "mean": 1526.0,
+          "minimum": 1486,
+          "p50": 1566,
+          "p95": 1566,
+          "p99": 1566
+        },
+        "dispatches": {
+          "maximum": 269,
+          "mean": 269.0,
+          "minimum": 269,
+          "p50": 269,
+          "p95": 269,
+          "p99": 269
+        },
+        "gpu_ms": {
+          "maximum": 36.211,
+          "mean": 32.35600693333333,
+          "minimum": 30.293583,
+          "p50": 32.29525,
+          "p95": 35.227917,
+          "p99": 36.211
+        },
+        "record_ms": {
+          "maximum": 69.732167,
+          "mean": 68.88062369999999,
+          "minimum": 68.587625,
+          "p50": 68.79975,
+          "p95": 69.4125,
+          "p99": 69.732167
+        },
+        "submit_ms": {
+          "maximum": 0.01025,
+          "mean": 0.0079514,
+          "minimum": 0.005875,
+          "p50": 0.008375,
+          "p95": 0.009625,
+          "p99": 0.01025
+        },
+        "submit_to_fence_ms": {
+          "maximum": 36.773875,
+          "mean": 32.928545766666666,
+          "minimum": 30.828458,
+          "p50": 32.818291,
+          "p95": 35.817916,
+          "p99": 36.773875
+        },
+        "transfer_commands": {
+          "maximum": 370,
+          "mean": 370.0,
+          "minimum": 370,
+          "p50": 370,
+          "p95": 370,
+          "p99": 370
+        },
+        "wait_ms": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "workgroups": {
+          "maximum": 63060,
+          "mean": 63060.0,
+          "minimum": 63060,
+          "p50": 63060,
+          "p95": 63060,
+          "p99": 63060
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 639,
+        "bytes_moved": 11078152,
+        "coupling_edges": 62,
+        "coupling_sweeps": 8,
+        "dispatches": 269,
+        "domain_iterations": {
+          "cloth": 0,
+          "fluid": 0,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 12,
+          "soft_body": 8
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 36,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 63060
+      },
+      "requirements": "rigidBodies, softBodies, smoke, domainCouplings",
+      "scene": "SMOKE SOFT BODY",
+      "scene_asset": "SmokeSoftbody.glb",
+      "scene_asset_sha256": "b89f07fb4381c4e9c59eb03911402bd6ae71268f0697a52927815ed1a9738516",
+      "simulation_to_wall_clock_rate": 0.15889848605621446,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 1,
+        "peak_particle_count": 0,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    },
+    {
+      "fixed_gate": null,
+      "frame_timing_ms": {
+        "frame": {
+          "mean": 22.102767966666665,
+          "p50": 22.2151455,
+          "p95": 22.630208,
+          "p99": 22.662834
+        },
+        "physics": {
+          "mean": 21.109661133333326,
+          "p50": 21.2207915,
+          "p95": 21.710333,
+          "p99": 21.746083
+        },
+        "present": {
+          "mean": 0,
+          "p50": 0,
+          "p95": 0,
+          "p99": 0
+        },
+        "render": {
+          "mean": 0.9929487000000002,
+          "p50": 0.9890005,
+          "p95": 1.0605,
+          "p99": 1.442458
+        }
+      },
+      "id": "smoke-cloth",
+      "measured_ticks": 30,
+      "memory_footprint_bytes": 227853080,
+      "native_context": 70,
+      "native_minus_public_per_tick": {
+        "barriers": -7.0,
+        "bytes_moved": 0.0,
+        "dispatches": 0.0,
+        "workgroups": 0.0
+      },
+      "native_per_simulated_second": {
+        "bytes_moved": 637831500.0,
+        "dependency_barriers": 11340.0,
+        "dispatches": 8400.0,
+        "workgroups": 3606120.0
+      },
+      "native_per_tick": {
+        "bytes_moved": {
+          "maximum": 10630525,
+          "mean": 10630525.0,
+          "minimum": 10630525,
+          "p50": 10630525,
+          "p95": 10630525,
+          "p99": 10630525
+        },
+        "declared_launches": {
+          "maximum": 140,
+          "mean": 140.0,
+          "minimum": 140,
+          "p50": 140,
+          "p95": 140,
+          "p99": 140
+        },
+        "dependency_barriers": {
+          "maximum": 189,
+          "mean": 189.0,
+          "minimum": 189,
+          "p50": 189,
+          "p95": 189,
+          "p99": 189
+        },
+        "dependency_ranges": {
+          "maximum": 358,
+          "mean": 358.0,
+          "minimum": 358,
+          "p50": 358,
+          "p95": 358,
+          "p99": 358
+        },
+        "dispatches": {
+          "maximum": 140,
+          "mean": 140.0,
+          "minimum": 140,
+          "p50": 140,
+          "p95": 140,
+          "p99": 140
+        },
+        "gpu_ms": {
+          "maximum": 14.768625,
+          "mean": 13.871609733333335,
+          "minimum": 12.183375,
+          "p50": 14.064792,
+          "p95": 14.534,
+          "p99": 14.768625
+        },
+        "record_ms": {
+          "maximum": 5.805042,
+          "mean": 5.482462566666666,
+          "minimum": 5.400375,
+          "p50": 5.444625,
+          "p95": 5.691666,
+          "p99": 5.805042
+        },
+        "submit_ms": {
+          "maximum": 0.0105,
+          "mean": 0.0061223,
+          "minimum": 0.004208,
+          "p50": 0.006208,
+          "p95": 0.007792,
+          "p99": 0.0105
+        },
+        "submit_to_fence_ms": {
+          "maximum": 15.246959,
+          "mean": 14.386348566666667,
+          "minimum": 12.697541,
+          "p50": 14.566167,
+          "p95": 14.988916,
+          "p99": 15.246959
+        },
+        "transfer_commands": {
+          "maximum": 56,
+          "mean": 56.0,
+          "minimum": 56,
+          "p50": 56,
+          "p95": 56,
+          "p99": 56
+        },
+        "wait_ms": {
+          "maximum": 0.0,
+          "mean": 0.0,
+          "minimum": 0.0,
+          "p50": 0.0,
+          "p95": 0.0,
+          "p99": 0.0
+        },
+        "workgroups": {
+          "maximum": 60102,
+          "mean": 60102.0,
+          "minimum": 60102,
+          "p50": 60102,
+          "p95": 60102,
+          "p99": 60102
+        }
+      },
+      "public_work_per_tick": {
+        "barriers": 196,
+        "bytes_moved": 10630525,
+        "coupling_edges": 5,
+        "coupling_sweeps": 8,
+        "dispatches": 140,
+        "domain_iterations": {
+          "cloth": 8,
+          "fluid": 0,
+          "rigid": 8,
+          "rope": 0,
+          "smoke": 12,
+          "soft_body": 0
+        },
+        "intra_tick_host_readbacks": 0,
+        "intra_tick_host_waits": 0,
+        "numerical_iterations": 36,
+        "spatial_builds": 1,
+        "spatial_publications": 1,
+        "spatial_refits": 0,
+        "submissions": 1,
+        "time_advances": 1,
+        "workgroups": 60102
+      },
+      "requirements": "rigidBodies, cloth, smoke, domainCouplings",
+      "scene": "SMOKE CLOTH",
+      "scene_asset": "SmokeCloth.glb",
+      "scene_asset_sha256": "6256953f47d53504bc3c90dcef2f63447439e989b9eb23a0259f7c35dee8c79d",
+      "simulation_to_wall_clock_rate": 0.7540534091040626,
+      "thermal": {
+        "after": "nominal",
+        "before": "nominal"
+      },
+      "workload": {
+        "coupled_body_limit": 4,
+        "fluid_particle_limit": 256,
+        "moving_body_count": 1,
+        "peak_particle_count": 0,
+        "render_height": 720,
+        "render_width": 960,
+        "rigid_body_limit": 4,
+        "smoke_particle_limit": 128,
+        "target_updates_per_second": 60
+      },
+      "workload_profile": "ipad-metal-preview"
+    }
+  ],
+  "schema": "parallel-mater-mobile-metal-qualification/v1",
+  "source": {
+    "backend": "metal",
+    "execution_contract": "fixed-tick-60hz-v1",
+    "platform": "iPadOS",
+    "revision": "632bf778bd958c46418e3b2692825d206c3b82c0"
+  }
+}

@@ -1,0 +1,261 @@
+{
+  "backend": "slang-metal",
+  "binary_identity": {
+    "app_executable_sha256": "6c21f95814f1957365c0b32bf0b4a8b8cdbd3c5dc4e965275bb1cc6805fcc35e",
+    "driver_sha256": "50baabc19940963250ae668471cccb60980e67beda99bf702bf041fba097a72b"
+  },
+  "toolchain": {
+    "compiler": "AppleClang",
+    "compiler_version": "21.0.0.21000101",
+    "slang_version": "2026.18"
+  },
+  "nonce": "c3a506c9-3c1c-46c8-8f0a-24a23d995442",
+  "schema": "parallel-mater-ipados-qualification-run/v1",
+  "revision": "632bf778bd958c46418e3b2692825d206c3b82c0",
+  "completed": true,
+  "gallery_scene_sweep": false,
+  "trajectory": {
+    "failed": 0,
+    "case_count": 30,
+    "completed": 28,
+    "unsupported": 2
+  },
+  "adverse_lifecycle": {
+    "reason": "The artifact contains exact checkpoints; lifecycle.py determines qualification.",
+    "status": "captured-pending-host-evaluation"
+  },
+  "artifacts": [
+    {
+      "path": "physics-qualification/provenance.json",
+      "status": "completed",
+      "kind": "device-provenance",
+      "sha256": "01c5c3ed57340acd8ac12987d4a553f3a515e95ed6efbe26a39d0d01c70e183b"
+    },
+    {
+      "path": "physics-qualification/capabilities.json",
+      "status": "completed",
+      "kind": "advertised-capabilities",
+      "sha256": "847866b4de83b7ed6955e0a84df1f07de7fcb16c46af187a57769d1f55d34edf"
+    },
+    {
+      "path": "physics-qualification/quality/rigid-brick-penetration-v1.json",
+      "status": "completed",
+      "kind": "physical-quality",
+      "sha256": "1b934febc131c060f27c2f991b286f83ba644aabf3fab9aac235496e6ee48349"
+    },
+    {
+      "path": "physics-qualification/quality/core-conservation-stability-v1.json",
+      "status": "unsupported",
+      "kind": "physical-quality",
+      "sha256": "7d414744659e66d4bc0c2912d8c7bec53a2edac31624c931d7995ad1c5416401"
+    },
+    {
+      "path": "physics-qualification/quality/fluid-rope-contact-v1.json",
+      "status": "completed",
+      "kind": "physical-quality",
+      "sha256": "7cc8ec4261e5d186f7fce38e610f2f16c32c32563dc89b8e83f748157abbc7a7"
+    },
+    {
+      "path": "physics-qualification/lifecycle/adverse-capacity-three-family-v1.json",
+      "status": "captured",
+      "kind": "adverse-lifecycle",
+      "sha256": "06e7220461a8771d379d3353a904033c805417468d54b836a6aa242a806ae256"
+    },
+    {
+      "path": "physics-qualification/cases/rigid-direct.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "1bbb0c1b0165b367e6c7e457115f3889a03592afb1ed66fe3100b755a2d5a658"
+    },
+    {
+      "path": "physics-qualification/cases/compound-weld-lifecycle.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "4c5b723d6f4ff66ed5abfeffec5653fe81dd4ef588079bc4fcc12e4cd0192dd3"
+    },
+    {
+      "path": "physics-qualification/cases/constraint-breaking.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "d1a8d2ee4dff7781e7f5adb2ff1e5806aceefccd0a6d8fb3160e385484282776"
+    },
+    {
+      "path": "physics-qualification/cases/passive-active.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "756ed93253a73c4ddd1a4949c83c6f2a1dededba86fbde98d4a2103a1806f43d"
+    },
+    {
+      "path": "physics-qualification/cases/constraint-fixed.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "2bf6d6b06ec13117c114a8237e006723b45588dab09ff8a0e78553573e56f00e"
+    },
+    {
+      "path": "physics-qualification/cases/constraint-point.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "f784c8936cdcd9afa24d515890c3f2e51e5495e542a33a2d5c91f3cf8852281d"
+    },
+    {
+      "path": "physics-qualification/cases/constraint-hinge.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "8c49148bf5bb628c36d504b2d72f7f7ecaa3c2e496d06dfa7c2a41873f9f3c8a"
+    },
+    {
+      "path": "physics-qualification/cases/constraint-slider.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "7d4addd0f51cb46ff7f0061cafbac8001aa0dc7e6fd99b963e1f55b1b48f1dfc"
+    },
+    {
+      "path": "physics-qualification/cases/constraint-piston.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "a837e507076c929fcf048131ac216e2bcd384be9c9fbe37a804da8b60afcea66"
+    },
+    {
+      "path": "physics-qualification/cases/constraint-generic.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "0fb52a551a41263c740c29f7263c8a6e43036e8aba7cca31530baf4582c0bc84"
+    },
+    {
+      "path": "physics-qualification/cases/constraint-generic-spring.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "eeccd24ebd0a6ed1d71b7c95d3455c322aa6a704754646a5a55151447d2aa62d"
+    },
+    {
+      "path": "physics-qualification/cases/constraint-motor.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "d9233b3e4889d75096f5fe58e3965f4e29137ed3a8860c22eb2cbcab4e3936e4"
+    },
+    {
+      "path": "physics-qualification/cases/fluid-lifecycle.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "9b3ae1bf5a2b9f5fc48b6fd19507fb1961692a8f92451c9d78a7518c425f9cb1"
+    },
+    {
+      "path": "physics-qualification/cases/fluid-rigid.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "84ff421ce9e5a29383834b9d769ee0eb32190e4823fb346f470ae8f03c116186"
+    },
+    {
+      "path": "physics-qualification/cases/cloth-core.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "1e43a99528cea82029732f914e660a7d09a93b312eb27193b98fbe139473bf53"
+    },
+    {
+      "path": "physics-qualification/cases/cloth-tear.json",
+      "status": "unsupported",
+      "kind": "trajectory",
+      "sha256": "bd254e38ea7c41aaca4400e486196c82bd063c4504caf1e84e5f570e42da7b73"
+    },
+    {
+      "path": "physics-qualification/cases/cloth-water.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "fdd836a5b564d54376c0a713474c924a261da6adc40794e6554d3b2a24200cd9"
+    },
+    {
+      "path": "physics-qualification/cases/soft-body-core.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "ee0896cfdd839263279b77e762aa75a8adc1272f3d4e64c3b36f1623094c5399"
+    },
+    {
+      "path": "physics-qualification/cases/soft-body-rigid.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "e328c021dba5fe0daf7025a8002a7cc820080b77b403a4cabc49cc4f197eac88"
+    },
+    {
+      "path": "physics-qualification/cases/soft-body-fluid.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "a74387c3e4401c91e3ff37628415c8afbe6a747312e9f9cfd1403c4d51f4f37f"
+    },
+    {
+      "path": "physics-qualification/cases/soft-body-cloth.json",
+      "status": "unsupported",
+      "kind": "trajectory",
+      "sha256": "c203a991f7db083eccb072f00956bf864c91fc474f1ecdbd1c2a24a5fc9ae779"
+    },
+    {
+      "path": "physics-qualification/cases/rope-core.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "1ed624e85e80ab45f1bf3bc3ffa1737cf86f3589306ff1f2dc111afa15b3de9c"
+    },
+    {
+      "path": "physics-qualification/cases/rope-fluid.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "1777c4b6df19d9098b05ee5d3ada3d95d50b18ee53366bfc790d6ace5f728527"
+    },
+    {
+      "path": "physics-qualification/cases/rope-soft-body.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "55c97e7a426d005ac35e25bdefbbf5f43ae7a5de05b296107846a794c62238ef"
+    },
+    {
+      "path": "physics-qualification/cases/rope-cloth.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "a2bf803ca1be0f13ce273dbb5cdcd09bb3818a0cca40e0ce33144b6ea96e9cc1"
+    },
+    {
+      "path": "physics-qualification/cases/smoke-grid.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "47366bde21d799997e2a31fe87782de19ac6d766e3a9d28512e5467bb466695f"
+    },
+    {
+      "path": "physics-qualification/cases/smoke-water.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "f4976da0e370bbf0217c8eb6c50803a5c862f61f6c8ad981e17fcd6a9ccb3b41"
+    },
+    {
+      "path": "physics-qualification/cases/smoke-soft-body.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "236cd7f5545ca467ed503316ef969fb8d84fdb50f94c62cfc25316ee866dfc5a"
+    },
+    {
+      "path": "physics-qualification/cases/smoke-cloth.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "0f002b6e83503b7ae172d1350fb462267e8ba2062fd46f14248a8fbf729e546f"
+    },
+    {
+      "path": "physics-qualification/cases/smoke-rope.json",
+      "status": "completed",
+      "kind": "trajectory",
+      "sha256": "3ed1ab9c661ec1f83c310832302d091340897216cdd155d0ca86ac4d6f9f69bc"
+    }
+  ],
+  "execution_contract": "fixed-tick-60hz-v1",
+  "device": {
+    "gpu": "Apple M1 GPU",
+    "metal_api": "Metal",
+    "metal_version": "Metal 4",
+    "metal_gpu_family": "Apple7",
+    "model": "iPad13,8",
+    "operating_system": "iPadOS",
+    "operating_system_version": "27.0.1"
+  },
+  "report_kind": "public-api-conformance",
+  "physical_quality": {
+    "rigid_brick": "completed",
+    "fluid_rope_contact": "completed",
+    "equal_fluid": "unsupported-not-advertised"
+  }
+}
