@@ -3,6 +3,7 @@
 import importlib.util
 import json
 import pathlib
+import plistlib
 import subprocess
 import tempfile
 import types
@@ -56,6 +57,12 @@ class DeploymentTests(unittest.TestCase):
             self.assertFalse(clean["dirty"])
             self.assertEqual(clean["backend"], "metal")
             self.assertEqual(clean["execution_contract"], deploy.EXECUTION_CONTRACT)
+
+            header = root / "build_revision.hpp"
+            run("cmake", f"-DSOURCE_DIR={source}", f"-DOUTPUT={header}", "-P",
+                str(REPOSITORY_ROOT / "cmake/GenerateGalleryBuildRevision.cmake"),
+                cwd=root)
+            self.assertIn(revision, header.read_text())
 
             tracked.write_text("dirty\n")
             run(*command, cwd=root)
@@ -164,6 +171,9 @@ class DeploymentTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             app = pathlib.Path(tmp)
             (app / "Assets.car").touch()
+            (app / "Info.plist").write_bytes(plistlib.dumps({
+                "CFBundleExecutable": "Gallery"}))
+            (app / "Gallery").write_bytes(b"current")
             info = dict(schema_version=2, revision="current", dirty=False,
                         backend="metal",
                         execution_contract=deploy.EXECUTION_CONTRACT,
@@ -188,6 +198,24 @@ class DeploymentTests(unittest.TestCase):
             info["backend"] = "metal"
             (app / "Assets.car").unlink()
             with self.assertRaisesRegex(RuntimeError, "icon asset catalog"): check()
+
+    def test_build_identity_rejects_stale_compiled_revision(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            app = pathlib.Path(tmp)
+            (app / "Assets.car").touch()
+            (app / "Info.plist").write_bytes(plistlib.dumps({
+                "CFBundleExecutable": "Gallery"}))
+            (app / "Gallery").write_bytes(b"old")
+            (app / "build-info.json").write_text(json.dumps({
+                "schema_version": 2, "revision": "current", "dirty": False,
+                "backend": "metal", "execution_contract": deploy.EXECUTION_CONTRACT,
+                "release_channel": "development-preview"}))
+            def run(*args, **kwargs):
+                return types.SimpleNamespace(stdout=(
+                    "current\n" if "rev-parse" in args else ""))
+            with patch.object(deploy, "run", side_effect=run), \
+                    self.assertRaisesRegex(RuntimeError, "Compiled Gallery revision"):
+                deploy.build_info(app, "ipad")
 
 
 if __name__ == "__main__": unittest.main()

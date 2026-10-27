@@ -880,19 +880,35 @@ if(PARALLEL_MATER_BUILD_GALLERY)
     endif()
     parallel_mater_enable_warnings(parallel-mater-gallery-renderer-adapters)
 
+    set(pm_gallery_build_revision_header
+        "${CMAKE_CURRENT_BINARY_DIR}/generated/include/parallel_mater_gallery/build_revision.hpp")
+    add_custom_target(parallel-mater-gallery-build-revision
+        COMMAND ${CMAKE_COMMAND}
+            -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+            -DOUTPUT=${pm_gallery_build_revision_header}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateGalleryBuildRevision.cmake
+        BYPRODUCTS "${pm_gallery_build_revision_header}"
+        COMMENT "Refreshing compiled Gallery revision"
+        VERBATIM)
+
     add_library(parallel-mater-gallery-session STATIC
                 examples/support/gallery_runtime.cpp
                 examples/support/mobile_session.cpp
                 examples/support/mobile_qualification.cpp
-                examples/support/session.cpp)
+                examples/support/session.cpp
+                "${pm_gallery_build_revision_header}")
+    add_dependencies(parallel-mater-gallery-session
+        parallel-mater-gallery-build-revision)
+    set_source_files_properties("${pm_gallery_build_revision_header}"
+        PROPERTIES GENERATED TRUE)
     set_target_properties(parallel-mater-gallery-session PROPERTIES POSITION_INDEPENDENT_CODE YES)
     target_link_libraries(parallel-mater-gallery-session
         PUBLIC parallel-mater-gallery-renderer-contract
                parallel-mater-gallery-frame-timing
         PRIVATE parallel-mater-gallery-renderer-adapters)
-    target_include_directories(parallel-mater-gallery-session PRIVATE examples/gallery examples/support)
-    target_compile_definitions(parallel-mater-gallery-session PRIVATE
-        PM_GALLERY_BUILD_REVISION="${PARALLEL_MATER_CONFORMANCE_SOURCE_COMMIT}")
+    target_include_directories(parallel-mater-gallery-session PRIVATE
+        examples/gallery examples/support
+        "${CMAKE_CURRENT_BINARY_DIR}/generated/include")
     parallel_mater_enable_warnings(parallel-mater-gallery-session)
     if(APPLE AND PARALLEL_MATER_BUILD_SLANG_METAL_PREVIEW)
         target_sources(parallel-mater-gallery-renderer-adapters PRIVATE

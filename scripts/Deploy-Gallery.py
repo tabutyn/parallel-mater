@@ -67,6 +67,15 @@ def build_info(app, platform, allow_dirty=False):
         raise RuntimeError("Expected the sole fixed-tick Gallery contract")
     if info["backend"] != "metal" or info["release_channel"] != "development-preview":
         raise RuntimeError("Expected explicitly labeled Metal development preview")
+    plist_path = app / "Contents/Info.plist" if platform == "macos" else app / "Info.plist"
+    with plist_path.open("rb") as stream:
+        executable = plistlib.load(stream)["CFBundleExecutable"]
+    executable_path = (app / "Contents/MacOS" / executable
+                       if platform == "macos" else app / executable)
+    if info["revision"].encode("ascii") not in executable_path.read_bytes():
+        raise RuntimeError(
+            "Compiled Gallery revision differs from build-info.json; rebuild "
+            "before deployment")
     run("codesign", "--verify", "--deep", "--strict", app)
     if platform == "ipad" and not (app / "Assets.car").is_file():
         raise RuntimeError("iPad app icon asset catalog is missing")

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Shared Gallery behavior: bounded work, shared budgets, semantic controls.
 #include <parallel_mater_gallery/session.hpp>
+#include <parallel_mater_gallery/build_revision.hpp>
 #include "scene_builder.hpp"
 #include "render/render_scene.hpp"
 #include <parallel_mater_gallery/dump_truck.hpp>
@@ -465,7 +466,7 @@ FrameTimingStatistics GallerySession::qualify(
     frame(); validate_snapshot();
     return statistics;
 }
-std::string GallerySession::build_revision() { return PM_GALLERY_BUILD_REVISION; }
+std::string GallerySession::build_revision() { return gallery_build_revision; }
 PmNativeDeviceInfo GallerySession::native_render_device() const {
     require_scene();
     if (runtime_.native_renderer)
@@ -616,7 +617,7 @@ GalleryPresentationState GallerySession::presentation() const {
         .presentation_latency_ticks =
             frame_policy_.interpolation_history_valid() ? 1U : 0U,
         .latest_timing = timing.latest(),
-        .build_revision = PM_GALLERY_BUILD_REVISION,
+        .build_revision = gallery_build_revision,
     };
 }
 void GallerySession::validate_snapshot() const {
