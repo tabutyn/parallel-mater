@@ -2728,8 +2728,7 @@ public:
                     source.realtime_proposal_offset,
                     simulation::fluid_spatial_query_mask |
                         simulation::coupling_spatial_query_mask,
-                    simulation::fluid_spatial_query_mask |
-                        simulation::coupling_spatial_query_mask,
+                    simulation::fluid_source_admission_mask,
                     coupling_radius, path_deviation,
                     fluid_correction, 1.0e-5F, snapshot_.metadata,
                     snapshot_.bounds, snapshot_.build_flags, query_bounds,

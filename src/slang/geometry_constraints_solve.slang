@@ -208,6 +208,7 @@ void rigid_avbd_project_hinge_anchors(
     }
 }
 
+[ForceInline]
 void rigid_avbd_solve_stage(
     PM_AVBD_BUFFER(BodyParameters) parameters,
     PM_AVBD_BUFFER(RigidBodyState) previous,
