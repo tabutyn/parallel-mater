@@ -8,6 +8,7 @@
 #include <map>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <type_traits>
 
 namespace parallel_mater::metal {
@@ -23,6 +24,7 @@ struct RelocatedRecord {
 // Host addresses identify allocations; only gpuAddress values reach shaders.
 class ScheduleContext {
 public:
+    struct ProfileState;
     explicit ScheduleContext(std::unique_ptr<compute::Device>);
     ~ScheduleContext();
     ScheduleContext(const ScheduleContext &) = delete;
@@ -42,6 +44,11 @@ public:
     void clear(void *, int, std::size_t);
     compute::SubmissionPtr submit();
     void wait();
+    [[nodiscard]] bool schedule_profile_enabled() const noexcept;
+    cudaError_t begin_schedule_profile() noexcept;
+    cudaError_t record_schedule_profile_stage(
+        std::string_view name, std::uint32_t launches) noexcept;
+    cudaError_t end_schedule_profile() noexcept;
     std::recursive_mutex mutex;
     std::uint64_t dispatch_count{};
 
@@ -100,6 +107,8 @@ public:
     }
 private:
     compute::Record relocate_record(compute::Field, const RelocatedRecord &);
+    [[nodiscard]] compute::CommandStatistics command_statistics() const noexcept;
+    void collect_profiles(bool wait);
     cudaError_t remember(cudaError_t) noexcept;
     std::unique_ptr<compute::Device> device_;
     std::map<std::string, compute::KernelPtr> kernels_;
@@ -107,6 +116,8 @@ private:
     std::map<const void *, std::size_t> table_counts;
     std::unique_ptr<compute::CommandList> command_;
     std::vector<compute::SubmissionPtr> pending_;
+    compute::CommandStatistics submitted_statistics_{};
+    std::unique_ptr<ProfileState> profile_;
     cudaError_t error_{cudaSuccess};
 };
 ScheduleContext *context(cudaStream_t stream = nullptr) noexcept;

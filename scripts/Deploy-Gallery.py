@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 import pathlib
 import plistlib
 import subprocess
@@ -24,6 +25,18 @@ EXECUTION_CONTRACT = "fixed-tick-60hz-v1"
 
 def run(*args, **kwargs):
     return subprocess.run([str(a) for a in args], check=True, text=True, **kwargs)
+
+
+def macos_thermal_state():
+    measured_at = time.time()
+    result = subprocess.run(["pmset", "-g", "therm"], text=True,
+                            capture_output=True, check=False)
+    return {
+        "measured_at_unix": measured_at,
+        "exit_code": result.returncode,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+    }
 
 
 def build_info(app, platform, allow_dirty=False):
@@ -55,6 +68,17 @@ def copy_report(device, name, directory):
         "--timeout", "15",
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return json.loads(path.read_text())
+
+
+def copy_artifact(device, name, destination):
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    run("xcrun", "devicectl", "device", "copy", "from", "--device", device,
+        "--domain-type", "appDataContainer", "--domain-identifier", BUNDLE,
+        "--source", "Documents/" + name, "--destination", destination,
+        "--timeout", "30", stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL)
+    if not destination.is_file() or destination.stat().st_size == 0:
+        raise RuntimeError("Collected device artifact is empty: " + name)
 
 
 def sha256_file(path):
@@ -192,6 +216,8 @@ def main():
                         help="iPad: frames per scene plus pause/reset/lifecycle checks")
     parser.add_argument("--physics-qualification", action="store_true",
                         help="iPad: run and collect canonical public-API physics artifacts")
+    parser.add_argument("--schedule-profile", action="store_true",
+                        help="collect opt-in native Metal dispatch/timing evidence")
     parser.add_argument("--timeout", type=int, default=1800)
     parser.add_argument("--output", type=pathlib.Path, default=ROOT / "out/gallery-deployment")
     args = parser.parse_args()
@@ -201,6 +227,8 @@ def main():
         parser.error("--device is required for iPad")
     if args.physics_qualification and args.platform != "ipad":
         parser.error("--physics-qualification is available only for iPad")
+    if args.schedule_profile and args.platform == "ipad" and not args.qualify:
+        parser.error("iPad --schedule-profile requires --qualify")
     default = ("build-macos-metal-preview/ParallelMater Gallery.app" if args.platform == "macos"
                else "build-ipad-gallery/Release-iphoneos/ParallelMater Gallery.app")
     app = (args.app or ROOT / default).resolve()
@@ -212,13 +240,47 @@ def main():
             "-DUPDATE_DOCK=ON", "-P", ROOT / "cmake/DeployMacOSBundle.cmake")
         if build_info(installed, "macos", args.allow_dirty) != info:
             raise RuntimeError("Installed Mac build identity differs from staged bundle")
-        result = run(installed / "Contents/MacOS/ParallelMater Gallery", "--constraint-point",
-                     "--backend", "metal", "--frames", "6", "--interactive-smoke", args.output.resolve() / "macos-smoke.ppm", capture_output=True)
+        command = [installed / "Contents/MacOS/ParallelMater Gallery"]
+        environment = None
+        if args.schedule_profile:
+            profile = (args.output / "macos-metal-schedule.jsonl").resolve()
+            profile.unlink(missing_ok=True)
+            environment = os.environ.copy()
+            environment["PM_METAL_SCHEDULE_PROFILE"] = "1"
+            environment["PM_METAL_SCHEDULE_PROFILE_FILE"] = str(profile)
+            command += ["--brick-count", "386", "--frame-timings",
+                        (args.output / "macos-frame-timings.csv").resolve(),
+                        "--frames", "180"]
+        else:
+            command += ["--constraint-point", "--frames", "6"]
+        command += ["--backend", "metal", "--interactive-smoke",
+                    args.output.resolve() / "macos-smoke.ppm"]
+        thermal_before = macos_thermal_state()
+        result = run(*command, capture_output=True, env=environment)
+        thermal_after = macos_thermal_state()
+        thermal_report = {
+            "schema": "parallel-mater-macos-thermal-capture/v1",
+            "revision": info["revision"],
+            "before": thermal_before,
+            "after": thermal_after,
+        }
+        (args.output / "macos-thermal.json").write_text(
+            json.dumps(thermal_report, indent=2) + "\n")
+        if thermal_before["exit_code"] or thermal_after["exit_code"]:
+            raise RuntimeError("pmset could not capture physical Mac thermal state")
         (args.output / "macos-smoke.log").write_text(result.stdout + result.stderr)
         if (f"Build revision: {info['revision']}" not in result.stdout or
                 f"Execution contract: {EXECUTION_CONTRACT}" not in result.stdout or
                 "renderer=metal-direct-fenced" not in result.stdout):
             raise RuntimeError("Installed Mac runtime did not prove the expected revision and direct Metal renderer")
+        if args.schedule_profile:
+            run(sys.executable, ROOT / "scripts/Evaluate-MetalSchedule.py",
+                args.output / "macos-metal-schedule.jsonl", "--workload", "rigid-386",
+                "--priming-samples", "1", "--warmup", "30",
+                "--minimum-samples", "60",
+                "--frame-timings", args.output / "macos-frame-timings.csv",
+                "--output",
+                args.output / "macos-metal-schedule-evaluation.json")
         print("Installed bundle and native smoke verified:", info)
         run("open", "-a", installed)
     else:
@@ -230,6 +292,8 @@ def main():
             command += ["--qualify", "--qualification-frames", str(args.qualify)]
         if args.physics_qualification:
             command += ["--physics-qualification"]
+        if args.schedule_profile:
+            command += ["--metal-schedule-profile"]
         run(*command)
         with tempfile.TemporaryDirectory(prefix="pm-gallery-verify-") as tmp:
             directory = pathlib.Path(tmp)
@@ -266,6 +330,9 @@ def main():
                 validate_physics_qualification(
                     physics, nonce, info["revision"], identity)
                 collect_physics_artifacts(args.device, physics, args.output, directory)
+            if args.schedule_profile:
+                copy_artifact(args.device, "metal-schedule-profile.jsonl",
+                              args.output / "ipad-metal-schedule.jsonl")
             (args.output / "ipad-runtime.json").write_text(json.dumps(runtime, indent=2) + "\n")
         print("Installed runtime verified:", runtime["revision"], runtime["backend"], runtime["device"])
     (args.output / f"{args.platform}-build-info.json").write_text(json.dumps(info, indent=2) + "\n")

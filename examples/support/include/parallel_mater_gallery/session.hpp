@@ -92,7 +92,10 @@ public:
     void validate_snapshot() const;
     // Destructive diagnostic: exercise current scene, then reset it. The caller
     // supplies scheduling/reporting; all platforms run these same checks.
-    FrameTimingStatistics qualify(unsigned frame_count);
+    using QualificationObserver = std::function<void(
+        const FrameTimingSample &, const PmRealtimeStepStatistics &)>;
+    FrameTimingStatistics qualify(
+        unsigned frame_count, const QualificationObserver &observer = {});
     [[nodiscard]] GalleryPresentationState presentation() const;
     [[nodiscard]] const GalleryCatalog &catalog() const noexcept {
         return catalog_;

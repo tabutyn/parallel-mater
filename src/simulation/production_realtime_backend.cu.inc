@@ -1328,7 +1328,8 @@ public:
         pending_ = {};
         cpu_encode_ns_.fill(0U);
         measurement_started_ = std::chrono::steady_clock::now();
-        return PM_SUCCESS;
+        return native_.schedule_profile_enabled()
+            ? native_.begin_schedule_profile() : PM_SUCCESS;
     }
 
     PmResult take_realtime_measurement(
@@ -1343,7 +1344,15 @@ public:
         measurement_started_ = now;
         measurement = pending_;
         pending_ = {};
-        return PM_SUCCESS;
+        if (!native_.schedule_profile_enabled()) return PM_SUCCESS;
+        std::uint64_t launches{};
+        for (const auto &phase : measurement.phases)
+            launches += phase.dispatches;
+        if (launches > std::numeric_limits<std::uint32_t>::max())
+            return PM_ERROR_CAPACITY_EXCEEDED;
+        return native_.record_schedule_profile_stage(
+            schedule_profile_stage(operation.schedule_phase),
+            static_cast<std::uint32_t>(launches));
     }
 
     PmResult end_realtime_telemetry(
@@ -1356,13 +1365,15 @@ public:
             telemetry.phases[index].timing.gpu_status =
                 simulation::RealtimeGpuTimingStatus::unsupported;
         }
-        return PM_SUCCESS;
+        return native_.schedule_profile_enabled()
+            ? native_.end_schedule_profile() : PM_SUCCESS;
     }
 
     PmResult abort_realtime_telemetry(
         const simulation::RealtimeScheduleScene &) noexcept {
         pending_ = {};
-        return PM_SUCCESS;
+        return native_.schedule_profile_enabled()
+            ? native_.end_schedule_profile() : PM_SUCCESS;
     }
 
     PmResult begin_tick(
@@ -6633,6 +6644,27 @@ private:
             return simulation::RealtimeTelemetryPhase::commit;
         }
         return simulation::RealtimeTelemetryPhase::boundary;
+    }
+
+    static constexpr std::string_view schedule_profile_stage(
+        simulation::RealtimeSchedulePhase phase) noexcept {
+        switch (phase) {
+        case simulation::RealtimeSchedulePhase::boundary:
+            return "boundary";
+        case simulation::RealtimeSchedulePhase::predict:
+            return "predict";
+        case simulation::RealtimeSchedulePhase::spatial_update:
+            return "spatial_update";
+        case simulation::RealtimeSchedulePhase::spatial_publish:
+            return "spatial_publish";
+        case simulation::RealtimeSchedulePhase::domain_solve:
+            return "domain_solve";
+        case simulation::RealtimeSchedulePhase::coupling_solve:
+            return "coupling_solve";
+        case simulation::RealtimeSchedulePhase::commit:
+            return "commit";
+        }
+        return "unknown";
     }
 
     template <typename T>

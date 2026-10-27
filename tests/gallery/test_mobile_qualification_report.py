@@ -27,6 +27,19 @@ def passing_report():
             "skipped": False,
             "passed": True,
             "steps": 3,
+            "timing_ms": {
+                phase: {key: 1.0 for key in ("mean", "p50", "p95", "p99")}
+                for phase in ("frame", "physics", "render", "present")
+            },
+            "simulation_to_wall_clock_rate": 1.0,
+            "realtime_work": {
+                field: 0 for field in (
+                    "dispatches", "workgroups", "barriers", "submissions",
+                    "bytes_moved", "time_advances", "spatial_builds",
+                    "spatial_publications", "intra_tick_host_readbacks")
+            },
+            "thermal_state_before": "nominal",
+            "thermal_state_after": "nominal",
         }
         for index in range(27)
     ]
@@ -75,6 +88,9 @@ class MobileGalleryReportTests(unittest.TestCase):
             lambda report: report["failures"].append(
                 {"stage": "scene", "message": "failed"}),
             lambda report: report["scenes"].pop(),
+            lambda report: report["scenes"][0].pop("timing_ms"),
+            lambda report: report["scenes"][0].pop("realtime_work"),
+            lambda report: report["scenes"][0].pop("thermal_state_after"),
         ):
             with self.subTest(mutation=mutation):
                 report = passing_report()

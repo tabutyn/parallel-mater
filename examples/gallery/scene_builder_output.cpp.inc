@@ -184,9 +184,10 @@ bool CommandScene::step(float timestep, std::uint32_t substeps, Vec3 gravity,
     // Consume the query before the next command buffer tries to reset it.
     const PmResult query_result = pmGetQueryPoolResults(
         impl_->device, impl_->statistics_query, 0U, 1U,
-        sizeof(frame.statistics), &frame.statistics,
-        sizeof(frame.statistics), PM_QUERY_RESULT_WAIT_BIT);
+        sizeof(frame.realtime_statistics), &frame.realtime_statistics,
+        sizeof(frame.realtime_statistics), PM_QUERY_RESULT_WAIT_BIT);
     if (!checked(query_result, "read statistics query", error)) return false;
+    frame.statistics = frame.realtime_statistics.step;
 
     // Native rendering borrows completed public exports. Host reads are explicit.
     impl_->contacts_available = collect_contacts;

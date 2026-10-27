@@ -1619,6 +1619,12 @@ if(BUILD_TESTING)
                 -p android_vulkan_schedule_tests.py)
     set_tests_properties(parallel-mater-android-vulkan-schedule-profile-tests
         PROPERTIES LABELS "gallery;mobile;android;vulkan;performance")
+    add_test(NAME parallel-mater-slang-metal-schedule-profile-tests
+        COMMAND ${Python3_EXECUTABLE} -m unittest discover
+                -s ${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery
+                -p metal_schedule_profile_tests.py)
+    set_tests_properties(parallel-mater-slang-metal-schedule-profile-tests
+        PROPERTIES LABELS "gallery;mobile;macos;ipad;metal;performance")
     add_test(NAME parallel-mater-android-deployment-tests
         COMMAND ${Python3_EXECUTABLE} -m unittest discover
                 -s ${CMAKE_CURRENT_SOURCE_DIR}/tests/gallery

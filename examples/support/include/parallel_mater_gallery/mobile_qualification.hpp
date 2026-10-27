@@ -31,8 +31,26 @@ struct MobileQualificationSceneResult {
     bool passed{};
     unsigned steps{};
     double mean_ms{};
+    double p50_ms{};
     double p95_ms{};
+    double p99_ms{};
+    double physics_mean_ms{};
+    double physics_p50_ms{};
+    double physics_p95_ms{};
+    double physics_p99_ms{};
+    double render_mean_ms{};
+    double render_p50_ms{};
+    double render_p95_ms{};
+    double render_p99_ms{};
+    double present_mean_ms{};
+    double present_p50_ms{};
+    double present_p95_ms{};
+    double present_p99_ms{};
+    double simulation_to_wall_clock_rate{};
     std::size_t timing_window_frames{};
+    PmRealtimeStepStatistics realtime_statistics{};
+    std::string thermal_state_before;
+    std::string thermal_state_after;
     std::uint64_t memory_footprint_bytes{};
     std::string reason;
     std::string error;
@@ -74,6 +92,9 @@ struct MobileGalleryQualificationConfig {
     std::string nonce;
     std::function<bool(unsigned, unsigned, std::string &)> configure_surface;
     std::function<std::uint64_t()> memory_footprint;
+    // Platform shells may expose a public thermal-pressure state. A missing
+    // callback is reported explicitly as unavailable, never guessed from time.
+    std::function<std::string()> thermal_state;
     std::function<void(std::string_view)> checkpoint;
 };
 

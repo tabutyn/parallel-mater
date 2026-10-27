@@ -32,6 +32,19 @@ struct Extent {
     std::uint32_t x{1}, y{1}, z{1};
 };
 
+// Commands accepted by one common command list. These are encoder-side facts,
+// not a scheduler estimate: a counter advances only after the native adapter
+// accepted the corresponding command. Optional qualification can snapshot the
+// values before submission without changing the command stream.
+struct CommandStatistics {
+    std::uint64_t dispatches{};
+    std::uint64_t workgroups{};
+    std::uint64_t dependency_barriers{};
+    std::uint64_t dependency_ranges{};
+    std::uint64_t transfer_commands{};
+    std::uint64_t bytes_moved{};
+};
+
 // Allocation identities are meaningful only together: two native APIs may
 // reuse the same allocation value on different devices. Values are opaque to
 // common code and stable for the lifetime of the owning allocation.
@@ -712,6 +725,9 @@ public:
     CommandList &operator=(const CommandList &) = delete;
     // Local recording state; a closed device queue can also prevent encoding.
     [[nodiscard]] bool is_recording() const noexcept { return bool(encoder_); }
+    [[nodiscard]] CommandStatistics statistics() const noexcept {
+        return statistics_;
+    }
     void dispatch(const Arguments &arguments, Extent groups) {
         ensure_open();
         arguments.validate();
@@ -724,6 +740,8 @@ public:
         encode(accesses, [&] {
             owners_->kernels.insert(arguments.kernel());
             encoder_->dispatch(arguments, groups);
+            ++statistics_.dispatches;
+            statistics_.workgroups += std::uint64_t{groups.x} * groups.y * groups.z;
         });
     }
     void copy(const BufferPtr &destination, std::size_t destination_offset,
@@ -740,6 +758,8 @@ public:
         }};
         encode(accesses, [&] {
             encoder_->copy(destination, destination_offset, source, source_offset, size);
+            ++statistics_.transfer_commands;
+            statistics_.bytes_moved += size;
         });
     }
     void fill(const BufferPtr &destination, std::size_t offset, std::size_t size, std::uint8_t value) {
@@ -750,6 +770,8 @@ public:
             ResourceRange{destination, offset, size, ResourceAccess::write}};
         encode(accesses, [&] {
             encoder_->fill(destination, offset, size, value);
+            ++statistics_.transfer_commands;
+            statistics_.bytes_moved += size;
         });
     }
     void upload(const BufferPtr &destination, std::size_t offset, std::span<const std::byte> bytes) {
@@ -761,6 +783,8 @@ public:
         encode(accesses, [&] {
             auto staging = encoder_->upload(destination, offset, bytes);
             if (staging) owners_->buffers.insert(std::move(staging));
+            ++statistics_.transfer_commands;
+            statistics_.bytes_moved += bytes.size();
         });
     }
     [[nodiscard]] SubmissionPtr submit() {
@@ -808,7 +832,11 @@ private:
         auto plan = dependencies_.plan(accesses);
         try {
             for (const auto &access : accesses) owners_->buffers.insert(access.buffer);
-            if (!plan.dependencies.empty()) encoder_->barrier(plan.dependencies);
+            if (!plan.dependencies.empty()) {
+                encoder_->barrier(plan.dependencies);
+                ++statistics_.dependency_barriers;
+                statistics_.dependency_ranges += plan.dependencies.size();
+            }
             function();
             dependencies_.commit(std::move(plan));
         } catch (...) { cancel(); throw; }
@@ -821,6 +849,7 @@ private:
     std::shared_ptr<detail::SubmissionState> state_;
     std::shared_ptr<detail::ResourceOwners> owners_;
     detail::DependencyTracker dependencies_;
+    CommandStatistics statistics_{};
     // Destroy the unsubmitted native encoder before releasing its allocations.
     std::unique_ptr<CommandEncoder> encoder_;
 };

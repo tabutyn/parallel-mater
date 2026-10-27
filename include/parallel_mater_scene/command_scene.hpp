@@ -47,6 +47,10 @@ struct CommandSceneFrame {
     std::vector<PmContactEvent> contacts;
     std::vector<PmDebugRecord> debug_records;
     PmStepStatistics statistics{};
+    // The same completed public query also carries the single-schedule work
+    // ledger. Gallery qualification can reconcile it with native adapter
+    // capture without a private simulation path.
+    PmRealtimeStepStatistics realtime_statistics{};
     std::uint64_t revision{};
     bool full_host_output{};
 };

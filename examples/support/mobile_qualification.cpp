@@ -72,7 +72,7 @@ std::string MobileGalleryQualificationReport::json() const {
     output.imbue(std::locale::classic());
     output << std::setprecision(17)
            << "{\"schema\":" << json_string(mobile_gallery_qualification_schema)
-           << ",\"scope\":\"scene output and shared controls; not numerical, thermal, or full physics qualification\""
+           << ",\"scope\":\"scene output, shared controls, host frame timing, public realtime work and platform thermal state; native traces and full physics qualification remain separate artifacts\""
            << ",\"revision\":" << json_string(revision)
            << ",\"platform\":" << json_string(platform)
            << ",\"backend\":" << json_string(backend)
@@ -120,9 +120,52 @@ std::string MobileGalleryQualificationReport::json() const {
                    << ",\"passed\":" << json_bool(scene.passed)
                    << ",\"steps\":" << scene.steps
                    << ",\"mean_ms\":" << scene.mean_ms
+                   << ",\"p50_ms\":" << scene.p50_ms
                    << ",\"p95_ms\":" << scene.p95_ms
+                   << ",\"p99_ms\":" << scene.p99_ms
+                   << ",\"timing_ms\":{\"frame\":{\"mean\":"
+                   << scene.mean_ms << ",\"p50\":" << scene.p50_ms
+                   << ",\"p95\":" << scene.p95_ms << ",\"p99\":"
+                   << scene.p99_ms << "},\"physics\":{\"mean\":"
+                   << scene.physics_mean_ms << ",\"p50\":"
+                   << scene.physics_p50_ms << ",\"p95\":"
+                   << scene.physics_p95_ms << ",\"p99\":"
+                   << scene.physics_p99_ms << "},\"render\":{\"mean\":"
+                   << scene.render_mean_ms << ",\"p50\":"
+                   << scene.render_p50_ms << ",\"p95\":"
+                   << scene.render_p95_ms << ",\"p99\":"
+                   << scene.render_p99_ms << "},\"present\":{\"mean\":"
+                   << scene.present_mean_ms << ",\"p50\":"
+                   << scene.present_p50_ms << ",\"p95\":"
+                   << scene.present_p95_ms << ",\"p99\":"
+                   << scene.present_p99_ms << "}}"
+                   << ",\"simulation_to_wall_clock_rate\":"
+                   << scene.simulation_to_wall_clock_rate
                    << ",\"timing_window_frames\":"
                    << scene.timing_window_frames
+                   << ",\"realtime_work\":{\"dispatches\":"
+                   << scene.realtime_statistics.total.dispatches
+                   << ",\"workgroups\":"
+                   << scene.realtime_statistics.total.workgroups
+                   << ",\"barriers\":"
+                   << scene.realtime_statistics.total.barriers
+                   << ",\"submissions\":"
+                   << scene.realtime_statistics.total.queueSubmissions
+                   << ",\"bytes_moved\":"
+                   << scene.realtime_statistics.total.bytesMoved
+                   << ",\"time_advances\":"
+                   << scene.realtime_statistics.timeAdvances
+                   << ",\"spatial_builds\":"
+                   << scene.realtime_statistics.total.spatialIndexBuilds
+                   << ",\"spatial_publications\":"
+                   << scene.realtime_statistics.total.spatialIndexPublications
+                   << ",\"intra_tick_host_readbacks\":"
+                   << scene.realtime_statistics.total.intraTickHostReadbacks
+                   << '}'
+                   << ",\"thermal_state_before\":"
+                   << json_string(scene.thermal_state_before)
+                   << ",\"thermal_state_after\":"
+                   << json_string(scene.thermal_state_after)
                    << ",\"session_controls\":true"
                    << ",\"memory_footprint_bytes\":"
                    << scene.memory_footprint_bytes;
@@ -352,24 +395,69 @@ MobileGalleryQualificationReport qualify_mobile_gallery(
             .passed = false,
             .steps = config.frames_per_scene,
             .mean_ms = 0.0,
+            .p50_ms = 0.0,
             .p95_ms = 0.0,
+            .p99_ms = 0.0,
+            .physics_mean_ms = 0.0,
+            .physics_p50_ms = 0.0,
+            .physics_p95_ms = 0.0,
+            .physics_p99_ms = 0.0,
+            .render_mean_ms = 0.0,
+            .render_p50_ms = 0.0,
+            .render_p95_ms = 0.0,
+            .render_p99_ms = 0.0,
+            .present_mean_ms = 0.0,
+            .present_p50_ms = 0.0,
+            .present_p95_ms = 0.0,
+            .present_p99_ms = 0.0,
+            .simulation_to_wall_clock_rate = 0.0,
             .timing_window_frames = 0U,
+            .realtime_statistics = {},
+            .thermal_state_before = "unavailable",
+            .thermal_state_after = "unavailable",
             .memory_footprint_bytes = 0U,
             .reason = item.available ? std::string{} : item.unavailable_reason,
             .error = {},
         };
         if (item.available) {
             try {
+                if (config.thermal_state)
+                    result.thermal_state_before = config.thermal_state();
                 require(session.execute(MobileGalleryCommand::select_scene,
                                         static_cast<float>(index)),
                         failure_message(session, "Scene selection failed"));
-                const auto statistics =
-                    session.gallery().qualify(config.frames_per_scene);
+                const auto statistics = session.gallery().qualify(
+                    config.frames_per_scene,
+                    [&](const FrameTimingSample &,
+                        const PmRealtimeStepStatistics &realtime) {
+                        result.realtime_statistics = realtime;
+                    });
                 result.mean_ms = statistics.mean_ms;
+                result.p50_ms = statistics.median_ms;
                 result.p95_ms = statistics.p95_ms;
+                result.p99_ms = statistics.p99_ms;
+                result.physics_mean_ms = statistics.physics_ms;
+                result.physics_p50_ms = statistics.physics_median_ms;
+                result.physics_p95_ms = statistics.physics_p95_ms;
+                result.physics_p99_ms = statistics.physics_p99_ms;
+                result.render_mean_ms = statistics.render_ms;
+                result.render_p50_ms = statistics.render_median_ms;
+                result.render_p95_ms = statistics.render_p95_ms;
+                result.render_p99_ms = statistics.render_p99_ms;
+                result.present_mean_ms = statistics.present_ms;
+                result.present_p50_ms = statistics.present_median_ms;
+                result.present_p95_ms = statistics.present_p95_ms;
+                result.present_p99_ms = statistics.present_p99_ms;
+                result.simulation_to_wall_clock_rate =
+                    statistics.mean_ms > 0.0
+                    ? 1000.0 * session.gallery().frame_timestep() /
+                        statistics.mean_ms
+                    : 0.0;
                 result.timing_window_frames = statistics.count;
                 result.memory_footprint_bytes = config.memory_footprint
                     ? config.memory_footprint() : session.gallery().allocated_bytes();
+                if (config.thermal_state)
+                    result.thermal_state_after = config.thermal_state();
                 result.passed = true;
             } catch (const std::exception &error) {
                 result.error = error.what();

@@ -438,13 +438,19 @@ PhysicsCaptureProvenance GallerySession::physics_capture_provenance() const {
     provenance.rigid_body_ids = physics_rigid_body_ids(runtime_.scene);
     return provenance;
 }
-FrameTimingStatistics GallerySession::qualify(unsigned frame_count) {
+FrameTimingStatistics GallerySession::qualify(
+    unsigned frame_count, const QualificationObserver &observer) {
     if (frame_count == 0 || frame_count > 100000)
         throw std::runtime_error("Qualification frame count must be 1..100000");
     struct DiagnosticScope { bool &flag; ~DiagnosticScope() { flag = false; } } scope{diagnostics_};
     diagnostics_ = true;
     set_active(true); set_paused(false); reset();
-    for (unsigned i = 0; i < frame_count; ++i) { frame(); validate_snapshot(); }
+    for (unsigned i = 0; i < frame_count; ++i) {
+        frame();
+        validate_snapshot();
+        if (observer && timing.latest())
+            observer(*timing.latest(), output().realtime_statistics);
+    }
     const auto statistics = timing.statistics();
     require(frames == frame_count, "Qualification simulation count mismatch");
     set_paused(true); frame();

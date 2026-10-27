@@ -356,6 +356,24 @@ UIImage *frame_image(const GallerySession &session) {
                 const auto resources = std::filesystem::path(root.fileSystemRepresentation);
                 setenv("PM_DRIVER_FILES", (resources / "manifests/slang-metal.json").c_str(), 1);
                 setenv("PM_LAYER_FILES", (resources / "manifests/validation.json").c_str(), 1);
+                if ([NSProcessInfo.processInfo.arguments
+                        containsObject:@"--metal-schedule-profile"]) {
+                    NSURL *documents = [NSFileManager.defaultManager
+                        URLsForDirectory:NSDocumentDirectory
+                               inDomains:NSUserDomainMask].firstObject;
+                    NSURL *profile = [documents URLByAppendingPathComponent:
+                        @"metal-schedule-profile.jsonl"];
+                    NSError *removeError = nil;
+                    if ([NSFileManager.defaultManager fileExistsAtPath:profile.path] &&
+                        ![NSFileManager.defaultManager removeItemAtURL:profile
+                                                                 error:&removeError])
+                        throw std::runtime_error(std::string(
+                            "Removing stale Metal schedule profile: ") +
+                            removeError.localizedDescription.UTF8String);
+                    setenv("PM_METAL_SCHEDULE_PROFILE", "1", 1);
+                    setenv("PM_METAL_SCHEDULE_PROFILE_FILE",
+                           profile.fileSystemRepresentation, 1);
+                }
                 struct utsname machine{}; uname(&machine);
                 self->_mobile = std::make_unique<MobileGallerySession>(parallel_mater::gallery::GallerySessionConfig{
                     .assets = resources / "assets", .profiles = resources / "config/device-profiles.json",
@@ -574,6 +592,15 @@ UIImage *frame_image(const GallerySession &session) {
             return true;
         },
         .memory_footprint = [] { return memory_footprint(); },
+        .thermal_state = [] {
+            switch (NSProcessInfo.processInfo.thermalState) {
+            case NSProcessInfoThermalStateNominal: return std::string("nominal");
+            case NSProcessInfoThermalStateFair: return std::string("fair");
+            case NSProcessInfoThermalStateSerious: return std::string("serious");
+            case NSProcessInfoThermalStateCritical: return std::string("critical");
+            }
+            return std::string("unknown");
+        },
         .checkpoint = [](std::string_view json) {
             write_text_report(@"smoke-report.json", std::string(json));
         },

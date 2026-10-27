@@ -72,6 +72,31 @@ def validate_mobile_gallery_report(report, nonce=None, expected_scenes=28):
     if not all(scene.get("passed") and scene.get("steps") == frames
                for scene in supported):
         raise RuntimeError("Supported mobile Gallery scene checks failed")
+    for scene in supported:
+        timing = scene.get("timing_ms")
+        if (not isinstance(timing, dict) or
+                any(not isinstance(timing.get(phase), dict)
+                    for phase in ("frame", "physics", "render", "present")) or
+                any(not isinstance(timing[phase].get(percentile), (int, float))
+                    for phase in ("frame", "physics", "render", "present")
+                    for percentile in ("mean", "p50", "p95", "p99"))):
+            raise RuntimeError("Supported mobile Gallery scene lacks timing distributions")
+        work = scene.get("realtime_work")
+        if (not isinstance(work, dict) or
+                any(not isinstance(work.get(field), int) or work[field] < 0
+                    for field in ("dispatches", "workgroups", "barriers",
+                                  "submissions", "bytes_moved", "time_advances",
+                                  "spatial_builds", "spatial_publications",
+                                  "intra_tick_host_readbacks"))):
+            raise RuntimeError("Supported mobile Gallery scene lacks public realtime work")
+        if (not isinstance(scene.get("simulation_to_wall_clock_rate"), (int, float)) or
+                scene["simulation_to_wall_clock_rate"] < 0):
+            raise RuntimeError("Supported mobile Gallery scene lacks simulation/wall rate")
+        if (not isinstance(scene.get("thermal_state_before"), str) or
+                not scene["thermal_state_before"] or
+                not isinstance(scene.get("thermal_state_after"), str) or
+                not scene["thermal_state_after"]):
+            raise RuntimeError("Supported mobile Gallery scene lacks thermal state")
     if not all(scene.get("skipped") and scene.get("reason")
                for scene in unavailable):
         raise RuntimeError("Unavailable mobile Gallery scenes lack exact reasons")
