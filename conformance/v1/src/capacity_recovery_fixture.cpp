@@ -56,6 +56,11 @@ const PmFluidParticleOutput *output_particles(
 }
 
 void append_float(std::ostringstream &stream, float value) {
+    // Canonical public state treats IEEE +0 and -0 as the same observable
+    // value. GPU targets may legitimately choose either sign for a clamped
+    // zero, so hashing the raw sign bit would report state drift where none
+    // exists.
+    if (value == 0.0F) value = 0.0F;
     stream << std::hex << std::setw(8) << std::setfill('0')
            << std::bit_cast<std::uint32_t>(value);
 }

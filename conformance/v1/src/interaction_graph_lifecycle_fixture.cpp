@@ -476,7 +476,8 @@ int parallel_mater_interaction_graph_lifecycle_fixture(
     fluid_material.restDensity = 1000.0F;
     fluid_material.particleRadius = 0.025F;
     fluid_material.supportRadius = 0.1F;
-    fluid_material.maximumSpeed = 100.0F;
+    fluid_material.restParticleVolume = 0.000125F;
+    fluid_material.maximumSpeed = 2.9F;
     fluid_material.densityIterations = 1U;
     PmClothMaterialState cloth_material{};
     cloth_material.vertexMass = 1.0F;
@@ -490,19 +491,21 @@ int parallel_mater_interaction_graph_lifecycle_fixture(
     rope_material.radius = 0.01F;
     rope_material.mass = 1.0F;
     rope_material.maximumSubstepTimestep = 1.0F / 60.0F;
-    rope_material.maximumSpeed = 100.0F;
+    rope_material.maximumSpeed = 0.5F;
     rope_material.solverIterations = 4U;
     PmSoftBodyMaterialState soft_material{};
     soft_material.nodeMass = 1.0F;
     soft_material.nodeRadius = 0.01F;
     soft_material.maximumProjectionFraction = 0.2F;
     soft_material.constraintVelocityResponse = 1.0F;
-    soft_material.maximumSpeed = 100.0F;
+    // The lifecycle fixture must itself remain inside the mandatory fixed-tick
+    // soft-body envelope while it exercises graph replacement and rollback.
+    soft_material.maximumSpeed = 5.0F;
     soft_material.solverIterations = 4U;
     PmSmokeMaterialState smoke_material{};
     smoke_material.particleRadius = 0.02F;
     smoke_material.restNumberDensity = 12.0F;
-    smoke_material.maximumSpeed = 100.0F;
+    smoke_material.maximumSpeed = 1.0F;
 
     const auto graph = coupling_graph(false);
     const auto updated_graph = coupling_graph(true);
