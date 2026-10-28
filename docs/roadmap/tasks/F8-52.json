@@ -1,7 +1,7 @@
 {
   "id": "F8-52",
   "title": "Freeze the complete single-path SDK and Gallery candidate",
-  "status": "open",
+  "status": "leased",
   "dependencies": [
     "F8-51",
     "F8-54",
@@ -24,6 +24,14 @@
     "Reject the freeze until F8-54 Metal batching, F8-55 common-BVH coupling searches/batching and F8-56 independent native/Gallery reduction evidence are merged done. A runtime-derived budget, one spatial-build counter, compile-only result or absent Apple-device run cannot satisfy this gate."
   ],
   "evidence": [],
-  "lease": null,
+  "lease": {
+    "token": "e42ee18f-2a1e-415c-b0ce-cbb7ea88a8e6",
+    "owner": "codex-f8-candidate-freeze",
+    "machine": "Thomass-MacBook-Air",
+    "branch": "work/F8-52/Thomass-MacBook-Air",
+    "claimed_at": "2026-10-28T23:52:24Z",
+    "heartbeat_at": "2026-10-28T23:52:24Z",
+    "expires_at": "2026-10-29T23:52:24Z"
+  },
   "history": []
 }
